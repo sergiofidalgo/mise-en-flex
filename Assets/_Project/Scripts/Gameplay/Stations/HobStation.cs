@@ -18,7 +18,7 @@ namespace Game.Gameplay.Stations
 
         public override IItemContainer Container => _slot;
 
-        public bool PromptAsDiamond => false;
+        public bool PromptAsDiamond(PlayerInteractor player) => false;
 
         public override void Bind(KitchenServices services)
         {

@@ -81,8 +81,14 @@ namespace Game.Data
         [SerializeField] private string _cutIntoTypeId;
         [Tooltip("Knife chops to finish the cut.")]
         [SerializeField, Min(0)] private int _cutsNeeded;
-        [Tooltip("Real seconds between beats: the chopping rhythm.")]
-        [SerializeField, Min(0.05f)] private float _chopInterval = 0.3f;
+        [Tooltip("Real seconds for the cutting dial's needle to go once round.")]
+        [SerializeField, Min(0.05f)] private float _chopSecondsPerTurn = 0.7f;
+        [Tooltip("Centre of the sweet spot, degrees clockwise from the top of the dial. Each ingredient has its own.")]
+        [SerializeField, Range(0f, 359f)] private float _sweetSpotAngle = 90f;
+        [Tooltip("Degrees either side of the centre for a Good cut.")]
+        [SerializeField, Min(0f)] private float _sweetSpotGood = 20f;
+        [Tooltip("Degrees either side for an Early/Late cut; beyond is a Miss.")]
+        [SerializeField, Min(0f)] private float _sweetSpotOk = 40f;
 
         public string TypeId => _typeId;
         public GameObject Prefab => _prefab;
@@ -112,7 +118,10 @@ namespace Game.Data
             RestTargetSeconds = _restTargetSeconds,
             CutIntoTypeId = string.IsNullOrEmpty(_cutIntoTypeId) ? null : _cutIntoTypeId,
             CutsNeeded = _cutsNeeded,
-            ChopInterval = _chopInterval,
+            ChopSecondsPerTurn = _chopSecondsPerTurn,
+            SweetSpotAngle = _sweetSpotAngle,
+            SweetSpotGoodHalfWidth = _sweetSpotGood,
+            SweetSpotOkHalfWidth = _sweetSpotOk,
         };
     }
 }

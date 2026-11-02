@@ -51,6 +51,13 @@ namespace Game.Gameplay.Stations
         /// <summary>The tool held alongside the hands (the knife), or null.</summary>
         public Item Tool => _tool.Current;
 
+        // How far RT must be pulled to open a slot menu.
+        private const float MenuTriggerThreshold = 0.5f;
+
+        /// <summary>True while RT (keyboard E) is held facing a station with a slot menu.</summary>
+        public bool IsSlotMenuOpen =>
+            _target is ISlotMenuStation && _heatUp != null && _heatUp.ReadValue<float>() >= MenuTriggerThreshold;
+
         public Interactable Target => _target;
 
         /// <summary>Raised after every Interact press that had a target.</summary>

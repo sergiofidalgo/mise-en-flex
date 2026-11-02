@@ -8,12 +8,12 @@ using UnityEngine;
 namespace Game.Gameplay.Stations
 {
     /// <summary>
-    /// A fridge or shelf with four slots, one per face button. With empty hands, a face button
-    /// takes one portion from that slot; with food in hand, Interact puts it back into the slot
-    /// for that ingredient. Stock refills when the scene starts (restocking during Prep comes in
+    /// A fridge or shelf with four slots, one per face button. Holding RT opens its radial menu;
+    /// while it's open, a face button takes one portion from that slot (empty hands). With food in
+    /// hand, Interact puts it back into the slot for that ingredient, no menu needed. Stock refills when the scene starts (restocking during Prep comes in
     /// Phase 3, buying and placing units in Phases 4–5).
     /// </summary>
-    public sealed class StorageStation : Interactable, IFaceButtonTarget, IStationPrompt
+    public sealed class StorageStation : Interactable, IFaceButtonTarget, IStationPrompt, ISlotMenuStation
     {
         [Serializable]
         public sealed class SlotSetup
@@ -48,7 +48,7 @@ namespace Game.Gameplay.Stations
 
         public override IItemContainer Container => _container;
 
-        public bool PromptAsDiamond => true;
+        public bool PromptAsDiamond(PlayerInteractor player) => player.IsSlotMenuOpen;
 
         public override void Bind(KitchenServices services)
         {
@@ -76,7 +76,7 @@ namespace Game.Gameplay.Stations
         public bool TryPress(FaceButton button, PlayerInteractor player)
         {
             var index = (int)button;
-            if (_unit == null || !player.Hands.IsEmpty || !_unit.TryTake(index, out var ingredient))
+            if (_unit == null || !player.IsSlotMenuOpen || !player.Hands.IsEmpty || !_unit.TryTake(index, out var ingredient))
                 return false;
 
             player.ReceiveItem(ingredient, BinAnchor(index).position);
@@ -87,6 +87,14 @@ namespace Game.Gameplay.Stations
         {
             if (_unit == null)
                 return;
+
+            if (!player.IsSlotMenuOpen)
+            {
+                lines.Add(new PromptLine(PromptControl.Triggers, "open", player.Hands.IsEmpty));
+                if (!player.Hands.IsEmpty)
+                    lines.Add(new PromptLine(PromptControl.South, "put back", _unit.CanAccept(player.Hands.Current)));
+                return;
+            }
 
             for (var i = 0; i < _unit.Slots.Count; i++)
             {

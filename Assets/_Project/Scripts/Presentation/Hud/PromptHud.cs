@@ -54,7 +54,7 @@ namespace Game.Presentation.Hud
                     continue;
                 }
 
-                card.Show(_lines, prompt.PromptAsDiamond, player.currentControlScheme == GamepadScheme,
+                card.Show(_lines, prompt.PromptAsDiamond(interactor), player.currentControlScheme == GamepadScheme,
                     _settings.GetPlayerColor(player.playerIndex));
                 LayoutRebuilder.ForceRebuildLayoutImmediate(card.Rect);
                 Place(card, interactor.Target, screen);

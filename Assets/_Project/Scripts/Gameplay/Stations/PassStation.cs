@@ -25,7 +25,7 @@ namespace Game.Gameplay.Stations
         // IItemHolder), so nothing can be poured onto or scooped off a served plate.
         public override Item HeldItem => _slot.Current;
 
-        public bool PromptAsDiamond => false;
+        public bool PromptAsDiamond(PlayerInteractor player) => false;
 
         /// <summary>Raised when a plate is served, with its score.</summary>
         public event Action<PassStation, DishScore> Served;

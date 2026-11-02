@@ -87,8 +87,17 @@ namespace Game.Simulation.Cooking
         /// <summary>Knife chops needed to finish the cut.</summary>
         public int CutsNeeded { get; set; }
 
-        /// <summary>Real seconds between beats when chopping: the rhythm the player follows.</summary>
-        public float ChopInterval { get; set; }
+        /// <summary>Real seconds for the cutting dial's needle to go once round.</summary>
+        public float ChopSecondsPerTurn { get; set; } = 0.7f;
+
+        /// <summary>Centre of the cutting sweet spot, degrees clockwise from the top of the dial.</summary>
+        public float SweetSpotAngle { get; set; }
+
+        /// <summary>Degrees either side of the sweet spot's centre for a Good cut.</summary>
+        public float SweetSpotGoodHalfWidth { get; set; } = 20f;
+
+        /// <summary>Degrees either side for an Early/Late cut; beyond is a Miss.</summary>
+        public float SweetSpotOkHalfWidth { get; set; } = 40f;
 
         /// <summary>In-game seconds of rest off the pan for full marks (steak); 0 if resting isn't scored.</summary>
         public float RestTargetSeconds { get; set; }

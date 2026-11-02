@@ -4,6 +4,18 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-02 — RT opens slot menus; cutting is a radial timing dial
+
+**Decisions (yours, plus details flagged for review):**
+- **Slot menus open on RT** (keyboard E), not by approaching. Facing storage shows only "RT open" (and "A put back" when holding food that belongs there); while RT is held, the radial menu shows the four slots and A/B/X/Y take from them. **The prep counter works the same for its slots**; putting on / taking from the board (A) and cutting (X) need no RT.
+- **Cutting is a radial dial, replacing the beat:** a needle sweeps round, and X is pressed as it crosses the ingredient's sweet spot. Centre = Good, edges = Early/Late, outside = Miss (still cuts, less evenly). **Each ingredient has its own sweet spot** (angle, width, speed); onion: 120°, ±20° Good, ±40° Early/Late, 0.7 s per turn, **5 cuts**.
+- **The needle's speed reacts to each cut:** Good speeds it up progressively (×1.15), Early/Late slow it subtly (×0.95), a Miss slows it significantly (×0.75), within 0.5×–2× of the base speed. Tunable in `TuningConfig`.
+- The dial is uGUI: ring, amber Early/Late arc with a green Good core, white needle, progress dots, last grade.
+
+**Supersedes:** "follow a beat" and the 8-chop onion (milestone 6′).
+
+---
+
 ## 2026-11-02 — HUD direction
 
 **Decisions:** a mix of **in-world information on stations** (heat ring, bin counts, doneness gauge) and **flat button badges in Xbox colours**; prompts are **badge + short verb**; doneness reads as a **gauge with a target band and a needle**; built with **uGUI + TextMeshPro**. Plan in `plans/hud-pass.md`.

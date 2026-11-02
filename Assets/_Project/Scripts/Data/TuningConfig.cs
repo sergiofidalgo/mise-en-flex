@@ -1,5 +1,6 @@
 using Game.Simulation.Interaction;
 using Game.Simulation.Movement;
+using Game.Simulation.Prep;
 using Game.Simulation.Quality;
 using UnityEngine;
 
@@ -88,14 +89,20 @@ namespace Game.Data
         [Tooltip("Extra scale at mid-flight (0.15 = 15% bigger), for a small 'pop'.")]
         [SerializeField, Min(0f)] private float _itemPop = 0.15f;
 
-        [Header("Chopping")]
-        [Tooltip("± real seconds around the beat that count as a good chop.")]
-        [SerializeField, Min(0f)] private float _chopGoodWindow = 0.07f;
-        [Tooltip("± real seconds that count as early / late; beyond is a miss.")]
-        [SerializeField, Min(0f)] private float _chopOkWindow = 0.14f;
+        [Header("Cutting dial pacing")]
+        [Tooltip("Needle speed multiplier after a Good cut (above 1: a streak speeds up).")]
+        [SerializeField, Min(0.1f)] private float _chopSpeedAfterGood = 1.15f;
+        [Tooltip("After an Early/Late cut (slightly below 1).")]
+        [SerializeField, Min(0.1f)] private float _chopSpeedAfterOk = 0.95f;
+        [Tooltip("After a Miss (well below 1).")]
+        [SerializeField, Min(0.1f)] private float _chopSpeedAfterMiss = 0.75f;
+        [Tooltip("Slowest the needle can get, relative to the ingredient's base speed.")]
+        [SerializeField, Min(0.1f)] private float _chopSpeedMin = 0.5f;
+        [Tooltip("Fastest the needle can get, relative to the ingredient's base speed.")]
+        [SerializeField, Min(0.1f)] private float _chopSpeedMax = 2f;
 
-        public float ChopGoodWindow => _chopGoodWindow;
-        public float ChopOkWindow => _chopOkWindow;
+        public ChopPacing ChopPacing =>
+            new ChopPacing(_chopSpeedAfterGood, _chopSpeedAfterOk, _chopSpeedAfterMiss, _chopSpeedMin, _chopSpeedMax);
 
         [Header("Hob")]
         [Tooltip("Hob dial change per second at full trigger. 0.8 = off to full in 1.25 s.")]

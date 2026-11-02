@@ -10,10 +10,11 @@ namespace Game.Gameplay.Stations
     /// <summary>
     /// The mise en place counter: a cutting board in the middle and four slots for prepared
     /// ingredients, laid out like the face buttons. A puts a whole ingredient on the board (or a
-    /// prepared one back into its slot); holding the knife, X chops in time with the beat; with
-    /// empty hands the face buttons take a portion from that slot (A takes from the board first).
+    /// prepared one back into its slot), or with empty hands takes from the board; holding the
+    /// knife, X cuts when the dial's needle is in the sweet spot. Holding RT opens the slot menu,
+    /// and then the face buttons take a portion from that slot.
     /// </summary>
-    public sealed class PrepStation : Interactable, IFaceButtonTarget, IUsable, IStationPrompt
+    public sealed class PrepStation : Interactable, IFaceButtonTarget, IUsable, IStationPrompt, ISlotMenuStation
     {
         [Tooltip("Where the item on the cutting board sits.")]
         [SerializeField] private Transform _boardAnchor;
@@ -33,7 +34,7 @@ namespace Game.Gameplay.Stations
 
         public override Transform AnchorFor(Item item) => _boardAnchor;
 
-        public bool PromptAsDiamond => true;
+        public bool PromptAsDiamond(PlayerInteractor player) => player.IsSlotMenuOpen;
 
         /// <summary>Raised on every chop, for rhythm feedback.</summary>
         public event Action<ChopGrade> Chopped;
@@ -44,8 +45,7 @@ namespace Game.Gameplay.Stations
             _counter = new PrepCounter(
                 services.Equipment.PrepSlotCapacity,
                 whole => services.Cooking.Transform(whole, services.Catalog.Find(whole.Properties.CutIntoTypeId).ToProperties()),
-                services.Tuning.ChopGoodWindow,
-                services.Tuning.ChopOkWindow);
+                services.Tuning.ChopPacing);
             _counter.CutFinished += HandleCutFinished;
             _container = new PrepContainer(this);
         }
@@ -58,17 +58,22 @@ namespace Game.Gameplay.Stations
 
         public bool TryPress(FaceButton button, PlayerInteractor player)
         {
-            if (button == FaceButton.West && TryChop(player))
-                return true;
-            if (!player.Hands.IsEmpty || _counter == null)
+            if (_counter == null)
                 return false;
-
-            if (button == FaceButton.South && _counter.Current != null)
+            if (!player.IsSlotMenuOpen)
             {
-                player.ReceiveItem(_counter.Take(), _boardAnchor.position);
-                return true;
+                if (button == FaceButton.West && TryChop(player))
+                    return true;
+                if (button == FaceButton.South && player.Hands.IsEmpty && _counter.Current != null)
+                {
+                    player.ReceiveItem(_counter.Take(), _boardAnchor.position);
+                    return true;
+                }
+                return false;
             }
 
+            if (!player.Hands.IsEmpty)
+                return false;
             var index = (int)button;
             if (!_counter.TryTakeFromSlot(index, out var portion))
                 return false;
@@ -83,16 +88,21 @@ namespace Game.Gameplay.Stations
             if (_counter == null)
                 return;
 
-            var canChop = player.Tool is Knife && _counter.CanChop;
             var emptyHands = player.Hands.IsEmpty;
-            lines.Add(_counter.Current != null && emptyHands
-                ? new PromptLine(PromptControl.South, $"take {_counter.Current.TypeId}")
-                : SlotLine(PromptControl.South, 0, emptyHands));
-            lines.Add(SlotLine(PromptControl.East, 1, emptyHands));
-            lines.Add(canChop
-                ? new PromptLine(PromptControl.West, $"chop {_counter.Cuts}/{_counter.CutsNeeded}")
-                : SlotLine(PromptControl.West, 2, emptyHands));
-            lines.Add(SlotLine(PromptControl.North, 3, emptyHands));
+            if (player.IsSlotMenuOpen)
+            {
+                for (var i = 0; i < PrepCounter.SlotCount; i++)
+                    lines.Add(SlotLine((PromptControl)i, i, emptyHands));
+                return;
+            }
+
+            if (player.Tool is Knife && _counter.CanChop)
+                lines.Add(new PromptLine(PromptControl.West, $"cut {_counter.Cuts}/{_counter.CutsNeeded}"));
+            if (_counter.Current != null && emptyHands)
+                lines.Add(new PromptLine(PromptControl.South, $"take {_counter.Current.TypeId}"));
+            else if (!emptyHands)
+                lines.Add(new PromptLine(PromptControl.South, "put down", _counter.CanAccept(player.Hands.Current)));
+            lines.Add(new PromptLine(PromptControl.Triggers, "slots", emptyHands));
         }
 
         private PromptLine SlotLine(PromptControl control, int index, bool emptyHands)

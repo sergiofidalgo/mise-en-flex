@@ -8,7 +8,7 @@ namespace Game.Simulation.Prep
     /// <summary>
     /// The mise en place counter (decision 2026-11-02): a cutting board in the middle and four
     /// slots for prepared ingredients. A whole ingredient goes on the board, is chopped with the
-    /// knife in rhythm, and the cut product goes into a slot (one ingredient per slot; a slot is
+    /// knife by timing presses to the cutting dial, and the cut product goes into a slot (one ingredient per slot; a slot is
     /// assigned when the first portion arrives and freed when it empties). If no slot can take
     /// it, the cut stays on the board.
     /// </summary>
@@ -30,19 +30,16 @@ namespace Game.Simulation.Prep
 
         private readonly Slot[] _slots = new Slot[SlotCount];
         private readonly Func<Ingredient, Ingredient> _cut;
-        private readonly float _goodWindow;
-        private readonly float _okWindow;
+        private readonly ChopPacing _pacing;
 
         /// <param name="slotCapacity">Portions each slot holds.</param>
         /// <param name="cut">Turns a finished whole ingredient into its cut form (via the cooking simulation).</param>
-        /// <param name="goodWindow">± real seconds around a beat that count as a good chop.</param>
-        /// <param name="okWindow">± real seconds that count as early/late.</param>
-        public PrepCounter(int slotCapacity, Func<Ingredient, Ingredient> cut, float goodWindow, float okWindow)
+        /// <param name="pacing">How each cut's grade changes the dial's speed.</param>
+        public PrepCounter(int slotCapacity, Func<Ingredient, Ingredient> cut, ChopPacing? pacing = null)
         {
             SlotCapacity = slotCapacity;
             _cut = cut;
-            _goodWindow = goodWindow;
-            _okWindow = okWindow;
+            _pacing = pacing ?? ChopPacing.Default;
             for (var i = 0; i < SlotCount; i++)
                 _slots[i] = new Slot();
         }
@@ -54,8 +51,8 @@ namespace Game.Simulation.Prep
         /// <summary>What's on the board, or null.</summary>
         public Item Current { get; private set; }
 
-        /// <summary>The rhythm of the cut in progress, or null.</summary>
-        public ChopRhythm Rhythm { get; private set; }
+        /// <summary>The cutting dial for what's on the board, or null if there's nothing to cut.</summary>
+        public ChopDial Dial { get; private set; }
 
         /// <summary>Chops done on the item on the board.</summary>
         public int Cuts { get; private set; }
@@ -77,13 +74,12 @@ namespace Game.Simulation.Prep
                 return null;
 
             var whole = (Ingredient)Current;
-            Rhythm ??= new ChopRhythm(whole.Properties.ChopInterval, _goodWindow, _okWindow);
-            var grade = Rhythm.Hit(realTime);
+            var grade = Dial.Hit(realTime);
             Cuts++;
 
             if (Cuts >= whole.Properties.CutsNeeded)
             {
-                var evenness = Rhythm.Evenness;
+                var evenness = Dial.Evenness;
                 var product = _cut(whole);
                 product.CutEvenness = evenness;
                 ClearBoard();
@@ -132,7 +128,8 @@ namespace Game.Simulation.Prep
             {
                 Current = ingredient;
                 Cuts = 0;
-                Rhythm = null;
+                var p = ingredient.Properties;
+                Dial = new ChopDial(p.ChopSecondsPerTurn, p.SweetSpotAngle, p.SweetSpotGoodHalfWidth, p.SweetSpotOkHalfWidth, _pacing);
             }
             else
             {
@@ -169,7 +166,7 @@ namespace Game.Simulation.Prep
         {
             Current = null;
             Cuts = 0;
-            Rhythm = null;
+            Dial = null;
         }
     }
 }

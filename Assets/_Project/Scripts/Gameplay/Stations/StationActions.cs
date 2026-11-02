@@ -47,10 +47,18 @@ namespace Game.Gameplay.Stations
     /// </summary>
     public interface IStationPrompt
     {
-        /// <summary>True to lay the four face buttons out as a diamond (storage); otherwise a list.</summary>
-        bool PromptAsDiamond { get; }
+        /// <summary>True to lay the four face buttons out as a radial diamond (an open slot menu); otherwise a list.</summary>
+        bool PromptAsDiamond(PlayerInteractor player);
 
         void DescribeActions(PlayerInteractor player, List<PromptLine> lines);
+    }
+
+    /// <summary>
+    /// A station with a slot menu (storage, the prep counter's slots): holding RT (keyboard E)
+    /// while facing it opens the radial menu, and the face buttons take from its slots only then.
+    /// </summary>
+    public interface ISlotMenuStation
+    {
     }
 
     /// <summary>

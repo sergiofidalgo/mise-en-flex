@@ -17,7 +17,7 @@ namespace Game.Gameplay.Stations
 
         public override Item HeldItem => _knife;
 
-        public bool PromptAsDiamond => false;
+        public bool PromptAsDiamond(PlayerInteractor player) => false;
 
         public override void Bind(KitchenServices services)
         {

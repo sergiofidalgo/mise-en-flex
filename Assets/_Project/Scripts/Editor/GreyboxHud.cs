@@ -26,6 +26,17 @@ namespace Game.Editor
         private const float RowSpacing = 6f;
         private const float BadgeToLabel = 8f;
         private const float DiamondColumnGap = 28f;
+        private const float RadialRingPadding = 18f;
+
+        // Cutting dial (canvas pixels at the 1080p reference).
+        private const float DialSize = 130f;
+        private const float DialHole = 0.62f;     // inner disc as a fraction of the dial: arcs read as a ring
+        private const float NeedleWidth = 5f;
+        private const int DialDots = 8;
+        private const float DotSize = 12f;
+        private static readonly Color DialRing = new Color(0.10f, 0.11f, 0.13f, 0.88f);
+        private static readonly Color DialOk = new Color(0.95f, 0.72f, 0.25f);
+        private static readonly Color DialGood = new Color(0.45f, 0.85f, 0.40f);
 
         public static HudStyle EnsureStyle()
         {
@@ -58,6 +69,12 @@ namespace Game.Editor
             so.FindProperty("_cardPrefab").objectReferenceValue = card.GetComponent<PromptCard>();
             so.FindProperty("_settings").objectReferenceValue = settings;
             so.ApplyModifiedPropertiesWithoutUndo();
+
+            var dials = hud.AddComponent<ChopDialHud>();
+            var dialSo = new SerializedObject(dials);
+            dialSo.FindProperty("_canvas").objectReferenceValue = hud.GetComponent<RectTransform>();
+            dialSo.FindProperty("_dialPrefab").objectReferenceValue = BuildChopDial(style).GetComponent<ChopDialView>();
+            dialSo.ApplyModifiedPropertiesWithoutUndo();
         }
 
         private static GameObject BuildPromptCard(HudStyle style)
@@ -98,6 +115,16 @@ namespace Game.Editor
 
             // Diamond: Y on top, X and B in the middle, A at the bottom, as on the controller.
             var diamond = NewRect("Diamond", root);
+            // A faint ring behind the diamond, so the open slot menu reads as radial.
+            var ring = NewRect("Ring", diamond);
+            ring.anchorMin = Vector2.zero;
+            ring.anchorMax = Vector2.one;
+            ring.offsetMin = -Vector2.one * RadialRingPadding;
+            ring.offsetMax = Vector2.one * RadialRingPadding;
+            var ringImage = AddImage(ring.gameObject, style.Circle, new Color(1f, 1f, 1f, 0.07f));
+            ringImage.type = Image.Type.Simple;
+            ring.gameObject.AddComponent<LayoutElement>().ignoreLayout = true;
+
             var diamondLayout = diamond.gameObject.AddComponent<VerticalLayoutGroup>();
             diamondLayout.spacing = RowSpacing;
             diamondLayout.childAlignment = TextAnchor.MiddleCenter;
@@ -129,6 +156,99 @@ namespace Game.Editor
             var prefab = PrefabUtility.SaveAsPrefabAsset(root.gameObject, $"{PrefabFolder}/PF_Hud_PromptCard.prefab");
             Object.DestroyImmediate(root.gameObject);
             return prefab;
+        }
+
+        private static GameObject BuildChopDial(HudStyle style)
+        {
+            var root = NewRect("PF_Hud_ChopDial", null);
+            root.anchorMin = root.anchorMax = root.pivot = new Vector2(0.5f, 0.5f);
+            root.sizeDelta = Vector2.one * DialSize;
+            var group = root.gameObject.AddComponent<CanvasGroup>();
+            group.interactable = false;
+            group.blocksRaycasts = false;
+
+            Disc("Ring", root, style, DialRing, 1f);
+            var ok = Arc("OkArc", root, style, DialOk);
+            var good = Arc("GoodArc", root, style, DialGood);
+            Disc("Hole", root, style, DialRing, DialHole);
+
+            // Needle from the centre to the rim; it rotates about the dial's centre.
+            var needle = NewRect("Needle", root);
+            needle.anchorMin = needle.anchorMax = new Vector2(0.5f, 0.5f);
+            needle.pivot = new Vector2(0.5f, 0f);
+            needle.sizeDelta = new Vector2(NeedleWidth, DialSize / 2f);
+            needle.anchoredPosition = Vector2.zero;
+            AddImage(needle.gameObject, style.Rounded, Color.white).type = Image.Type.Simple;
+
+            var dotsRow = NewRect("Dots", root);
+            dotsRow.anchorMin = dotsRow.anchorMax = new Vector2(0.5f, 0f);
+            dotsRow.pivot = new Vector2(0.5f, 1f);
+            dotsRow.anchoredPosition = new Vector2(0f, -8f);
+            var dotsLayout = dotsRow.gameObject.AddComponent<HorizontalLayoutGroup>();
+            dotsLayout.spacing = 5f;
+            dotsLayout.childControlWidth = dotsLayout.childControlHeight = false;
+            dotsLayout.childAlignment = TextAnchor.MiddleCenter;
+            var fitter = dotsRow.gameObject.AddComponent<ContentSizeFitter>();
+            fitter.horizontalFit = fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+            var dots = new Image[DialDots];
+            for (var i = 0; i < DialDots; i++)
+            {
+                var dot = NewRect($"Dot_{i + 1}", dotsRow);
+                dot.sizeDelta = Vector2.one * DotSize;
+                dots[i] = AddImage(dot.gameObject, style.Circle, Color.white);
+                dots[i].type = Image.Type.Simple;
+            }
+
+            var gradeRect = NewRect("Grade", root);
+            gradeRect.anchorMin = gradeRect.anchorMax = new Vector2(0.5f, 0f);
+            gradeRect.pivot = new Vector2(0.5f, 1f);
+            gradeRect.anchoredPosition = new Vector2(0f, -8f - DotSize - 6f);
+            gradeRect.sizeDelta = new Vector2(260f, 30f);
+            var grade = gradeRect.gameObject.AddComponent<TextMeshProUGUI>();
+            grade.font = style.Font;
+            grade.fontSize = style.FontSize;
+            grade.fontStyle = FontStyles.Bold;
+            grade.alignment = TextAlignmentOptions.Center;
+            grade.textWrappingMode = TextWrappingModes.NoWrap;
+            grade.raycastTarget = false;
+
+            var view = root.gameObject.AddComponent<ChopDialView>();
+            var so = new SerializedObject(view);
+            so.FindProperty("_rect").objectReferenceValue = root;
+            so.FindProperty("_group").objectReferenceValue = group;
+            so.FindProperty("_okArc").objectReferenceValue = ok;
+            so.FindProperty("_goodArc").objectReferenceValue = good;
+            so.FindProperty("_needle").objectReferenceValue = needle;
+            so.FindProperty("_grade").objectReferenceValue = grade;
+            SetArray(so.FindProperty("_dots"), dots);
+            so.ApplyModifiedPropertiesWithoutUndo();
+
+            GreyboxAssets.EnsureFolder(PrefabFolder);
+            var prefab = PrefabUtility.SaveAsPrefabAsset(root.gameObject, $"{PrefabFolder}/PF_Hud_ChopDial.prefab");
+            Object.DestroyImmediate(root.gameObject);
+            return prefab;
+        }
+
+        private static Image Disc(string name, RectTransform parent, HudStyle style, Color color, float scale)
+        {
+            var rect = NewRect(name, parent);
+            rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 0.5f);
+            rect.sizeDelta = Vector2.one * DialSize * scale;
+            var image = AddImage(rect.gameObject, style.Circle, color);
+            image.type = Image.Type.Simple;
+            return image;
+        }
+
+        // A full-size disc filled radially from the top, clockwise; ChopDialView sets the amount and rotation.
+        private static Image Arc(string name, RectTransform parent, HudStyle style, Color color)
+        {
+            var image = Disc(name, parent, style, color, 1f);
+            image.type = Image.Type.Filled;
+            image.fillMethod = Image.FillMethod.Radial360;
+            image.fillOrigin = (int)Image.Origin360.Top;
+            image.fillClockwise = true;
+            image.fillAmount = 0.1f;
+            return image;
         }
 
         private static RectTransform DiamondLine(string name, RectTransform parent)
