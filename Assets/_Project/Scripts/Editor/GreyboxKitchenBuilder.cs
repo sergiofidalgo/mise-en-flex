@@ -10,15 +10,16 @@ using UnityEngine.InputSystem;
 namespace Game.Editor
 {
     /// <summary>
-    /// Builds the Phase 0 greybox content from code: co-op settings, the player prefab
+    /// Builds the Phase 0 greybox content from code: settings assets, the player prefab
     /// and the kitchen scene. Re-run it after changing this script; it overwrites the
-    /// prefab and scene but keeps an existing CoopSettings asset (that's where tuning lives).
+    /// prefab and scene but keeps existing settings assets (that's where tuning lives).
     /// </summary>
     public static class GreyboxKitchenBuilder
     {
         private const string ControlsPath = "Assets/_Project/Data/Input/GameControls.inputactions";
         private const string SettingsFolder = "Assets/_Project/Data/Settings";
         private const string CoopSettingsPath = SettingsFolder + "/CoopSettings.asset";
+        private const string TuningConfigPath = SettingsFolder + "/TuningConfig.asset";
         private const string PlayerPrefabPath = "Assets/_Project/Prefabs/PF_Player.prefab";
         private const string ScenePath = "Assets/_Project/Scenes/Kitchen_Greybox.unity";
         private const string JoinActionPath = "Gameplay/Join";
@@ -27,6 +28,8 @@ namespace Game.Editor
         private const float FloorWidth = 10f;
         private const float FloorDepth = 8f;
         private static readonly Vector3[] SpawnPositions = { new Vector3(-1.5f, 0f, 0f), new Vector3(1.5f, 0f, 0f) };
+        private const float WallHeight = 1f;
+        private const float WallThickness = 0.2f;
 
         // Fixed overhead camera (decision 2026-11-02): high and tilted so the whole kitchen
         // and both players stay in view.
@@ -37,30 +40,32 @@ namespace Game.Editor
         // Placeholder chef proportions: ~1.7 m tall, origin at the feet.
         private static readonly Vector3 BodyScale = new Vector3(0.7f, 0.85f, 0.7f);
         private static readonly Vector3 NoseScale = new Vector3(0.2f, 0.2f, 0.3f);
+        private const float CollisionRadius = 0.35f;
 
         [MenuItem("Tools/Game/Build Greybox Kitchen")]
         public static void BuildAll()
         {
-            var settings = EnsureCoopSettings();
-            var playerPrefab = BuildPlayerPrefab(settings);
+            var settings = EnsureAsset<CoopSettings>(CoopSettingsPath);
+            var tuning = EnsureAsset<TuningConfig>(TuningConfigPath);
+            var playerPrefab = BuildPlayerPrefab(settings, tuning);
             BuildScene(settings, playerPrefab);
             AssetDatabase.SaveAssets();
             Debug.Log($"[GreyboxKitchenBuilder] Built {PlayerPrefabPath} and {ScenePath}.");
         }
 
-        private static CoopSettings EnsureCoopSettings()
+        private static T EnsureAsset<T>(string path) where T : ScriptableObject
         {
-            var settings = AssetDatabase.LoadAssetAtPath<CoopSettings>(CoopSettingsPath);
-            if (settings != null)
-                return settings;
+            var asset = AssetDatabase.LoadAssetAtPath<T>(path);
+            if (asset != null)
+                return asset;
 
-            EnsureFolder(SettingsFolder);
-            settings = ScriptableObject.CreateInstance<CoopSettings>();
-            AssetDatabase.CreateAsset(settings, CoopSettingsPath);
-            return settings;
+            EnsureFolder(System.IO.Path.GetDirectoryName(path));
+            asset = ScriptableObject.CreateInstance<T>();
+            AssetDatabase.CreateAsset(asset, path);
+            return asset;
         }
 
-        private static GameObject BuildPlayerPrefab(CoopSettings settings)
+        private static GameObject BuildPlayerPrefab(CoopSettings settings, TuningConfig tuning)
         {
             var controls = LoadControls();
 
@@ -69,6 +74,16 @@ namespace Game.Editor
             playerInput.actions = controls;
             playerInput.defaultActionMap = "Gameplay";
             playerInput.notificationBehavior = PlayerNotifications.InvokeCSharpEvents;
+
+            var controller = root.AddComponent<CharacterController>();
+            controller.height = BodyScale.y * 2f;
+            controller.radius = CollisionRadius;
+            controller.center = new Vector3(0f, BodyScale.y, 0f);
+
+            var movement = root.AddComponent<PlayerMovement>();
+            var movementSo = new SerializedObject(movement);
+            movementSo.FindProperty("_tuning").objectReferenceValue = tuning;
+            movementSo.ApplyModifiedPropertiesWithoutUndo();
 
             // Visuals live under one child so the join pop scales them without moving the root.
             var visuals = new GameObject("Visuals").transform;
@@ -115,6 +130,7 @@ namespace Game.Editor
             var floor = GameObject.CreatePrimitive(PrimitiveType.Plane);
             floor.name = "Floor";
             floor.transform.localScale = new Vector3(FloorWidth / 10f, 1f, FloorDepth / 10f); // plane is 10x10
+            BuildBoundaryWalls();
 
             var spawnRoot = new GameObject("SpawnPoints").transform;
             var spawnPoints = SpawnPositions.Select((position, i) =>
@@ -144,6 +160,29 @@ namespace Game.Editor
             EnsureFolder(System.IO.Path.GetDirectoryName(ScenePath));
             EditorSceneManager.SaveScene(scene, ScenePath);
             EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(ScenePath, true) };
+        }
+
+        // Low walls around the floor so players can't walk off the edge.
+        private static void BuildBoundaryWalls()
+        {
+            var walls = new GameObject("Walls").transform;
+            var halfWidth = FloorWidth / 2f;
+            var halfDepth = FloorDepth / 2f;
+            var y = WallHeight / 2f;
+
+            CreateWall("Wall_North", new Vector3(0f, y, halfDepth), new Vector3(FloorWidth, WallHeight, WallThickness));
+            CreateWall("Wall_South", new Vector3(0f, y, -halfDepth), new Vector3(FloorWidth, WallHeight, WallThickness));
+            CreateWall("Wall_East", new Vector3(halfWidth, y, 0f), new Vector3(WallThickness, WallHeight, FloorDepth));
+            CreateWall("Wall_West", new Vector3(-halfWidth, y, 0f), new Vector3(WallThickness, WallHeight, FloorDepth));
+
+            void CreateWall(string name, Vector3 position, Vector3 scale)
+            {
+                var wall = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                wall.name = name;
+                wall.transform.SetParent(walls, false);
+                wall.transform.localPosition = position;
+                wall.transform.localScale = scale;
+            }
         }
 
         private static InputActionAsset LoadControls()

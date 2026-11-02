@@ -39,6 +39,10 @@ namespace Game.Gameplay
             {
                 var spawn = _spawnPoints[player.playerIndex % _spawnPoints.Length];
                 player.transform.SetPositionAndRotation(spawn.position, spawn.rotation);
+
+                // CharacterControllers don't see transform teleports until physics syncs;
+                // without this the first Move() would snap the player back to the origin.
+                Physics.SyncTransforms();
             }
 
             if (_manager.playerCount >= _settings.MaxPlayers)
