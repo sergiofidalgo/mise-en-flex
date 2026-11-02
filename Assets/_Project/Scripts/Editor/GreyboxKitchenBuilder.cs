@@ -123,7 +123,7 @@ namespace Game.Editor
                 Equipment = GreyboxAssets.EnsureAsset<EquipmentTier>(EquipmentPath),
                 Realism = GreyboxAssets.EnsureAsset<RealismSettings>(RealismPath),
                 Catalog = GreyboxIngredients.BuildCatalog(
-                    (GreyboxKitchenware.PanTypeId, GreyboxKitchenware.BuildPan(null)),
+                    (GreyboxKitchenware.PanTypeId, GreyboxKitchenware.BuildPan()),
                     (Game.Simulation.Items.Plate.PlateTypeId, GreyboxKitchenware.BuildPlate())),
             };
             assets.PlayerPrefab = BuildPlayerPrefab(assets.Settings, assets.Tuning);

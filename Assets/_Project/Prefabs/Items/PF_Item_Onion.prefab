@@ -100,6 +100,7 @@ GameObject:
   m_Component:
   - component: {fileID: 8359895046731311446}
   - component: {fileID: 5414203549655679694}
+  - component: {fileID: 3916620942352943940}
   m_Layer: 0
   m_Name: PF_Item_Onion
   m_TagString: Untagged
@@ -136,3 +137,39 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Game.Gameplay::Game.Gameplay.Items.ItemView
   _slotAnchors: []
+--- !u!114 &3916620942352943940
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3395700353294832193}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: aaec9782dc60a42dd8c4e54c0da27895, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.Presentation::Game.Presentation.IngredientView
+  _itemView: {fileID: 5414203549655679694}
+  _surface: {fileID: 3210907786633579140}
+  _bands: []
+  _browning:
+  - _at: 0.25
+    _color: {r: 0.8, g: 0.55, b: 0.3, a: 1}
+  - _at: 0.5
+    _color: {r: 0.5, g: 0.28, b: 0.13, a: 1}
+  - _at: 0.75
+    _color: {r: 0.25, g: 0.13, b: 0.07, a: 1}
+  - _at: 1
+    _color: {r: 0.07, g: 0.06, b: 0.06, a: 1}
+  _cookedFrom: 40
+  _cooked:
+  - _at: 50
+    _color: {r: 0.78, g: 0.2, b: 0.22, a: 1}
+  - _at: 55
+    _color: {r: 0.86, g: 0.42, b: 0.45, a: 1}
+  - _at: 60
+    _color: {r: 0.78, g: 0.56, b: 0.5, a: 1}
+  - _at: 66
+    _color: {r: 0.66, g: 0.52, b: 0.45, a: 1}
+  - _at: 72
+    _color: {r: 0.52, g: 0.42, b: 0.36, a: 1}

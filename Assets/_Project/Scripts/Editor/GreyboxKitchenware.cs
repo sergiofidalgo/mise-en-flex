@@ -1,4 +1,5 @@
 using Game.Gameplay.Items;
+using Game.Presentation;
 using Game.Simulation.Items;
 using UnityEditor;
 using UnityEngine;
@@ -29,8 +30,15 @@ namespace Game.Editor
         public static readonly Color PanColor = new Color(0.30f, 0.30f, 0.33f);
         public static readonly Color PlateColor = new Color(0.95f, 0.95f, 0.93f);
 
-        /// <summary>Builds the pan prefab. Returns the root, its body renderer, and the prefab path.</summary>
-        public static GameObject BuildPan(System.Action<GameObject, Renderer> decorate)
+        // Smoke: soft puffs that rise, spread and fade. Emission is driven at runtime by PanView.
+        private const float SmokeLifetime = 1.4f;
+        private const float SmokeSpeed = 0.35f;
+        private const float SmokeMinSize = 0.12f;
+        private const float SmokeMaxSize = 0.25f;
+        private const float SmokeGrowth = 2.5f;
+        private const int SmokeMaxParticles = 200;
+
+        public static GameObject BuildPan()
         {
             var root = new GameObject($"PF_Item_{PanTypeId}");
             var body = GreyboxAssets.CreatePrimitive(
@@ -44,9 +52,58 @@ namespace Game.Editor
             handle.transform.localScale = PanHandleScale;
             handle.transform.localPosition = new Vector3(0f, PanDepth * 0.75f, -(PanDiameter + PanHandleScale.z) / 2f);
 
-            AddSlots(root, PanSlots, PanDepth);
-            decorate?.Invoke(root, body.GetComponent<Renderer>());
+            var view = AddSlots(root, PanSlots, PanDepth);
+            var smoke = CreateSmoke(root.transform, PanDepth);
+
+            var panView = root.AddComponent<PanView>();
+            var so = new SerializedObject(panView);
+            so.FindProperty("_itemView").objectReferenceValue = view;
+            so.FindProperty("_body").objectReferenceValue = body.GetComponent<Renderer>();
+            so.FindProperty("_smoke").objectReferenceValue = smoke;
+            so.ApplyModifiedPropertiesWithoutUndo();
+
             return Save(root, PanTypeId);
+        }
+
+        private static ParticleSystem CreateSmoke(Transform parent, float height)
+        {
+            var go = new GameObject("Smoke");
+            go.transform.SetParent(parent, false);
+            go.transform.localPosition = Vector3.up * height;
+            go.transform.localRotation = Quaternion.Euler(-90f, 0f, 0f); // emit upwards
+
+            var smoke = go.AddComponent<ParticleSystem>();
+            var main = smoke.main;
+            main.startLifetime = SmokeLifetime;
+            main.startSpeed = SmokeSpeed;
+            main.startSize = new ParticleSystem.MinMaxCurve(SmokeMinSize, SmokeMaxSize);
+            main.maxParticles = SmokeMaxParticles;
+            main.simulationSpace = ParticleSystemSimulationSpace.World; // a carried pan leaves its smoke behind
+            main.playOnAwake = true;
+            main.loop = true;
+
+            var emission = smoke.emission;
+            emission.rateOverTime = 0f;
+
+            var shape = smoke.shape;
+            shape.shapeType = ParticleSystemShapeType.Cone;
+            shape.angle = 12f;
+            shape.radius = PanDiameter * 0.3f;
+
+            var fade = smoke.colorOverLifetime;
+            fade.enabled = true;
+            var gradient = new Gradient();
+            gradient.SetKeys(
+                new[] { new GradientColorKey(Color.white, 0f), new GradientColorKey(Color.white, 1f) },
+                new[] { new GradientAlphaKey(0f, 0f), new GradientAlphaKey(1f, 0.15f), new GradientAlphaKey(0f, 1f) });
+            fade.color = gradient;
+
+            var grow = smoke.sizeOverLifetime;
+            grow.enabled = true;
+            grow.size = new ParticleSystem.MinMaxCurve(1f, AnimationCurve.Linear(0f, 1f, 1f, SmokeGrowth));
+
+            go.GetComponent<ParticleSystemRenderer>().sharedMaterial = GreyboxAssets.EnsureParticleMaterial("Smoke");
+            return smoke;
         }
 
         public static GameObject BuildPlate()
@@ -73,7 +130,7 @@ namespace Game.Editor
             }
         }
 
-        private static void AddSlots(GameObject root, Vector3[] positions, float height)
+        private static ItemView AddSlots(GameObject root, Vector3[] positions, float height)
         {
             var slots = new Transform[positions.Length];
             for (var i = 0; i < positions.Length; i++)
@@ -90,6 +147,7 @@ namespace Game.Editor
             for (var i = 0; i < slots.Length; i++)
                 list.GetArrayElementAtIndex(i).objectReferenceValue = slots[i];
             so.ApplyModifiedPropertiesWithoutUndo();
+            return view;
         }
 
         private static GameObject Save(GameObject root, string typeId)

@@ -1,0 +1,86 @@
+using Game.Gameplay.Items;
+using Game.Simulation.Cooking;
+using UnityEngine;
+
+namespace Game.Presentation
+{
+    /// <summary>
+    /// Lets players read food by eye (decision 2026-11-02: doneness mostly from visual cues).
+    /// The visible top surface follows its browning; for layered food like steak, the edge is
+    /// three bands coloured by how hot each layer has been, so a cooked band creeps in from the
+    /// seared sides and the middle band shows doneness, as when a cook looks at a steak's side.
+    /// </summary>
+    public sealed class IngredientView : MonoBehaviour
+    {
+        private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
+
+        [SerializeField] private ItemView _itemView;
+
+        [Tooltip("The surface seen from above; coloured by the up side's browning.")]
+        [SerializeField] private Renderer _surface;
+
+        [Tooltip("Optional edge bands: bottom, middle (core), top. Coloured by each layer's peak temperature.")]
+        [SerializeField] private Renderer[] _bands = System.Array.Empty<Renderer>();
+
+        [Tooltip("Browning as a fraction of 'burnt' (0..1) → colour. Starts from the raw colour.")]
+        [SerializeField] private ColorStop[] _browning =
+        {
+            new ColorStop(0.25f, new Color(0.80f, 0.55f, 0.30f)), // golden
+            new ColorStop(0.50f, new Color(0.50f, 0.28f, 0.13f)), // a good crust
+            new ColorStop(0.75f, new Color(0.25f, 0.13f, 0.07f)), // dark
+            new ColorStop(1.00f, new Color(0.07f, 0.06f, 0.06f)), // burnt
+        };
+
+        [Tooltip("°C at which a layer starts to look cooked.")]
+        [SerializeField] private float _cookedFrom = 40f;
+
+        [Tooltip("Peak layer temperature (°C) → colour. Steak: red → pink → tan → grey.")]
+        [SerializeField] private ColorStop[] _cooked =
+        {
+            new ColorStop(50f, new Color(0.78f, 0.20f, 0.22f)), // rare: bright red
+            new ColorStop(55f, new Color(0.86f, 0.42f, 0.45f)), // medium-rare: pink
+            new ColorStop(60f, new Color(0.78f, 0.56f, 0.50f)), // medium: rosy tan
+            new ColorStop(66f, new Color(0.66f, 0.52f, 0.45f)), // medium-well: tan
+            new ColorStop(72f, new Color(0.52f, 0.42f, 0.36f)), // well done: grey-brown
+        };
+
+        private MaterialPropertyBlock _block;
+        private Color _surfaceRaw;
+        private Color[] _bandRaw;
+
+        private void Awake()
+        {
+            _block = new MaterialPropertyBlock();
+            _surfaceRaw = _surface.sharedMaterial.GetColor(BaseColorId);
+            _bandRaw = new Color[_bands.Length];
+            for (var i = 0; i < _bands.Length; i++)
+                _bandRaw[i] = _bands[i].sharedMaterial.GetColor(BaseColorId);
+        }
+
+        private void Update()
+        {
+            if (!(_itemView.Item is Ingredient ingredient))
+                return;
+
+            var burnt = Mathf.Max(ingredient.Properties.BurntBrowning, 0.0001f);
+            var browning = ingredient.Browning(ingredient.UpSide) / burnt;
+            SetColor(_surface, ColorStop.Sample(_browning, browning, _surfaceRaw, 0f));
+
+            if (_bands.Length < 3)
+                return;
+
+            SetColor(_bands[0], Cooked(ingredient.PeakSurfaceTemperature(ingredient.DownSide), _bandRaw[0]));
+            SetColor(_bands[1], Cooked(ingredient.PeakCoreTemperature, _bandRaw[1]));
+            SetColor(_bands[2], Cooked(ingredient.PeakSurfaceTemperature(ingredient.UpSide), _bandRaw[2]));
+        }
+
+        private Color Cooked(float peakTemperature, Color raw) => ColorStop.Sample(_cooked, peakTemperature, raw, _cookedFrom);
+
+        private void SetColor(Renderer target, Color color)
+        {
+            target.GetPropertyBlock(_block);
+            _block.SetColor(BaseColorId, color);
+            target.SetPropertyBlock(_block);
+        }
+    }
+}
