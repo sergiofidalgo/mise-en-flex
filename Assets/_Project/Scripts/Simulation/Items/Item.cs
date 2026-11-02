@@ -4,7 +4,7 @@ namespace Game.Simulation.Items
     /// A single thing that can be carried and put down. Phase 0 items only have a type;
     /// cooking state (form, doneness, temperature, ...) arrives in Phase 1.
     /// </summary>
-    public sealed class Item
+    public class Item
     {
         public Item(string typeId)
         {
