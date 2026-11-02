@@ -16,11 +16,15 @@
 | --- | --- | --- | --- |
 | H1 | TextMeshPro; HUD style asset (colours, fonts, sizes, fades); button badges (Xbox A/B/X/Y circles, keyboard keycaps, trigger pills); HUD canvas following world positions | — | Done |
 | H2 | Prompt cards: badge + verb, fade in/out when facing a station; storage and prep as a badge diamond with counts | IMGUI station prompts | Done |
-| H3 | Heat ring around each burner (fills cold → hot, searing zone marked); burn warning icon | Heat pips | |
-| H4 | Doneness gauge over the pan with target band and needle | Doneness ball | |
-| H5 | Serve card (stars pop in, a bar per score part); chop approach ring onto the beat; counts on bins; coloured ring under each chef | IMGUI quality card and rhythm display | |
+| H3 | Heat ring around each burner (fills cold → hot, searing zone marked); burn warning icon | Heat pips | Deferred |
+| H4 | Doneness gauge over the pan with target band and needle | Doneness ball | Deferred |
+| H5 | Serve card (stars pop in, a bar per score part); chop approach ring onto the beat; counts on bins; coloured ring under each chef | IMGUI quality card and rhythm display | Deferred |
 
 Not in scope: the debug overlay (stays IMGUI), smoke and steam, sound (no assets yet), colour-blind palettes (later, but colours come from the style asset so they can be swapped).
+
+## Status (2026-11-02)
+
+H1–H2 done, plus work that grew out of playtesting: RT-opened slot menus and the cutting dial (pendulum needle, sweet spots per ingredient, speed reacting to each cut, clear hit/miss feedback). The dial is judged "better foundationally". **H3–H5 are deferred to a later HUD pass**; the overall HUD look will be improved then.
 
 ## How we'll know it works
 
