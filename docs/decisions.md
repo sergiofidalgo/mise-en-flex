@@ -4,6 +4,18 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-02 — Phase 2 shape: counter service, steak to order, ~6-minute services
+
+**Decisions:**
+- **Counter service at the pass** for the first service: customers sit on stools along the dining side and are served on the pass in front of them; no front-of-house work until staff (Phase 3).
+- **Menu:** steak to order (rare / medium-rare / medium / well done), sometimes with sautéed onions. **Orders set the doneness target**, replacing the medium-rare house standard.
+- **A service lasts ~6 real minutes** (~6 in-game hours at 60x), with waves and a rush. Resolves the open question in `game-design.md` §4 (6–8 min recommended).
+- **Wrong dish:** eaten unhappily and scored low; no send-backs.
+
+**Reason:** Keeps the first vertical slice about cooking, timing and serving temperature, using everything Phase 1 built. Plan in `plans/phase-2.md`.
+
+---
+
 ## 2026-11-02 — RT opens slot menus; cutting is a radial timing dial
 
 **Decisions (yours, plus details flagged for review):**
