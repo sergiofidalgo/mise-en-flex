@@ -128,6 +128,8 @@ Each ingredient brings its own mechanic in the close-up view. First techniques (
 
 Hob, board, fridge, pass, bin. More stations arrive with cuisines and equipment tiers.
 
+**Proposal — storage with capacity** (`ideas.md`): ingredients come from fridges and shelves with limited capacity rather than endless crates, so where and how things are stored is planned in Plan/Prep. The Phase 0 crates are placeholders for this.
+
 ### 6.2 Board station with mise en place rail
 
 The board station is the board plus a **rail of small containers** (ninth-pans). Cut product goes from the board into a container. From the overhead camera, each container shows its contents and cut by shape and colour. Containers are grabbable, so the partner can fetch diced onion without entering the close-up. The rail's state at the start of service shows directly how well the team prepped.

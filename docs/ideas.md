@@ -4,6 +4,45 @@ Ideas worth keeping that aren't decided or scheduled yet. When one is accepted, 
 
 ---
 
+## Storage with capacity instead of endless ingredient crates
+
+*Added 2026-11-02 · Relevant phases: 1 (fridge station), 3 (Prep restocking), 4 (placing storage), 5 (suppliers) · Pillars: plannable chaos, identity*
+
+**The idea (from playtesting Phase 0):** unlike PlateUp's one-ingredient crates that never run out, ingredients come from **fridges and shelves with limited capacity**, from day one. Where storage goes, what goes in it and how much fits becomes something players plan around.
+
+**Why it's strong:**
+- It's a clear point of difference from PlateUp.
+- It makes the Plan and Prep phases matter: ordering, putting deliveries away and stocking the line are real decisions with visible payoff in service.
+- It connects systems we already want:
+  - **freshness and spoilage:** a fridge keeps things fresh, a shelf doesn't, and over-ordering wastes money;
+  - **hygiene:** real kitchens store raw meat *below* ready-to-eat food to avoid drips, which could be a light cross-contamination rule behind the hygiene dial;
+  - **layout:** storage near the stations that use it means fewer trips;
+  - **economy:** bigger and colder storage costs money, and delivery size trades against shelf space;
+  - **staff:** a prep assistant restocks the line.
+- Running out mid-service creates good, plannable chaos: "who runs to the walk-in?"
+
+**Risks and pushback:**
+- **Inventory busywork.** If managing storage turns into menus and spreadsheets, it fights the frantic service. It should stay *spatial and visible*: you see what's in a fridge from the camera, and you stock it by carrying things there.
+- **Picking a specific ingredient from a mixed fridge is the core UX problem.** One button can't say "the onion, not the tomato." Options:
+  1. **Visible bins (recommended):** a shelf or fridge is a row of bins, each holding portions of one ingredient. Each bin can be targeted on its own with the existing Interact targeting, so there are no menus and it reads from overhead. Capacity = number of bins × portions per bin.
+  2. **Close-up picker:** Interact opens the fridge in the close-up panel and you grab with the stick. This fits the close-up framework but adds a step to every grab, which is slow for the most common action in service.
+  3. **A cycle button** to choose the ingredient before grabbing. This is quick to build but fiddly under pressure.
+- **Solo players** may need more generous capacity or restocking help; this could be a realism dial.
+
+**Suggested phasing:**
+- **Phase 1:** the fridge station (already on the roadmap) is built as bins with capacity, refilled automatically at the start of each test run. It replaces the Phase 0 crates.
+- **Phase 3:** stock carries over between days, and restocking from a storeroom/walk-in becomes a Prep task (and a job for the prep assistant).
+- **Phase 4:** storage is placeable in layout editing, with sizes and tiers (shelf, reach-in fridge, walk-in, freezer).
+- **Phase 5:** suppliers and deliveries: order sizes, delivery timing, cost, spoilage.
+
+**Open questions:**
+- Do bins hold one ingredient type each? Recommended yes, which matches the board-rail rule.
+- Are portions counted, or is each bin a single item?
+- Is there an off-floor storeroom (unlimited but far away), so running out costs time rather than ending service?
+- Does cold storage matter from Phase 1, or only once spoilage exists?
+
+---
+
 ## Tooling: evaluate the Unity CLI
 
 *Added 2026-11-02 · Relevant phase: any · Supports: verification*
