@@ -62,6 +62,18 @@ namespace Game.Presentation
                     AppendIngredient(ingredient, "   ");
             }
 
+            // Per-player input: which device, what they're facing, and the live heat trigger values.
+            foreach (var player in PlayerInput.all)
+            {
+                var devices = string.Join(", ", System.Linq.Enumerable.Select(player.devices, d => d.displayName));
+                var target = player.TryGetComponent(out Game.Gameplay.Stations.PlayerInteractor interactor) && interactor.Target != null
+                    ? interactor.Target.name
+                    : "nothing";
+                var down = player.actions.FindAction("HeatDown")?.ReadValue<float>() ?? -1f;
+                var up = player.actions.FindAction("HeatUp")?.ReadValue<float>() ?? -1f;
+                _text.AppendLine($"<b>P{player.playerIndex + 1}</b> [{devices}]  facing {target}  heat down {down:0.00} / up {up:0.00}");
+            }
+
             var loose = 0;
             foreach (var ingredient in cooking.Ingredients)
             {
