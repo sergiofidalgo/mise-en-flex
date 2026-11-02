@@ -21,6 +21,12 @@ namespace Game.Data
         [Tooltip("Ingredients that fit in the pan at once.")]
         [SerializeField, Min(1)] private int _panCapacity = 2;
 
+        [Header("Plate")]
+        [Tooltip("Food items that fit on a plate (e.g. steak, onions, a garnish).")]
+        [SerializeField, Min(1)] private int _plateCapacity = 3;
+
+        public int PlateCapacity => _plateCapacity;
+
         public HobProperties Hob => new HobProperties { MaxPower = _hobMaxPower };
 
         public PanProperties Pan => new PanProperties

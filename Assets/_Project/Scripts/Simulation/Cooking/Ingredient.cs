@@ -22,6 +22,7 @@ namespace Game.Simulation.Cooking
 
         internal readonly float[] Temperatures = new float[3];
         internal readonly float[] PendingHeat = new float[3];
+        private readonly float[] _peakTemperatures = new float[3];
         private readonly float[] _browning = new float[2];
 
         internal Ingredient(IngredientProperties properties)
@@ -29,8 +30,10 @@ namespace Game.Simulation.Cooking
         {
             Properties = properties;
             for (var i = 0; i < Temperatures.Length; i++)
+            {
                 Temperatures[i] = properties.StartTemperature;
-            PeakCoreTemperature = properties.StartTemperature;
+                _peakTemperatures[i] = properties.StartTemperature;
+            }
             Freshness = 1f;
         }
 
@@ -38,6 +41,9 @@ namespace Game.Simulation.Cooking
 
         /// <summary>The side currently facing down (into the pan, onto the board).</summary>
         public IngredientSide DownSide { get; private set; } = IngredientSide.A;
+
+        /// <summary>The side facing up: the one players see from above.</summary>
+        public IngredientSide UpSide => DownSide == IngredientSide.A ? IngredientSide.B : IngredientSide.A;
 
         /// <summary>The pan this ingredient is in, or null.</summary>
         public Pan Pan { get; internal set; }
@@ -57,7 +63,10 @@ namespace Game.Simulation.Cooking
         }
 
         /// <summary>Highest core temperature reached. Doneness follows it: cooked protein doesn't uncook.</summary>
-        public float PeakCoreTemperature { get; private set; }
+        public float PeakCoreTemperature => _peakTemperatures[Core];
+
+        /// <summary>Highest temperature a surface layer has reached; shows how far cooking has crept in from that side.</summary>
+        public float PeakSurfaceTemperature(IngredientSide side) => _peakTemperatures[SurfaceIndex(side)];
 
         /// <summary>The level reached so far, or null if raw or the ingredient has no doneness levels.</summary>
         public DonenessLevel? Doneness
@@ -111,8 +120,11 @@ namespace Game.Simulation.Cooking
             Temperatures[SurfaceB] += PendingHeat[SurfaceB] * deltaTime / surfaceCapacity;
             Array.Clear(PendingHeat, 0, PendingHeat.Length);
 
-            if (Temperatures[Core] > PeakCoreTemperature)
-                PeakCoreTemperature = Temperatures[Core];
+            for (var i = 0; i < Temperatures.Length; i++)
+            {
+                if (Temperatures[i] > _peakTemperatures[i])
+                    _peakTemperatures[i] = Temperatures[i];
+            }
         }
 
         internal void LoseFreshness(float amount)

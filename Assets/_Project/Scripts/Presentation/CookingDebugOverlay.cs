@@ -45,10 +45,19 @@ namespace Game.Presentation
             for (var i = 0; i < cooking.Hobs.Count; i++)
             {
                 var hob = cooking.Hobs[i];
-                var pan = hob.Pan;
-                _text.AppendLine($"<b>Hob {i + 1}</b>  dial {hob.Dial:P0}  pan {(pan != null ? $"{pan.Temperature:0} °C" : "none")}");
-                if (pan == null)
-                    continue;
+                _text.AppendLine($"<b>Hob {i + 1}</b>  dial {hob.Dial:P0}  {(hob.Pan != null ? "pan on" : "no pan")}");
+            }
+
+            for (var i = 0; i < cooking.Pans.Count; i++)
+            {
+                var pan = cooking.Pans[i];
+                var onHob = -1;
+                for (var h = 0; h < cooking.Hobs.Count; h++)
+                {
+                    if (cooking.Hobs[h].Pan == pan)
+                        onHob = h;
+                }
+                _text.AppendLine($"<b>Pan {i + 1}</b>  {pan.Temperature:0} °C  {(onHob >= 0 ? $"on hob {onHob + 1}" : "off the heat")}");
                 foreach (var ingredient in pan.Contents)
                     AppendIngredient(ingredient, "   ");
             }

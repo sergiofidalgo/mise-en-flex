@@ -5,7 +5,7 @@ namespace Game.Simulation.Items
     /// <summary>
     /// Holds at most one item. Used for a player's hands and for counter tops.
     /// </summary>
-    public sealed class ItemSlot : IItemContainer
+    public sealed class ItemSlot : IItemContainer, IItemHolder
     {
         public Item Current { get; private set; }
 

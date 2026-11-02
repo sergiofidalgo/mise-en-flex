@@ -77,8 +77,6 @@ namespace Game.Editor
                 new[] { new Vector3(-0.5f, 0f, 0.8f), new Vector3(0.5f, 0f, 0.8f) }),
             ("Pass", new Color(0.88f, 0.88f, 0.85f), CounterSize, CounterHeight,
                 new[] { new Vector3(-1f, 0f, -2.4f), new Vector3(0f, 0f, -2.4f), new Vector3(1f, 0f, -2.4f) }),
-            ("Bin", new Color(0.25f, 0.55f, 0.30f), 0.7f, 0.8f,
-                new[] { new Vector3(4.5f, 0f, 1f) }),
         };
 
         // Strip in front of the pass marking where the dining room will be.
@@ -88,11 +86,21 @@ namespace Game.Editor
         // Hobs along the back wall, right of prep. Each has a burner ring and its own pan.
         private static readonly Vector3[] HobPositions = { new Vector3(1f, 0f, 3.4f), new Vector3(2f, 0f, 3.4f), new Vector3(3f, 0f, 3.4f) };
         private static readonly Color HobColor = new Color(0.22f, 0.22f, 0.25f);
-        private const float BurnerDiameter = 0.36f;
-        private const float PanDiameter = 0.32f;
-        private const float PanDepth = 0.04f;
-        // Two food positions in the pan, side by side (pan capacity is 2 in the basic equipment tier).
-        private static readonly Vector3[] PanSlotOffsets = { new Vector3(-0.07f, 0f, 0f), new Vector3(0.07f, 0f, 0f) };
+        private const float BurnerDiameter = 0.46f;
+        // Heat pips on the hob's front face (towards the camera): one per step above off.
+        private const int HeatPipCount = 3;
+        private const float HeatPipSize = 0.08f;
+        private const float HeatPipSpacing = 0.16f;
+        private const float HeatPipHeight = 0.72f;
+
+        // Plate stack next to the pass, and the bin on the east wall.
+        private static readonly Vector3 PlateStackPosition = new Vector3(2.2f, 0f, -2.4f);
+        private static readonly Color PlateStackColor = new Color(0.80f, 0.80f, 0.78f);
+        private const int PlateStackVisualCount = 4;
+        private static readonly Vector3 BinPosition = new Vector3(4.5f, 0f, 1f);
+        private static readonly Color BinColor = new Color(0.25f, 0.55f, 0.30f);
+        private const float BinSize = 0.7f;
+        private const float BinHeight = 0.8f;
 
         // Greybox palette: darker walls than floor so edges read from the overhead camera.
         private static readonly Color FloorColor = new Color(0.62f, 0.63f, 0.66f);
@@ -114,7 +122,9 @@ namespace Game.Editor
                 Tuning = GreyboxAssets.EnsureAsset<TuningConfig>(TuningConfigPath),
                 Equipment = GreyboxAssets.EnsureAsset<EquipmentTier>(EquipmentPath),
                 Realism = GreyboxAssets.EnsureAsset<RealismSettings>(RealismPath),
-                Catalog = GreyboxIngredients.BuildCatalog(),
+                Catalog = GreyboxIngredients.BuildCatalog(
+                    (GreyboxKitchenware.PanTypeId, GreyboxKitchenware.BuildPan(null)),
+                    (Game.Simulation.Items.Plate.PlateTypeId, GreyboxKitchenware.BuildPlate())),
             };
             assets.PlayerPrefab = BuildPlayerPrefab(assets.Settings, assets.Tuning);
             BuildScene(scene, assets);
@@ -303,6 +313,14 @@ namespace Game.Editor
             for (var i = 0; i < HobPositions.Length; i++)
                 CreateHob($"Hob_{i + 1:00}", HobPositions[i], hobMaterial, hobs, settings);
 
+            var plateStack = CreateStation<PlateStackStation>(
+                "PlateStack", PlateStackPosition, CounterSize, CounterHeight,
+                GreyboxAssets.EnsureMaterial("PlateStack", PlateStackColor), stations, settings);
+            GreyboxKitchenware.CreatePlateStackVisual(plateStack.transform, CounterHeight, PlateStackVisualCount);
+
+            CreateStation<BinStation>(
+                "Bin", BinPosition, BinSize, BinHeight, GreyboxAssets.EnsureMaterial("Bin", BinColor), stations, settings);
+
             foreach (var type in GreyboxIngredients.Types)
             {
                 var crate = CreateStation<CrateStation>(
@@ -317,8 +335,8 @@ namespace Game.Editor
             }
         }
 
-        // A hob: counter body, a burner ring that glows with the dial, and a pan on top with
-        // a slot per ingredient. Hob and pan simulation objects are created at runtime.
+        // A hob: counter body, a burner ring that glows with the dial, and heat pips on the front.
+        // Its pan is a separate, carryable item created at runtime.
         private static void CreateHob(string name, Vector3 position, Material material, Transform parent, CoopSettings settings)
         {
             var hob = CreateStation<HobStation>(name, position, CounterSize, CounterHeight, material, parent, settings);
@@ -328,35 +346,27 @@ namespace Game.Editor
                 PrimitiveType.Cylinder, "Burner", hob.transform, GreyboxAssets.EnsureMaterial("Burner", Color.black), keepCollider: false);
             burner.transform.localScale = new Vector3(BurnerDiameter, 0.005f, BurnerDiameter); // cylinder is 2 units tall
             burner.transform.localPosition = new Vector3(0f, top + 0.005f, 0f);
+            hob.ItemAnchor.localPosition = new Vector3(0f, top + 0.01f, 0f);
 
-            var pan = GreyboxAssets.CreatePrimitive(
-                PrimitiveType.Cylinder, "Pan", hob.transform, GreyboxAssets.EnsureMaterial("Pan", Color.gray), keepCollider: false);
-            pan.transform.localScale = new Vector3(PanDiameter, PanDepth / 2f, PanDiameter);
-            pan.transform.localPosition = new Vector3(0f, top + 0.01f + PanDepth / 2f, 0f);
-
-            var panTop = top + 0.01f + PanDepth;
-            hob.ItemAnchor.localPosition = new Vector3(0f, panTop, 0f);
-
-            var slots = new Transform[PanSlotOffsets.Length];
-            for (var i = 0; i < slots.Length; i++)
+            var pips = new Renderer[HeatPipCount];
+            for (var i = 0; i < HeatPipCount; i++)
             {
-                slots[i] = new GameObject($"PanSlot_{i + 1}").transform;
-                slots[i].SetParent(hob.transform, false);
-                slots[i].localPosition = new Vector3(0f, panTop, 0f) + PanSlotOffsets[i];
+                var pip = GreyboxAssets.CreatePrimitive(
+                    PrimitiveType.Cube, $"HeatPip_{i + 1}", hob.transform, GreyboxAssets.EnsureMaterial("HeatPip", Color.black), keepCollider: false);
+                pip.transform.localScale = Vector3.one * HeatPipSize;
+                pip.transform.localPosition = new Vector3(
+                    (i - (HeatPipCount - 1) / 2f) * HeatPipSpacing, HeatPipHeight, -CounterSize / 2f - HeatPipSize / 4f);
+                pips[i] = pip.GetComponent<Renderer>();
             }
-
-            var so = new SerializedObject(hob);
-            var slotProperty = so.FindProperty("_panSlotAnchors");
-            slotProperty.arraySize = slots.Length;
-            for (var i = 0; i < slots.Length; i++)
-                slotProperty.GetArrayElementAtIndex(i).objectReferenceValue = slots[i];
-            so.ApplyModifiedPropertiesWithoutUndo();
 
             var view = hob.gameObject.AddComponent<HobView>();
             var viewSo = new SerializedObject(view);
             viewSo.FindProperty("_hob").objectReferenceValue = hob;
             viewSo.FindProperty("_burner").objectReferenceValue = burner.GetComponent<Renderer>();
-            viewSo.FindProperty("_pan").objectReferenceValue = pan.GetComponent<Renderer>();
+            var pipList = viewSo.FindProperty("_pips");
+            pipList.arraySize = pips.Length;
+            for (var i = 0; i < pips.Length; i++)
+                pipList.GetArrayElementAtIndex(i).objectReferenceValue = pips[i];
             viewSo.ApplyModifiedPropertiesWithoutUndo();
         }
 

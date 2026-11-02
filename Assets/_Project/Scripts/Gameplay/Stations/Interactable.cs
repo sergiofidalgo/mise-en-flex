@@ -39,6 +39,9 @@ namespace Game.Gameplay.Stations
         /// <summary>Where <paramref name="item"/> should sit while this station holds it.</summary>
         public virtual Transform AnchorFor(Item item) => _itemAnchor;
 
+        /// <summary>The item standing on this station, if it shows one (counter top, pan on a hob).</summary>
+        public Item HeldItem => (Container as IItemHolder)?.Current;
+
         internal void AddTargeter(PlayerInteractor player)
         {
             if (_targeters.Contains(player))

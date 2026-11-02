@@ -38,9 +38,10 @@ namespace Game.Editor
         {
             new IngredientType
             {
-                // 300 g, 2.5 cm steak: IngredientDefinition's defaults are tuned for this.
+                // 300 g, 2.5 cm steak: IngredientDefinition's defaults are tuned for this. Shown
+                // oversized (19 x 16 x 4 cm) so it reads from the overhead camera.
                 Id = "Steak", Color = new Color(0.62f, 0.12f, 0.14f), Shape = PrimitiveType.Cylinder,
-                Scale = new Vector3(0.13f, 0.0125f, 0.11f), CratePosition = new Vector3(-4.4f, 0f, -1.5f),
+                Scale = new Vector3(0.19f, 0.02f, 0.16f), CratePosition = new Vector3(-4.4f, 0f, -1.5f),
                 InitialTuning = so => SetDoneness(so,
                     ("Rare", 45f), ("Medium-rare", 52f), ("Medium", 57f), ("Medium-well", 63f), ("Well done", 68f)),
             },
@@ -58,7 +59,8 @@ namespace Game.Editor
             },
         };
 
-        public static ItemCatalog BuildCatalog()
+        /// <param name="kitchenware">Pans, plates and other non-ingredient items, by type id.</param>
+        public static ItemCatalog BuildCatalog(params (string TypeId, GameObject Prefab)[] kitchenware)
         {
             var definitions = Types.Select(BuildDefinition).ToArray();
 
@@ -68,6 +70,16 @@ namespace Game.Editor
             list.arraySize = definitions.Length;
             for (var i = 0; i < definitions.Length; i++)
                 list.GetArrayElementAtIndex(i).objectReferenceValue = definitions[i];
+
+            var wares = so.FindProperty("_kitchenware");
+            wares.arraySize = kitchenware.Length;
+            for (var i = 0; i < kitchenware.Length; i++)
+            {
+                var entry = wares.GetArrayElementAtIndex(i);
+                entry.FindPropertyRelative("_typeId").stringValue = kitchenware[i].TypeId;
+                entry.FindPropertyRelative("_prefab").objectReferenceValue = kitchenware[i].Prefab;
+            }
+
             so.ApplyModifiedPropertiesWithoutUndo();
             return catalog;
         }

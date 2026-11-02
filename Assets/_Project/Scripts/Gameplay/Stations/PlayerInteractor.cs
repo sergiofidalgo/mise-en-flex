@@ -113,23 +113,21 @@ namespace Game.Gameplay.Stations
             if (_target == null || _services == null || _target.Container == null)
                 return;
 
-            var held = _hands.Current;
             var outcome = ItemTransfer.Interact(_hands, _target.Container);
-            var move = _services.Tuning.ItemMove;
-            switch (outcome)
+            if (outcome == InteractionOutcome.Nothing)
             {
-                case InteractionOutcome.PickedUp:
-                    // A crate's item doesn't have a view yet; it appears at the crate and flies to the hands.
-                    _services.ItemViews.GetOrCreate(_hands.Current, _target.ItemAnchor.position)
-                        .MoveTo(_carryAnchor, move);
-                    break;
-                case InteractionOutcome.Placed:
-                    _services.ItemViews.GetOrCreate(held, _carryAnchor.position)
-                        .MoveTo(_target.AnchorFor(held), move);
-                    break;
-                default:
-                    _target.NotifyDenied();
-                    break;
+                _target.NotifyDenied();
+            }
+            else
+            {
+                // Re-place both sides; only views whose place changed move. Brand-new items
+                // (from a crate or the plate stack) appear at the station and fly to the hands.
+                var views = _services.ItemViews;
+                var move = _services.Tuning.ItemMove;
+                views.Place(_hands.Current, _carryAnchor, move, _target.ItemAnchor.position);
+                var onStation = _target.HeldItem;
+                if (onStation != null)
+                    views.Place(onStation, _target.AnchorFor(onStation), move, _carryAnchor.position);
             }
 
             Interacted?.Invoke(outcome);

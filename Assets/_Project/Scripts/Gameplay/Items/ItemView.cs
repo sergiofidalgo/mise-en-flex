@@ -6,10 +6,14 @@ namespace Game.Gameplay.Items
 {
     /// <summary>
     /// The scene object for one <see cref="Item"/>. It parents itself to whatever holds
-    /// the item (hands, counter) and flies there in a short arc so moves are easy to follow.
+    /// the item (hands, counter, a pan's slot) and flies there in a short arc so moves are
+    /// easy to follow. Containers (pans, plates) expose slots where their contents sit.
     /// </summary>
     public sealed class ItemView : MonoBehaviour
     {
+        [Tooltip("For containers: where each content item sits, in content order.")]
+        [SerializeField] private Transform[] _slotAnchors = System.Array.Empty<Transform>();
+
         private Vector3 _startLocalPosition;
         private Vector3 _baseScale;
         private ItemMoveSettings _move;
@@ -18,14 +22,22 @@ namespace Game.Gameplay.Items
 
         public Item Item { get; private set; }
 
+        /// <summary>The anchor this view was last sent to.</summary>
+        public Transform Anchor { get; private set; }
+
         public void Initialize(Item item)
         {
             Item = item;
             _baseScale = transform.localScale;
         }
 
+        /// <summary>Where content number <paramref name="index"/> sits; the container itself if it has no slot for it.</summary>
+        public Transform SlotAnchor(int index) =>
+            index >= 0 && index < _slotAnchors.Length ? _slotAnchors[index] : transform;
+
         public void MoveTo(Transform anchor, ItemMoveSettings move)
         {
+            Anchor = anchor;
             transform.SetParent(anchor, worldPositionStays: true);
             transform.localRotation = Quaternion.identity;
             _startLocalPosition = transform.localPosition;

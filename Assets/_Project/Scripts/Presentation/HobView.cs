@@ -4,8 +4,9 @@ using UnityEngine;
 namespace Game.Presentation
 {
     /// <summary>
-    /// Shows a hob's state from the overhead camera: the burner glows with the dial, and the
-    /// pan's colour warms with its temperature. Placeholder until the art phase.
+    /// Shows a hob's heat from the overhead camera: the burner ring glows with the dial and a
+    /// row of pips on the front shows the step (off, low, medium, high). Placeholder until the
+    /// art phase.
     /// </summary>
     public sealed class HobView : MonoBehaviour
     {
@@ -13,17 +14,13 @@ namespace Game.Presentation
 
         [SerializeField] private HobStation _hob;
         [SerializeField] private Renderer _burner;
-        [SerializeField] private Renderer _pan;
+        [Tooltip("One pip per heat step above off, lowest first.")]
+        [SerializeField] private Renderer[] _pips = System.Array.Empty<Renderer>();
 
         [SerializeField] private Color _burnerOff = new Color(0.08f, 0.08f, 0.09f);
         [SerializeField] private Color _burnerFull = new Color(1f, 0.35f, 0.05f);
-
-        [SerializeField] private Color _panCold = new Color(0.30f, 0.30f, 0.33f);
-        [SerializeField] private Color _panHot = new Color(0.70f, 0.22f, 0.12f);
-        [Tooltip("°C shown as fully cold.")]
-        [SerializeField] private float _panColdTemperature = 22f;
-        [Tooltip("°C shown as fully hot. Searing starts around 140 °C; the pan tops out near 280 °C.")]
-        [SerializeField] private float _panHotTemperature = 260f;
+        [SerializeField] private Color _pipOff = new Color(0.12f, 0.12f, 0.13f);
+        [SerializeField] private Color _pipOn = new Color(1f, 0.55f, 0.1f);
 
         private MaterialPropertyBlock _block;
 
@@ -38,8 +35,8 @@ namespace Game.Presentation
                 return;
 
             SetColor(_burner, Color.Lerp(_burnerOff, _burnerFull, _hob.Hob.Dial));
-            var heat = Mathf.InverseLerp(_panColdTemperature, _panHotTemperature, _hob.Pan.Temperature);
-            SetColor(_pan, Color.Lerp(_panCold, _panHot, heat));
+            for (var i = 0; i < _pips.Length; i++)
+                SetColor(_pips[i], i < _hob.DialStep ? _pipOn : _pipOff);
         }
 
         private void SetColor(Renderer target, Color color)

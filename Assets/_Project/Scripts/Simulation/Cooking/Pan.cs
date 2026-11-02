@@ -21,8 +21,9 @@ namespace Game.Simulation.Cooking
     /// <summary>
     /// A pan: holds ingredients and a temperature. Each ingredient lying in it draws heat
     /// through its contact surface, which is what makes a crowded or unheated pan sear badly.
+    /// It can sit on a hob, stand on a counter or be carried; it keeps its heat wherever it is.
     /// </summary>
-    public sealed class Pan : Item, IItemContainer
+    public sealed class Pan : Item, IItemCollection
     {
         private readonly List<Ingredient> _contents = new List<Ingredient>();
 
@@ -41,6 +42,10 @@ namespace Game.Simulation.Cooking
         internal float PendingHeat;
 
         public IReadOnlyList<Ingredient> Contents => _contents;
+
+        public IReadOnlyList<Item> Items => _contents;
+
+        public bool TakeContentsFirst => true;
 
         public bool CanTake => _contents.Count > 0;
 
@@ -65,6 +70,13 @@ namespace Game.Simulation.Cooking
                 throw new InvalidOperationException("Pan can't accept this item.");
 
             var ingredient = (Ingredient)item;
+
+            // TODO(Phase 1, milestone 4): remove when A flips in the close-up. Until then food
+            // lands with its more-browned side up, the way a cook would set it down, so a
+            // steak can be cooked on both sides by taking it out and putting it back.
+            if (ingredient.Browning(ingredient.DownSide) > ingredient.Browning(ingredient.UpSide))
+                ingredient.Flip();
+
             ingredient.Pan = this;
             _contents.Add(ingredient);
         }
