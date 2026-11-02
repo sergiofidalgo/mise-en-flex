@@ -44,6 +44,8 @@ namespace Game.Gameplay.Items
             }
         }
 
+        public bool TryGetView(Item item, out ItemView view) => _views.TryGetValue(item, out view);
+
         /// <summary>Places an item instantly, e.g. a pan set on a hob when the scene starts.</summary>
         public void PlaceImmediately(Item item, Transform anchor) => Place(item, anchor, _snap, anchor.position);
 

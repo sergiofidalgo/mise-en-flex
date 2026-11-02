@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Game.Gameplay.CloseUp;
 using Game.Simulation.Interaction;
 using Game.Simulation.Items;
 using UnityEngine;
@@ -26,6 +27,7 @@ namespace Game.Gameplay.Stations
         private readonly List<SimVector2> _candidatePositions = new List<SimVector2>();
 
         private PlayerInput _playerInput;
+        private PlayerCloseUp _closeUp;
         private InputAction _interact;
         private InputAction _use;
         private IReadOnlyList<Interactable> _interactables;
@@ -50,6 +52,7 @@ namespace Game.Gameplay.Stations
         private void Awake()
         {
             _playerInput = GetComponent<PlayerInput>();
+            _closeUp = GetComponent<PlayerCloseUp>();
         }
 
         // Start, not Awake: PlayerInput has set up this player's own copy of the actions by now.
@@ -138,7 +141,11 @@ namespace Game.Gameplay.Stations
             if (_target == null)
                 return;
 
-            if (!(_target is IUsable usable) || !usable.TryUse(this))
+            // Stations with a close-up open it; a busy one (the other player is in it) refuses.
+            var used = _target.TryGetComponent(out CloseUpStation closeUpStation)
+                ? _closeUp != null && _closeUp.TryOpen(closeUpStation)
+                : _target is IUsable usable && usable.TryUse(this);
+            if (!used)
                 _target.NotifyDenied();
         }
     }

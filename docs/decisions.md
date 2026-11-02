@@ -4,6 +4,21 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-02 — Close-up framework details (milestone 3)
+
+**Decisions (proposed by me while building; flagged for review):**
+- **Keyboard triggers:** Q = left trigger (heat down), E = right trigger (heat up), either side of W.
+- **Heat is continuous:** the hob dial moves smoothly with the triggers (off to full in ~1.25 s at full trigger). Use at a hob now opens its close-up; the temporary off/low/medium/high steps are gone.
+- **Flip moved into the close-up now (A)**, with the stick choosing which piece. The temporary "put it back to flip" rule is removed. Basting, resting and slicing stay in milestone 4.
+- **Leaving is B only** (keyboard D / Esc). "Pull the stick away from the station" from the transition proposal doesn't work while the stick aims inside the close-up.
+- **No kitchen dim yet.** "Dim your side of the screen" assumed fixed side panels; with the panel near the station there's no clear "side", and dimming would hide the partner. The panel has a border in the player's colour instead. Revisit after playtesting.
+- **Edge ping:** the panel border pulses orange while food in any *other* pan is close to burning.
+- **Second player at a busy station** gets the "can't" shake on Use.
+
+**Reason:** Needed to make the framework playable; each is a tuning value or easy to change.
+
+---
+
 ## 2026-11-02 — Phase 1: steak and onion controls, fridge replaces crates
 
 **Decisions:**

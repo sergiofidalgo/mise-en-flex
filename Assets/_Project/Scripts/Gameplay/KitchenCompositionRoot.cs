@@ -1,4 +1,5 @@
 using Game.Data;
+using Game.Gameplay.CloseUp;
 using Game.Gameplay.Items;
 using Game.Gameplay.Stations;
 using Game.Simulation.Cooking;
@@ -34,6 +35,8 @@ namespace Game.Gameplay
             _interactables = FindObjectsByType<Interactable>(FindObjectsSortMode.None);
             foreach (var interactable in _interactables)
                 interactable.Bind(Services);
+            foreach (var closeUp in FindObjectsByType<CloseUpStation>(FindObjectsSortMode.None))
+                closeUp.Bind(Services);
         }
 
         private void OnEnable()
@@ -59,6 +62,8 @@ namespace Game.Gameplay
         {
             if (player.TryGetComponent(out PlayerInteractor interactor))
                 interactor.Bind(_interactables, Services);
+            if (player.TryGetComponent(out PlayerCloseUp closeUp))
+                closeUp.Bind(Services);
         }
     }
 }

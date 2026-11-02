@@ -57,7 +57,7 @@ Approaching a station and interacting opens an **overhead close-up of the statio
 
 With two players, each close-up panel can be large (roughly a third of the screen, on that player's side).
 
-**Proposal — the transition** (`ideas.md`):
+**The transition** (from `ideas.md`; built in Phase 1 milestone 3, see `decisions.md` for what changed: exit is B only, no kitchen dim yet):
 - The panel grows out of the station's screen position (~0.2–0.3 s) and shrinks back on exit.
 - Switch to the `CloseUp` action map at the start of the transition and buffer inputs; no dead frames.
 - Exit is cheap: stick away from the station, or B (keyboard D / Esc).

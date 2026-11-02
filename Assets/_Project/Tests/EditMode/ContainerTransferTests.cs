@@ -207,30 +207,5 @@ namespace Game.Tests.EditMode
             plate.Put(NewSteak());
             Assert.That(plate.CanAccept(NewSteak()), Is.False);
         }
-
-        // Temporary until milestone 4's flip button.
-        [Test]
-        public void FoodPutBackInAPanLandsSearedSideUp()
-        {
-            var hob = _sim.AddHob(new HobProperties { MaxPower = 2000f });
-            var pan = NewPan();
-            hob.PlacePan(pan);
-            hob.Dial = 1f;
-            _sim.Tick(150f);
-            var steak = _sim.AddIngredient(new IngredientProperties
-            {
-                TypeId = "Steak", HeatCapacity = 1050f, SurfaceFraction = 0.15f, SurfaceCoreConductance = 0.9f,
-                PanContactConductance = 6f, BrowningStartTemperature = 140f, BrowningRate = 1f / 12600f,
-                BurntBrowning = 2f, StartTemperature = 4f,
-            });
-            pan.Put(steak);
-            _sim.Tick(120f);
-            var searedSide = steak.DownSide;
-
-            pan.Take();
-            pan.Put(steak);
-
-            Assert.That(steak.UpSide, Is.EqualTo(searedSide));
-        }
     }
 }

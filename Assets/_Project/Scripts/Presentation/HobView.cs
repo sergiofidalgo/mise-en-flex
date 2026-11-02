@@ -5,8 +5,8 @@ namespace Game.Presentation
 {
     /// <summary>
     /// Shows a hob's heat from the overhead camera: the burner ring glows with the dial and a
-    /// row of pips along the back of the hob top shows the step (off, low, medium, high). Placeholder until the
-    /// art phase.
+    /// row of pips along the back of the hob top shows roughly how high it is. Placeholder until
+    /// the art phase.
     /// </summary>
     public sealed class HobView : MonoBehaviour
     {
@@ -14,7 +14,7 @@ namespace Game.Presentation
 
         [SerializeField] private HobStation _hob;
         [SerializeField] private Renderer _burner;
-        [Tooltip("One pip per heat step above off, lowest first.")]
+        [Tooltip("Pips lowest first; together they span the whole dial.")]
         [SerializeField] private Renderer[] _pips = System.Array.Empty<Renderer>();
 
         [SerializeField] private Color _burnerOff = new Color(0.08f, 0.08f, 0.09f);
@@ -35,8 +35,11 @@ namespace Game.Presentation
                 return;
 
             SetColor(_burner, Color.Lerp(_burnerOff, _burnerFull, _hob.Hob.Dial));
+            // The dial is continuous; each pip covers an equal share of it and lights once the
+            // dial is into its share, so any heat at all lights the first pip.
+            var lit = Mathf.CeilToInt(_hob.Hob.Dial * _pips.Length - 0.001f);
             for (var i = 0; i < _pips.Length; i++)
-                SetColor(_pips[i], i < _hob.DialStep ? _pipOn : _pipOff);
+                SetColor(_pips[i], i < lit ? _pipOn : _pipOff);
         }
 
         private void SetColor(Renderer target, Color color)

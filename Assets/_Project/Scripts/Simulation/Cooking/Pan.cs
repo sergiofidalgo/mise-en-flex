@@ -70,13 +70,6 @@ namespace Game.Simulation.Cooking
                 throw new InvalidOperationException("Pan can't accept this item.");
 
             var ingredient = (Ingredient)item;
-
-            // TODO(Phase 1, milestone 4): remove when A flips in the close-up. Until then food
-            // lands with its more-browned side up, the way a cook would set it down, so a
-            // steak can be cooked on both sides by taking it out and putting it back.
-            if (ingredient.Browning(ingredient.DownSide) > ingredient.Browning(ingredient.UpSide))
-                ingredient.Flip();
-
             ingredient.Pan = this;
             _contents.Add(ingredient);
         }

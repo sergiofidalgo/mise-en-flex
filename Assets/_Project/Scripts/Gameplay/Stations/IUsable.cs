@@ -1,8 +1,8 @@
 namespace Game.Gameplay.Stations
 {
     /// <summary>
-    /// A station that does something on the Use button (X; keyboard A). From milestone 3
-    /// Use opens the station's close-up instead.
+    /// A station that does something on the Use button (X; keyboard A) without a close-up.
+    /// Stations with a CloseUpStation open their close-up on Use instead.
     /// </summary>
     public interface IUsable
     {

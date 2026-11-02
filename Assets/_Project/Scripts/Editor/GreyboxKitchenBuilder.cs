@@ -1,6 +1,7 @@
 using System.Linq;
 using Game.Data;
 using Game.Gameplay;
+using Game.Gameplay.CloseUp;
 using Game.Gameplay.Items;
 using Game.Gameplay.Stations;
 using Game.Presentation;
@@ -128,11 +129,15 @@ namespace Game.Editor
                     (GreyboxKitchenware.PanTypeId, GreyboxKitchenware.BuildPan()),
                     (Game.Simulation.Items.Plate.PlateTypeId, GreyboxKitchenware.BuildPlate())),
             };
+            _hobTechniquePrefab = GreyboxCloseUp.BuildHobTechnique(CounterHeight);
             assets.PlayerPrefab = BuildPlayerPrefab(assets.Settings, assets.Tuning);
             BuildScene(scene, assets);
             AssetDatabase.SaveAssets();
             Debug.Log($"[GreyboxKitchenBuilder] Built {PlayerPrefabPath}, ingredients and {ScenePath}.");
         }
+
+        // Set at the start of BuildAll; every hob's close-up uses it.
+        private static GameObject _hobTechniquePrefab;
 
         private sealed class SceneAssets
         {
@@ -167,6 +172,9 @@ namespace Game.Editor
             carryAnchor.localPosition = CarryAnchorPosition;
             var interactor = root.AddComponent<PlayerInteractor>();
             SetReference(interactor, "_carryAnchor", carryAnchor);
+
+            var closeUp = root.AddComponent<PlayerCloseUp>();
+            GreyboxCloseUp.AddHud(root, closeUp, tuning, settings);
 
             // Visuals live under one child so the join pop scales them without moving the root.
             var visuals = new GameObject("Visuals").transform;
@@ -361,6 +369,12 @@ namespace Game.Editor
                     (i - (HeatPipCount - 1) / 2f) * HeatPipSpacing, top + HeatPipScale.y / 2f, HeatPipBackOffset);
                 pips[i] = pip.GetComponent<Renderer>();
             }
+
+            var closeUp = hob.gameObject.AddComponent<CloseUpStation>();
+            var closeUpSo = new SerializedObject(closeUp);
+            closeUpSo.FindProperty("_station").objectReferenceValue = hob;
+            closeUpSo.FindProperty("_techniquePrefab").objectReferenceValue = _hobTechniquePrefab;
+            closeUpSo.ApplyModifiedPropertiesWithoutUndo();
 
             var view = hob.gameObject.AddComponent<HobView>();
             var viewSo = new SerializedObject(view);

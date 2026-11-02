@@ -52,6 +52,32 @@ namespace Game.Data
         [Tooltip("Extra scale at mid-flight (0.15 = 15% bigger), for a small 'pop'.")]
         [SerializeField, Min(0f)] private float _itemPop = 0.15f;
 
+        [Header("Close-up")]
+        [Tooltip("Hob dial change per second at full trigger. 0.8 = off to full in 1.25 s.")]
+        [SerializeField, Min(0f)] private float _heatDialSpeed = 0.8f;
+
+        [Tooltip("Seconds for the close-up panel to grow out of the station (and shrink back).")]
+        [SerializeField, Min(0.01f)] private float _closeUpTransition = 0.25f;
+
+        [Tooltip("Close-up panel width as a fraction of the screen width (the panel is square).")]
+        [SerializeField, Range(0.1f, 0.6f)] private float _closeUpPanelSize = 0.3f;
+
+        [Tooltip("Pixels kept between the panel and the station / screen edges.")]
+        [SerializeField, Min(0f)] private float _closeUpPanelMargin = 24f;
+
+        [Tooltip("Panel opacity while the other player is behind it, so both can still see.")]
+        [SerializeField, Range(0f, 1f)] private float _closeUpFadedOpacity = 0.35f;
+
+        [Tooltip("Close-up render texture size in pixels. Higher is sharper but costs frame time.")]
+        [SerializeField, Min(64)] private int _closeUpTextureSize = 512;
+
+        public float HeatDialSpeed => _heatDialSpeed;
+        public float CloseUpTransition => _closeUpTransition;
+        public float CloseUpPanelSize => _closeUpPanelSize;
+        public float CloseUpPanelMargin => _closeUpPanelMargin;
+        public float CloseUpFadedOpacity => _closeUpFadedOpacity;
+        public int CloseUpTextureSize => _closeUpTextureSize;
+
         public float TimeScale => _timeScale;
 
         public float AmbientTemperature => _ambientTemperature;
