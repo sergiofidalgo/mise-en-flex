@@ -48,6 +48,8 @@ namespace Game.Simulation.Cooking
         public IReadOnlyList<Pan> Pans => _pans;
         public IReadOnlyList<Ingredient> Ingredients => _ingredients;
 
+        public bool Contains(Ingredient ingredient) => _ingredients.Contains(ingredient);
+
         public Hob AddHob(HobProperties properties)
         {
             var hob = new Hob(properties);
@@ -78,6 +80,21 @@ namespace Game.Simulation.Cooking
             if (ingredient.Pan != null)
                 throw new InvalidOperationException("Take the ingredient out of its pan before removing it.");
             _ingredients.Remove(ingredient);
+        }
+
+        /// <summary>
+        /// Swaps an ingredient for a new form of it (e.g. a whole onion becomes diced onion): the new
+        /// one starts at the old one's average temperature and freshness, and the old one is removed.
+        /// </summary>
+        public Ingredient Transform(Ingredient original, IngredientProperties newForm)
+        {
+            if (original.Pan != null)
+                throw new InvalidOperationException("Take the ingredient out of its pan before transforming it.");
+
+            var transformed = AddIngredient(newForm);
+            transformed.CopyStateFrom(original);
+            Remove(original);
+            return transformed;
         }
 
         public void Tick(float seconds)
@@ -147,6 +164,7 @@ namespace Game.Simulation.Cooking
             {
                 ingredient.ApplyPendingHeat(dt);
                 ingredient.LoseFreshness(FreshnessLoss(ingredient, dt));
+                ingredient.SecondsOutOfPan = ingredient.Pan == null ? ingredient.SecondsOutOfPan + dt : 0f;
             }
 
             ElapsedSeconds += dt;

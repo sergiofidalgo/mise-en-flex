@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Game.Data;
+using Game.Simulation.Cooking;
 using Game.Simulation.Items;
 using UnityEngine;
 
@@ -17,6 +18,7 @@ namespace Game.Gameplay.Items
         private readonly ItemCatalog _catalog;
         private readonly ItemMoveSettings _snap = new ItemMoveSettings(0f, 0f, 0f);
         private readonly Dictionary<Item, ItemView> _views = new Dictionary<Item, ItemView>();
+        private readonly List<Item> _missing = new List<Item>();
 
         public ItemViewRegistry(ItemCatalog catalog)
         {
@@ -45,6 +47,22 @@ namespace Game.Gameplay.Items
         }
 
         public bool TryGetView(Item item, out ItemView view) => _views.TryGetValue(item, out view);
+
+        /// <summary>
+        /// Removes views of ingredients the cooking simulation no longer has (e.g. a whole onion
+        /// that became diced onion).
+        /// </summary>
+        public void ReleaseMissing(CookingSimulation cooking)
+        {
+            _missing.Clear();
+            foreach (var item in _views.Keys)
+            {
+                if (item is Ingredient ingredient && !cooking.Contains(ingredient))
+                    _missing.Add(item);
+            }
+            foreach (var item in _missing)
+                Release(item);
+        }
 
         /// <summary>Places an item instantly, e.g. a pan set on a hob when the scene starts.</summary>
         public void PlaceImmediately(Item item, Transform anchor) => Place(item, anchor, _snap, anchor.position);

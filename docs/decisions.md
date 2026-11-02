@@ -4,6 +4,21 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-02 — Knife, mise en place counter, rhythm chopping, resting (milestone 6′)
+
+**Decisions (yours, plus building details flagged for review):**
+- **The knife lives in its own tool slot**, separate from the hands: a chef can hold an ingredient and the knife at once. It's taken from and returned to a **knife rack** with A; **A always deals with the ingredient in hand first**, the knife second.
+- **The mise en place counter replaces the board-with-rail idea:** a cutting board in the middle and **four slots** for prepared ingredients in the face-button diamond. A slot takes the first ingredient that arrives and is freed when empty; each holds 4 portions (equipment tier).
+- **A** puts a whole ingredient on the board (or a prepared one back into its slot); with empty hands, **A takes from the board first, then from slot A**; **B / X / Y** take from their slots.
+- **Holding the knife, X chops** whatever is on the board, **following a beat**: the first chop sets it, each chop is graded Good / Early / Late / Miss (±0.07 s good, ±0.14 s early/late), and a long pause restarts the beat with one miss. **Feedback:** a pulsing beat light, a progress bar of cuts and the last grade in colour.
+- **An onion takes 8 chops at a 0.28 s beat** (≈2 s) and becomes a portion of **diced onion**, which goes into a slot (or stays on the board if none can take it). Diced onion is its own ingredient: it softens (80 °C) and cooks (92 °C core) in ~3–4 in-game minutes at full heat and browns slowly; scored on doneness (92 °C target), crust, heat and **cut evenness** (the rhythm score).
+- **Steak rest** is scored: in-game seconds out of the pan until served, full marks at 180 s (3 real seconds). Slicing steak waits for orders in Phase 2.
+- Two new score parts, **cut** and **rest**, each weighted 0.15.
+
+**Supersedes:** the 3-slot rail on the board (`game-design.md` §6.2) and question 1 of the board design.
+
+---
+
 ## 2026-11-02 — Pans are picked up with their food
 
 **Decision:** With empty hands, A at a pan takes **the pan with its food** (no lifting food out on its own). At a plate, A again moves the food onto the plate and the empty pan stays in hand; the hot pan then goes back on a hob (or any free counter). A hob's prompt shows "take pan" / "put pan".

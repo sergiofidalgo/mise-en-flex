@@ -36,6 +36,13 @@ namespace Game.Editor
             public bool ScoreDoneness;
             public bool ScoreBrowning;
             public bool ServedHot;
+            public float TargetCore = 54.5f;
+            public float RestTargetSeconds;
+
+            // Cutting at the prep counter (also applied on every build).
+            public string CutInto;
+            public int CutsNeeded;
+            public float ChopInterval = 0.3f;
 
             // Applied only when the definition asset is first created.
             public Action<SerializedObject> InitialTuning;
@@ -53,6 +60,7 @@ namespace Game.Editor
                 Id = "Steak", Color = new Color(0.62f, 0.12f, 0.14f), Shape = PrimitiveType.Cylinder,
                 Scale = new Vector3(0.19f, 0.02f, 0.16f),
                 Layered = true, ScoreDoneness = true, ScoreBrowning = true, ServedHot = true,
+                TargetCore = 54.5f, RestTargetSeconds = 180f,
                 InitialTuning = so => SetDoneness(so,
                     ("Rare", 45f), ("Medium-rare", 52f), ("Medium", 57f), ("Medium-well", 63f), ("Well done", 68f)),
             },
@@ -65,8 +73,27 @@ namespace Game.Editor
             new IngredientType
             {
                 Id = "Onion", Color = new Color(0.93f, 0.84f, 0.62f), Shape = PrimitiveType.Sphere,
-                Scale = Vector3.one * 0.26f,
+                Scale = Vector3.one * 0.26f, CutInto = "DicedOnion", CutsNeeded = 8, ChopInterval = 0.28f,
                 InitialTuning = so => SetVegetable(so, massKg: 0.15f),
+            },
+            new IngredientType
+            {
+                // A portion of diced onion: small pieces heat through fast, soften around 80 °C core and
+                // brown slowly. Prototyped: softened ~2.6, cooked ~4 in-game minutes at full heat.
+                Id = "DicedOnion", Color = new Color(0.96f, 0.90f, 0.70f), Shape = PrimitiveType.Sphere,
+                Scale = new Vector3(0.18f, 0.05f, 0.18f),
+                ScoreDoneness = true, ScoreBrowning = true, ServedHot = true, TargetCore = 92f,
+                InitialTuning = so =>
+                {
+                    SetVegetable(so, massKg: 0.15f);
+                    so.FindProperty("_surfaceFraction").floatValue = 0.3f;
+                    so.FindProperty("_surfaceCoreConductance").floatValue = 2.5f;
+                    so.FindProperty("_panContactConductance").floatValue = 7f;
+                    so.FindProperty("_airConductance").floatValue = 0.6f;
+                    so.FindProperty("_browningRate").floatValue = 1f / 30000f;
+                    so.FindProperty("_freshnessLossPerHourAt20C").floatValue = 1f / 48f;
+                    SetDoneness(so, ("Softened", 80f), ("Cooked", 92f));
+                },
             },
         };
 
@@ -118,6 +145,11 @@ namespace Game.Editor
             so.FindProperty("_scoreDoneness").boolValue = type.ScoreDoneness;
             so.FindProperty("_scoreBrowning").boolValue = type.ScoreBrowning;
             so.FindProperty("_servedHot").boolValue = type.ServedHot;
+            so.FindProperty("_targetCoreTemperature").floatValue = type.TargetCore;
+            so.FindProperty("_restTargetSeconds").floatValue = type.RestTargetSeconds;
+            so.FindProperty("_cutIntoTypeId").stringValue = type.CutInto ?? string.Empty;
+            so.FindProperty("_cutsNeeded").intValue = type.CutsNeeded;
+            so.FindProperty("_chopInterval").floatValue = type.ChopInterval;
             so.ApplyModifiedPropertiesWithoutUndo();
             return definition;
         }

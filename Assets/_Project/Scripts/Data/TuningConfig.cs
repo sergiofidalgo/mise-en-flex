@@ -58,6 +58,8 @@ namespace Game.Data
         [SerializeField, Min(0f)] private float _crustWeight = 0.25f;
         [SerializeField, Min(0f)] private float _temperatureWeight = 0.25f;
         [SerializeField, Min(0f)] private float _freshnessWeight = 0.1f;
+        [SerializeField, Min(0f)] private float _cutWeight = 0.15f;
+        [SerializeField, Min(0f)] private float _restWeight = 0.15f;
         [Tooltip("Seconds a served plate stays on the pass (with its quality card) before it's collected.")]
         [SerializeField, Min(0f)] private float _passCollectDelay = 4f;
 
@@ -72,6 +74,8 @@ namespace Game.Data
             CrustWeight = _crustWeight,
             TemperatureWeight = _temperatureWeight,
             FreshnessWeight = _freshnessWeight,
+            CutWeight = _cutWeight,
+            RestWeight = _restWeight,
         };
 
         [Header("Item motion")]
@@ -83,6 +87,15 @@ namespace Game.Data
 
         [Tooltip("Extra scale at mid-flight (0.15 = 15% bigger), for a small 'pop'.")]
         [SerializeField, Min(0f)] private float _itemPop = 0.15f;
+
+        [Header("Chopping")]
+        [Tooltip("± real seconds around the beat that count as a good chop.")]
+        [SerializeField, Min(0f)] private float _chopGoodWindow = 0.07f;
+        [Tooltip("± real seconds that count as early / late; beyond is a miss.")]
+        [SerializeField, Min(0f)] private float _chopOkWindow = 0.14f;
+
+        public float ChopGoodWindow => _chopGoodWindow;
+        public float ChopOkWindow => _chopOkWindow;
 
         [Header("Hob")]
         [Tooltip("Hob dial change per second at full trigger. 0.8 = off to full in 1.25 s.")]

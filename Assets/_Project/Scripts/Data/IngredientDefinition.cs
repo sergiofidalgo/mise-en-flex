@@ -73,6 +73,16 @@ namespace Game.Data
         [SerializeField] private float _servingIdealTemperature = 52f;
         [Tooltip("Average °C at or below which serving temperature scores nothing.")]
         [SerializeField] private float _servingColdTemperature = 38f;
+        [Tooltip("In-game seconds of rest off the pan for full marks (steak ≈ 180); 0 = not scored.")]
+        [SerializeField, Min(0f)] private float _restTargetSeconds;
+
+        [Header("Cutting (prep counter)")]
+        [Tooltip("Type id this becomes when cut (e.g. DicedOnion), or empty if it isn't cut.")]
+        [SerializeField] private string _cutIntoTypeId;
+        [Tooltip("Knife chops to finish the cut.")]
+        [SerializeField, Min(0)] private int _cutsNeeded;
+        [Tooltip("Real seconds between beats: the chopping rhythm.")]
+        [SerializeField, Min(0.05f)] private float _chopInterval = 0.3f;
 
         public string TypeId => _typeId;
         public GameObject Prefab => _prefab;
@@ -99,6 +109,10 @@ namespace Game.Data
             ServedHot = _servedHot,
             ServingIdealTemperature = _servingIdealTemperature,
             ServingColdTemperature = _servingColdTemperature,
+            RestTargetSeconds = _restTargetSeconds,
+            CutIntoTypeId = string.IsNullOrEmpty(_cutIntoTypeId) ? null : _cutIntoTypeId,
+            CutsNeeded = _cutsNeeded,
+            ChopInterval = _chopInterval,
         };
     }
 }

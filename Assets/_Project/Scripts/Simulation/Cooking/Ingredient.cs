@@ -101,6 +101,12 @@ namespace Game.Simulation.Cooking
         /// <summary>0..1 amount of seasoning. No techniques change it yet.</summary>
         public float Seasoning { get; set; }
 
+        /// <summary>How even the cut was (0..1, from the chopping rhythm), or null if it was never cut.</summary>
+        public float? CutEvenness { get; set; }
+
+        /// <summary>In-game seconds since it was last in a pan: how long it has rested.</summary>
+        public float SecondsOutOfPan { get; internal set; }
+
         public void Flip()
         {
             DownSide = DownSide == IngredientSide.A ? IngredientSide.B : IngredientSide.A;
@@ -136,6 +142,19 @@ namespace Game.Simulation.Cooking
         internal void LoseFreshness(float amount)
         {
             Freshness = Math.Max(0f, Freshness - amount);
+        }
+
+        internal void CopyStateFrom(Ingredient other)
+        {
+            var temperature = other.AverageTemperature;
+            for (var i = 0; i < Temperatures.Length; i++)
+            {
+                Temperatures[i] = temperature;
+                _peakTemperatures[i] = temperature;
+            }
+            Freshness = other.Freshness;
+            Seasoning = other.Seasoning;
+            EnvironmentTemperature = other.EnvironmentTemperature;
         }
     }
 }

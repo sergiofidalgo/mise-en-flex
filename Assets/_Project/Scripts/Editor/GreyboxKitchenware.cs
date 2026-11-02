@@ -114,6 +114,27 @@ namespace Game.Editor
             return particles;
         }
 
+        // Knife: grey blade and dark handle, lying flat; root at its base.
+        private static readonly Vector3 BladeScale = new Vector3(0.035f, 0.008f, 0.2f);
+        private static readonly Vector3 HandleScale = new Vector3(0.035f, 0.02f, 0.1f);
+        private static readonly Color BladeColor = new Color(0.78f, 0.80f, 0.84f);
+        private static readonly Color HandleColor = new Color(0.18f, 0.12f, 0.10f);
+
+        public static GameObject BuildKnife()
+        {
+            var root = new GameObject($"PF_Item_{Knife.KnifeTypeId}");
+            root.AddComponent<ItemView>();
+            var blade = GreyboxAssets.CreatePrimitive(
+                PrimitiveType.Cube, "Blade", root.transform, GreyboxAssets.EnsureMaterial("KnifeBlade", BladeColor), keepCollider: false);
+            blade.transform.localScale = BladeScale;
+            blade.transform.localPosition = new Vector3(0f, BladeScale.y / 2f, BladeScale.z / 2f);
+            var handle = GreyboxAssets.CreatePrimitive(
+                PrimitiveType.Cube, "Handle", root.transform, GreyboxAssets.EnsureMaterial("KnifeHandle", HandleColor), keepCollider: false);
+            handle.transform.localScale = HandleScale;
+            handle.transform.localPosition = new Vector3(0f, HandleScale.y / 2f, -HandleScale.z / 2f);
+            return Save(root, Knife.KnifeTypeId);
+        }
+
         public static GameObject BuildPlate()
         {
             var root = new GameObject($"PF_Item_{Plate.PlateTypeId}");

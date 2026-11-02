@@ -58,6 +58,18 @@ namespace Game.Editor
 
         // Carried items sit in front of the chest, clear of the body so they read from above.
         private static readonly Vector3 CarryAnchorPosition = new Vector3(0f, 1.05f, 0.5f);
+        // The knife sits at the chef's right side, so it reads separately from what's carried.
+        private static readonly Vector3 ToolAnchorPosition = new Vector3(0.4f, 0.95f, 0.15f);
+
+        // Prep zone on the back wall, left: knife rack, mise en place counter, a plain counter.
+        private static readonly Color PrepColor = new Color(0.78f, 0.64f, 0.45f);
+        private static readonly Vector3 KnifeRackPosition = new Vector3(-3f, 0f, 3.4f);
+        private static readonly Vector3 PrepCounterPosition = new Vector3(-2f, 0f, 3.4f);
+        private static readonly Vector3 PrepSpareCounterPosition = new Vector3(-1f, 0f, 3.4f);
+        private static readonly Vector3 CuttingBoardScale = new Vector3(0.34f, 0.025f, 0.28f);
+        private static readonly Color CuttingBoardColor = new Color(0.92f, 0.82f, 0.62f);
+        private const float PrepBinOffset = 0.33f;
+        private static readonly Vector3 PrepBinScale = new Vector3(0.2f, 0.03f, 0.2f);
 
         // Stations: standard 0.9 m counter height, 1 m footprint.
         private const float CounterHeight = 0.9f;
@@ -88,8 +100,6 @@ namespace Game.Editor
         // zone has its own colour so it reads from the overhead camera.
         private static readonly (string Name, Color Color, float Size, float Height, Vector3[] Positions)[] CounterZones =
         {
-            ("Prep", new Color(0.78f, 0.64f, 0.45f), CounterSize, CounterHeight,
-                new[] { new Vector3(-3f, 0f, 3.4f), new Vector3(-2f, 0f, 3.4f), new Vector3(-1f, 0f, 3.4f) }),
             ("Island", new Color(0.70f, 0.58f, 0.42f), CounterSize, CounterHeight,
                 new[] { new Vector3(-0.5f, 0f, 0.8f), new Vector3(0.5f, 0f, 0.8f) }),
         };
@@ -148,7 +158,8 @@ namespace Game.Editor
                 Realism = GreyboxAssets.EnsureAsset<RealismSettings>(RealismPath),
                 Catalog = GreyboxIngredients.BuildCatalog(
                     (GreyboxKitchenware.PanTypeId, GreyboxKitchenware.BuildPan()),
-                    (Game.Simulation.Items.Plate.PlateTypeId, GreyboxKitchenware.BuildPlate())),
+                    (Game.Simulation.Items.Plate.PlateTypeId, GreyboxKitchenware.BuildPlate()),
+                    (Game.Simulation.Items.Knife.KnifeTypeId, GreyboxKitchenware.BuildKnife())),
             };
             assets.PlayerPrefab = BuildPlayerPrefab(assets.Settings, assets.Tuning);
             BuildScene(scene, assets);
@@ -187,8 +198,12 @@ namespace Game.Editor
             var carryAnchor = new GameObject("CarryAnchor").transform;
             carryAnchor.SetParent(root.transform, false);
             carryAnchor.localPosition = CarryAnchorPosition;
+            var toolAnchor = new GameObject("ToolAnchor").transform;
+            toolAnchor.SetParent(root.transform, false);
+            toolAnchor.localPosition = ToolAnchorPosition;
             var interactor = root.AddComponent<PlayerInteractor>();
             SetReference(interactor, "_carryAnchor", carryAnchor);
+            SetReference(interactor, "_toolAnchor", toolAnchor);
 
             // Visuals live under one child so the join pop scales them without moving the root.
             var visuals = new GameObject("Visuals").transform;
@@ -278,6 +293,7 @@ namespace Game.Editor
             var prompts = root.gameObject.AddComponent<StationPromptOverlay>();
             SetReference(prompts, "_settings", settings);
             root.gameObject.AddComponent<QualityCardOverlay>();
+            root.gameObject.AddComponent<ChopRhythmOverlay>();
             foreach (var chip in Object.FindObjectsByType<DonenessChipView>(FindObjectsSortMode.None))
                 SetReference(chip, "_root", root);
 
@@ -335,6 +351,8 @@ namespace Game.Editor
                 }
             }
 
+            BuildPrepZone(stations, settings);
+
             var hobs = new GameObject("Zone_Hob").transform;
             hobs.SetParent(stations, false);
             var hobMaterial = GreyboxAssets.EnsureMaterial("Hob", HobColor);
@@ -362,6 +380,48 @@ namespace Game.Editor
                 GreyboxStorage.Build(unit, CounterHeight, (name, position, material) =>
                     CreateStation<StorageStation>(name, position, CounterSize, CounterHeight, material, storage, settings));
             }
+        }
+
+        private static void BuildPrepZone(Transform stations, CoopSettings settings)
+        {
+            var zone = new GameObject("Zone_Prep").transform;
+            zone.SetParent(stations, false);
+            var material = GreyboxAssets.EnsureMaterial("Prep", PrepColor);
+
+            CreateStation<KnifeRackStation>("KnifeRack", KnifeRackPosition, CounterSize, CounterHeight, material, zone, settings);
+            CreateStation<CounterStation>("Prep_Counter", PrepSpareCounterPosition, CounterSize, CounterHeight, material, zone, settings);
+
+            var prep = CreateStation<PrepStation>("MiseEnPlace", PrepCounterPosition, CounterSize, CounterHeight, material, zone, settings);
+            var board = GreyboxAssets.CreatePrimitive(
+                PrimitiveType.Cube, "CuttingBoard", prep.transform, GreyboxAssets.EnsureMaterial("CuttingBoard", CuttingBoardColor), keepCollider: false);
+            board.transform.localScale = CuttingBoardScale;
+            board.transform.localPosition = new Vector3(0f, CounterHeight + CuttingBoardScale.y / 2f, 0f);
+            var boardAnchor = new GameObject("BoardAnchor").transform;
+            boardAnchor.SetParent(prep.transform, false);
+            boardAnchor.localPosition = new Vector3(0f, CounterHeight + CuttingBoardScale.y, 0f);
+
+            // Slot bins in FaceButton order, in the controller's diamond as seen from the camera.
+            var offsets = new[]
+            {
+                new Vector3(0f, 0f, -PrepBinOffset), new Vector3(PrepBinOffset, 0f, 0f),
+                new Vector3(-PrepBinOffset, 0f, 0f), new Vector3(0f, 0f, PrepBinOffset),
+            };
+            var binMaterial = GreyboxAssets.EnsureMaterial("StorageBin", new Color(0.55f, 0.57f, 0.60f));
+            var so = new SerializedObject(prep);
+            so.FindProperty("_boardAnchor").objectReferenceValue = boardAnchor;
+            var slots = so.FindProperty("_slotAnchors");
+            slots.arraySize = offsets.Length;
+            for (var i = 0; i < offsets.Length; i++)
+            {
+                var bin = GreyboxAssets.CreatePrimitive(PrimitiveType.Cube, $"Bin_{(FaceButton)i}", prep.transform, binMaterial, keepCollider: false);
+                bin.transform.localScale = PrepBinScale;
+                bin.transform.localPosition = offsets[i] + Vector3.up * (CounterHeight + PrepBinScale.y / 2f);
+                var anchor = new GameObject($"SlotAnchor_{(FaceButton)i}").transform;
+                anchor.SetParent(prep.transform, false);
+                anchor.localPosition = offsets[i] + Vector3.up * (CounterHeight + PrepBinScale.y);
+                slots.GetArrayElementAtIndex(i).objectReferenceValue = anchor;
+            }
+            so.ApplyModifiedPropertiesWithoutUndo();
         }
 
         // A hob: counter body, a burner ring that glows with the dial around the pan, and heat

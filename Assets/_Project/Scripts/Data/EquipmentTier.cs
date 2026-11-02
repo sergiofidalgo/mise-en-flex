@@ -25,7 +25,13 @@ namespace Game.Data
         [Tooltip("Food items that fit on a plate (e.g. steak, onions, a garnish).")]
         [SerializeField, Min(1)] private int _plateCapacity = 3;
 
+        [Header("Prep counter")]
+        [Tooltip("Portions each of the prep counter's four slots holds.")]
+        [SerializeField, Min(1)] private int _prepSlotCapacity = 4;
+
         public int PlateCapacity => _plateCapacity;
+
+        public int PrepSlotCapacity => _prepSlotCapacity;
 
         public HobProperties Hob => new HobProperties { MaxPower = _hobMaxPower };
 

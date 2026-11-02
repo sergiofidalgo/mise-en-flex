@@ -26,7 +26,11 @@ namespace Game.Gameplay.Stations
         [Tooltip("Where carried items sit, in front of the chef's chest.")]
         [SerializeField] private Transform _carryAnchor;
 
+        [Tooltip("Where a held tool (the knife) sits, at the chef's side.")]
+        [SerializeField] private Transform _toolAnchor;
+
         private readonly ItemSlot _hands = new ItemSlot();
+        private readonly ItemSlot _tool = new ItemSlot();
         private readonly List<SimVector2> _candidatePositions = new List<SimVector2>();
 
         private PlayerInput _playerInput;
@@ -43,6 +47,9 @@ namespace Game.Gameplay.Stations
         public int PlayerIndex => _playerInput.playerIndex;
 
         public ItemSlot Hands => _hands;
+
+        /// <summary>The tool held alongside the hands (the knife), or null.</summary>
+        public Item Tool => _tool.Current;
 
         public Interactable Target => _target;
 
@@ -140,6 +147,16 @@ namespace Game.Gameplay.Stations
             _services.ItemViews.Place(item, _carryAnchor, _services.Tuning.ItemMove, spawnPosition);
         }
 
+        /// <summary>Takes a tool into the tool slot; its view flies there from <paramref name="spawnPosition"/>.</summary>
+        public void ReceiveTool(Item tool, Vector3 spawnPosition)
+        {
+            _tool.Put(tool);
+            _services.ItemViews.Place(tool, _toolAnchor, _services.Tuning.ItemMove, spawnPosition);
+        }
+
+        /// <summary>Gives up the held tool (the station places its view).</summary>
+        public Item ReleaseTool() => _tool.Take();
+
         // Stations that answer to face buttons (storage) get them first while the hands are empty.
         private bool TryFaceButton(FaceButton button)
         {
@@ -168,13 +185,17 @@ namespace Game.Gameplay.Stations
         {
             if (_target == null || _services == null)
                 return;
-            if (TryFaceButton(FaceButton.South) || _target.Container == null)
+            if (TryFaceButton(FaceButton.South))
                 return;
 
-            var outcome = ItemTransfer.Interact(_hands, _target.Container);
+            // Hands first ("A prioritises putting the ingredient away"), then the tool.
+            var outcome = _target.Container != null
+                ? ItemTransfer.Interact(_hands, _target.Container)
+                : InteractionOutcome.Nothing;
             if (outcome == InteractionOutcome.Nothing)
             {
-                _target.NotifyDenied();
+                if (!(_target is IToolStation tools) || !tools.TryExchangeTool(this))
+                    _target.NotifyDenied();
             }
             else
             {

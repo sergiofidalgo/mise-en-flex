@@ -25,6 +25,8 @@ namespace Game.Simulation.Quality
         public float CrustWeight { get; set; } = 0.25f;
         public float TemperatureWeight { get; set; } = 0.25f;
         public float FreshnessWeight { get; set; } = 0.1f;
+        public float CutWeight { get; set; } = 0.15f;
+        public float RestWeight { get; set; } = 0.15f;
     }
 
     /// <summary>One food item's score. Parts that don't apply to it are null.</summary>
@@ -36,6 +38,12 @@ namespace Game.Simulation.Quality
         public float? Crust { get; internal set; }
         public float? Temperature { get; internal set; }
         public float Freshness { get; internal set; }
+
+        /// <summary>Evenness of the cut, for food cut at the prep counter.</summary>
+        public float? Cut { get; internal set; }
+
+        /// <summary>How well it rested off the pan before serving, for food that should rest (steak).</summary>
+        public float? Rest { get; internal set; }
 
         /// <summary>Weighted average of the parts that apply, 0..1.</summary>
         public float Overall { get; internal set; }
@@ -104,12 +112,20 @@ namespace Game.Simulation.Quality
             if (p.ServedHot)
                 score.Temperature = Ramp(ingredient.AverageTemperature, p.ServingColdTemperature, p.ServingIdealTemperature);
 
+            score.Cut = ingredient.CutEvenness;
+
+            // Resting only means something once it's been cooked (it reached a doneness level).
+            if (p.RestTargetSeconds > 0f && ingredient.Doneness.HasValue)
+                score.Rest = Ramp(ingredient.SecondsOutOfPan, 0f, p.RestTargetSeconds);
+
             // Weighted average of the parts that apply to this item.
             var total = settings.FreshnessWeight * score.Freshness;
             var weights = settings.FreshnessWeight;
             Add(score.Doneness, settings.DonenessWeight);
             Add(score.Crust, settings.CrustWeight);
             Add(score.Temperature, settings.TemperatureWeight);
+            Add(score.Cut, settings.CutWeight);
+            Add(score.Rest, settings.RestWeight);
             score.Overall = weights > 0f ? total / weights : 0f;
             return score;
 

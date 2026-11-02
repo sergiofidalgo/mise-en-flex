@@ -80,5 +80,17 @@ namespace Game.Simulation.Cooking
 
         /// <summary>True if the crust (browning) is part of the score, e.g. a seared steak.</summary>
         public bool ScoresBrowning { get; set; }
+
+        /// <summary>Type id this becomes when cut at the prep counter (e.g. Onion → DicedOnion), or null if it isn't cut.</summary>
+        public string CutIntoTypeId { get; set; }
+
+        /// <summary>Knife chops needed to finish the cut.</summary>
+        public int CutsNeeded { get; set; }
+
+        /// <summary>Real seconds between beats when chopping: the rhythm the player follows.</summary>
+        public float ChopInterval { get; set; }
+
+        /// <summary>In-game seconds of rest off the pan for full marks (steak); 0 if resting isn't scored.</summary>
+        public float RestTargetSeconds { get; set; }
     }
 }
