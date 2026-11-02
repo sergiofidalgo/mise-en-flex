@@ -4,6 +4,7 @@ using Game.Gameplay;
 using Game.Gameplay.Stations;
 using Game.Simulation.Cooking;
 using Game.Simulation.Items;
+using Game.Simulation.Quality;
 using Game.Simulation.Service;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -21,6 +22,7 @@ namespace Game.Presentation
     public sealed class CookingDebugOverlay : MonoBehaviour
     {
         private const float Margin = 10f;
+        private const int RecentDishes = 4; // served dishes listed under Service
         private const float LeftMaxWidth = 560f;
         private const float RightMaxWidth = 720f;
 
@@ -153,6 +155,53 @@ namespace Game.Presentation
                 $"walking in {Count(CustomerState.WalkingToSeat)}   waiting {Coloured(Count(CustomerState.Waiting).ToString(), Count(CustomerState.Waiting) > 0 ? Warn : Dim)}   " +
                 $"eating {Count(CustomerState.Eating)}   queue {Count(CustomerState.Queueing)}   " +
                 $"served {Coloured(served.ToString(), Good)}   lost {Coloured(service.LostCovers.ToString(), service.LostCovers > 0 ? Bad : Dim)}", _text);
+            DrawSatisfaction(service);
+        }
+
+        // How happy the served customers are: the average, how many got what they ordered, and
+        // the last few dishes with what was off.
+        private void DrawSatisfaction(ServiceSimulation service)
+        {
+            var scored = service.Customers.Where(c => c.Satisfaction != null).ToList();
+            if (scored.Count == 0)
+            {
+                GUILayout.Label(Coloured("satisfaction: nobody served yet", Dim), _text);
+                return;
+            }
+
+            var average = service.AverageStars ?? 0f;
+            var asOrdered = scored.Count(c => c.Satisfaction.Match == OrderMatch.Matches);
+            GUILayout.Label(
+                $"satisfaction {Coloured($"{average:0.0}★", StarsColour(average))} avg   " +
+                $"as ordered {Coloured($"{asOrdered}/{scored.Count}", asOrdered == scored.Count ? Good : Warn)}", _text);
+
+            for (var i = scored.Count - 1; i >= Mathf.Max(0, scored.Count - RecentDishes); i--)
+            {
+                var customer = scored[i];
+                var score = customer.Satisfaction;
+                GUILayout.Label(
+                    $"     #{customer.Id} {customer.Order?.ToString() ?? "no order"}  →  " +
+                    $"{Coloured($"{score.Stars:0.#}★", StarsColour(score.Stars))}  {Coloured(Verdict(score), Dim)}", _text);
+            }
+        }
+
+        private static Color StarsColour(float stars) => stars >= 4f ? Good : stars >= 2.5f ? Warn : Bad;
+
+        private static string Verdict(DishScore score)
+        {
+            switch (score.Match)
+            {
+                case OrderMatch.Matches:
+                    return "as ordered";
+                case OrderMatch.WrongDoneness:
+                    var main = score.Items.FirstOrDefault(i => i.TargetDonenessName != null);
+                    return $"got {main?.DonenessName ?? "?"}";
+                case OrderMatch.MissingSide:
+                case OrderMatch.MissingMain:
+                    return "missing " + string.Join(", ", score.Missing);
+                default:
+                    return string.Empty;
+            }
         }
 
         private void DrawPlayers()

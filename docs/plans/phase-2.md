@@ -8,7 +8,7 @@
 
 - **Counter service at the pass:** stools along the dining side of the pass; plates are served onto the pass in front of each customer. No front-of-house work yet (the smallest size tier, "counter").
 - **Menu:** steak to order (rare, medium-rare, medium, well done), sometimes with sautéed onions. The order's doneness replaces the medium-rare house standard.
-- **A service lasts ~6 real minutes** (~6 in-game hours at 60x, e.g. 18:00–00:00), with arrivals in waves and a mid-service rush. Tunable.
+- **A service lasts ~5 real minutes** (~5 in-game hours at 60x, 18:00–23:00; shortened from 6 after playtest), with arrivals in waves and a mid-service rush. Tunable.
 - **Wrong dish:** the customer eats it unhappily; off-target doneness is scored low (less pay and tip, a grumpy review line). No send-backs.
 
 ## Milestones

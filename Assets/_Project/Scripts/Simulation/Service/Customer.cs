@@ -1,4 +1,5 @@
 using Game.Simulation.Items;
+using Game.Simulation.Quality;
 
 namespace Game.Simulation.Service
 {
@@ -42,6 +43,12 @@ namespace Game.Simulation.Service
 
         /// <summary>The plate they were served, while eating and after.</summary>
         public Plate ServedPlate { get; internal set; }
+
+        /// <summary>
+        /// How happy they were with their dish: its score when served, against their order. Null
+        /// until served. Patience and the wait join it in later milestones.
+        /// </summary>
+        public DishScore Satisfaction { get; internal set; }
 
         /// <summary>True if they left without being served (no seat, or later, out of patience).</summary>
         public bool WalkedOut { get; internal set; }

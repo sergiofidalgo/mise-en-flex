@@ -64,12 +64,13 @@ namespace Game.Simulation.Quality
 
     public sealed class DishScore
     {
-        public DishScore(IReadOnlyList<ItemScore> items, float overall, Order order = null, IReadOnlyList<string> missing = null)
+        public DishScore(IReadOnlyList<ItemScore> items, float overall, Order order = null, IReadOnlyList<string> missing = null, OrderMatch? match = null)
         {
             Items = items;
             Overall = overall;
             Order = order;
             Missing = missing ?? Array.Empty<string>();
+            Match = match;
         }
 
         public IReadOnlyList<ItemScore> Items { get; }
@@ -79,6 +80,9 @@ namespace Game.Simulation.Quality
 
         /// <summary>Type ids the order asked for that weren't on the plate.</summary>
         public IReadOnlyList<string> Missing { get; }
+
+        /// <summary>How the plate compared with the order when served, or null without an order.</summary>
+        public OrderMatch? Match { get; }
 
         /// <summary>0..1: the average of the items' scores.</summary>
         public float Overall { get; }
@@ -137,7 +141,8 @@ namespace Game.Simulation.Quality
                 }
             }
 
-            return new DishScore(items, weights > 0f ? total / weights : 0f, order, missing);
+            var match = order != null ? OrderCheck.Check(order, plate, out _) : (OrderMatch?)null;
+            return new DishScore(items, weights > 0f ? total / weights : 0f, order, missing, match);
         }
 
         /// <param name="ordered">The doneness a customer asked for; null scores against the house standard.</param>

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Game.Simulation.Items;
+using Game.Simulation.Quality;
 
 namespace Game.Simulation.Service
 {
@@ -49,6 +50,24 @@ namespace Game.Simulation.Service
         public Customer AtSeat(int seat) => _seats[seat];
 
         public int LostCovers { get; private set; }
+
+        /// <summary>Average stars of the customers served so far (0–5), or null before the first.</summary>
+        public float? AverageStars
+        {
+            get
+            {
+                var total = 0f;
+                var count = 0;
+                foreach (var customer in _customers)
+                {
+                    if (customer.Satisfaction == null)
+                        continue;
+                    total += customer.Satisfaction.Stars;
+                    count++;
+                }
+                return count > 0 ? total / count : (float?)null;
+            }
+        }
 
         /// <summary>Raised for each new customer, after they've been given a seat or a queue spot (or walked away).</summary>
         public event Action<Customer> Arrived;
@@ -102,13 +121,15 @@ namespace Game.Simulation.Service
         /// A plate with food was put on the pass in front of <paramref name="seat"/>. If someone is
         /// sitting there waiting, they take it and start eating.
         /// </summary>
-        public bool Serve(int seat, Plate plate)
+        /// <param name="score">The dish's score against their order, kept as their satisfaction.</param>
+        public bool Serve(int seat, Plate plate, DishScore score = null)
         {
             var customer = seat >= 0 && seat < _seats.Length ? _seats[seat] : null;
             if (customer == null || customer.State != CustomerState.Waiting || plate == null || plate.Items.Count == 0)
                 return false;
 
             customer.ServedPlate = plate;
+            customer.Satisfaction = score;
             customer.EatingLeft = Settings.EatSeconds;
             customer.State = CustomerState.Eating;
             return true;

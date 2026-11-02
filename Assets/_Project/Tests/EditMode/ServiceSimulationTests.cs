@@ -1,5 +1,6 @@
 using System.Linq;
 using Game.Simulation.Items;
+using Game.Simulation.Quality;
 using Game.Simulation.Service;
 using NUnit.Framework;
 
@@ -102,6 +103,25 @@ namespace Game.Tests.EditMode
             Assert.That(service.Serve(customer.Seat, new Plate(3)), Is.False, "an empty plate isn't a meal");
             Assert.That(service.Serve(customer.Seat, PlateWithFood()), Is.True);
             Assert.That(customer.State, Is.EqualTo(CustomerState.Eating));
+        }
+
+        [Test]
+        public void ServedCustomersKeepTheirDishScoreAsSatisfaction()
+        {
+            var service = new ServiceSimulation(Settings(), seatCount: 3);
+            Assert.That(service.AverageStars, Is.Null);
+            Run(service, 2f * 12f * Minute + Minute); // two seated customers
+            var first = service.AtSeat(0);
+            var second = service.AtSeat(1);
+
+            var great = new DishScore(System.Array.Empty<ItemScore>(), 0.9f);
+            var poor = new DishScore(System.Array.Empty<ItemScore>(), 0.4f);
+            service.Serve(0, PlateWithFood(), great);
+            service.Serve(1, PlateWithFood(), poor);
+
+            Assert.That(first.Satisfaction, Is.SameAs(great));
+            Assert.That(second.Satisfaction, Is.SameAs(poor));
+            Assert.That(service.AverageStars, Is.EqualTo((4.5f + 2f) / 2f));
         }
 
         [Test]

@@ -128,6 +128,9 @@ namespace Game.Tests.EditMode
             Assert.That(noOnion.Missing, Is.EqualTo(new[] { "DicedOnion" }));
             Assert.That(onlyOnion.Missing, Is.EqualTo(new[] { "Steak" }));
             Assert.That(full.Missing, Is.Empty);
+            Assert.That(full.Match, Is.EqualTo(OrderMatch.Matches));
+            Assert.That(noOnion.Match, Is.EqualTo(OrderMatch.MissingSide));
+            Assert.That(DishScorer.Score(PlateOf(Steak(54.5f)), settings).Match, Is.Null, "no order, nothing to match");
             Assert.That(noOnion.Overall, Is.LessThan(full.Overall));
             Assert.That(onlyOnion.Overall, Is.LessThan(noOnion.Overall));
         }

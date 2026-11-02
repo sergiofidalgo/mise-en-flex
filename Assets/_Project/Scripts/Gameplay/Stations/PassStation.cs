@@ -80,7 +80,7 @@ namespace Game.Gameplay.Stations
             var order = customer != null && customer.State == CustomerState.Waiting ? customer.Order : null;
             var score = DishScorer.Score(plate, _services.Tuning.Quality(_services.Realism.CookingPrecision), order);
             _collectAt = Time.time + _services.Tuning.PassCollectDelay;
-            _eating = _services.Service.Serve(_seatIndex, plate) ? customer : null;
+            _eating = _services.Service.Serve(_seatIndex, plate, score) ? customer : null;
             Served?.Invoke(this, score);
         }
 

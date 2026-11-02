@@ -4,6 +4,16 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-02 — Services last 5 hours; satisfaction is the dish score for now
+
+**Decisions:**
+- **A service lasts 5 in-game hours** (about 5 real minutes; was 6). The arrival pace stays the same. The rush stays at 35–60% of the service, so the quiet tail after it is about an hour shorter.
+- **Satisfaction** for each served customer is, for now, **their dish's score against their order** (stars). The Service log shows the average, how many got what they ordered, and the last four dishes with what was off. Patience and the wait join it in milestones 3–4.
+
+**Reason:** Playtest: the pace was right, but the end of the service dragged.
+
+---
+
 ## 2026-11-02 — Orders, tickets and pacing (Phase 2, milestone 2)
 
 **Decisions (proposed while building after the milestone 1 playtest; flagged for review):**

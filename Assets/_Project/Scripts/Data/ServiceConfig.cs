@@ -6,7 +6,7 @@ using UnityEngine;
 namespace Game.Data
 {
     /// <summary>
-    /// Tuning for a dinner service (decision 2026-11-02: ~6 real minutes, waves with a rush).
+    /// Tuning for a dinner service (decisions 2026-11-02: ~5 real minutes, waves with a rush).
     /// Times are in in-game minutes; at 60x that's also real seconds.
     /// </summary>
     [CreateAssetMenu(menuName = "Game/Service Config", fileName = "ServiceConfig")]
@@ -32,8 +32,8 @@ namespace Game.Data
             public float Weight => _weight;
         }
 
-        [Tooltip("In-game hours the service runs (6 ≈ 6 real minutes).")]
-        [SerializeField, Min(0.1f)] private float _durationHours = 6f;
+        [Tooltip("In-game hours the service runs (5 ≈ 5 real minutes).")]
+        [SerializeField, Min(0.1f)] private float _durationHours = 5f;
 
         [Tooltip("Clock time the service opens, for display (18 = 18:00).")]
         [SerializeField, Range(0f, 23.99f)] private float _opensAt = 18f;

@@ -6,8 +6,8 @@ namespace Game.Simulation.Service
     /// </summary>
     public sealed class ServiceSettings
     {
-        /// <summary>How long the service runs, in-game seconds (6 h ≈ 6 real minutes).</summary>
-        public float DurationSeconds { get; set; } = 6f * 3600f;
+        /// <summary>How long the service runs, in-game seconds (5 h ≈ 5 real minutes).</summary>
+        public float DurationSeconds { get; set; } = 5f * 3600f;
 
         /// <summary>Average in-game seconds between arrivals outside the rush.</summary>
         public float ArrivalIntervalSeconds { get; set; } = 25f * 60f;
