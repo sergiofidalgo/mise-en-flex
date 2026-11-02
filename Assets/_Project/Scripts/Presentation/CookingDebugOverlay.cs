@@ -10,25 +10,26 @@ using UnityEngine.InputSystem;
 namespace Game.Presentation
 {
     /// <summary>
-    /// Developer overlay for tuning, organised by where things are so it reads at a glance:
-    /// players (device, target, hands, tool, triggers), hobs (heat and pan temperature with the
-    /// food in each pan), food in play (anywhere outside storage, with its location), and a one-line
-    /// summary per storage unit. Values are coloured by state. F1 toggles it. Players read food by
-    /// eye; this is for tuning and debugging.
+    /// Developer overlay for tuning, organised by where things are so it reads at a glance, in two
+    /// panels: top left for players (device, target, hands, tool, triggers) and storage (one line
+    /// per unit); top right for what you watch while cooking: hobs (heat, pan temperature, the food
+    /// in each pan) and food in play (anywhere outside storage, with its location). Values are
+    /// coloured by state. F1 toggles it. Players read food by eye; this is for tuning and debugging.
     /// </summary>
     public sealed class CookingDebugOverlay : MonoBehaviour
     {
         private const float Margin = 10f;
-        private const float MaxWidth = 860f;
+        private const float LeftMaxWidth = 560f;
+        private const float RightMaxWidth = 720f;
 
-        // Column widths for food rows, in pixels.
-        private const float NameWidth = 110f;
-        private const float DonenessWidth = 100f;
-        private const float CoreWidth = 150f;
-        private const float CrustWidth = 110f;
-        private const float HotWidth = 70f;
-        private const float FreshWidth = 70f;
-        private const float LocationWidth = 150f;
+        // Column widths for food rows, in pixels (sized to fit the right panel).
+        private const float NameWidth = 90f;
+        private const float DonenessWidth = 88f;
+        private const float CoreWidth = 118f;
+        private const float CrustWidth = 88f;
+        private const float HotWidth = 56f;
+        private const float FreshWidth = 48f;
+        private const float LocationWidth = 130f;
 
         [SerializeField] private KitchenCompositionRoot _root;
         [SerializeField] private bool _visible = true;
@@ -85,19 +86,26 @@ namespace Game.Presentation
             EnsureStyles();
             MapLocations(services);
 
-            var width = Mathf.Min(MaxWidth, Screen.width - 2f * Margin);
-            GUILayout.BeginArea(new Rect(Margin, Margin, width, Screen.height - 2f * Margin));
-            GUILayout.BeginVertical(_panel);
-
+            // Two panels side by side, each no wider than half the screen less the margins.
+            var half = (Screen.width - 3f * Margin) / 2f;
+            var leftWidth = Mathf.Min(LeftMaxWidth, half);
+            var rightWidth = Mathf.Min(RightMaxWidth, half);
+            var height = Screen.height - 2f * Margin;
             var cooking = services.Cooking;
+
+            GUILayout.BeginArea(new Rect(Margin, Margin, leftWidth, height));
+            GUILayout.BeginVertical(_panel);
             var minutes = (int)(cooking.ElapsedSeconds / 60.0);
             GUILayout.Label($"<b>Kitchen debug</b>   game time {minutes / 60:00}:{minutes % 60:00}   ×{services.Tuning.TimeScale:0}   <color=#888>(F1 hides)</color>", _text);
-
             DrawPlayers();
+            DrawStorage();
+            GUILayout.EndVertical();
+            GUILayout.EndArea();
+
+            GUILayout.BeginArea(new Rect(Screen.width - Margin - rightWidth, Margin, rightWidth, height));
+            GUILayout.BeginVertical(_panel);
             DrawHobs();
             DrawFoodInPlay(cooking);
-            DrawStorage();
-
             GUILayout.EndVertical();
             GUILayout.EndArea();
         }
@@ -114,9 +122,8 @@ namespace Game.Presentation
                 var tool = interactor != null && interactor.Tool != null ? "  knife ✓" : string.Empty;
                 var down = player.actions.FindAction("HeatDown")?.ReadValue<float>() ?? 0f;
                 var up = player.actions.FindAction("HeatUp")?.ReadValue<float>() ?? 0f;
-                GUILayout.Label(
-                    $"<b>P{player.playerIndex + 1}</b>  {device}   facing <b>{target}</b>   holding <b>{hands}</b>{tool}   " +
-                    $"<color=#888>LT {down:0.0}  RT {up:0.0}</color>", _text);
+                GUILayout.Label($"<b>P{player.playerIndex + 1}</b>  <color=#888>{device}   LT {down:0.0}  RT {up:0.0}</color>", _text);
+                GUILayout.Label($"     facing <b>{target}</b>   holding <b>{hands}</b>{tool}", _text);
             }
         }
 
@@ -204,7 +211,7 @@ namespace Game.Presentation
             Header("hot", HotWidth);
             Header("fresh", FreshWidth);
             Header("where", LocationWidth);
-            Header("rest / cut", 0f);
+            Header("rest/cut", 0f);
             GUILayout.EndHorizontal();
         }
 
