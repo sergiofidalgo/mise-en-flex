@@ -1,7 +1,6 @@
 using System.Linq;
 using Game.Data;
 using Game.Gameplay;
-using Game.Gameplay.CloseUp;
 using Game.Gameplay.Items;
 using Game.Gameplay.Stations;
 using Game.Presentation;
@@ -96,6 +95,10 @@ namespace Game.Editor
         private const float HeatPipSpacing = 0.14f;
         private const float HeatPipBackOffset = 0.42f;
 
+        // Doneness chip floating above the pan while a player faces the hob.
+        private const float ChipSize = 0.12f;
+        private const float ChipHeightAbovePan = 0.4f;
+
         // Plate stack next to the pass, and the bin on the east wall.
         private static readonly Vector3 PlateStackPosition = new Vector3(2.2f, 0f, -2.4f);
         private static readonly Color PlateStackColor = new Color(0.80f, 0.80f, 0.78f);
@@ -129,15 +132,11 @@ namespace Game.Editor
                     (GreyboxKitchenware.PanTypeId, GreyboxKitchenware.BuildPan()),
                     (Game.Simulation.Items.Plate.PlateTypeId, GreyboxKitchenware.BuildPlate())),
             };
-            _hobTechniquePrefab = GreyboxCloseUp.BuildHobTechnique(CounterHeight);
             assets.PlayerPrefab = BuildPlayerPrefab(assets.Settings, assets.Tuning);
             BuildScene(scene, assets);
             AssetDatabase.SaveAssets();
             Debug.Log($"[GreyboxKitchenBuilder] Built {PlayerPrefabPath}, ingredients and {ScenePath}.");
         }
-
-        // Set at the start of BuildAll; every hob's close-up uses it.
-        private static GameObject _hobTechniquePrefab;
 
         private sealed class SceneAssets
         {
@@ -172,9 +171,6 @@ namespace Game.Editor
             carryAnchor.localPosition = CarryAnchorPosition;
             var interactor = root.AddComponent<PlayerInteractor>();
             SetReference(interactor, "_carryAnchor", carryAnchor);
-
-            var closeUp = root.AddComponent<PlayerCloseUp>();
-            GreyboxCloseUp.AddHud(root, closeUp, tuning, settings);
 
             // Visuals live under one child so the join pop scales them without moving the root.
             var visuals = new GameObject("Visuals").transform;
@@ -261,6 +257,8 @@ namespace Game.Editor
 
             var overlay = root.gameObject.AddComponent<CookingDebugOverlay>();
             SetReference(overlay, "_root", root);
+            foreach (var chip in Object.FindObjectsByType<DonenessChipView>(FindObjectsSortMode.None))
+                SetReference(chip, "_root", root);
 
             GreyboxAssets.EnsureFolder(System.IO.Path.GetDirectoryName(ScenePath));
             EditorSceneManager.SaveScene(scene, ScenePath);
@@ -370,11 +368,15 @@ namespace Game.Editor
                 pips[i] = pip.GetComponent<Renderer>();
             }
 
-            var closeUp = hob.gameObject.AddComponent<CloseUpStation>();
-            var closeUpSo = new SerializedObject(closeUp);
-            closeUpSo.FindProperty("_station").objectReferenceValue = hob;
-            closeUpSo.FindProperty("_techniquePrefab").objectReferenceValue = _hobTechniquePrefab;
-            closeUpSo.ApplyModifiedPropertiesWithoutUndo();
+            var chip = GreyboxAssets.CreatePrimitive(
+                PrimitiveType.Sphere, "DonenessChip", hob.transform, GreyboxAssets.EnsureMaterial("Chip", Color.white), keepCollider: false);
+            chip.transform.localScale = Vector3.one * ChipSize;
+            chip.transform.localPosition = new Vector3(0f, top + ChipHeightAbovePan, 0f);
+            var chipView = hob.gameObject.AddComponent<DonenessChipView>();
+            var chipSo = new SerializedObject(chipView);
+            chipSo.FindProperty("_hob").objectReferenceValue = hob;
+            chipSo.FindProperty("_chip").objectReferenceValue = chip.GetComponent<Renderer>();
+            chipSo.ApplyModifiedPropertiesWithoutUndo(); // _root is set once the composition root exists
 
             var view = hob.gameObject.AddComponent<HobView>();
             var viewSo = new SerializedObject(view);

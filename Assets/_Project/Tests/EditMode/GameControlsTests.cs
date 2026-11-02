@@ -23,17 +23,17 @@ namespace Game.Tests.EditMode
         }
 
         [Test]
-        public void HasTheFourActionMaps()
+        public void HasTheActionMaps()
         {
             var maps = _controls.actionMaps.Select(m => m.name).ToArray();
-            Assert.That(maps, Is.EquivalentTo(new[] { "Gameplay", "CloseUp", "Build", "UI" }));
+            Assert.That(maps, Is.EquivalentTo(new[] { "Gameplay", "Build", "UI" }));
         }
 
         [Test]
         public void GameplayMapHasPhase0Actions()
         {
             var actions = _controls.FindActionMap("Gameplay", true).actions.Select(a => a.name);
-            Assert.That(actions, Is.SupersetOf(new[] { "Move", "Interact", "Use", "Pause", "Join" }));
+            Assert.That(actions, Is.SupersetOf(new[] { "Move", "Interact", "Use", "Pause", "Join", "HeatDown", "HeatUp" }));
         }
 
         // CLAUDE.md: "Every action has a gamepad and a keyboard binding."
@@ -62,7 +62,9 @@ namespace Game.Tests.EditMode
         // (X = A, D = B, A = X, W = Y) and arrow keys move.
         [TestCase("Gameplay", "Interact", "<Keyboard>/x", "<Gamepad>/buttonSouth")]
         [TestCase("Gameplay", "Use", "<Keyboard>/a", "<Gamepad>/buttonWest")]
-        [TestCase("CloseUp", "Exit", "<Keyboard>/d", "<Gamepad>/buttonEast")]
+        [TestCase("Build", "Cancel", "<Keyboard>/d", "<Gamepad>/buttonEast")]
+        [TestCase("Gameplay", "HeatDown", "<Keyboard>/q", "<Gamepad>/leftTrigger")]
+        [TestCase("Gameplay", "HeatUp", "<Keyboard>/e", "<Gamepad>/rightTrigger")]
         public void KeyboardMirrorsFaceButtons(string map, string action, string key, string button)
         {
             var paths = _controls.FindActionMap(map, true).FindAction(action, true).bindings.Select(b => b.path).ToArray();

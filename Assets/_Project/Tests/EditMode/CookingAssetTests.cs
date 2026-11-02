@@ -45,6 +45,14 @@ namespace Game.Tests.EditMode
         }
 
         [Test]
+        public void BasicPanHoldsOnePieceOfFood()
+        {
+            // Decision 2026-11-02: one piece of food per pan.
+            var equipment = AssetDatabase.LoadAssetAtPath<EquipmentTier>(EquipmentPath);
+            Assert.That(equipment.Pan.Capacity, Is.EqualTo(1));
+        }
+
+        [Test]
         public void TimeScaleIsSixty()
         {
             // Decision 2026-11-02: one real second is one in-game minute.

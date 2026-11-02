@@ -18,7 +18,8 @@ namespace Game.Editor
         private const float PanDiameter = 0.44f;
         private const float PanDepth = 0.04f;
         private static readonly Vector3 PanHandleScale = new Vector3(0.05f, 0.03f, 0.22f);
-        private static readonly Vector3[] PanSlots = { new Vector3(-0.1f, 0f, 0f), new Vector3(0.1f, 0f, 0f) };
+        // One piece of food per pan (decision 2026-11-02), in the middle.
+        private static readonly Vector3[] PanSlots = { Vector3.zero };
 
         private const float PlateDiameter = 0.32f;
         private const float PlateThickness = 0.015f;

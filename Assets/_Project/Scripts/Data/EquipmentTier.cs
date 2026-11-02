@@ -18,8 +18,8 @@ namespace Game.Data
         [SerializeField, Min(1f)] private float _panHeatCapacity = 750f;
         [Tooltip("W/K lost to air. Sets the top temperature: about ambient + power / this (≈ 280 °C).")]
         [SerializeField, Min(0.01f)] private float _panAirLoss = 7.7f;
-        [Tooltip("Ingredients that fit in the pan at once.")]
-        [SerializeField, Min(1)] private int _panCapacity = 2;
+        [Tooltip("Ingredients that fit in the pan at once. 1 by design (decision 2026-11-02).")]
+        [SerializeField, Min(1)] private int _panCapacity = 1;
 
         [Header("Plate")]
         [Tooltip("Food items that fit on a plate (e.g. steak, onions, a garnish).")]

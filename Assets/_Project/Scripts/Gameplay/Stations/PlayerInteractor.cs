@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using Game.Gameplay.CloseUp;
 using Game.Simulation.Interaction;
 using Game.Simulation.Items;
 using UnityEngine;
@@ -19,6 +18,8 @@ namespace Game.Gameplay.Stations
     {
         private const string InteractActionName = "Interact";
         private const string UseActionName = "Use";
+        private const string HeatDownActionName = "HeatDown";
+        private const string HeatUpActionName = "HeatUp";
 
         [Tooltip("Where carried items sit, in front of the chef's chest.")]
         [SerializeField] private Transform _carryAnchor;
@@ -27,9 +28,10 @@ namespace Game.Gameplay.Stations
         private readonly List<SimVector2> _candidatePositions = new List<SimVector2>();
 
         private PlayerInput _playerInput;
-        private PlayerCloseUp _closeUp;
         private InputAction _interact;
         private InputAction _use;
+        private InputAction _heatDown;
+        private InputAction _heatUp;
         private IReadOnlyList<Interactable> _interactables;
         private KitchenServices _services;
         private Interactable _target;
@@ -52,7 +54,6 @@ namespace Game.Gameplay.Stations
         private void Awake()
         {
             _playerInput = GetComponent<PlayerInput>();
-            _closeUp = GetComponent<PlayerCloseUp>();
         }
 
         // Start, not Awake: PlayerInput has set up this player's own copy of the actions by now.
@@ -60,6 +61,8 @@ namespace Game.Gameplay.Stations
         {
             _interact = _playerInput.actions[InteractActionName];
             _use = _playerInput.actions[UseActionName];
+            _heatDown = _playerInput.actions[HeatDownActionName];
+            _heatUp = _playerInput.actions[HeatUpActionName];
             _interact.performed += HandleInteract;
             _use.performed += HandleUse;
         }
@@ -79,6 +82,10 @@ namespace Game.Gameplay.Stations
                 return;
 
             SetTarget(FindTarget());
+
+            // The triggers turn the heat of whatever hob the chef is facing.
+            if (_target is IHeatControl heat && _heatDown != null)
+                heat.AdjustHeat(_heatDown.ReadValue<float>(), _heatUp.ReadValue<float>(), Time.unscaledDeltaTime);
         }
 
         private Interactable FindTarget()
@@ -141,11 +148,7 @@ namespace Game.Gameplay.Stations
             if (_target == null)
                 return;
 
-            // Stations with a close-up open it; a busy one (the other player is in it) refuses.
-            var used = _target.TryGetComponent(out CloseUpStation closeUpStation)
-                ? _closeUp != null && _closeUp.TryOpen(closeUpStation)
-                : _target is IUsable usable && usable.TryUse(this);
-            if (!used)
+            if (!(_target is IUsable usable) || !usable.TryUse(this))
                 _target.NotifyDenied();
         }
     }

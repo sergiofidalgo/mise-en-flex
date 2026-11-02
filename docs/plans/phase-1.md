@@ -1,41 +1,43 @@
 # Phase 1 plan: Cooking core
 
-*Approved 2026-11-02. Decisions referenced here are in `../decisions.md`.*
+*Approved 2026-11-02; revised the same day after dropping the picture-in-picture close-up. Decisions referenced here are in `../decisions.md`.*
 
-**Done when:** two players stock up from a fridge, dice an onion on the board, sear a steak on a hob in a close-up while watching the heat, let it rest, plate it, and hand it in at the pass. The pass then shows a quality breakdown. Customers come in Phase 2, so the pass judges the dish instead.
+**Done when:** two players stock up from storage, sear a steak at a hob (heat on the triggers, Use to flip), let it rest, plate it and get it to the pass while it's hot, and the pass shows a quality breakdown including serving temperature. Customers come in Phase 2, so the pass judges the dish instead.
+
+## Differentiators this phase builds towards
+
+1. **Storage with capacity** (main differentiator).
+2. **Serving temperature:** food cools between pan and table.
+3. **Food keeps cooking** off the heat (carryover, resting).
+4. **Hobs (and later grills) with adjustable power.**
 
 ## Milestones
 
-Each one ends playable, tested and committed.
-
-| # | Milestone | Playable result |
+| # | Milestone | Status |
 | --- | --- | --- |
-| 1 | **Cooking simulation** (plain C#, tested): heat moves from hob to pan to food; doneness, browning and burning; preheating, crowding, carryover and resting. Ingredient and equipment data, a first `RealismSettings`, and a **debug overlay** with the numbers. | Put a steak in a hob's pan, change the heat with Use, and watch it cook in the overlay. |
-| 2 | **Pans, plates and bin:** pans and plates are carryable containers; a plate stack hands out plates; the bin destroys items. Placeholder food colours (raw → browned → charred). | Move a steak from pan to plate, read doneness by colour, bin a burnt one. |
-| 3 | **Close-up framework:** `ICloseUpTechnique`, a panel per player near the station (fading when the partner is behind it), the transition growing out of the station, CloseUp controls, one player per station, kitchen dim, edge pings. | Enter and leave a hob's close-up. |
-| 4 | **Steak technique:** heat dial on the triggers, A flips, hold X bastes; rest and slice on the board. | The full steak, judged by eye. |
-| 5 | **Board and onion technique:** stick moves the knife, A chops, Y rotates for dice; 3-slot rail; cut size affects cooking; sautéing in a pan. | Dice an onion, sauté it, plate it next to the steak. |
-| 6 | **Fridge and pass:** 4-slot fridge with the button prompt and limited stock replaces the crates; the pass shows a quality card (doneness, serving temperature, browning, cut evenness). | The complete loop, for a playtest. |
-
-Seasoning and freshness are tracked from milestone 1, without techniques yet.
+| 1 | Cooking simulation (heat, doneness, browning, carryover, freshness), hobs, debug overlay | Done |
+| 2 | Carryable pans, plates, plate stack, bin; cues by eye (steak colour, cooked edge bands, smoke, heat pips) | Done |
+| 3 | ~~Close-up framework~~, built then dropped | Superseded |
+| 3′ | **In-world hob controls:** triggers set the heat while facing a hob, Use flips, one piece of food per pan, doneness chip above the pan while facing it. Remove the picture-in-picture code. | Next |
+| 4′ | **Storage:** 4-slot fridge or shelf with the A/B/X/Y prompt and limited stock, replacing the crates. Fridges keep food cold; shelves don't. | |
+| 5′ | **Pass and serving temperature:** plated food keeps cooling while it waits; the pass shows a quality card (doneness, browning, serving temperature). | |
+| 6′ | **Board and onion:** rhythm chopping (tap Use), 3-slot rail, sautéing; resting and slicing the steak on the board. | |
 
 ## Key decisions
 
-- **Time:** one clock at 60x for everything (1 real second = 1 in-game minute). A steak cooks in ~8–10 s.
-- **Simulation units:** real-world units (°C, joules, watts, in-game seconds); gameplay feeds it real time × 60.
-- Pans and plates are carryable containers.
-- Doneness is read mostly by eye; numbers only in the debug overlay.
-- Close-up panel near the station, fading when the partner is behind it (fallback: bottom corner).
-- Steak and onion controls as above; fridge replaces crates in milestone 6.
+- One clock at 60x for everything (1 real second = 1 in-game minute); a steak cooks in ~6–8 s.
+- Real-world units in the simulation; gameplay feeds it real time × 60.
+- Pans and plates are carryable containers; one piece of food per pan.
+- Doneness is read mostly by eye, with a doneness chip while facing a hob; numbers only in the debug overlay.
 
 ## How we'll know it's fun
 
-- **Steak:** you glance between the close-up and the kitchen, and sometimes save a steak at the last moment. If you never leave the close-up, cooking is too slow; if you never need it, the close-up adds nothing.
-- **Onion:** dicing feels like a satisfying rhythm, not a quick-time event.
-- **Co-op:** one preps while the other cooks, and hand-offs at the island happen without being forced.
+- **Steak:** you watch the heat and the chip, flip at the right moment and pull it before carryover overshoots. Burning should feel like your fault, never the controls'.
+- **Storage:** stocking the fridge before service visibly saves trips during it.
+- **Serving temperature:** you feel the pressure to plate and send quickly, and a cold dish costs you.
+- **Co-op:** one stocks and preps while the other cooks; hand-offs at the island and the pass happen naturally.
 
 ## Risks
 
-- Biggest phase so far: keep the simulation and close-up framework minimal and well tested.
-- At 60x, technique windows are short; sear + flip + baste may not all fit in ~8–10 s (basting may become optional).
-- Two close-up cameras rendering into panels: keep their resolution modest and check frame times in milestone 3.
+- At 60x, timing windows are short; the doneness chip and smoke must make them readable.
+- Storage must stay spatial and visible, not turn into inventory menus.

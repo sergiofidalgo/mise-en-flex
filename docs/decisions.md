@@ -4,6 +4,18 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-02 — In-world hob controls, one piece per pan, doneness chip, revised Phase 1 order
+
+**Decisions:**
+- **Hob controls in the kitchen view:** while facing a hob, the **triggers** turn the heat smoothly (keyboard **Q** down / **E** up) and **Use** (X; keyboard A) **flips** the food in the pan.
+- **One piece of food per pan.** Simpler to read and control; Use always knows what to flip.
+- **Doneness chip:** while a player faces a hob, a small chip floats above the pan in the colour of the food's middle (doneness) band. No numbers.
+- **Revised Phase 1 milestones:** 3′ in-world hob controls (and remove the picture-in-picture code) → 4′ storage (4-slot fridge/shelf with the A/B/X/Y prompt) → 5′ pass with serving temperature and a quality card → 6′ board and onion (rhythm chopping, rail, sautéing; resting and slicing the steak). See `plans/phase-1.md`.
+
+**Reason:** Your choices after dropping the close-up: one press per action, readable from the shared camera, with storage and serving temperature brought forward as the differentiators.
+
+---
+
 ## 2026-11-02 — Drop the picture-in-picture close-up
 
 **Decision:** No close-up panel. Cooking is done in the kitchen view, directly at the station. The game's differentiators are instead:

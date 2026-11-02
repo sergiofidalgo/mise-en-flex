@@ -25,7 +25,7 @@ Transform:
   m_GameObject: {fileID: 572488891291040654}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.1, y: 0.04, z: 0}
+  m_LocalPosition: {x: 0, y: 0.04, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -155,7 +155,6 @@ Transform:
   - {fileID: 6516587038696812318}
   - {fileID: 5944500504376768564}
   - {fileID: 7925315013724874085}
-  - {fileID: 5815775329214910631}
   - {fileID: 7221645970385087945}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -173,7 +172,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Game.Gameplay::Game.Gameplay.Items.ItemView
   _slotAnchors:
   - {fileID: 7925315013724874085}
-  - {fileID: 5815775329214910631}
 --- !u!114 &8761657150860778629
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -200,37 +198,6 @@ MonoBehaviour:
   _burningFrom: 0.75
   _burningRate: 30
   _burningColor: {r: 0.22, g: 0.21, b: 0.21, a: 0.7}
---- !u!1 &5098596186647385962
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 5815775329214910631}
-  m_Layer: 0
-  m_Name: Slot_2
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &5815775329214910631
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5098596186647385962}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.1, y: 0.04, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 1789734892726468442}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &5831003444477756891
 GameObject:
   m_ObjectHideFlags: 0

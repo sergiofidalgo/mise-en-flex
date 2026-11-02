@@ -48,6 +48,12 @@ namespace Game.Presentation
         private Color _surfaceRaw;
         private Color[] _bandRaw;
 
+        /// <summary>True for layered food (steak), whose middle band shows doneness.</summary>
+        public bool ShowsDoneness => _bands.Length >= 3;
+
+        /// <summary>The middle band's colour this frame: the food's doneness at a glance.</summary>
+        public Color CoreColor { get; private set; }
+
         private void Awake()
         {
             _block = new MaterialPropertyBlock();
@@ -70,7 +76,8 @@ namespace Game.Presentation
                 return;
 
             SetColor(_bands[0], Cooked(ingredient.PeakSurfaceTemperature(ingredient.DownSide), _bandRaw[0]));
-            SetColor(_bands[1], Cooked(ingredient.PeakCoreTemperature, _bandRaw[1]));
+            CoreColor = Cooked(ingredient.PeakCoreTemperature, _bandRaw[1]);
+            SetColor(_bands[1], CoreColor);
             SetColor(_bands[2], Cooked(ingredient.PeakSurfaceTemperature(ingredient.UpSide), _bandRaw[2]));
         }
 

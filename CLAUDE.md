@@ -18,7 +18,7 @@ Hard rules:
 Key systems (see the design doc for detail):
 - **Daily loop:** Plan → Prep → Service → Close → Review, then the next day.
 - **Cooking simulation:** ingredients track form, doneness (continuous), temperature, freshness and seasoning. Heat is a resource (dial-controlled hobs, preheating, pan crowding, carryover cooking, resting). Active vs. passive processes.
-- **~~Close-up station view~~ (dropped 2026-11-02, see `docs/decisions.md`; cooking happens at the station in the kitchen view):** approaching a station opens an overhead close-up of its surface in the player's own screen panel (picture-in-picture by default), where techniques are performed with button combos and precise stick input. Each ingredient brings its own mechanic. The world keeps running.
+- **Station interactions in the kitchen view** (no close-up panel, decision 2026-11-02): Interact picks up and puts down, Use performs the station's action (e.g. flip at a hob), triggers adjust a hob's heat while facing it. Storage with capacity and serving temperature are the main differentiators.
 - **Quality score** per dish (doneness, serving temperature, seasoning, freshness, plating) drives payment, tips and reviews.
 - **Cuisines** each have a signature mechanic (steakhouse, sushi, French bistro, pizzeria, Spanish home cooking, wok). Service styles: fast casual, bistro, fine dining.
 - **Restaurant building:** size tiers (counter to full dining room) as a tradeoff, kitchen zones, equipment tiers, health inspections.
@@ -30,7 +30,7 @@ Key systems (see the design doc for detail):
 ## Tech stack
 
 - **Unity 6.3 LTS (6000.3.27f2)**, C#, **Universal Render Pipeline (URP)**, stylized look.
-- **Input System** package with `PlayerInputManager` for local co-op (join by pressing a button). Action maps: `Gameplay`, `CloseUp`, `Build`, `UI`. Every action has a gamepad and a keyboard binding.
+- **Input System** package with `PlayerInputManager` for local co-op (join by pressing a button). Action maps: `Gameplay`, `Build`, `UI`. Every action has a gamepad and a keyboard binding.
 - **Blender** for all 3D assets, exported as FBX.
 - **Unity Test Framework** for tests.
 - Development machine: MacBook (Apple Silicon), macOS.
@@ -40,13 +40,12 @@ Key systems (see the design doc for detail):
 Three layers, with dependencies pointing downward only (Presentation → Gameplay → Data → Simulation):
 
 1. **Simulation** (`Game.Simulation` assembly): plain C# with no MonoBehaviours and no `UnityEngine` references (enforced by the assembly definition). Cooking physics, quality scoring, customer logic, economy, reviews, staff behavior rules. Deterministic, advanced by `Tick(float deltaTime)`. Fully covered by EditMode tests.
-2. **Gameplay** (`Game.Gameplay` assembly): MonoBehaviours that wrap simulation objects and connect them to the scene: players, stations, items, customers, staff, cameras, close-up views.
+2. **Gameplay** (`Game.Gameplay` assembly): MonoBehaviours that wrap simulation objects and connect them to the scene: players, stations, items, customers, staff, cameras.
 3. **Presentation** (`Game.Presentation` assembly): UI, VFX, audio cues, visual state of food (shader parameters), debug overlays.
 
 Supporting pieces:
 - **Data** (`Game.Data` assembly): ScriptableObjects for everything designers tune, converted to plain C# settings for the simulation: `IngredientDefinition`, `RecipeDefinition`, `StationDefinition`, `TechniqueDefinition`, `CuisineDefinition`, `EquipmentTier`, `RealismSettings`, `TuningConfig`. No magic numbers in code.
 - **Events:** C# events on simulation objects; ScriptableObject event channels only for cross-scene messages (e.g. `DishServed`, `ServiceEnded`).
-- **~~Close-up framework~~ (dropped 2026-11-02; code from milestone 3 to be removed):** a shared `ICloseUpTechnique` interface (begin, handle input, tick, finish, result). Each technique is a prefab with its own camera rendering to a RenderTexture shown in the owning player's UI panel. New techniques must plug in without changing the framework.
 - **Realism dials** are read by the simulation through `RealismSettings`, never by scattered `if` checks in gameplay code.
 - **Saves:** JSON in `Application.persistentDataPath`: one file per restaurant slot plus one chef profile. Every save has a version number and a migration path.
 - **Services:** avoid singletons. Use a small composition root per scene that creates and passes dependencies.
@@ -97,7 +96,7 @@ Work one phase at a time. Each phase ends with something playable.
 | Phase | Goal |
 | --- | --- |
 | 0. Foundation | Project setup, assemblies, input and local co-op join, player movement, pick up/carry/place, a greybox kitchen |
-| 1. Cooking core | Cooking simulation with tests, hob/board/fridge/pass/bin stations, close-up framework, steak and onion techniques |
+| 1. Cooking core | Cooking simulation with tests, hob/board/storage/pass/bin stations, in-world hob controls, serving temperature, steak and onion |
 | 2. First service | Customers, orders, patience, quality scoring, payment, review lines, end-of-service summary → **first vertical slice** |
 | 3. Daily loop and staff | Plan/Prep/Service/Close/Review phases; hireable dishwasher, waiter, runner, prep assistant |
 | 4. Building | Layout editing with per-player cursors, size tiers, kitchen zones, equipment tiers |
