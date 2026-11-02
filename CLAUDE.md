@@ -18,7 +18,7 @@ Hard rules:
 Key systems (see the design doc for detail):
 - **Daily loop:** Plan → Prep → Service → Close → Review, then the next day.
 - **Cooking simulation:** ingredients track form, doneness (continuous), temperature, freshness and seasoning. Heat is a resource (dial-controlled hobs, preheating, pan crowding, carryover cooking, resting). Active vs. passive processes.
-- **Close-up station view:** approaching a station opens an overhead close-up of its surface in the player's own screen panel (picture-in-picture by default), where techniques are performed with button combos and precise stick input. Each ingredient brings its own mechanic. The world keeps running.
+- **~~Close-up station view~~ (dropped 2026-11-02, see `docs/decisions.md`; cooking happens at the station in the kitchen view):** approaching a station opens an overhead close-up of its surface in the player's own screen panel (picture-in-picture by default), where techniques are performed with button combos and precise stick input. Each ingredient brings its own mechanic. The world keeps running.
 - **Quality score** per dish (doneness, serving temperature, seasoning, freshness, plating) drives payment, tips and reviews.
 - **Cuisines** each have a signature mechanic (steakhouse, sushi, French bistro, pizzeria, Spanish home cooking, wok). Service styles: fast casual, bistro, fine dining.
 - **Restaurant building:** size tiers (counter to full dining room) as a tradeoff, kitchen zones, equipment tiers, health inspections.
@@ -46,7 +46,7 @@ Three layers, with dependencies pointing downward only (Presentation → Gamepla
 Supporting pieces:
 - **Data** (`Game.Data` assembly): ScriptableObjects for everything designers tune, converted to plain C# settings for the simulation: `IngredientDefinition`, `RecipeDefinition`, `StationDefinition`, `TechniqueDefinition`, `CuisineDefinition`, `EquipmentTier`, `RealismSettings`, `TuningConfig`. No magic numbers in code.
 - **Events:** C# events on simulation objects; ScriptableObject event channels only for cross-scene messages (e.g. `DishServed`, `ServiceEnded`).
-- **Close-up framework:** a shared `ICloseUpTechnique` interface (begin, handle input, tick, finish, result). Each technique is a prefab with its own camera rendering to a RenderTexture shown in the owning player's UI panel. New techniques must plug in without changing the framework.
+- **~~Close-up framework~~ (dropped 2026-11-02; code from milestone 3 to be removed):** a shared `ICloseUpTechnique` interface (begin, handle input, tick, finish, result). Each technique is a prefab with its own camera rendering to a RenderTexture shown in the owning player's UI panel. New techniques must plug in without changing the framework.
 - **Realism dials** are read by the simulation through `RealismSettings`, never by scattered `if` checks in gameplay code.
 - **Saves:** JSON in `Application.persistentDataPath`: one file per restaurant slot plus one chef profile. Every save has a version number and a migration path.
 - **Services:** avoid singletons. Use a small composition root per scene that creates and passes dependencies.

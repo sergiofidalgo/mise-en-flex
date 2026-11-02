@@ -4,6 +4,20 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-02 — Drop the picture-in-picture close-up
+
+**Decision:** No close-up panel. Cooking is done in the kitchen view, directly at the station. The game's differentiators are instead:
+1. **Storage with capacity** (fridges and shelves that players buy, place and stock; see `ideas.md`), the main one.
+2. **Serving temperature:** how fast a dish gets from the pass to the table matters, because food cools.
+3. **Food keeps cooking** off the heat (carryover, resting), as the simulation already does.
+4. **Hobs and grills with adjustable power**, not on/off.
+
+**Reason:** A panel per player makes co-op busier and harder to manage on a shared screen. The four points above keep "cooking is a craft" through timing, heat and planning rather than through minigames.
+
+**Supersedes:** the close-up station view (`CLAUDE.md`, `game-design.md` §3.2, Phase 1 milestones 3–5) and the close-up details below. The milestone 3 framework code (commit 5e7a1c0) is to be removed or reduced once the in-world replacement controls are agreed.
+
+---
+
 ## 2026-11-02 — Close-up framework details (milestone 3)
 
 **Decisions (proposed by me while building; flagged for review):**

@@ -51,7 +51,9 @@ A **shared overhead camera** frames the whole restaurant. Both players see the f
 
 **Decided:** fixed camera for Phases 0–3. A camera that frames both players and zooms is deferred to Phase 4, only if larger size tiers need it.
 
-### 3.2 Close-up station view
+### 3.2 Close-up station view (dropped 2026-11-02)
+
+> **Dropped:** too busy for co-op on a shared screen. Cooking happens at the station in the kitchen view. See `decisions.md`. The text below is kept for reference.
 
 Approaching a station and interacting opens an **overhead close-up of the station's surface** in that player's own screen panel, picture-in-picture by default. Techniques are performed here with button combos and precise stick input. **The world keeps running**: food on other stations keeps cooking and customers keep waiting.
 
