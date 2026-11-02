@@ -32,7 +32,7 @@ namespace Game.Editor
         // Greybox layout, in metres. The kitchen is 10 x 8 with the camera looking north (+Z).
         private const float FloorWidth = 10f;
         private const float FloorDepth = 8f;
-        private static readonly Vector3[] SpawnPositions = { new Vector3(-1.5f, 0f, 0f), new Vector3(1.5f, 0f, 0f) };
+        private static readonly Vector3[] SpawnPositions = { new Vector3(-2.5f, 0f, -0.8f), new Vector3(2.5f, 0f, -0.8f) };
         private const float WallHeight = 1f;
         private const float WallThickness = 0.2f;
 
@@ -56,12 +56,27 @@ namespace Game.Editor
         private const float CrateHeight = 0.6f;
         private const float CrateSize = 0.8f;
 
-        // Counters along the back wall and a two-counter island in the middle for hand-offs.
-        private static readonly Vector3[] CounterPositions =
+        // Kitchen zones (decision 2026-11-02), laid out so food flows storage -> prep -> cooking
+        // -> pass and the path crosses the middle, where the island is the hand-off point.
+        // Hob, pass and bin are plain counters until Phase 1 gives them real behaviour; each
+        // zone has its own colour so it reads from the overhead camera.
+        private static readonly (string Name, Color Color, float Size, float Height, Vector3[] Positions)[] CounterZones =
         {
-            new Vector3(-1f, 0f, 3.4f), new Vector3(0f, 0f, 3.4f), new Vector3(1f, 0f, 3.4f), new Vector3(2f, 0f, 3.4f),
-            new Vector3(-0.5f, 0f, 1.2f), new Vector3(0.5f, 0f, 1.2f),
+            ("Prep", new Color(0.78f, 0.64f, 0.45f), CounterSize, CounterHeight,
+                new[] { new Vector3(-3f, 0f, 3.4f), new Vector3(-2f, 0f, 3.4f), new Vector3(-1f, 0f, 3.4f) }),
+            ("Hob", new Color(0.22f, 0.22f, 0.25f), CounterSize, CounterHeight,
+                new[] { new Vector3(1f, 0f, 3.4f), new Vector3(2f, 0f, 3.4f), new Vector3(3f, 0f, 3.4f) }),
+            ("Island", new Color(0.70f, 0.58f, 0.42f), CounterSize, CounterHeight,
+                new[] { new Vector3(-0.5f, 0f, 0.8f), new Vector3(0.5f, 0f, 0.8f) }),
+            ("Pass", new Color(0.88f, 0.88f, 0.85f), CounterSize, CounterHeight,
+                new[] { new Vector3(-1f, 0f, -2.4f), new Vector3(0f, 0f, -2.4f), new Vector3(1f, 0f, -2.4f) }),
+            ("Bin", new Color(0.25f, 0.55f, 0.30f), 0.7f, 0.8f,
+                new[] { new Vector3(4.5f, 0f, 1f) }),
         };
+
+        // Strip in front of the pass marking where the dining room will be.
+        private const float DiningStripDepth = 1f;
+        private static readonly Color DiningColor = new Color(0.55f, 0.45f, 0.40f);
 
         // Placeholder ingredients: type id, colour, diameter in metres.
         private static readonly (string Id, Color Color, float Size, Vector3 CratePosition)[] ItemTypes =
@@ -73,7 +88,6 @@ namespace Game.Editor
         // Greybox palette: darker walls than floor so edges read from the overhead camera.
         private static readonly Color FloorColor = new Color(0.62f, 0.63f, 0.66f);
         private static readonly Color WallColor = new Color(0.30f, 0.33f, 0.40f);
-        private static readonly Color CounterColor = new Color(0.78f, 0.64f, 0.45f);
         private static readonly Color CrateColor = new Color(0.50f, 0.36f, 0.22f);
         private static readonly Color NoseColor = new Color(0.20f, 0.20f, 0.22f);
 
@@ -194,6 +208,7 @@ namespace Game.Editor
             floor.name = "Floor";
             floor.transform.localScale = new Vector3(FloorWidth / 10f, 1f, FloorDepth / 10f); // plane is 10x10
             floor.GetComponent<Renderer>().sharedMaterial = GreyboxAssets.EnsureMaterial("Floor", FloorColor);
+            BuildDiningStrip();
             BuildBoundaryWalls();
             BuildStations(settings);
 
@@ -234,6 +249,17 @@ namespace Game.Editor
             EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(ScenePath, true) };
         }
 
+        // A different floor colour along the south wall, where the dining room will be.
+        // Walkable and without a collider; a few millimetres up to avoid z-fighting with the floor.
+        private static void BuildDiningStrip()
+        {
+            const float lift = 0.005f;
+            var strip = GreyboxAssets.CreatePrimitive(
+                PrimitiveType.Cube, "DiningStrip", null, GreyboxAssets.EnsureMaterial("Dining", DiningColor), keepCollider: false);
+            strip.transform.localScale = new Vector3(FloorWidth, lift, DiningStripDepth);
+            strip.transform.localPosition = new Vector3(0f, lift / 2f, -FloorDepth / 2f + WallThickness / 2f + DiningStripDepth / 2f);
+        }
+
         // Low walls around the floor so players can't walk off the edge.
         private static void BuildBoundaryWalls()
         {
@@ -259,13 +285,18 @@ namespace Game.Editor
         private static void BuildStations(CoopSettings settings)
         {
             var stations = new GameObject("Stations").transform;
-            var counterMaterial = GreyboxAssets.EnsureMaterial("Counter", CounterColor);
             var crateMaterial = GreyboxAssets.EnsureMaterial("Crate", CrateColor);
 
-            for (var i = 0; i < CounterPositions.Length; i++)
+            foreach (var zone in CounterZones)
             {
-                CreateStation<CounterStation>(
-                    $"Counter_{i + 1:00}", CounterPositions[i], CounterSize, CounterHeight, counterMaterial, stations, settings);
+                var zoneRoot = new GameObject($"Zone_{zone.Name}").transform;
+                zoneRoot.SetParent(stations, false);
+                var material = GreyboxAssets.EnsureMaterial(zone.Name, zone.Color);
+                for (var i = 0; i < zone.Positions.Length; i++)
+                {
+                    CreateStation<CounterStation>(
+                        $"{zone.Name}_{i + 1:00}", zone.Positions[i], zone.Size, zone.Height, material, zoneRoot, settings);
+                }
             }
 
             foreach (var type in ItemTypes)
