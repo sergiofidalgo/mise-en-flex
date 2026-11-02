@@ -23,9 +23,9 @@ namespace Game.Editor
         private const string SettingsFolder = "Assets/_Project/Data/Settings";
         private const string CoopSettingsPath = SettingsFolder + "/CoopSettings.asset";
         private const string TuningConfigPath = SettingsFolder + "/TuningConfig.asset";
-        private const string ItemCatalogPath = "Assets/_Project/Data/Items/ItemCatalog.asset";
+        private const string EquipmentPath = SettingsFolder + "/EquipmentTier_Basic.asset";
+        private const string RealismPath = SettingsFolder + "/RealismSettings.asset";
         private const string PlayerPrefabPath = "Assets/_Project/Prefabs/PF_Player.prefab";
-        private const string ItemPrefabFolder = "Assets/_Project/Prefabs/Items";
         private const string ScenePath = "Assets/_Project/Scenes/Kitchen_Greybox.unity";
         private const string JoinActionPath = "Gameplay/Join";
 
@@ -58,14 +58,12 @@ namespace Game.Editor
 
         // Kitchen zones (decision 2026-11-02), laid out so food flows storage -> prep -> cooking
         // -> pass and the path crosses the middle, where the island is the hand-off point.
-        // Hob, pass and bin are plain counters until Phase 1 gives them real behaviour; each
+        // Pass and bin are plain counters until later milestones give them real behaviour; each
         // zone has its own colour so it reads from the overhead camera.
         private static readonly (string Name, Color Color, float Size, float Height, Vector3[] Positions)[] CounterZones =
         {
             ("Prep", new Color(0.78f, 0.64f, 0.45f), CounterSize, CounterHeight,
                 new[] { new Vector3(-3f, 0f, 3.4f), new Vector3(-2f, 0f, 3.4f), new Vector3(-1f, 0f, 3.4f) }),
-            ("Hob", new Color(0.22f, 0.22f, 0.25f), CounterSize, CounterHeight,
-                new[] { new Vector3(1f, 0f, 3.4f), new Vector3(2f, 0f, 3.4f), new Vector3(3f, 0f, 3.4f) }),
             ("Island", new Color(0.70f, 0.58f, 0.42f), CounterSize, CounterHeight,
                 new[] { new Vector3(-0.5f, 0f, 0.8f), new Vector3(0.5f, 0f, 0.8f) }),
             ("Pass", new Color(0.88f, 0.88f, 0.85f), CounterSize, CounterHeight,
@@ -78,12 +76,14 @@ namespace Game.Editor
         private const float DiningStripDepth = 1f;
         private static readonly Color DiningColor = new Color(0.55f, 0.45f, 0.40f);
 
-        // Placeholder ingredients: type id, colour, diameter in metres.
-        private static readonly (string Id, Color Color, float Size, Vector3 CratePosition)[] ItemTypes =
-        {
-            ("Tomato", new Color(0.90f, 0.18f, 0.12f), 0.28f, new Vector3(-4.4f, 0f, 1.5f)),
-            ("Onion", new Color(0.93f, 0.84f, 0.62f), 0.26f, new Vector3(-4.4f, 0f, 0f)),
-        };
+        // Hobs along the back wall, right of prep. Each has a burner ring and its own pan.
+        private static readonly Vector3[] HobPositions = { new Vector3(1f, 0f, 3.4f), new Vector3(2f, 0f, 3.4f), new Vector3(3f, 0f, 3.4f) };
+        private static readonly Color HobColor = new Color(0.22f, 0.22f, 0.25f);
+        private const float BurnerDiameter = 0.36f;
+        private const float PanDiameter = 0.32f;
+        private const float PanDepth = 0.04f;
+        // Two food positions in the pan, side by side (pan capacity is 2 in the basic equipment tier).
+        private static readonly Vector3[] PanSlotOffsets = { new Vector3(-0.07f, 0f, 0f), new Vector3(0.07f, 0f, 0f) };
 
         // Greybox palette: darker walls than floor so edges read from the overhead camera.
         private static readonly Color FloorColor = new Color(0.62f, 0.63f, 0.66f);
@@ -99,46 +99,28 @@ namespace Game.Editor
             // into the scene as empty.
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
 
-            var settings = GreyboxAssets.EnsureAsset<CoopSettings>(CoopSettingsPath);
-            var tuning = GreyboxAssets.EnsureAsset<TuningConfig>(TuningConfigPath);
-            var catalog = BuildItemCatalog();
-            var playerPrefab = BuildPlayerPrefab(settings, tuning);
-            BuildScene(scene, settings, tuning, catalog, playerPrefab);
-            AssetDatabase.SaveAssets();
-            Debug.Log($"[GreyboxKitchenBuilder] Built {PlayerPrefabPath}, item prefabs and {ScenePath}.");
-        }
-
-        private static ItemCatalog BuildItemCatalog()
-        {
-            var catalog = GreyboxAssets.EnsureAsset<ItemCatalog>(ItemCatalogPath);
-            var so = new SerializedObject(catalog);
-            var entries = so.FindProperty("_entries");
-            entries.arraySize = ItemTypes.Length;
-            for (var i = 0; i < ItemTypes.Length; i++)
+            var assets = new SceneAssets
             {
-                var type = ItemTypes[i];
-                var entry = entries.GetArrayElementAtIndex(i);
-                entry.FindPropertyRelative("_typeId").stringValue = type.Id;
-                entry.FindPropertyRelative("_prefab").objectReferenceValue = BuildItemPrefab(type.Id, type.Color, type.Size);
-            }
-            so.ApplyModifiedPropertiesWithoutUndo();
-            return catalog;
+                Settings = GreyboxAssets.EnsureAsset<CoopSettings>(CoopSettingsPath),
+                Tuning = GreyboxAssets.EnsureAsset<TuningConfig>(TuningConfigPath),
+                Equipment = GreyboxAssets.EnsureAsset<EquipmentTier>(EquipmentPath),
+                Realism = GreyboxAssets.EnsureAsset<RealismSettings>(RealismPath),
+                Catalog = GreyboxIngredients.BuildCatalog(),
+            };
+            assets.PlayerPrefab = BuildPlayerPrefab(assets.Settings, assets.Tuning);
+            BuildScene(scene, assets);
+            AssetDatabase.SaveAssets();
+            Debug.Log($"[GreyboxKitchenBuilder] Built {PlayerPrefabPath}, ingredients and {ScenePath}.");
         }
 
-        private static GameObject BuildItemPrefab(string id, Color color, float size)
+        private sealed class SceneAssets
         {
-            // Root at the item's base so it sits on whatever anchor holds it.
-            var root = new GameObject($"PF_Item_{id}");
-            root.AddComponent<ItemView>();
-            var body = GreyboxAssets.CreatePrimitive(
-                PrimitiveType.Sphere, "Body", root.transform, GreyboxAssets.EnsureMaterial(id, color), keepCollider: false);
-            body.transform.localScale = Vector3.one * size;
-            body.transform.localPosition = new Vector3(0f, size / 2f, 0f);
-
-            GreyboxAssets.EnsureFolder(ItemPrefabFolder);
-            var prefab = PrefabUtility.SaveAsPrefabAsset(root, $"{ItemPrefabFolder}/PF_Item_{id}.prefab");
-            Object.DestroyImmediate(root);
-            return prefab;
+            public CoopSettings Settings;
+            public TuningConfig Tuning;
+            public EquipmentTier Equipment;
+            public RealismSettings Realism;
+            public ItemCatalog Catalog;
+            public GameObject PlayerPrefab;
         }
 
         private static GameObject BuildPlayerPrefab(CoopSettings settings, TuningConfig tuning)
@@ -192,9 +174,9 @@ namespace Game.Editor
             return prefab;
         }
 
-        private static void BuildScene(
-            UnityEngine.SceneManagement.Scene scene, CoopSettings settings, TuningConfig tuning, ItemCatalog catalog, GameObject playerPrefab)
+        private static void BuildScene(UnityEngine.SceneManagement.Scene scene, SceneAssets assets)
         {
+            var settings = assets.Settings;
             var light = new GameObject("Directional Light").AddComponent<Light>();
             light.type = LightType.Directional;
             light.transform.rotation = Quaternion.Euler(50f, -30f, 0f);
@@ -226,7 +208,7 @@ namespace Game.Editor
             manager.notificationBehavior = PlayerNotifications.InvokeCSharpEvents;
             manager.joinBehavior = PlayerJoinBehavior.JoinPlayersWhenJoinActionIsTriggered;
             manager.joinAction = new InputActionProperty(LoadActionReference(JoinActionPath));
-            manager.playerPrefab = playerPrefab;
+            manager.playerPrefab = assets.PlayerPrefab;
 
             var join = players.AddComponent<PlayerJoinController>();
             var joinSo = new SerializedObject(join);
@@ -239,10 +221,15 @@ namespace Game.Editor
 
             var root = new GameObject("CompositionRoot").AddComponent<KitchenCompositionRoot>();
             var rootSo = new SerializedObject(root);
-            rootSo.FindProperty("_itemCatalog").objectReferenceValue = catalog;
-            rootSo.FindProperty("_tuning").objectReferenceValue = tuning;
+            rootSo.FindProperty("_itemCatalog").objectReferenceValue = assets.Catalog;
+            rootSo.FindProperty("_tuning").objectReferenceValue = assets.Tuning;
+            rootSo.FindProperty("_equipment").objectReferenceValue = assets.Equipment;
+            rootSo.FindProperty("_realism").objectReferenceValue = assets.Realism;
             rootSo.FindProperty("_playerInputManager").objectReferenceValue = manager;
             rootSo.ApplyModifiedPropertiesWithoutUndo();
+
+            var overlay = root.gameObject.AddComponent<CookingDebugOverlay>();
+            SetReference(overlay, "_root", root);
 
             GreyboxAssets.EnsureFolder(System.IO.Path.GetDirectoryName(ScenePath));
             EditorSceneManager.SaveScene(scene, ScenePath);
@@ -299,7 +286,13 @@ namespace Game.Editor
                 }
             }
 
-            foreach (var type in ItemTypes)
+            var hobs = new GameObject("Zone_Hob").transform;
+            hobs.SetParent(stations, false);
+            var hobMaterial = GreyboxAssets.EnsureMaterial("Hob", HobColor);
+            for (var i = 0; i < HobPositions.Length; i++)
+                CreateHob($"Hob_{i + 1:00}", HobPositions[i], hobMaterial, hobs, settings);
+
+            foreach (var type in GreyboxIngredients.Types)
             {
                 var crate = CreateStation<CrateStation>(
                     $"Crate_{type.Id}", type.CratePosition, CrateSize, CrateHeight, crateMaterial, stations, settings);
@@ -308,11 +301,52 @@ namespace Game.Editor
                 so.ApplyModifiedPropertiesWithoutUndo();
 
                 // A sample of the contents on top, so each crate reads at a glance.
-                var sample = GreyboxAssets.CreatePrimitive(
-                    PrimitiveType.Sphere, "Label", crate.transform, GreyboxAssets.EnsureMaterial(type.Id, type.Color), keepCollider: false);
-                sample.transform.localScale = Vector3.one * type.Size;
-                sample.transform.localPosition = new Vector3(-CrateSize / 4f, CrateHeight + type.Size / 2f, -CrateSize / 4f);
+                var sample = GreyboxIngredients.CreateShape(type, "Label", crate.transform);
+                sample.transform.localPosition = new Vector3(-CrateSize / 4f, CrateHeight + type.CentreHeight, -CrateSize / 4f);
             }
+        }
+
+        // A hob: counter body, a burner ring that glows with the dial, and a pan on top with
+        // a slot per ingredient. Hob and pan simulation objects are created at runtime.
+        private static void CreateHob(string name, Vector3 position, Material material, Transform parent, CoopSettings settings)
+        {
+            var hob = CreateStation<HobStation>(name, position, CounterSize, CounterHeight, material, parent, settings);
+            var top = CounterHeight;
+
+            var burner = GreyboxAssets.CreatePrimitive(
+                PrimitiveType.Cylinder, "Burner", hob.transform, GreyboxAssets.EnsureMaterial("Burner", Color.black), keepCollider: false);
+            burner.transform.localScale = new Vector3(BurnerDiameter, 0.005f, BurnerDiameter); // cylinder is 2 units tall
+            burner.transform.localPosition = new Vector3(0f, top + 0.005f, 0f);
+
+            var pan = GreyboxAssets.CreatePrimitive(
+                PrimitiveType.Cylinder, "Pan", hob.transform, GreyboxAssets.EnsureMaterial("Pan", Color.gray), keepCollider: false);
+            pan.transform.localScale = new Vector3(PanDiameter, PanDepth / 2f, PanDiameter);
+            pan.transform.localPosition = new Vector3(0f, top + 0.01f + PanDepth / 2f, 0f);
+
+            var panTop = top + 0.01f + PanDepth;
+            hob.ItemAnchor.localPosition = new Vector3(0f, panTop, 0f);
+
+            var slots = new Transform[PanSlotOffsets.Length];
+            for (var i = 0; i < slots.Length; i++)
+            {
+                slots[i] = new GameObject($"PanSlot_{i + 1}").transform;
+                slots[i].SetParent(hob.transform, false);
+                slots[i].localPosition = new Vector3(0f, panTop, 0f) + PanSlotOffsets[i];
+            }
+
+            var so = new SerializedObject(hob);
+            var slotProperty = so.FindProperty("_panSlotAnchors");
+            slotProperty.arraySize = slots.Length;
+            for (var i = 0; i < slots.Length; i++)
+                slotProperty.GetArrayElementAtIndex(i).objectReferenceValue = slots[i];
+            so.ApplyModifiedPropertiesWithoutUndo();
+
+            var view = hob.gameObject.AddComponent<HobView>();
+            var viewSo = new SerializedObject(view);
+            viewSo.FindProperty("_hob").objectReferenceValue = hob;
+            viewSo.FindProperty("_burner").objectReferenceValue = burner.GetComponent<Renderer>();
+            viewSo.FindProperty("_pan").objectReferenceValue = pan.GetComponent<Renderer>();
+            viewSo.ApplyModifiedPropertiesWithoutUndo();
         }
 
         private static T CreateStation<T>(

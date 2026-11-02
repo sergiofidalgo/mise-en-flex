@@ -11,6 +11,11 @@ namespace Game.Gameplay.Stations
 
         private ItemDispenser _dispenser;
 
-        public override IItemContainer Container => _dispenser ??= new ItemDispenser(_itemTypeId);
+        public override IItemContainer Container => _dispenser;
+
+        public override void Bind(KitchenServices services)
+        {
+            _dispenser = new ItemDispenser(_itemTypeId, () => services.CreateItem(_itemTypeId));
+        }
     }
 }

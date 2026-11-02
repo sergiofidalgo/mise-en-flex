@@ -11,6 +11,14 @@ namespace Game.Data
     [CreateAssetMenu(menuName = "Game/Tuning Config", fileName = "TuningConfig")]
     public sealed class TuningConfig : ScriptableObject
     {
+        [Header("Time")]
+        [Tooltip("In-game seconds per real second. 60 = one in-game minute per real second (decision 2026-11-02).")]
+        [SerializeField, Min(0f)] private float _timeScale = 60f;
+
+        [Header("Kitchen")]
+        [Tooltip("Kitchen air temperature, °C.")]
+        [SerializeField] private float _ambientTemperature = 22f;
+
         [Header("Player movement")]
         [Tooltip("Metres per second at full stick. The greybox kitchen is 10 m wide.")]
         [SerializeField, Min(0f)] private float _moveSpeed = 5f;
@@ -43,6 +51,10 @@ namespace Game.Data
 
         [Tooltip("Extra scale at mid-flight (0.15 = 15% bigger), for a small 'pop'.")]
         [SerializeField, Min(0f)] private float _itemPop = 0.15f;
+
+        public float TimeScale => _timeScale;
+
+        public float AmbientTemperature => _ambientTemperature;
 
         public MovementSettings Movement =>
             new MovementSettings(_moveSpeed, _accelerationTime, _decelerationTime, _turnSpeedDegrees);

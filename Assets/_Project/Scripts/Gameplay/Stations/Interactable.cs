@@ -16,6 +16,7 @@ namespace Game.Gameplay.Stations
 
         private readonly List<PlayerInteractor> _targeters = new List<PlayerInteractor>();
 
+        /// <summary>What Interact takes from and puts into. Null until bound.</summary>
         public abstract IItemContainer Container { get; }
 
         public Transform ItemAnchor => _itemAnchor;
@@ -27,8 +28,16 @@ namespace Game.Gameplay.Stations
 
         public event Action HighlightChanged;
 
-        /// <summary>Raised when Interact was pressed on this but nothing could happen.</summary>
+        /// <summary>Raised when Interact or Use was pressed on this but nothing could happen.</summary>
         public event Action Denied;
+
+        /// <summary>Called once by the composition root with the scene's services.</summary>
+        public virtual void Bind(KitchenServices services)
+        {
+        }
+
+        /// <summary>Where <paramref name="item"/> should sit while this station holds it.</summary>
+        public virtual Transform AnchorFor(Item item) => _itemAnchor;
 
         internal void AddTargeter(PlayerInteractor player)
         {
