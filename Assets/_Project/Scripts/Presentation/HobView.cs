@@ -5,7 +5,7 @@ namespace Game.Presentation
 {
     /// <summary>
     /// Shows a hob's heat from the overhead camera: the burner ring glows with the dial and a
-    /// row of pips on the front shows the step (off, low, medium, high). Placeholder until the
+    /// row of pips along the back of the hob top shows the step (off, low, medium, high). Placeholder until the
     /// art phase.
     /// </summary>
     public sealed class HobView : MonoBehaviour

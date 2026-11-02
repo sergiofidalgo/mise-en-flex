@@ -86,12 +86,14 @@ namespace Game.Editor
         // Hobs along the back wall, right of prep. Each has a burner ring and its own pan.
         private static readonly Vector3[] HobPositions = { new Vector3(1f, 0f, 3.4f), new Vector3(2f, 0f, 3.4f), new Vector3(3f, 0f, 3.4f) };
         private static readonly Color HobColor = new Color(0.22f, 0.22f, 0.25f);
-        private const float BurnerDiameter = 0.46f;
-        // Heat pips on the hob's front face (towards the camera): one per step above off.
+        // Wider than the pan (0.44 m), so the glowing ring stays visible around it.
+        private const float BurnerDiameter = 0.62f;
+        // Heat pips on the hob top along the back edge: one per step above off. On top rather
+        // than on the front face, which the chef standing at the hob hides from the camera.
         private const int HeatPipCount = 3;
-        private const float HeatPipSize = 0.08f;
-        private const float HeatPipSpacing = 0.16f;
-        private const float HeatPipHeight = 0.72f;
+        private static readonly Vector3 HeatPipScale = new Vector3(0.09f, 0.015f, 0.06f);
+        private const float HeatPipSpacing = 0.14f;
+        private const float HeatPipBackOffset = 0.42f;
 
         // Plate stack next to the pass, and the bin on the east wall.
         private static readonly Vector3 PlateStackPosition = new Vector3(2.2f, 0f, -2.4f);
@@ -335,7 +337,8 @@ namespace Game.Editor
             }
         }
 
-        // A hob: counter body, a burner ring that glows with the dial, and heat pips on the front.
+        // A hob: counter body, a burner ring that glows with the dial around the pan, and heat
+        // pips along the back of the top.
         // Its pan is a separate, carryable item created at runtime.
         private static void CreateHob(string name, Vector3 position, Material material, Transform parent, CoopSettings settings)
         {
@@ -353,9 +356,9 @@ namespace Game.Editor
             {
                 var pip = GreyboxAssets.CreatePrimitive(
                     PrimitiveType.Cube, $"HeatPip_{i + 1}", hob.transform, GreyboxAssets.EnsureMaterial("HeatPip", Color.black), keepCollider: false);
-                pip.transform.localScale = Vector3.one * HeatPipSize;
+                pip.transform.localScale = HeatPipScale;
                 pip.transform.localPosition = new Vector3(
-                    (i - (HeatPipCount - 1) / 2f) * HeatPipSpacing, HeatPipHeight, -CounterSize / 2f - HeatPipSize / 4f);
+                    (i - (HeatPipCount - 1) / 2f) * HeatPipSpacing, top + HeatPipScale.y / 2f, HeatPipBackOffset);
                 pips[i] = pip.GetComponent<Renderer>();
             }
 
