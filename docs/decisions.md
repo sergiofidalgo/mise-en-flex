@@ -4,6 +4,14 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-02 — HUD direction
+
+**Decisions:** a mix of **in-world information on stations** (heat ring, bin counts, doneness gauge) and **flat button badges in Xbox colours**; prompts are **badge + short verb**; doneness reads as a **gauge with a target band and a needle**; built with **uGUI + TextMeshPro**. Plan in `plans/hud-pass.md`.
+
+**Reason:** Least clutter over a shared screen and readable from the overhead camera, without waiting for the art phase.
+
+---
+
 ## 2026-11-02 — Knife, mise en place counter, rhythm chopping, resting (milestone 6′)
 
 **Decisions (yours, plus building details flagged for review):**

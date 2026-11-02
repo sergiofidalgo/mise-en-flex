@@ -290,10 +290,10 @@ namespace Game.Editor
 
             var overlay = root.gameObject.AddComponent<CookingDebugOverlay>();
             SetReference(overlay, "_root", root);
-            var prompts = root.gameObject.AddComponent<StationPromptOverlay>();
-            SetReference(prompts, "_settings", settings);
             root.gameObject.AddComponent<QualityCardOverlay>();
             root.gameObject.AddComponent<ChopRhythmOverlay>();
+
+            GreyboxHud.BuildCanvas(GreyboxHud.EnsureStyle(), settings);
             foreach (var chip in Object.FindObjectsByType<DonenessChipView>(FindObjectsSortMode.None))
                 SetReference(chip, "_root", root);
 
