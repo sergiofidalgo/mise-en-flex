@@ -101,6 +101,11 @@ namespace Game.Data
         [Tooltip("Fastest the needle can get, relative to the ingredient's base speed.")]
         [SerializeField, Min(0.1f)] private float _chopSpeedMax = 2f;
 
+        [Tooltip("Width of the cutting dial's arc in degrees; the needle sweeps it right to left (≈150–180).")]
+        [SerializeField, Range(60f, 270f)] private float _chopSweepDegrees = 170f;
+
+        public float ChopSweepDegrees => _chopSweepDegrees;
+
         public ChopPacing ChopPacing =>
             new ChopPacing(_chopSpeedAfterGood, _chopSpeedAfterOk, _chopSpeedAfterMiss, _chopSpeedMin, _chopSpeedMax);
 

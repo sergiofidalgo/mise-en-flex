@@ -6,14 +6,17 @@ using UnityEngine.UI;
 namespace Game.Presentation.Hud
 {
     /// <summary>
-    /// The cutting dial: a ring with the ingredient's sweet spot (amber edges for Early/Late, a
-    /// green core for Good), a needle sweeping round, a dot per cut and the last grade. Press X as
-    /// the needle crosses the green.
+    /// The cutting dial: a half-arc fan with the ingredient's sweet spot on its rim (amber edges
+    /// for Early/Late, a green core for Good), a needle sweeping right to left, a dot per cut and
+    /// the last grade. Press X as the needle crosses the green.
     /// </summary>
     public sealed class ChopDialView : MonoBehaviour
     {
         [SerializeField] private RectTransform _rect;
         [SerializeField] private CanvasGroup _group;
+        [Tooltip("The dark fan and inner fan that frame the arc; sized to the sweep.")]
+        [SerializeField] private Image _backing;
+        [SerializeField] private Image _inner;
         [SerializeField] private Image _okArc;
         [SerializeField] private Image _goodArc;
         [SerializeField] private RectTransform _needle;
@@ -34,11 +37,14 @@ namespace Game.Presentation.Hud
             gameObject.SetActive(true);
             _group.alpha = 1f;
 
-            // Arcs: radial fills start at the top and go clockwise, so rotate each to start at
-            // (centre - half width). UI rotations are anticlockwise, hence the minus.
-            SetArc(_okArc, dial.SweetSpot, dial.OkHalfWidth);
-            SetArc(_goodArc, dial.SweetSpot, dial.GoodHalfWidth);
-            _needle.localEulerAngles = new Vector3(0f, 0f, -dial.NeedleAngle(now));
+            // The arc is centred on the top of the dial. A position along the sweep (0 = right end)
+            // maps to a clockwise-from-top angle of (sweep / 2 - position).
+            var half = dial.SweepDegrees / 2f;
+            SetArc(_backing, 0f, half);
+            SetArc(_inner, 0f, half);
+            SetArc(_okArc, half - dial.SweetSpot, dial.OkHalfWidth);
+            SetArc(_goodArc, half - dial.SweetSpot, dial.GoodHalfWidth);
+            _needle.localEulerAngles = new Vector3(0f, 0f, -(half - dial.NeedlePosition(now)));
 
             for (var i = 0; i < _dots.Length; i++)
             {
@@ -55,6 +61,8 @@ namespace Game.Presentation.Hud
 
         public void Hide() => gameObject.SetActive(false);
 
+        // Radial fills start at the top and go clockwise, so rotate each to start at
+        // (centre - half width). UI rotations are anticlockwise, hence the minus.
         private static void SetArc(Image arc, float centre, float halfWidth)
         {
             arc.fillAmount = Mathf.Clamp01(halfWidth * 2f / 360f);

@@ -8,53 +8,53 @@ namespace Game.Tests.EditMode
 {
     public class ChopDialTests
     {
-        private const float Turn = 0.8f;   // seconds per revolution at base speed
-        private const float Spot = 90f;    // sweet spot at three o'clock
-        private const double T0 = 10.0;    // when the needle starts, at the top
+        private const float Sweep = 0.8f;   // seconds per sweep at base speed
+        private const float Arc = 170f;     // width of the arc
+        private const float Spot = 90f;     // sweet spot, degrees from the right end
+        private const double T0 = 10.0;     // when the needle starts, at the right end
         private ChopDial _dial;
 
         [SetUp]
         public void CreateDial()
         {
-            _dial = new ChopDial(Turn, Spot, goodHalfWidth: 15f, okHalfWidth: 35f);
+            _dial = new ChopDial(Sweep, Arc, Spot, goodHalfWidth: 12f, okHalfWidth: 28f);
             _dial.Start(T0);
         }
 
-        // The next real time the needle points at `angle`, from `now`.
-        private double Next(float angle, double now) => now + _dial.SecondsUntil(angle, now);
+        // The next real time the needle reaches `position`, from `now`.
+        private double Next(float position, double now) => now + _dial.SecondsUntil(position, now);
 
         [Test]
-        public void NeedleSweepsClockwiseFromTheTop()
+        public void NeedleSweepsFromTheRightEndToTheLeftEnd()
         {
-            Assert.That(_dial.NeedleAngle(T0), Is.EqualTo(0f).Within(0.01f));
-            Assert.That(_dial.NeedleAngle(T0 + Turn / 2f), Is.EqualTo(180f).Within(0.01f));
+            Assert.That(_dial.NeedlePosition(T0), Is.EqualTo(0f).Within(0.01f), "starts at the right end");
+            Assert.That(_dial.NeedlePosition(T0 + Sweep / 2f), Is.EqualTo(Arc / 2f).Within(0.01f), "halfway at the top");
+            Assert.That(_dial.NeedlePosition(T0 + Sweep * 0.99f), Is.GreaterThan(Arc * 0.95f), "nearly at the left end");
+        }
+
+        [Test]
+        public void AfterReachingTheLeftEndItStartsAgainFromTheRight()
+        {
+            Assert.That(_dial.NeedlePosition(T0 + Sweep * 1.1f), Is.EqualTo(Arc * 0.1f).Within(0.01f));
         }
 
         [Test]
         public void PressingInTheSweetSpotIsGood()
         {
-            Assert.That(_dial.Hit(Next(Spot + 10f, T0)), Is.EqualTo(ChopGrade.Good));
+            Assert.That(_dial.Hit(Next(Spot + 6f, T0)), Is.EqualTo(ChopGrade.Good));
         }
 
         [Test]
         public void JustBeforeTheSpotIsEarlyAndJustAfterIsLate()
         {
-            Assert.That(_dial.GradeAt(Next(Spot - 25f, T0)), Is.EqualTo(ChopGrade.Early));
-            Assert.That(_dial.GradeAt(Next(Spot + 25f, T0)), Is.EqualTo(ChopGrade.Late));
+            Assert.That(_dial.GradeAt(Next(Spot - 20f, T0)), Is.EqualTo(ChopGrade.Early));
+            Assert.That(_dial.GradeAt(Next(Spot + 20f, T0)), Is.EqualTo(ChopGrade.Late));
         }
 
         [Test]
         public void FarFromTheSpotIsAMiss()
         {
-            Assert.That(_dial.GradeAt(Next(Spot + 180f, T0)), Is.EqualTo(ChopGrade.Miss));
-        }
-
-        [Test]
-        public void ASpotNearTheTopWrapsAroundCorrectly()
-        {
-            var dial = new ChopDial(Turn, sweetSpot: 5f, goodHalfWidth: 15f, okHalfWidth: 35f);
-            dial.Start(T0);
-            Assert.That(dial.GradeAt(T0 + dial.SecondsUntil(355f, T0)), Is.EqualTo(ChopGrade.Good), "10 degrees before a spot at 5 degrees");
+            Assert.That(_dial.GradeAt(Next(10f, T0)), Is.EqualTo(ChopGrade.Miss));
         }
 
         [Test]
@@ -62,14 +62,14 @@ namespace Game.Tests.EditMode
         {
             var first = Next(Spot, T0);
             _dial.Hit(first);                              // good 1.0
-            _dial.Hit(Next(Spot + 25f, first + 0.01));     // late 0.6
+            _dial.Hit(Next(Spot + 20f, first + 0.01));     // late 0.6
             Assert.That(_dial.Evenness, Is.EqualTo(0.8f).Within(0.001f));
         }
 
         [Test]
         public void DifferentIngredientsHaveTheirSpotInDifferentPlaces()
         {
-            var other = new ChopDial(Turn, sweetSpot: 270f, goodHalfWidth: 15f, okHalfWidth: 35f);
+            var other = new ChopDial(Sweep, Arc, sweetSpot: 150f, goodHalfWidth: 12f, okHalfWidth: 28f);
             other.Start(T0);
             var time = Next(Spot, T0);
             Assert.That(_dial.GradeAt(time), Is.EqualTo(ChopGrade.Good));
@@ -96,14 +96,14 @@ namespace Game.Tests.EditMode
         [Test]
         public void EarlyOrLateSlowsTheNeedleSubtly()
         {
-            _dial.Hit(Next(Spot + 25f, T0));
+            _dial.Hit(Next(Spot + 20f, T0));
             Assert.That(_dial.SpeedMultiplier, Is.LessThan(1f).And.GreaterThan(0.85f));
         }
 
         [Test]
         public void AMissSlowsTheNeedleSignificantly()
         {
-            _dial.Hit(Next(Spot + 180f, T0));
+            _dial.Hit(Next(10f, T0));
             Assert.That(_dial.SpeedMultiplier, Is.LessThanOrEqualTo(0.8f));
         }
 
@@ -120,7 +120,7 @@ namespace Game.Tests.EditMode
 
             for (var i = 0; i < 20; i++)
             {
-                t = Next(Spot + 180f, t + 0.01);
+                t = Next(10f, t + 0.01);
                 _dial.Hit(t);
             }
             Assert.That(_dial.SpeedMultiplier, Is.GreaterThanOrEqualTo(0.5f - 1e-4f));
@@ -130,16 +130,16 @@ namespace Game.Tests.EditMode
         public void ChangingSpeedDoesntMakeTheNeedleJump()
         {
             var t = Next(Spot, T0);
-            var before = _dial.NeedleAngle(t);
+            var before = _dial.NeedlePosition(t);
             _dial.Hit(t);
-            Assert.That(_dial.NeedleAngle(t), Is.EqualTo(before).Within(0.01f));
+            Assert.That(_dial.NeedlePosition(t), Is.EqualTo(before).Within(0.01f));
         }
     }
 
     public class PrepCounterTests
     {
-        private const float Turn = 0.8f;
-        private const float Spot = 120f;
+        private const float Sweep = 0.8f;
+        private const float Spot = 110f;
         private CookingSimulation _sim;
         private PrepCounter _counter;
 
@@ -152,7 +152,7 @@ namespace Game.Tests.EditMode
         {
             TypeId = "Onion", HeatCapacity = 585f, SurfaceFraction = 0.15f, StartTemperature = 20f,
             CutIntoTypeId = "DicedOnion", CutsNeeded = 4,
-            ChopSecondsPerTurn = Turn, SweetSpotAngle = Spot, SweetSpotGoodHalfWidth = 15f, SweetSpotOkHalfWidth = 35f,
+            ChopSecondsPerSweep = Sweep, SweetSpotPosition = Spot, SweetSpotGoodHalfWidth = 12f, SweetSpotOkHalfWidth = 28f,
         });
 
         [SetUp]
@@ -197,7 +197,7 @@ namespace Game.Tests.EditMode
         public void UnevenTimingGivesAnUnevenCut()
         {
             _counter.Put(NewOnion());
-            ChopToTheEnd(offset: 25f); // every chop lands just past the sweet spot
+            ChopToTheEnd(offset: 20f); // every chop lands just past the sweet spot
             Assert.That(_counter.Slots[0].Items[0].CutEvenness, Is.LessThan(0.8f));
         }
 

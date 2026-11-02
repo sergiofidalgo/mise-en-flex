@@ -81,10 +81,10 @@ namespace Game.Data
         [SerializeField] private string _cutIntoTypeId;
         [Tooltip("Knife chops to finish the cut.")]
         [SerializeField, Min(0)] private int _cutsNeeded;
-        [Tooltip("Real seconds for the cutting dial's needle to go once round.")]
-        [SerializeField, Min(0.05f)] private float _chopSecondsPerTurn = 0.7f;
-        [Tooltip("Centre of the sweet spot, degrees clockwise from the top of the dial. Each ingredient has its own.")]
-        [SerializeField, Range(0f, 359f)] private float _sweetSpotAngle = 90f;
+        [Tooltip("Real seconds for the cutting dial's needle to sweep the arc once, right to left.")]
+        [SerializeField, Min(0.05f)] private float _chopSecondsPerSweep = 0.7f;
+        [Tooltip("Centre of the sweet spot, degrees along the sweep from its right end (0 = right end; the arc is ~170°). Each ingredient has its own.")]
+        [SerializeField, Range(0f, 180f)] private float _sweetSpotPosition = 85f;
         [Tooltip("Degrees either side of the centre for a Good cut.")]
         [SerializeField, Min(0f)] private float _sweetSpotGood = 20f;
         [Tooltip("Degrees either side for an Early/Late cut; beyond is a Miss.")]
@@ -118,8 +118,8 @@ namespace Game.Data
             RestTargetSeconds = _restTargetSeconds,
             CutIntoTypeId = string.IsNullOrEmpty(_cutIntoTypeId) ? null : _cutIntoTypeId,
             CutsNeeded = _cutsNeeded,
-            ChopSecondsPerTurn = _chopSecondsPerTurn,
-            SweetSpotAngle = _sweetSpotAngle,
+            ChopSecondsPerSweep = _chopSecondsPerSweep,
+            SweetSpotPosition = _sweetSpotPosition,
             SweetSpotGoodHalfWidth = _sweetSpotGood,
             SweetSpotOkHalfWidth = _sweetSpotOk,
         };

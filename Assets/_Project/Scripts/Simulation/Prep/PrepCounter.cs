@@ -31,15 +31,21 @@ namespace Game.Simulation.Prep
         private readonly Slot[] _slots = new Slot[SlotCount];
         private readonly Func<Ingredient, Ingredient> _cut;
         private readonly ChopPacing _pacing;
+        private readonly float _sweepDegrees;
+
+        // Default width of the cutting dial's arc, in degrees.
+        public const float DefaultSweepDegrees = 170f;
 
         /// <param name="slotCapacity">Portions each slot holds.</param>
         /// <param name="cut">Turns a finished whole ingredient into its cut form (via the cooking simulation).</param>
         /// <param name="pacing">How each cut's grade changes the dial's speed.</param>
-        public PrepCounter(int slotCapacity, Func<Ingredient, Ingredient> cut, ChopPacing? pacing = null)
+        /// <param name="sweepDegrees">Width of the cutting dial's arc.</param>
+        public PrepCounter(int slotCapacity, Func<Ingredient, Ingredient> cut, ChopPacing? pacing = null, float sweepDegrees = DefaultSweepDegrees)
         {
             SlotCapacity = slotCapacity;
             _cut = cut;
             _pacing = pacing ?? ChopPacing.Default;
+            _sweepDegrees = sweepDegrees;
             for (var i = 0; i < SlotCount; i++)
                 _slots[i] = new Slot();
         }
@@ -129,7 +135,7 @@ namespace Game.Simulation.Prep
                 Current = ingredient;
                 Cuts = 0;
                 var p = ingredient.Properties;
-                Dial = new ChopDial(p.ChopSecondsPerTurn, p.SweetSpotAngle, p.SweetSpotGoodHalfWidth, p.SweetSpotOkHalfWidth, _pacing);
+                Dial = new ChopDial(p.ChopSecondsPerSweep, _sweepDegrees, p.SweetSpotPosition, p.SweetSpotGoodHalfWidth, p.SweetSpotOkHalfWidth, _pacing);
             }
             else
             {

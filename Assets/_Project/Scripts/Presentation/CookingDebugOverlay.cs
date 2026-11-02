@@ -14,7 +14,8 @@ namespace Game.Presentation
     /// panels: top left for players (device, target, hands, tool, triggers) and storage (one line
     /// per unit); top right for what you watch while cooking: hobs (heat, pan temperature, the food
     /// in each pan) and food in play (anywhere outside storage, with its location). Values are
-    /// coloured by state. F1 toggles it. Players read food by eye; this is for tuning and debugging.
+    /// coloured by state. F1 toggles it; click a panel's title or a section heading to fold it
+    /// (remembered between sessions). Players read food by eye; this is for tuning and debugging.
     /// </summary>
     public sealed class CookingDebugOverlay : MonoBehaviour
     {
@@ -55,6 +56,12 @@ namespace Game.Presentation
             { "Cooked", new Color(0.85f, 0.72f, 0.40f) },
         };
 
+        // Folded panels and sections, by key; remembered between sessions.
+        private const string CollapsedPrefsKey = "Game.DebugOverlay.Collapsed";
+        private const string LeftPanelKey = "panel.left";
+        private const string RightPanelKey = "panel.right";
+        private readonly HashSet<string> _collapsed = new HashSet<string>();
+
         private readonly Dictionary<Ingredient, string> _locations = new Dictionary<Ingredient, string>();
         private readonly HashSet<Ingredient> _stored = new HashSet<Ingredient>();
         private Interactable[] _stations;
@@ -62,10 +69,15 @@ namespace Game.Presentation
         private GUIStyle _text;
         private GUIStyle _bold;
         private GUIStyle _heading;
+        private GUIStyle _title;
         private Texture2D _background;
 
         private void Start()
         {
+            var saved = PlayerPrefs.GetString(CollapsedPrefsKey, string.Empty);
+            foreach (var key in saved.Split(new[] { '|' }, System.StringSplitOptions.RemoveEmptyEntries))
+                _collapsed.Add(key);
+
             _stations = FindObjectsByType<Interactable>(FindObjectsSortMode.None).OrderBy(s => s.name).ToArray();
         }
 
@@ -96,23 +108,34 @@ namespace Game.Presentation
             GUILayout.BeginArea(new Rect(Margin, Margin, leftWidth, height));
             GUILayout.BeginVertical(_panel);
             var minutes = (int)(cooking.ElapsedSeconds / 60.0);
-            GUILayout.Label($"<b>Kitchen debug</b>   game time {minutes / 60:00}:{minutes % 60:00}   ×{services.Tuning.TimeScale:0}   <color=#888>(F1 hides)</color>", _text);
-            DrawPlayers();
-            DrawStorage();
+            if (Foldout(LeftPanelKey, $"<b>Kitchen debug</b>   game time {minutes / 60:00}:{minutes % 60:00}   ×{services.Tuning.TimeScale:0}   <color=#888>(F1 hides)</color>", _title))
+            {
+                DrawPlayers();
+                DrawStorage();
+            }
             GUILayout.EndVertical();
             GUILayout.EndArea();
 
+            // The right panel's width follows its content when folded, so it hugs the corner.
             GUILayout.BeginArea(new Rect(Screen.width - Margin - rightWidth, Margin, rightWidth, height));
+            GUILayout.BeginHorizontal();
+            if (_collapsed.Contains(RightPanelKey))
+                GUILayout.FlexibleSpace();
             GUILayout.BeginVertical(_panel);
-            DrawHobs();
-            DrawFoodInPlay(cooking);
+            if (Foldout(RightPanelKey, "<b>Cooking</b>", _title))
+            {
+                DrawHobs();
+                DrawFoodInPlay(cooking);
+            }
             GUILayout.EndVertical();
+            GUILayout.EndHorizontal();
             GUILayout.EndArea();
         }
 
         private void DrawPlayers()
         {
-            Section("Players");
+            if (!Section("Players"))
+                return;
             foreach (var player in PlayerInput.all)
             {
                 var interactor = player.GetComponent<PlayerInteractor>();
@@ -129,7 +152,8 @@ namespace Game.Presentation
 
         private void DrawHobs()
         {
-            Section("Hobs");
+            if (!Section("Hobs"))
+                return;
             var index = 0;
             foreach (var hob in _stations.OfType<HobStation>())
             {
@@ -162,7 +186,8 @@ namespace Game.Presentation
 
         private void DrawFoodInPlay(CookingSimulation cooking)
         {
-            Section("Food in play");
+            if (!Section("Food in play"))
+                return;
             FoodHeader();
             var any = false;
             foreach (var food in cooking.Ingredients)
@@ -178,7 +203,8 @@ namespace Game.Presentation
 
         private void DrawStorage()
         {
-            Section("Storage");
+            if (!Section("Storage"))
+                return;
             foreach (var storage in _stations.OfType<StorageStation>())
             {
                 if (storage.Unit == null)
@@ -315,10 +341,27 @@ namespace Game.Presentation
             _ => item.TypeId,
         };
 
-        private void Section(string title)
+        /// <returns>True if the section is expanded.</returns>
+        private bool Section(string title)
         {
             GUILayout.Space(4f);
-            GUILayout.Label(title.ToUpperInvariant(), _heading);
+            return Foldout($"section.{title}", title.ToUpperInvariant(), _heading);
+        }
+
+        // A clickable heading: "–" when expanded, "+" when folded. Clicking toggles it.
+        private bool Foldout(string key, string label, GUIStyle style)
+        {
+            var expanded = !_collapsed.Contains(key);
+            if (GUILayout.Button($"{(expanded ? "–" : "+")}  {label}", style))
+            {
+                if (expanded)
+                    _collapsed.Add(key);
+                else
+                    _collapsed.Remove(key);
+                PlayerPrefs.SetString(CollapsedPrefsKey, string.Join("|", _collapsed));
+                expanded = !expanded;
+            }
+            return expanded;
         }
 
         private void Header(string title, float width)
@@ -376,6 +419,9 @@ namespace Game.Presentation
             _bold = new GUIStyle(_text) { fontStyle = FontStyle.Bold };
             _heading = new GUIStyle(_text) { fontStyle = FontStyle.Bold, fontSize = _fontSize - 1 };
             _heading.normal.textColor = Heading;
+            _heading.hover.textColor = Color.white;
+            _title = new GUIStyle(_text);
+            _title.hover.textColor = Color.white;
         }
 
         private void OnDestroy()

@@ -87,11 +87,11 @@ namespace Game.Simulation.Cooking
         /// <summary>Knife chops needed to finish the cut.</summary>
         public int CutsNeeded { get; set; }
 
-        /// <summary>Real seconds for the cutting dial's needle to go once round.</summary>
-        public float ChopSecondsPerTurn { get; set; } = 0.7f;
+        /// <summary>Real seconds for the cutting dial's needle to sweep the arc once, right to left.</summary>
+        public float ChopSecondsPerSweep { get; set; } = 0.7f;
 
-        /// <summary>Centre of the cutting sweet spot, degrees clockwise from the top of the dial.</summary>
-        public float SweetSpotAngle { get; set; }
+        /// <summary>Centre of the cutting sweet spot, degrees along the sweep from its right end.</summary>
+        public float SweetSpotPosition { get; set; }
 
         /// <summary>Degrees either side of the sweet spot's centre for a Good cut.</summary>
         public float SweetSpotGoodHalfWidth { get; set; } = 20f;

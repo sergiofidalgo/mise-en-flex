@@ -42,8 +42,8 @@ namespace Game.Editor
             // Cutting at the prep counter (also applied on every build).
             public string CutInto;
             public int CutsNeeded;
-            public float ChopSecondsPerTurn = 0.7f;
-            public float SweetSpotAngle = 90f;
+            public float ChopSecondsPerSweep = 0.7f;
+            public float SweetSpotPosition = 85f;
             public float SweetSpotGood = 20f;
             public float SweetSpotOk = 40f;
 
@@ -76,7 +76,7 @@ namespace Game.Editor
             new IngredientType
             {
                 Id = "Onion", Color = new Color(0.93f, 0.84f, 0.62f), Shape = PrimitiveType.Sphere,
-                Scale = Vector3.one * 0.26f, CutInto = "DicedOnion", CutsNeeded = 5, ChopSecondsPerTurn = 0.7f, SweetSpotAngle = 120f, SweetSpotGood = 20f, SweetSpotOk = 40f,
+                Scale = Vector3.one * 0.26f, CutInto = "DicedOnion", CutsNeeded = 5, ChopSecondsPerSweep = 0.7f, SweetSpotPosition = 110f, SweetSpotGood = 14f, SweetSpotOk = 28f,
                 InitialTuning = so => SetVegetable(so, massKg: 0.15f),
             },
             new IngredientType
@@ -152,8 +152,8 @@ namespace Game.Editor
             so.FindProperty("_restTargetSeconds").floatValue = type.RestTargetSeconds;
             so.FindProperty("_cutIntoTypeId").stringValue = type.CutInto ?? string.Empty;
             so.FindProperty("_cutsNeeded").intValue = type.CutsNeeded;
-            so.FindProperty("_chopSecondsPerTurn").floatValue = type.ChopSecondsPerTurn;
-            so.FindProperty("_sweetSpotAngle").floatValue = type.SweetSpotAngle;
+            so.FindProperty("_chopSecondsPerSweep").floatValue = type.ChopSecondsPerSweep;
+            so.FindProperty("_sweetSpotPosition").floatValue = type.SweetSpotPosition;
             so.FindProperty("_sweetSpotGood").floatValue = type.SweetSpotGood;
             so.FindProperty("_sweetSpotOk").floatValue = type.SweetSpotOk;
             so.ApplyModifiedPropertiesWithoutUndo();

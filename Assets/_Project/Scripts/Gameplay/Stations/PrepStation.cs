@@ -45,7 +45,8 @@ namespace Game.Gameplay.Stations
             _counter = new PrepCounter(
                 services.Equipment.PrepSlotCapacity,
                 whole => services.Cooking.Transform(whole, services.Catalog.Find(whole.Properties.CutIntoTypeId).ToProperties()),
-                services.Tuning.ChopPacing);
+                services.Tuning.ChopPacing,
+                services.Tuning.ChopSweepDegrees);
             _counter.CutFinished += HandleCutFinished;
             _container = new PrepContainer(this);
         }
