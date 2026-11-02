@@ -37,7 +37,7 @@ Ideas worth keeping that aren't decided or scheduled yet. When one is accepted, 
 - **It's a button prompt, not a radial.** A radial suggests aiming with the stick, which is slower. Here every face button *is* a slot.
 - **Face buttons change meaning near storage.** A is normally Interact and X is Use. That's fine because storage has no other use, but the prompt must make the change obvious, and it should only appear when the unit is your current target.
 - **Physical layout matches the buttons.** The four bins sit on the unit in a diamond that mirrors A/B/X/Y (Y top, A bottom, X left, B right). The prompt and the model then say the same thing, and the unit reads from overhead even without the prompt.
-- **Keyboard needs four keys near WASD.** A proposal: E = A slot (same as Interact), F = X slot (same as Use), R = B slot, Q = Y slot. Players can rebind them in Controls.
+- **Keyboard:** settled by the keyboard decision: X = A slot, D = B slot, A = X slot, W = Y slot (a diamond mirroring the face buttons, arrows to move).
 - **Putting things back.** With full hands, Interact puts the item into the slot assigned to that ingredient, so no choice is needed. Which ingredient goes in which slot is set while stocking, or in Plan.
 - **Two players at the same unit:** each sees their own prompt, in their colour.
 - **Show stock on the prompt,** e.g. "A Tomato ×6", so running low is visible before it's empty.

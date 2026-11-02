@@ -35,7 +35,7 @@ Every feature must serve at least one.
 
 - **1–2 local players** (decision 2026-11-02). 3–4 players is a stretch goal.
 - macOS (Apple Silicon) first. Default: player 1 on keyboard, player 2 on an Xbox controller over Bluetooth. Every action has both bindings, and all controls can be rebound from a Controls screen in the settings.
-- Movement is snappy (full speed in about 0.08 s), with no dash for now. **Interact** (A / E) picks up and places; **Use** (X / F) works a station or enters its close-up.
+- Movement is snappy (full speed in about 0.08 s), with no dash for now. **Interact** (A) picks up and places; **Use** (X) works a station or enters its close-up. The keyboard mirrors the face buttons as W/A/D/X with arrow keys to move, and is mainly for testing.
 - Join by pressing a button (drop-in during Plan/Prep). **Open:** can a second player join mid-service?
 - Performance target: steady 60 fps on a MacBook with two players, including both close-up views.
 
@@ -60,7 +60,7 @@ With two players, each close-up panel can be large (roughly a third of the scree
 **Proposal — the transition** (`ideas.md`):
 - The panel grows out of the station's screen position (~0.2–0.3 s) and shrinks back on exit.
 - Switch to the `CloseUp` action map at the start of the transition and buffer inputs; no dead frames.
-- Exit is cheap: stick away from the station, or B / Esc.
+- Exit is cheap: stick away from the station, or B (keyboard D / Esc).
 - The panel edge pings for events that need the player (pan smoking, new ticket, partner calling).
 - The avatar visibly performs the technique in the kitchen view, so the partner can read it.
 

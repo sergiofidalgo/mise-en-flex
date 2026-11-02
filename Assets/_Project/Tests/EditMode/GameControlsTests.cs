@@ -58,6 +58,25 @@ namespace Game.Tests.EditMode
             Assert.That(interact.Intersect(use), Is.Empty);
         }
 
+        // Decision 2026-11-02: the keyboard mirrors the face buttons as a diamond
+        // (X = A, D = B, A = X, W = Y) and arrow keys move.
+        [TestCase("Gameplay", "Interact", "<Keyboard>/x", "<Gamepad>/buttonSouth")]
+        [TestCase("Gameplay", "Use", "<Keyboard>/a", "<Gamepad>/buttonWest")]
+        [TestCase("CloseUp", "Exit", "<Keyboard>/d", "<Gamepad>/buttonEast")]
+        public void KeyboardMirrorsFaceButtons(string map, string action, string key, string button)
+        {
+            var paths = _controls.FindActionMap(map, true).FindAction(action, true).bindings.Select(b => b.path).ToArray();
+            Assert.That(paths, Does.Contain(key).And.Contain(button));
+        }
+
+        [Test]
+        public void ArrowKeysMoveAndWasdDoesNot()
+        {
+            var paths = _controls.FindActionMap("Gameplay", true).FindAction("Move", true).bindings.Select(b => b.path).ToArray();
+            Assert.That(paths, Does.Contain("<Keyboard>/upArrow"));
+            Assert.That(paths, Does.Not.Contain("<Keyboard>/w"));
+        }
+
         [Test]
         public void PlayerPrefabUsesGameControlsStartingInGameplay()
         {

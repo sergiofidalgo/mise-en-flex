@@ -25,7 +25,7 @@ Key systems (see the design doc for detail):
 - **Customers and reputation:** custom orders, allergies and cross-contamination, patience, an in-game review app, incognito critics, influencers.
 - **Economy:** suppliers (cheap vs. premium), menu pricing, rent, wages, debt. A **chef profile** shared across restaurants keeps learned recipes and techniques.
 - **Realism dials** (separate settings): cooking precision, spoilage, customer patience, minigame complexity, hygiene.
-- **Co-op:** 1–2 local players (3–4 is a stretch goal, see `docs/decisions.md`). Default: player 1 on keyboard, player 2 on an Xbox controller over Bluetooth on macOS. Controls are rebindable in the in-game settings. Shared overhead camera; in planning, each player has their own cursor in a shared view.
+- **Co-op:** 1–2 local players (3–4 is a stretch goal, see `docs/decisions.md`). Xbox controllers over Bluetooth on macOS are the main input; the keyboard (arrows to move, W/A/D/X as the Y/X/B/A face buttons) is mainly for testing. Controls are rebindable in the in-game settings. Shared overhead camera; in planning, each player has their own cursor in a shared view.
 
 ## Tech stack
 

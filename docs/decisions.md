@@ -4,6 +4,25 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-02 — Keyboard: arrows to move, face buttons as a W/A/D/X diamond
+
+**Decision:** The keyboard is mainly for testing; the controller is the main way to play. Keyboard bindings mirror the Xbox face buttons as a diamond around S:
+
+| Xbox | Keyboard | Gameplay meaning |
+| --- | --- | --- |
+| A (bottom) | **X** | Interact, Join, UI Submit |
+| B (right) | **D** | Close-up exit, Build/UI cancel |
+| X (left) | **A** | Use |
+| Y (top) | **W** | (free; storage slot later) |
+| Left stick | **Arrow keys** | Move, UI navigate |
+| Start | **Esc** | Pause (Esc also cancels/exits) |
+
+Enter also joins and submits. WASD no longer moves.
+
+**Reason:** One mental model for both devices: "press A" always means the same key, which matters once storage uses all four face buttons. Supersedes the E / F keys in "Interact and Use are separate buttons" and the WASD movement in "Player 1 on keyboard". Rebinding in Controls is still planned.
+
+---
+
 ## 2026-11-02 — Phase 0 interaction rules
 
 **Decision:** For Phase 0 (accepted after playtesting pick up and place):
@@ -51,7 +70,7 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ## 2026-11-02 — Interact and Use are separate buttons
 
-**Decision:** **Interact** (gamepad A, keyboard E) is a contextual pick up / place. **Use** (gamepad X, keyboard F) uses a station or enters its close-up. Use is bound from Phase 0 but does nothing until Phase 1.
+**Decision:** **Interact** (gamepad A; keyboard X since the keyboard remap below) is a contextual pick up / place. **Use** (gamepad X; keyboard A) uses a station or enters its close-up. Use is bound from Phase 0 but does nothing until Phase 1.
 
 **Reason:** Keeping the two apart stops a player who wants to put something down from accidentally entering a close-up, and Phase 1 slots in without remapping.
 
