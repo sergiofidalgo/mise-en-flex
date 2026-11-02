@@ -4,6 +4,32 @@ Ideas worth keeping that aren't decided or scheduled yet. When one is accepted, 
 
 ---
 
+## HUD and signifiers pass
+
+*Added 2026-11-02 after the milestone 5′ playtest · Relevant phase: a focused pass before Phase 2's playtests, polish in Phase 7 · Pillars: all (readability is what makes the craft and the chaos legible)*
+
+**Playtest verdict:** the logic is in place and feels good; the HUD and signifiers need much more love. Fine-tune later.
+
+**What's greybox today (inventory to redesign):**
+- Station prompts (IMGUI boxes above the faced station, device glyphs, storage diamond).
+- Quality card above the pass (text, half-star count).
+- Doneness chip (a plain sphere above the pan).
+- Heat pips (three cubes on the hob top) and burner glow.
+- Steak cues: top colour, three edge bands; pan colour; smoke; steam.
+- Targeting highlight (tint towards the player's colour) and the "can't" shake.
+- Debug overlay (F1), for tuning only.
+
+**Directions to explore:**
+- One visual language for all prompts and states: icons and glyph art instead of text, consistent placement, player-colour framing.
+- World-space UI that sits on the station (e.g. a dial ring around the burner instead of pips; a doneness ring around the steak instead of a floating ball).
+- Juice for actions: sizzle on placing food in a hot pan, a punchier serve moment at the pass, stars that animate in.
+- Sound as a signifier (sizzle tracks pan temperature, alarm before burning): probably the biggest readability win once there's audio.
+- Accessibility: colour-blind-safe doneness and player colours; text size.
+
+**Suggestion:** a short dedicated UX pass at the end of Phase 1 or before Phase 2's first service playtests, because readability decides whether playtests give useful feedback; full polish stays in Phase 7.
+
+---
+
 ## Storage with capacity instead of endless ingredient crates
 
 *Added 2026-11-02 · Relevant phases: 1 (fridge station), 3 (Prep restocking), 4 (placing storage), 5 (suppliers) · Pillars: plannable chaos, identity*
