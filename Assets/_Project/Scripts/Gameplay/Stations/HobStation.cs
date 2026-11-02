@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Game.Simulation.Cooking;
 using Game.Simulation.Items;
 
@@ -8,7 +9,7 @@ namespace Game.Gameplay.Stations
     /// can be put back on an empty hob. While facing it, the triggers turn the heat and Use
     /// flips the food in the pan.
     /// </summary>
-    public sealed class HobStation : Interactable, IUsable, IHeatControl
+    public sealed class HobStation : Interactable, IUsable, IHeatControl, IStationPrompt
     {
         private HobSlot _slot;
         private KitchenServices _services;
@@ -16,6 +17,8 @@ namespace Game.Gameplay.Stations
         public Hob Hob => _slot?.Hob;
 
         public override IItemContainer Container => _slot;
+
+        public bool PromptAsDiamond => false;
 
         public override void Bind(KitchenServices services)
         {
@@ -29,6 +32,13 @@ namespace Game.Gameplay.Stations
         }
 
         public bool TryUse(PlayerInteractor player) => Hob != null && HobControls.TryFlip(Hob);
+
+        public void DescribeActions(PlayerInteractor player, List<PromptLine> lines)
+        {
+            lines.Add(new PromptLine(PromptControl.Triggers, "heat"));
+            var hasFood = Hob?.Pan != null && Hob.Pan.Contents.Count > 0;
+            lines.Add(new PromptLine(PromptControl.West, "flip", hasFood));
+        }
 
         public void AdjustHeat(float heatDown, float heatUp, float realDeltaTime)
         {

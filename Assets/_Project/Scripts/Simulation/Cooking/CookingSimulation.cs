@@ -133,7 +133,8 @@ namespace Game.Simulation.Cooking
                     }
                     else
                     {
-                        q[surface] += p.AirConductance * (AmbientTemperature - t[surface]);
+                        var air = ingredient.EnvironmentTemperature ?? AmbientTemperature;
+                        q[surface] += p.AirConductance * (air - t[surface]);
                         Brown(ingredient, surface, t[surface], dt);
                     }
                 }

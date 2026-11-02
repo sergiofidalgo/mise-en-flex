@@ -35,12 +35,17 @@ namespace Game.Gameplay
         /// Creates a new item of <paramref name="typeId"/>. Known ingredients are registered with
         /// the cooking simulation so they heat, cool and spoil wherever they are.
         /// </summary>
-        public Item CreateItem(string typeId)
+        /// <param name="startTemperature">°C to start at (e.g. the fridge's); defaults to the ingredient's own.</param>
+        public Item CreateItem(string typeId, float? startTemperature = null)
         {
             var definition = Catalog.Find(typeId);
-            return definition != null
-                ? Cooking.AddIngredient(definition.ToProperties())
-                : new Item(typeId);
+            if (definition == null)
+                return new Item(typeId);
+
+            var properties = definition.ToProperties();
+            if (startTemperature.HasValue)
+                properties.StartTemperature = startTemperature.Value;
+            return Cooking.AddIngredient(properties);
         }
     }
 }

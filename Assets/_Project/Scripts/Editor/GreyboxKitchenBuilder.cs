@@ -59,11 +59,28 @@ namespace Game.Editor
         // Carried items sit in front of the chest, clear of the body so they read from above.
         private static readonly Vector3 CarryAnchorPosition = new Vector3(0f, 1.05f, 0.5f);
 
-        // Stations: standard 0.9 m counter height, 1 m footprint. Crates are lower.
+        // Stations: standard 0.9 m counter height, 1 m footprint.
         private const float CounterHeight = 0.9f;
         private const float CounterSize = 1f;
-        private const float CrateHeight = 0.6f;
-        private const float CrateSize = 0.8f;
+
+        // Storage on the west wall (replaces the Phase 0 crates): a fridge for meat and a shelf
+        // for vegetables. Slots in FaceButton order: A, B, X, Y. Capacity and starting stock are
+        // placeholders until restocking (Phase 3) and buying storage (Phases 4–5).
+        private static readonly GreyboxStorage.Unit[] StorageUnits =
+        {
+            new GreyboxStorage.Unit
+            {
+                Name = "Fridge", Position = new Vector3(-4.4f, 0f, 1.0f), Refrigerated = true,
+                Color = new Color(0.86f, 0.92f, 0.96f),
+                Slots = new (string, int, int)?[] { ("Steak", 6, 6), null, null, null },
+            },
+            new GreyboxStorage.Unit
+            {
+                Name = "Shelf", Position = new Vector3(-4.4f, 0f, -0.6f), Refrigerated = false,
+                Color = new Color(0.58f, 0.43f, 0.28f),
+                Slots = new (string, int, int)?[] { ("Tomato", 6, 6), ("Onion", 6, 6), null, null },
+            },
+        };
 
         // Kitchen zones (decision 2026-11-02), laid out so food flows storage -> prep -> cooking
         // -> pass and the path crosses the middle, where the island is the hand-off point.
@@ -111,7 +128,6 @@ namespace Game.Editor
         // Greybox palette: darker walls than floor so edges read from the overhead camera.
         private static readonly Color FloorColor = new Color(0.62f, 0.63f, 0.66f);
         private static readonly Color WallColor = new Color(0.30f, 0.33f, 0.40f);
-        private static readonly Color CrateColor = new Color(0.50f, 0.36f, 0.22f);
         private static readonly Color NoseColor = new Color(0.20f, 0.20f, 0.22f);
 
         [MenuItem("Tools/Game/Build Greybox Kitchen")]
@@ -257,6 +273,8 @@ namespace Game.Editor
 
             var overlay = root.gameObject.AddComponent<CookingDebugOverlay>();
             SetReference(overlay, "_root", root);
+            var prompts = root.gameObject.AddComponent<StationPromptOverlay>();
+            SetReference(prompts, "_settings", settings);
             foreach (var chip in Object.FindObjectsByType<DonenessChipView>(FindObjectsSortMode.None))
                 SetReference(chip, "_root", root);
 
@@ -301,7 +319,6 @@ namespace Game.Editor
         private static void BuildStations(CoopSettings settings)
         {
             var stations = new GameObject("Stations").transform;
-            var crateMaterial = GreyboxAssets.EnsureMaterial("Crate", CrateColor);
 
             foreach (var zone in CounterZones)
             {
@@ -329,17 +346,12 @@ namespace Game.Editor
             CreateStation<BinStation>(
                 "Bin", BinPosition, BinSize, BinHeight, GreyboxAssets.EnsureMaterial("Bin", BinColor), stations, settings);
 
-            foreach (var type in GreyboxIngredients.Types)
+            var storage = new GameObject("Zone_Storage").transform;
+            storage.SetParent(stations, false);
+            foreach (var unit in StorageUnits)
             {
-                var crate = CreateStation<CrateStation>(
-                    $"Crate_{type.Id}", type.CratePosition, CrateSize, CrateHeight, crateMaterial, stations, settings);
-                var so = new SerializedObject(crate);
-                so.FindProperty("_itemTypeId").stringValue = type.Id;
-                so.ApplyModifiedPropertiesWithoutUndo();
-
-                // A sample of the contents on top, so each crate reads at a glance.
-                var sample = GreyboxIngredients.CreateShape(type, "Label", crate.transform);
-                sample.transform.localPosition = new Vector3(-CrateSize / 4f, CrateHeight + type.CentreHeight, -CrateSize / 4f);
+                GreyboxStorage.Build(unit, CounterHeight, (name, position, material) =>
+                    CreateStation<StorageStation>(name, position, CounterSize, CounterHeight, material, storage, settings));
             }
         }
 

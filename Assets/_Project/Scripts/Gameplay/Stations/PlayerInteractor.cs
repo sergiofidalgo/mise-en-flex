@@ -20,6 +20,8 @@ namespace Game.Gameplay.Stations
         private const string UseActionName = "Use";
         private const string HeatDownActionName = "HeatDown";
         private const string HeatUpActionName = "HeatUp";
+        private const string ButtonBActionName = "ButtonB";
+        private const string ButtonYActionName = "ButtonY";
 
         [Tooltip("Where carried items sit, in front of the chef's chest.")]
         [SerializeField] private Transform _carryAnchor;
@@ -32,6 +34,8 @@ namespace Game.Gameplay.Stations
         private InputAction _use;
         private InputAction _heatDown;
         private InputAction _heatUp;
+        private InputAction _buttonB;
+        private InputAction _buttonY;
         private IReadOnlyList<Interactable> _interactables;
         private KitchenServices _services;
         private Interactable _target;
@@ -63,8 +67,12 @@ namespace Game.Gameplay.Stations
             _use = _playerInput.actions[UseActionName];
             _heatDown = _playerInput.actions[HeatDownActionName];
             _heatUp = _playerInput.actions[HeatUpActionName];
+            _buttonB = _playerInput.actions[ButtonBActionName];
+            _buttonY = _playerInput.actions[ButtonYActionName];
             _interact.performed += HandleInteract;
             _use.performed += HandleUse;
+            _buttonB.performed += HandleButtonB;
+            _buttonY.performed += HandleButtonY;
         }
 
         private void OnDestroy()
@@ -73,6 +81,10 @@ namespace Game.Gameplay.Stations
                 _interact.performed -= HandleInteract;
             if (_use != null)
                 _use.performed -= HandleUse;
+            if (_buttonB != null)
+                _buttonB.performed -= HandleButtonB;
+            if (_buttonY != null)
+                _buttonY.performed -= HandleButtonY;
             SetTarget(null);
         }
 
@@ -118,9 +130,45 @@ namespace Game.Gameplay.Stations
                 _target.AddTargeter(this);
         }
 
+        /// <summary>
+        /// Puts a station-supplied item (e.g. from storage) into the empty hands; its view appears
+        /// at <paramref name="spawnPosition"/> and flies to the hands.
+        /// </summary>
+        public void ReceiveItem(Item item, Vector3 spawnPosition)
+        {
+            _hands.Put(item);
+            _services.ItemViews.Place(item, _carryAnchor, _services.Tuning.ItemMove, spawnPosition);
+        }
+
+        // Stations that answer to face buttons (storage) get them first while the hands are empty.
+        private bool TryFaceButton(FaceButton button)
+        {
+            if (_target is IFaceButtonTarget target && _hands.IsEmpty)
+            {
+                if (!target.TryPress(button, this))
+                    _target.NotifyDenied();
+                return true;
+            }
+            return false;
+        }
+
+        private void HandleButtonB(InputAction.CallbackContext context)
+        {
+            if (_target != null && !TryFaceButton(FaceButton.East))
+                _target.NotifyDenied();
+        }
+
+        private void HandleButtonY(InputAction.CallbackContext context)
+        {
+            if (_target != null && !TryFaceButton(FaceButton.North))
+                _target.NotifyDenied();
+        }
+
         private void HandleInteract(InputAction.CallbackContext context)
         {
-            if (_target == null || _services == null || _target.Container == null)
+            if (_target == null || _services == null)
+                return;
+            if (TryFaceButton(FaceButton.South) || _target.Container == null)
                 return;
 
             var outcome = ItemTransfer.Interact(_hands, _target.Container);
@@ -145,7 +193,7 @@ namespace Game.Gameplay.Stations
 
         private void HandleUse(InputAction.CallbackContext context)
         {
-            if (_target == null)
+            if (_target == null || TryFaceButton(FaceButton.West))
                 return;
 
             if (!(_target is IUsable usable) || !usable.TryUse(this))

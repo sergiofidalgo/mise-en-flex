@@ -19,6 +19,9 @@ namespace Game.Data
         [Tooltip("Kitchen air temperature, °C.")]
         [SerializeField] private float _ambientTemperature = 22f;
 
+        [Tooltip("Inside a fridge, °C.")]
+        [SerializeField] private float _fridgeTemperature = 4f;
+
         [Header("Player movement")]
         [Tooltip("Metres per second at full stick. The greybox kitchen is 10 m wide.")]
         [SerializeField, Min(0f)] private float _moveSpeed = 5f;
@@ -61,6 +64,8 @@ namespace Game.Data
         public float TimeScale => _timeScale;
 
         public float AmbientTemperature => _ambientTemperature;
+
+        public float FridgeTemperature => _fridgeTemperature;
 
         public MovementSettings Movement =>
             new MovementSettings(_moveSpeed, _accelerationTime, _decelerationTime, _turnSpeedDegrees);

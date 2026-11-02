@@ -18,9 +18,9 @@
 | 1 | Cooking simulation (heat, doneness, browning, carryover, freshness), hobs, debug overlay | Done |
 | 2 | Carryable pans, plates, plate stack, bin; cues by eye (steak colour, cooked edge bands, smoke, heat pips) | Done |
 | 3 | ~~Close-up framework~~, built then dropped | Superseded |
-| 3′ | **In-world hob controls:** triggers set the heat while facing a hob, Use flips, one piece of food per pan, doneness chip above the pan while facing it. Remove the picture-in-picture code. | Next |
-| 4′ | **Storage:** 4-slot fridge or shelf with the A/B/X/Y prompt and limited stock, replacing the crates. Fridges keep food cold; shelves don't. | |
-| 5′ | **Pass and serving temperature:** plated food keeps cooling while it waits; the pass shows a quality card (doneness, browning, serving temperature). | |
+| 3′ | **In-world hob controls:** triggers set the heat while facing a hob, Use flips, one piece of food per pan, doneness chip above the pan while facing it. Remove the picture-in-picture code. | Done |
+| 4′ | **Storage:** 4-slot fridge or shelf with the A/B/X/Y prompt and limited stock, replacing the crates. Fridges keep food cold; shelves don't. Plus button prompts at every station that has actions. | Done |
+| 5′ | **Pass and serving temperature:** plated food keeps cooling while it waits; the pass shows a quality card (doneness, browning, serving temperature). | Next |
 | 6′ | **Board and onion:** rhythm chopping (tap Use), 3-slot rail, sautéing; resting and slicing the steak on the board. | |
 
 ## Key decisions

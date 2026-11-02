@@ -26,7 +26,6 @@ namespace Game.Editor
             public Color Color;
             public PrimitiveType Shape;
             public Vector3 Scale;
-            public Vector3 CratePosition;
 
             // Layered food (a slab like steak) is built as a top surface over three edge bands,
             // so its doneness can be read from the side; anything else is a single shape.
@@ -46,7 +45,7 @@ namespace Game.Editor
                 // 300 g, 2.5 cm steak: IngredientDefinition's defaults are tuned for this. Shown
                 // oversized (19 x 16 x 4 cm) so it reads from the overhead camera.
                 Id = "Steak", Color = new Color(0.62f, 0.12f, 0.14f), Shape = PrimitiveType.Cylinder,
-                Scale = new Vector3(0.19f, 0.02f, 0.16f), CratePosition = new Vector3(-4.4f, 0f, -1.5f),
+                Scale = new Vector3(0.19f, 0.02f, 0.16f),
                 Layered = true,
                 InitialTuning = so => SetDoneness(so,
                     ("Rare", 45f), ("Medium-rare", 52f), ("Medium", 57f), ("Medium-well", 63f), ("Well done", 68f)),
@@ -54,13 +53,13 @@ namespace Game.Editor
             new IngredientType
             {
                 Id = "Tomato", Color = new Color(0.90f, 0.18f, 0.12f), Shape = PrimitiveType.Sphere,
-                Scale = Vector3.one * 0.28f, CratePosition = new Vector3(-4.4f, 0f, 1.5f),
+                Scale = Vector3.one * 0.28f,
                 InitialTuning = so => SetVegetable(so, massKg: 0.12f),
             },
             new IngredientType
             {
                 Id = "Onion", Color = new Color(0.93f, 0.84f, 0.62f), Shape = PrimitiveType.Sphere,
-                Scale = Vector3.one * 0.26f, CratePosition = new Vector3(-4.4f, 0f, 0f),
+                Scale = Vector3.one * 0.26f,
                 InitialTuning = so => SetVegetable(so, massKg: 0.15f),
             },
         };
@@ -90,7 +89,7 @@ namespace Game.Editor
             return catalog;
         }
 
-        /// <summary>A collider-less copy of the item's shape, e.g. as a label on top of a crate.</summary>
+        /// <summary>A collider-less copy of the item's shape, e.g. as a sample on a storage bin.</summary>
         public static GameObject CreateShape(IngredientType type, string name, Transform parent)
         {
             var shape = GreyboxAssets.CreatePrimitive(

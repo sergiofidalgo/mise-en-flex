@@ -48,6 +48,12 @@ namespace Game.Simulation.Cooking
         /// <summary>The pan this ingredient is in, or null.</summary>
         public Pan Pan { get; internal set; }
 
+        /// <summary>
+        /// °C of the air around it when that isn't the kitchen's (e.g. inside a fridge); null means
+        /// the kitchen ambient temperature.
+        /// </summary>
+        public float? EnvironmentTemperature { get; set; }
+
         public float CoreTemperature => Temperatures[Core];
 
         public float SurfaceTemperature(IngredientSide side) => Temperatures[SurfaceIndex(side)];
