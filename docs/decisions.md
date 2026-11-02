@@ -4,6 +4,23 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-02 — One time scale for everything: 1 real second = 1 in-game minute
+
+**Decision:** The whole game runs on a single clock at **60x**: one in-game minute passes in one real second, so a 12–15 hour shift plays in 12–15 minutes. **Cooking follows the same scale:** a steak that takes ~8–10 minutes in reality cooks in ~8–10 seconds, resting 5 minutes takes 5 seconds, a 30-minute caramelised onion takes 30 seconds. More than ~15 seconds for a steak is too long.
+
+**How it's built:** the simulation uses real-world units (°C, in-game seconds) and realistic-ish constants; gameplay feeds it `realDeltaTime × TimeScale`. The scale is one tuning value (default 60).
+
+**Consequences:**
+- Techniques are short and punchy. The steak's skill is a few well-timed decisions (when to flip, when to pull, when to baste), not a long minigame.
+- Windows are tight at 60x, so the "forgiving by default" decision and the cooking precision dial matter more: precision sets how wide the doneness windows are.
+- Long passive processes (stocks, braises, slow onions) become 30 s–few-minute tasks, which suits juggling them during service.
+
+**Reason:** Your call: compressed skill games, consistent time. I raised the risk that 8–10 s leaves little room for sear/flip/baste. We'll judge it by feel in milestone 4; the scale is tunable if needed.
+
+**Supersedes:** question 1 in the Phase 1 plan (I had proposed a separate, slower cooking speed).
+
+---
+
 ## 2026-11-02 — Phase 1: pans and plates, reading doneness, close-up panel placement
 
 **Decisions:**
