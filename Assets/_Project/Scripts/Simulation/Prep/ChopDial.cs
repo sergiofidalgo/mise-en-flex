@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace Game.Simulation.Prep
 {
@@ -39,10 +40,10 @@ namespace Game.Simulation.Prep
     }
 
     /// <summary>
-    /// The cutting check (decision 2026-11-02): a needle sweeps across a half arc from its right
-    /// end to its left end, then starts again from the right, and the chef presses X as it passes
-    /// through the ingredient's sweet spot. Each ingredient places the spot at its own position and
-    /// width. Inside the core of the spot is Good, its edges Early (not there yet) or Late (just
+    /// The cutting check (decision 2026-11-02): a needle swings across a half arc like a pendulum,
+    /// far right to far left and back, and the chef presses X as it passes through the ingredient's
+    /// sweet spot. Each ingredient places the spot at its own position and width. Inside the core of
+    /// the spot is Good, its edges Early (not there yet, in the direction it's moving) or Late (just
     /// past), anywhere else a Miss. A miss still cuts, just less evenly.
     ///
     /// The needle's speed reacts to each cut: Good speeds it up progressively, Early/Late slow it
@@ -56,6 +57,7 @@ namespace Game.Simulation.Prep
         private double _anchorPosition;
         private float _speed;
         private float _total;
+        private readonly List<ChopGrade> _grades = new List<ChopGrade>();
 
         /// <param name="secondsPerSweep">Real seconds for one sweep, right to left, at the ingredient's base speed.</param>
         /// <param name="sweepDegrees">How wide the arc is (≈150–180).</param>
@@ -85,6 +87,12 @@ namespace Game.Simulation.Prep
 
         public ChopGrade? LastGrade { get; private set; }
 
+        /// <summary>Where the needle was on the last cut, degrees from the right end.</summary>
+        public float? LastHitPosition { get; private set; }
+
+        /// <summary>Every cut's grade so far, in order.</summary>
+        public IReadOnlyList<ChopGrade> Grades => _grades;
+
         /// <summary>0..1 average of the chops so far (Good 1, Early/Late 0.6, Miss 0.2); 1 before any chop.</summary>
         public float Evenness => Hits == 0 ? 1f : _total / Hits;
 
@@ -98,29 +106,49 @@ namespace Game.Simulation.Prep
             }
         }
 
-        /// <summary>Where the needle is at real time <paramref name="time"/>: degrees from the right end, in [0, sweep). Starts it if needed.</summary>
-        public float NeedlePosition(double time)
+        // The needle's path is a there-and-back loop of twice the sweep: phase 0..sweep moves right to
+        // left (position rising), sweep..2×sweep moves back left to right (position falling).
+        private double Phase(double time)
         {
             Start(time);
-            var travelled = _anchorPosition + (time - _anchorTime.Value) * _speed;
-            var position = travelled % SweepDegrees;
-            return (float)(position < 0 ? position + SweepDegrees : position);
+            var loop = 2.0 * SweepDegrees;
+            var phase = (_anchorPosition + (time - _anchorTime.Value) * _speed) % loop;
+            return phase < 0 ? phase + loop : phase;
         }
 
-        /// <summary>Real seconds from <paramref name="time"/> until the needle next reaches <paramref name="position"/>.</summary>
+        private float PositionAtPhase(double phase) => (float)(phase <= SweepDegrees ? phase : 2.0 * SweepDegrees - phase);
+
+        /// <summary>Where the needle is at real time <paramref name="time"/>: degrees from the right end, in [0, sweep]. Starts it if needed.</summary>
+        public float NeedlePosition(double time) => PositionAtPhase(Phase(time));
+
+        /// <summary>True while the needle is travelling right to left.</summary>
+        public bool MovingLeft(double time) => Phase(time) < SweepDegrees;
+
+        /// <summary>Real seconds from <paramref name="time"/> until the needle next reaches <paramref name="position"/>, either way.</summary>
         public double SecondsUntil(float position, double time)
         {
-            var ahead = (position - NeedlePosition(time)) % SweepDegrees;
-            if (ahead < 0f)
-                ahead += SweepDegrees;
-            return ahead / _speed;
+            // Reached at phase `position` (going left) and at `2×sweep - position` (coming back).
+            var loop = 2.0 * SweepDegrees;
+            var now = Phase(time);
+            var best = double.MaxValue;
+            foreach (var target in new[] { (double)position, loop - position })
+            {
+                var ahead = (target - now) % loop;
+                if (ahead < 0)
+                    ahead += loop;
+                best = Math.Min(best, ahead);
+            }
+            return best / _speed;
         }
 
         /// <summary>The grade a press at <paramref name="time"/> would get, without recording it.</summary>
         public ChopGrade GradeAt(double time)
         {
-            // Signed distance from the spot's centre; negative = the needle hasn't reached it yet.
+            // Signed distance from the spot's centre along the direction of travel; negative = the
+            // needle hasn't reached it yet.
             var delta = NeedlePosition(time) - SweetSpot;
+            if (!MovingLeft(time))
+                delta = -delta;
             var distance = Math.Abs(delta);
             if (distance <= GoodHalfWidth)
                 return ChopGrade.Good;
@@ -134,6 +162,8 @@ namespace Game.Simulation.Prep
             var grade = GradeAt(time);
             Hits++;
             LastGrade = grade;
+            LastHitPosition = NeedlePosition(time);
+            _grades.Add(grade);
             _total += grade switch
             {
                 ChopGrade.Good => 1f,
@@ -142,8 +172,9 @@ namespace Game.Simulation.Prep
                 _ => 0.2f,
             };
 
-            // Keep the needle where it is and change only its speed from here on.
-            _anchorPosition = NeedlePosition(time);
+            // Keep the needle where it is (same point on its back-and-forth path) and change only
+            // its speed from here on.
+            _anchorPosition = Phase(time);
             _anchorTime = time;
             var factor = grade switch
             {

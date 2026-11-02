@@ -32,10 +32,47 @@ namespace Game.Tests.EditMode
             Assert.That(_dial.NeedlePosition(T0 + Sweep * 0.99f), Is.GreaterThan(Arc * 0.95f), "nearly at the left end");
         }
 
+        // Feedback 2026-11-02: far right to far left and back, like a pendulum; no jump.
         [Test]
-        public void AfterReachingTheLeftEndItStartsAgainFromTheRight()
+        public void AfterReachingTheLeftEndItSwingsBackToTheRight()
         {
-            Assert.That(_dial.NeedlePosition(T0 + Sweep * 1.1f), Is.EqualTo(Arc * 0.1f).Within(0.01f));
+            Assert.That(_dial.NeedlePosition(T0 + Sweep * 1.1f), Is.EqualTo(Arc * 0.9f).Within(0.01f), "on its way back");
+            Assert.That(_dial.MovingLeft(T0 + Sweep * 1.1f), Is.False);
+            Assert.That(_dial.NeedlePosition(T0 + Sweep * 2f), Is.EqualTo(0f).Within(0.01f), "back at the right end");
+        }
+
+        [Test]
+        public void NeverJumpsAtEitherEnd()
+        {
+            const double tiny = 0.002;
+            foreach (var end in new[] { T0 + Sweep, T0 + 2.0 * Sweep })
+            {
+                var before = _dial.NeedlePosition(end - tiny);
+                var after = _dial.NeedlePosition(end + tiny);
+                Assert.That(System.Math.Abs(after - before), Is.LessThan(2f), $"jump at t={end}");
+            }
+        }
+
+        [Test]
+        public void OnTheWayBackEarlyAndLateFollowTheDirectionOfTravel()
+        {
+            var speed = Arc / Sweep;
+            // Coming back (left to right), the needle reaches Spot+20 before the spot: that's Early.
+            var returning = T0 + (2.0 * Arc - (Spot + 20f)) / speed;
+            Assert.That(_dial.MovingLeft(returning), Is.False);
+            Assert.That(_dial.GradeAt(returning), Is.EqualTo(ChopGrade.Early));
+            var pastIt = T0 + (2.0 * Arc - (Spot - 20f)) / speed;
+            Assert.That(_dial.GradeAt(pastIt), Is.EqualTo(ChopGrade.Late));
+        }
+
+        [Test]
+        public void RemembersEachCutsGradeAndWhereItLanded()
+        {
+            var first = Next(Spot, T0);
+            _dial.Hit(first);
+            _dial.Hit(Next(10f, first + 0.01));
+            Assert.That(_dial.Grades, Is.EqualTo(new[] { ChopGrade.Good, ChopGrade.Miss }));
+            Assert.That(_dial.LastHitPosition, Is.EqualTo(10f).Within(0.5f));
         }
 
         [Test]

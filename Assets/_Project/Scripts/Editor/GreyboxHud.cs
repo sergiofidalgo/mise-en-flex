@@ -32,6 +32,10 @@ namespace Game.Editor
         private const float DialSize = 130f;
         private const float DialHole = 0.62f;     // inner fan as a fraction of the dial: arcs read as a band on the rim
         private const float NeedleWidth = 5f;
+        private const float MarkerWidth = 7f;
+        private const float MarkerOverhang = 6f;   // the hit marker pokes out past the rim
+        private const float QualityBarWidth = 120f;
+        private const float QualityBarHeight = 10f;
         private const int DialDots = 8;
         private const float DotSize = 12f;
         private static readonly Color DialRing = new Color(0.10f, 0.11f, 0.13f, 0.88f);
@@ -167,23 +171,45 @@ namespace Game.Editor
             group.interactable = false;
             group.blocksRaycasts = false;
 
+            // Everything lives under Content, which pops on a Good and shakes on a Miss.
+            var content = NewRect("Content", root);
+            content.anchorMin = content.anchorMax = content.pivot = new Vector2(0.5f, 0.5f);
+            content.sizeDelta = Vector2.one * DialSize;
+
             // A half-arc fan: dark backing, the coloured sweet-spot arcs, then a smaller dark fan over
-            // them so the colours read as bands along the rim. ChopDialView sizes all of them.
-            var backing = Arc("Backing", root, style, DialRing, 1f);
-            var ok = Arc("OkArc", root, style, DialOk, 1f);
-            var good = Arc("GoodArc", root, style, DialGood, 1f);
-            var inner = Arc("Inner", root, style, DialRing, DialHole);
+            // them so the colours read as bands along the rim, then the grade flash on top.
+            // ChopDialView sizes all of them.
+            var backing = Arc("Backing", content, style, DialRing, 1f);
+            var ok = Arc("OkArc", content, style, DialOk, 1f);
+            var good = Arc("GoodArc", content, style, DialGood, 1f);
+            var inner = Arc("Inner", content, style, DialRing, DialHole);
+            var flash = Arc("Flash", content, style, Color.clear, 1f);
+
+            // Hit marker: an arm rotating about the centre with a tick at the rim.
+            var arm = NewRect("MarkerArm", content);
+            arm.anchorMin = arm.anchorMax = new Vector2(0.5f, 0.5f);
+            arm.pivot = new Vector2(0.5f, 0f);
+            arm.sizeDelta = new Vector2(MarkerWidth, DialSize / 2f);
+            arm.anchoredPosition = Vector2.zero;
+            var tick = NewRect("Marker", arm);
+            tick.anchorMin = tick.anchorMax = new Vector2(0.5f, 1f);
+            tick.pivot = new Vector2(0.5f, 1f);
+            tick.sizeDelta = new Vector2(MarkerWidth, DialSize / 2f * (1f - DialHole) + MarkerOverhang);
+            tick.anchoredPosition = new Vector2(0f, MarkerOverhang);
+            var marker = AddImage(tick.gameObject, style.Rounded, Color.white);
+            marker.type = Image.Type.Simple;
 
             // Needle from the centre to the rim; it rotates about the dial's centre.
-            var needle = NewRect("Needle", root);
+            var needle = NewRect("Needle", content);
             needle.anchorMin = needle.anchorMax = new Vector2(0.5f, 0.5f);
             needle.pivot = new Vector2(0.5f, 0f);
             needle.sizeDelta = new Vector2(NeedleWidth, DialSize / 2f);
             needle.anchoredPosition = Vector2.zero;
             AddImage(needle.gameObject, style.Rounded, Color.white).type = Image.Type.Simple;
 
-            // Under the fan's flat edge (the dial's centre line), where the lower half is empty.
-            var dotsRow = NewRect("Dots", root);
+            // Under the fan's flat edge (the dial's centre line), where the lower half is empty:
+            // dots per cut, the cut-quality bar, the grade and the speed hint.
+            var dotsRow = NewRect("Dots", content);
             dotsRow.anchorMin = dotsRow.anchorMax = new Vector2(0.5f, 0.5f);
             dotsRow.pivot = new Vector2(0.5f, 1f);
             dotsRow.anchoredPosition = new Vector2(0f, -8f);
@@ -202,29 +228,43 @@ namespace Game.Editor
                 dots[i].type = Image.Type.Simple;
             }
 
-            var gradeRect = NewRect("Grade", root);
-            gradeRect.anchorMin = gradeRect.anchorMax = new Vector2(0.5f, 0.5f);
-            gradeRect.pivot = new Vector2(0.5f, 1f);
-            gradeRect.anchoredPosition = new Vector2(0f, -8f - DotSize - 6f);
-            gradeRect.sizeDelta = new Vector2(260f, 30f);
-            var grade = gradeRect.gameObject.AddComponent<TextMeshProUGUI>();
-            grade.font = style.Font;
-            grade.fontSize = style.FontSize;
-            grade.fontStyle = FontStyles.Bold;
-            grade.alignment = TextAlignmentOptions.Center;
-            grade.textWrappingMode = TextWrappingModes.NoWrap;
-            grade.raycastTarget = false;
+            var bar = NewRect("QualityBar", content);
+            bar.anchorMin = bar.anchorMax = new Vector2(0.5f, 0.5f);
+            bar.pivot = new Vector2(0.5f, 1f);
+            bar.anchoredPosition = new Vector2(0f, -8f - DotSize - 6f);
+            bar.sizeDelta = new Vector2(QualityBarWidth, QualityBarHeight);
+            AddImage(bar.gameObject, style.Rounded, DialRing).type = Image.Type.Simple;
+            var fillRect = NewRect("Fill", bar);
+            fillRect.anchorMin = Vector2.zero;
+            fillRect.anchorMax = Vector2.one;
+            fillRect.offsetMin = Vector2.one * 2f;
+            fillRect.offsetMax = -Vector2.one * 2f;
+            var fill = AddImage(fillRect.gameObject, style.Rounded, Color.white);
+            fill.type = Image.Type.Filled;
+            fill.fillMethod = Image.FillMethod.Horizontal;
+            fill.fillOrigin = (int)Image.OriginHorizontal.Left;
+
+            var grade = Label("Grade", content, style, -8f - DotSize - 6f - QualityBarHeight - 4f, 260f, 38f, FontStyles.Bold);
+            var hint = Label("SpeedHint", content, style, -8f - DotSize - 6f - QualityBarHeight - 4f - 36f, 200f, 22f, FontStyles.Italic);
+            hint.fontSize = style.FontSize * 0.7f;
+            hint.color = new Color(0.85f, 0.87f, 0.9f);
 
             var view = root.gameObject.AddComponent<ChopDialView>();
             var so = new SerializedObject(view);
             so.FindProperty("_rect").objectReferenceValue = root;
+            so.FindProperty("_content").objectReferenceValue = content;
             so.FindProperty("_group").objectReferenceValue = group;
             so.FindProperty("_backing").objectReferenceValue = backing;
             so.FindProperty("_inner").objectReferenceValue = inner;
             so.FindProperty("_okArc").objectReferenceValue = ok;
             so.FindProperty("_goodArc").objectReferenceValue = good;
+            so.FindProperty("_flash").objectReferenceValue = flash;
             so.FindProperty("_needle").objectReferenceValue = needle;
+            so.FindProperty("_markerArm").objectReferenceValue = arm;
+            so.FindProperty("_marker").objectReferenceValue = marker;
+            so.FindProperty("_qualityFill").objectReferenceValue = fill;
             so.FindProperty("_grade").objectReferenceValue = grade;
+            so.FindProperty("_speedHint").objectReferenceValue = hint;
             SetArray(so.FindProperty("_dots"), dots);
             so.ApplyModifiedPropertiesWithoutUndo();
 
@@ -232,6 +272,23 @@ namespace Game.Editor
             var prefab = PrefabUtility.SaveAsPrefabAsset(root.gameObject, $"{PrefabFolder}/PF_Hud_ChopDial.prefab");
             Object.DestroyImmediate(root.gameObject);
             return prefab;
+        }
+
+        private static TextMeshProUGUI Label(string name, RectTransform parent, HudStyle style, float y, float width, float height, FontStyles fontStyle)
+        {
+            var rect = NewRect(name, parent);
+            rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 0.5f);
+            rect.pivot = new Vector2(0.5f, 1f);
+            rect.anchoredPosition = new Vector2(0f, y);
+            rect.sizeDelta = new Vector2(width, height);
+            var text = rect.gameObject.AddComponent<TextMeshProUGUI>();
+            text.font = style.Font;
+            text.fontSize = style.FontSize;
+            text.fontStyle = fontStyle;
+            text.alignment = TextAlignmentOptions.Center;
+            text.textWrappingMode = TextWrappingModes.NoWrap;
+            text.raycastTarget = false;
+            return text;
         }
 
         private static Image Disc(string name, RectTransform parent, HudStyle style, Color color, float scale)
