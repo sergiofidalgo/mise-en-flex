@@ -1,4 +1,5 @@
 using Game.Gameplay;
+using Game.Gameplay.Stations;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
@@ -26,6 +27,18 @@ namespace Game.Tests.EditMode
 
             var tuning = new SerializedObject(movement).FindProperty("_tuning").objectReferenceValue;
             Assert.That(tuning, Is.Not.Null, "PlayerMovement has no TuningConfig");
+        }
+
+        [Test]
+        public void CarriesItemsInFrontAtChestHeight()
+        {
+            var interactor = _prefab.GetComponent<PlayerInteractor>();
+            Assert.That(interactor, Is.Not.Null);
+
+            var anchor = (Transform)new SerializedObject(interactor).FindProperty("_carryAnchor").objectReferenceValue;
+            Assert.That(anchor, Is.Not.Null, "PlayerInteractor has no carry anchor");
+            Assert.That(anchor.localPosition.z, Is.GreaterThan(0f), "Carried items should be in front of the chef");
+            Assert.That(anchor.localPosition.y, Is.InRange(0.8f, 1.4f), "Carried items should be at chest height");
         }
 
         [Test]
