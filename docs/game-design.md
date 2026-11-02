@@ -216,7 +216,7 @@ Cuisines arrive one at a time in Phase 6. The first cuisine should come out of t
 - **Equipment tiers:** better hobs, bigger rails, more storage.
 - **Health inspections:** hygiene, storage and cross-contamination practices (scaled by the hygiene dial).
 
-Layout editing happens in Plan, with a per-player cursor in a shared view.
+Layout editing happens in Plan, with a per-player cursor in a shared view. **Everything in the kitchen can be moved there**: stations, counters, storage units and the pass. The greybox layout is only a starting arrangement.
 
 ---
 
