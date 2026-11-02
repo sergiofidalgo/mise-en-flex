@@ -29,7 +29,7 @@ Key systems (see the design doc for detail):
 
 ## Tech stack
 
-- **Unity 6 LTS**, C#, **Universal Render Pipeline (URP)**, stylized look.
+- **Unity 6.3 LTS (6000.3.27f2)**, C#, **Universal Render Pipeline (URP)**, stylized look.
 - **Input System** package with `PlayerInputManager` for local co-op (join by pressing a button). Action maps: `Gameplay`, `CloseUp`, `Build`, `UI`. Every action has a gamepad and a keyboard binding.
 - **Blender** for all 3D assets, exported as FBX.
 - **Unity Test Framework** for tests.
@@ -79,7 +79,7 @@ docs/         game-design.md, decisions.md, ideas.md
 - **Don't hand-edit complex `.unity` or `.prefab` YAML.** Instead, write Editor scripts (menu items under `Tools/Game/...`) that build or update scenes, prefabs and ScriptableObject assets, then tell me which menu item to run. Small, safe YAML edits are fine.
 - When something must be done in the Editor by hand, give me exact step-by-step instructions.
 - Run EditMode tests from the command line where possible:
-  `"/Applications/Unity/Hub/Editor/<version>/Unity.app/Contents/MacOS/Unity" -batchmode -projectPath . -runTests -testPlatform EditMode -testResults ./TestResults.xml`
+  `"/Applications/Unity/Hub/Editor/6000.3.27f2/Unity.app/Contents/MacOS/Unity" -batchmode -projectPath . -runTests -testPlatform EditMode -testResults ./TestResults.xml`
   (the editor must be closed for batch mode). If you can't run them, tell me how.
 - Git with a Unity `.gitignore` and **Git LFS** for `.fbx`, `.blend`, `.png`, `.psd`, `.wav`, `.ogg`.
 

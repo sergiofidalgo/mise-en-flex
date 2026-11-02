@@ -4,6 +4,14 @@ Ideas worth keeping that aren't decided or scheduled yet. When one is accepted, 
 
 ---
 
+## Tooling: evaluate the Unity CLI
+
+*Added 2026-11-02 · Relevant phase: any · Supports: verification*
+
+Unity Hub 3.22 advertises a "Unity CLI" which, with a pipeline editor package, can drive the Editor from the terminal (e.g. running EditMode tests with JSON output while the Editor is open). If it works as described, Claude Code could run tests and Editor menu items without closing the Editor, which would make every step easier to verify. Evaluate once the project is set up: what it needs installed, whether it works with Unity 6.3 LTS, and whether it replaces our batch-mode test command.
+
+---
+
 ## Close-up transition (entering/leaving a station)
 
 *Added 2026-11-02 · Relevant phase: 1 (close-up framework) · Pillar: craft*
