@@ -2,6 +2,7 @@ using Game.Data;
 using Game.Gameplay.Items;
 using Game.Simulation.Cooking;
 using Game.Simulation.Items;
+using Game.Simulation.Service;
 
 namespace Game.Gameplay
 {
@@ -17,7 +18,9 @@ namespace Game.Gameplay
             ItemCatalog catalog,
             EquipmentTier equipment,
             TuningConfig tuning,
-            RealismSettings realism)
+            RealismSettings realism,
+            ServiceSimulation service,
+            ServiceConfig serviceConfig)
         {
             Cooking = cooking;
             ItemViews = itemViews;
@@ -25,6 +28,8 @@ namespace Game.Gameplay
             Equipment = equipment;
             Tuning = tuning;
             Realism = realism;
+            Service = service;
+            ServiceConfig = serviceConfig;
         }
 
         public CookingSimulation Cooking { get; }
@@ -33,6 +38,10 @@ namespace Game.Gameplay
         public EquipmentTier Equipment { get; }
         public TuningConfig Tuning { get; }
         public RealismSettings Realism { get; }
+
+        /// <summary>The dinner service: customers, seats and arrivals.</summary>
+        public ServiceSimulation Service { get; }
+        public ServiceConfig ServiceConfig { get; }
 
         /// <summary>
         /// Creates a new item of <paramref name="typeId"/>. Known ingredients are registered with

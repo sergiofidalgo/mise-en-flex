@@ -15,7 +15,7 @@
 
 | # | Milestone | Playable result | Status |
 | --- | --- | --- | --- |
-| 1 | **Customers and seating:** arrivals in waves, walking to a free stool at the pass, eating, paying, leaving (greybox capsules) | Customers come in and sit down | |
+| 1 | **Customers and seating:** arrivals in waves, walking to a free stool at the pass, eating, paying, leaving (greybox capsules) | Customers come in and sit down | Done |
 | 2 | **Orders and tickets:** each customer orders (steak + doneness, maybe onions); tickets on a rail; a plate served on the pass in front of a customer completes their order | Cook to order | |
 | 3 | **Patience:** drains while waiting (realism dial), shown above each customer; at zero they walk out | Time pressure | |
 | 4 | **Payment, tips and reviews:** price × quality, tips for quality and speed, short review lines from the score parts, money counter | Score turns into money and words | |

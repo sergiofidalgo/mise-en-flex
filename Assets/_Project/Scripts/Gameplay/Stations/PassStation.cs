@@ -3,21 +3,29 @@ using System.Collections.Generic;
 using Game.Simulation.Cooking;
 using Game.Simulation.Items;
 using Game.Simulation.Quality;
+using Game.Simulation.Service;
 using UnityEngine;
 
 namespace Game.Gameplay.Stations
 {
     /// <summary>
-    /// The pass: where finished plates leave the kitchen. A plate with food put here is served:
-    /// it's scored on the spot (serving temperature included, so getting there quickly matters)
-    /// and collected shortly after. Until customers exist (Phase 2) nobody eats it; the score is
-    /// shown as a quality card.
+    /// The pass: where finished plates leave the kitchen. With counter service (decision
+    /// 2026-11-02) each pass counter faces one stool: a plate with food put here is served to the
+    /// customer waiting there, scored on the spot (serving temperature included, so getting there
+    /// quickly matters), and cleared when they've finished eating. With nobody waiting, it's
+    /// scored and cleared after a short delay, as before customers existed.
     /// </summary>
     public sealed class PassStation : Interactable, IStationPrompt
     {
+        [Tooltip("The stool this pass counter faces (0 = leftmost).")]
+        [SerializeField, Min(0)] private int _seatIndex;
+
         private readonly PassSlot _slot = new PassSlot();
         private KitchenServices _services;
         private float _collectAt;
+        private Customer _eating;
+
+        public int SeatIndex => _seatIndex;
 
         public override IItemContainer Container => _slot;
 
@@ -51,13 +59,19 @@ namespace Game.Gameplay.Stations
         {
             var score = DishScorer.Score(plate, _services.Tuning.Quality(_services.Realism.CookingPrecision));
             _collectAt = Time.time + _services.Tuning.PassCollectDelay;
+            _eating = _services.Service.Serve(_seatIndex, plate) ? _services.Service.AtSeat(_seatIndex) : null;
             Served?.Invoke(this, score);
         }
 
         private void Update()
         {
-            if (_slot.Current == null || Time.time < _collectAt)
+            if (_slot.Current == null)
                 return;
+
+            // A customer's plate stays until they've finished; otherwise it's cleared after a moment.
+            if (_eating != null ? _eating.State == CustomerState.Eating : Time.time < _collectAt)
+                return;
+            _eating = null;
 
             // Collected: the food leaves the kitchen and the plate goes with it.
             var plate = _slot.Collect();

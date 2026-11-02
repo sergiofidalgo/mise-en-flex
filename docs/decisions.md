@@ -4,6 +4,18 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-02 — Customers and seating details (Phase 2, milestone 1)
+
+**Decisions (proposed while building; flagged for review):**
+- **Until orders exist (milestone 2), any plate with food** served on the pass in front of a seated customer counts: they eat it and leave. The quality card still shows.
+- **The service starts automatically with the scene** for now; Start, the clock and the summary come in milestone 5.
+- **One stool per pass counter** (three); customers come in through a **door at the east end** of the dining strip. With all stools taken they wait in a **queue of up to 3** by the door, the longest-waiting taking the next free stool; beyond that they **walk away (a lost cover)**.
+- **Starting numbers (tunable in `ServiceConfig`):** a customer about every 12 in-game minutes (±35%), a rush from 35% to 60% of the service at 2.5× the rate, 15 in-game minutes to eat, walking at 1.6 m/s.
+- **Fixed random seed**, so a service plays the same way each time while tuning.
+- **Customers have no physics**; they never get stuck on chefs.
+
+---
+
 ## 2026-11-02 — Phase 2 shape: counter service, steak to order, ~6-minute services
 
 **Decisions:**

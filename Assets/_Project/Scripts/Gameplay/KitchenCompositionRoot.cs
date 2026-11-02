@@ -1,7 +1,9 @@
 using Game.Data;
 using Game.Gameplay.Items;
 using Game.Gameplay.Stations;
+using System.Linq;
 using Game.Simulation.Cooking;
+using Game.Simulation.Service;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -17,6 +19,7 @@ namespace Game.Gameplay
         [SerializeField] private TuningConfig _tuning;
         [SerializeField] private EquipmentTier _equipment;
         [SerializeField] private RealismSettings _realism;
+        [SerializeField] private ServiceConfig _serviceConfig;
         [SerializeField] private PlayerInputManager _playerInputManager;
 
         private Interactable[] _interactables;
@@ -26,12 +29,16 @@ namespace Game.Gameplay
 
         private void Awake()
         {
-            var cooking = new CookingSimulation(_tuning.AmbientTemperature, _realism.SpoilageMultiplier);
-            Services = new KitchenServices(cooking, new ItemViewRegistry(_itemCatalog), _itemCatalog, _equipment, _tuning, _realism);
-
             // TODO(Phase 4): stations will be placed and moved during Plan, so they must register
             // and unregister themselves instead of being collected once here.
             _interactables = FindObjectsByType<Interactable>(FindObjectsSortMode.None);
+
+            // One stool per pass counter (counter service, decision 2026-11-02).
+            var seats = _interactables.OfType<PassStation>().Count();
+            var cooking = new CookingSimulation(_tuning.AmbientTemperature, _realism.SpoilageMultiplier);
+            var service = new ServiceSimulation(_serviceConfig.ToSettings(), seats);
+            Services = new KitchenServices(cooking, new ItemViewRegistry(_itemCatalog), _itemCatalog, _equipment, _tuning, _realism, service, _serviceConfig);
+
             foreach (var interactable in _interactables)
                 interactable.Bind(Services);
         }
@@ -52,7 +59,9 @@ namespace Game.Gameplay
             var cooking = Services.Cooking;
             cooking.AmbientTemperature = _tuning.AmbientTemperature;
             cooking.SpoilageMultiplier = _realism.SpoilageMultiplier;
-            cooking.Tick(Time.deltaTime * _tuning.TimeScale);
+            var gameSeconds = Time.deltaTime * _tuning.TimeScale;
+            cooking.Tick(gameSeconds);
+            Services.Service.Tick(gameSeconds);
         }
 
         private void BindPlayer(PlayerInput player)

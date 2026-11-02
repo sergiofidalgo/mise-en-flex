@@ -25,6 +25,7 @@ namespace Game.Editor
         private const string TuningConfigPath = SettingsFolder + "/TuningConfig.asset";
         private const string EquipmentPath = SettingsFolder + "/EquipmentTier_Basic.asset";
         private const string RealismPath = SettingsFolder + "/RealismSettings.asset";
+        private const string ServiceConfigPath = SettingsFolder + "/ServiceConfig.asset";
         private const string PlayerPrefabPath = "Assets/_Project/Prefabs/PF_Player.prefab";
         private const string ScenePath = "Assets/_Project/Scenes/Kitchen_Greybox.unity";
         private const string JoinActionPath = "Gameplay/Join";
@@ -156,6 +157,7 @@ namespace Game.Editor
                 Tuning = GreyboxAssets.EnsureAsset<TuningConfig>(TuningConfigPath),
                 Equipment = GreyboxAssets.EnsureAsset<EquipmentTier>(EquipmentPath),
                 Realism = GreyboxAssets.EnsureAsset<RealismSettings>(RealismPath),
+                ServiceConfig = GreyboxAssets.EnsureAsset<ServiceConfig>(ServiceConfigPath),
                 Catalog = GreyboxIngredients.BuildCatalog(
                     (GreyboxKitchenware.PanTypeId, GreyboxKitchenware.BuildPan()),
                     (Game.Simulation.Items.Plate.PlateTypeId, GreyboxKitchenware.BuildPlate()),
@@ -173,6 +175,7 @@ namespace Game.Editor
             public TuningConfig Tuning;
             public EquipmentTier Equipment;
             public RealismSettings Realism;
+            public ServiceConfig ServiceConfig;
             public ItemCatalog Catalog;
             public GameObject PlayerPrefab;
         }
@@ -285,12 +288,14 @@ namespace Game.Editor
             rootSo.FindProperty("_tuning").objectReferenceValue = assets.Tuning;
             rootSo.FindProperty("_equipment").objectReferenceValue = assets.Equipment;
             rootSo.FindProperty("_realism").objectReferenceValue = assets.Realism;
+            rootSo.FindProperty("_serviceConfig").objectReferenceValue = assets.ServiceConfig;
             rootSo.FindProperty("_playerInputManager").objectReferenceValue = manager;
             rootSo.ApplyModifiedPropertiesWithoutUndo();
 
             var overlay = root.gameObject.AddComponent<CookingDebugOverlay>();
             SetReference(overlay, "_root", root);
             root.gameObject.AddComponent<QualityCardOverlay>();
+            GreyboxService.Build(PassPositions, root);
 
             GreyboxHud.BuildCanvas(GreyboxHud.EnsureStyle(), settings);
             foreach (var chip in Object.FindObjectsByType<DonenessChipView>(FindObjectsSortMode.None))
@@ -362,7 +367,12 @@ namespace Game.Editor
             passes.SetParent(stations, false);
             var passMaterial = GreyboxAssets.EnsureMaterial("Pass", PassColor);
             for (var i = 0; i < PassPositions.Length; i++)
-                CreateStation<PassStation>($"Pass_{i + 1:00}", PassPositions[i], CounterSize, CounterHeight, passMaterial, passes, settings);
+            {
+                var pass = CreateStation<PassStation>($"Pass_{i + 1:00}", PassPositions[i], CounterSize, CounterHeight, passMaterial, passes, settings);
+                var passSo = new SerializedObject(pass);
+                passSo.FindProperty("_seatIndex").intValue = i; // the stool in front of it
+                passSo.ApplyModifiedPropertiesWithoutUndo();
+            }
 
             var plateStack = CreateStation<PlateStackStation>(
                 "PlateStack", PlateStackPosition, CounterSize, CounterHeight,

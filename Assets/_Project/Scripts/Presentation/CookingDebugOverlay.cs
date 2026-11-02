@@ -4,6 +4,7 @@ using Game.Gameplay;
 using Game.Gameplay.Stations;
 using Game.Simulation.Cooking;
 using Game.Simulation.Items;
+using Game.Simulation.Service;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -110,6 +111,7 @@ namespace Game.Presentation
             var minutes = (int)(cooking.ElapsedSeconds / 60.0);
             if (Foldout(LeftPanelKey, $"<b>Kitchen debug</b>   game time {minutes / 60:00}:{minutes % 60:00}   ×{services.Tuning.TimeScale:0}   <color=#888>(F1 hides)</color>", _title))
             {
+                DrawService(services);
                 DrawPlayers();
                 DrawStorage();
             }
@@ -130,6 +132,27 @@ namespace Game.Presentation
             GUILayout.EndVertical();
             GUILayout.EndHorizontal();
             GUILayout.EndArea();
+        }
+
+        private void DrawService(KitchenServices services)
+        {
+            if (!Section("Service"))
+                return;
+
+            var service = services.Service;
+            var clock = services.ServiceConfig.OpensAt * 60f + service.Elapsed / 60f; // in-game minutes since midnight
+            var hours = (int)(clock / 60f) % 24;
+            var minutes = (int)clock % 60;
+            var state = service.IsClosed ? Coloured("closed", Dim) : Coloured("open", Good);
+            GUILayout.Label($"<b>{hours:00}:{minutes:00}</b>  {state}   {service.Elapsed / service.Settings.DurationSeconds:P0} through", _text);
+
+            var counts = service.Customers.GroupBy(c => c.State).ToDictionary(g => g.Key, g => g.Count());
+            int Count(CustomerState s) => counts.TryGetValue(s, out var n) ? n : 0;
+            var served = service.Customers.Count(c => c.ServedPlate != null);
+            GUILayout.Label(
+                $"walking in {Count(CustomerState.WalkingToSeat)}   waiting {Coloured(Count(CustomerState.Waiting).ToString(), Count(CustomerState.Waiting) > 0 ? Warn : Dim)}   " +
+                $"eating {Count(CustomerState.Eating)}   queue {Count(CustomerState.Queueing)}   " +
+                $"served {Coloured(served.ToString(), Good)}   lost {Coloured(service.LostCovers.ToString(), service.LostCovers > 0 ? Bad : Dim)}", _text);
         }
 
         private void DrawPlayers()
