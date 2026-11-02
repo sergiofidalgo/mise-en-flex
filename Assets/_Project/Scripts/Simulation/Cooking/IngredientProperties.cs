@@ -62,5 +62,23 @@ namespace Game.Simulation.Cooking
 
         /// <summary>Freshness (0..1) lost per in-game hour at 20 °C; halves for every 10 °C colder.</summary>
         public float FreshnessLossPerHourAt20C { get; set; }
+
+        /// <summary>
+        /// Peak core °C the kitchen aims for when scoring doneness, or null if doneness isn't scored.
+        /// Placeholder house standard until customer orders (Phase 2) choose it per dish.
+        /// </summary>
+        public float? TargetCoreTemperature { get; set; }
+
+        /// <summary>True if the food should reach the table hot, so serving temperature is scored.</summary>
+        public bool ServedHot { get; set; }
+
+        /// <summary>Average °C at or above which a hot dish scores full marks for temperature.</summary>
+        public float ServingIdealTemperature { get; set; }
+
+        /// <summary>Average °C at or below which a hot dish scores nothing for temperature.</summary>
+        public float ServingColdTemperature { get; set; }
+
+        /// <summary>True if the crust (browning) is part of the score, e.g. a seared steak.</summary>
+        public bool ScoresBrowning { get; set; }
     }
 }

@@ -4,6 +4,24 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-02 — The pass, serving temperature and dish scoring (milestone 5′)
+
+**Decisions (proposed while building; flagged for review):**
+- **Putting a plate with food on the pass serves it.** It's scored on the spot, a quality card shows above the pass, and the plate is collected after 4 s (tunable). Nothing can be taken back or added to a served plate.
+- **Score per item, averaged over the dish:**
+  - **doneness:** peak core temperature against the target; full marks within the window, falling to 0 over 8 °C beyond it;
+  - **crust:** average browning of both sides; pale → 0, about 0.7–1.4 → full, then falling towards burnt; burnt → 0;
+  - **serving temperature:** the food's average temperature on arrival; ≥ 52 °C full marks, ≤ 38 °C nothing;
+  - **freshness**, as is.
+  - Weights 0.4 / 0.25 / 0.25 / 0.1; parts that don't apply (a raw tomato has no doneness) are left out. Shown as 0–5 stars in halves.
+- **Doneness target is a placeholder house standard, medium-rare (54.5 °C core),** until customer orders choose it in Phase 2.
+- **The cooking precision dial sets the doneness window:** ±5 °C at its most generous, ±1.5 °C at its strictest (±3.25 °C at the default 0.5).
+- **Steam** rises from hot food off the heat and fades as it cools, so a waiting dish visibly loses its heat.
+
+**Reason:** Serving temperature is one of the game's differentiators; scoring it at the pass makes plating and walking promptly matter. The card stands in for customers until Phase 2, and lets us tune the maths first.
+
+---
+
 ## 2026-11-02 — Storage units (milestone 4′)
 
 **Decisions (built as agreed, plus details flagged for review):**

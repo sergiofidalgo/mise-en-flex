@@ -1,5 +1,7 @@
 using Game.Data;
 using Game.Simulation.Cooking;
+using Game.Simulation.Items;
+using Game.Simulation.Quality;
 using NUnit.Framework;
 using UnityEditor;
 
@@ -14,6 +16,7 @@ namespace Game.Tests.EditMode
         private const string SteakPath = "Assets/_Project/Data/Ingredients/ING_Steak.asset";
         private const string EquipmentPath = "Assets/_Project/Data/Settings/EquipmentTier_Basic.asset";
         private const string TuningPath = "Assets/_Project/Data/Settings/TuningConfig.asset";
+        private const string RealismPath = "Assets/_Project/Data/Settings/RealismSettings.asset";
         private const float Minute = 60f;
 
         [Test]
@@ -42,6 +45,35 @@ namespace Game.Tests.EditMode
 
             Assert.That(steak.Doneness?.Name, Is.EqualTo("Medium-rare"));
             Assert.That(steak.IsBurnt, Is.False);
+        }
+
+        [Test]
+        public void SteakAssetCookedWellAndServedPromptlyEarnsFourStars()
+        {
+            var steakDefinition = AssetDatabase.LoadAssetAtPath<IngredientDefinition>(SteakPath);
+            var equipment = AssetDatabase.LoadAssetAtPath<EquipmentTier>(EquipmentPath);
+            var tuning = AssetDatabase.LoadAssetAtPath<TuningConfig>(TuningPath);
+            var realism = AssetDatabase.LoadAssetAtPath<RealismSettings>(RealismPath);
+
+            var sim = new CookingSimulation(tuning.AmbientTemperature);
+            var hob = sim.AddHob(equipment.Hob);
+            var pan = sim.AddPan(equipment.Pan);
+            hob.PlacePan(pan);
+            hob.Dial = 1f;
+            sim.Tick(2.5f * Minute);
+
+            var steak = sim.AddIngredient(steakDefinition.ToProperties());
+            pan.Put(steak);
+            sim.Tick(3f * Minute);
+            steak.Flip();
+            sim.Tick(3f * Minute);
+            pan.Take();
+            var plate = new Plate(equipment.PlateCapacity);
+            plate.Put(steak);
+            sim.Tick(3f * Minute); // rest on the plate, then straight to the pass
+
+            var score = DishScorer.Score(plate, tuning.Quality(realism.CookingPrecision));
+            Assert.That(score.Stars, Is.GreaterThanOrEqualTo(4f), $"Scored {score.Overall:P0}");
         }
 
         [Test]

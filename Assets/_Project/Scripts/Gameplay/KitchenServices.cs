@@ -16,13 +16,15 @@ namespace Game.Gameplay
             ItemViewRegistry itemViews,
             ItemCatalog catalog,
             EquipmentTier equipment,
-            TuningConfig tuning)
+            TuningConfig tuning,
+            RealismSettings realism)
         {
             Cooking = cooking;
             ItemViews = itemViews;
             Catalog = catalog;
             Equipment = equipment;
             Tuning = tuning;
+            Realism = realism;
         }
 
         public CookingSimulation Cooking { get; }
@@ -30,6 +32,7 @@ namespace Game.Gameplay
         public ItemCatalog Catalog { get; }
         public EquipmentTier Equipment { get; }
         public TuningConfig Tuning { get; }
+        public RealismSettings Realism { get; }
 
         /// <summary>
         /// Creates a new item of <paramref name="typeId"/>. Known ingredients are registered with

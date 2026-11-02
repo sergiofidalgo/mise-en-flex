@@ -54,7 +54,8 @@ namespace Game.Editor
             handle.transform.localPosition = new Vector3(0f, PanDepth * 0.75f, -(PanDiameter + PanHandleScale.z) / 2f);
 
             var view = AddSlots(root, PanSlots, PanDepth);
-            var smoke = CreateSmoke(root.transform, PanDepth);
+            var smoke = CreateParticles(root.transform, "Smoke", PanDepth, PanDiameter * 0.3f,
+                SmokeLifetime, SmokeSpeed, SmokeMinSize, SmokeMaxSize, SmokeGrowth, SmokeMaxParticles);
 
             var panView = root.AddComponent<PanView>();
             var so = new SerializedObject(panView);
@@ -66,32 +67,38 @@ namespace Game.Editor
             return Save(root, PanTypeId);
         }
 
-        private static ParticleSystem CreateSmoke(Transform parent, float height)
+        /// <summary>
+        /// A soft particle emitter that rises, spreads and fades, emitting nothing until a view
+        /// sets its rate (smoke from pans, steam from hot food). Simulated in world space so a
+        /// carried item leaves its trail behind.
+        /// </summary>
+        public static ParticleSystem CreateParticles(Transform parent, string name, float height, float radius,
+            float lifetime, float speed, float minSize, float maxSize, float growth, int maxParticles)
         {
-            var go = new GameObject("Smoke");
+            var go = new GameObject(name);
             go.transform.SetParent(parent, false);
             go.transform.localPosition = Vector3.up * height;
             go.transform.localRotation = Quaternion.Euler(-90f, 0f, 0f); // emit upwards
 
-            var smoke = go.AddComponent<ParticleSystem>();
-            var main = smoke.main;
-            main.startLifetime = SmokeLifetime;
-            main.startSpeed = SmokeSpeed;
-            main.startSize = new ParticleSystem.MinMaxCurve(SmokeMinSize, SmokeMaxSize);
-            main.maxParticles = SmokeMaxParticles;
+            var particles = go.AddComponent<ParticleSystem>();
+            var main = particles.main;
+            main.startLifetime = lifetime;
+            main.startSpeed = speed;
+            main.startSize = new ParticleSystem.MinMaxCurve(minSize, maxSize);
+            main.maxParticles = maxParticles;
             main.simulationSpace = ParticleSystemSimulationSpace.World; // a carried pan leaves its smoke behind
             main.playOnAwake = true;
             main.loop = true;
 
-            var emission = smoke.emission;
+            var emission = particles.emission;
             emission.rateOverTime = 0f;
 
-            var shape = smoke.shape;
+            var shape = particles.shape;
             shape.shapeType = ParticleSystemShapeType.Cone;
             shape.angle = 12f;
-            shape.radius = PanDiameter * 0.3f;
+            shape.radius = radius;
 
-            var fade = smoke.colorOverLifetime;
+            var fade = particles.colorOverLifetime;
             fade.enabled = true;
             var gradient = new Gradient();
             gradient.SetKeys(
@@ -99,12 +106,12 @@ namespace Game.Editor
                 new[] { new GradientAlphaKey(0f, 0f), new GradientAlphaKey(1f, 0.15f), new GradientAlphaKey(0f, 1f) });
             fade.color = gradient;
 
-            var grow = smoke.sizeOverLifetime;
+            var grow = particles.sizeOverLifetime;
             grow.enabled = true;
-            grow.size = new ParticleSystem.MinMaxCurve(1f, AnimationCurve.Linear(0f, 1f, 1f, SmokeGrowth));
+            grow.size = new ParticleSystem.MinMaxCurve(1f, AnimationCurve.Linear(0f, 1f, 1f, growth));
 
             go.GetComponent<ParticleSystemRenderer>().sharedMaterial = GreyboxAssets.EnsureParticleMaterial("Smoke");
-            return smoke;
+            return particles;
         }
 
         public static GameObject BuildPlate()

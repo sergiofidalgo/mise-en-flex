@@ -1,5 +1,6 @@
 using Game.Simulation.Interaction;
 using Game.Simulation.Movement;
+using Game.Simulation.Quality;
 using UnityEngine;
 
 namespace Game.Data
@@ -44,6 +45,34 @@ namespace Game.Data
 
         [Tooltip("How strongly the current target is preferred over a near-tie, so the highlight doesn't flicker.")]
         [SerializeField, Min(0f)] private float _targetStickiness = 0.2f;
+
+        [Header("Quality (scored at the pass)")]
+        [Tooltip("Doneness window at the most generous cooking precision (±°C around the target).")]
+        [SerializeField, Min(0f)] private float _donenessToleranceGenerous = 5f;
+        [Tooltip("Doneness window at the strictest cooking precision (±°C).")]
+        [SerializeField, Min(0f)] private float _donenessToleranceStrict = 1.5f;
+        [Tooltip("°C beyond the window over which the doneness score falls to 0.")]
+        [SerializeField, Min(0.1f)] private float _donenessFalloff = 8f;
+        [Tooltip("Relative weights of the score parts.")]
+        [SerializeField, Min(0f)] private float _donenessWeight = 0.4f;
+        [SerializeField, Min(0f)] private float _crustWeight = 0.25f;
+        [SerializeField, Min(0f)] private float _temperatureWeight = 0.25f;
+        [SerializeField, Min(0f)] private float _freshnessWeight = 0.1f;
+        [Tooltip("Seconds a served plate stays on the pass (with its quality card) before it's collected.")]
+        [SerializeField, Min(0f)] private float _passCollectDelay = 4f;
+
+        public float PassCollectDelay => _passCollectDelay;
+
+        /// <summary>Scoring settings; <paramref name="cookingPrecision"/> (realism dial, 0..1) narrows the doneness window.</summary>
+        public ScoringSettings Quality(float cookingPrecision) => new ScoringSettings
+        {
+            DonenessTolerance = Mathf.Lerp(_donenessToleranceGenerous, _donenessToleranceStrict, cookingPrecision),
+            DonenessFalloff = _donenessFalloff,
+            DonenessWeight = _donenessWeight,
+            CrustWeight = _crustWeight,
+            TemperatureWeight = _temperatureWeight,
+            FreshnessWeight = _freshnessWeight,
+        };
 
         [Header("Item motion")]
         [Tooltip("Seconds for an item to fly between hands and a counter.")]

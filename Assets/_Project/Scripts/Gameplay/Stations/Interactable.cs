@@ -40,7 +40,7 @@ namespace Game.Gameplay.Stations
         public virtual Transform AnchorFor(Item item) => _itemAnchor;
 
         /// <summary>The item standing on this station, if it shows one (counter top, pan on a hob).</summary>
-        public Item HeldItem => (Container as IItemHolder)?.Current;
+        public virtual Item HeldItem => (Container as IItemHolder)?.Current;
 
         internal void AddTargeter(PlayerInteractor player)
         {

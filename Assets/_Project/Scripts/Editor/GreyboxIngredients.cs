@@ -31,6 +31,12 @@ namespace Game.Editor
             // so its doneness can be read from the side; anything else is a single shape.
             public bool Layered;
 
+            // What the pass scores for this ingredient. Applied on every build: serving targets
+            // belong to the builder until customer orders set them (Phase 2).
+            public bool ScoreDoneness;
+            public bool ScoreBrowning;
+            public bool ServedHot;
+
             // Applied only when the definition asset is first created.
             public Action<SerializedObject> InitialTuning;
 
@@ -46,7 +52,7 @@ namespace Game.Editor
                 // oversized (19 x 16 x 4 cm) so it reads from the overhead camera.
                 Id = "Steak", Color = new Color(0.62f, 0.12f, 0.14f), Shape = PrimitiveType.Cylinder,
                 Scale = new Vector3(0.19f, 0.02f, 0.16f),
-                Layered = true,
+                Layered = true, ScoreDoneness = true, ScoreBrowning = true, ServedHot = true,
                 InitialTuning = so => SetDoneness(so,
                     ("Rare", 45f), ("Medium-rare", 52f), ("Medium", 57f), ("Medium-well", 63f), ("Well done", 68f)),
             },
@@ -109,6 +115,9 @@ namespace Game.Editor
             so.FindProperty("_prefab").objectReferenceValue = BuildPrefab(type);
             if (isNew)
                 type.InitialTuning?.Invoke(so);
+            so.FindProperty("_scoreDoneness").boolValue = type.ScoreDoneness;
+            so.FindProperty("_scoreBrowning").boolValue = type.ScoreBrowning;
+            so.FindProperty("_servedHot").boolValue = type.ServedHot;
             so.ApplyModifiedPropertiesWithoutUndo();
             return definition;
         }
@@ -130,6 +139,9 @@ namespace Game.Editor
                 surface = body.GetComponent<Renderer>();
             }
 
+            if (type.ServedHot)
+                AddSteam(root, itemView, type.Scale.y * 2f);
+
             var view = root.AddComponent<IngredientView>();
             var so = new SerializedObject(view);
             so.FindProperty("_itemView").objectReferenceValue = itemView;
@@ -144,6 +156,23 @@ namespace Game.Editor
             var prefab = PrefabUtility.SaveAsPrefabAsset(root, $"{PrefabFolder}/PF_Item_{type.Id}.prefab");
             Object.DestroyImmediate(root);
             return prefab;
+        }
+
+        // Steam: small, faint, slow wisps; SteamView drives the rate from the food's temperature.
+        private static readonly Color SteamColor = new Color(1f, 1f, 1f, 0.35f);
+
+        private static void AddSteam(GameObject root, ItemView itemView, float height)
+        {
+            var steam = GreyboxKitchenware.CreateParticles(root.transform, "Steam", height, 0.06f,
+                lifetime: 1.1f, speed: 0.25f, minSize: 0.05f, maxSize: 0.1f, growth: 2.5f, maxParticles: 60);
+            var main = steam.main;
+            main.startColor = SteamColor;
+
+            var view = root.AddComponent<SteamView>();
+            var so = new SerializedObject(view);
+            so.FindProperty("_itemView").objectReferenceValue = itemView;
+            so.FindProperty("_steam").objectReferenceValue = steam;
+            so.ApplyModifiedPropertiesWithoutUndo();
         }
 
         // Three stacked bands (bottom, middle, top) make up the slab's edge, each a third of its

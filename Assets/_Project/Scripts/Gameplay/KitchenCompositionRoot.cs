@@ -27,7 +27,7 @@ namespace Game.Gameplay
         private void Awake()
         {
             var cooking = new CookingSimulation(_tuning.AmbientTemperature, _realism.SpoilageMultiplier);
-            Services = new KitchenServices(cooking, new ItemViewRegistry(_itemCatalog), _itemCatalog, _equipment, _tuning);
+            Services = new KitchenServices(cooking, new ItemViewRegistry(_itemCatalog), _itemCatalog, _equipment, _tuning, _realism);
 
             // TODO(Phase 4): stations will be placed and moved during Plan, so they must register
             // and unregister themselves instead of being collected once here.

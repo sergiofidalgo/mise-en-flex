@@ -92,9 +92,11 @@ namespace Game.Editor
                 new[] { new Vector3(-3f, 0f, 3.4f), new Vector3(-2f, 0f, 3.4f), new Vector3(-1f, 0f, 3.4f) }),
             ("Island", new Color(0.70f, 0.58f, 0.42f), CounterSize, CounterHeight,
                 new[] { new Vector3(-0.5f, 0f, 0.8f), new Vector3(0.5f, 0f, 0.8f) }),
-            ("Pass", new Color(0.88f, 0.88f, 0.85f), CounterSize, CounterHeight,
-                new[] { new Vector3(-1f, 0f, -2.4f), new Vector3(0f, 0f, -2.4f), new Vector3(1f, 0f, -2.4f) }),
         };
+
+        // The pass along the front, facing the dining side: plates put here are served and scored.
+        private static readonly Vector3[] PassPositions = { new Vector3(-1f, 0f, -2.4f), new Vector3(0f, 0f, -2.4f), new Vector3(1f, 0f, -2.4f) };
+        private static readonly Color PassColor = new Color(0.88f, 0.88f, 0.85f);
 
         // Strip in front of the pass marking where the dining room will be.
         private const float DiningStripDepth = 1f;
@@ -275,6 +277,7 @@ namespace Game.Editor
             SetReference(overlay, "_root", root);
             var prompts = root.gameObject.AddComponent<StationPromptOverlay>();
             SetReference(prompts, "_settings", settings);
+            root.gameObject.AddComponent<QualityCardOverlay>();
             foreach (var chip in Object.FindObjectsByType<DonenessChipView>(FindObjectsSortMode.None))
                 SetReference(chip, "_root", root);
 
@@ -337,6 +340,12 @@ namespace Game.Editor
             var hobMaterial = GreyboxAssets.EnsureMaterial("Hob", HobColor);
             for (var i = 0; i < HobPositions.Length; i++)
                 CreateHob($"Hob_{i + 1:00}", HobPositions[i], hobMaterial, hobs, settings);
+
+            var passes = new GameObject("Zone_Pass").transform;
+            passes.SetParent(stations, false);
+            var passMaterial = GreyboxAssets.EnsureMaterial("Pass", PassColor);
+            for (var i = 0; i < PassPositions.Length; i++)
+                CreateStation<PassStation>($"Pass_{i + 1:00}", PassPositions[i], CounterSize, CounterHeight, passMaterial, passes, settings);
 
             var plateStack = CreateStation<PlateStackStation>(
                 "PlateStack", PlateStackPosition, CounterSize, CounterHeight,

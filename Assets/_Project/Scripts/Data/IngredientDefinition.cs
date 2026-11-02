@@ -60,6 +60,20 @@ namespace Game.Data
         [Tooltip("Freshness lost per in-game hour at 20 °C (1/24 = spoiled in a day at room temperature).")]
         [SerializeField, Min(0f)] private float _freshnessLossPerHourAt20C = 1f / 24f;
 
+        [Header("Serving (scored at the pass)")]
+        [Tooltip("Score doneness against the target core temperature below.")]
+        [SerializeField] private bool _scoreDoneness;
+        [Tooltip("Peak core °C the kitchen aims for. Placeholder house standard (medium-rare ≈ 54.5) until orders in Phase 2.")]
+        [SerializeField] private float _targetCoreTemperature = 54.5f;
+        [Tooltip("Score the crust (browning).")]
+        [SerializeField] private bool _scoreBrowning;
+        [Tooltip("Should reach the table hot: serving temperature is scored.")]
+        [SerializeField] private bool _servedHot;
+        [Tooltip("Average °C at or above which serving temperature scores full marks.")]
+        [SerializeField] private float _servingIdealTemperature = 52f;
+        [Tooltip("Average °C at or below which serving temperature scores nothing.")]
+        [SerializeField] private float _servingColdTemperature = 38f;
+
         public string TypeId => _typeId;
         public GameObject Prefab => _prefab;
 
@@ -80,6 +94,11 @@ namespace Game.Data
                 .ToArray(),
             StartTemperature = _startTemperature,
             FreshnessLossPerHourAt20C = _freshnessLossPerHourAt20C,
+            TargetCoreTemperature = _scoreDoneness ? _targetCoreTemperature : (float?)null,
+            ScoresBrowning = _scoreBrowning,
+            ServedHot = _servedHot,
+            ServingIdealTemperature = _servingIdealTemperature,
+            ServingColdTemperature = _servingColdTemperature,
         };
     }
 }
