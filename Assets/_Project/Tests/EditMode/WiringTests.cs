@@ -27,6 +27,25 @@ namespace Game.Tests.EditMode
             Assert.That(FindEmptyReferences(components), Is.Empty);
         }
 
+        // Regression: chefs could climb onto low crates. Every station's collider must reach above
+        // a chef's head (1.7 m), so the capsule only meets vertical sides.
+        [Test]
+        public void StationCollidersAreTooTallToClimb()
+        {
+            const float chefHeight = 1.7f;
+            var scene = EditorSceneManager.OpenScene(KitchenScenePath, OpenSceneMode.Single);
+            var stations = scene.GetRootGameObjects()
+                .SelectMany(root => root.GetComponentsInChildren<Game.Gameplay.Stations.Interactable>(true))
+                .ToArray();
+
+            Assert.That(stations, Is.Not.Empty);
+            foreach (var station in stations)
+            {
+                var top = station.GetComponents<Collider>().Select(c => c.bounds.max.y).DefaultIfEmpty(0f).Max();
+                Assert.That(top, Is.GreaterThan(chefHeight), $"{station.name} can be climbed (collider top {top:0.00} m)");
+            }
+        }
+
         [Test]
         public void PrefabsHaveNoEmptyReferences()
         {

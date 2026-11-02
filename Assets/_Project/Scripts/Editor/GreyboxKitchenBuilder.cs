@@ -47,6 +47,15 @@ namespace Game.Editor
         private static readonly Vector3 NoseScale = new Vector3(0.2f, 0.2f, 0.3f);
         private const float CollisionRadius = 0.35f;
 
+        // The kitchen floor is flat, so chefs never need to step up or climb. Unity's defaults
+        // (0.3 m step, 45° slopes) let the capsule's rounded bottom ride up onto crates.
+        private const float StepOffset = 0.02f;
+        private const float SlopeLimit = 20f;
+
+        // Station colliders are taller than a chef, whatever the visual height, so the capsule
+        // only ever touches their vertical sides and can't climb on top.
+        private const float StationBlockerHeight = 2.2f;
+
         // Carried items sit in front of the chest, clear of the body so they read from above.
         private static readonly Vector3 CarryAnchorPosition = new Vector3(0f, 1.05f, 0.5f);
 
@@ -135,6 +144,8 @@ namespace Game.Editor
             controller.height = BodyScale.y * 2f;
             controller.radius = CollisionRadius;
             controller.center = new Vector3(0f, BodyScale.y, 0f);
+            controller.stepOffset = StepOffset;
+            controller.slopeLimit = SlopeLimit;
 
             var movement = root.AddComponent<PlayerMovement>();
             SetReference(movement, "_tuning", tuning);
@@ -357,9 +368,13 @@ namespace Game.Editor
             root.SetParent(parent, false);
             root.localPosition = position;
 
-            var body = GreyboxAssets.CreatePrimitive(PrimitiveType.Cube, "Body", root, material, keepCollider: true);
+            var body = GreyboxAssets.CreatePrimitive(PrimitiveType.Cube, "Body", root, material, keepCollider: false);
             body.transform.localScale = new Vector3(size, height, size);
             body.transform.localPosition = new Vector3(0f, height / 2f, 0f);
+
+            var blocker = root.gameObject.AddComponent<BoxCollider>();
+            blocker.size = new Vector3(size, StationBlockerHeight, size);
+            blocker.center = new Vector3(0f, StationBlockerHeight / 2f, 0f);
 
             var anchor = new GameObject("ItemAnchor").transform;
             anchor.SetParent(root, false);

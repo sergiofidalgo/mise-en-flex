@@ -41,6 +41,15 @@ namespace Game.Tests.EditMode
             Assert.That(anchor.localPosition.y, Is.InRange(0.8f, 1.4f), "Carried items should be at chest height");
         }
 
+        // Regression: Unity's default 0.3 m step and 45° slope limit let chefs climb onto crates.
+        [Test]
+        public void ChefCantStepOrClimb()
+        {
+            var controller = _prefab.GetComponent<CharacterController>();
+            Assert.That(controller.stepOffset, Is.LessThanOrEqualTo(0.05f));
+            Assert.That(controller.slopeLimit, Is.LessThanOrEqualTo(25f));
+        }
+
         [Test]
         public void CharacterControllerStandsOnTheFloor()
         {
