@@ -4,6 +4,19 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-02 — Phase 0 interaction rules
+
+**Decision:** For Phase 0 (accepted after playtesting pick up and place):
+- Interact is contextual: empty hands pick up, full hands put down.
+- Crates don't take items back; food goes down on counters.
+- No swapping: full hands at a full counter does nothing (and the counter gives a small "can't" shake).
+- Items can't be put on the floor.
+- The targeted station is tinted towards the targeting player's colour.
+
+**Reason:** Simple and readable to start with. Swapping is the rule most worth revisiting once there's more to juggle. The crates are placeholders anyway (see the storage idea in `ideas.md`).
+
+---
+
 ## 2026-11-02 — Unity 6.3 LTS (6000.3.27f2)
 
 **Decision:** The project uses Unity 6.3 LTS, 6000.3.27f2, created from Unity's 3D URP template. We stay on LTS releases and only move to the next LTS once it's out and stable, as a deliberate step.

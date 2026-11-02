@@ -29,8 +29,23 @@ Ideas worth keeping that aren't decided or scheduled yet. When one is accepted, 
   3. **A cycle button** to choose the ingredient before grabbing. This is quick to build but fiddly under pressure.
 - **Solo players** may need more generous capacity or restocking help; this could be a realism dial.
 
+**Update 2026-11-02, your direction:**
+- **Buying more storage** as the business grows: extra fridges and shelves are purchases, competing with other spending and with floor space. This fits Phase 4 (placing) and Phase 5 (economy).
+- **Each unit holds up to 4 ingredients**, with a **button prompt** when you approach it. For example, on a shelf: A tomato, B onion, Y flour, X cheese. One press takes that ingredient.
+
+**Assessment of the 4-slot prompt:** I recommend it. It solves the "which ingredient" problem in a single press, and 4 matches the face buttons exactly. Details to get right:
+- **It's a button prompt, not a radial.** A radial suggests aiming with the stick, which is slower. Here every face button *is* a slot.
+- **Face buttons change meaning near storage.** A is normally Interact and X is Use. That's fine because storage has no other use, but the prompt must make the change obvious, and it should only appear when the unit is your current target.
+- **Physical layout matches the buttons.** The four bins sit on the unit in a diamond that mirrors A/B/X/Y (Y top, A bottom, X left, B right). The prompt and the model then say the same thing, and the unit reads from overhead even without the prompt.
+- **Keyboard needs four keys near WASD.** A proposal: E = A slot (same as Interact), F = X slot (same as Use), R = B slot, Q = Y slot. Players can rebind them in Controls.
+- **Putting things back.** With full hands, Interact puts the item into the slot assigned to that ingredient, so no choice is needed. Which ingredient goes in which slot is set while stocking, or in Plan.
+- **Two players at the same unit:** each sees their own prompt, in their colour.
+- **Show stock on the prompt,** e.g. "A Tomato ×6", so running low is visible before it's empty.
+
+---
+
 **Suggested phasing:**
-- **Phase 1:** the fridge station (already on the roadmap) is built as bins with capacity, refilled automatically at the start of each test run. It replaces the Phase 0 crates.
+- **Phase 1:** the fridge station (already on the roadmap) is built as a 4-slot unit with capacity and the button prompt, refilled automatically at the start of each test run. It replaces the Phase 0 crates.
 - **Phase 3:** stock carries over between days, and restocking from a storeroom/walk-in becomes a Prep task (and a job for the prep assistant).
 - **Phase 4:** storage is placeable in layout editing, with sizes and tiers (shelf, reach-in fridge, walk-in, freezer).
 - **Phase 5:** suppliers and deliveries: order sizes, delivery timing, cost, spoilage.
