@@ -4,6 +4,16 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-02 — Pans are picked up with their food
+
+**Decision:** With empty hands, A at a pan takes **the pan with its food** (no lifting food out on its own). At a plate, A again moves the food onto the plate and the empty pan stays in hand; the hot pan then goes back on a hob (or any free counter). A hob's prompt shows "take pan" / "put pan".
+
+**Reason:** Your call after playtesting: there was no way to carry a pan that had food in it. Plating now reads as a real-kitchen move: take the pan, plate, put the pan back.
+
+**Supersedes:** "empty hands take food out of a pan first" (milestone 2a).
+
+---
+
 ## 2026-11-02 — The pass, serving temperature and dish scoring (milestone 5′)
 
 **Decisions (proposed while building; flagged for review):**

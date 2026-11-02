@@ -38,6 +38,10 @@ namespace Game.Gameplay.Stations
             lines.Add(new PromptLine(PromptControl.Triggers, "heat"));
             var hasFood = Hob?.Pan != null && Hob.Pan.Contents.Count > 0;
             lines.Add(new PromptLine(PromptControl.West, "flip", hasFood));
+            if (Hob?.Pan != null && player.Hands.IsEmpty)
+                lines.Add(new PromptLine(PromptControl.South, "take pan"));
+            else if (Hob != null && Hob.Pan == null && player.Hands.Current is Pan)
+                lines.Add(new PromptLine(PromptControl.South, "put pan"));
         }
 
         public void AdjustHeat(float heatDown, float heatUp, float realDeltaTime)

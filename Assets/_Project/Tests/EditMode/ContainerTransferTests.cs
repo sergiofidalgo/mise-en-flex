@@ -47,7 +47,7 @@ namespace Game.Tests.EditMode
         }
 
         [Test]
-        public void EmptyHandsTakeFoodOutOfAPanBeforeThePan()
+        public void EmptyHandsTakeAPanWithItsFood()
         {
             var pan = NewPan();
             var steak = NewSteak();
@@ -56,8 +56,33 @@ namespace Game.Tests.EditMode
 
             ItemTransfer.Interact(_hands, _counter);
 
-            Assert.That(_hands.Current, Is.SameAs(steak));
-            Assert.That(_counter.Current, Is.SameAs(pan));
+            Assert.That(_hands.Current, Is.SameAs(pan));
+            Assert.That(pan.Contents, Does.Contain(steak));
+            Assert.That(_counter.IsEmpty);
+        }
+
+        // Decision 2026-11-02: pick the pan up with its food, plate it, put the hot pan back on the hob.
+        [Test]
+        public void PanToPlateToHobRoundTrip()
+        {
+            var hob = _sim.AddHob(new HobProperties { MaxPower = 2000f });
+            var hobSlot = new HobSlot(hob);
+            var pan = NewPan();
+            hobSlot.Put(pan);
+            var steak = NewSteak();
+            pan.Put(steak);
+            var plate = new Plate(3);
+            _counter.Put(plate);
+
+            Assert.That(ItemTransfer.Interact(_hands, hobSlot), Is.EqualTo(InteractionOutcome.PickedUp), "take the pan off the hob");
+            Assert.That(hob.Pan, Is.Null);
+
+            Assert.That(ItemTransfer.Interact(_hands, _counter), Is.EqualTo(InteractionOutcome.Combined), "plate the food");
+            Assert.That(plate.Items, Does.Contain(steak));
+            Assert.That(_hands.Current, Is.SameAs(pan), "the empty pan stays in hand");
+
+            Assert.That(ItemTransfer.Interact(_hands, hobSlot), Is.EqualTo(InteractionOutcome.Placed), "put the pan back");
+            Assert.That(hob.Pan, Is.SameAs(pan));
         }
 
         [Test]

@@ -15,7 +15,7 @@ namespace Game.Simulation.Items
     /// <summary>
     /// The contextual Interact rule. In order:
     /// <list type="number">
-    /// <item>Empty hands take from the station; from a pan, the food comes out first.</item>
+    /// <item>Empty hands take what's on the station; a pan or plate comes with its food.</item>
     /// <item>Full hands put down if the station accepts what they hold.</item>
     /// <item>Food goes into a pan or onto a plate standing on the station.</item>
     /// <item>A held pan or plate scoops up food standing on the station.</item>
@@ -31,12 +31,6 @@ namespace Game.Simulation.Items
 
             if (hands.IsEmpty)
             {
-                if (onStation is IItemCollection collection && collection.TakeContentsFirst && collection.CanTake)
-                {
-                    hands.Put(collection.Take());
-                    return InteractionOutcome.PickedUp;
-                }
-
                 if (!target.CanTake)
                     return InteractionOutcome.Nothing;
 

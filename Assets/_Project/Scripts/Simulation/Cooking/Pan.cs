@@ -45,8 +45,6 @@ namespace Game.Simulation.Cooking
 
         public IReadOnlyList<Item> Items => _contents;
 
-        public bool TakeContentsFirst => true;
-
         public bool CanTake => _contents.Count > 0;
 
         public bool CanAccept(Item item) =>

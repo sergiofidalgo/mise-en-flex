@@ -22,8 +22,6 @@ namespace Game.Simulation.Items
 
         public IReadOnlyList<Item> Items => _items;
 
-        public bool TakeContentsFirst => false;
-
         public bool CanTake => _items.Count > 0;
 
         public bool CanAccept(Item item) =>
