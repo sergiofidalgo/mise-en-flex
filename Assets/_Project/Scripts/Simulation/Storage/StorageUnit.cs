@@ -32,6 +32,9 @@ namespace Game.Simulation.Storage
 
             public bool IsUsed => !string.IsNullOrEmpty(TypeId) && Capacity > 0;
 
+            /// <summary>The portions in the slot, oldest first.</summary>
+            public IReadOnlyList<Ingredient> Stock => _items;
+
             internal List<Ingredient> Items => _items;
         }
 
