@@ -78,6 +78,8 @@ namespace Game.Presentation
                 _text.Append($"<b>{item.Ingredient.TypeId}</b>");
                 if (item.DonenessName != null)
                     _text.Append($" — {item.DonenessName}");
+                if (score.Order != null && item.TargetDonenessName != null && item.TargetDonenessName != item.DonenessName)
+                    _text.Append($" <color=#f08070>(ordered {item.TargetDonenessName})</color>");
                 _text.AppendLine();
 
                 _text.Append("   ");
@@ -87,6 +89,8 @@ namespace Game.Presentation
                 Part("fresh", item.Freshness);
                 _text.AppendLine();
             }
+            foreach (var missing in score.Missing)
+                _text.AppendLine($"<color=#f08070>missing {missing}</color>");
             return _text.ToString().TrimEnd();
         }
 

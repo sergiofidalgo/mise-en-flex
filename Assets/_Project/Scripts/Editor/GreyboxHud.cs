@@ -1,4 +1,6 @@
 using Game.Data;
+using Game.Gameplay;
+using Game.Gameplay.Customers;
 using Game.Gameplay.Stations;
 using Game.Presentation.Hud;
 using TMPro;
@@ -53,8 +55,8 @@ namespace Game.Editor
             return style;
         }
 
-        /// <summary>A screen-space canvas with the prompt HUD on it.</summary>
-        public static void BuildCanvas(HudStyle style, CoopSettings settings)
+        /// <summary>A screen-space canvas with the prompt HUD, order tickets and food tags on it.</summary>
+        public static void BuildCanvas(HudStyle style, CoopSettings settings, KitchenCompositionRoot root, ItemCatalog catalog)
         {
             var card = BuildPromptCard(style);
 
@@ -79,6 +81,19 @@ namespace Game.Editor
             dialSo.FindProperty("_canvas").objectReferenceValue = hud.GetComponent<RectTransform>();
             dialSo.FindProperty("_dialPrefab").objectReferenceValue = BuildChopDial(style).GetComponent<ChopDialView>();
             dialSo.ApplyModifiedPropertiesWithoutUndo();
+
+            var tickets = new SerializedObject(hud.AddComponent<OrderTicketHud>());
+            tickets.FindProperty("_canvas").objectReferenceValue = hud.GetComponent<RectTransform>();
+            tickets.FindProperty("_style").objectReferenceValue = style;
+            tickets.FindProperty("_director").objectReferenceValue = Object.FindFirstObjectByType<CustomerDirector>();
+            tickets.FindProperty("_catalog").objectReferenceValue = catalog;
+            tickets.ApplyModifiedPropertiesWithoutUndo();
+
+            var tags = new SerializedObject(hud.AddComponent<DonenessTagHud>());
+            tags.FindProperty("_canvas").objectReferenceValue = hud.GetComponent<RectTransform>();
+            tags.FindProperty("_style").objectReferenceValue = style;
+            tags.FindProperty("_root").objectReferenceValue = root;
+            tags.ApplyModifiedPropertiesWithoutUndo();
         }
 
         private static GameObject BuildPromptCard(HudStyle style)

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Game.Simulation.Cooking;
 using Game.Simulation.Items;
+using Game.Simulation.Service;
 
 namespace Game.Simulation.Quality
 {
@@ -27,6 +28,12 @@ namespace Game.Simulation.Quality
         public float FreshnessWeight { get; set; } = 0.1f;
         public float CutWeight { get; set; } = 0.15f;
         public float RestWeight { get; set; } = 0.15f;
+
+        /// <summary>
+        /// With an order, how much a side counts in the dish next to the main (1). A missing
+        /// ordered item counts as a zero at its weight, so forgetting the onions costs points.
+        /// </summary>
+        public float SideWeight { get; set; } = 0.5f;
     }
 
     /// <summary>One food item's score. Parts that don't apply to it are null.</summary>
@@ -34,6 +41,9 @@ namespace Game.Simulation.Quality
     {
         public Ingredient Ingredient { get; internal set; }
         public string DonenessName { get; internal set; }
+
+        /// <summary>The doneness that was asked for (the order's, else the house standard's level), or null.</summary>
+        public string TargetDonenessName { get; internal set; }
         public float? Doneness { get; internal set; }
         public float? Crust { get; internal set; }
         public float? Temperature { get; internal set; }
@@ -54,13 +64,21 @@ namespace Game.Simulation.Quality
 
     public sealed class DishScore
     {
-        public DishScore(IReadOnlyList<ItemScore> items, float overall)
+        public DishScore(IReadOnlyList<ItemScore> items, float overall, Order order = null, IReadOnlyList<string> missing = null)
         {
             Items = items;
             Overall = overall;
+            Order = order;
+            Missing = missing ?? Array.Empty<string>();
         }
 
         public IReadOnlyList<ItemScore> Items { get; }
+
+        /// <summary>The order it was scored against, or null (house standard).</summary>
+        public Order Order { get; }
+
+        /// <summary>Type ids the order asked for that weren't on the plate.</summary>
+        public IReadOnlyList<string> Missing { get; }
 
         /// <summary>0..1: the average of the items' scores.</summary>
         public float Overall { get; }
@@ -76,22 +94,54 @@ namespace Game.Simulation.Quality
     /// </summary>
     public static class DishScorer
     {
-        public static DishScore Score(Plate plate, ScoringSettings settings)
+        /// <summary>
+        /// Scores a plate. With an <paramref name="order"/>, the main is scored against the ordered
+        /// doneness, the main weighs 1 and everything else <see cref="ScoringSettings.SideWeight"/>,
+        /// and anything ordered but missing counts as a zero. Without one, every item weighs the
+        /// same against its house standard.
+        /// </summary>
+        public static DishScore Score(Plate plate, ScoringSettings settings, Order order = null)
         {
             var items = new List<ItemScore>();
+            var total = 0f;
+            var weights = 0f;
+            var mainScored = false;
+            var sideServed = false;
             foreach (var item in plate.Items)
             {
-                if (item is Ingredient ingredient)
-                    items.Add(ScoreItem(ingredient, settings));
+                if (!(item is Ingredient ingredient))
+                    continue;
+                var isMain = order != null && !mainScored && ingredient.TypeId == order.MainTypeId;
+                var score = ScoreItem(ingredient, settings, isMain ? order.Doneness : (DonenessLevel?)null);
+                items.Add(score);
+
+                mainScored |= isMain;
+                sideServed |= order?.SideTypeId != null && ingredient.TypeId == order.SideTypeId;
+                var weight = order == null || isMain ? 1f : settings.SideWeight;
+                total += weight * score.Overall;
+                weights += weight;
             }
 
-            var overall = 0f;
-            foreach (var item in items)
-                overall += item.Overall;
-            return new DishScore(items, items.Count > 0 ? overall / items.Count : 0f);
+            var missing = new List<string>();
+            if (order != null)
+            {
+                if (!mainScored)
+                {
+                    missing.Add(order.MainTypeId);
+                    weights += 1f;
+                }
+                if (order.SideTypeId != null && !sideServed)
+                {
+                    missing.Add(order.SideTypeId);
+                    weights += settings.SideWeight;
+                }
+            }
+
+            return new DishScore(items, weights > 0f ? total / weights : 0f, order, missing);
         }
 
-        public static ItemScore ScoreItem(Ingredient ingredient, ScoringSettings settings)
+        /// <param name="ordered">The doneness a customer asked for; null scores against the house standard.</param>
+        public static ItemScore ScoreItem(Ingredient ingredient, ScoringSettings settings, DonenessLevel? ordered = null)
         {
             var p = ingredient.Properties;
             var score = new ItemScore
@@ -102,8 +152,16 @@ namespace Game.Simulation.Quality
                 ServedAt = ingredient.AverageTemperature,
             };
 
-            if (p.TargetCoreTemperature.HasValue)
+            if (ordered.HasValue)
+            {
+                score.TargetDonenessName = ordered.Value.Name;
+                score.Doneness = DonenessScore(ingredient.PeakCoreTemperature, ordered.Value.OrderTargetCoreTemperature, settings);
+            }
+            else if (p.TargetCoreTemperature.HasValue)
+            {
+                score.TargetDonenessName = LevelAt(p, p.TargetCoreTemperature.Value);
                 score.Doneness = DonenessScore(ingredient.PeakCoreTemperature, p.TargetCoreTemperature.Value, settings);
+            }
 
             if (p.ScoresBrowning)
                 score.Crust = ingredient.IsBurnt ? 0f : CrustScore(
@@ -136,6 +194,17 @@ namespace Game.Simulation.Quality
                 total += weight * part.Value;
                 weights += weight;
             }
+        }
+
+        private static string LevelAt(IngredientProperties p, float core)
+        {
+            string name = null;
+            foreach (var level in p.DonenessLevels)
+            {
+                if (core >= level.MinPeakCoreTemperature)
+                    name = level.Name;
+            }
+            return name;
         }
 
         // Full marks within the tolerance of the target, then falling linearly to 0 over the falloff.

@@ -35,6 +35,13 @@ namespace Game.Data
             return null;
         }
 
+        /// <returns>The name players read for <paramref name="typeId"/>: the ingredient's display name, else the id.</returns>
+        public string DisplayName(string typeId)
+        {
+            var ingredient = Find(typeId);
+            return ingredient != null ? ingredient.DisplayName : typeId;
+        }
+
         /// <returns>The prefab for <paramref name="typeId"/>, or null if the catalog doesn't know it.</returns>
         public GameObject GetPrefab(string typeId)
         {

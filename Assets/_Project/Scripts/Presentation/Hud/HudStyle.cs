@@ -1,3 +1,4 @@
+using System;
 using Game.Gameplay.Stations;
 using TMPro;
 using UnityEngine;
@@ -12,6 +13,24 @@ namespace Game.Presentation.Hud
     [CreateAssetMenu(menuName = "Game/HUD Style", fileName = "HudStyle")]
     public sealed class HudStyle : ScriptableObject
     {
+        [Serializable]
+        public sealed class NamedColor
+        {
+            [SerializeField] private string _name;
+            [SerializeField] private Color _color;
+
+            public NamedColor() { }
+
+            public NamedColor(string name, Color color)
+            {
+                _name = name;
+                _color = color;
+            }
+
+            public string Name => _name;
+            public Color Color => _color;
+        }
+
         [Header("Text")]
         [SerializeField] private TMP_FontAsset _font;
         [SerializeField, Min(8f)] private float _fontSize = 22f;
@@ -38,6 +57,22 @@ namespace Game.Presentation.Hud
         [Tooltip("Seconds for prompts to fade in or out.")]
         [SerializeField, Min(0f)] private float _fade = 0.12f;
 
+        [Header("Doneness (tickets, food tags)")]
+        [Tooltip("One colour per doneness level name, shared by order tickets and food tags so they can be matched at a glance. Close to the steak's own band colours, brightened to read on dark cards.")]
+        [SerializeField] private NamedColor[] _donenessColors =
+        {
+            new NamedColor("Raw", new Color(0.62f, 0.55f, 0.85f)),
+            new NamedColor("Rare", new Color(0.95f, 0.25f, 0.28f)),
+            new NamedColor("Medium-rare", new Color(1.00f, 0.52f, 0.66f)),
+            new NamedColor("Medium", new Color(0.98f, 0.72f, 0.46f)),
+            new NamedColor("Medium-well", new Color(0.80f, 0.62f, 0.46f)),
+            new NamedColor("Well done", new Color(0.66f, 0.62f, 0.58f)),
+            new NamedColor("Softened", new Color(0.98f, 0.92f, 0.62f)),
+            new NamedColor("Cooked", new Color(0.92f, 0.70f, 0.32f)),
+        };
+        [Tooltip("Font size of order tickets and food tags.")]
+        [SerializeField, Min(8f)] private float _labelFontSize = 20f;
+
         [Header("Shapes (Unity's built-in UI sprites)")]
         [SerializeField] private Sprite _circle;
         [SerializeField] private Sprite _rounded;
@@ -53,6 +88,21 @@ namespace Game.Presentation.Hud
         public Sprite Circle => _circle;
         public Sprite Rounded => _rounded;
         public Color KeycapText => _keycapText;
+        public float LabelFontSize => _labelFontSize;
+
+        /// <summary>The colour for a doneness level name; the text colour for unknown names.</summary>
+        public Color DonenessColor(string name)
+        {
+            foreach (var entry in _donenessColors)
+            {
+                if (entry.Name == name)
+                    return entry.Color;
+            }
+            return _textColor;
+        }
+
+        /// <summary><paramref name="text"/> wrapped in a TextMeshPro colour tag.</summary>
+        public static string Colored(string text, Color color) => $"<color=#{ColorUtility.ToHtmlStringRGB(color)}>{text}</color>";
 
         /// <summary>Fill colour of a control's badge for the player's device.</summary>
         public Color BadgeColor(PromptControl control, bool gamepad)

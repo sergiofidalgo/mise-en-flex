@@ -37,6 +37,9 @@ namespace Game.Simulation.Service
         /// <summary>In-game seconds of eating left.</summary>
         public float EatingLeft { get; internal set; }
 
+        /// <summary>What they want; null if the service has no menu.</summary>
+        public Order Order { get; internal set; }
+
         /// <summary>The plate they were served, while eating and after.</summary>
         public Plate ServedPlate { get; internal set; }
 

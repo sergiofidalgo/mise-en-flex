@@ -4,6 +4,22 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-02 — Orders, tickets and pacing (Phase 2, milestone 2)
+
+**Decisions (proposed while building after the milestone 1 playtest; flagged for review):**
+- **Slower service, more stock:** a customer about every **25** in-game minutes (was 12), with a rush at **2×** (was 2.5×), which makes about 18 covers instead of about 30. The fridge holds **2 × 9 steaks** (was 6) and the shelf **8 onions** (was 6). Running out is still possible on purpose; restocking comes with Prep in Phase 3.
+- **Every customer orders when they arrive:** steak at a doneness, weighted **Rare 2 · Medium-rare 4 · Medium 3 · Well done 1** (no medium-well on the menu), and **onions with 40%** of orders. Tunable in `ServiceConfig`. Orders use their own random generator, so changing the menu doesn't move the arrivals.
+- **Each doneness level has an order target** inside its band (steak: 48 / 54.5 / 60 / 65.5 / 71 °C core). The ordered level's target replaces the house standard when the dish is scored.
+- **Scoring with an order:** the steak counts **1** and the side **0.5**. Anything ordered but missing counts as a zero at its weight, so a perfect steak without the onions it came with scores about two thirds.
+- **Ticket above each seated customer** ("Steak · Medium-rare + Onions") until they're served.
+- **Doneness tag on the food** each player carries or faces (in a pan, on a plate, on the counter): the level's name, hanging below the food so it doesn't cover the station's prompt.
+- **One HUD colour per doneness**, shared by tickets and tags (in `HudStyle`), close to the steak's own band colours.
+- **The pass prompt checks the plate:** "serve: as ordered", "serve: wanted Medium", "serve: no onions". You can still serve a wrong plate on purpose.
+
+**Reason:** In playtest, demand outran stock, and nothing told the cook what to aim for. Orders make doneness the core decision of each dish, and the shared colours make it a quick check.
+
+---
+
 ## 2026-11-02 — Customers and seating details (Phase 2, milestone 1)
 
 **Decisions (proposed while building; flagged for review):**

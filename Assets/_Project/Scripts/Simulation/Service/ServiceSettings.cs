@@ -10,7 +10,7 @@ namespace Game.Simulation.Service
         public float DurationSeconds { get; set; } = 6f * 3600f;
 
         /// <summary>Average in-game seconds between arrivals outside the rush.</summary>
-        public float ArrivalIntervalSeconds { get; set; } = 12f * 60f;
+        public float ArrivalIntervalSeconds { get; set; } = 25f * 60f;
 
         /// <summary>±fraction of random jitter on each gap between arrivals.</summary>
         public float ArrivalJitter { get; set; } = 0.35f;
@@ -20,7 +20,7 @@ namespace Game.Simulation.Service
         public float RushEnd { get; set; } = 0.6f;
 
         /// <summary>How many times more often customers arrive during the rush.</summary>
-        public float RushMultiplier { get; set; } = 2.5f;
+        public float RushMultiplier { get; set; } = 2f;
 
         /// <summary>In-game seconds a customer spends eating.</summary>
         public float EatSeconds { get; set; } = 15f * 60f;
@@ -30,5 +30,8 @@ namespace Game.Simulation.Service
 
         /// <summary>Random seed, so a service plays the same way each time while tuning.</summary>
         public int Seed { get; set; } = 1;
+
+        /// <summary>What customers order; null for no orders (any food will do).</summary>
+        public OrderMenu Menu { get; set; }
     }
 }

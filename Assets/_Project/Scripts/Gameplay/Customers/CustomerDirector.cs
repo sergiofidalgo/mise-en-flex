@@ -28,6 +28,9 @@ namespace Game.Gameplay.Customers
         private readonly List<Customer> _gone = new List<Customer>();
         private ServiceSimulation _service;
 
+        /// <summary>Every customer in the scene and their body, for HUD labels.</summary>
+        public IReadOnlyDictionary<Customer, CustomerAgent> Agents => _agents;
+
         private void Start()
         {
             _service = _root.Services.Service;

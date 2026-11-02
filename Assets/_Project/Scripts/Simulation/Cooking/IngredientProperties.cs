@@ -6,16 +6,20 @@ namespace Game.Simulation.Cooking
     /// <summary>A named doneness level, reached once the core's peak temperature passes a threshold.</summary>
     public readonly struct DonenessLevel
     {
-        public DonenessLevel(string name, float minPeakCoreTemperature)
+        public DonenessLevel(string name, float minPeakCoreTemperature, float? orderTargetCoreTemperature = null)
         {
             Name = name;
             MinPeakCoreTemperature = minPeakCoreTemperature;
+            OrderTargetCoreTemperature = orderTargetCoreTemperature ?? minPeakCoreTemperature;
         }
 
         public string Name { get; }
 
         /// <summary>°C the core must have reached for this level.</summary>
         public float MinPeakCoreTemperature { get; }
+
+        /// <summary>Peak core °C scored as perfect when a customer orders this level (inside its band).</summary>
+        public float OrderTargetCoreTemperature { get; }
     }
 
     /// <summary>

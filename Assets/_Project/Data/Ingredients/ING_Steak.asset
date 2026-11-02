@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: ING_Steak
   m_EditorClassIdentifier: Game.Data::Game.Data.IngredientDefinition
   _typeId: Steak
+  _displayName: Steak
   _prefab: {fileID: 6154936977874061208, guid: 06ea4b960a42b42638d8649b22d546d0, type: 3}
   _massKg: 0.3
   _specificHeat: 3500
@@ -27,14 +28,19 @@ MonoBehaviour:
   _donenessLevels:
   - _name: Rare
     _minPeakCoreTemperature: 45
+    _orderTargetCoreTemperature: 48
   - _name: Medium-rare
     _minPeakCoreTemperature: 52
+    _orderTargetCoreTemperature: 54.5
   - _name: Medium
     _minPeakCoreTemperature: 57
+    _orderTargetCoreTemperature: 60
   - _name: Medium-well
     _minPeakCoreTemperature: 63
+    _orderTargetCoreTemperature: 65.5
   - _name: Well done
     _minPeakCoreTemperature: 68
+    _orderTargetCoreTemperature: 71
   _startTemperature: 4
   _freshnessLossPerHourAt20C: 0.041666668
   _scoreDoneness: 1
@@ -46,4 +52,7 @@ MonoBehaviour:
   _restTargetSeconds: 180
   _cutIntoTypeId: 
   _cutsNeeded: 0
-  _chopInterval: 0.3
+  _chopSecondsPerSweep: 0.7
+  _sweetSpotPosition: 85
+  _sweetSpotGood: 20
+  _sweetSpotOk: 40

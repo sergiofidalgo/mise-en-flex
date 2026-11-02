@@ -23,6 +23,7 @@ namespace Game.Editor
         public sealed class IngredientType
         {
             public string Id;
+            public string DisplayName; // null = Id
             public Color Color;
             public PrimitiveType Shape;
             public Vector3 Scale;
@@ -31,8 +32,8 @@ namespace Game.Editor
             // so its doneness can be read from the side; anything else is a single shape.
             public bool Layered;
 
-            // What the pass scores for this ingredient. Applied on every build: serving targets
-            // belong to the builder until customer orders set them (Phase 2).
+            // What the pass scores for this ingredient. Applied on every build; customer orders
+            // replace TargetCore with the ordered level's target (decision 2026-11-02).
             public bool ScoreDoneness;
             public bool ScoreBrowning;
             public bool ServedHot;
@@ -64,8 +65,11 @@ namespace Game.Editor
                 Scale = new Vector3(0.19f, 0.02f, 0.16f),
                 Layered = true, ScoreDoneness = true, ScoreBrowning = true, ServedHot = true,
                 TargetCore = 54.5f, RestTargetSeconds = 180f,
+                // Order targets sit inside each band, so an ordered level scores perfect without
+                // tipping into the next one.
                 InitialTuning = so => SetDoneness(so,
-                    ("Rare", 45f), ("Medium-rare", 52f), ("Medium", 57f), ("Medium-well", 63f), ("Well done", 68f)),
+                    ("Rare", 45f, 48f), ("Medium-rare", 52f, 54.5f), ("Medium", 57f, 60f),
+                    ("Medium-well", 63f, 65.5f), ("Well done", 68f, 71f)),
             },
             new IngredientType
             {
@@ -83,7 +87,7 @@ namespace Game.Editor
             {
                 // A portion of diced onion: small pieces heat through fast, soften around 80 °C core and
                 // brown slowly. Prototyped: softened ~2.6, cooked ~4 in-game minutes at full heat.
-                Id = "DicedOnion", Color = new Color(0.96f, 0.90f, 0.70f), Shape = PrimitiveType.Sphere,
+                Id = "DicedOnion", DisplayName = "Onions", Color = new Color(0.96f, 0.90f, 0.70f), Shape = PrimitiveType.Sphere,
                 Scale = new Vector3(0.18f, 0.05f, 0.18f),
                 ScoreDoneness = true, ScoreBrowning = true, ServedHot = true, TargetCore = 92f,
                 InitialTuning = so =>
@@ -95,7 +99,7 @@ namespace Game.Editor
                     so.FindProperty("_airConductance").floatValue = 0.6f;
                     so.FindProperty("_browningRate").floatValue = 1f / 30000f;
                     so.FindProperty("_freshnessLossPerHourAt20C").floatValue = 1f / 48f;
-                    SetDoneness(so, ("Softened", 80f), ("Cooked", 92f));
+                    SetDoneness(so, ("Softened", 80f, 85f), ("Cooked", 92f, 92f));
                 },
             },
         };
@@ -142,6 +146,7 @@ namespace Game.Editor
 
             var so = new SerializedObject(definition);
             so.FindProperty("_typeId").stringValue = type.Id;
+            so.FindProperty("_displayName").stringValue = type.DisplayName ?? type.Id;
             so.FindProperty("_prefab").objectReferenceValue = BuildPrefab(type);
             if (isNew)
                 type.InitialTuning?.Invoke(so);
@@ -239,7 +244,7 @@ namespace Game.Editor
             return (surface.GetComponent<Renderer>(), bands);
         }
 
-        private static void SetDoneness(SerializedObject so, params (string Name, float MinPeakCore)[] levels)
+        private static void SetDoneness(SerializedObject so, params (string Name, float MinPeakCore, float OrderTarget)[] levels)
         {
             var list = so.FindProperty("_donenessLevels");
             list.arraySize = levels.Length;
@@ -248,6 +253,7 @@ namespace Game.Editor
                 var level = list.GetArrayElementAtIndex(i);
                 level.FindPropertyRelative("_name").stringValue = levels[i].Name;
                 level.FindPropertyRelative("_minPeakCoreTemperature").floatValue = levels[i].MinPeakCore;
+                level.FindPropertyRelative("_orderTargetCoreTemperature").floatValue = levels[i].OrderTarget;
             }
         }
 

@@ -16,6 +16,8 @@ namespace Game.Simulation.Service
         private readonly List<Customer> _queue = new List<Customer>();
         private readonly Customer[] _seats;
         private readonly Random _random;
+        // Orders roll on their own generator, so changing the menu doesn't move the arrivals.
+        private readonly Random _orderRandom;
         private float _nextArrivalIn;
         private int _nextId = 1;
 
@@ -24,6 +26,7 @@ namespace Game.Simulation.Service
             Settings = settings;
             _seats = new Customer[seatCount];
             _random = new Random(settings.Seed);
+            _orderRandom = new Random(unchecked(settings.Seed * 31 + 17));
             _nextArrivalIn = NextGap(0f);
         }
 
@@ -113,7 +116,7 @@ namespace Game.Simulation.Service
 
         private void Arrive()
         {
-            var customer = new Customer(_nextId++);
+            var customer = new Customer(_nextId++) { Order = Settings.Menu?.Pick(_orderRandom) };
             _customers.Add(customer);
 
             var seat = Array.IndexOf(_seats, null);

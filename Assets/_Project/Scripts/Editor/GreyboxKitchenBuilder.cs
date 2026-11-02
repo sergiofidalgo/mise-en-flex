@@ -85,13 +85,13 @@ namespace Game.Editor
             {
                 Name = "Fridge", Position = new Vector3(-4.4f, 0f, 1.0f), Refrigerated = true,
                 Color = new Color(0.86f, 0.92f, 0.96f),
-                Slots = new (string, int, int)?[] { ("Steak", 6, 6), null, null, null },
+                Slots = new (string, int, int)?[] { ("Steak", 9, 9), ("Steak", 9, 9), null, null },
             },
             new GreyboxStorage.Unit
             {
                 Name = "Shelf", Position = new Vector3(-4.4f, 0f, -0.6f), Refrigerated = false,
                 Color = new Color(0.58f, 0.43f, 0.28f),
-                Slots = new (string, int, int)?[] { ("Tomato", 6, 6), ("Onion", 6, 6), null, null },
+                Slots = new (string, int, int)?[] { ("Tomato", 6, 6), ("Onion", 8, 8), null, null },
             },
         };
 
@@ -163,6 +163,7 @@ namespace Game.Editor
                     (Game.Simulation.Items.Plate.PlateTypeId, GreyboxKitchenware.BuildPlate()),
                     (Game.Simulation.Items.Knife.KnifeTypeId, GreyboxKitchenware.BuildKnife())),
             };
+            SetMenu(assets.ServiceConfig, assets.Catalog);
             assets.PlayerPrefab = BuildPlayerPrefab(assets.Settings, assets.Tuning);
             BuildScene(scene, assets);
             AssetDatabase.SaveAssets();
@@ -178,6 +179,20 @@ namespace Game.Editor
             public ServiceConfig ServiceConfig;
             public ItemCatalog Catalog;
             public GameObject PlayerPrefab;
+        }
+
+        // Phase 2 menu: steak to order, sometimes with sautéed onions. Only fills empty fields, so a
+        // menu tuned in the Inspector survives a rebuild.
+        private static void SetMenu(ServiceConfig config, ItemCatalog catalog)
+        {
+            var so = new SerializedObject(config);
+            var main = so.FindProperty("_main");
+            if (main.objectReferenceValue == null)
+                main.objectReferenceValue = catalog.Find("Steak");
+            var side = so.FindProperty("_side");
+            if (side.objectReferenceValue == null)
+                side.objectReferenceValue = catalog.Find("DicedOnion");
+            so.ApplyModifiedPropertiesWithoutUndo();
         }
 
         private static GameObject BuildPlayerPrefab(CoopSettings settings, TuningConfig tuning)
@@ -297,7 +312,7 @@ namespace Game.Editor
             root.gameObject.AddComponent<QualityCardOverlay>();
             GreyboxService.Build(PassPositions, root);
 
-            GreyboxHud.BuildCanvas(GreyboxHud.EnsureStyle(), settings);
+            GreyboxHud.BuildCanvas(GreyboxHud.EnsureStyle(), settings, root, assets.Catalog);
             foreach (var chip in Object.FindObjectsByType<DonenessChipView>(FindObjectsSortMode.None))
                 SetReference(chip, "_root", root);
 

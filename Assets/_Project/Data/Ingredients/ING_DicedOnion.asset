@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: ING_DicedOnion
   m_EditorClassIdentifier: Game.Data::Game.Data.IngredientDefinition
   _typeId: DicedOnion
+  _displayName: Onions
   _prefab: {fileID: 4841355081300295718, guid: 07608818b57ca4ed181de02f086eef63, type: 3}
   _massKg: 0.15
   _specificHeat: 3900
@@ -27,8 +28,10 @@ MonoBehaviour:
   _donenessLevels:
   - _name: Softened
     _minPeakCoreTemperature: 80
+    _orderTargetCoreTemperature: 85
   - _name: Cooked
     _minPeakCoreTemperature: 92
+    _orderTargetCoreTemperature: 92
   _startTemperature: 20
   _freshnessLossPerHourAt20C: 0.020833334
   _scoreDoneness: 1
@@ -40,4 +43,7 @@ MonoBehaviour:
   _restTargetSeconds: 0
   _cutIntoTypeId: 
   _cutsNeeded: 0
-  _chopInterval: 0.3
+  _chopSecondsPerSweep: 0.7
+  _sweetSpotPosition: 85
+  _sweetSpotGood: 20
+  _sweetSpotOk: 40

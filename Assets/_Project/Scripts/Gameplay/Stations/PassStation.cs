@@ -47,7 +47,25 @@ namespace Game.Gameplay.Stations
         public void DescribeActions(PlayerInteractor player, List<PromptLine> lines)
         {
             if (_slot.Current == null)
-                lines.Add(new PromptLine(PromptControl.South, "serve", _slot.CanAccept(player.Hands.Current)));
+                lines.Add(new PromptLine(PromptControl.South, ServeVerb(player.Hands.Current as Plate), _slot.CanAccept(player.Hands.Current)));
+        }
+
+        // Says whether the plate in hand is what the customer at this stool ordered, so a wrong
+        // dish is a choice, not an accident (wrong dishes are still eaten, unhappily).
+        private string ServeVerb(Plate plate)
+        {
+            var customer = _services?.Service.AtSeat(_seatIndex);
+            if (plate == null || plate.Items.Count == 0 || customer?.Order == null || customer.State != CustomerState.Waiting)
+                return "serve";
+
+            var order = customer.Order;
+            return OrderCheck.Check(order, plate, out _) switch
+            {
+                OrderMatch.Matches => "serve: as ordered",
+                OrderMatch.WrongDoneness => $"serve: wanted {order.Doneness.Name}",
+                OrderMatch.MissingSide => $"serve: no {_services.Catalog.DisplayName(order.SideTypeId).ToLowerInvariant()}",
+                _ => $"serve: no {_services.Catalog.DisplayName(order.MainTypeId).ToLowerInvariant()}",
+            };
         }
 
         private void OnDestroy()
@@ -57,9 +75,12 @@ namespace Game.Gameplay.Stations
 
         private void HandlePlaced(Plate plate)
         {
-            var score = DishScorer.Score(plate, _services.Tuning.Quality(_services.Realism.CookingPrecision));
+            // Scored against the order of whoever is waiting here; the house standard otherwise.
+            var customer = _services.Service.AtSeat(_seatIndex);
+            var order = customer != null && customer.State == CustomerState.Waiting ? customer.Order : null;
+            var score = DishScorer.Score(plate, _services.Tuning.Quality(_services.Realism.CookingPrecision), order);
             _collectAt = Time.time + _services.Tuning.PassCollectDelay;
-            _eating = _services.Service.Serve(_seatIndex, plate) ? _services.Service.AtSeat(_seatIndex) : null;
+            _eating = _services.Service.Serve(_seatIndex, plate) ? customer : null;
             Served?.Invoke(this, score);
         }
 

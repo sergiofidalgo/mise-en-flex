@@ -19,13 +19,21 @@ namespace Game.Data
             [SerializeField] private string _name;
             [Tooltip("°C the core must have reached.")]
             [SerializeField] private float _minPeakCoreTemperature;
+            [Tooltip("Peak core °C that scores perfect when a customer orders this level.")]
+            [SerializeField] private float _orderTargetCoreTemperature;
 
             public string Name => _name;
             public float MinPeakCoreTemperature => _minPeakCoreTemperature;
+
+            // Older assets have no order target yet (0): fall back to the level's threshold.
+            public float OrderTargetCoreTemperature =>
+                _orderTargetCoreTemperature > 0f ? _orderTargetCoreTemperature : _minPeakCoreTemperature;
         }
 
         [Tooltip("Id used by the simulation and the item catalog, e.g. \"Steak\".")]
         [SerializeField] private string _typeId;
+        [Tooltip("What players read on tickets and prompts, e.g. \"Onions\". Empty = the type id.")]
+        [SerializeField] private string _displayName;
         [SerializeField] private GameObject _prefab;
 
         [Header("Heat")]
@@ -63,7 +71,7 @@ namespace Game.Data
         [Header("Serving (scored at the pass)")]
         [Tooltip("Score doneness against the target core temperature below.")]
         [SerializeField] private bool _scoreDoneness;
-        [Tooltip("Peak core °C the kitchen aims for. Placeholder house standard (medium-rare ≈ 54.5) until orders in Phase 2.")]
+        [Tooltip("Peak core °C the kitchen aims for. House standard, used when no order says otherwise (medium-rare ≈ 54.5).")]
         [SerializeField] private float _targetCoreTemperature = 54.5f;
         [Tooltip("Score the crust (browning).")]
         [SerializeField] private bool _scoreBrowning;
@@ -91,6 +99,7 @@ namespace Game.Data
         [SerializeField, Min(0f)] private float _sweetSpotOk = 40f;
 
         public string TypeId => _typeId;
+        public string DisplayName => string.IsNullOrEmpty(_displayName) ? _typeId : _displayName;
         public GameObject Prefab => _prefab;
 
         public IngredientProperties ToProperties() => new IngredientProperties
@@ -106,7 +115,7 @@ namespace Game.Data
             BrowningRate = _browningRate,
             BurntBrowning = _burntBrowning,
             DonenessLevels = _donenessLevels
-                .Select(d => new DonenessLevel(d.Name, d.MinPeakCoreTemperature))
+                .Select(d => new DonenessLevel(d.Name, d.MinPeakCoreTemperature, d.OrderTargetCoreTemperature))
                 .ToArray(),
             StartTemperature = _startTemperature,
             FreshnessLossPerHourAt20C = _freshnessLossPerHourAt20C,

@@ -14,12 +14,24 @@ MonoBehaviour:
   m_EditorClassIdentifier: Game.Data::Game.Data.ServiceConfig
   _durationHours: 6
   _opensAt: 18
-  _arrivalIntervalMinutes: 12
+  _arrivalIntervalMinutes: 25
   _arrivalJitter: 0.35
   _rushStart: 0.35
   _rushEnd: 0.6
-  _rushMultiplier: 2.5
+  _rushMultiplier: 2
   _eatMinutes: 15
   _maxQueue: 3
   _seed: 1
+  _main: {fileID: 11400000, guid: 21022b07489b5408296011be3783dbb8, type: 2}
+  _donenessWeights:
+  - _doneness: Rare
+    _weight: 2
+  - _doneness: Medium-rare
+    _weight: 4
+  - _doneness: Medium
+    _weight: 3
+  - _doneness: Well done
+    _weight: 1
+  _side: {fileID: 11400000, guid: ce4478213020b438fbc43080acdf5e0e, type: 2}
+  _sideChance: 0.4
   _walkSpeed: 1.6
