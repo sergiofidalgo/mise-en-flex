@@ -165,3 +165,9 @@ After the first flip, players read the doneness from the tag when close to the h
 ## Picky and easy-going customers (proposed 2026-11-03)
 
 Each customer gets a pickiness that widens or narrows what they accept and how readily they complain, with perfectionists tipping best. It only feels fair if players can tell who is who (a mark on the ticket, say), and it needs care alongside the steep tip curve. Could grow into the critics of Phase 6.
+
+## Errands: leave the restaurant to hire and buy stock (proposed by the user, 2026-11-03)
+
+A later stage, and potentially ideal for co-op: hiring and buying stock happen at a separate place players physically go to, instead of on a menu. When a player leaves the restaurant, the camera zooms out, so one player can go for groceries while the other decorates, improves the layout or prepares mise en place. A hired helper can run the errand instead, and then the camera doesn't zoom out.
+
+To work out when we get there: staying readable when the camera has zoomed out, whether split-screen suits it better, and how long an errand takes compared to prep. Keep hiring and stock rules separate from their screens in Phase 3 and 5, so the Plan menus can be swapped for this. Connects to the framing camera deferred to Phase 4.
