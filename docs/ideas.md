@@ -161,3 +161,7 @@ The flip gauge could later hide behind a realism or assist setting, for players 
 ## Doneness signifiers at the hob (2026-11-03)
 
 After the first flip, players read the doneness from the tag when close to the hob. Better visuals, icons or signifiers come at a later stage (user's call).
+
+## Picky and easy-going customers (proposed 2026-11-03)
+
+Each customer gets a pickiness that widens or narrows what they accept and how readily they complain, with perfectionists tipping best. It only feels fair if players can tell who is who (a mark on the ticket, say), and it needs care alongside the steep tip curve. Could grow into the critics of Phase 6.

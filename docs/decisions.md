@@ -4,6 +4,16 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-03 — Slightly easier crust; picky customers after Phase 2
+
+**Decisions:**
+- **Crust scoring relaxed a little** (values proposed, now in `TuningConfig`): no crust at an average browning of 0.1 or below (was 0.2), full marks from 0.6 (was 0.7). The "pale" comment now needs an average below 0.35.
+- **Per-customer pickiness waits until after Phase 2** (user's call; see `ideas.md`).
+
+**Reason:** Playtest: the "pale" comment came up often. By calculation, flipping on green and then giving the second side about a real second shouldn't draw it even under the old rules, so if it keeps happening, look for early flips, or for a bug, before relaxing further.
+
+---
+
 ## 2026-11-03 — One gauge, for the first flip only
 
 **Decision (user's call; band proposed, tunable in `TuningConfig`):** a steak gets a single gauge, under the pan. It appears as soon as the steak touches the pan, its needle moves left to right, and it disappears at the first flip. After that, players judge the doneness themselves, reading the tag when close to the hob. Better signifiers come at a later stage. A second gauge for doneness was proposed and rejected as too much.

@@ -16,10 +16,10 @@ namespace Game.Simulation.Quality
         public float DonenessFalloff { get; set; } = 8f;
 
         /// <summary>Average browning below which the crust scores 0 (pale, steamed meat).</summary>
-        public float CrustPale { get; set; } = 0.2f;
+        public float CrustPale { get; set; } = 0.1f;
 
         /// <summary>Average browning range for a full-marks crust.</summary>
-        public float CrustGoodMin { get; set; } = 0.7f;
+        public float CrustGoodMin { get; set; } = 0.6f;
         public float CrustGoodMax { get; set; } = 1.4f;
 
         public float DonenessWeight { get; set; } = 0.4f;

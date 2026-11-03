@@ -65,6 +65,12 @@ namespace Game.Data
         [Tooltip("Seconds a served plate stays on the pass (with its quality card) before it's collected.")]
         [SerializeField, Min(0f)] private float _passCollectDelay = 4f;
 
+        [Header("Crust scoring")]
+        [Tooltip("Average browning of both sides at or below which the crust scores nothing.")]
+        [SerializeField, Min(0f)] private float _crustPale = 0.1f;
+        [Tooltip("Average browning from which the crust scores full marks.")]
+        [SerializeField, Min(0f)] private float _crustGoodMin = 0.6f;
+
         [Header("Flip gauge")]
         [Tooltip("Browning of the side facing down where the gauge's green band starts (around 1 is a good crust).")]
         [SerializeField, Min(0f)] private float _flipGoodFrom = 0.7f;
@@ -82,6 +88,8 @@ namespace Game.Data
             DonenessFalloff = _donenessFalloff,
             DonenessWeight = _donenessWeight,
             CrustWeight = _crustWeight,
+            CrustPale = _crustPale,
+            CrustGoodMin = _crustGoodMin,
             TemperatureWeight = _temperatureWeight,
             FreshnessWeight = _freshnessWeight,
             CutWeight = _cutWeight,

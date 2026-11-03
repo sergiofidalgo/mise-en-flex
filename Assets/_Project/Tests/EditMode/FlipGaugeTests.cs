@@ -103,6 +103,28 @@ namespace Game.Tests.EditMode
             Assert.That(window, Is.GreaterThanOrEqualTo(1f * Minute), "at least a real second to react");
         }
 
+        // Following the gauge shouldn't draw "pale and sad": flip as soon as it's green, then give
+        // the second side a real second at full heat.
+        [Test]
+        public void FlippingOnGreenAvoidsThePaleComplaint()
+        {
+            var settings = Tuning.FlipGauge;
+            var properties = SteakDefinition.ToProperties();
+            var order = new Order("Steak", properties.DonenessLevels.First(l => l.Name == "Rare"));
+            var (sim, _, pan) = Kitchen();
+            var steak = sim.AddIngredient(properties);
+            pan.Put(steak);
+            SecondsUntilBrowning(sim, steak, settings.GoodFrom);
+            steak.Flip();
+            sim.Tick(1f * Minute);
+            pan.Take();
+            var plate = new Plate(3);
+            plate.Put(steak);
+
+            var score = DishScorer.Score(plate, Tuning.Quality(Realism.CookingPrecision), order);
+            Assert.That(score.Items[0].Crust, Is.GreaterThanOrEqualTo(new ReviewSettings().LowPartScore));
+        }
+
         // The promise of the gauge: flip on green and every order can still come out well, with
         // the second side and the heat deciding the doneness.
         [TestCase("Rare")]
