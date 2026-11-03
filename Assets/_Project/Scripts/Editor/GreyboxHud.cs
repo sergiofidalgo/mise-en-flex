@@ -95,6 +95,12 @@ namespace Game.Editor
             tags.FindProperty("_root").objectReferenceValue = root;
             tags.ApplyModifiedPropertiesWithoutUndo();
 
+            var status = new SerializedObject(hud.AddComponent<ServiceStatusHud>());
+            status.FindProperty("_canvas").objectReferenceValue = hud.GetComponent<RectTransform>();
+            status.FindProperty("_style").objectReferenceValue = style;
+            status.FindProperty("_root").objectReferenceValue = root;
+            status.ApplyModifiedPropertiesWithoutUndo();
+
             var money = new SerializedObject(hud.AddComponent<MoneyHud>());
             money.FindProperty("_canvas").objectReferenceValue = hud.GetComponent<RectTransform>();
             money.FindProperty("_style").objectReferenceValue = style;

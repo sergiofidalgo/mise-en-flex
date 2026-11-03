@@ -27,6 +27,8 @@ namespace Game.Gameplay
         /// <summary>Available from Awake; presentation (e.g. the debug overlay) reads it.</summary>
         public KitchenServices Services { get; private set; }
 
+        public bool ServiceStarted { get; private set; }
+
         private void Awake()
         {
             // TODO(Phase 4): stations will be placed and moved during Plan, so they must register
@@ -62,8 +64,12 @@ namespace Game.Gameplay
             Services.Service.PatienceMultiplier = _realism.CustomerPatience;
             var gameSeconds = Time.deltaTime * _tuning.TimeScale;
             cooking.Tick(gameSeconds);
-            Services.Service.Tick(gameSeconds);
+            if (ServiceStarted)
+                Services.Service.Tick(gameSeconds);
         }
+
+        /// <summary>Opens the restaurant. Until then the kitchen is live, so players can preheat and prep.</summary>
+        public void StartService() => ServiceStarted = true;
 
         private void BindPlayer(PlayerInput player)
         {

@@ -146,7 +146,13 @@ namespace Game.Presentation
             var clock = services.ServiceConfig.OpensAt * 60f + service.Elapsed / 60f; // in-game minutes since midnight
             var hours = (int)(clock / 60f) % 24;
             var minutes = (int)clock % 60;
-            var state = service.IsClosed ? Coloured("closed", Dim) : Coloured("open", Good);
+            var state = !_root.ServiceStarted ? Coloured("not started", Dim) : service.Phase switch
+            {
+                ServicePhase.Open => Coloured("open", Good),
+                ServicePhase.LastOrders => Coloured("last orders", Warn),
+                ServicePhase.Closed => Coloured("closed, finishing up", Warn),
+                _ => Coloured("finished", Dim),
+            };
             GUILayout.Label($"<b>{hours:00}:{minutes:00}</b>  {state}   {service.Elapsed / service.Settings.DurationSeconds:P0} through", _text);
 
             var counts = service.Customers.GroupBy(c => c.State).ToDictionary(g => g.Key, g => g.Count());

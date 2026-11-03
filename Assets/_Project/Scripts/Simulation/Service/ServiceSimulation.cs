@@ -5,6 +5,17 @@ using Game.Simulation.Quality;
 
 namespace Game.Simulation.Service
 {
+    public enum ServicePhase
+    {
+        Open,
+        /// <summary>The door is closed to new customers; those inside can still be served.</summary>
+        LastOrders,
+        /// <summary>Time is up, but customers are still inside.</summary>
+        Closed,
+        /// <summary>Time is up and everyone has gone. Nothing changes after this.</summary>
+        Finished,
+    }
+
     /// <summary>
     /// A dinner service at the counter (decision 2026-11-02): customers arrive in waves with a
     /// rush, take a free stool at the pass (or wait by the door, or walk away if the queue is
@@ -41,8 +52,20 @@ namespace Game.Simulation.Service
         /// <summary>In-game seconds since the service started.</summary>
         public float Elapsed { get; private set; }
 
-        /// <summary>True once the service time is up; nobody new arrives after that.</summary>
+        /// <summary>True once the service time is up.</summary>
         public bool IsClosed => Elapsed >= Settings.DurationSeconds;
+
+        public ServicePhase Phase
+        {
+            get
+            {
+                if (IsClosed)
+                    return EveryoneHasGone() ? ServicePhase.Finished : ServicePhase.Closed;
+                return Elapsed >= LastOrdersAt ? ServicePhase.LastOrders : ServicePhase.Open;
+            }
+        }
+
+        private float LastOrdersAt => Settings.DurationSeconds - Settings.LastOrdersSeconds;
 
         /// <summary>Every customer this service, including those who have gone.</summary>
         public IReadOnlyList<Customer> Customers => _customers;
@@ -107,7 +130,7 @@ namespace Game.Simulation.Service
 
         public void Tick(float seconds)
         {
-            if (seconds <= 0f)
+            if (seconds <= 0f || Phase == ServicePhase.Finished)
                 return;
 
             foreach (var customer in _customers)
@@ -128,9 +151,9 @@ namespace Game.Simulation.Service
                 }
             }
 
-            // Arrivals: possibly several in one long tick.
+            // Arrivals, possibly several in one long tick, until last orders.
             var remaining = seconds;
-            while (!IsClosed && remaining >= _nextArrivalIn)
+            while (remaining >= _nextArrivalIn && Elapsed + _nextArrivalIn < LastOrdersAt)
             {
                 remaining -= _nextArrivalIn;
                 Elapsed += _nextArrivalIn;
@@ -210,10 +233,15 @@ namespace Game.Simulation.Service
         // queueing drains at QueuePatienceRate of that. Walking to the stool doesn't count.
         private void DrainPatience(Customer customer, float seconds)
         {
-            if (PatienceMultiplier <= 0f || Settings.PatienceSeconds <= 0f)
+            if (Settings.PatienceSeconds <= 0f)
                 return;
+            // A dial of 0 means endless patience, but only while open: after closing time they
+            // lose it at the normal rate, so a service can always finish.
+            if (PatienceMultiplier <= 0f && !IsClosed)
+                return;
+            var dial = PatienceMultiplier > 0f ? PatienceMultiplier : 1f;
             var rate = customer.State == CustomerState.Queueing ? Settings.QueuePatienceRate : 1f;
-            customer.Patience = Math.Max(0f, customer.Patience - rate * seconds / (Settings.PatienceSeconds * PatienceMultiplier));
+            customer.Patience = Math.Max(0f, customer.Patience - rate * seconds / (Settings.PatienceSeconds * dial));
             if (customer.Patience > 0f)
                 return;
 
@@ -267,6 +295,16 @@ namespace Game.Simulation.Service
                     Seat(next, seat);
                 }
             }
+        }
+
+        private bool EveryoneHasGone()
+        {
+            foreach (var customer in _customers)
+            {
+                if (customer.State != CustomerState.Gone)
+                    return false;
+            }
+            return true;
         }
 
         // Gap to the next arrival: the base interval (shorter during the rush) with random jitter.

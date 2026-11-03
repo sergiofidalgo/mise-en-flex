@@ -75,6 +75,9 @@ namespace Game.Data
         [Tooltip("Clock time the service opens, for display (18 = 18:00).")]
         [SerializeField, Range(0f, 23.99f)] private float _opensAt = 18f;
 
+        [Tooltip("In-game minutes before the end when the door closes to new customers.")]
+        [SerializeField, Min(0f)] private float _lastOrdersMinutes = 30f;
+
         [Tooltip("Average in-game minutes between customers outside the rush.")]
         [SerializeField, Min(0.5f)] private float _arrivalIntervalMinutes = 25f;
 
@@ -180,6 +183,7 @@ namespace Game.Data
         public ServiceSettings ToSettings() => new ServiceSettings
         {
             DurationSeconds = _durationHours * 3600f,
+            LastOrdersSeconds = _lastOrdersMinutes * 60f,
             ArrivalIntervalSeconds = _arrivalIntervalMinutes * 60f,
             ArrivalJitter = _arrivalJitter,
             RushStart = _rushStart,

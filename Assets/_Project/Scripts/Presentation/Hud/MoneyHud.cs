@@ -5,7 +5,7 @@ using UnityEngine;
 namespace Game.Presentation.Hud
 {
     /// <summary>
-    /// The money made this service, top centre of the screen. Each payment shows briefly next to
+    /// The money made this service, top centre of the screen under the clock. Each payment shows briefly next to
     /// it in green and each walk-out in red, so rewards and losses land where they add up.
     /// </summary>
     public sealed class MoneyHud : MonoBehaviour
@@ -14,8 +14,8 @@ namespace Game.Presentation.Hud
         [SerializeField] private HudStyle _style;
         [SerializeField] private KitchenCompositionRoot _root;
 
-        [Tooltip("Canvas pixels below the top of the screen.")]
-        [SerializeField, Min(0f)] private float _topMargin = 16f;
+        [Tooltip("Canvas pixels below the top of the screen, under the clock.")]
+        [SerializeField, Min(0f)] private float _topMargin = 62f;
         [SerializeField, Min(8f)] private float _fontSize = 30f;
         [Tooltip("Real seconds the last payment stays next to the total.")]
         [SerializeField, Min(0f)] private float _gainSeconds = 2f;

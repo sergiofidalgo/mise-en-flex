@@ -207,6 +207,110 @@ namespace Game.Tests.EditMode
         }
 
         [Test]
+        public void TheDoorClosesAtLastOrders()
+        {
+            var settings = Settings(interval: 10f * Minute);
+            settings.LastOrdersSeconds = 1f * Hour;
+            var service = new ServiceSimulation(settings, seatCount: 99);
+
+            service.Tick(5f * Hour - Minute);
+            Assert.That(service.Phase, Is.EqualTo(ServicePhase.Open));
+            service.Tick(2f * Minute);
+            Assert.That(service.Phase, Is.EqualTo(ServicePhase.LastOrders));
+
+            var count = service.Customers.Count;
+            service.Tick(30f * Minute);
+            Assert.That(service.Customers.Count, Is.EqualTo(count));
+        }
+
+        [Test]
+        public void TheServiceFinishesOnceTimeIsUpAndEveryoneHasGone()
+        {
+            var settings = Settings(interval: 2f * Hour);
+            settings.LastOrdersSeconds = 0.5f * Hour;
+            var service = new ServiceSimulation(settings, seatCount: 3);
+            Run(service, 2f * Hour + Minute);
+            var customer = service.Customers.Single();
+            service.Serve(customer.Seat, PlateWithFood());
+
+            // A second customer arrives at 4 h; serve them too, then let time run out.
+            Run(service, 2f * Hour);
+            var second = service.Customers.Last();
+            service.Serve(second.Seat, PlateWithFood());
+            Run(service, 2f * Hour);
+
+            Assert.That(service.IsClosed);
+            Assert.That(service.Phase, Is.EqualTo(ServicePhase.Closed), "both are walking to the door");
+            foreach (var c in service.Customers)
+                service.Left(c);
+            Assert.That(service.Phase, Is.EqualTo(ServicePhase.Finished));
+
+            var elapsed = service.Elapsed;
+            service.Tick(Hour);
+            Assert.That(service.Elapsed, Is.EqualTo(elapsed), "nothing changes after the end");
+        }
+
+        [Test]
+        public void EvenEndlessPatienceRunsOutAfterClosing()
+        {
+            var settings = Settings(interval: 3f * Hour, patience: 30f * Minute);
+            var service = new ServiceSimulation(settings, seatCount: 3, patienceMultiplier: 0f);
+            Run(service, 6f * Hour);
+            var customer = service.Customers.First();
+            Assert.That(customer.RanOutOfPatience, Is.False, "patient until closing");
+
+            Run(service, 31f * Minute);
+            Assert.That(customer.RanOutOfPatience);
+        }
+
+        [Test]
+        public void TheSummaryAddsUpTheService()
+        {
+            var settings = Settings(interval: 12f * Minute, patience: 20f * Minute, queue: 0);
+            settings.Menu = new OrderMenu
+            {
+                MainTypeId = "Steak",
+                MainPrice = 24f,
+                Choices = new[] { new OrderChoice(new Game.Simulation.Cooking.DonenessLevel("Rare", 45f, 48f), 1f) },
+            };
+            settings.Reviews = new ReviewSettings
+            {
+                Lines = new System.Collections.Generic.Dictionary<ReviewTopic, string[]> { { ReviewTopic.WalkedOut, new[] { "Left." } }, { ReviewTopic.Decent, new[] { "Fine." } } },
+            };
+            var service = new ServiceSimulation(settings, seatCount: 1);
+
+            Run(service, 13f * Minute);
+            var served = service.AtSeat(0);
+            var score = new DishScore(System.Array.Empty<ItemScore>(), 0.7f, served.Order, null, OrderMatch.Matches);
+            service.Serve(0, PlateWithFood(), score);
+            service.Tick(16f * Minute); // pays and leaves; the arrival at 24 min takes the freed stool
+
+            Run(service, 23f * Minute); // they run out of patience; later arrivals find no room
+            var summary = ServiceSummary.From(service);
+
+            Assert.That(summary.Served, Is.EqualTo(1));
+            Assert.That(summary.AsOrdered, Is.EqualTo(1));
+            Assert.That(summary.WalkOuts, Is.GreaterThanOrEqualTo(1));
+            Assert.That(summary.TurnedAway, Is.GreaterThanOrEqualTo(1));
+            Assert.That(summary.Tips, Is.EqualTo(service.Tips));
+            Assert.That(summary.Money, Is.EqualTo(summary.Payments + summary.Tips - summary.WalkOutLosses));
+            Assert.That(summary.Rating, Is.Not.Null);
+            Assert.That(summary.ReviewCount, Is.EqualTo(service.Reviews.Count));
+            Assert.That(summary.TopComplaint.Topic, Is.EqualTo(ReviewTopic.WalkedOut));
+            Assert.That(summary.Worst.Stars, Is.LessThanOrEqualTo(summary.Best.Stars));
+        }
+
+        [Test]
+        public void AnEmptyServiceSummarisesToNothing()
+        {
+            var summary = ServiceSummary.From(new ServiceSimulation(Settings(), seatCount: 3));
+            Assert.That(summary.Served, Is.EqualTo(0));
+            Assert.That(summary.Rating, Is.Null);
+            Assert.That(summary.Best, Is.Null);
+            Assert.That(summary.TopComplaint, Is.Null);
+        }
+
+        [Test]
         public void EmptySeatCantBeServed()
         {
             var service = new ServiceSimulation(Settings(), seatCount: 3);

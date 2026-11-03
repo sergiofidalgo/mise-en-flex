@@ -9,6 +9,9 @@ namespace Game.Simulation.Service
         /// <summary>How long the service runs, in-game seconds (5 h ≈ 5 real minutes).</summary>
         public float DurationSeconds { get; set; } = 5f * 3600f;
 
+        /// <summary>In-game seconds before the end when the door closes to new customers.</summary>
+        public float LastOrdersSeconds { get; set; } = 30f * 60f;
+
         /// <summary>Average in-game seconds between arrivals outside the rush.</summary>
         public float ArrivalIntervalSeconds { get; set; } = 25f * 60f;
 

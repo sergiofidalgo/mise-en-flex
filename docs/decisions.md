@@ -4,6 +4,20 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-03 — The service loop (Phase 2, milestone 5)
+
+**Decisions (proposed while building; flagged for review):**
+- **The kitchen is live before opening:** the cooking simulation runs, so players can preheat and prep, but no customers come until someone presses **Menu (keyboard: Esc)**. There's no time limit on this. It stands in for the Prep phase until Phase 3, and free prep time makes the first rush easier.
+- **Last orders 30 in-game minutes before the end** (22:30, tunable): the door closes to new customers, and those inside can still be served.
+- **Closing time (23:00):** the service ends once everyone has left. Anyone still waiting keeps losing patience and walks out, with the penalty. With the patience dial at 0, patience starts draining at closing time, so a service can always finish.
+- **The summary** shows money (meals, tips, walk-outs), the rating over all reviews including walk-outs, how many were served and as ordered, walked out and turned away, the best review line and the most common complaint.
+- **Restart reloads the scene,** with the same button, and players come back on their own devices without joining again. A small static (`PlayerRejoin`) carries this across the reload, as a deliberate exception to "no singletons". Stock, money and everything else start fresh; persistence comes in Phase 5.
+- **Pause does nothing else yet:** the button is only used to open and restart.
+
+**Reason:** Completes the first vertical slice: open, cook through a service, see how it went, go again.
+
+---
+
 ## 2026-11-03 — Steep tips; walk-outs cost money
 
 **Decisions (the user's direction; numbers proposed, tunable in `ServiceConfig`):**

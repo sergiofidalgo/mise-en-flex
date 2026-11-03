@@ -21,6 +21,9 @@ namespace Game.Gameplay
             _manager = GetComponent<PlayerInputManager>();
         }
 
+        // Players from before a restart come back on their own devices.
+        private void Start() => PlayerRejoin.Consume(_manager);
+
         private void OnEnable()
         {
             _manager.onPlayerJoined += HandlePlayerJoined;
