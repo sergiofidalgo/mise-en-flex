@@ -95,6 +95,11 @@ namespace Game.Editor
             tags.FindProperty("_root").objectReferenceValue = root;
             tags.ApplyModifiedPropertiesWithoutUndo();
 
+            var flips = new SerializedObject(hud.AddComponent<FlipGaugeHud>());
+            flips.FindProperty("_canvas").objectReferenceValue = hud.GetComponent<RectTransform>();
+            flips.FindProperty("_root").objectReferenceValue = root;
+            flips.ApplyModifiedPropertiesWithoutUndo();
+
             var status = new SerializedObject(hud.AddComponent<ServiceStatusHud>());
             status.FindProperty("_canvas").objectReferenceValue = hud.GetComponent<RectTransform>();
             status.FindProperty("_style").objectReferenceValue = style;

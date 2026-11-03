@@ -75,6 +75,8 @@ namespace Game.Data
         [SerializeField] private float _targetCoreTemperature = 54.5f;
         [Tooltip("Score the crust (browning).")]
         [SerializeField] private bool _scoreBrowning;
+        [Tooltip("Has two sides to sear: the flip gauge shows until its first flip.")]
+        [SerializeField] private bool _needsFlip;
         [Tooltip("Should reach the table hot: serving temperature is scored.")]
         [SerializeField] private bool _servedHot;
         [Tooltip("Average °C at or above which serving temperature scores full marks.")]
@@ -121,6 +123,7 @@ namespace Game.Data
             FreshnessLossPerHourAt20C = _freshnessLossPerHourAt20C,
             TargetCoreTemperature = _scoreDoneness ? _targetCoreTemperature : (float?)null,
             ScoresBrowning = _scoreBrowning,
+            NeedsFlip = _needsFlip,
             ServedHot = _servedHot,
             ServingIdealTemperature = _servingIdealTemperature,
             ServingColdTemperature = _servingColdTemperature,

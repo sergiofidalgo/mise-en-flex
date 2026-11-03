@@ -153,3 +153,11 @@ PlateUp/Overcooked carrying feels lame because items are tokens, it's always one
 **Tuning values:** tray speed penalty, spill threshold (turn rate × load), plate stack limit, station storage capacity.
 
 **Playtest (Phase 0/1 greybox):** does a loaded tray feel tense or just slow? If players avoid trays entirely, the penalty is too high.
+
+## Hide the flip gauge (2026-11-03)
+
+The flip gauge could later hide behind a realism or assist setting, for players who want to judge the sear by eye.
+
+## Doneness signifiers at the hob (2026-11-03)
+
+After the first flip, players read the doneness from the tag when close to the hob. Better visuals, icons or signifiers come at a later stage (user's call).

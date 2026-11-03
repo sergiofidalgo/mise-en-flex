@@ -1,3 +1,4 @@
+using Game.Simulation.Cooking;
 using Game.Simulation.Interaction;
 using Game.Simulation.Movement;
 using Game.Simulation.Prep;
@@ -64,7 +65,15 @@ namespace Game.Data
         [Tooltip("Seconds a served plate stays on the pass (with its quality card) before it's collected.")]
         [SerializeField, Min(0f)] private float _passCollectDelay = 4f;
 
+        [Header("Flip gauge")]
+        [Tooltip("Browning of the side facing down where the gauge's green band starts (around 1 is a good crust).")]
+        [SerializeField, Min(0f)] private float _flipGoodFrom = 0.7f;
+        [Tooltip("Browning where the green band ends.")]
+        [SerializeField, Min(0f)] private float _flipGoodTo = 1.1f;
+
         public float PassCollectDelay => _passCollectDelay;
+
+        public FlipGaugeSettings FlipGauge => new FlipGaugeSettings { GoodFrom = _flipGoodFrom, GoodTo = _flipGoodTo };
 
         /// <summary>Scoring settings; <paramref name="cookingPrecision"/> (realism dial, 0..1) narrows the doneness window.</summary>
         public ScoringSettings Quality(float cookingPrecision) => new ScoringSettings

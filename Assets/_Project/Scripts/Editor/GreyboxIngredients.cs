@@ -36,6 +36,7 @@ namespace Game.Editor
             // replace TargetCore with the ordered level's target (decision 2026-11-02).
             public bool ScoreDoneness;
             public bool ScoreBrowning;
+            public bool NeedsFlip;
             public bool ServedHot;
             public float TargetCore = 54.5f;
             public float RestTargetSeconds;
@@ -63,7 +64,7 @@ namespace Game.Editor
                 // oversized (19 x 16 x 4 cm) so it reads from the overhead camera.
                 Id = "Steak", Color = new Color(0.62f, 0.12f, 0.14f), Shape = PrimitiveType.Cylinder,
                 Scale = new Vector3(0.19f, 0.02f, 0.16f),
-                Layered = true, ScoreDoneness = true, ScoreBrowning = true, ServedHot = true,
+                Layered = true, ScoreDoneness = true, ScoreBrowning = true, NeedsFlip = true, ServedHot = true,
                 TargetCore = 54.5f, RestTargetSeconds = 180f,
                 // Order targets sit inside each band, so an ordered level scores perfect without
                 // tipping into the next one.
@@ -152,6 +153,7 @@ namespace Game.Editor
                 type.InitialTuning?.Invoke(so);
             so.FindProperty("_scoreDoneness").boolValue = type.ScoreDoneness;
             so.FindProperty("_scoreBrowning").boolValue = type.ScoreBrowning;
+            so.FindProperty("_needsFlip").boolValue = type.NeedsFlip;
             so.FindProperty("_servedHot").boolValue = type.ServedHot;
             so.FindProperty("_targetCoreTemperature").floatValue = type.TargetCore;
             so.FindProperty("_restTargetSeconds").floatValue = type.RestTargetSeconds;

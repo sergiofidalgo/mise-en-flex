@@ -4,6 +4,18 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-03 — One gauge, for the first flip only
+
+**Decision (user's call; band proposed, tunable in `TuningConfig`):** a steak gets a single gauge, under the pan. It appears as soon as the steak touches the pan, its needle moves left to right, and it disappears at the first flip. After that, players judge the doneness themselves, reading the tag when close to the hob. Better signifiers come at a later stage. A second gauge for doneness was proposed and rejected as too much.
+
+**How it reads:** the needle follows the actual browning of the side facing down, not a timer, so a cool pan makes it creep and a hot one makes it race. The green band is browning 0.7–1.1, and the scale ends at burnt. It lights up by growing slightly while in green. Other food gets no gauge (`NeedsFlip`, steak only).
+
+**Measured (preheated pan at full heat):** green opens about 2 real seconds in and lasts about 1.2 s. Flipping anywhere in green still allows a best score of 98.8% or more for every order on the menu. The first side barely depends on the order; the second side and the heat decide the doneness: roughly 2–3.25 s for rare and medium-rare, 3.5–4.75 s for medium, and 8–9.5 s at 80% heat for well done.
+
+**Reason:** Playtest: it wasn't discoverable how to get a steak right, and pale steaks felt unfair.
+
+---
+
 ## 2026-11-03 — The service loop (Phase 2, milestone 5)
 
 **Decisions (proposed while building; flagged for review):**

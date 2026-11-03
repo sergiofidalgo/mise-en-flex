@@ -85,6 +85,9 @@ namespace Game.Simulation.Cooking
         /// <summary>True if the crust (browning) is part of the score, e.g. a seared steak.</summary>
         public bool ScoresBrowning { get; set; }
 
+        /// <summary>Has two sides to sear, so the flip gauge shows until its first flip (steak).</summary>
+        public bool NeedsFlip { get; set; }
+
         /// <summary>Type id this becomes when cut at the prep counter (e.g. Onion → DicedOnion), or null if it isn't cut.</summary>
         public string CutIntoTypeId { get; set; }
 

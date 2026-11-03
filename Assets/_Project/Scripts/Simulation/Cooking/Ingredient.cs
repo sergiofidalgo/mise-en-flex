@@ -45,6 +45,9 @@ namespace Game.Simulation.Cooking
         /// <summary>The side facing up: the one players see from above.</summary>
         public IngredientSide UpSide => DownSide == IngredientSide.A ? IngredientSide.B : IngredientSide.A;
 
+        /// <summary>True once it's been flipped at least once.</summary>
+        public bool HasBeenFlipped { get; private set; }
+
         /// <summary>The pan this ingredient is in, or null.</summary>
         public Pan Pan { get; internal set; }
 
@@ -109,6 +112,7 @@ namespace Game.Simulation.Cooking
 
         public void Flip()
         {
+            HasBeenFlipped = true;
             DownSide = DownSide == IngredientSide.A ? IngredientSide.B : IngredientSide.A;
         }
 
