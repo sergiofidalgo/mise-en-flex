@@ -17,7 +17,7 @@
 | --- | --- | --- | --- |
 | 1 | **Customers and seating:** arrivals in waves, walking to a free stool at the pass, eating, paying, leaving (greybox capsules) | Customers come in and sit down | Done |
 | 2 | **Orders and tickets:** each customer orders (steak + doneness, maybe onions); tickets on a rail; a plate served on the pass in front of a customer completes their order | Cook to order | Done (tickets over customers, not a rail) |
-| 3 | **Patience:** drains while waiting (realism dial), shown above each customer; at zero they walk out | Time pressure | |
+| 3 | **Patience:** drains while waiting (realism dial), shown above each customer; at zero they walk out | Time pressure | Done |
 | 4 | **Payment, tips and reviews:** price × quality, tips for quality and speed, short review lines from the score parts, money counter | Score turns into money and words | |
 | 5 | **The service loop:** Start, service clock, last orders, end-of-service summary, restart | The full slice | |
 

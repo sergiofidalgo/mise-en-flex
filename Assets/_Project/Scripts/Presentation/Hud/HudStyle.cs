@@ -73,6 +73,20 @@ namespace Game.Presentation.Hud
         [Tooltip("Font size of order tickets and food tags.")]
         [SerializeField, Min(8f)] private float _labelFontSize = 20f;
 
+        [Header("Patience meter (tickets, queue)")]
+        [SerializeField] private Color _meterTrack = new Color(0.22f, 0.23f, 0.26f, 1f);
+        [Tooltip("Meter colour from empty (0) to full (1): red when they're about to walk out.")]
+        [SerializeField] private ColorStop[] _patienceColors =
+        {
+            new ColorStop(0.15f, new Color(0.95f, 0.30f, 0.26f)),
+            new ColorStop(0.40f, new Color(0.96f, 0.76f, 0.25f)),
+            new ColorStop(0.70f, new Color(0.45f, 0.85f, 0.40f)),
+        };
+        [SerializeField, Min(1f)] private float _meterHeight = 6f;
+        [Tooltip("Canvas pixels; a queue meter has no text to set its width.")]
+        [SerializeField, Min(1f)] private float _meterMinWidth = 56f;
+        [SerializeField, Min(0f)] private float _meterGap = 4f;
+
         [Header("Shapes (Unity's built-in UI sprites)")]
         [SerializeField] private Sprite _circle;
         [SerializeField] private Sprite _rounded;
@@ -89,6 +103,13 @@ namespace Game.Presentation.Hud
         public Sprite Rounded => _rounded;
         public Color KeycapText => _keycapText;
         public float LabelFontSize => _labelFontSize;
+        public Color MeterTrack => _meterTrack;
+        public float MeterHeight => _meterHeight;
+        public float MeterMinWidth => _meterMinWidth;
+        public float MeterGap => _meterGap;
+
+        /// <summary>Patience meter colour for 0..1 patience left.</summary>
+        public Color PatienceColor(float patience) => ColorStop.Sample(_patienceColors, patience, _patienceColors[0].Color, 0f);
 
         /// <summary>The colour for a doneness level name; the text colour for unknown names.</summary>
         public Color DonenessColor(string name)

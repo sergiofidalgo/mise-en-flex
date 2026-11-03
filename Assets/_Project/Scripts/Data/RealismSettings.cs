@@ -4,7 +4,7 @@ namespace Game.Data
 {
     /// <summary>
     /// The realism dials. Read by the simulation, never by scattered checks in gameplay code.
-    /// More dials (customer patience, minigame complexity, hygiene) arrive with their systems;
+    /// More dials (minigame complexity, hygiene) arrive with their systems;
     /// the settings menu comes in Phase 5.
     /// </summary>
     [CreateAssetMenu(menuName = "Game/Realism Settings", fileName = "RealismSettings")]
@@ -16,7 +16,11 @@ namespace Game.Data
         [Tooltip("Multiplies how fast food loses freshness. 0 = never spoils.")]
         [SerializeField, Min(0f)] private float _spoilageMultiplier = 1f;
 
+        [Tooltip("Multiplies how long customers wait before walking out. 2 = twice as patient, 0 = never walk out.")]
+        [SerializeField, Min(0f)] private float _customerPatience = 1f;
+
         public float CookingPrecision => _cookingPrecision;
+        public float CustomerPatience => _customerPatience;
         public float SpoilageMultiplier => _spoilageMultiplier;
     }
 }

@@ -8,8 +8,9 @@ namespace Game.Presentation.Hud
 {
     /// <summary>
     /// A ticket above each seated customer saying what they ordered, e.g. "Steak · Medium-rare
-    /// + Onions", with the doneness in its HUD colour so it can be matched against the food tags.
-    /// Shown from when they sit down until they're served (decision 2026-11-02).
+    /// + Onions", with the doneness in its HUD colour so it can be matched against the food tags,
+    /// and a patience meter under it. Shown from when they sit down until they're served
+    /// (decision 2026-11-02). Customers queueing by the door show only the meter.
     /// </summary>
     public sealed class OrderTicketHud : MonoBehaviour
     {
@@ -20,12 +21,15 @@ namespace Game.Presentation.Hud
 
         [Tooltip("Metres above a customer's feet where their ticket sits (just over their head).")]
         [SerializeField, Min(0f)] private float _height = 1.85f;
+        [Tooltip("Shown over a customer walking out because they waited too long.")]
+        [SerializeField] private string _walkedOut = "walked out!";
         [Tooltip("Canvas pixels of padding inside a ticket.")]
         [SerializeField] private Vector2 _padding = new Vector2(12f, 6f);
 
         private readonly Dictionary<Customer, WorldLabel> _tickets = new Dictionary<Customer, WorldLabel>();
         private readonly Dictionary<Order, string> _texts = new Dictionary<Order, string>();
         private readonly List<Customer> _stale = new List<Customer>();
+        private string _walkedOutText;
 
         private void LateUpdate()
         {
@@ -36,11 +40,15 @@ namespace Game.Presentation.Hud
             foreach (var pair in _director.Agents)
             {
                 var customer = pair.Key;
-                if (customer.Order == null)
-                    continue;
                 var ticket = TicketFor(customer);
+                var above = pair.Value.transform.position + Vector3.up * _height;
+                var meter = _style.PatienceColor(customer.Patience);
                 if (customer.State == CustomerState.Waiting)
-                    ticket.Show(TextFor(customer.Order), pair.Value.transform.position + Vector3.up * _height, camera, _canvas);
+                    ticket.Show(customer.Order != null ? TextFor(customer.Order) : string.Empty, above, camera, _canvas, customer.Patience, meter);
+                else if (customer.State == CustomerState.Queueing)
+                    ticket.Show(string.Empty, above, camera, _canvas, customer.Patience, meter);
+                else if (customer.State == CustomerState.Leaving && customer.RanOutOfPatience)
+                    ticket.Show(_walkedOutText ??= HudStyle.Colored(_walkedOut, _style.PatienceColor(0f)), above, camera, _canvas);
                 else
                     ticket.Hide();
             }
@@ -56,7 +64,8 @@ namespace Game.Presentation.Hud
             {
                 Destroy(_tickets[customer].gameObject);
                 _tickets.Remove(customer);
-                _texts.Remove(customer.Order);
+                if (customer.Order != null)
+                    _texts.Remove(customer.Order);
             }
         }
 

@@ -22,9 +22,11 @@ namespace Game.Simulation.Service
         private float _nextArrivalIn;
         private int _nextId = 1;
 
-        public ServiceSimulation(ServiceSettings settings, int seatCount)
+        /// <param name="patienceMultiplier">The customer patience realism dial: 2 = twice as patient, 0 = never walk out.</param>
+        public ServiceSimulation(ServiceSettings settings, int seatCount, float patienceMultiplier = 1f)
         {
             Settings = settings;
+            PatienceMultiplier = patienceMultiplier;
             _seats = new Customer[seatCount];
             _random = new Random(settings.Seed);
             _orderRandom = new Random(unchecked(settings.Seed * 31 + 17));
@@ -49,7 +51,14 @@ namespace Game.Simulation.Service
         /// <summary>Who is sitting at (or walking to) <paramref name="seat"/>, or null.</summary>
         public Customer AtSeat(int seat) => _seats[seat];
 
+        /// <summary>Customers who left unserved: turned away at a full door, or out of patience.</summary>
         public int LostCovers { get; private set; }
+
+        /// <summary>The part of <see cref="LostCovers"/> who ran out of patience.</summary>
+        public int WalkOuts { get; private set; }
+
+        /// <summary>The customer patience realism dial; read every tick, so it can change mid-service.</summary>
+        public float PatienceMultiplier { get; set; }
 
         /// <summary>Average stars of the customers served so far (0–5), or null before the first.</summary>
         public float? AverageStars
@@ -82,7 +91,9 @@ namespace Game.Simulation.Service
                 if (customer.State == CustomerState.Gone)
                     continue;
                 customer.SecondsInRestaurant += seconds;
-                if (customer.State == CustomerState.Eating)
+                if (customer.State == CustomerState.Waiting || customer.State == CustomerState.Queueing)
+                    DrainPatience(customer, seconds);
+                else if (customer.State == CustomerState.Eating)
                 {
                     customer.EatingLeft -= seconds;
                     if (customer.EatingLeft <= 0f)
@@ -130,6 +141,7 @@ namespace Game.Simulation.Service
 
             customer.ServedPlate = plate;
             customer.Satisfaction = score;
+            customer.PatienceWhenServed = customer.Patience;
             customer.EatingLeft = Settings.EatSeconds;
             customer.State = CustomerState.Eating;
             return true;
@@ -165,6 +177,25 @@ namespace Game.Simulation.Service
             _seats[seat] = customer;
             customer.Seat = seat;
             customer.State = CustomerState.WalkingToSeat;
+        }
+
+        // Linear drain: a seated customer goes from full to empty over PatienceSeconds × the dial;
+        // queueing drains at QueuePatienceRate of that. Walking to the stool doesn't count.
+        private void DrainPatience(Customer customer, float seconds)
+        {
+            if (PatienceMultiplier <= 0f || Settings.PatienceSeconds <= 0f)
+                return;
+            var rate = customer.State == CustomerState.Queueing ? Settings.QueuePatienceRate : 1f;
+            customer.Patience = Math.Max(0f, customer.Patience - rate * seconds / (Settings.PatienceSeconds * PatienceMultiplier));
+            if (customer.Patience > 0f)
+                return;
+
+            customer.WalkedOut = true;
+            customer.RanOutOfPatience = true;
+            LostCovers++;
+            WalkOuts++;
+            _queue.Remove(customer);
+            StartLeaving(customer);
         }
 
         private void StartLeaving(Customer customer)

@@ -36,7 +36,7 @@ namespace Game.Gameplay
             // One stool per pass counter (counter service, decision 2026-11-02).
             var seats = _interactables.OfType<PassStation>().Count();
             var cooking = new CookingSimulation(_tuning.AmbientTemperature, _realism.SpoilageMultiplier);
-            var service = new ServiceSimulation(_serviceConfig.ToSettings(), seats);
+            var service = new ServiceSimulation(_serviceConfig.ToSettings(), seats, _realism.CustomerPatience);
             Services = new KitchenServices(cooking, new ItemViewRegistry(_itemCatalog), _itemCatalog, _equipment, _tuning, _realism, service, _serviceConfig);
 
             foreach (var interactable in _interactables)
@@ -59,6 +59,7 @@ namespace Game.Gameplay
             var cooking = Services.Cooking;
             cooking.AmbientTemperature = _tuning.AmbientTemperature;
             cooking.SpoilageMultiplier = _realism.SpoilageMultiplier;
+            Services.Service.PatienceMultiplier = _realism.CustomerPatience;
             var gameSeconds = Time.deltaTime * _tuning.TimeScale;
             cooking.Tick(gameSeconds);
             Services.Service.Tick(gameSeconds);

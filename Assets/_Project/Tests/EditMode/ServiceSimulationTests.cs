@@ -11,8 +11,12 @@ namespace Game.Tests.EditMode
         private const float Minute = 60f;
         private const float Hour = 3600f;
 
-        private static ServiceSettings Settings(float interval = 12f * Minute, float jitter = 0f, float rush = 1f, int queue = 3) => new ServiceSettings
+        // Patience defaults to longer than a service, so seating tests aren't cut short by walk-outs.
+        private static ServiceSettings Settings(float interval = 12f * Minute, float jitter = 0f, float rush = 1f, int queue = 3,
+            float patience = 24f * Hour) => new ServiceSettings
         {
+            PatienceSeconds = patience,
+            QueuePatienceRate = 0.5f,
             DurationSeconds = 6f * Hour,
             ArrivalIntervalSeconds = interval,
             ArrivalJitter = jitter,
@@ -122,6 +126,84 @@ namespace Game.Tests.EditMode
             Assert.That(first.Satisfaction, Is.SameAs(great));
             Assert.That(second.Satisfaction, Is.SameAs(poor));
             Assert.That(service.AverageStars, Is.EqualTo((4.5f + 2f) / 2f));
+        }
+
+        [Test]
+        public void SeatedCustomersWalkOutWhenPatienceRunsOut()
+        {
+            var service = new ServiceSimulation(Settings(interval: 12f * Minute, patience: 30f * Minute), seatCount: 3);
+            Run(service, 13f * Minute);
+            var customer = service.AtSeat(0);
+            Assert.That(customer.State, Is.EqualTo(CustomerState.Waiting));
+
+            Run(service, 15f * Minute);
+            Assert.That(customer.Patience, Is.EqualTo(0.5f).Within(0.05f));
+            Run(service, 16f * Minute);
+
+            Assert.That(customer.State, Is.EqualTo(CustomerState.Leaving));
+            Assert.That(customer.WalkedOut && customer.RanOutOfPatience);
+            Assert.That(service.AtSeat(0), Is.Not.SameAs(customer), "their stool is free again");
+            Assert.That(service.WalkOuts, Is.EqualTo(1));
+            Assert.That(service.LostCovers, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void ServedCustomersStopLosingPatience()
+        {
+            var service = new ServiceSimulation(Settings(patience: 30f * Minute), seatCount: 3);
+            Run(service, 13f * Minute);
+            var customer = service.AtSeat(0);
+            Run(service, 10f * Minute);
+            service.Serve(0, PlateWithFood());
+            var whenServed = customer.Patience;
+
+            service.Tick(10f * Minute);
+
+            Assert.That(customer.PatienceWhenServed, Is.EqualTo(whenServed));
+            Assert.That(customer.Patience, Is.EqualTo(whenServed));
+            Assert.That(customer.RanOutOfPatience, Is.False);
+        }
+
+        [Test]
+        public void QueueingDrainsPatienceMoreSlowly()
+        {
+            var service = new ServiceSimulation(Settings(patience: 60f * Minute), seatCount: 1);
+            Run(service, 2f * 12f * Minute + Minute); // first seated at ~12, second queueing from ~24
+            var seated = service.AtSeat(0);
+            var queued = service.Queue.Single();
+            Run(service, 20f * Minute);
+
+            var seatedLost = 1f - seated.Patience;
+            var queuedLost = 1f - queued.Patience;
+            Assert.That(queuedLost, Is.LessThan(seatedLost));
+            Assert.That(queuedLost / (20f / 60f), Is.EqualTo(0.5f).Within(0.08f), "half the seated rate");
+        }
+
+        [Test]
+        public void ImpatientQueuersLeaveTheQueue()
+        {
+            // No stools: everyone queues. 10 min of patience at half rate lasts 20 min by the door.
+            var service = new ServiceSimulation(Settings(interval: 12f * Minute, patience: 10f * Minute), seatCount: 0);
+            Run(service, 13f * Minute);
+            var queued = service.Queue.Single();
+            Run(service, 21f * Minute);
+
+            Assert.That(queued.RanOutOfPatience);
+            Assert.That(queued.State, Is.EqualTo(CustomerState.Leaving));
+            Assert.That(service.Queue.Contains(queued), Is.False);
+        }
+
+        [Test]
+        public void PatienceDialScalesTheWaitAndZeroMeansForever()
+        {
+            var patient = new ServiceSimulation(Settings(patience: 30f * Minute), seatCount: 3, patienceMultiplier: 2f);
+            var saint = new ServiceSimulation(Settings(patience: 30f * Minute), seatCount: 3, patienceMultiplier: 0f);
+            Run(patient, 13f * Minute + 40f * Minute);
+            Run(saint, 13f * Minute + 5f * Hour);
+
+            Assert.That(patient.WalkOuts, Is.EqualTo(0), "60 min of patience at ×2");
+            Assert.That(patient.AtSeat(0).Patience, Is.EqualTo(1f - 40f / 60f).Within(0.05f));
+            Assert.That(saint.WalkOuts, Is.EqualTo(0));
         }
 
         [Test]

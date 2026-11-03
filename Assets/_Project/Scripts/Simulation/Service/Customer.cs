@@ -50,7 +50,19 @@ namespace Game.Simulation.Service
         /// </summary>
         public DishScore Satisfaction { get; internal set; }
 
-        /// <summary>True if they left without being served (no seat, or later, out of patience).</summary>
+        /// <summary>True if they left without being served (no room by the door, or out of patience).</summary>
         public bool WalkedOut { get; internal set; }
+
+        /// <summary>True if they walked out because they waited too long.</summary>
+        public bool RanOutOfPatience { get; internal set; }
+
+        /// <summary>
+        /// Patience left, 1 (just arrived) to 0 (walks out). Drains while queueing and while
+        /// seated waiting for food; stops once they're served.
+        /// </summary>
+        public float Patience { get; internal set; } = 1f;
+
+        /// <summary>Patience left when their food arrived, or null if not served. Feeds tips in milestone 4.</summary>
+        public float? PatienceWhenServed { get; internal set; }
     }
 }

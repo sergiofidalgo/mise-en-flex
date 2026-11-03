@@ -154,7 +154,12 @@ namespace Game.Presentation
             GUILayout.Label(
                 $"walking in {Count(CustomerState.WalkingToSeat)}   waiting {Coloured(Count(CustomerState.Waiting).ToString(), Count(CustomerState.Waiting) > 0 ? Warn : Dim)}   " +
                 $"eating {Count(CustomerState.Eating)}   queue {Count(CustomerState.Queueing)}   " +
-                $"served {Coloured(served.ToString(), Good)}   lost {Coloured(service.LostCovers.ToString(), service.LostCovers > 0 ? Bad : Dim)}", _text);
+                $"served {Coloured(served.ToString(), Good)}   lost {Coloured(service.LostCovers.ToString(), service.LostCovers > 0 ? Bad : Dim)}" +
+                $" {Coloured($"({service.WalkOuts} walked out)", service.WalkOuts > 0 ? Bad : Dim)}", _text);
+            var waiting = service.Customers.Where(c => c.State == CustomerState.Waiting || c.State == CustomerState.Queueing).ToList();
+            if (waiting.Count > 0)
+                GUILayout.Label("patience  " + string.Join("   ", waiting.Select(c =>
+                    $"#{c.Id} {Coloured($"{c.Patience:P0}", c.Patience > 0.4f ? Good : c.Patience > 0.15f ? Warn : Bad)}")), _text);
             DrawSatisfaction(service);
         }
 
@@ -171,9 +176,11 @@ namespace Game.Presentation
 
             var average = service.AverageStars ?? 0f;
             var asOrdered = scored.Count(c => c.Satisfaction.Match == OrderMatch.Matches);
+            var patienceLeft = scored.Average(c => c.PatienceWhenServed ?? 0f);
             GUILayout.Label(
                 $"satisfaction {Coloured($"{average:0.0}★", StarsColour(average))} avg   " +
-                $"as ordered {Coloured($"{asOrdered}/{scored.Count}", asOrdered == scored.Count ? Good : Warn)}", _text);
+                $"as ordered {Coloured($"{asOrdered}/{scored.Count}", asOrdered == scored.Count ? Good : Warn)}   " +
+                $"patience left when served {patienceLeft:P0} avg", _text);
 
             for (var i = scored.Count - 1; i >= Mathf.Max(0, scored.Count - RecentDishes); i--)
             {
@@ -181,7 +188,8 @@ namespace Game.Presentation
                 var score = customer.Satisfaction;
                 GUILayout.Label(
                     $"     #{customer.Id} {customer.Order?.ToString() ?? "no order"}  →  " +
-                    $"{Coloured($"{score.Stars:0.#}★", StarsColour(score.Stars))}  {Coloured(Verdict(score), Dim)}", _text);
+                    $"{Coloured($"{score.Stars:0.#}★", StarsColour(score.Stars))}  {Coloured(Verdict(score), Dim)}" +
+                    $"  {Coloured($"patience {customer.PatienceWhenServed ?? 0f:P0}", Dim)}", _text);
             }
         }
 

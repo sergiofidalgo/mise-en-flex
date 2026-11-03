@@ -4,6 +4,20 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-03 — Patience and walk-outs (Phase 2, milestone 3)
+
+**Decisions (proposed while building; flagged for review):**
+- **A seated customer waits 35 in-game minutes** (about 35 real seconds) for their food before walking out. Patience **drains linearly** from when they sit down until they're served; walking to the stool doesn't count.
+- **Queueing by the door drains patience at half the rate.** One meter carries over from the queue to the stool, so a long queue means less patience at the counter.
+- **Walking out** frees the stool for the next in the queue and counts as a lost cover. The log separates walk-outs from customers turned away at a full door.
+- **Realism dial `Customer patience`** (in `RealismSettings`) multiplies the wait: 2 = twice as patient, 0 = never walk out. It applies live.
+- **On screen:** a patience meter under each ticket (green → amber → red), a meter alone over queueing customers, and "walked out!" in red over a customer leaving angry.
+- Patience left when served is recorded for tips in milestone 4; it doesn't change the dish score.
+
+**Reason:** Adds the time pressure milestone 3 is for, while keeping the steak's 6–8 s cook plus rest comfortably inside one customer's wait.
+
+---
+
 ## 2026-11-02 — Services last 5 hours; satisfaction is the dish score for now
 
 **Decisions:**

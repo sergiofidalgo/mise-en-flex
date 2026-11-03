@@ -25,6 +25,15 @@ namespace Game.Simulation.Service
         /// <summary>In-game seconds a customer spends eating.</summary>
         public float EatSeconds { get; set; } = 15f * 60f;
 
+        /// <summary>
+        /// In-game seconds a seated customer waits for their food before walking out, at a
+        /// patience dial of 1. Queueing by the door drains it more slowly.
+        /// </summary>
+        public float PatienceSeconds { get; set; } = 35f * 60f;
+
+        /// <summary>How fast patience drains while queueing for a stool, relative to seated (0..1).</summary>
+        public float QueuePatienceRate { get; set; } = 0.5f;
+
         /// <summary>Customers who can wait by the door for a seat; more than that walk away.</summary>
         public int MaxQueue { get; set; } = 3;
 

@@ -54,6 +54,12 @@ namespace Game.Data
         [Tooltip("In-game minutes a customer spends eating.")]
         [SerializeField, Min(0.5f)] private float _eatMinutes = 15f;
 
+        [Tooltip("In-game minutes a seated customer waits for food before walking out (realism dial 1).")]
+        [SerializeField, Min(0.5f)] private float _patienceMinutes = 35f;
+
+        [Tooltip("How fast patience drains while queueing by the door, relative to seated.")]
+        [SerializeField, Range(0f, 1f)] private float _queuePatienceRate = 0.5f;
+
         [Tooltip("Customers who wait by the door for a stool; more than that walk away.")]
         [SerializeField, Min(0)] private int _maxQueue = 3;
 
@@ -91,6 +97,8 @@ namespace Game.Data
             RushMultiplier = _rushMultiplier,
             EatSeconds = _eatMinutes * 60f,
             MaxQueue = _maxQueue,
+            PatienceSeconds = _patienceMinutes * 60f,
+            QueuePatienceRate = _queuePatienceRate,
             Seed = _seed,
             Menu = BuildMenu(),
         };
