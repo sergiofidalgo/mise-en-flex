@@ -115,21 +115,15 @@ namespace Game.Tests.EditMode
             Assert.That(ready.ReadyCount, Is.EqualTo(0));
         }
 
+        // Checks the seed rather than the arrivals: with jitter tuned to 0, arrivals rightly match.
+        // TheSameSeedPlaysTheSameService covers a seed replaying the same service.
         [Test]
-        public void EachDayHasDifferentCustomersButTheSameDayRepeats()
+        public void EachDayHasItsOwnSeedAndTheSameDayRepeats()
         {
             var config = AssetDatabase.LoadAssetAtPath<ServiceConfig>("Assets/_Project/Data/Settings/ServiceConfig.asset");
-            float[] Orders(int day)
-            {
-                var service = new ServiceSimulation(config.ToSettings(day), seatCount: 99);
-                var arrivals = new System.Collections.Generic.List<float>();
-                service.Arrived += _ => arrivals.Add(service.Elapsed);
-                service.Tick(5f * 3600f);
-                return arrivals.ToArray();
-            }
-
-            Assert.That(Orders(1), Is.EqualTo(Orders(1)));
-            Assert.That(Orders(2), Is.Not.EqualTo(Orders(1)));
+            Assert.That(config.ToSettings(1).Seed, Is.EqualTo(config.ToSettings(1).Seed));
+            Assert.That(config.ToSettings(2).Seed, Is.Not.EqualTo(config.ToSettings(1).Seed));
+            Assert.That(config.ToSettings(3).Seed, Is.Not.EqualTo(config.ToSettings(2).Seed));
         }
     }
 }

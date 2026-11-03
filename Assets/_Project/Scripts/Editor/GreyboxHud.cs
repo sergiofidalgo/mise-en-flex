@@ -105,6 +105,7 @@ namespace Game.Editor
             status.FindProperty("_style").objectReferenceValue = style;
             status.FindProperty("_root").objectReferenceValue = root;
             status.FindProperty("_dayLoop").objectReferenceValue = root.GetComponent<DayLoop>();
+            status.FindProperty("_settings").objectReferenceValue = settings;
             status.ApplyModifiedPropertiesWithoutUndo();
 
             var money = new SerializedObject(hud.AddComponent<MoneyHud>());

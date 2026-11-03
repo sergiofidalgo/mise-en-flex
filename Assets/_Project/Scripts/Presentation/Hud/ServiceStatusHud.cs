@@ -1,4 +1,6 @@
+using System.Linq;
 using System.Text;
+using Game.Data;
 using Game.Gameplay;
 using Game.Simulation.Days;
 using Game.Simulation.Service;
@@ -17,6 +19,7 @@ namespace Game.Presentation.Hud
         [SerializeField] private HudStyle _style;
         [SerializeField] private KitchenCompositionRoot _root;
         [SerializeField] private DayLoop _dayLoop;
+        [SerializeField] private CoopSettings _settings;
 
         [Header("Layout")]
         [Tooltip("Canvas pixels below the top of the screen for the clock.")]
@@ -33,6 +36,9 @@ namespace Game.Presentation.Hud
         [SerializeField] private string _planText = "Nothing to plan yet: hiring arrives soon";
         [SerializeField] private string _openText = "Prep: preheat and get ready, then open up";
         [SerializeField] private string _readyText = "Press Menu (keyboard: Esc) when ready";
+        [SerializeField] private string _playerReadyText = "READY";
+        [SerializeField] private string _playerWaitingText = "not ready";
+        [SerializeField] private Color _waitingColor = new Color(0.60f, 0.62f, 0.66f);
         [SerializeField] private string _lastOrdersText = "Last orders";
         [SerializeField] private string _closedText = "Closed: finish up";
         [SerializeField] private Color _noticeColor = new Color(0.96f, 0.76f, 0.25f);
@@ -102,14 +108,23 @@ namespace Game.Presentation.Hud
             return $"<b>Day {days.Day}</b>\nBalance {FormatMoney(days.Balance, currency)}\n\n{_planText}";
         }
 
-        // The button prompt, plus who's ready when there's more than one player.
+        // The button prompt, plus who's ready when there's more than one player. (With one player,
+        // being ready moves the day on at once, so there's nothing to show.)
         private string WithReady(string text)
         {
-            var players = PlayerInput.all.Count;
-            var ready = _dayLoop.Ready.ReadyCount;
-            return players > 1
-                ? $"{text}\n{_readyText}  ({ready}/{players} ready)"
-                : $"{text}\n{_readyText}";
+            if (PlayerInput.all.Count <= 1)
+                return $"{text}\n{_readyText}";
+
+            _text.Clear();
+            _text.Append(text).Append('\n').Append(_readyText).Append('\n');
+            foreach (var player in PlayerInput.all.OrderBy(p => p.playerIndex))
+            {
+                var name = $"P{player.playerIndex + 1}";
+                _text.Append(_dayLoop.Ready.IsReady(player.playerIndex)
+                    ? $"<b>{HudStyle.Colored($"{name} {_playerReadyText}", _settings.GetPlayerColor(player.playerIndex))}</b>   "
+                    : HudStyle.Colored($"{name} {_playerWaitingText}", _waitingColor) + "   ");
+            }
+            return _text.ToString().TrimEnd();
         }
 
         private static string FormatMoney(float money, string currency) =>
