@@ -2,6 +2,8 @@
 
 *Drafted and decided 2026-11-02. Decisions in `../decisions.md`.*
 
+**Status: done, playtested 2026-11-03 on a short 5-customer service.**
+
 **Done when:** you press Start, and over a dinner service customers arrive, sit at the counter, and order a steak done how they like it (sometimes with onions). You cook, plate and serve each order while it's hot. Each customer pays and tips based on the dish and the wait, and leaves a short review. Customers who wait too long walk out. At the end, a service summary shows covers served, money earned, average stars and the reviews.
 
 ## Decisions
@@ -19,7 +21,7 @@
 | 2 | **Orders and tickets:** each customer orders (steak + doneness, maybe onions); tickets on a rail; a plate served on the pass in front of a customer completes their order | Cook to order | Done (tickets over customers, not a rail) |
 | 3 | **Patience:** drains while waiting (realism dial), shown above each customer; at zero they walk out | Time pressure | Done |
 | 4 | **Payment, tips and reviews:** price × quality, tips for quality and speed, short review lines from the score parts, money counter | Score turns into money and words | Done |
-| 5 | **The service loop:** Start, service clock, last orders, end-of-service summary, restart | The full slice | Built, awaiting playtest |
+| 5 | **The service loop:** Start, service clock, last orders, end-of-service summary, restart | The full slice | Done |
 
 ## Out of scope
 
