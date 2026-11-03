@@ -1,4 +1,5 @@
 using Game.Gameplay;
+using Game.Simulation.Days;
 using Game.Simulation.Service;
 using UnityEngine;
 
@@ -35,6 +36,7 @@ namespace Game.Presentation.Hud
             _currency = _root.Services.ServiceConfig.Currency;
             _service.Paid += HandlePaid;
             _service.WalkedOut += HandleWalkedOut;
+            _root.Services.ServiceReplaced += HandleServiceReplaced;
             _label = WorldLabel.Create(_style, _canvas, "Money", _padding, new Vector2(0.5f, 1f));
             _label.FontSize = _fontSize;
         }
@@ -45,7 +47,17 @@ namespace Game.Presentation.Hud
             {
                 _service.Paid -= HandlePaid;
                 _service.WalkedOut -= HandleWalkedOut;
+                _root.Services.ServiceReplaced -= HandleServiceReplaced;
             }
+        }
+
+        private void HandleServiceReplaced(ServiceSimulation old, ServiceSimulation next)
+        {
+            old.Paid -= HandlePaid;
+            old.WalkedOut -= HandleWalkedOut;
+            next.Paid += HandlePaid;
+            next.WalkedOut += HandleWalkedOut;
+            _service = next;
         }
 
         private void HandlePaid(Customer customer)
@@ -64,6 +76,12 @@ namespace Game.Presentation.Hud
         {
             if (_label == null)
                 return;
+            // Only during service: the Review has the day's money, and Plan the balance.
+            if (_root.Services.Days.Phase != DayPhase.Service)
+            {
+                _label.Hide();
+                return;
+            }
             var text = (_service.Money < 0f ? "-" : string.Empty) + $"{_currency}{Mathf.Abs(_service.Money):0}";
             if (Time.time < _gainUntil)
                 text += "  " + (_lastGain < 0f

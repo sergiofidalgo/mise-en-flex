@@ -33,12 +33,23 @@ namespace Game.Presentation.Hud
             _service = _root.Services.Service;
             _currency = _root.Services.ServiceConfig.Currency;
             _service.Reviewed += HandleReviewed;
+            _root.Services.ServiceReplaced += HandleServiceReplaced;
+        }
+
+        private void HandleServiceReplaced(ServiceSimulation old, ServiceSimulation next)
+        {
+            old.Reviewed -= HandleReviewed;
+            next.Reviewed += HandleReviewed;
+            _service = next;
         }
 
         private void OnDestroy()
         {
             if (_service != null)
+            {
                 _service.Reviewed -= HandleReviewed;
+                _root.Services.ServiceReplaced -= HandleServiceReplaced;
+            }
         }
 
         private void HandleReviewed(Review review)

@@ -153,6 +153,7 @@ namespace Game.Presentation
                 ServicePhase.Closed => Coloured("closed, finishing up", Warn),
                 _ => Coloured("finished", Dim),
             };
+            GUILayout.Label($"<b>Day {services.Days.Day} · {services.Days.Phase}</b>  balance {services.ServiceConfig.Currency}{services.Days.Balance:0}", _text);
             GUILayout.Label($"<b>{hours:00}:{minutes:00}</b>  {state}   {service.Elapsed / service.Settings.DurationSeconds:P0} through", _text);
 
             var counts = service.Customers.GroupBy(c => c.State).ToDictionary(g => g.Key, g => g.Count());

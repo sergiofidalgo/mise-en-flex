@@ -4,6 +4,25 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-03 — Phase 3 shape and the daily loop (milestone 1)
+
+**Agreed with the Phase 3 plan (`plans/phase-3.md`):** the waiter and runner wait for tables in Phase 4; Prep has no time limit and ends when all players ready up; Close is summarised; staff have fixed roles; restocking is physical, with a storeroom and crates of up to 6; hiring is a Plan menu with candidates described in words. Progress lasts for the session until Phase 5.
+
+**Decisions while building milestone 1 (flagged for review):**
+- **Every phase but Service ends when all players ready up** with Menu (keyboard: Esc); pressing again takes it back. This replaces the Phase 2 restart, so `PlayerRejoin` and the scene reload are gone.
+- **Close has no phase of its own yet;** its waste line arrives with stock in milestone 2.
+- **The simulation pauses during Plan and Review,** so food on a hob doesn't burn while players read. Players can still walk around.
+- **Prep's card sits near the top of the screen,** because players work through that phase.
+- **Each day has its own customers,** from the seed plus the day number, so a given day replays the same while tuning.
+- **Balance starts at 0** until hiring needs starting money.
+- **Temporary:** line storage tops up by itself each morning, until the storeroom replaces this in milestone 2. Food left on counters and in pans stays there.
+
+**Reason:** Turns one service into days that follow each other, so the later milestones have a loop to plug into.
+
+**`game-design.md` §4 is now partly out of date:** it lists Close as a phase and leaves open whether Prep has a time limit and whether Close is played.
+
+---
+
 ## 2026-11-03 — Slightly easier crust; picky customers after Phase 2
 
 **Decisions:**

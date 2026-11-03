@@ -18,7 +18,7 @@
 
 | # | Milestone | Playable result | Status |
 | --- | --- | --- | --- |
-| 1 | **The daily loop:** Plan → Prep → Service → Close → Review, with a day counter; the service summary becomes the Review | Play day after day | |
+| 1 | **The daily loop:** Plan → Prep → Service → Close → Review, with a day counter; the service summary becomes the Review | Play day after day | Built, awaiting playtest |
 | 2 | **Stock that lasts:** stock carries over and ages, a morning delivery to a storeroom, crates to restock the line | Prep matters | |
 | 3 | **Plates and washing up:** limited plates, dirty ones come back from the pass, a sink | A new job competes for your time | |
 | 4 | **Staff and the dishwasher:** skill, speed, fatigue, mistakes; hiring in Plan; daily wages | Your first hire takes a job off you | |

@@ -180,7 +180,8 @@ namespace Game.Data
         public float WalkSpeed => _walkSpeed;
         public string Currency => _currency;
 
-        public ServiceSettings ToSettings() => new ServiceSettings
+        /// <param name="day">The day number: each day gets its own customers, the same ones every time you replay it.</param>
+        public ServiceSettings ToSettings(int day = 1) => new ServiceSettings
         {
             DurationSeconds = _durationHours * 3600f,
             LastOrdersSeconds = _lastOrdersMinutes * 60f,
@@ -193,7 +194,7 @@ namespace Game.Data
             MaxQueue = _maxQueue,
             PatienceSeconds = _patienceMinutes * 60f,
             QueuePatienceRate = _queuePatienceRate,
-            Seed = _seed,
+            Seed = unchecked(_seed + day - 1),
             Menu = BuildMenu(),
             Payment = new PaymentSettings
             {

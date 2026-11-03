@@ -10,8 +10,8 @@ namespace Game.Gameplay.Stations
     /// <summary>
     /// A fridge or shelf with four slots, one per face button. Holding RT opens its radial menu;
     /// while it's open, a face button takes one portion from that slot (empty hands). With food in
-    /// hand, Interact puts it back into the slot for that ingredient, no menu needed. Stock refills when the scene starts (restocking during Prep comes in
-    /// Phase 3, buying and placing units in Phases 4–5).
+    /// hand, Interact puts it back into the slot for that ingredient, no menu needed. Stock tops up each morning (restocking during Prep comes in
+    /// milestone 2 of Phase 3, buying and placing units in Phases 4–5).
     /// </summary>
     public sealed class StorageStation : Interactable, IFaceButtonTarget, IStationPrompt, ISlotMenuStation
     {
@@ -68,6 +68,23 @@ namespace Game.Gameplay.Stations
             }
 
             _container = new StoreBack(_unit, services);
+        }
+
+        /// <summary>
+        /// Refills each slot up to its starting stock; what's already there stays and keeps ageing.
+        /// TODO(Phase 3, milestone 2): replaced by restocking from a storeroom.
+        /// </summary>
+        public void TopUp()
+        {
+            for (var i = 0; i < _slots.Length; i++)
+            {
+                var setup = _slots[i];
+                if (setup == null || string.IsNullOrEmpty(setup.TypeId))
+                    continue;
+                var missing = setup.StartStock - _unit.Slots[i].Count;
+                if (missing > 0)
+                    _unit.Stock(i, () => (Ingredient)_services.CreateItem(setup.TypeId, _unit.Temperature), missing);
+            }
         }
 
         public Transform BinAnchor(int slotIndex) =>

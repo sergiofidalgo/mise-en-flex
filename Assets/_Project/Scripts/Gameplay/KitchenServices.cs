@@ -1,6 +1,8 @@
+using System;
 using Game.Data;
 using Game.Gameplay.Items;
 using Game.Simulation.Cooking;
+using Game.Simulation.Days;
 using Game.Simulation.Items;
 using Game.Simulation.Service;
 
@@ -20,7 +22,8 @@ namespace Game.Gameplay
             TuningConfig tuning,
             RealismSettings realism,
             ServiceSimulation service,
-            ServiceConfig serviceConfig)
+            ServiceConfig serviceConfig,
+            DayCycle days)
         {
             Cooking = cooking;
             ItemViews = itemViews;
@@ -30,6 +33,7 @@ namespace Game.Gameplay
             Realism = realism;
             Service = service;
             ServiceConfig = serviceConfig;
+            Days = days;
         }
 
         public CookingSimulation Cooking { get; }
@@ -39,9 +43,21 @@ namespace Game.Gameplay
         public TuningConfig Tuning { get; }
         public RealismSettings Realism { get; }
 
-        /// <summary>The dinner service: customers, seats and arrivals.</summary>
-        public ServiceSimulation Service { get; }
+        /// <summary>Today's dinner service: customers, seats and arrivals. A new one each day.</summary>
+        public ServiceSimulation Service { get; private set; }
         public ServiceConfig ServiceConfig { get; }
+
+        public DayCycle Days { get; }
+
+        /// <summary>Raised when a new day's service replaces the last, so listeners can move over to it.</summary>
+        public event Action<ServiceSimulation, ServiceSimulation> ServiceReplaced;
+
+        public void ReplaceService(ServiceSimulation service)
+        {
+            var old = Service;
+            Service = service;
+            ServiceReplaced?.Invoke(old, service);
+        }
 
         /// <summary>
         /// Creates a new item of <paramref name="typeId"/>. Known ingredients are registered with

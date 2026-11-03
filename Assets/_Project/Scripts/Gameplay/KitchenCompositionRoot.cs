@@ -3,6 +3,7 @@ using Game.Gameplay.Items;
 using Game.Gameplay.Stations;
 using System.Linq;
 using Game.Simulation.Cooking;
+using Game.Simulation.Days;
 using Game.Simulation.Service;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -27,7 +28,10 @@ namespace Game.Gameplay
         /// <summary>Available from Awake; presentation (e.g. the debug overlay) reads it.</summary>
         public KitchenServices Services { get; private set; }
 
-        public bool ServiceStarted { get; private set; }
+        /// <summary>True once today's service has opened.</summary>
+        public bool ServiceStarted => Services.Days.Phase == DayPhase.Service || Services.Days.Phase == DayPhase.Review;
+
+        private int _seats;
 
         private void Awake()
         {
@@ -38,8 +42,11 @@ namespace Game.Gameplay
             // One stool per pass counter (counter service, decision 2026-11-02).
             var seats = _interactables.OfType<PassStation>().Count();
             var cooking = new CookingSimulation(_tuning.AmbientTemperature, _realism.SpoilageMultiplier);
-            var service = new ServiceSimulation(_serviceConfig.ToSettings(), seats, _realism.CustomerPatience);
-            Services = new KitchenServices(cooking, new ItemViewRegistry(_itemCatalog), _itemCatalog, _equipment, _tuning, _realism, service, _serviceConfig);
+            _seats = seats;
+            var days = new DayCycle();
+            days.PhaseChanged += HandlePhaseChanged;
+            var service = NewService(days.Day);
+            Services = new KitchenServices(cooking, new ItemViewRegistry(_itemCatalog), _itemCatalog, _equipment, _tuning, _realism, service, _serviceConfig, days);
 
             foreach (var interactable in _interactables)
                 interactable.Bind(Services);
@@ -63,13 +70,30 @@ namespace Game.Gameplay
             cooking.SpoilageMultiplier = _realism.SpoilageMultiplier;
             Services.Service.PatienceMultiplier = _realism.CustomerPatience;
             var gameSeconds = Time.deltaTime * _tuning.TimeScale;
-            cooking.Tick(gameSeconds);
-            if (ServiceStarted)
+
+            // The kitchen is live while players work in it; Plan and Review happen between shifts.
+            var phase = Services.Days.Phase;
+            if (phase == DayPhase.Prep || phase == DayPhase.Service)
+                cooking.Tick(gameSeconds);
+            if (phase == DayPhase.Service)
                 Services.Service.Tick(gameSeconds);
         }
 
-        /// <summary>Opens the restaurant. Until then the kitchen is live, so players can preheat and prep.</summary>
-        public void StartService() => ServiceStarted = true;
+        private ServiceSimulation NewService(int day) =>
+            new ServiceSimulation(_serviceConfig.ToSettings(day), _seats, _realism.CustomerPatience);
+
+        private void HandlePhaseChanged(DayPhase phase)
+        {
+            if (phase != DayPhase.Plan)
+                return;
+
+            Services.ReplaceService(NewService(Services.Days.Day));
+
+            // TODO(Phase 3, milestone 2): stock tops up by itself each morning until there's a
+            // storeroom and deliveries to restock from.
+            foreach (var storage in _interactables.OfType<StorageStation>())
+                storage.TopUp();
+        }
 
         private void BindPlayer(PlayerInput player)
         {

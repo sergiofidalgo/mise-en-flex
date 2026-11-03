@@ -35,12 +35,23 @@ namespace Game.Gameplay.Customers
         {
             _service = _root.Services.Service;
             _service.Arrived += HandleArrived;
+            _root.Services.ServiceReplaced += HandleServiceReplaced;
         }
 
         private void OnDestroy()
         {
             if (_service != null)
+            {
                 _service.Arrived -= HandleArrived;
+                _root.Services.ServiceReplaced -= HandleServiceReplaced;
+            }
+        }
+
+        private void HandleServiceReplaced(ServiceSimulation old, ServiceSimulation next)
+        {
+            old.Arrived -= HandleArrived;
+            next.Arrived += HandleArrived;
+            _service = next;
         }
 
         private void HandleArrived(Customer customer)

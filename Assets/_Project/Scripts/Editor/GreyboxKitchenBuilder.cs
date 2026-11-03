@@ -310,7 +310,7 @@ namespace Game.Editor
             var overlay = root.gameObject.AddComponent<CookingDebugOverlay>();
             SetReference(overlay, "_root", root);
             root.gameObject.AddComponent<QualityCardOverlay>();
-            SetReference(root.gameObject.AddComponent<ServiceLoop>(), "_root", root);
+            SetReference(root.gameObject.AddComponent<DayLoop>(), "_root", root);
             GreyboxService.Build(PassPositions, root);
 
             GreyboxHud.BuildCanvas(GreyboxHud.EnsureStyle(), settings, root, assets.Catalog);
