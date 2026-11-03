@@ -53,6 +53,9 @@ namespace Game.Simulation.Service
         /// <summary>What they paid when they finished eating, or null if they haven't (or never will).</summary>
         public Bill? Bill { get; internal set; }
 
+        /// <summary>Money the restaurant lost because they walked out; 0 otherwise.</summary>
+        public float WalkOutPenalty { get; internal set; }
+
         /// <summary>Their review, once they've finished or walked out. Null otherwise.</summary>
         public Review Review { get; internal set; }
 

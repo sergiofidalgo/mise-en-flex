@@ -58,17 +58,36 @@ namespace Game.Tests.EditMode
             Assert.That(poor.Payment, Is.GreaterThan(0f).And.LessThan(great.Payment), "a bad dish still earns something");
         }
 
+        [TestCase(1.00f, 24f)] // perfect: a whole extra price
+        [TestCase(0.99f, 12f)] // one point off costs half
+        [TestCase(0.95f, 5f)]
+        [TestCase(0.90f, 2f)]
+        [TestCase(0.80f, 0f)]
+        [TestCase(0.50f, 0f)]
+        public void TipsFallSteeplyFromPerfect(float score, float tip)
+        {
+            var order = SteakOrder();
+            Assert.That(Billing.Calculate(order, Score(score, order), 1f, new PaymentSettings()).Tip, Is.EqualTo(tip));
+        }
+
         [Test]
-        public void TipsNeedADecentDishAndShrinkWithTheWait()
+        public void TheTipIsOnTheMenuPriceNotWhatTheyPaid()
+        {
+            var order = SteakOrder("DicedOnion");
+            Assert.That(Billing.Calculate(order, Score(1f, order), 1f, new PaymentSettings()).Tip, Is.EqualTo(28f));
+        }
+
+        [Test]
+        public void OnlyALongWaitReducesTheTip()
         {
             var settings = new PaymentSettings();
             var order = SteakOrder();
+            float Tip(float patience) => Billing.Calculate(order, Score(1f, order), patience, settings).Tip;
 
-            Assert.That(Billing.Calculate(order, Score(0.5f, order), 1f, settings).Tip, Is.EqualTo(0f));
-            var prompt = Billing.Calculate(order, Score(1f, order), 1f, settings);
-            var slow = Billing.Calculate(order, Score(1f, order), 0f, settings);
-            Assert.That(prompt.Tip, Is.EqualTo(6f), "25% of 24");
-            Assert.That(slow.Tip, Is.LessThan(prompt.Tip).And.GreaterThan(0f));
+            Assert.That(Tip(1f), Is.EqualTo(24f));
+            Assert.That(Tip(0.5f), Is.EqualTo(24f), "patience to spare doesn't cost anything");
+            Assert.That(Tip(0.25f), Is.LessThan(24f).And.GreaterThan(Tip(0f)));
+            Assert.That(Tip(0f), Is.EqualTo(10f), "40% of 24, rounded");
         }
 
         [Test]
@@ -171,7 +190,7 @@ namespace Game.Tests.EditMode
         }
 
         [Test]
-        public void WalkOutsPayNothingAndLeaveAOneStarReview()
+        public void WalkOutsCostMoneyAndLeaveAOneStarReview()
         {
             var service = Service(patience: 10f * Minute);
             Run(service, 13f * Minute);
@@ -180,10 +199,84 @@ namespace Game.Tests.EditMode
 
             Assert.That(customer.RanOutOfPatience);
             Assert.That(customer.Bill, Is.Null);
-            Assert.That(service.Money, Is.EqualTo(0f));
+            Assert.That(customer.WalkOutPenalty, Is.EqualTo(12f), "half of the 24 steak");
+            Assert.That(service.Money, Is.EqualTo(-12f));
+            Assert.That(service.WalkOutLosses, Is.EqualTo(12f));
             Assert.That(customer.Review.Topic, Is.EqualTo(ReviewTopic.WalkedOut));
             Assert.That(customer.Review.Stars, Is.EqualTo(1f));
             Assert.That(customer.Review.Line, Is.EqualTo("Left hungry."));
+        }
+
+        [Test]
+        public void TurnedAwayCustomersCostNothing()
+        {
+            var service = new ServiceSimulation(new ServiceSettings
+            {
+                ArrivalIntervalSeconds = 12f * Minute,
+                ArrivalJitter = 0f,
+                MaxQueue = 0,
+                PatienceSeconds = 3600f * 24f,
+                Menu = new OrderMenu { MainTypeId = "Steak", MainPrice = 24f, Choices = new[] { new OrderChoice(MediumRare, 1f) } },
+            }, seatCount: 0);
+            service.Tick(13f * Minute);
+
+            Assert.That(service.LostCovers, Is.EqualTo(1));
+            Assert.That(service.Money, Is.EqualTo(0f));
+        }
+
+        // Real assets, best play: a top tip has to be reachable for each doneness on the menu, or the
+        // top of the curve is a lie. Searches heat, time per side and rest like a skilled cook would.
+        [TestCase("Rare", 48f)]
+        [TestCase("Medium-rare", 54.5f)]
+        [TestCase("Medium", 60f)]
+        [TestCase("Well done", 71f)]
+        public void AWellPlayedSteakCanReachTheTopOfTheTipCurve(string doneness, float target)
+        {
+            var steakDefinition = AssetDatabase.LoadAssetAtPath<IngredientDefinition>("Assets/_Project/Data/Ingredients/ING_Steak.asset");
+            var equipment = AssetDatabase.LoadAssetAtPath<EquipmentTier>("Assets/_Project/Data/Settings/EquipmentTier_Basic.asset");
+            var tuning = AssetDatabase.LoadAssetAtPath<TuningConfig>("Assets/_Project/Data/Settings/TuningConfig.asset");
+            var realism = AssetDatabase.LoadAssetAtPath<RealismSettings>("Assets/_Project/Data/Settings/RealismSettings.asset");
+            var scoring = tuning.Quality(realism.CookingPrecision);
+            var properties = steakDefinition.ToProperties();
+            var level = properties.DonenessLevels.First(l => l.Name == doneness);
+            Assert.That(level.OrderTargetCoreTemperature, Is.EqualTo(target));
+            var order = new Order("Steak", level);
+
+            var best = 0f;
+            var bestAt = string.Empty;
+            foreach (var dial in new[] { 1f, 0.8f, 0.6f, 0.45f })
+            {
+                for (var side = 60f; side <= 480f; side += 15f)
+                {
+                    for (var rest = 0f; rest <= 300f; rest += 30f)
+                    {
+                        var sim = new CookingSimulation(tuning.AmbientTemperature);
+                        var hob = sim.AddHob(equipment.Hob);
+                        var pan = sim.AddPan(equipment.Pan);
+                        hob.PlacePan(pan);
+                        hob.Dial = dial;
+                        sim.Tick(4f * Minute);
+                        var steak = sim.AddIngredient(properties);
+                        pan.Put(steak);
+                        sim.Tick(side);
+                        steak.Flip();
+                        sim.Tick(side);
+                        pan.Take();
+                        var plate = new Plate(3);
+                        plate.Put(steak);
+                        sim.Tick(rest);
+                        var overall = DishScorer.Score(plate, scoring, order).Overall;
+                        if (overall > best)
+                        {
+                            best = overall;
+                            bestAt = $"dial {dial}, {side}s a side, {rest}s rest";
+                        }
+                    }
+                }
+            }
+
+            UnityEngine.Debug.Log($"[TipReach] {doneness}: best {best:0.0000} at {bestAt}");
+            Assert.That(best, Is.GreaterThanOrEqualTo(0.99f), $"{doneness}: best was {best:0.0000} at {bestAt}");
         }
 
         [Test]

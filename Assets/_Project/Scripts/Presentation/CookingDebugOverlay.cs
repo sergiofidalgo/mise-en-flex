@@ -158,7 +158,9 @@ namespace Game.Presentation
                 $"served {Coloured(served.ToString(), Good)}   lost {Coloured(service.LostCovers.ToString(), service.LostCovers > 0 ? Bad : Dim)}" +
                 $" {Coloured($"({service.WalkOuts} walked out)", service.WalkOuts > 0 ? Bad : Dim)}", _text);
             var currency = services.ServiceConfig.Currency;
-            GUILayout.Label($"money {Coloured($"{currency}{service.Money:0}", Good)}   tips {currency}{service.Tips:0}", _text);
+            GUILayout.Label(
+                $"money {Coloured($"{currency}{service.Money:0}", service.Money < 0f ? Bad : Good)}   tips {currency}{service.Tips:0}   " +
+                $"walk-outs {Coloured($"-{currency}{service.WalkOutLosses:0}", service.WalkOutLosses > 0f ? Bad : Dim)}", _text);
             var waiting = service.Customers.Where(c => c.State == CustomerState.Waiting || c.State == CustomerState.Queueing).ToList();
             if (waiting.Count > 0)
                 GUILayout.Label("patience  " + string.Join("   ", waiting.Select(c =>

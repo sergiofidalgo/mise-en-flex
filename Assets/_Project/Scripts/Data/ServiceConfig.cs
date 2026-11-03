@@ -13,6 +13,25 @@ namespace Game.Data
     public sealed class ServiceConfig : ScriptableObject
     {
         [Serializable]
+        public sealed class TipCurveStop
+        {
+            [Range(0f, 1f)] [SerializeField] private float _score;
+            [Tooltip("Tip as a fraction of the menu price.")]
+            [SerializeField, Min(0f)] private float _tipFraction;
+
+            public TipCurveStop() { }
+
+            public TipCurveStop(float score, float tipFraction)
+            {
+                _score = score;
+                _tipFraction = tipFraction;
+            }
+
+            public float Score => _score;
+            public float TipFraction => _tipFraction;
+        }
+
+        [Serializable]
         public sealed class ReviewLines
         {
             [SerializeField] private ReviewTopic _topic;
@@ -105,12 +124,21 @@ namespace Game.Data
         [SerializeField, Min(0f)] private float _sidePrice = 4f;
         [Tooltip("Share of the price paid for a dish scoring 0; a score of 1 pays all of it.")]
         [SerializeField, Range(0f, 1f)] private float _minPayFraction = 0.5f;
-        [Tooltip("Tip for a perfect dish served at once, as a fraction of what they paid.")]
-        [SerializeField, Range(0f, 1f)] private float _maxTipFraction = 0.25f;
-        [Tooltip("Dish score below which there's no tip.")]
-        [SerializeField, Range(0f, 1f)] private float _tipFromScore = 0.6f;
+        [Tooltip("Dish score → tip as a fraction of the menu price, ascending by score. No tip below the first stop.")]
+        [SerializeField] private TipCurveStop[] _tipCurve =
+        {
+            new TipCurveStop(0.80f, 0f),
+            new TipCurveStop(0.90f, 0.10f),
+            new TipCurveStop(0.95f, 0.20f),
+            new TipCurveStop(0.99f, 0.50f),
+            new TipCurveStop(1.00f, 1.00f),
+        };
+        [Tooltip("Patience left at or above which the wait doesn't reduce the tip.")]
+        [SerializeField, Range(0f, 1f)] private float _slowTipFrom = 0.5f;
         [Tooltip("Share of the tip left when served with no patience remaining.")]
         [SerializeField, Range(0f, 1f)] private float _slowTipFraction = 0.4f;
+        [Tooltip("Money lost when a customer walks out, as a fraction of their order's menu price.")]
+        [SerializeField, Min(0f)] private float _walkOutPenaltyFraction = 0.5f;
 
         [Header("Reviews")]
         [Tooltip("A part of the dish scoring below this is worth complaining about.")]
@@ -166,9 +194,10 @@ namespace Game.Data
             Payment = new PaymentSettings
             {
                 MinPayFraction = _minPayFraction,
-                MaxTipFraction = _maxTipFraction,
-                TipFromScore = _tipFromScore,
+                TipCurve = _tipCurve.Select(s => new TipStop(s.Score, s.TipFraction)).ToArray(),
+                SlowTipFrom = _slowTipFrom,
                 SlowTipFraction = _slowTipFraction,
+                WalkOutPenaltyFraction = _walkOutPenaltyFraction,
             },
             Reviews = new ReviewSettings
             {

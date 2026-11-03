@@ -61,7 +61,7 @@ namespace Game.Presentation.Hud
             var stars = HudStyle.Colored($"{review.Stars:0.#} stars", _style.RatingColor(review.Stars / 5f));
             var headline = review.Customer.Bill is Bill bill
                 ? $"{stars}  {_currency}{bill.Payment:0} + {_currency}{bill.Tip:0} tip"
-                : $"{stars}  {HudStyle.Colored("walked out!", _style.RatingColor(0f))}";
+                : $"{stars}  {HudStyle.Colored($"walked out! -{_currency}{review.Customer.WalkOutPenalty:0}", _style.RatingColor(0f))}";
             return string.IsNullOrEmpty(review.Line) ? headline : $"{headline}\n\"{review.Line}\"";
         }
 

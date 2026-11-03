@@ -81,17 +81,23 @@ namespace Game.Simulation.Service
             }
         }
 
-        /// <summary>Money taken this service: payments and tips, in whole units.</summary>
+        /// <summary>Money this service: payments and tips, less walk-out penalties. Can go negative.</summary>
         public float Money { get; private set; }
 
         /// <summary>The tips part of <see cref="Money"/>.</summary>
         public float Tips { get; private set; }
+
+        /// <summary>Money lost to walk-outs so far (already taken off <see cref="Money"/>).</summary>
+        public float WalkOutLosses { get; private set; }
 
         /// <summary>Reviews so far, oldest first. Turned-away customers don't leave one; walk-outs do.</summary>
         public IReadOnlyList<Review> Reviews => _reviews;
 
         /// <summary>Raised when a customer has finished eating and paid.</summary>
         public event Action<Customer> Paid;
+
+        /// <summary>Raised when a walk-out has cost money.</summary>
+        public event Action<Customer> WalkedOut;
 
         /// <summary>Raised when a customer leaves a review.</summary>
         public event Action<Review> Reviewed;
@@ -216,6 +222,12 @@ namespace Game.Simulation.Service
             LostCovers++;
             WalkOuts++;
             _queue.Remove(customer);
+
+            customer.WalkOutPenalty = Billing.WalkOutPenalty(customer.Order, Settings.Payment);
+            Money -= customer.WalkOutPenalty;
+            WalkOutLosses += customer.WalkOutPenalty;
+            WalkedOut?.Invoke(customer);
+
             LeaveReview(customer);
             StartLeaving(customer);
         }
