@@ -4,6 +4,7 @@ using Game.Gameplay.Items;
 using Game.Simulation.Cooking;
 using Game.Simulation.Days;
 using Game.Simulation.Items;
+using Game.Simulation.Staff;
 using Game.Simulation.Service;
 
 namespace Game.Gameplay
@@ -23,7 +24,9 @@ namespace Game.Gameplay
             RealismSettings realism,
             ServiceSimulation service,
             ServiceConfig serviceConfig,
-            DayCycle days)
+            DayCycle days,
+            StaffRoster staff,
+            StaffConfig staffConfig)
         {
             Cooking = cooking;
             ItemViews = itemViews;
@@ -34,6 +37,8 @@ namespace Game.Gameplay
             Service = service;
             ServiceConfig = serviceConfig;
             Days = days;
+            Staff = staff;
+            StaffConfig = staffConfig;
         }
 
         public CookingSimulation Cooking { get; }
@@ -48,6 +53,9 @@ namespace Game.Gameplay
         public ServiceConfig ServiceConfig { get; }
 
         public DayCycle Days { get; }
+
+        public StaffRoster Staff { get; }
+        public StaffConfig StaffConfig { get; }
 
         /// <summary>Raised when a new day's service replaces the last, so listeners can move over to it.</summary>
         public event Action<ServiceSimulation, ServiceSimulation> ServiceReplaced;

@@ -39,7 +39,7 @@ namespace Game.Presentation.Hud
             foreach (var player in PlayerInput.all)
             {
                 var card = CardFor(player);
-                if (!player.TryGetComponent(out PlayerInteractor interactor) || !(interactor.Target is IStationPrompt prompt))
+                if (!player.TryGetComponent(out PlayerInteractor interactor) || !interactor.CanAct || !(interactor.Target is IStationPrompt prompt))
                 {
                     card.Hide();
                     continue;

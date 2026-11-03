@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Game.Simulation.Interaction;
+using Game.Simulation.Days;
 using Game.Simulation.Items;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -59,6 +60,10 @@ namespace Game.Gameplay.Stations
             _target is ISlotMenuStation && _heatUp != null && _heatUp.ReadValue<float>() >= MenuTriggerThreshold;
 
         public Interactable Target => _target;
+
+        /// <summary>Chefs work in Prep and Service; Plan and Review happen between shifts.</summary>
+        public bool CanAct => _services != null &&
+            (_services.Days.Phase == DayPhase.Prep || _services.Days.Phase == DayPhase.Service);
 
         /// <summary>Raised after every Interact press that had a target.</summary>
         public event Action<InteractionOutcome> Interacted;
@@ -178,19 +183,19 @@ namespace Game.Gameplay.Stations
 
         private void HandleButtonB(InputAction.CallbackContext context)
         {
-            if (_target != null && !TryFaceButton(FaceButton.East))
+            if (CanAct && _target != null && !TryFaceButton(FaceButton.East))
                 _target.NotifyDenied();
         }
 
         private void HandleButtonY(InputAction.CallbackContext context)
         {
-            if (_target != null && !TryFaceButton(FaceButton.North))
+            if (CanAct && _target != null && !TryFaceButton(FaceButton.North))
                 _target.NotifyDenied();
         }
 
         private void HandleInteract(InputAction.CallbackContext context)
         {
-            if (_target == null || _services == null)
+            if (_target == null || !CanAct)
                 return;
             if (TryFaceButton(FaceButton.South))
                 return;
@@ -221,7 +226,7 @@ namespace Game.Gameplay.Stations
 
         private void HandleUse(InputAction.CallbackContext context)
         {
-            if (_target == null || TryFaceButton(FaceButton.West))
+            if (!CanAct || _target == null || TryFaceButton(FaceButton.West))
                 return;
 
             if (!(_target is IUsable usable) || !usable.TryUse(this))

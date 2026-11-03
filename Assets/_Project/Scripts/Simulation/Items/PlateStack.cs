@@ -24,6 +24,13 @@ namespace Game.Simulation.Items
 
         public bool CanTake => _plates.Count > 0;
 
+        /// <summary>New plates join the stack.</summary>
+        public void AddNew(int count, int plateCapacity)
+        {
+            for (var i = 0; i < count; i++)
+                _plates.Push(new Plate(plateCapacity));
+        }
+
         public bool CanAccept(Item item) => item is Plate plate && !plate.IsDirty && plate.Items.Count == 0;
 
         public Item Take()

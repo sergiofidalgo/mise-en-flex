@@ -4,6 +4,22 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-04 — Hiring and the dishwasher (Phase 3)
+
+**Decisions (proposed while building; flagged for review, all tunable in `StaffConfig`):**
+- **Hiring happens on the Plan card:** A, X and Y hire the three people listed, and B lets your dishwasher go. Any player can press them. Candidates change daily and are described in words.
+- **Starting money €100; wages €30–70 a day,** paid when the service ends. You can't hire what you can't afford, but a day's wages can still push the balance negative.
+- **One person per role,** and only the dishwasher exists so far.
+- **The dishwasher follows the player's rules:** one plate at a time, from pass to sink to stack, and a player can beat them to a plate. Order of work: clean plates to the stack, then clearing stools, then washing. A plate takes 2.5 real seconds at average speed.
+- **Fatigue and mistakes:** each plate adds fatigue, which slows them down and makes mistakes likelier. It resets overnight. A mistake breaks a plate.
+- **Broken plates are replaced free each morning** until they can be bought in Phase 5.
+- **Chefs can't pick things up or use stations during Plan and Review,** so the hiring buttons don't also do things in the kitchen. They can still walk around.
+- **Staff have no collision** yet, so they walk through chefs, and they don't path around counters; their routes along the pass happen to be clear.
+
+**Reason:** Makes a hire a real decision, with a visible payoff: someone else clears the stools and does the washing up.
+
+---
+
 ## 2026-11-04 — Plates and washing up (Phase 3)
 
 **Order changed (user's call):** plates and hiring come before the storeroom, to reach the first hire sooner.

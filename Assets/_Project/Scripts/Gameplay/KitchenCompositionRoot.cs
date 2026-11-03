@@ -5,6 +5,7 @@ using System.Linq;
 using Game.Simulation.Cooking;
 using Game.Simulation.Days;
 using Game.Simulation.Service;
+using Game.Simulation.Staff;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -21,6 +22,7 @@ namespace Game.Gameplay
         [SerializeField] private EquipmentTier _equipment;
         [SerializeField] private RealismSettings _realism;
         [SerializeField] private ServiceConfig _serviceConfig;
+        [SerializeField] private StaffConfig _staffConfig;
         [SerializeField] private PlayerInputManager _playerInputManager;
 
         private Interactable[] _interactables;
@@ -43,10 +45,11 @@ namespace Game.Gameplay
             var seats = _interactables.OfType<PassStation>().Count();
             var cooking = new CookingSimulation(_tuning.AmbientTemperature, _realism.SpoilageMultiplier);
             _seats = seats;
-            var days = new DayCycle();
+            var days = new DayCycle(_staffConfig.StartingMoney);
             days.PhaseChanged += HandlePhaseChanged;
             var service = NewService(days.Day);
-            Services = new KitchenServices(cooking, new ItemViewRegistry(_itemCatalog), _itemCatalog, _equipment, _tuning, _realism, service, _serviceConfig, days);
+            Services = new KitchenServices(cooking, new ItemViewRegistry(_itemCatalog), _itemCatalog, _equipment, _tuning, _realism, service, _serviceConfig, days, new StaffRoster(), _staffConfig);
+            Services.Staff.Candidates = _staffConfig.CandidatesFor(days.Day);
 
             foreach (var interactable in _interactables)
                 interactable.Bind(Services);
@@ -88,6 +91,13 @@ namespace Game.Gameplay
                 return;
 
             Services.ReplaceService(NewService(Services.Days.Day));
+            Services.Staff.Candidates = _staffConfig.CandidatesFor(Services.Days.Day);
+
+            // TODO(Phase 5): broken plates get replaced for free each morning until they can be bought.
+            var stack = _interactables.OfType<PlateStackStation>().FirstOrDefault();
+            var sink = _interactables.OfType<SinkStation>().FirstOrDefault();
+            if (stack != null && sink != null)
+                stack.Stack.AddNew(sink.Sink.TakeBrokenCount(), _equipment.PlateCapacity);
 
             // TODO(Phase 3, milestone 2): stock tops up by itself each morning until there's a
             // storeroom and deliveries to restock from.

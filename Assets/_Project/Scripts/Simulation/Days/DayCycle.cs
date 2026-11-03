@@ -19,6 +19,11 @@ namespace Game.Simulation.Days
     /// </summary>
     public sealed class DayCycle
     {
+        public DayCycle(float startingBalance = 0f)
+        {
+            Balance = startingBalance;
+        }
+
         public int Day { get; private set; } = 1;
 
         public DayPhase Phase { get; private set; } = DayPhase.Plan;
@@ -28,6 +33,9 @@ namespace Game.Simulation.Days
 
         /// <summary>How the latest service went, for the Review. Null until the first one ends.</summary>
         public ServiceSummary LastService { get; private set; }
+
+        /// <summary>Wages paid for the latest day.</summary>
+        public float LastWages { get; private set; }
 
         /// <summary>Raised whenever the phase changes.</summary>
         public event Action<DayPhase> PhaseChanged;
@@ -52,13 +60,14 @@ namespace Game.Simulation.Days
             }
         }
 
-        /// <summary>The service has finished: banks its money and moves on to the Review.</summary>
-        public void FinishService(ServiceSummary summary)
+        /// <summary>The service has finished: banks its money, pays the wages and moves on to the Review.</summary>
+        public void FinishService(ServiceSummary summary, float wages = 0f)
         {
             if (Phase != DayPhase.Service)
                 throw new InvalidOperationException($"No service to finish during {Phase}.");
             LastService = summary;
-            Balance += summary.Money;
+            LastWages = wages;
+            Balance += summary.Money - wages;
             SetPhase(DayPhase.Review);
         }
 

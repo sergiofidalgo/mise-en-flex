@@ -23,13 +23,16 @@ namespace Game.Gameplay
         /// <summary>Who's ready in the current phase, for the HUD.</summary>
         public ReadyCheck Ready { get; } = new ReadyCheck();
 
+        /// <summary>False on the frame a player joins, so the joining press does nothing else.</summary>
+        public bool WasHereLastFrame(PlayerInput player) => _seenLastFrame.Contains(player);
+
         private void Update()
         {
             var days = _root.Services.Days;
             if (days.Phase == DayPhase.Service)
             {
                 if (_root.Services.Service.Phase == ServicePhase.Finished)
-                    days.FinishService(ServiceSummary.From(_root.Services.Service));
+                    days.FinishService(ServiceSummary.From(_root.Services.Service), _root.Services.Staff.TotalWages);
             }
             else
             {

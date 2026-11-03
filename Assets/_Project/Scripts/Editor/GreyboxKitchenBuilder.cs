@@ -26,6 +26,7 @@ namespace Game.Editor
         private const string EquipmentPath = SettingsFolder + "/EquipmentTier_Basic.asset";
         private const string RealismPath = SettingsFolder + "/RealismSettings.asset";
         private const string ServiceConfigPath = SettingsFolder + "/ServiceConfig.asset";
+        private const string StaffConfigPath = SettingsFolder + "/StaffConfig.asset";
         private const string PlayerPrefabPath = "Assets/_Project/Prefabs/PF_Player.prefab";
         private const string ScenePath = "Assets/_Project/Scenes/Kitchen_Greybox.unity";
         private const string JoinActionPath = "Gameplay/Join";
@@ -162,6 +163,7 @@ namespace Game.Editor
                 Equipment = GreyboxAssets.EnsureAsset<EquipmentTier>(EquipmentPath),
                 Realism = GreyboxAssets.EnsureAsset<RealismSettings>(RealismPath),
                 ServiceConfig = GreyboxAssets.EnsureAsset<ServiceConfig>(ServiceConfigPath),
+                StaffConfig = GreyboxAssets.EnsureAsset<StaffConfig>(StaffConfigPath),
                 Catalog = GreyboxIngredients.BuildCatalog(
                     (GreyboxKitchenware.PanTypeId, GreyboxKitchenware.BuildPan()),
                     (Game.Simulation.Items.Plate.PlateTypeId, GreyboxKitchenware.BuildPlate()),
@@ -181,6 +183,7 @@ namespace Game.Editor
             public EquipmentTier Equipment;
             public RealismSettings Realism;
             public ServiceConfig ServiceConfig;
+            public StaffConfig StaffConfig;
             public ItemCatalog Catalog;
             public GameObject PlayerPrefab;
         }
@@ -308,6 +311,7 @@ namespace Game.Editor
             rootSo.FindProperty("_equipment").objectReferenceValue = assets.Equipment;
             rootSo.FindProperty("_realism").objectReferenceValue = assets.Realism;
             rootSo.FindProperty("_serviceConfig").objectReferenceValue = assets.ServiceConfig;
+            rootSo.FindProperty("_staffConfig").objectReferenceValue = assets.StaffConfig;
             rootSo.FindProperty("_playerInputManager").objectReferenceValue = manager;
             rootSo.ApplyModifiedPropertiesWithoutUndo();
 
@@ -316,6 +320,7 @@ namespace Game.Editor
             root.gameObject.AddComponent<QualityCardOverlay>();
             SetReference(root.gameObject.AddComponent<DayLoop>(), "_root", root);
             GreyboxService.Build(PassPositions, root);
+            GreyboxStaff.Build(root);
 
             GreyboxHud.BuildCanvas(GreyboxHud.EnsureStyle(), settings, root, assets.Catalog);
             foreach (var chip in Object.FindObjectsByType<DonenessChipView>(FindObjectsSortMode.None))

@@ -2,8 +2,10 @@ using System.Linq;
 using System.Text;
 using Game.Data;
 using Game.Gameplay;
+using Game.Gameplay.Stations;
 using Game.Simulation.Days;
 using Game.Simulation.Service;
+using Game.Simulation.Staff;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -33,7 +35,7 @@ namespace Game.Presentation.Hud
 
         [Header("Text")]
         [SerializeField] private string _joinText = "Press A to join\n(keyboard: X)";
-        [SerializeField] private string _planText = "Nothing to plan yet: hiring arrives soon";
+        [SerializeField] private string _candidatesText = "Looking for work:";
         [SerializeField] private string _openText = "Prep: preheat and get ready, then open up";
         [SerializeField] private string _readyText = "Press Menu (keyboard: Esc) when ready";
         [SerializeField] private string _playerReadyText = "READY";
@@ -44,6 +46,8 @@ namespace Game.Presentation.Hud
         [SerializeField] private Color _noticeColor = new Color(0.96f, 0.76f, 0.25f);
         [SerializeField] private Color _goodColor = new Color(0.45f, 0.85f, 0.40f);
         [SerializeField] private Color _badColor = new Color(0.95f, 0.30f, 0.26f);
+
+        private static readonly PromptControl[] HireButtons = { PromptControl.South, PromptControl.West, PromptControl.North };
 
         private readonly StringBuilder _text = new StringBuilder();
         private WorldLabel _clock;
@@ -102,11 +106,36 @@ namespace Game.Presentation.Hud
             }
         }
 
+        // Lists who works here and who could; the buttons are HiringMenu's.
         private string PlanText(DayCycle days)
         {
             var currency = _root.Services.ServiceConfig.Currency;
-            return $"<b>Day {days.Day}</b>\nBalance {FormatMoney(days.Balance, currency)}\n\n{_planText}";
+            var staff = _root.Services.Staff;
+            var plan = new StringBuilder();
+            plan.AppendLine($"<b>Day {days.Day}: plan</b>");
+            plan.AppendLine($"Balance {FormatMoney(days.Balance, currency)}");
+            plan.AppendLine();
+
+            foreach (var member in staff.Hired)
+                plan.AppendLine($"{member.Name}, {RoleName(member.Role)}: {member.Description}, {currency}{member.DailyWage:0}/day   {Button(PromptControl.East)} let go");
+            if (staff.Hired.Count > 0)
+                plan.AppendLine();
+
+            plan.AppendLine(_candidatesText);
+            for (var i = 0; i < staff.Candidates.Count && i < HireButtons.Length; i++)
+            {
+                var candidate = staff.Candidates[i];
+                var line = $"{Button(HireButtons[i])}  {candidate.Name}, {RoleName(candidate.Role)}: {candidate.Description}, {currency}{candidate.DailyWage:0}/day";
+                plan.AppendLine(staff.CanHire(candidate, days.Balance) ? line : HudStyle.Colored(line, _waitingColor));
+            }
+            return plan.ToString().TrimEnd();
         }
+
+        // A button as both devices see it, e.g. "[A / X]".
+        private static string Button(PromptControl control) =>
+            $"[{HudStyle.Glyph(control, true)} / {HudStyle.Glyph(control, false)}]";
+
+        private static string RoleName(StaffRole role) => role.ToString().ToLowerInvariant();
 
         // The button prompt, plus who's ready when there's more than one player. (With one player,
         // being ready moves the day on at once, so there's nothing to show.)
@@ -168,6 +197,10 @@ namespace Game.Presentation.Hud
                 _text.AppendLine($"Heard {summary.TopComplaintCount}x: \"{summary.TopComplaint.Line}\"");
 
             _text.AppendLine();
+            foreach (var member in _root.Services.Staff.Hired)
+                _text.AppendLine($"{member.Name} washed {member.JobsToday}, broke {member.MistakesToday}");
+            if (days.LastWages > 0f)
+                _text.AppendLine($"Wages -{currency}{days.LastWages:0}");
             _text.Append($"Balance {FormatMoney(days.Balance, currency)}");
             return _text.ToString();
         }

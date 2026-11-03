@@ -19,8 +19,16 @@ namespace Game.Simulation.Items
         /// <summary>0..1 through the plate being washed.</summary>
         public float WashProgress { get; private set; }
 
-        /// <summary>Plates broken at this sink, all time.</summary>
+        /// <summary>Plates broken at this sink and not yet replaced.</summary>
         public int Broken { get; private set; }
+
+        /// <summary>The broken count, cleared because the plates are being replaced.</summary>
+        public int TakeBrokenCount()
+        {
+            var broken = Broken;
+            Broken = 0;
+            return broken;
+        }
 
         /// <summary>Raised when a plate goes in, so its view can go.</summary>
         public event Action<Plate> Received;
