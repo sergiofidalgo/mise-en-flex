@@ -42,5 +42,9 @@ namespace Game.Simulation.Service
 
         /// <summary>What customers order; null for no orders (any food will do).</summary>
         public OrderMenu Menu { get; set; }
+
+        public PaymentSettings Payment { get; set; } = new PaymentSettings();
+
+        public ReviewSettings Reviews { get; set; } = new ReviewSettings();
     }
 }

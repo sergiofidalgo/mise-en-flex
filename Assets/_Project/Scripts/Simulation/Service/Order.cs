@@ -11,6 +11,9 @@ namespace Game.Simulation.Service
     /// </summary>
     public sealed class Order
     {
+        private string _mainName;
+        private string _sideName;
+
         public Order(string mainTypeId, DonenessLevel doneness, string sideTypeId = null)
         {
             MainTypeId = mainTypeId;
@@ -25,11 +28,28 @@ namespace Game.Simulation.Service
         /// <summary>The side they asked for, or null.</summary>
         public string SideTypeId { get; }
 
+        /// <summary>What players read for the main; the type id unless the menu names it.</summary>
+        public string MainName
+        {
+            get => _mainName ?? MainTypeId;
+            set => _mainName = value;
+        }
+
+        /// <summary>What players read for the side, or null without one.</summary>
+        public string SideName
+        {
+            get => SideTypeId == null ? null : _sideName ?? SideTypeId;
+            set => _sideName = value;
+        }
+
+        public float MainPrice { get; set; }
+        public float SidePrice { get; set; }
+
         public bool Wants(string typeId) => typeId == MainTypeId || (SideTypeId != null && typeId == SideTypeId);
 
         public override string ToString() => SideTypeId == null
-            ? $"{MainTypeId} · {Doneness.Name}"
-            : $"{MainTypeId} · {Doneness.Name} + {SideTypeId}";
+            ? $"{MainName} · {Doneness.Name}"
+            : $"{MainName} · {Doneness.Name} + {SideName}";
     }
 
     /// <summary>One doneness on the menu and how often it's ordered (relative weight).</summary>
@@ -49,10 +69,14 @@ namespace Game.Simulation.Service
     public sealed class OrderMenu
     {
         public string MainTypeId { get; set; }
+        public string MainName { get; set; }
+        public float MainPrice { get; set; }
         public IReadOnlyList<OrderChoice> Choices { get; set; } = Array.Empty<OrderChoice>();
 
         /// <summary>Optional side, or null for none.</summary>
         public string SideTypeId { get; set; }
+        public string SideName { get; set; }
+        public float SidePrice { get; set; }
 
         /// <summary>0..1 chance an order includes the side.</summary>
         public float SideChance { get; set; }
@@ -79,7 +103,13 @@ namespace Game.Simulation.Service
             }
 
             var side = SideTypeId != null && random.NextDouble() < SideChance ? SideTypeId : null;
-            return new Order(MainTypeId, picked, side);
+            return new Order(MainTypeId, picked, side)
+            {
+                MainName = MainName,
+                SideName = SideName,
+                MainPrice = MainPrice,
+                SidePrice = SidePrice,
+            };
         }
     }
 

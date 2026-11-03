@@ -50,6 +50,12 @@ namespace Game.Simulation.Service
         /// </summary>
         public DishScore Satisfaction { get; internal set; }
 
+        /// <summary>What they paid when they finished eating, or null if they haven't (or never will).</summary>
+        public Bill? Bill { get; internal set; }
+
+        /// <summary>Their review, once they've finished or walked out. Null otherwise.</summary>
+        public Review Review { get; internal set; }
+
         /// <summary>True if they left without being served (no room by the door, or out of patience).</summary>
         public bool WalkedOut { get; internal set; }
 

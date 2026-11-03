@@ -87,6 +87,20 @@ namespace Game.Presentation.Hud
 
         public bool IsShown => _targetAlpha > 0f;
 
+        public float FontSize
+        {
+            set => _text.fontSize = value;
+        }
+
+        /// <summary>Shows <paramref name="text"/> at a fixed canvas position (a counter, not following anything).</summary>
+        public void ShowAt(string text, Vector2 canvasPosition)
+        {
+            if (_text.text != text)
+                _text.text = text;
+            _rect.anchoredPosition = canvasPosition;
+            _targetAlpha = 1f;
+        }
+
         /// <summary>Shows <paramref name="text"/> with its pivot at <paramref name="world"/>, if it's on screen.</summary>
         /// <param name="meter">0..1 for a meter under the text (coloured by <paramref name="meterColor"/>), or null for none.</param>
         public void Show(string text, Vector3 world, Camera camera, RectTransform canvas, float? meter = null, Color meterColor = default)

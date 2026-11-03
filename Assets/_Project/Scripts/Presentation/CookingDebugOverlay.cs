@@ -23,6 +23,7 @@ namespace Game.Presentation
     {
         private const float Margin = 10f;
         private const int RecentDishes = 4; // served dishes listed under Service
+        private const int RecentReviews = 3;
         private const float LeftMaxWidth = 560f;
         private const float RightMaxWidth = 720f;
 
@@ -156,16 +157,19 @@ namespace Game.Presentation
                 $"eating {Count(CustomerState.Eating)}   queue {Count(CustomerState.Queueing)}   " +
                 $"served {Coloured(served.ToString(), Good)}   lost {Coloured(service.LostCovers.ToString(), service.LostCovers > 0 ? Bad : Dim)}" +
                 $" {Coloured($"({service.WalkOuts} walked out)", service.WalkOuts > 0 ? Bad : Dim)}", _text);
+            var currency = services.ServiceConfig.Currency;
+            GUILayout.Label($"money {Coloured($"{currency}{service.Money:0}", Good)}   tips {currency}{service.Tips:0}", _text);
             var waiting = service.Customers.Where(c => c.State == CustomerState.Waiting || c.State == CustomerState.Queueing).ToList();
             if (waiting.Count > 0)
                 GUILayout.Label("patience  " + string.Join("   ", waiting.Select(c =>
                     $"#{c.Id} {Coloured($"{c.Patience:P0}", c.Patience > 0.4f ? Good : c.Patience > 0.15f ? Warn : Bad)}")), _text);
-            DrawSatisfaction(service);
+            DrawSatisfaction(service, currency);
+            DrawReviews(service);
         }
 
         // How happy the served customers are: the average, how many got what they ordered, and
         // the last few dishes with what was off.
-        private void DrawSatisfaction(ServiceSimulation service)
+        private void DrawSatisfaction(ServiceSimulation service, string currency)
         {
             var scored = service.Customers.Where(c => c.Satisfaction != null).ToList();
             if (scored.Count == 0)
@@ -189,8 +193,16 @@ namespace Game.Presentation
                 GUILayout.Label(
                     $"     #{customer.Id} {customer.Order?.ToString() ?? "no order"}  →  " +
                     $"{Coloured($"{score.Stars:0.#}★", StarsColour(score.Stars))}  {Coloured(Verdict(score), Dim)}" +
-                    $"  {Coloured($"patience {customer.PatienceWhenServed ?? 0f:P0}", Dim)}", _text);
+                    $"  {Coloured($"patience {customer.PatienceWhenServed ?? 0f:P0}", Dim)}" +
+                    (customer.Bill is Bill bill ? $"  {currency}{bill.Payment:0} + {currency}{bill.Tip:0} tip" : Coloured("  eating", Dim)), _text);
             }
+        }
+
+        private void DrawReviews(ServiceSimulation service)
+        {
+            var reviews = service.Reviews;
+            for (var i = reviews.Count - 1; i >= Mathf.Max(0, reviews.Count - RecentReviews); i--)
+                GUILayout.Label($"     {Coloured($"{reviews[i].Stars:0.#}★", StarsColour(reviews[i].Stars))} \"{reviews[i].Line}\" {Coloured($"#{reviews[i].Customer.Id}", Dim)}", _text);
         }
 
         private static Color StarsColour(float stars) => stars >= 4f ? Good : stars >= 2.5f ? Warn : Bad;

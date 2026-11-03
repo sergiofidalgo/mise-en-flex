@@ -13,6 +13,24 @@ namespace Game.Data
     public sealed class ServiceConfig : ScriptableObject
     {
         [Serializable]
+        public sealed class ReviewLines
+        {
+            [SerializeField] private ReviewTopic _topic;
+            [SerializeField] private string[] _lines;
+
+            public ReviewLines() { }
+
+            public ReviewLines(ReviewTopic topic, params string[] lines)
+            {
+                _topic = topic;
+                _lines = lines;
+            }
+
+            public ReviewTopic Topic => _topic;
+            public string[] Lines => _lines;
+        }
+
+        [Serializable]
         public sealed class DonenessWeight
         {
             [Tooltip("A doneness level name of the main, e.g. \"Medium-rare\".")]
@@ -80,12 +98,56 @@ namespace Game.Data
         [Tooltip("Chance an order includes the side.")]
         [SerializeField, Range(0f, 1f)] private float _sideChance = 0.4f;
 
+        [Header("Prices and payment")]
+        [Tooltip("Shown before amounts of money.")]
+        [SerializeField] private string _currency = "€";
+        [SerializeField, Min(0f)] private float _mainPrice = 24f;
+        [SerializeField, Min(0f)] private float _sidePrice = 4f;
+        [Tooltip("Share of the price paid for a dish scoring 0; a score of 1 pays all of it.")]
+        [SerializeField, Range(0f, 1f)] private float _minPayFraction = 0.5f;
+        [Tooltip("Tip for a perfect dish served at once, as a fraction of what they paid.")]
+        [SerializeField, Range(0f, 1f)] private float _maxTipFraction = 0.25f;
+        [Tooltip("Dish score below which there's no tip.")]
+        [SerializeField, Range(0f, 1f)] private float _tipFromScore = 0.6f;
+        [Tooltip("Share of the tip left when served with no patience remaining.")]
+        [SerializeField, Range(0f, 1f)] private float _slowTipFraction = 0.4f;
+
+        [Header("Reviews")]
+        [Tooltip("A part of the dish scoring below this is worth complaining about.")]
+        [SerializeField, Range(0f, 1f)] private float _lowPartScore = 0.5f;
+        [Tooltip("Served with less patience left than this, the wait gets mentioned.")]
+        [SerializeField, Range(0f, 1f)] private float _lowPatience = 0.25f;
+        [Tooltip("Stars from which a dish gets praise rather than a 'decent'.")]
+        [SerializeField, Range(0f, 5f)] private float _praiseStars = 4.5f;
+        [Tooltip("Stars left by someone who walked out.")]
+        [SerializeField, Range(0f, 5f)] private float _walkOutStars = 1f;
+        [Tooltip("What customers say. {ordered}, {got}, {main} and {side} are filled in.")]
+        [SerializeField] private ReviewLines[] _reviewLines =
+        {
+            new ReviewLines(ReviewTopic.Praise, "Best {main} in town.", "Perfect. Coming back.", "Exactly how I like it."),
+            new ReviewLines(ReviewTopic.Decent, "Good {main}. No complaints.", "Solid. Would eat again."),
+            new ReviewLines(ReviewTopic.Undercooked, "Asked for {ordered}, got {got}.", "Too raw for me."),
+            new ReviewLines(ReviewTopic.Overcooked, "Asked for {ordered}, got {got}.", "Overdone. Such a waste."),
+            new ReviewLines(ReviewTopic.Burnt, "Tasted of charcoal.", "Burnt. Who sends that out?"),
+            new ReviewLines(ReviewTopic.NoMain, "Where was my {main}?"),
+            new ReviewLines(ReviewTopic.NoSide, "Forgot my {side}.", "No {side}, as if I hadn't asked."),
+            new ReviewLines(ReviewTopic.Cold, "Arrived cold.", "Should have been hot."),
+            new ReviewLines(ReviewTopic.PaleCrust, "Pale and sad. No sear at all.", "Steamed, not seared."),
+            new ReviewLines(ReviewTopic.NotRested, "Bled all over the plate. Let it rest!"),
+            new ReviewLines(ReviewTopic.NotFresh, "Didn't taste fresh."),
+            new ReviewLines(ReviewTopic.BadCut, "Chunks of onion, all different sizes."),
+            new ReviewLines(ReviewTopic.SideOff, "The {side} let it down."),
+            new ReviewLines(ReviewTopic.SlowService, "Lovely, but what a wait.", "Good food, slow kitchen."),
+            new ReviewLines(ReviewTopic.WalkedOut, "Waited ages. Never got my food.", "Gave up and left hungry."),
+        };
+
         [Header("Customers (gameplay)")]
         [Tooltip("Real metres per second customers walk.")]
         [SerializeField, Min(0.1f)] private float _walkSpeed = 1.6f;
 
         public float OpensAt => _opensAt;
         public float WalkSpeed => _walkSpeed;
+        public string Currency => _currency;
 
         public ServiceSettings ToSettings() => new ServiceSettings
         {
@@ -101,6 +163,21 @@ namespace Game.Data
             QueuePatienceRate = _queuePatienceRate,
             Seed = _seed,
             Menu = BuildMenu(),
+            Payment = new PaymentSettings
+            {
+                MinPayFraction = _minPayFraction,
+                MaxTipFraction = _maxTipFraction,
+                TipFromScore = _tipFromScore,
+                SlowTipFraction = _slowTipFraction,
+            },
+            Reviews = new ReviewSettings
+            {
+                LowPartScore = _lowPartScore,
+                LowPatience = _lowPatience,
+                PraiseStars = _praiseStars,
+                WalkOutStars = _walkOutStars,
+                Lines = _reviewLines.ToDictionary(l => l.Topic, l => l.Lines),
+            },
         };
 
         // Order choices take the main's own doneness levels (with their order targets); unknown
@@ -113,11 +190,15 @@ namespace Game.Data
             return new OrderMenu
             {
                 MainTypeId = _main.TypeId,
+                MainName = _main.DisplayName,
+                MainPrice = _mainPrice,
                 Choices = _donenessWeights
                     .Where(w => levels.Any(l => l.Name == w.Doneness))
                     .Select(w => new OrderChoice(levels.First(l => l.Name == w.Doneness), w.Weight))
                     .ToArray(),
                 SideTypeId = _side != null ? _side.TypeId : null,
+                SideName = _side != null ? _side.DisplayName : null,
+                SidePrice = _sidePrice,
                 SideChance = _sideChance,
             };
         }

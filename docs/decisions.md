@@ -4,6 +4,23 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-03 — Payment, tips and reviews (Phase 2, milestone 4)
+
+**Decisions (proposed while building; flagged for review):**
+- **Prices:** steak €24, onions €4 (the currency is a field in `ServiceConfig`). Customers pay only for what reached the plate.
+- **Payment** = price × (50% + 50% × dish score), rounded to whole units. A bad dish still earns something.
+- **Tip** = payment × up to 25%. It rises from nothing at a dish score of 60% to the full amount at 100%, then shrinks with the wait, down to 40% of itself if served with no patience left. Quality earns the tip; speed protects it.
+- **Customers pay and review when they finish eating.** Walk-outs pay nothing and leave a 1-star review. Customers turned away at a full door leave no review.
+- **One review line per customer, about the worst thing:** no main, burnt, wrong doneness, no side, the weakest part of the dish, then a long wait; otherwise praise (from 4.5 stars) or "decent". Lines are editable in `ServiceConfig`.
+- **On screen:** a money counter at the top centre, with each payment flashing beside it, and a 4-second card where the customer sat, showing stars, payment and the review line.
+- **Money is income only for now.** Ingredient costs, rent and wages come in Phase 5.
+
+**Reason:** Turns the dish score and patience into money and words, so a good dish is rewarded and a mistake can be understood.
+
+**Departs from `game-design.md` §7.1**, which recommends no numbers during service: the cards show stars and money as an instant reward. The dish's score breakdown stays out of them. Revisit after playtesting.
+
+---
+
 ## 2026-11-03 — Patience and walk-outs (Phase 2, milestone 3)
 
 **Decisions (proposed while building; flagged for review):**

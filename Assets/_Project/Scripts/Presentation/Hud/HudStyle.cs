@@ -108,6 +108,9 @@ namespace Game.Presentation.Hud
         public float MeterMinWidth => _meterMinWidth;
         public float MeterGap => _meterGap;
 
+        /// <summary>Colour for a 0..1 rating, the same red-to-green as the patience meter.</summary>
+        public Color RatingColor(float rating) => PatienceColor(rating);
+
         /// <summary>Patience meter colour for 0..1 patience left.</summary>
         public Color PatienceColor(float patience) => ColorStop.Sample(_patienceColors, patience, _patienceColors[0].Color, 0f);
 

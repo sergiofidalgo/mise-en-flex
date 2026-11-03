@@ -21,15 +21,12 @@ namespace Game.Presentation.Hud
 
         [Tooltip("Metres above a customer's feet where their ticket sits (just over their head).")]
         [SerializeField, Min(0f)] private float _height = 1.85f;
-        [Tooltip("Shown over a customer walking out because they waited too long.")]
-        [SerializeField] private string _walkedOut = "walked out!";
         [Tooltip("Canvas pixels of padding inside a ticket.")]
         [SerializeField] private Vector2 _padding = new Vector2(12f, 6f);
 
         private readonly Dictionary<Customer, WorldLabel> _tickets = new Dictionary<Customer, WorldLabel>();
         private readonly Dictionary<Order, string> _texts = new Dictionary<Order, string>();
         private readonly List<Customer> _stale = new List<Customer>();
-        private string _walkedOutText;
 
         private void LateUpdate()
         {
@@ -47,8 +44,6 @@ namespace Game.Presentation.Hud
                     ticket.Show(customer.Order != null ? TextFor(customer.Order) : string.Empty, above, camera, _canvas, customer.Patience, meter);
                 else if (customer.State == CustomerState.Queueing)
                     ticket.Show(string.Empty, above, camera, _canvas, customer.Patience, meter);
-                else if (customer.State == CustomerState.Leaving && customer.RanOutOfPatience)
-                    ticket.Show(_walkedOutText ??= HudStyle.Colored(_walkedOut, _style.PatienceColor(0f)), above, camera, _canvas);
                 else
                     ticket.Hide();
             }

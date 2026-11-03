@@ -19,6 +19,8 @@ namespace Game.Simulation.Service
         private readonly Random _random;
         // Orders roll on their own generator, so changing the menu doesn't move the arrivals.
         private readonly Random _orderRandom;
+        private readonly Random _reviewRandom;
+        private readonly List<Review> _reviews = new List<Review>();
         private float _nextArrivalIn;
         private int _nextId = 1;
 
@@ -30,6 +32,7 @@ namespace Game.Simulation.Service
             _seats = new Customer[seatCount];
             _random = new Random(settings.Seed);
             _orderRandom = new Random(unchecked(settings.Seed * 31 + 17));
+            _reviewRandom = new Random(unchecked(settings.Seed * 31 + 29));
             _nextArrivalIn = NextGap(0f);
         }
 
@@ -78,6 +81,21 @@ namespace Game.Simulation.Service
             }
         }
 
+        /// <summary>Money taken this service: payments and tips, in whole units.</summary>
+        public float Money { get; private set; }
+
+        /// <summary>The tips part of <see cref="Money"/>.</summary>
+        public float Tips { get; private set; }
+
+        /// <summary>Reviews so far, oldest first. Turned-away customers don't leave one; walk-outs do.</summary>
+        public IReadOnlyList<Review> Reviews => _reviews;
+
+        /// <summary>Raised when a customer has finished eating and paid.</summary>
+        public event Action<Customer> Paid;
+
+        /// <summary>Raised when a customer leaves a review.</summary>
+        public event Action<Review> Reviewed;
+
         /// <summary>Raised for each new customer, after they've been given a seat or a queue spot (or walked away).</summary>
         public event Action<Customer> Arrived;
 
@@ -97,7 +115,10 @@ namespace Game.Simulation.Service
                 {
                     customer.EatingLeft -= seconds;
                     if (customer.EatingLeft <= 0f)
+                    {
+                        Settle(customer);
                         StartLeaving(customer);
+                    }
                 }
             }
 
@@ -195,7 +216,28 @@ namespace Game.Simulation.Service
             LostCovers++;
             WalkOuts++;
             _queue.Remove(customer);
+            LeaveReview(customer);
             StartLeaving(customer);
+        }
+
+        // Paying and reviewing happen when they finish, as they get up to leave.
+        private void Settle(Customer customer)
+        {
+            var bill = Billing.Calculate(customer.Order, customer.Satisfaction, customer.PatienceWhenServed ?? 1f, Settings.Payment);
+            customer.Bill = bill;
+            Money += bill.Total;
+            Tips += bill.Tip;
+            Paid?.Invoke(customer);
+            if (customer.Satisfaction != null)
+                LeaveReview(customer);
+        }
+
+        private void LeaveReview(Customer customer)
+        {
+            var review = ReviewWriter.Write(customer, Settings.Reviews, _reviewRandom);
+            customer.Review = review;
+            _reviews.Add(review);
+            Reviewed?.Invoke(review);
         }
 
         private void StartLeaving(Customer customer)

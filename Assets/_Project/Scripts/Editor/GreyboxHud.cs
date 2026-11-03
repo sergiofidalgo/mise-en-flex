@@ -94,6 +94,19 @@ namespace Game.Editor
             tags.FindProperty("_style").objectReferenceValue = style;
             tags.FindProperty("_root").objectReferenceValue = root;
             tags.ApplyModifiedPropertiesWithoutUndo();
+
+            var money = new SerializedObject(hud.AddComponent<MoneyHud>());
+            money.FindProperty("_canvas").objectReferenceValue = hud.GetComponent<RectTransform>();
+            money.FindProperty("_style").objectReferenceValue = style;
+            money.FindProperty("_root").objectReferenceValue = root;
+            money.ApplyModifiedPropertiesWithoutUndo();
+
+            var reviews = new SerializedObject(hud.AddComponent<ReviewPopupHud>());
+            reviews.FindProperty("_canvas").objectReferenceValue = hud.GetComponent<RectTransform>();
+            reviews.FindProperty("_style").objectReferenceValue = style;
+            reviews.FindProperty("_root").objectReferenceValue = root;
+            reviews.FindProperty("_director").objectReferenceValue = Object.FindFirstObjectByType<CustomerDirector>();
+            reviews.ApplyModifiedPropertiesWithoutUndo();
         }
 
         private static GameObject BuildPromptCard(HudStyle style)
