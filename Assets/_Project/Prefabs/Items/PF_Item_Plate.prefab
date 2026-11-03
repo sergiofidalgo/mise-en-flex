@@ -193,6 +193,7 @@ GameObject:
   m_Component:
   - component: {fileID: 7861227969230505155}
   - component: {fileID: 7378685326431004189}
+  - component: {fileID: 2061735885528601613}
   m_Layer: 0
   m_Name: PF_Item_Plate
   m_TagString: Untagged
@@ -235,3 +236,18 @@ MonoBehaviour:
   - {fileID: 8120081343275716156}
   - {fileID: 717088868961676202}
   - {fileID: 6539571437297540315}
+--- !u!114 &2061735885528601613
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8614723185055973508}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 640c9899bd35c4c68a86ff03f81bb501, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.Presentation::Game.Presentation.PlateView
+  _itemView: {fileID: 7378685326431004189}
+  _body: {fileID: 9175193082250137113}
+  _dirty: {r: 0.45, g: 0.36, b: 0.25, a: 1}

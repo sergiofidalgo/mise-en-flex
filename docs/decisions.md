@@ -4,6 +4,20 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-04 — Plates and washing up (Phase 3)
+
+**Order changed (user's call):** plates and hiring come before the storeroom, to reach the first hire sooner.
+
+**Decisions (proposed while building; flagged for review):**
+- **The kitchen owns 6 plates** (in `EquipmentTier`), and the stack can run out.
+- **A used plate stays dirty on the pass until someone clears it, and blocks that stool.** A customer can sit there, but can't be served until it's cleared.
+- **The sink:** drop dirty plates in, press Use 4 times per plate (in `TuningConfig`), then carry clean plates back to the stack. Everything is carried by hand, one plate at a time.
+- **Plates left dirty stay dirty overnight.**
+
+**Reason:** Gives washing up a real cost in time, so that hiring help pays off.
+
+---
+
 ## 2026-11-03 — Phase 3 shape and the daily loop (milestone 1)
 
 **Agreed with the Phase 3 plan (`plans/phase-3.md`):** the waiter and runner wait for tables in Phase 4; Prep has no time limit and ends when all players ready up; Close is summarised; staff have fixed roles; restocking is physical, with a storeroom and crates of up to 6; hiring is a Plan menu with candidates described in words. Progress lasts for the session until Phase 5.

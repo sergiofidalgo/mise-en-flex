@@ -12,8 +12,9 @@ namespace Game.Gameplay.Stations
     /// The pass: where finished plates leave the kitchen. With counter service (decision
     /// 2026-11-02) each pass counter faces one stool: a plate with food put here is served to the
     /// customer waiting there, scored on the spot (serving temperature included, so getting there
-    /// quickly matters), and cleared when they've finished eating. With nobody waiting, it's
-    /// scored and cleared after a short delay, as before customers existed.
+    /// quickly matters). When they've finished, or after a short delay with nobody waiting, the
+    /// food goes and the dirty plate stays until someone clears it, which blocks this stool
+    /// (decision 2026-11-04).
     /// </summary>
     public sealed class PassStation : Interactable, IStationPrompt
     {
@@ -48,6 +49,8 @@ namespace Game.Gameplay.Stations
         {
             if (_slot.Current == null)
                 lines.Add(new PromptLine(PromptControl.South, ServeVerb(player.Hands.Current as Plate), _slot.CanAccept(player.Hands.Current)));
+            else if (_slot.CanTake)
+                lines.Add(new PromptLine(PromptControl.South, "clear plate", player.Hands.IsEmpty));
         }
 
         // Says whether the plate in hand is what the customer at this stool ordered, so a wrong
@@ -86,37 +89,43 @@ namespace Game.Gameplay.Stations
 
         private void Update()
         {
-            if (_slot.Current == null)
+            if (!(_slot.Current is Plate plate) || plate.IsDirty)
                 return;
 
-            // A customer's plate stays until they've finished; otherwise it's cleared after a moment.
+            // A customer's plate stays until they've finished; otherwise it goes after a moment.
             if (_eating != null ? _eating.State == CustomerState.Eating : Time.time < _collectAt)
                 return;
             _eating = null;
 
-            // Collected: the food leaves the kitchen and the plate goes with it.
-            var plate = _slot.Collect();
+            // Eaten: the food leaves the kitchen, and the dirty plate waits to be cleared.
             foreach (var item in plate.Items)
             {
                 if (item is Ingredient ingredient)
                     _services.Cooking.Remove(ingredient);
                 _services.ItemViews.Release(item);
             }
-            _services.ItemViews.Release(plate);
+            plate.MarkDirty();
         }
 
-        // Only a plate with food on it can be served; nothing comes back off the pass.
+        // Only a plate with food on it can be served; only a dirty plate comes back off the pass.
         private sealed class PassSlot : IItemContainer
         {
             public Item Current { get; private set; }
 
             public event Action<Plate> Placed;
 
-            public bool CanTake => false;
+            public bool CanTake => Current is Plate plate && plate.IsDirty;
 
             public bool CanAccept(Item item) => Current == null && item is Plate plate && plate.Items.Count > 0;
 
-            public Item Take() => throw new InvalidOperationException("Served plates can't be taken back.");
+            public Item Take()
+            {
+                if (!CanTake)
+                    throw new InvalidOperationException("Served plates can't be taken back.");
+                var plate = Current;
+                Current = null;
+                return plate;
+            }
 
             public void Put(Item item)
             {
@@ -124,13 +133,6 @@ namespace Game.Gameplay.Stations
                     throw new InvalidOperationException("Only a plate with food can be served.");
                 Current = item;
                 Placed?.Invoke((Plate)item);
-            }
-
-            public Plate Collect()
-            {
-                var plate = (Plate)Current;
-                Current = null;
-                return plate;
             }
         }
     }

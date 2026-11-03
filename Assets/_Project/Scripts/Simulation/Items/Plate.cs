@@ -22,10 +22,22 @@ namespace Game.Simulation.Items
 
         public IReadOnlyList<Item> Items => _items;
 
+        /// <summary>Used and not washed yet. A dirty plate takes no food.</summary>
+        public bool IsDirty { get; private set; }
+
+        /// <summary>The customer has finished: whatever was left goes, and the plate is dirty.</summary>
+        public void MarkDirty()
+        {
+            _items.Clear();
+            IsDirty = true;
+        }
+
+        public void Clean() => IsDirty = false;
+
         public bool CanTake => _items.Count > 0;
 
         public bool CanAccept(Item item) =>
-            item != null && !(item is IItemCollection) && _items.Count < Capacity && !_items.Contains(item);
+            !IsDirty && item != null && !(item is IItemCollection) && _items.Count < Capacity && !_items.Contains(item);
 
         public Item Take()
         {

@@ -143,20 +143,28 @@ namespace Game.Editor
             body.transform.localScale = new Vector3(PlateDiameter, PlateThickness / 2f, PlateDiameter);
             body.transform.localPosition = new Vector3(0f, PlateThickness / 2f, 0f);
 
-            AddSlots(root, PlateSlots, PlateThickness);
+            var itemView = AddSlots(root, PlateSlots, PlateThickness);
+            var view = new SerializedObject(root.AddComponent<PlateView>());
+            view.FindProperty("_itemView").objectReferenceValue = itemView;
+            view.FindProperty("_body").objectReferenceValue = body.GetComponent<Renderer>();
+            view.ApplyModifiedPropertiesWithoutUndo();
             return Save(root, Plate.PlateTypeId);
         }
 
         /// <summary>A short stack of plate discs, as a label for the plate stack station.</summary>
-        public static void CreatePlateStackVisual(Transform parent, float baseHeight, int count)
+        /// <summary>A pile of plate discs from <paramref name="baseHeight"/> up; the view shows as many as there are plates.</summary>
+        public static GameObject[] CreatePlatePile(Transform parent, float baseHeight, int count, Color color, string materialName, Vector3 offset)
         {
+            var discs = new GameObject[count];
             for (var i = 0; i < count; i++)
             {
                 var disc = GreyboxAssets.CreatePrimitive(
-                    PrimitiveType.Cylinder, $"Plate_{i + 1}", parent, GreyboxAssets.EnsureMaterial("Plate", PlateColor), keepCollider: false);
+                    PrimitiveType.Cylinder, $"{materialName}_{i + 1}", parent, GreyboxAssets.EnsureMaterial(materialName, color), keepCollider: false);
                 disc.transform.localScale = new Vector3(PlateDiameter, PlateThickness / 2f, PlateDiameter);
-                disc.transform.localPosition = new Vector3(0f, baseHeight + PlateThickness * (i + 0.5f) * 1.6f, 0f);
+                disc.transform.localPosition = offset + new Vector3(0f, baseHeight + PlateThickness * (i + 0.5f) * 1.6f, 0f);
+                discs[i] = disc;
             }
+            return discs;
         }
 
         private static ItemView AddSlots(GameObject root, Vector3[] positions, float height)

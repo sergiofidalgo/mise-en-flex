@@ -71,6 +71,10 @@ namespace Game.Data
         [Tooltip("Average browning from which the crust scores full marks.")]
         [SerializeField, Min(0f)] private float _crustGoodMin = 0.6f;
 
+        [Header("Washing up")]
+        [Tooltip("Presses of Use to wash one plate.")]
+        [SerializeField, Min(1)] private int _scrubsPerPlate = 4;
+
         [Header("Flip gauge")]
         [Tooltip("Browning of the side facing down where the gauge's green band starts (around 1 is a good crust).")]
         [SerializeField, Min(0f)] private float _flipGoodFrom = 0.7f;
@@ -78,6 +82,8 @@ namespace Game.Data
         [SerializeField, Min(0f)] private float _flipGoodTo = 1.1f;
 
         public float PassCollectDelay => _passCollectDelay;
+
+        public int ScrubsPerPlate => _scrubsPerPlate;
 
         public FlipGaugeSettings FlipGauge => new FlipGaugeSettings { GoodFrom = _flipGoodFrom, GoodTo = _flipGoodTo };
 

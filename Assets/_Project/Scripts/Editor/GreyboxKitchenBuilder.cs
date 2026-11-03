@@ -132,7 +132,11 @@ namespace Game.Editor
         // Plate stack next to the pass, and the bin on the east wall.
         private static readonly Vector3 PlateStackPosition = new Vector3(2.2f, 0f, -2.4f);
         private static readonly Color PlateStackColor = new Color(0.80f, 0.80f, 0.78f);
-        private const int PlateStackVisualCount = 4;
+        private const int PlateStackVisualCount = 6;
+        private static readonly Vector3 SinkPosition = new Vector3(3.2f, 0f, -2.4f);
+        private static readonly Color SinkColor = new Color(0.55f, 0.62f, 0.68f);
+        private static readonly Color DirtyPlateColor = new Color(0.45f, 0.36f, 0.25f);
+        private const float SinkPileOffset = 0.2f;
         private static readonly Vector3 BinPosition = new Vector3(4.5f, 0f, 1f);
         private static readonly Color BinColor = new Color(0.25f, 0.55f, 0.30f);
         private const float BinSize = 0.7f;
@@ -393,7 +397,22 @@ namespace Game.Editor
             var plateStack = CreateStation<PlateStackStation>(
                 "PlateStack", PlateStackPosition, CounterSize, CounterHeight,
                 GreyboxAssets.EnsureMaterial("PlateStack", PlateStackColor), stations, settings);
-            GreyboxKitchenware.CreatePlateStackVisual(plateStack.transform, CounterHeight, PlateStackVisualCount);
+            var plateStackDiscs = GreyboxKitchenware.CreatePlatePile(
+                plateStack.transform, CounterHeight, PlateStackVisualCount, GreyboxKitchenware.PlateColor, "Plate", Vector3.zero);
+            var stackPile = new SerializedObject(plateStack.gameObject.AddComponent<PlatePileView>());
+            stackPile.FindProperty("_station").objectReferenceValue = plateStack;
+            SetObjects(stackPile.FindProperty("_clean"), plateStackDiscs);
+            stackPile.ApplyModifiedPropertiesWithoutUndo();
+
+            var sink = CreateStation<SinkStation>(
+                "Sink", SinkPosition, CounterSize, CounterHeight, GreyboxAssets.EnsureMaterial("Sink", SinkColor), stations, settings);
+            var sinkPile = new SerializedObject(sink.gameObject.AddComponent<PlatePileView>());
+            sinkPile.FindProperty("_station").objectReferenceValue = sink;
+            SetObjects(sinkPile.FindProperty("_dirty"), GreyboxKitchenware.CreatePlatePile(
+                sink.transform, CounterHeight, PlateStackVisualCount, DirtyPlateColor, "DirtyPlate", new Vector3(-SinkPileOffset, 0f, 0f)));
+            SetObjects(sinkPile.FindProperty("_clean"), GreyboxKitchenware.CreatePlatePile(
+                sink.transform, CounterHeight, PlateStackVisualCount, GreyboxKitchenware.PlateColor, "Plate", new Vector3(SinkPileOffset, 0f, 0f)));
+            sinkPile.ApplyModifiedPropertiesWithoutUndo();
 
             CreateStation<BinStation>(
                 "Bin", BinPosition, BinSize, BinHeight, GreyboxAssets.EnsureMaterial("Bin", BinColor), stations, settings);
@@ -493,6 +512,13 @@ namespace Game.Editor
             for (var i = 0; i < pips.Length; i++)
                 pipList.GetArrayElementAtIndex(i).objectReferenceValue = pips[i];
             viewSo.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        private static void SetObjects(SerializedProperty property, GameObject[] values)
+        {
+            property.arraySize = values.Length;
+            for (var i = 0; i < values.Length; i++)
+                property.GetArrayElementAtIndex(i).objectReferenceValue = values[i];
         }
 
         private static T CreateStation<T>(
