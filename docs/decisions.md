@@ -7,11 +7,13 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 ## 2026-11-03 — Steep tips; walk-outs cost money
 
 **Decisions (the user's direction; numbers proposed, tunable in `ServiceConfig`):**
-- **Tips reward perfection,** based on the menu price: 100% score → 100% of the price, 99% → 50%, 95% → 20%, 90% → 10%, 80% or below → nothing, blended between. Replaces the earlier "up to 25%, from a 60% score".
+- **Tips reward perfection,** based on the menu price: perfect → 100% of the price, 99% → 50%, 95% → 20%, 90% → 10%, 80% or below → nothing, blended between. Replaces the earlier "up to 25%, from a 60% score".
 - **Walk-outs cost half their order's menu price** (€12 for a steak, €14 with onions), including those who give up in the queue. Money can go negative. Customers turned away at a full door cost nothing.
 - **The wait only reduces the tip when patience drops below 50%,** falling to 40% of the tip at zero. Otherwise some waiting is unavoidable and 100% could never be reached.
 
-**Measured (open question):** the best scores found with the real assets, searching heat, time per side and rest but with a freshly stocked steak: medium-rare 99.78%, medium 99.64%, rare 99.12%, well done 99.01%. That makes the best tips about 89%, 82%, 56% and 50% of the price, so a literal 100% isn't reached today, and the easiest orders tip the most. Tests hold each doneness at 99% or above.
+**Perfect means 99.5% or above** (user's call): the top stop of the curve is at 99.5%, because nothing reaches exactly 100% with the real assets.
+
+**Measured (open question):** the best scores found with the real assets, searching heat, time per side and rest but with a freshly stocked steak: medium-rare 99.78%, medium 99.64%, rare 99.12%, well done 99.01%. With the 99.5% stop, the best tips are 100% of the price for medium-rare and medium, and about 62% and 51% for rare and well done, so the harder orders still tip less. Revisit after playtesting; a fix would change how crust is scored. Tests hold each doneness at 99% or above.
 
 **Reason:** Playtest feedback: tips should matter much more, and letting a customer walk out should hurt.
 

@@ -59,6 +59,8 @@ namespace Game.Tests.EditMode
         }
 
         [TestCase(1.00f, 24f)] // perfect: a whole extra price
+        [TestCase(0.995f, 24f)] // counts as perfect
+        [TestCase(0.9925f, 18f)]
         [TestCase(0.99f, 12f)] // one point off costs half
         [TestCase(0.95f, 5f)]
         [TestCase(0.90f, 2f)]
@@ -68,6 +70,16 @@ namespace Game.Tests.EditMode
         {
             var order = SteakOrder();
             Assert.That(Billing.Calculate(order, Score(score, order), 1f, new PaymentSettings()).Tip, Is.EqualTo(tip));
+        }
+
+        [Test]
+        public void TheServiceConfigCurveCountsNearPerfectAsPerfect()
+        {
+            var config = AssetDatabase.LoadAssetAtPath<ServiceConfig>("Assets/_Project/Data/Settings/ServiceConfig.asset");
+            var order = SteakOrder();
+            var payment = config.ToSettings().Payment;
+            Assert.That(Billing.Calculate(order, Score(0.995f, order), 1f, payment).Tip, Is.EqualTo(24f));
+            Assert.That(Billing.Calculate(order, Score(0.99f, order), 1f, payment).Tip, Is.EqualTo(12f));
         }
 
         [Test]

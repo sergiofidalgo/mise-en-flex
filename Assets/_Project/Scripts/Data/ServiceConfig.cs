@@ -131,7 +131,7 @@ namespace Game.Data
             new TipCurveStop(0.90f, 0.10f),
             new TipCurveStop(0.95f, 0.20f),
             new TipCurveStop(0.99f, 0.50f),
-            new TipCurveStop(1.00f, 1.00f),
+            new TipCurveStop(0.995f, 1.00f),
         };
         [Tooltip("Patience left at or above which the wait doesn't reduce the tip.")]
         [SerializeField, Range(0f, 1f)] private float _slowTipFrom = 0.5f;

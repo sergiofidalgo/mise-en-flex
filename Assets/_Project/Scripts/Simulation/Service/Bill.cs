@@ -13,8 +13,9 @@ namespace Game.Simulation.Service
 
         /// <summary>
         /// Dish score → tip as a fraction of the menu price, ascending by score, blended linearly
-        /// between stops. No tip below the first stop. Perfection is worth a whole extra price,
-        /// and even a small flaw costs most of that (decision 2026-11-03).
+        /// between stops. No tip below the first stop, the full last stop above the last. Perfection
+        /// (from 99.5%, since a real steak always loses a trace of freshness) is worth a whole extra
+        /// price, and even a small flaw costs most of that (decisions 2026-11-03).
         /// </summary>
         public IReadOnlyList<TipStop> TipCurve { get; set; } = new[]
         {
@@ -22,7 +23,7 @@ namespace Game.Simulation.Service
             new TipStop(0.90f, 0.10f),
             new TipStop(0.95f, 0.20f),
             new TipStop(0.99f, 0.50f),
-            new TipStop(1.00f, 1.00f),
+            new TipStop(0.995f, 1.00f),
         };
 
         /// <summary>Patience left at or above which the wait doesn't touch the tip.</summary>
