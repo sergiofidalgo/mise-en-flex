@@ -296,6 +296,81 @@ namespace Game.Tests.EditMode
         }
 
         [Test]
+        public void ACleanPlateGoesBackOnTheStack()
+        {
+            var stack = new PlateStack(0, 3);
+            var hands = Hands(new Plate(3));
+            Assert.That(ItemTransfer.Interact(hands, stack), Is.EqualTo(InteractionOutcome.Placed));
+            Assert.That(hands.IsEmpty);
+            Assert.That(stack.Count, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void EmptyTraysAndContainersGoBackOnTheirRacks()
+        {
+            var trays = new ItemRack(0, () => NewTray(), item => item is Tray tray && tray.IsEmpty);
+            var containers = new ItemRack(0, () => Container(), item => item is FoodContainer container && container.IsEmpty);
+
+            var hands = Hands(NewTray());
+            Assert.That(ItemTransfer.Interact(hands, trays), Is.EqualTo(InteractionOutcome.Placed));
+            Assert.That(hands.IsEmpty);
+
+            hands = Hands(Container());
+            Assert.That(ItemTransfer.Interact(hands, containers), Is.EqualTo(InteractionOutcome.Placed));
+            Assert.That(hands.IsEmpty);
+        }
+
+        [Test]
+        public void AnIngredientGoesBackInStorage()
+        {
+            var fridge = new StorageUnit(4f, new StorageUnit.Slot("Steak", 5));
+            var hands = Hands(Food());
+            Assert.That(ItemTransfer.Interact(hands, fridge), Is.EqualTo(InteractionOutcome.Placed));
+            Assert.That(hands.IsEmpty);
+            Assert.That(fridge.Slots[0].Count, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void ATrayReturnsWhatFitsWhereverItIsOnTheTray()
+        {
+            var fridge = new StorageUnit(4f, new StorageUnit.Slot("Steak", 5));
+            var tray = NewTray();
+            var plate = new Plate(3);
+            tray.Put(Food());
+            tray.Put(Food());
+            tray.Put(plate); // on top of the steaks, and the fridge doesn't take plates
+
+            Assert.That(ItemTransfer.Interact(Hands(tray), fridge), Is.EqualTo(InteractionOutcome.Combined));
+            Assert.That(fridge.Slots[0].Count, Is.EqualTo(2));
+            Assert.That(tray.Items, Is.EqualTo(new Item[] { plate }));
+        }
+
+        [Test]
+        public void ATrayReturnsCleanPlatesBeforeTakingMore()
+        {
+            var stack = new PlateStack(1, 3);
+            var tray = NewTray();
+            tray.Put(new Plate(3));
+            tray.Put(Food()); // on top of the plate
+            var hands = Hands(tray);
+
+            Assert.That(ItemTransfer.Interact(hands, stack), Is.EqualTo(InteractionOutcome.Combined));
+            Assert.That(stack.Count, Is.EqualTo(2));
+            Assert.That(tray.Items, Has.Count.EqualTo(1));
+
+            Assert.That(ItemTransfer.Interact(hands, stack), Is.EqualTo(InteractionOutcome.PickedUp), "nothing left to return");
+            Assert.That(tray.Items, Has.Count.EqualTo(2));
+        }
+
+        [Test]
+        public void EveryIngredientHasSomewhereToGoBack()
+        {
+            var scene = System.IO.File.ReadAllText("Assets/_Project/Scenes/Kitchen_Greybox.unity");
+            foreach (var type in new[] { "Steak", "Onion", "Tomato", "DicedOnion" })
+                Assert.That(scene, Does.Contain($"_typeId: {type}"), $"{type} needs a storage slot");
+        }
+
+        [Test]
         public void RacksTakeBackOnlyEmptyOnesOfTheirKind()
         {
             var rack = new ItemRack(1, () => NewTray(), item => item is Tray tray && tray.IsEmpty);

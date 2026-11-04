@@ -94,10 +94,24 @@ namespace Game.Simulation.Items
             return InteractionOutcome.Nothing;
         }
 
-        // Moves items from the end of `from` into `to` for as long as `to` accepts them.
+        // Moves items from the end of `from` into `to` for as long as `to` accepts them. A tray holds
+        // a mix, so anything on it that `to` takes goes, wherever it is on the tray.
         private static int Pour(IItemCollection from, IItemContainer to)
         {
             var moved = 0;
+            if (from is Tray tray)
+            {
+                for (var i = tray.Items.Count - 1; i >= 0; i--)
+                {
+                    if (!to.CanAccept(tray.Items[i]))
+                        continue;
+                    to.Put(tray.TakeAt(i));
+                    moved++;
+                }
+                return moved;
+            }
+
+
             while (from.Items.Count > 0 && to.CanAccept(from.Items[from.Items.Count - 1]))
             {
                 to.Put(from.Take());

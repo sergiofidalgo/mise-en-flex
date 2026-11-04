@@ -21,6 +21,8 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 - **Daily delivery:** 18 steaks and 8 onions, in fridge slots of 20 + 20 and a shelf slot of 12 onions. Food stored starts at 0, then the first delivery arrives on day 1.
 - **Food in a container doesn't count as "left out" overnight.**
 
+**Returning things:** clean plates, empty trays and containers go back to their piles, and ingredients back to storage. A tray returns everything on it that fits, wherever it is on the tray. Diced onion has a fridge slot (10), so cut food can be put away too.
+
 **Not built:** shopping and choosing what to buy, so deliveries are still fixed, and leftovers can pile up.
 
 ---

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using Game.Simulation.Items;
 
 namespace Game.Gameplay.Stations
@@ -35,6 +36,15 @@ namespace Game.Gameplay.Stations
         public void DescribeActions(PlayerInteractor player, List<PromptLine> lines)
         {
             var held = player.Hands.Current;
+            if (held is Tray tray)
+            {
+                if (tray.Items.Any(Stack.CanAccept))
+                    lines.Add(new PromptLine(PromptControl.South, "put plates back"));
+                else
+                    lines.Add(new PromptLine(PromptControl.South, $"take plate ({Stack.Count})", Stack.CanTake && tray.HasRoom));
+                return;
+            }
+
             if (held != null)
             {
                 lines.Add(new PromptLine(PromptControl.South, "put plate back", Stack.CanAccept(held)));

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Game.Simulation.Cooking;
 using Game.Simulation.Items;
 using Game.Simulation.Storage;
@@ -129,7 +130,7 @@ namespace Game.Gameplay.Stations
                 var held = player.Hands.Current;
                 lines.Add(new PromptLine(PromptControl.Triggers, "open", held == null || (held is Tray openTray && openTray.HasRoom)));
                 if (held is Tray tray)
-                    lines.Add(new PromptLine(PromptControl.South, "put back", !tray.IsEmpty && _unit.CanAccept(tray.Items[tray.Items.Count - 1])));
+                    lines.Add(new PromptLine(PromptControl.South, "put back", tray.Items.Any(_unit.CanAccept)));
                 else if (held != null)
                     lines.Add(new PromptLine(PromptControl.South, "put back", _unit.CanAccept(held)));
                 return;
