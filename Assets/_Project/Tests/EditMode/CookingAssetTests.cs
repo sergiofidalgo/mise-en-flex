@@ -19,6 +19,42 @@ namespace Game.Tests.EditMode
         private const string RealismPath = "Assets/_Project/Data/Settings/RealismSettings.asset";
         private const float Minute = 60f;
 
+        // Food left on the heat burns. Cooked first, then a short window, then ruined.
+        [TestCase(1f)]
+        [TestCase(0.7f)]
+        public void DicedOnionBurnsIfLeftOnTheHeat(float dial)
+        {
+            var onion = AssetDatabase.LoadAssetAtPath<IngredientDefinition>("Assets/_Project/Data/Ingredients/ING_DicedOnion.asset");
+            var equipment = AssetDatabase.LoadAssetAtPath<EquipmentTier>(EquipmentPath);
+            var tuning = AssetDatabase.LoadAssetAtPath<TuningConfig>(TuningPath);
+
+            var sim = new CookingSimulation(tuning.AmbientTemperature);
+            var hob = sim.AddHob(equipment.Hob);
+            var pan = sim.AddPan(equipment.Pan);
+            hob.PlacePan(pan);
+            hob.Dial = dial;
+            sim.Tick(4f * Minute);
+
+            var food = sim.AddIngredient(onion.ToProperties());
+            pan.Put(food);
+            float? cookedAt = null;
+            float? burntAt = null;
+            for (var t = 0f; t < 60f * Minute && !burntAt.HasValue; t += 1f)
+            {
+                sim.Tick(1f);
+                if (!cookedAt.HasValue && food.Doneness?.Name == "Cooked")
+                    cookedAt = t;
+                if (food.IsBurnt)
+                    burntAt = t;
+            }
+
+            UnityEngine.Debug.Log($"[OnionBurn] dial {dial}: cooked at {cookedAt}s, burnt at {burntAt}s (60 = 1 real second)");
+            Assert.That(burntAt, Is.Not.Null, "it burns");
+            Assert.That(cookedAt, Is.Not.Null, "it gets cooked first");
+            Assert.That(burntAt.Value, Is.GreaterThan(cookedAt.Value + 1f * Minute), "at least a real second to react");
+            Assert.That(burntAt.Value, Is.LessThan(cookedAt.Value + 20f * Minute), "it doesn't take forever");
+        }
+
         [Test]
         public void SteakAssetIsMediumRareAtThreeMinutesPerSideInPreheatedPan()
         {

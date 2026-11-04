@@ -69,7 +69,11 @@ namespace Game.Presentation
                 return;
 
             var burnt = Mathf.Max(ingredient.Properties.BurntBrowning, 0.0001f);
-            var browning = ingredient.Browning(ingredient.UpSide) / burnt;
+            // Layered food shows the side facing up, since it gets flipped. Loose food like diced
+            // onion gets stirred, not flipped, so it shows its darkest side, or a burn would never show.
+            var browning = (_bands.Length >= 3
+                ? ingredient.Browning(ingredient.UpSide)
+                : Mathf.Max(ingredient.Browning(IngredientSide.A), ingredient.Browning(IngredientSide.B))) / burnt;
             SetColor(_surface, ColorStop.Sample(_browning, browning, _surfaceRaw, 0f));
 
             if (_bands.Length < 3)

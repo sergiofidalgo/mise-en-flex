@@ -28,6 +28,10 @@ namespace Game.Editor
             director.FindProperty("_spawnPoint").objectReferenceValue = spawn;
             director.ApplyModifiedPropertiesWithoutUndo();
 
+            var pushes = new SerializedObject(zone.AddComponent<PushResolver>());
+            pushes.FindProperty("_director").objectReferenceValue = zone.GetComponent<StaffDirector>();
+            pushes.ApplyModifiedPropertiesWithoutUndo();
+
             var menu = new SerializedObject(zone.AddComponent<HiringMenu>());
             menu.FindProperty("_root").objectReferenceValue = root;
             menu.FindProperty("_dayLoop").objectReferenceValue = root.GetComponent<DayLoop>();

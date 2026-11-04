@@ -62,6 +62,7 @@ namespace Game.Presentation.Hud
         [SerializeField] private NamedColor[] _donenessColors =
         {
             new NamedColor("Raw", new Color(0.62f, 0.55f, 0.85f)),
+            new NamedColor("Burnt", new Color(0.35f, 0.33f, 0.33f)),
             new NamedColor("Rare", new Color(0.95f, 0.25f, 0.28f)),
             new NamedColor("Medium-rare", new Color(1.00f, 0.52f, 0.66f)),
             new NamedColor("Medium", new Color(0.98f, 0.72f, 0.46f)),

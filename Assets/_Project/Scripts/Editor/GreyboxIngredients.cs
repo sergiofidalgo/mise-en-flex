@@ -98,7 +98,7 @@ namespace Game.Editor
                     so.FindProperty("_surfaceCoreConductance").floatValue = 2.5f;
                     so.FindProperty("_panContactConductance").floatValue = 7f;
                     so.FindProperty("_airConductance").floatValue = 0.6f;
-                    so.FindProperty("_browningRate").floatValue = 1f / 30000f;
+                    so.FindProperty("_browningRate").floatValue = 1f / 14000f;
                     so.FindProperty("_freshnessLossPerHourAt20C").floatValue = 1f / 48f;
                     SetDoneness(so, ("Softened", 80f, 85f), ("Cooked", 92f, 92f));
                 },

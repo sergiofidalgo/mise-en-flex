@@ -6,13 +6,15 @@ using Game.Simulation.Items;
 using Game.Simulation.Movement;
 using Game.Simulation.Staff;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 namespace Game.Gameplay.Staff
 {
     /// <summary>
     /// Puts the hired staff in the kitchen each morning and runs them while the kitchen is live:
     /// walking them around the furniture to where their job says, showing what they carry and
-    /// reporting arrivals. Staff use the same stations as players (decision 2026-11-04).
+    /// reporting arrivals. Staff use the same stations as players (decision 2026-11-04). Pushed away
+    /// from what they're doing, they stop, walk back when there's space, and carry on.
     /// </summary>
     public sealed class StaffDirector : MonoBehaviour
     {
@@ -29,13 +31,24 @@ namespace Game.Gameplay.Staff
         [SerializeField, Min(0f)] private float _stationHalfSize = 0.5f;
         [Tooltip("How much room a walking staff member takes.")]
         [SerializeField, Min(0f)] private float _walkerRadius = 0.3f;
+        [Tooltip("Metres from a spot that counts as there, when someone's already standing on it.")]
+        [SerializeField, Min(0f)] private float _shareSpotDistance = 0.8f;
+        [Tooltip("Metres off their spot that counts as being pushed away from what they're doing.")]
+        [SerializeField, Min(0f)] private float _pushedAwayDistance = 0.15f;
+        [Tooltip("Metres between staff arriving, so nobody starts inside anyone else.")]
+        [SerializeField, Min(0f)] private float _arrivalSpacing = 0.9f;
         [Tooltip("Half the room's width and depth: staff stay inside.")]
         [SerializeField] private Vector2 _roomHalfSize = new Vector2(4.6f, 3.6f);
 
         private readonly List<StaffAgent> _agents = new List<StaffAgent>();
         private readonly Dictionary<object, Interactable> _stations = new Dictionary<object, Interactable>();
         private readonly Dictionary<StaffAgent, Route> _routes = new Dictionary<StaffAgent, Route>();
+        private readonly List<System.Numerics.Vector2> _others = new List<System.Numerics.Vector2>();
         private StationLayout _layout;
+
+        /// <summary>Everyone currently working in the kitchen.</summary>
+        public IReadOnlyList<StaffAgent> Agents => _agents;
+
         private Interactable[] _allStations;
         private PassStation[] _passes;
         private SinkStation _sink;
@@ -112,11 +125,27 @@ namespace Game.Gameplay.Staff
                 var job = CreateJob(member);
                 job.ItemGone += HandleItemGone;
                 job.FoodChanged += HandleFoodChanged;
-                var agent = Instantiate(_agentPrefab, _spawnPoint.position, _spawnPoint.rotation);
+                var agent = Instantiate(_agentPrefab, FreeArrivalSpot(), _spawnPoint.rotation);
+                agent.IsFree = _layout.IsFree;
                 agent.name = $"Staff_{member.Name}";
                 agent.Initialize(member, job);
                 _agents.Add(agent);
             }
+        }
+
+        private bool IsInterrupted(StaffAgent agent, IStaffJob job) =>
+            job.Target != null && _routes.TryGetValue(agent, out var route) && route.Target == job.Target && route.Interrupted;
+
+        // The arrival point, or a step along from it if someone's already there.
+        private Vector3 FreeArrivalSpot()
+        {
+            for (var i = 0; i < 8; i++)
+            {
+                var spot = _spawnPoint.position + Vector3.left * (_arrivalSpacing * i);
+                if (_layout.IsFree(Floor(spot)) && _agents.All(a => (a.transform.position - spot).magnitude >= _arrivalSpacing))
+                    return spot;
+            }
+            return _spawnPoint.position;
         }
 
         private IStaffJob CreateJob(StaffMember member)
@@ -162,11 +191,21 @@ namespace Game.Gameplay.Staff
             foreach (var agent in _agents)
             {
                 var job = agent.Job;
-                job.Tick(gameSeconds);
+                agent.Intent = System.Numerics.Vector2.Zero;
+
+                // Pushed away from the board, the sink...: the work waits until they're back.
+                if (!IsInterrupted(agent, job))
+                    job.Tick(gameSeconds);
 
                 if (job.Target != null && _stations.TryGetValue(job.Target, out var station))
                 {
-                    if (WalkRoute(agent, job.Target, station, step))
+                    if (!_routes.TryGetValue(agent, out var route) || route.Target != job.Target)
+                    {
+                        route = new Route { Target = job.Target, Points = PlanRoute(agent, station) };
+                        _routes[agent] = route;
+                    }
+
+                    if (WalkRoute(agent, route, station, step))
                     {
                         agent.Face(station.transform.position - agent.transform.position);
                         job.Arrived();
@@ -183,24 +222,81 @@ namespace Game.Gameplay.Staff
             }
         }
 
-        // Walks along the route to the job's target, working a new one out when the target changes.
-        // Returns true once they've reached the end.
-        private bool WalkRoute(StaffAgent agent, object target, Interactable station, float step)
+        // Walks along the route to the job's target, giving way to other people, and works a new one
+        // out when the target changes or they've been moved off it. True once they've arrived.
+        private bool WalkRoute(StaffAgent agent, Route route, Interactable station, float step)
         {
-            if (!_routes.TryGetValue(agent, out var route) || route.Target != target)
+            var here = Floor(agent.transform.position);
+
+            // Pushed off the spot they were working from: they stop and go back.
+            if (route.Next >= route.Points.Count)
             {
-                route = new Route { Target = target, Points = PlanRoute(agent, station) };
-                _routes[agent] = route;
+                if (route.Points.Count == 0 || (route.Points[route.Points.Count - 1] - here).Length() <= _pushedAwayDistance)
+                    return true;
+                route.Interrupted = true;
+                route.Points = PlanRoute(agent, station);
+                route.Next = 0;
+                if (route.Points.Count == 0)
+                    return false;
             }
 
-            while (route.Next < route.Points.Count)
+            var point = route.Points[route.Next];
+            CollectOthers(agent);
+
+            // Someone's standing where they need to be. Starting a job, close enough will do.
+            // Going back to one they were pushed from, they wait for the space.
+            if (route.Next == route.Points.Count - 1 && (point - here).Length() <= _shareSpotDistance && SomeoneAt(point))
             {
-                var point = route.Points[route.Next];
-                if (!agent.WalkTowards(new Vector3(point.X, 0f, point.Y), step, ArriveDistance))
+                if (route.Interrupted)
                     return false;
-                route.Next++;
+                route.Points[route.Next] = here;
+                route.Next = route.Points.Count;
+                return true;
             }
-            return true;
+
+            var next = Steering.Step(here, point, step, _others, _layout.IsFree);
+            agent.Intent = next - here;
+            agent.Face(new Vector3(next.X - here.X, 0f, next.Y - here.Y));
+            agent.transform.position = new Vector3(next.X, agent.transform.position.y, next.Y);
+
+            if ((point - next).Length() <= ArriveDistance)
+            {
+                route.Next++;
+                if (route.Next < route.Points.Count)
+                    return false;
+                route.Interrupted = false;
+                return true;
+            }
+
+            // Off course, round someone or pushed: find the way again.
+            if (!_layout.IsClear(next, point))
+            {
+                route.Points = PlanRoute(agent, station);
+                route.Next = 0;
+            }
+            return false;
+        }
+
+        private void CollectOthers(StaffAgent agent)
+        {
+            _others.Clear();
+            foreach (var other in _agents)
+            {
+                if (other != agent)
+                    _others.Add(Floor(other.transform.position));
+            }
+            foreach (var player in PlayerInput.all)
+                _others.Add(Floor(player.transform.position));
+        }
+
+        private bool SomeoneAt(System.Numerics.Vector2 point)
+        {
+            foreach (var other in _others)
+            {
+                if ((other - point).Length() < Steering.BodyDistance)
+                    return true;
+            }
+            return false;
         }
 
         private List<System.Numerics.Vector2> PlanRoute(StaffAgent agent, Interactable station)
@@ -222,6 +318,9 @@ namespace Game.Gameplay.Staff
             public object Target;
             public List<System.Numerics.Vector2> Points;
             public int Next;
+
+            // Pushed away from what they were doing: the job waits until they're back.
+            public bool Interrupted;
         }
     }
 }

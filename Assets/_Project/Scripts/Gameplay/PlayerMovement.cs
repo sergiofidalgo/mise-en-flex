@@ -10,7 +10,7 @@ namespace Game.Gameplay
     /// the simulation's <see cref="PlanarMover"/>.
     /// </summary>
     [RequireComponent(typeof(CharacterController), typeof(PlayerInput))]
-    public sealed class PlayerMovement : MonoBehaviour
+    public sealed class PlayerMovement : MonoBehaviour, IPushable
     {
         private const string MoveActionName = "Move";
 
@@ -27,6 +27,22 @@ namespace Game.Gameplay
 
         public PlanarMover Mover => _mover;
 
+        public bool IsReady => _controller != null;
+
+        public Vector3 Position => transform.position;
+
+        public System.Numerics.Vector2 Intent { get; private set; }
+
+        public float BodyRadius => _controller.radius;
+
+        public System.Numerics.Vector2 Shove(System.Numerics.Vector2 shift)
+        {
+            var before = transform.position;
+            _controller.Move(new Vector3(shift.X, 0f, shift.Y));
+            var moved = transform.position - before;
+            return new System.Numerics.Vector2(moved.x, moved.z);
+        }
+
         // Start, not Awake: by now PlayerInput has set up this player's own copy of the
         // actions, and the join controller has placed us on our spawn point.
         private void Start()
@@ -35,6 +51,13 @@ namespace Game.Gameplay
             _move = GetComponent<PlayerInput>().actions[MoveActionName];
             _interactor = GetComponent<Stations.PlayerInteractor>();
             _mover = new PlanarMover(_tuning.Movement, transform.eulerAngles.y);
+
+            // Chefs don't block each other through physics: PushResolver lets them push instead.
+            foreach (var other in FindObjectsByType<PlayerMovement>(FindObjectsSortMode.None))
+            {
+                if (other != this && other._controller != null)
+                    Physics.IgnoreCollision(_controller, other._controller);
+            }
         }
 
         private void Update()
@@ -56,6 +79,7 @@ namespace Game.Gameplay
                 : _verticalSpeed + Physics.gravity.y * deltaTime;
 
             var velocity = _mover.Velocity;
+            Intent = new System.Numerics.Vector2(velocity.X, velocity.Y) * deltaTime;
             _controller.Move(new Vector3(velocity.X, _verticalSpeed, velocity.Y) * deltaTime);
             transform.rotation = Quaternion.Euler(0f, _mover.FacingDegrees, 0f);
         }

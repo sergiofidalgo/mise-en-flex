@@ -17,6 +17,7 @@ namespace Game.Presentation.Hud
     public sealed class DonenessTagHud : MonoBehaviour
     {
         private const string RawName = "Raw";
+        private const string BurntName = "Burnt";
 
         [SerializeField] private RectTransform _canvas;
         [SerializeField] private HudStyle _style;
@@ -49,7 +50,7 @@ namespace Game.Presentation.Hud
                     continue;
                 }
 
-                tag.Show(TextFor(food.Doneness?.Name ?? RawName), view.transform.position, camera, _canvas);
+                tag.Show(TextFor(food.IsBurnt ? BurntName : food.Doneness?.Name ?? RawName), view.transform.position, camera, _canvas);
             }
         }
 
