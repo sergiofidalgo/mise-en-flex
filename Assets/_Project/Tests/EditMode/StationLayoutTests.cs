@@ -130,5 +130,28 @@ namespace Game.Tests.EditMode
                 EditorSceneManager.CloseScene(scene, true);
             }
         }
+
+        [Test]
+        public void ARouteGoesToASideThatCanBeWalkedTo()
+        {
+            // Its side nearest the middle of the room is a nook sealed off by a wall of counters.
+            var counter = new Footprint(new Vector2(0f, 2f));
+            var wall = new[] { -4f, -3f, -2f, -1f, 1f, 2f, 3f, 4f }.Select(x => new Vector2(x, 2f)).ToList();
+            var layout = new StationLayout(wall.Concat(new[] { new Vector2(0f, 2f) }).Select(c => new Footprint(c)), new Vector2(4.6f, 3.6f), 0.5f, 0.3f, 0.85f);
+
+            var route = layout.FindPathTo(new Vector2(0f, 3.2f), counter);
+            Assert.That(route, Is.Not.Null);
+            Assert.That(route.Last().Y, Is.GreaterThan(2f), "from the side they can get to");
+        }
+
+        [Test]
+        public void AStationClosedOffOnEverySideHasNoRoute()
+        {
+            var wall = new[] { -4f, -3f, -2f, -1f, 0f, 1f, 2f, 3f, 4f }.Select(x => new Footprint(new Vector2(x, 0f)));
+            var far = new Footprint(new Vector2(2f, 2.4f));
+            var layout = new StationLayout(wall.Concat(new[] { far }), new Vector2(4.6f, 3.6f), 0.5f, 0.3f, 0.85f);
+
+            Assert.That(layout.FindPathTo(new Vector2(0f, -2f), far), Is.Null);
+        }
     }
 }

@@ -85,7 +85,6 @@ namespace Game.Presentation.Hud
                     Placement.OutsideTheKitchen => "outside the kitchen",
                     Placement.OnAnotherStation => "something's there",
                     Placement.SomeoneInTheWay => "someone's in the way",
-                    Placement.BlocksAStation => "that would block something",
                     _ => null,
                 };
                 return problem != null

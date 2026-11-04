@@ -40,6 +40,8 @@ namespace Game.Gameplay.Staff
         [SerializeField, Min(0f)] private float _contactMargin = 0.2f;
         [Tooltip("Real seconds after being pushed before they start back to their work.")]
         [SerializeField, Min(0f)] private float _returnDelay = 0.8f;
+        [Tooltip("Seconds between looks for a way to a station they can't reach.")]
+        [SerializeField, Min(0.1f)] private float _noWayRetrySeconds = 1f;
         [Tooltip("Metres between staff arriving, so nobody starts inside anyone else.")]
         [SerializeField, Min(0f)] private float _arrivalSpacing = 0.9f;
         [Tooltip("Half the room's width and depth: staff stay inside.")]
@@ -249,15 +251,27 @@ namespace Game.Gameplay.Staff
         {
             var here = Floor(agent.transform.position);
 
+            // The layout has shut them out: they stand and wait, and the players see why.
+            if (route.Points == null)
+            {
+                if (Time.time < route.RetryAt)
+                    return false;
+                route.Points = PlanRoute(agent, station);
+                route.Next = 0;
+                route.RetryAt = Time.time + _noWayRetrySeconds;
+                if (route.Points == null)
+                    return false;
+            }
+
             // Pushed off the spot they were working from: they stop and go back.
             if (route.Next >= route.Points.Count)
             {
-                if (route.Points.Count == 0 || (route.Points[route.Points.Count - 1] - here).Length() <= _pushedAwayDistance)
+                if ((route.Points[route.Points.Count - 1] - here).Length() <= _pushedAwayDistance)
                     return true;
                 route.Interrupted = true;
                 route.Points = PlanRoute(agent, station);
                 route.Next = 0;
-                if (route.Points.Count == 0)
+                if (route.Points == null)
                     return false;
             }
 
@@ -333,13 +347,7 @@ namespace Game.Gameplay.Staff
         private List<System.Numerics.Vector2> PlanRoute(StaffAgent agent, Interactable station)
         {
             var here = Floor(agent.transform.position);
-            var spot = _layout.StandingSpot(new Footprint(Floor(station.transform.position), station.transform.eulerAngles.y));
-            var route = spot.HasValue ? _layout.FindPath(here, spot.Value) : null;
-            if (route != null)
-                return route;
-
-            Debug.LogWarning($"[StaffDirector] {agent.name} has no way to reach {station.name}.");
-            return new List<System.Numerics.Vector2>();
+            return _layout.FindPathTo(here, new Footprint(Floor(station.transform.position), station.transform.eulerAngles.y));
         }
 
         private static System.Numerics.Vector2 Floor(Vector3 position) => new System.Numerics.Vector2(position.x, position.z);
@@ -355,6 +363,9 @@ namespace Game.Gameplay.Staff
 
             // When they may start back, once nobody's pressing against them.
             public float ReturnAt;
+
+            // With no way there, when to look for one again.
+            public float RetryAt;
         }
     }
 }

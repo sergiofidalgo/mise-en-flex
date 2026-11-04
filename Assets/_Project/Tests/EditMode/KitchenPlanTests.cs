@@ -11,7 +11,7 @@ namespace Game.Tests.EditMode
 
         private static KitchenPlan Plan() => new KitchenPlan(
             new Vector2(4.6f, 3.6f), new Vector2(-4.4f, -2.4f), new Vector2(4.4f, 3.4f),
-            snapRange: 0.15f, stationHalfSize: 0.5f, walkerRadius: 0.3f, standDistance: 0.85f);
+            snapRange: 0.15f, stationHalfSize: 0.5f, walkerRadius: 0.3f);
 
         private static void AssertNear(Vector2 actual, Vector2 expected) =>
             Assert.That((actual - expected).Length(), Is.LessThan(0.001f), $"{actual} should be {expected}");
@@ -138,95 +138,33 @@ namespace Game.Tests.EditMode
             Assert.That(plan.Check(piece, new Vector2(2f, 2f), 0f, new[] { new Vector2(2.2f, 2f) }), Is.EqualTo(Placement.SomeoneInTheWay));
         }
 
-        // A wall of counters right across the room, with one piece left to close the gap.
-        private static (KitchenPlan Plan, object Last) AlmostAWall()
+        [Test]
+        public void ALayoutCanCloseThingsOffAndPlayersFindOutByPlaying()
         {
+            // A wall of counters right across the room, with a chef and a station on either side.
             var plan = Plan();
             for (var x = -4f; x <= 4f; x += 1f)
             {
                 if (x != 0f)
                     plan.Add(new object(), new Vector2(x, 0f));
             }
+            plan.Add(new object(), new Vector2(2f, 2.4f));
             var last = new object();
             plan.Add(last, new Vector2(0f, 3f));
-            return (plan, last);
+
+            var chefs = new[] { new Vector2(0f, -2f), new Vector2(0f, 2f) };
+            Assert.That(plan.Check(last, new Vector2(0f, 0f), 0f, chefs), Is.EqualTo(Placement.Ok));
         }
 
         [Test]
-        public void ItCantCutAStationOff()
-        {
-            var (plan, last) = AlmostAWall();
-            // One on each side: the wall itself can be reached from either, these only from theirs.
-            plan.Add(new object(), new Vector2(2f, -2.4f));
-            plan.Add(new object(), new Vector2(2f, 2.4f));
-
-            Assert.That(plan.Check(last, new Vector2(0f, 0f), 0f, Nobody), Is.EqualTo(Placement.BlocksAStation));
-        }
-
-        [Test]
-        public void ItCantWallSomeoneIn()
-        {
-            var (plan, last) = AlmostAWall();
-            plan.Add(new object(), new Vector2(2f, 2.4f)); // only reachable from the north
-
-            Assert.That(plan.Check(last, new Vector2(0f, 0f), 0f, Nobody), Is.EqualTo(Placement.Ok), "nobody's cut off");
-            Assert.That(plan.Check(last, new Vector2(0f, 0f), 0f, new[] { new Vector2(0f, -2f) }), Is.EqualTo(Placement.BlocksAStation), "a chef would be");
-            Assert.That(plan.Check(last, new Vector2(0f, 0f), 0f, new[] { new Vector2(0f, -2f), new Vector2(0f, 2f) }), Is.EqualTo(Placement.BlocksAStation), "two chefs apart");
-        }
-
-        // Three hobs along the north wall, working from the south.
-        private static (KitchenPlan Plan, object Left, object Right) HobsOnTheWall()
+        public void AHobCanBeBoxedIn()
         {
             var plan = Plan();
-            var left = new object();
-            var middle = new object();
-            var right = new object();
-            plan.Add(left, new Vector2(1f, 3.4f));
-            plan.Add(middle, new Vector2(2f, 3.4f));
-            plan.Add(right, new Vector2(3f, 3.4f));
-            plan.GiveFront(left);
-            plan.GiveFront(middle);
-            plan.GiveFront(right);
-            return (plan, left, right);
-        }
-
-        [Test]
-        public void AHobsFrontFacesTheRoom()
-        {
-            var (plan, left, _) = HobsOnTheWall();
-            var front = plan.FrontOf(left).Value;
-            Assert.That((front - new Vector2(1f, 2.55f)).Length(), Is.LessThan(0.001f));
-        }
-
-        [Test]
-        public void AHobCantBeBoxedInByAnotherHob()
-        {
-            // The reported layout: an L of hobs, with the corner hob's front blocked.
-            var (plan, _, right) = HobsOnTheWall();
-            Assert.That(plan.Check(right, new Vector2(1f, 2.4f), 0f, Nobody), Is.EqualTo(Placement.BlocksAStation));
-        }
-
-        // The reported layout: three hobs around one chef, the island just below them.
-        private static (KitchenPlan Plan, object Right) ThreeHobsAroundAChef()
-        {
-            var (plan, left, right) = HobsOnTheWall();
-            plan.Add(new object(), new Vector2(1.5f, 0.8f));
-            plan.Move(left, new Vector2(1f, 2.4f), 270f);
-            return (plan, right);
-        }
-
-        [Test]
-        public void ThreeHobsCanShareAChefInTheMiddle()
-        {
-            var (plan, right) = ThreeHobsAroundAChef();
-            Assert.That(plan.Check(right, new Vector2(3f, 2.4f), 90f, Nobody), Is.EqualTo(Placement.Ok));
-        }
-
-        [Test]
-        public void TheMiddleStillHasToFitAChef()
-        {
-            var (plan, right) = ThreeHobsAroundAChef();
-            Assert.That(plan.Check(right, new Vector2(2.7f, 2.4f), 90f, Nobody), Is.EqualTo(Placement.BlocksAStation));
+            var hob = new object();
+            var other = new object();
+            plan.Add(hob, new Vector2(1f, 3.4f));
+            plan.Add(other, new Vector2(1f, 1f));
+            Assert.That(plan.Check(other, new Vector2(1f, 2.4f), 0f, Nobody), Is.EqualTo(Placement.Ok));
         }
 
         [Test]
@@ -235,55 +173,6 @@ namespace Game.Tests.EditMode
             var counter = new Footprint(Vector2.Zero);
             Assert.That(counter.Contains(new Vector2(0.75f, 0f), 0.5f, 0.3f), Is.True, "beside its edge");
             Assert.That(counter.Contains(new Vector2(0.75f, 0.75f), 0.5f, 0.3f), Is.False, "past its corner");
-        }
-
-        [Test]
-        public void ACounterOnlyNeedsOneSideToBeReachable()
-        {
-            // Its nearest side to the room is a closed nook behind the hob; the other is open.
-            var (plan, right) = ThreeHobsAroundAChef();
-            plan.Add(new object(), new Vector2(4.4f, 3.4f));
-            Assert.That(plan.Check(right, new Vector2(3f, 2.4f), 90f, Nobody), Is.EqualTo(Placement.Ok));
-        }
-
-        [Test]
-        public void ItSaysWhatWouldBeCutOff()
-        {
-            // A bin closes the last way to the corner counter.
-            var (plan, right) = ThreeHobsAroundAChef();
-            var corner = new object();
-            plan.Add(corner, new Vector2(4.4f, 3.4f));
-            plan.Add(new object(), new Vector2(4.5f, 1f));
-
-            var blocked = new System.Collections.Generic.List<object>();
-            Assert.That(plan.Check(right, new Vector2(3f, 2.4f), 90f, Nobody, blocked), Is.EqualTo(Placement.BlocksAStation));
-            Assert.That(blocked, Is.EquivalentTo(new[] { corner }));
-        }
-
-        [Test]
-        public void TurningAHobTurnsItsFront()
-        {
-            var plan = Plan();
-            var hob = new object();
-            plan.Add(hob, new Vector2(0f, 3.4f));
-            plan.GiveFront(hob);
-            plan.Move(hob, new Vector2(0f, 0f), 90f);
-
-            var front = plan.FrontOf(hob).Value;
-            Assert.That(Vector2.Dot(front, Vector2.UnitY), Is.EqualTo(0f).Within(0.001f), "no longer south");
-            Assert.That(front.Length(), Is.EqualTo(0.85f).Within(0.001f));
-        }
-
-        [Test]
-        public void ACounterCanStillBeReachedFromAnySide()
-        {
-            var plan = Plan();
-            var counter = new object();
-            var other = new object();
-            plan.Add(counter, new Vector2(1f, 3.4f));
-            plan.Add(other, new Vector2(3f, 1f));
-            // Right in front of the counter: fine, it has other sides.
-            Assert.That(plan.Check(other, new Vector2(1f, 2.4f), 0f, Nobody), Is.EqualTo(Placement.Ok));
         }
 
         [Test]

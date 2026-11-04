@@ -20,12 +20,11 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 - **RB and LB rotate by 45 degrees (user's call).** Keyboard: C and Z. Turned stations take up their own shape, can't poke through walls, and snap to neighbours turned the same way.
 - **Furniture under a cursor lights up,** just as when a chef walks up to it (user's call). It keeps its own colour and only gets brighter: tinting it towards the player's colour was confusing. This replaces the player-colour tint from Phase 0 for chefs too.
 - **Anything can be moved,** and what's on a station moves with it. Two players can't hold the same station.
-- **Placements are refused** outside the kitchen, on another station, on a person, or if they'd cut off a station or wall someone in. The reason shows at the cursor.
+- **Placements are refused** outside the kitchen, on another station, or on a person. The reason shows at the cursor.
+- **A layout is never refused for being bad (user's call):** a blocked hob, a cut-off counter or a walled-in chef are all allowed, and players find out by walking it. This replaces the earlier rules that work stations keep a clear front and that nothing gets cut off. Learning by playing beats being prevented. A helper with no way to a station stands and waits rather than working from a distance.
 - **The pass only slides along its row,** and its stool follows, because customers sit on the dining side.
 - **The pass doesn't turn,** since it faces the stools.
-- **Work stations have a front (user's call: a boxed-in hob can't be allowed).** Hobs, the board, the sink, the fridge and the shelf need the side facing the room kept clear, and that side turns with them. Counters, piles and racks only need some side free.
-- **What's carried turns red where it can't go (user's call),** and the floor frame only shows while choosing what to pick up. Whatever it would cut off turns red too, so "that would block something" shows what (proposed, flagged for review).
-- **Hobs can share a chef (user's call):** three hobs around one spot are fine as long as each front is clear and a chef can get in. The check now rounds the corners of the clearance around furniture, and a counter counts as reachable from any free side rather than only the one nearest the middle of the room.
+- **What's carried turns red where it can't go (user's call),** and the floor frame only shows while choosing what to pick up.
 - **What's carried stays on the floor (user's call):** lifted, the angled camera drew it away from where it would land. Being carried shows through brightness, or red.
 - **Service stops rearranging:** management mode isn't available during Service or Review.
 

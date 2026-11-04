@@ -15,7 +15,7 @@ namespace Game.Gameplay.Stations
         [SerializeField] private Transform _itemAnchor;
 
         private readonly List<PlayerInteractor> _targeters = new List<PlayerInteractor>();
-        private bool _markedRed;
+        private bool _cantGoHere;
 
         /// <summary>What Interact takes from and puts into. Null until bound.</summary>
         public abstract IItemContainer Container { get; }
@@ -29,15 +29,15 @@ namespace Game.Gameplay.Stations
 
         public event Action HighlightChanged;
 
-        /// <summary>In management mode: carried somewhere it can't go, or about to be cut off by what is.</summary>
-        public bool MarkedRed
+        /// <summary>Being carried in management mode, somewhere it can't be put down.</summary>
+        public bool CantGoHere
         {
-            get => _markedRed;
+            get => _cantGoHere;
             set
             {
-                if (_markedRed == value)
+                if (_cantGoHere == value)
                     return;
-                _markedRed = value;
+                _cantGoHere = value;
                 HighlightChanged?.Invoke();
             }
         }

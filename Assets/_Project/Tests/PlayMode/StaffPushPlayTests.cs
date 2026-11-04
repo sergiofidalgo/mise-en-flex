@@ -127,7 +127,7 @@ namespace Game.Tests.PlayMode
             var cursor = editor.Enter(_player);
             cursor.Position = new System.Numerics.Vector2(start.x, start.z);
             editor.PickUp(cursor);
-            // Open floor south-east of the island: its front and everyone else's stay clear, even turned.
+            // Open floor south-east of the island.
             var away = new System.Numerics.Vector2(2.5f - start.x, -0.4f - start.z);
             editor.MoveCursor(cursor, away);
             Assert.That(editor.Place(cursor), Is.True, cursor.Result.ToString());

@@ -22,7 +22,6 @@ namespace Game.Simulation.Movement
         private readonly int _width;
         private readonly int _height;
         private bool[] _freeCells;
-        private int[] _regions;
 
         public StationLayout(IEnumerable<Vector2> stations, Vector2 roomHalfSize, float stationHalfSize, float walkerRadius, float standDistance)
             : this(stations.Select(centre => new Footprint(centre)), roomHalfSize, stationHalfSize, walkerRadius, standDistance)
@@ -104,95 +103,19 @@ namespace Game.Simulation.Movement
         }
 
         /// <summary>
-        /// Which of these can't be reached, given that everything has to connect on foot. Each need
-        /// is the places that would do: one for a hob's front or a person, any free side for a
-        /// counter. The floor is split into regions you can walk around in, and the region most
-        /// needs can use is the room; what can't use it is cut off.
+        /// A route to the first side of this station that can be walked to, nearest the middle of
+        /// the room first. A layout can leave some sides, or all of them, closed off.
         /// </summary>
-        /// <returns>The indices of the needs that are cut off.</returns>
-        public List<int> CutOff(IReadOnlyList<IReadOnlyList<Vector2>> needs)
+        /// <returns>The points to walk to in order, or null if it can't be reached.</returns>
+        public List<Vector2> FindPathTo(Vector2 from, Footprint station)
         {
-            var regions = Regions();
-            var reachable = new List<HashSet<int>>();
-            var uses = new Dictionary<int, int>();
-            foreach (var need in needs)
+            foreach (var side in FreeSides(station).OrderBy(point => point.LengthSquared()))
             {
-                var regionsOfNeed = new HashSet<int>();
-                foreach (var place in need)
-                {
-                    var cell = NearestFreeCell(place);
-                    if (cell >= 0)
-                        regionsOfNeed.Add(regions[cell]);
-                }
-                reachable.Add(regionsOfNeed);
-                foreach (var region in regionsOfNeed)
-                    uses[region] = uses.TryGetValue(region, out var count) ? count + 1 : 1;
+                var path = FindPath(from, side);
+                if (path != null)
+                    return path;
             }
-
-            var room = -1;
-            var mostUses = 0;
-            foreach (var pair in uses)
-            {
-                if (pair.Value > mostUses || (pair.Value == mostUses && pair.Key < room))
-                {
-                    room = pair.Key;
-                    mostUses = pair.Value;
-                }
-            }
-
-            var cutOff = new List<int>();
-            for (var i = 0; i < reachable.Count; i++)
-            {
-                if (!reachable[i].Contains(room))
-                    cutOff.Add(i);
-            }
-            return cutOff;
-        }
-
-        // Numbers each free cell by the walkable region it's in; -1 for cells under furniture.
-        private int[] Regions()
-        {
-            if (_regions != null)
-                return _regions;
-
-            var free = FreeCells();
-            _regions = new int[free.Length];
-            for (var i = 0; i < _regions.Length; i++)
-                _regions[i] = -1;
-
-            var region = 0;
-            var frontier = new Stack<int>();
-            for (var start = 0; start < free.Length; start++)
-            {
-                if (!free[start] || _regions[start] >= 0)
-                    continue;
-
-                _regions[start] = region;
-                frontier.Push(start);
-                while (frontier.Count > 0)
-                {
-                    var cell = frontier.Pop();
-                    var x = cell % _width;
-                    var y = cell / _width;
-                    for (var dy = -1; dy <= 1; dy++)
-                    {
-                        for (var dx = -1; dx <= 1; dx++)
-                        {
-                            var nx = x + dx;
-                            var ny = y + dy;
-                            if ((dx == 0 && dy == 0) || nx < 0 || ny < 0 || nx >= _width || ny >= _height)
-                                continue;
-                            var neighbour = ny * _width + nx;
-                            if (!free[neighbour] || _regions[neighbour] >= 0 || !IsClear(Centre(cell), Centre(neighbour)))
-                                continue;
-                            _regions[neighbour] = region;
-                            frontier.Push(neighbour);
-                        }
-                    }
-                }
-                region++;
-            }
-            return _regions;
+            return null;
         }
 
         private bool[] FreeCells()

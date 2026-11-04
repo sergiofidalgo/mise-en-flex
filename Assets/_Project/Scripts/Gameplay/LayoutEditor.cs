@@ -38,7 +38,6 @@ namespace Game.Gameplay
             public SimVector2 Landing;
             public float Degrees;
             public Placement Result;
-            public readonly List<object> Blocked = new List<object>();
         }
 
         [SerializeField] private KitchenCompositionRoot _root;
@@ -60,7 +59,6 @@ namespace Game.Gameplay
         [SerializeField] private Vector2 _areaMax = new Vector2(4.4f, 3.4f);
         [SerializeField, Min(0f)] private float _stationHalfSize = 0.5f;
         [SerializeField, Min(0f)] private float _walkerRadius = 0.3f;
-        [SerializeField, Min(0f)] private float _standDistance = 0.85f;
 
         private readonly Dictionary<PlayerInput, Cursor> _cursors = new Dictionary<PlayerInput, Cursor>();
         private readonly Dictionary<object, Interactable> _stations = new Dictionary<object, Interactable>();
@@ -85,16 +83,9 @@ namespace Game.Gameplay
                 new SimVector2(_roomHalfSize.x, _roomHalfSize.y),
                 new SimVector2(_areaMin.x, _areaMin.y),
                 new SimVector2(_areaMax.x, _areaMax.y),
-                _snapRange, _stationHalfSize, _walkerRadius, _standDistance);
+                _snapRange, _stationHalfSize, _walkerRadius);
             foreach (var station in FindObjectsByType<Interactable>(FindObjectsSortMode.None))
                 _plan.Add(station, Floor(station.transform.position), station.transform.eulerAngles.y, rowLocked: station is PassStation);
-
-            // What a chef works facing one side of needs that side clear; a counter or pile doesn't.
-            foreach (var station in FindObjectsByType<Interactable>(FindObjectsSortMode.None))
-            {
-                if (station is HobStation || station is PrepStation || station is SinkStation || station is StorageStation)
-                    _plan.GiveFront(station);
-            }
         }
 
         private void Update()
@@ -202,7 +193,7 @@ namespace Game.Gameplay
                 : (SimVector2?)null;
             cursor.Landing = _plan.Snap(cursor.Held, cursor.Position, cursor.Degrees, home);
             cursor.Result = Check(cursor);
-            cursor.Held.MarkedRed = cursor.Result != Placement.Ok;
+            cursor.Held.CantGoHere = cursor.Result != Placement.Ok;
             cursor.Held.transform.SetPositionAndRotation(
                 new Vector3(cursor.Landing.X, cursor.HeldFrom.y, cursor.Landing.Y),
                 Quaternion.Euler(0f, cursor.Degrees, 0f));
@@ -240,7 +231,7 @@ namespace Game.Gameplay
                 return false;
 
             var station = cursor.Held;
-            station.MarkedRed = false;
+            station.CantGoHere = false;
             station.transform.SetPositionAndRotation(
                 new Vector3(cursor.Landing.X, cursor.HeldFrom.y, cursor.Landing.Y),
                 Quaternion.Euler(0f, cursor.Degrees, 0f));
@@ -260,29 +251,13 @@ namespace Game.Gameplay
         {
             if (cursor.Held == null)
                 return;
-            ClearBlocked(cursor);
-            cursor.Held.MarkedRed = false;
+            cursor.Held.CantGoHere = false;
             cursor.Held.transform.SetPositionAndRotation(cursor.HeldFrom, Quaternion.Euler(0f, cursor.HeldFromDegrees, 0f));
             cursor.Held = null;
             cursor.Result = Placement.Ok;
         }
 
-        // Whatever a placement would cut off turns red too, so it's clear what it would block.
-        private Placement Check(Cursor cursor)
-        {
-            ClearBlocked(cursor);
-            var result = _plan.Check(cursor.Held, cursor.Landing, cursor.Degrees, People(), cursor.Blocked);
-            foreach (var piece in cursor.Blocked)
-                ((Interactable)piece).MarkedRed = true;
-            return result;
-        }
-
-        private static void ClearBlocked(Cursor cursor)
-        {
-            foreach (var piece in cursor.Blocked)
-                ((Interactable)piece).MarkedRed = false;
-            cursor.Blocked.Clear();
-        }
+        private Placement Check(Cursor cursor) => _plan.Check(cursor.Held, cursor.Landing, cursor.Degrees, People());
 
         private IEnumerable<SimVector2> People()
         {
