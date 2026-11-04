@@ -237,6 +237,20 @@ namespace Game.Tests.EditMode
         }
 
         [Test]
+        public void ARemovedPieceLeavesItsSpotFree()
+        {
+            var plan = Plan();
+            var sold = new object();
+            var other = new object();
+            plan.Add(sold, new Vector2(1f, 1f));
+            plan.Add(other, new Vector2(3f, 3f));
+            plan.Remove(sold);
+
+            Assert.That(plan.PieceAt(new Vector2(1f, 1f)), Is.Null);
+            Assert.That(plan.Check(other, new Vector2(1f, 1f), 0f, Nobody), Is.EqualTo(Placement.Ok));
+        }
+
+        [Test]
         public void MovingTakesEffect()
         {
             var plan = Plan();

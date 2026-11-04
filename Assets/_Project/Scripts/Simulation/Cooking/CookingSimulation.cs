@@ -57,6 +57,12 @@ namespace Game.Simulation.Cooking
             return hob;
         }
 
+        /// <summary>A hob sold off: it stops ticking.</summary>
+        public void Remove(Hob hob) => _hobs.Remove(hob);
+
+        /// <summary>A pan sold with its hob: it stops ticking.</summary>
+        public void Remove(Pan pan) => _pans.Remove(pan);
+
         public Pan AddPan(PanProperties properties)
         {
             var pan = new Pan(properties, AmbientTemperature);

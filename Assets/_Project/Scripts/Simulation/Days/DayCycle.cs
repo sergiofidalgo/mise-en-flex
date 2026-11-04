@@ -91,6 +91,19 @@ namespace Game.Simulation.Days
             SetPhase(DayPhase.Review);
         }
 
+        /// <summary>Pays for something, if there's enough. Unlike wages, a purchase can't cause debt.</summary>
+        /// <returns>False if there isn't enough; nothing is taken.</returns>
+        public bool TrySpend(float amount)
+        {
+            if (amount > Balance)
+                return false;
+            Balance -= amount;
+            return true;
+        }
+
+        /// <summary>Money from outside a service, such as selling furniture.</summary>
+        public void Receive(float amount) => Balance += amount;
+
         private void SetPhase(DayPhase phase)
         {
             Phase = phase;

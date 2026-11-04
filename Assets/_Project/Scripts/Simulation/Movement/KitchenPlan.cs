@@ -190,6 +190,12 @@ namespace Game.Simulation.Movement
             return Placement.Ok;
         }
 
+        public void Remove(object piece)
+        {
+            _pieces.Remove(piece);
+            _rowLocked.Remove(piece);
+        }
+
         public void Move(object piece, Vector2 position, float degrees) => _pieces[piece] = new Footprint(position, degrees);
     }
 }
