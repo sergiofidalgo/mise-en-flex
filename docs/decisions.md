@@ -4,6 +4,16 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-04 — Wash game: less inertia, interface above the chef
+
+**Playtest:** the mechanic feels good, but the point had too much inertia and the interface was intrusive.
+
+**Decisions:** the interface is smaller and see-through, and sits above the washing chef. The point keeps moving far less after you let go (damping 5, was 2.5), runs away more gently (instability 4, was 5) and gets smaller nudges (1.4, was 1.8). In the simulation, the coast after a full push drops from about 1.6 circle radii of travel to about 0.4.
+
+**Trade-off:** ordinary over-correcting used to be heavily punished and now mostly isn't; only slamming the stick around with slow reactions is. This softens "small movements shift it drastically" in the earlier entry. Doing nothing still never cleans a plate.
+
+---
+
 ## 2026-11-04 — Plates can wait on the pass; washing by hand is a balancing game
 
 **User's direction:** a blocked stool feels good. A plate on a free stool can be taken back, and goes to whoever sits down next, fitting their order or not. Washing becomes a stick game: keep a point in the centre of a circle, small movements shift it a lot, and not reacting never cleans a plate.

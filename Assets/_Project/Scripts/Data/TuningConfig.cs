@@ -74,11 +74,11 @@ namespace Game.Data
         [Tooltip("Acceleration at full stick: high, so small movements shift the point a lot.")]
         [SerializeField, Min(0f)] private float _washStick = 10f;
         [Tooltip("How hard the point runs away from the centre, per unit of distance.")]
-        [SerializeField, Min(0f)] private float _washInstability = 5f;
-        [Tooltip("How fast the point's speed dies away, per second.")]
-        [SerializeField, Min(0f)] private float _washDamping = 2.5f;
+        [SerializeField, Min(0f)] private float _washInstability = 4f;
+        [Tooltip("How fast the point's speed dies away, per second. Higher means less inertia.")]
+        [SerializeField, Min(0f)] private float _washDamping = 5f;
         [Tooltip("Size of the random nudge. Keep below instability × ok radius, or doing nothing could clean a plate.")]
-        [SerializeField, Min(0f)] private float _washNudge = 1.8f;
+        [SerializeField, Min(0f)] private float _washNudge = 1.4f;
         [Tooltip("Fraction of the circle within which washing goes at full speed.")]
         [SerializeField, Range(0f, 1f)] private float _washGoodRadius = 0.25f;
         [Tooltip("Fraction of the circle beyond which nothing gets clean.")]

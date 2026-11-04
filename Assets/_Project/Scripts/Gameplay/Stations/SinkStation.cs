@@ -19,6 +19,9 @@ namespace Game.Gameplay.Stations
         /// <summary>The game being played, or null when nobody's washing by hand.</summary>
         public WashGame Game { get; private set; }
 
+        /// <summary>The chef washing by hand, or null.</summary>
+        public PlayerInteractor Washer => _washer;
+
         public override IItemContainer Container => Sink;
 
         public bool PromptAsDiamond(PlayerInteractor player) => false;

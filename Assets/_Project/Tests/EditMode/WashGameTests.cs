@@ -64,17 +64,19 @@ namespace Game.Tests.EditMode
             }
         }
 
+        // Retuned 2026-11-04 (playtest: too hard, too much inertia): ordinary over-correcting is now
+        // forgiven, but slamming the stick around with slow reactions still costs a lot.
         [Test]
-        public void OverCorrectingIsMuchWorse()
+        public void PanickingIsMuchWorseThanASteadyHand()
         {
             var steady = 0f;
-            var jumpy = 0f;
+            var panicked = 0f;
             for (var seed = 0; seed < 10; seed++)
             {
                 steady += Plates(RealSettings, (point, velocity) => Clamp(-point - velocity * 0.35f), 30f, seed);
-                jumpy += Plates(RealSettings, (point, velocity) => Clamp(-point * 3f - velocity * 0.2f), 30f, seed, reactionTime: 0.2f);
+                panicked += Plates(RealSettings, (point, _) => Clamp(-point * 20f), 30f, seed, reactionTime: 0.35f);
             }
-            Assert.That(jumpy, Is.LessThan(steady * 0.6f));
+            Assert.That(panicked, Is.LessThan(steady * 0.6f));
         }
 
         [Test]

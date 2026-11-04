@@ -5,7 +5,7 @@ using UnityEngine.UI;
 namespace Game.Presentation.Hud
 {
     /// <summary>
-    /// The washing game beside the sink: a circle with a target in the middle, the point the player
+    /// The washing game above the chef playing it: a circle with a target in the middle, the point the player
     /// balances (green while it's washing well, red when it isn't), and a bar for the plate's
     /// progress. Built in code: it's a few plain shapes.
     /// </summary>
@@ -18,8 +18,10 @@ namespace Game.Presentation.Hud
         [Tooltip("Canvas pixels: the circle's diameter.")]
         [SerializeField, Min(1f)] private float _diameter = 110f;
         [SerializeField, Min(1f)] private float _pointSize = 16f;
-        [Tooltip("Canvas pixels from the sink to the circle's centre.")]
-        [SerializeField] private Vector2 _offset = new Vector2(-105f, 60f);
+        [Tooltip("Metres above the chef's feet the interface is anchored: around the top of their head.")]
+        [SerializeField, Min(0f)] private float _heightAboveChef = 1.8f;
+        [Tooltip("Canvas pixels from that point to the circle's centre.")]
+        [SerializeField] private Vector2 _offset = new Vector2(0f, 70f);
         [Tooltip("Fraction of the circle shown as the target. Matches where washing reaches full speed.")]
         [SerializeField, Range(0f, 1f)] private float _targetRadius = 0.25f;
         [SerializeField, Min(1f)] private float _barHeight = 5f;
@@ -40,13 +42,13 @@ namespace Game.Presentation.Hud
         {
             var game = _sink.Game;
             var camera = Camera.main;
-            var show = game != null && camera != null;
+            var show = game != null && camera != null && _sink.Washer != null;
             _root.gameObject.SetActive(show);
             if (!show)
                 return;
 
             RectTransformUtility.ScreenPointToLocalPointInRectangle(
-                _canvas, camera.WorldToScreenPoint(_sink.transform.position), null, out var local);
+                _canvas, camera.WorldToScreenPoint(_sink.Washer.transform.position + Vector3.up * _heightAboveChef), null, out var local);
             _root.anchoredPosition = local + _offset;
 
             var radius = _diameter / 2f;
