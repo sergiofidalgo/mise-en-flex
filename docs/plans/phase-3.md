@@ -2,6 +2,8 @@
 
 *Agreed 2026-11-03. Decisions in `../decisions.md`.*
 
+**Status: done 2026-11-04.** Morale is still to be judged in play, through later versions.
+
 **Done when:** you play several days in a row. You plan, prep, serve, close and review; stock and money carry over between days; and hiring someone visibly takes work off your hands.
 
 ## Decisions
@@ -25,7 +27,7 @@ Order changed 2026-11-04: 3 and 4 come before 2.
 | 3 | **Plates and washing up:** limited plates, dirty ones come back from the pass, a sink | A new job competes for your time | Done |
 | 4 | **Staff and the dishwasher:** skill, speed, fatigue, mistakes; hiring in Plan; daily wages | Your first hire takes a job off you | Done |
 | 5 | **Prep assistant:** fills containers and does simple cuts | Prep and storage flow without you | Done |
-| 6 | **Morale:** responds to workload and how service went, and affects speed and mistakes | Staff feel like people | Built, awaiting playtest |
+| 6 | **Morale:** responds to workload and how service went, and affects speed and mistakes | Staff feel like people | Built; playtested as we go in later phases |
 
 ## How we'll know it's fun
 
