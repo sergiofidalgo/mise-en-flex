@@ -287,7 +287,7 @@ namespace Game.Editor
             floor.GetComponent<Renderer>().sharedMaterial = GreyboxAssets.EnsureMaterial("Floor", FloorColor);
             BuildDiningStrip();
             BuildBoundaryWalls();
-            BuildStations(settings);
+            BuildStations();
 
             var spawnRoot = new GameObject("SpawnPoints").transform;
             var spawnPoints = SpawnPositions.Select((position, i) =>
@@ -374,7 +374,7 @@ namespace Game.Editor
             }
         }
 
-        private static void BuildStations(CoopSettings settings)
+        private static void BuildStations()
         {
             var stations = new GameObject("Stations").transform;
 
@@ -386,24 +386,24 @@ namespace Game.Editor
                 for (var i = 0; i < zone.Positions.Length; i++)
                 {
                     CreateStation<CounterStation>(
-                        $"{zone.Name}_{i + 1:00}", zone.Positions[i], zone.Size, zone.Height, material, zoneRoot, settings);
+                        $"{zone.Name}_{i + 1:00}", zone.Positions[i], zone.Size, zone.Height, material, zoneRoot);
                 }
             }
 
-            BuildPrepZone(stations, settings);
+            BuildPrepZone(stations);
 
             var hobs = new GameObject("Zone_Hob").transform;
             hobs.SetParent(stations, false);
             var hobMaterial = GreyboxAssets.EnsureMaterial("Hob", HobColor);
             for (var i = 0; i < HobPositions.Length; i++)
-                CreateHob($"Hob_{i + 1:00}", HobPositions[i], hobMaterial, hobs, settings);
+                CreateHob($"Hob_{i + 1:00}", HobPositions[i], hobMaterial, hobs);
 
             var passes = new GameObject("Zone_Pass").transform;
             passes.SetParent(stations, false);
             var passMaterial = GreyboxAssets.EnsureMaterial("Pass", PassColor);
             for (var i = 0; i < PassPositions.Length; i++)
             {
-                var pass = CreateStation<PassStation>($"Pass_{i + 1:00}", PassPositions[i], CounterSize, CounterHeight, passMaterial, passes, settings);
+                var pass = CreateStation<PassStation>($"Pass_{i + 1:00}", PassPositions[i], CounterSize, CounterHeight, passMaterial, passes);
                 var passSo = new SerializedObject(pass);
                 passSo.FindProperty("_seatIndex").intValue = i; // the stool in front of it
                 passSo.ApplyModifiedPropertiesWithoutUndo();
@@ -411,7 +411,7 @@ namespace Game.Editor
 
             var plateStack = CreateStation<PlateStackStation>(
                 "PlateStack", PlateStackPosition, CounterSize, CounterHeight,
-                GreyboxAssets.EnsureMaterial("PlateStack", PlateStackColor), stations, settings);
+                GreyboxAssets.EnsureMaterial("PlateStack", PlateStackColor), stations);
             var plateStackDiscs = GreyboxKitchenware.CreatePlatePile(
                 plateStack.transform, CounterHeight, PlateStackVisualCount, GreyboxKitchenware.PlateColor, "Plate", Vector3.zero);
             var stackPile = new SerializedObject(plateStack.gameObject.AddComponent<PlatePileView>());
@@ -420,7 +420,7 @@ namespace Game.Editor
             stackPile.ApplyModifiedPropertiesWithoutUndo();
 
             var sink = CreateStation<SinkStation>(
-                "Sink", SinkPosition, CounterSize, CounterHeight, GreyboxAssets.EnsureMaterial("Sink", SinkColor), stations, settings);
+                "Sink", SinkPosition, CounterSize, CounterHeight, GreyboxAssets.EnsureMaterial("Sink", SinkColor), stations);
             var sinkPile = new SerializedObject(sink.gameObject.AddComponent<PlatePileView>());
             sinkPile.FindProperty("_station").objectReferenceValue = sink;
             SetObjects(sinkPile.FindProperty("_dirty"), GreyboxKitchenware.CreatePlatePile(
@@ -430,38 +430,38 @@ namespace Game.Editor
             sinkPile.ApplyModifiedPropertiesWithoutUndo();
 
             var dirtyPile = CreateStation<DirtyPileStation>(
-                "DirtyPile", DirtyPilePosition, CounterSize, CounterHeight, GreyboxAssets.EnsureMaterial("DirtyPile", DirtyPileColor), stations, settings);
+                "DirtyPile", DirtyPilePosition, CounterSize, CounterHeight, GreyboxAssets.EnsureMaterial("DirtyPile", DirtyPileColor), stations);
             var dirtyView = new SerializedObject(dirtyPile.gameObject.AddComponent<PlatePileView>());
             dirtyView.FindProperty("_station").objectReferenceValue = dirtyPile;
             SetObjects(dirtyView.FindProperty("_dirty"), GreyboxKitchenware.CreatePlatePile(
                 dirtyPile.transform, CounterHeight, PlateStackVisualCount, DirtyPlateColor, "DirtyPlate", Vector3.zero));
             dirtyView.ApplyModifiedPropertiesWithoutUndo();
 
-            CreateRack("TrayRack", RackStation.RackKind.Trays, TrayRackPosition, 4, GreyboxKitchenware.TrayColor, stations, settings);
-            CreateRack("ContainerRack", RackStation.RackKind.Containers, ContainerRackPosition, 6, GreyboxKitchenware.ContainerColor, stations, settings);
+            CreateRack("TrayRack", RackStation.RackKind.Trays, TrayRackPosition, 4, GreyboxKitchenware.TrayColor, stations);
+            CreateRack("ContainerRack", RackStation.RackKind.Containers, ContainerRackPosition, 6, GreyboxKitchenware.ContainerColor, stations);
 
             CreateStation<BinStation>(
-                "Bin", BinPosition, BinSize, BinHeight, GreyboxAssets.EnsureMaterial("Bin", BinColor), stations, settings);
+                "Bin", BinPosition, BinSize, BinHeight, GreyboxAssets.EnsureMaterial("Bin", BinColor), stations);
 
             var storage = new GameObject("Zone_Storage").transform;
             storage.SetParent(stations, false);
             foreach (var unit in StorageUnits)
             {
                 GreyboxStorage.Build(unit, CounterHeight, (name, position, material) =>
-                    CreateStation<StorageStation>(name, position, CounterSize, CounterHeight, material, storage, settings));
+                    CreateStation<StorageStation>(name, position, CounterSize, CounterHeight, material, storage));
             }
         }
 
-        private static void BuildPrepZone(Transform stations, CoopSettings settings)
+        private static void BuildPrepZone(Transform stations)
         {
             var zone = new GameObject("Zone_Prep").transform;
             zone.SetParent(stations, false);
             var material = GreyboxAssets.EnsureMaterial("Prep", PrepColor);
 
-            CreateStation<KnifeRackStation>("KnifeRack", KnifeRackPosition, CounterSize, CounterHeight, material, zone, settings);
-            CreateStation<CounterStation>("Prep_Counter", PrepSpareCounterPosition, CounterSize, CounterHeight, material, zone, settings);
+            CreateStation<KnifeRackStation>("KnifeRack", KnifeRackPosition, CounterSize, CounterHeight, material, zone);
+            CreateStation<CounterStation>("Prep_Counter", PrepSpareCounterPosition, CounterSize, CounterHeight, material, zone);
 
-            var prep = CreateStation<PrepStation>("MiseEnPlace", PrepCounterPosition, CounterSize, CounterHeight, material, zone, settings);
+            var prep = CreateStation<PrepStation>("MiseEnPlace", PrepCounterPosition, CounterSize, CounterHeight, material, zone);
             var board = GreyboxAssets.CreatePrimitive(
                 PrimitiveType.Cube, "CuttingBoard", prep.transform, GreyboxAssets.EnsureMaterial("CuttingBoard", CuttingBoardColor), keepCollider: false);
             board.transform.localScale = CuttingBoardScale;
@@ -478,9 +478,9 @@ namespace Game.Editor
         // A hob: counter body, a burner ring that glows with the dial around the pan, and heat
         // pips along the back of the top.
         // Its pan is a separate, carryable item created at runtime.
-        private static void CreateHob(string name, Vector3 position, Material material, Transform parent, CoopSettings settings)
+        private static void CreateHob(string name, Vector3 position, Material material, Transform parent)
         {
-            var hob = CreateStation<HobStation>(name, position, CounterSize, CounterHeight, material, parent, settings);
+            var hob = CreateStation<HobStation>(name, position, CounterSize, CounterHeight, material, parent);
             var top = CounterHeight;
 
             var burner = GreyboxAssets.CreatePrimitive(
@@ -521,9 +521,9 @@ namespace Game.Editor
             viewSo.ApplyModifiedPropertiesWithoutUndo();
         }
 
-        private static void CreateRack(string name, RackStation.RackKind kind, Vector3 position, int discs, Color color, Transform parent, CoopSettings settings)
+        private static void CreateRack(string name, RackStation.RackKind kind, Vector3 position, int discs, Color color, Transform parent)
         {
-            var rack = CreateStation<RackStation>(name, position, CounterSize, CounterHeight, GreyboxAssets.EnsureMaterial("Rack", RackColor), parent, settings);
+            var rack = CreateStation<RackStation>(name, position, CounterSize, CounterHeight, GreyboxAssets.EnsureMaterial("Rack", RackColor), parent);
             var rackSo = new SerializedObject(rack);
             rackSo.FindProperty("_kind").enumValueIndex = (int)kind;
             rackSo.ApplyModifiedPropertiesWithoutUndo();
@@ -542,7 +542,7 @@ namespace Game.Editor
         }
 
         private static T CreateStation<T>(
-            string name, Vector3 position, float size, float height, Material material, Transform parent, CoopSettings settings)
+            string name, Vector3 position, float size, float height, Material material, Transform parent)
             where T : Interactable
         {
             var root = new GameObject(name).transform;
@@ -567,7 +567,6 @@ namespace Game.Editor
             var highlight = root.gameObject.AddComponent<InteractableHighlightView>();
             var so = new SerializedObject(highlight);
             so.FindProperty("_interactable").objectReferenceValue = station;
-            so.FindProperty("_settings").objectReferenceValue = settings;
             so.FindProperty("_shakeTarget").objectReferenceValue = body.transform;
             var renderers = so.FindProperty("_renderers");
             renderers.arraySize = 1;

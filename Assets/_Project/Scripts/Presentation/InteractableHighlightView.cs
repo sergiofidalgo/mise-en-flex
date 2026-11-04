@@ -1,25 +1,23 @@
-using Game.Data;
 using Game.Gameplay.Stations;
 using UnityEngine;
 
 namespace Game.Presentation
 {
     /// <summary>
-    /// Shows which station a player's Interact will act on by tinting it towards that
-    /// player's colour, shakes it briefly when Interact can't do anything there, and turns it red
-    /// while it's carried somewhere it can't be put down.
+    /// Shows which station a player's Interact will act on by lighting it up in its own colour,
+    /// shakes it briefly when Interact can't do anything there, and turns it red while it's
+    /// carried somewhere it can't be put down.
     /// </summary>
     public sealed class InteractableHighlightView : MonoBehaviour
     {
         private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
 
         [SerializeField] private Interactable _interactable;
-        [SerializeField] private CoopSettings _settings;
         [SerializeField] private Renderer[] _renderers;
         [SerializeField] private Transform _shakeTarget;
 
-        [Tooltip("How far the colour moves towards the player's colour (0 = none, 1 = fully).")]
-        [SerializeField, Range(0f, 1f)] private float _highlightStrength = 0.45f;
+        [Tooltip("How much brighter a lit station gets, added to each of its colour channels.")]
+        [SerializeField, Range(0f, 1f)] private float _lightUp = 0.2f;
 
         [Tooltip("The colour furniture turns while it's carried somewhere it can't go.")]
         [SerializeField] private Color _cantGoHereColor = new Color(0.95f, 0.15f, 0.12f);
@@ -83,13 +81,15 @@ namespace Game.Presentation
         private void ApplyHighlight()
         {
             var targeted = _interactable.IsTargeted;
-            var playerColor = targeted ? _settings.GetPlayerColor(_interactable.TargeterPlayerIndex) : Color.clear;
+            var light = new Color(_lightUp, _lightUp, _lightUp, 0f);
 
             for (var i = 0; i < _renderers.Length; i++)
             {
                 var color = _interactable.CantGoHere
                     ? Color.Lerp(_baseColors[i], _cantGoHereColor, _cantGoHereStrength)
-                    : targeted ? Color.Lerp(_baseColors[i], playerColor, _highlightStrength) : _baseColors[i];
+                    // Adding rather than blending towards white: a dark hob brightens as much as
+                    // a pale counter, and stays recognisably itself.
+                    : targeted ? _baseColors[i] + light : _baseColors[i];
                 _renderers[i].GetPropertyBlock(_block);
                 _block.SetColor(BaseColorId, color);
                 _renderers[i].SetPropertyBlock(_block);
