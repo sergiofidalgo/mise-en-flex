@@ -26,7 +26,7 @@ namespace Game.Simulation.Service
     {
         private readonly List<Customer> _customers = new List<Customer>();
         private readonly List<Customer> _queue = new List<Customer>();
-        private readonly Customer[] _seats;
+        private Customer[] _seats;
         private readonly Random _random;
         // Orders roll on their own generator, so changing the menu doesn't move the arrivals.
         private readonly Random _orderRandom;
@@ -169,6 +169,27 @@ namespace Game.Simulation.Service
         {
             if (customer.State == CustomerState.WalkingToSeat)
                 customer.State = CustomerState.Waiting;
+        }
+
+        /// <summary>
+        /// Gameplay: the furniture leaves no way to their seat, so they give up. A lost cover, and the
+        /// seat goes to whoever's next. It costs what they'd have paid, not a walk-out's penalty.
+        /// </summary>
+        public void GiveUp(Customer customer)
+        {
+            if (customer.State != CustomerState.WalkingToSeat)
+                return;
+            customer.WalkedOut = true;
+            LostCovers++;
+            StartLeaving(customer);
+        }
+
+        /// <summary>Sets how many seats today's service has, before anyone's arrived: tables bought count.</summary>
+        public void OpenSeats(int count)
+        {
+            if (_customers.Count > 0)
+                throw new InvalidOperationException("Seats are set before the first customer.");
+            _seats = new Customer[count];
         }
 
         /// <summary>Gameplay: the customer has walked out of the door.</summary>

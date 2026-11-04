@@ -31,6 +31,7 @@ namespace Game.Editor
 
             var pushes = new SerializedObject(zone.AddComponent<PushResolver>());
             pushes.FindProperty("_director").objectReferenceValue = zone.GetComponent<StaffDirector>();
+            pushes.FindProperty("_customers").objectReferenceValue = Object.FindFirstObjectByType<CustomerDirector>();
             pushes.ApplyModifiedPropertiesWithoutUndo();
 
             var editor = new SerializedObject(zone.AddComponent<LayoutEditor>());
@@ -43,6 +44,10 @@ namespace Game.Editor
             var directorLink = new SerializedObject(zone.GetComponent<StaffDirector>());
             directorLink.FindProperty("_editor").objectReferenceValue = zone.GetComponent<LayoutEditor>();
             directorLink.ApplyModifiedPropertiesWithoutUndo();
+
+            var customers = new SerializedObject(Object.FindFirstObjectByType<CustomerDirector>());
+            customers.FindProperty("_staff").objectReferenceValue = zone.GetComponent<StaffDirector>();
+            customers.ApplyModifiedPropertiesWithoutUndo();
 
             var door = new SerializedObject(Object.FindFirstObjectByType<Game.Presentation.SwingDoorView>());
             door.FindProperty("_staff").objectReferenceValue = zone.GetComponent<StaffDirector>();

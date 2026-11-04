@@ -3,13 +3,33 @@ using UnityEngine;
 namespace Game.Gameplay
 {
     /// <summary>
-    /// A person walking around the scene without physics (customers, staff), so they never get
-    /// stuck on chefs or each other.
+    /// A person walking around the scene without physics (customers, staff). They take up space
+    /// and can be pushed: <see cref="PushResolver"/> keeps them apart from everyone else.
     /// </summary>
-    public abstract class WalkingAgent : MonoBehaviour
+    public abstract class WalkingAgent : MonoBehaviour, IPushable
     {
         [Tooltip("Degrees per second they turn to face where they're walking.")]
         [SerializeField, Min(0f)] private float _turnSpeed = 540f;
+
+        [Tooltip("Half their width, for bumping into people.")]
+        [SerializeField, Min(0f)] private float _bodyRadius = 0.31f;
+
+        public Vector3 Position => transform.position;
+
+        public System.Numerics.Vector2 Intent { get; set; }
+
+        public float BodyRadius => _bodyRadius;
+
+        /// <summary>Set by their director: where a move on the floor ends up, given the furniture.</summary>
+        public System.Func<System.Numerics.Vector2, System.Numerics.Vector2, System.Numerics.Vector2> Slide { get; set; }
+
+        public System.Numerics.Vector2 Shove(System.Numerics.Vector2 shift)
+        {
+            var from = new System.Numerics.Vector2(transform.position.x, transform.position.z);
+            var to = Slide != null ? Slide(from, shift) : from + shift;
+            transform.position = new Vector3(to.X, transform.position.y, to.Y);
+            return to - from;
+        }
 
         /// <summary>Moves up to <paramref name="step"/> metres towards <paramref name="target"/> on the floor.</summary>
         /// <returns>True once within <paramref name="arriveDistance"/> of it.</returns>

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Game.Gameplay.Customers;
 using Game.Gameplay.Staff;
 using Game.Simulation.Movement;
 using UnityEngine;
@@ -7,7 +8,7 @@ using SimVector2 = System.Numerics.Vector2;
 
 namespace Game.Gameplay
 {
-    /// <summary>Someone who takes up space and can be pushed: a chef or a staff member.</summary>
+    /// <summary>Someone who takes up space and can be pushed: a chef, a staff member or a customer.</summary>
     public interface IPushable
     {
         Vector3 Position { get; }
@@ -33,6 +34,7 @@ namespace Game.Gameplay
         private const int Passes = 2;
 
         [SerializeField] private StaffDirector _director;
+        [SerializeField] private CustomerDirector _customers;
 
         [Tooltip("How heavy an idle body is to push: 0 goes along at the pusher's full pace, 0.8 at a fifth of it, 1 not at all.")]
         [SerializeField, Range(0f, 1f)] private float _resistance = 0.8f;
@@ -48,6 +50,7 @@ namespace Game.Gameplay
                     _bodies.Add(movement);
             }
             _bodies.AddRange(_director.Agents);
+            _bodies.AddRange(_customers.Agents.Values);
 
             for (var pass = 0; pass < Passes; pass++)
             {

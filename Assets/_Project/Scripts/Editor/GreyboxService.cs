@@ -29,6 +29,7 @@ namespace Game.Editor
         // Customers: slightly shorter and slimmer than chefs, a muted colour so they read apart.
         private static readonly Vector3 CustomerScale = new Vector3(0.6f, 0.8f, 0.6f);
         private static readonly Color CustomerColor = new Color(0.55f, 0.60f, 0.70f);
+        private const float CustomerBodyRadius = 0.3f;
 
         /// <param name="passPositions">Pass counter positions in seat order.</param>
         public static void Build(Vector3[] passPositions, KitchenCompositionRoot root)
@@ -78,7 +79,9 @@ namespace Game.Editor
         private static GameObject BuildCustomerPrefab()
         {
             var root = new GameObject("PF_Customer");
-            root.AddComponent<CustomerAgent>();
+            var agent = new SerializedObject(root.AddComponent<CustomerAgent>());
+            agent.FindProperty("_bodyRadius").floatValue = CustomerBodyRadius;
+            agent.ApplyModifiedPropertiesWithoutUndo();
             var body = GreyboxAssets.CreatePrimitive(
                 PrimitiveType.Capsule, "Body", root.transform, GreyboxAssets.EnsureMaterial("Customer", CustomerColor), keepCollider: false);
             body.transform.localScale = CustomerScale;

@@ -369,5 +369,33 @@ namespace Game.Tests.EditMode
             big.Tick(6f * Hour);
             Assert.That(small.Customers.Count, Is.EqualTo(big.Customers.Count));
         }
+
+        [Test]
+        public void SeatsBoughtBeforeServiceCount()
+        {
+            var service = new ServiceSimulation(Settings(), seatCount: 3);
+            service.OpenSeats(5);
+            Assert.That(service.SeatCount, Is.EqualTo(5));
+        }
+
+        [Test]
+        public void ACustomerWhoCantReachTheirSeatGivesUpAndItGoesToTheNext()
+        {
+            var service = new ServiceSimulation(Settings(), seatCount: 1);
+            service.Tick(12f * Minute);
+            var first = service.Customers[0];
+            service.Tick(12f * Minute);
+            var second = service.Customers[1];
+            Assert.That(first.State, Is.EqualTo(CustomerState.WalkingToSeat));
+            Assert.That(second.State, Is.EqualTo(CustomerState.Queueing));
+
+            service.GiveUp(first);
+
+            Assert.That(first.State, Is.EqualTo(CustomerState.Leaving));
+            Assert.That(first.WalkedOut, Is.True);
+            Assert.That(service.LostCovers, Is.EqualTo(1));
+            Assert.That(service.Money, Is.EqualTo(0f), "no penalty: they never got to sit");
+            Assert.That(second.State, Is.EqualTo(CustomerState.WalkingToSeat));
+        }
     }
 }
