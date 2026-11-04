@@ -17,7 +17,7 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 **Details (proposed while building; flagged for review):**
 - **Keyboard:** Tab, though hints only ever name Xbox buttons. **While managing:** the chef waits; A picks up and places, B puts what's held back where it was, and Select returns to the chef, the same button that enters (user's call). You can't ready up while managing.
 - **No grid (user's call):** furniture goes exactly where the player puts it, snapping when within 0.15 m of lining up with a neighbour (edges touching or centres level), a wall, or where it came from. Replaces the 0.5 m grid first built.
-- **RB and LB rotate by 45 degrees (user's call).** Keyboard: C and Z. Turned stations take up their own shape, can't poke through walls, and snap to neighbours turned the same way.
+- **RB and LB rotate by 45 degrees (user's call),** easing round in about 0.1 s, though the new angle counts straight away (user's call: smooth it now). Keyboard: C and Z. Turned stations take up their own shape, can't poke through walls, and snap to neighbours turned the same way.
 - **Furniture under a cursor lights up,** just as when a chef walks up to it (user's call). It keeps its own colour and only gets brighter: tinting it towards the player's colour was confusing. This replaces the player-colour tint from Phase 0 for chefs too.
 - **Anything can be moved,** and what's on a station moves with it. Two players can't hold the same station.
 - **Placements are refused** outside the kitchen, on another station, or on a person. The reason shows at the cursor.

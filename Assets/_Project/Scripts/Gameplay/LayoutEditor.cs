@@ -38,6 +38,7 @@ namespace Game.Gameplay
             public SimVector2 Landing;
             public float Degrees;
             public Placement Result;
+            public float TurnVelocity;
         }
 
         [SerializeField] private KitchenCompositionRoot _root;
@@ -51,6 +52,8 @@ namespace Game.Gameplay
         [SerializeField, Min(0f)] private float _snapRange = 0.15f;
         [Tooltip("Degrees each press of RB or LB turns what's being carried.")]
         [SerializeField, Min(1f)] private float _rotationStep = 45f;
+        [Tooltip("How quickly what's being carried eases round to its new angle: it takes about twice this, in seconds.")]
+        [SerializeField, Min(0.001f)] private float _turnSmoothing = 0.05f;
         [Tooltip("Half the room's width and depth, for walking.")]
         [SerializeField] private Vector2 _roomHalfSize = new Vector2(4.6f, 3.6f);
         [Tooltip("Where the centres of stations can go: lowest corner.")]
@@ -123,6 +126,7 @@ namespace Game.Gameplay
                 else if (player.actions[RotateLeftAction].WasPressedThisFrame())
                     Rotate(cursor, -_rotationStep);
 
+                TurnHeld(cursor);
                 Light(cursor);
 
                 if (player.actions[PickAction].WasPressedThisFrame())
@@ -194,9 +198,20 @@ namespace Game.Gameplay
             cursor.Landing = _plan.Snap(cursor.Held, cursor.Position, cursor.Degrees, home);
             cursor.Result = Check(cursor);
             cursor.Held.CantGoHere = cursor.Result != Placement.Ok;
-            cursor.Held.transform.SetPositionAndRotation(
-                new Vector3(cursor.Landing.X, cursor.HeldFrom.y, cursor.Landing.Y),
-                Quaternion.Euler(0f, cursor.Degrees, 0f));
+            cursor.Held.transform.position = new Vector3(cursor.Landing.X, cursor.HeldFrom.y, cursor.Landing.Y);
+        }
+
+        // Only the look eases round: the new angle already counts for snapping and placing, so a
+        // press is never waiting on the animation, and pressing again mid-turn just carries on.
+        private void TurnHeld(Cursor cursor)
+        {
+            if (cursor.Held == null)
+                return;
+            var shown = cursor.Held.transform.eulerAngles.y;
+            shown = Mathf.Abs(Mathf.DeltaAngle(shown, cursor.Degrees)) < 0.1f
+                ? cursor.Degrees
+                : Mathf.SmoothDampAngle(shown, cursor.Degrees, ref cursor.TurnVelocity, _turnSmoothing, Mathf.Infinity, Time.unscaledDeltaTime);
+            cursor.Held.transform.rotation = Quaternion.Euler(0f, shown, 0f);
         }
 
         // Furniture under a cursor lights up, just as when a chef walks up to it.
@@ -216,6 +231,7 @@ namespace Game.Gameplay
             cursor.HeldFrom = station.transform.position;
             cursor.HeldFromDegrees = _plan.DegreesOf(station);
             cursor.Degrees = cursor.HeldFromDegrees;
+            cursor.TurnVelocity = 0f;
             cursor.Landing = _plan.PositionOf(station);
             cursor.Result = Placement.Ok;
             return true;

@@ -134,7 +134,7 @@ namespace Game.Tests.PlayMode
 
             editor.PickUp(cursor);
             editor.Rotate(cursor, 45f);
-            yield return null;
+            yield return new WaitForSeconds(0.5f); // it eases round
             Assert.That(Mathf.DeltaAngle(hob.transform.eulerAngles.y, 45f), Is.EqualTo(0f).Within(0.01f));
             Assert.That(editor.Place(cursor), Is.True, cursor.Result.ToString());
 
@@ -142,6 +142,7 @@ namespace Game.Tests.PlayMode
             editor.Rotate(cursor, -45f);
             editor.MoveCursor(cursor, new System.Numerics.Vector2(0.05f - away.X, -away.Y)); // nearly home: it snaps into line
             Assert.That(editor.Place(cursor), Is.True, cursor.Result.ToString());
+            Assert.That(Mathf.DeltaAngle(hob.transform.eulerAngles.y, 0f), Is.EqualTo(0f).Within(0.01f), "placed mid-turn, it lands at its new angle");
             yield return null;
 
             Assert.That((hob.transform.position - start).magnitude, Is.LessThan(0.2f));
