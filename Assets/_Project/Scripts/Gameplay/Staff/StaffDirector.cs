@@ -101,7 +101,7 @@ namespace Game.Gameplay.Staff
         private void RebuildLayout()
         {
             _layout = new StationLayout(
-                _allStations.Select(station => Floor(station.transform.position)),
+                _allStations.Select(station => new Footprint(Floor(station.transform.position), station.transform.eulerAngles.y)),
                 new System.Numerics.Vector2(_roomHalfSize.x, _roomHalfSize.y), _stationHalfSize, _walkerRadius, _standDistance);
             _routes.Clear();
             foreach (var agent in _agents)
@@ -333,7 +333,7 @@ namespace Game.Gameplay.Staff
         private List<System.Numerics.Vector2> PlanRoute(StaffAgent agent, Interactable station)
         {
             var here = Floor(agent.transform.position);
-            var spot = _layout.StandingSpot(Floor(station.transform.position));
+            var spot = _layout.StandingSpot(new Footprint(Floor(station.transform.position), station.transform.eulerAngles.y));
             var route = spot.HasValue ? _layout.FindPath(here, spot.Value) : null;
             if (route != null)
                 return route;

@@ -9,13 +9,12 @@ namespace Game.Presentation.Hud
 {
     /// <summary>
     /// Gives each player a prompt card and keeps it above the station they're facing, showing what
-    /// each button does there (badge + short verb) in that player's colour and device glyphs. Two
+    /// each button does there (badge + short verb) in that player's colour, always as Xbox buttons
+    /// (decision 2026-11-04), whatever the player is using. Two
     /// players at the same station get their cards side by side.
     /// </summary>
     public sealed class PromptHud : MonoBehaviour
     {
-        private const string GamepadScheme = "Gamepad";
-
         [SerializeField] private RectTransform _canvas;
         [SerializeField] private PromptCard _cardPrefab;
         [SerializeField] private CoopSettings _settings;
@@ -67,7 +66,7 @@ namespace Game.Presentation.Hud
                     continue;
                 }
 
-                card.Show(_lines, diamond, player.currentControlScheme == GamepadScheme,
+                card.Show(_lines, diamond, gamepad: true,
                     _settings.GetPlayerColor(player.playerIndex));
                 LayoutRebuilder.ForceRebuildLayoutImmediate(card.Rect);
                 Place(card, interactor.Target, screen);

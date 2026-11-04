@@ -11,6 +11,7 @@ namespace Game.Presentation.Hud
     /// <summary>
     /// Each player's cursor in management mode: a frame on the floor in their colour, red where a
     /// carried station can't go, with a short label of what the buttons do there and why not.
+    /// Only Xbox buttons are named, whatever the player is using (decision 2026-11-04).
     /// </summary>
     public sealed class LayoutEditorHud : MonoBehaviour
     {
@@ -87,17 +88,17 @@ namespace Game.Presentation.Hud
                     _ => null,
                 };
                 return problem != null
-                    ? $"{HudStyle.Colored(problem, _blocked)}\n{Glyph(PromptControl.East)} cancel"
-                    : $"{Glyph(PromptControl.South)} place   {Glyph(PromptControl.East)} cancel";
+                    ? $"{HudStyle.Colored(problem, _blocked)}\n[LB/RB] rotate   {Glyph(PromptControl.East)} cancel"
+                    : $"{Glyph(PromptControl.South)} place   [LB/RB] rotate   {Glyph(PromptControl.East)} cancel";
             }
 
             var under = _editor.StationUnder(cursor);
             return under != null
-                ? $"{Glyph(PromptControl.South)} move {under.name}   {Glyph(PromptControl.East)} back to chef"
-                : $"{Glyph(PromptControl.East)} back to chef";
+                ? $"{Glyph(PromptControl.South)} move {under.name}   [Select] back to chef"
+                : "[Select] back to chef";
         }
 
         private static string Glyph(PromptControl control) =>
-            $"[{HudStyle.Glyph(control, true)} / {HudStyle.Glyph(control, false)}]";
+            $"[{HudStyle.Glyph(control, true)}]";
     }
 }

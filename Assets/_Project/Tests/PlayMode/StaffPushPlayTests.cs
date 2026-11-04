@@ -117,6 +117,35 @@ namespace Game.Tests.PlayMode
         }
 
         [UnityTest]
+        public IEnumerator AStationCanBeTurnedAndGoBackExactlyWhereItWas()
+        {
+            yield return OpenKitchenWithChef();
+            var editor = Object.FindFirstObjectByType<LayoutEditor>();
+            var hob = Object.FindObjectsByType<Game.Gameplay.Stations.HobStation>(FindObjectsSortMode.None).First();
+            var start = hob.transform.position;
+
+            var cursor = editor.Enter(_player);
+            cursor.Position = new System.Numerics.Vector2(start.x, start.z);
+            editor.PickUp(cursor);
+            editor.MoveCursor(cursor, new System.Numerics.Vector2(0f, -1.35f)); // open floor, clear of the island
+            Assert.That(editor.Place(cursor), Is.True, cursor.Result.ToString());
+
+            editor.PickUp(cursor);
+            editor.Rotate(cursor, 45f);
+            yield return null;
+            Assert.That(Mathf.DeltaAngle(hob.transform.eulerAngles.y, 45f), Is.EqualTo(0f).Within(0.01f));
+            Assert.That(editor.Place(cursor), Is.True, cursor.Result.ToString());
+
+            editor.PickUp(cursor);
+            editor.Rotate(cursor, -45f);
+            editor.MoveCursor(cursor, new System.Numerics.Vector2(0.05f, 1.3f)); // nearly home: it snaps into line
+            Assert.That(editor.Place(cursor), Is.True, cursor.Result.ToString());
+            yield return null;
+
+            Assert.That((hob.transform.position - start).magnitude, Is.LessThan(0.2f));
+        }
+
+        [UnityTest]
         public IEnumerator CancellingPutsItBack()
         {
             yield return OpenKitchenWithChef();

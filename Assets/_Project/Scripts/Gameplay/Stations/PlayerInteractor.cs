@@ -143,6 +143,9 @@ namespace Game.Gameplay.Stations
                 heat.AdjustHeat(_heatDown.ReadValue<float>(), _heatUp.ReadValue<float>(), Time.unscaledDeltaTime);
         }
 
+        /// <summary>In management mode: lights up what the cursor is over instead of what the chef faces.</summary>
+        public void Hover(Interactable station) => SetTarget(station);
+
         private Interactable FindTarget()
         {
             _candidatePositions.Clear();

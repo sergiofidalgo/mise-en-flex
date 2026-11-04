@@ -11,24 +11,92 @@ namespace Game.Tests.EditMode
 
         private static KitchenPlan Plan() => new KitchenPlan(
             new Vector2(4.6f, 3.6f), new Vector2(-4.4f, -2.4f), new Vector2(4.4f, 3.4f),
-            gridSize: 0.5f, stationHalfSize: 0.5f, walkerRadius: 0.3f, standDistance: 0.85f);
+            snapRange: 0.15f, stationHalfSize: 0.5f, walkerRadius: 0.3f, standDistance: 0.85f);
+
+        private static void AssertNear(Vector2 actual, Vector2 expected) =>
+            Assert.That((actual - expected).Length(), Is.LessThan(0.001f), $"{actual} should be {expected}");
 
         [Test]
-        public void PiecesSnapToTheGrid()
+        public void WithNothingNearbyItGoesExactlyWhereItsPut()
         {
             var plan = Plan();
             var piece = new object();
             plan.Add(piece, Vector2.Zero);
-            Assert.That(plan.Snap(piece, new Vector2(1.2f, -0.7f)), Is.EqualTo(new Vector2(1f, -0.5f)));
+            AssertNear(plan.Snap(piece, new Vector2(1.23f, -0.71f), 0f), new Vector2(1.23f, -0.71f));
         }
 
         [Test]
-        public void ThePassOnlySlidesAlongItsRow()
+        public void ItSnapsAgainstANeighbourAndInLineWithIt()
+        {
+            var plan = Plan();
+            var piece = new object();
+            plan.Add(piece, new Vector2(-3f, -1f));
+            plan.Add(new object(), new Vector2(1f, 2f));
+
+            AssertNear(plan.Snap(piece, new Vector2(2.08f, 2.1f), 0f), new Vector2(2f, 2f));
+        }
+
+        [Test]
+        public void JustBeyondTheRangeItDoesntSnap()
+        {
+            var plan = Plan();
+            var piece = new object();
+            plan.Add(piece, new Vector2(-3f, -1f));
+            plan.Add(new object(), new Vector2(1f, 2f));
+
+            AssertNear(plan.Snap(piece, new Vector2(2.2f, 2.3f), 0f), new Vector2(2.2f, 2.3f));
+        }
+
+        [Test]
+        public void ItCanGoBackExactlyWhereItWas()
+        {
+            var plan = Plan();
+            var hob = new object();
+            var home = new Vector2(1.03f, 2.97f);
+            plan.Add(hob, home);
+            AssertNear(plan.Snap(hob, home + new Vector2(0.1f, -0.05f), 0f, home), home);
+        }
+
+        [Test]
+        public void ItSnapsToTheWalls()
+        {
+            var plan = Plan();
+            var piece = new object();
+            plan.Add(piece, Vector2.Zero);
+            AssertNear(plan.Snap(piece, new Vector2(4.3f, 0f), 0f), new Vector2(4.4f, 0f));
+        }
+
+        [Test]
+        public void TurnedPiecesSnapToNeighboursTurnedTheSameWay()
+        {
+            var plan = Plan();
+            var piece = new object();
+            plan.Add(piece, new Vector2(-3f, -1f));
+            var neighbour = new Footprint(new Vector2(1f, 1f), 45f);
+            plan.Add(new object(), neighbour.Centre, 45f);
+
+            var beside = neighbour.Centre + neighbour.Right * 1.05f;
+            AssertNear(plan.Snap(piece, beside, 45f), neighbour.Centre + neighbour.Right);
+        }
+
+        [Test]
+        public void ANeighbourTurnedAnotherWayDoesntPullIt()
+        {
+            var plan = Plan();
+            var piece = new object();
+            plan.Add(piece, new Vector2(-3f, -1f));
+            plan.Add(new object(), new Vector2(1f, 1f), 45f);
+            AssertNear(plan.Snap(piece, new Vector2(2.3f, 1.05f), 0f), new Vector2(2.3f, 1.05f));
+        }
+
+        [Test]
+        public void ThePassOnlySlidesAlongItsRowAndDoesntTurn()
         {
             var plan = Plan();
             var pass = new object();
             plan.Add(pass, new Vector2(0f, -2.4f), rowLocked: true);
-            Assert.That(plan.Snap(pass, new Vector2(1.2f, 1f)).Y, Is.EqualTo(-2.4f));
+            Assert.That(plan.Snap(pass, new Vector2(1.2f, 1f), 0f).Y, Is.EqualTo(-2.4f));
+            Assert.That(plan.CanRotate(pass), Is.False);
         }
 
         [Test]
@@ -37,7 +105,7 @@ namespace Game.Tests.EditMode
             var plan = Plan();
             var piece = new object();
             plan.Add(piece, Vector2.Zero);
-            Assert.That(plan.Check(piece, new Vector2(2f, 2f), Nobody), Is.EqualTo(Placement.Ok));
+            Assert.That(plan.Check(piece, new Vector2(2f, 2f), 0f, Nobody), Is.EqualTo(Placement.Ok));
         }
 
         [Test]
@@ -46,8 +114,8 @@ namespace Game.Tests.EditMode
             var plan = Plan();
             var piece = new object();
             plan.Add(piece, Vector2.Zero);
-            Assert.That(plan.Check(piece, new Vector2(6f, 0f), Nobody), Is.EqualTo(Placement.OutsideTheKitchen));
-            Assert.That(plan.Check(piece, new Vector2(0f, -3.5f), Nobody), Is.EqualTo(Placement.OutsideTheKitchen), "that's the dining side");
+            Assert.That(plan.Check(piece, new Vector2(6f, 0f), 0f, Nobody), Is.EqualTo(Placement.OutsideTheKitchen));
+            Assert.That(plan.Check(piece, new Vector2(0f, -3.5f), 0f, Nobody), Is.EqualTo(Placement.OutsideTheKitchen), "that's the dining side");
         }
 
         [Test]
@@ -57,8 +125,8 @@ namespace Game.Tests.EditMode
             var piece = new object();
             plan.Add(piece, Vector2.Zero);
             plan.Add(new object(), new Vector2(2f, 2f));
-            Assert.That(plan.Check(piece, new Vector2(2.5f, 2f), Nobody), Is.EqualTo(Placement.OnAnotherStation));
-            Assert.That(plan.Check(piece, new Vector2(3f, 2f), Nobody), Is.EqualTo(Placement.Ok), "right beside it is fine");
+            Assert.That(plan.Check(piece, new Vector2(2.5f, 2f), 0f, Nobody), Is.EqualTo(Placement.OnAnotherStation));
+            Assert.That(plan.Check(piece, new Vector2(3f, 2f), 0f, Nobody), Is.EqualTo(Placement.Ok), "right beside it is fine");
         }
 
         [Test]
@@ -67,7 +135,7 @@ namespace Game.Tests.EditMode
             var plan = Plan();
             var piece = new object();
             plan.Add(piece, Vector2.Zero);
-            Assert.That(plan.Check(piece, new Vector2(2f, 2f), new[] { new Vector2(2.2f, 2f) }), Is.EqualTo(Placement.SomeoneInTheWay));
+            Assert.That(plan.Check(piece, new Vector2(2f, 2f), 0f, new[] { new Vector2(2.2f, 2f) }), Is.EqualTo(Placement.SomeoneInTheWay));
         }
 
         // A wall of counters right across the room, with one piece left to close the gap.
@@ -90,15 +158,66 @@ namespace Game.Tests.EditMode
             var (plan, last) = AlmostAWall();
             plan.Add(new object(), new Vector2(2f, -2.4f)); // on the far side, facing the wall
 
-            Assert.That(plan.Check(last, new Vector2(0f, 0f), Nobody), Is.EqualTo(Placement.BlocksAStation));
+            Assert.That(plan.Check(last, new Vector2(0f, 0f), 0f, Nobody), Is.EqualTo(Placement.BlocksAStation));
         }
 
         [Test]
         public void ItCantWallSomeoneIn()
         {
             var (plan, last) = AlmostAWall();
-            Assert.That(plan.Check(last, new Vector2(0f, 0f), Nobody), Is.EqualTo(Placement.Ok), "nobody's cut off");
-            Assert.That(plan.Check(last, new Vector2(0f, 0f), new[] { new Vector2(0f, -2f) }), Is.EqualTo(Placement.BlocksAStation), "a chef would be");
+            Assert.That(plan.Check(last, new Vector2(0f, 0f), 0f, Nobody), Is.EqualTo(Placement.Ok), "nobody's cut off");
+            Assert.That(plan.Check(last, new Vector2(0f, 0f), 0f, new[] { new Vector2(0f, -2f) }), Is.EqualTo(Placement.BlocksAStation), "a chef would be");
+        }
+
+        [Test]
+        public void ATurnedStationTakesUpItsOwnShape()
+        {
+            var plan = Plan();
+            var piece = new object();
+            plan.Add(piece, new Vector2(-3f, 1f));
+            plan.Add(new object(), new Vector2(0f, 0f));
+
+            // Square on, 1.1 m away would touch nothing; turned 45 degrees its corner reaches further.
+            Assert.That(plan.Check(piece, new Vector2(1.1f, 0f), 0f, Nobody), Is.EqualTo(Placement.Ok));
+            Assert.That(plan.Check(piece, new Vector2(1.1f, 0f), 45f, Nobody), Is.EqualTo(Placement.OnAnotherStation));
+        }
+
+        [Test]
+        public void ATurnedStationCantPokeThroughAWall()
+        {
+            var plan = Plan();
+            var piece = new object();
+            plan.Add(piece, Vector2.Zero);
+            Assert.That(plan.Check(piece, new Vector2(4.4f, 0f), 0f, Nobody), Is.EqualTo(Placement.Ok));
+            Assert.That(plan.Check(piece, new Vector2(4.4f, 0f), 45f, Nobody), Is.EqualTo(Placement.OutsideTheKitchen));
+        }
+
+        [Test]
+        public void PeopleCanStandInTheCornersATurnedStationLeaves()
+        {
+            var turned = new Footprint(Vector2.Zero, 45f);
+            Assert.That(turned.Contains(new Vector2(0.6f, 0.6f), 0.5f), Is.False, "beyond its edge");
+            Assert.That(turned.Contains(new Vector2(0.6f, 0f), 0.5f), Is.True, "its point sticks out this far");
+            Assert.That(new Footprint(Vector2.Zero).Contains(new Vector2(0.6f, 0f), 0.5f), Is.False, "square on, that's clear");
+        }
+
+        [Test]
+        public void TouchingIsntOverlapping()
+        {
+            var a = new Footprint(Vector2.Zero);
+            Assert.That(a.Overlaps(new Footprint(new Vector2(1f, 0f)), 0.5f), Is.False);
+            Assert.That(a.Overlaps(new Footprint(new Vector2(0.9f, 0f)), 0.5f), Is.True);
+        }
+
+        [Test]
+        public void TurningIsRememberedWithThePiece()
+        {
+            var plan = Plan();
+            var piece = new object();
+            plan.Add(piece, Vector2.Zero, 45f);
+            Assert.That(plan.DegreesOf(piece), Is.EqualTo(45f));
+            plan.Move(piece, Vector2.One, 90f);
+            Assert.That(plan.DegreesOf(piece), Is.EqualTo(90f));
         }
 
         [Test]
@@ -117,7 +236,7 @@ namespace Game.Tests.EditMode
             var plan = Plan();
             var piece = new object();
             plan.Add(piece, Vector2.Zero);
-            plan.Move(piece, new Vector2(2f, 2f));
+            plan.Move(piece, new Vector2(2f, 2f), 0f);
             Assert.That(plan.PositionOf(piece), Is.EqualTo(new Vector2(2f, 2f)));
             Assert.That(plan.Pieces.Count(), Is.EqualTo(1));
         }

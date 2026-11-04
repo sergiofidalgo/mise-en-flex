@@ -14,29 +14,31 @@ namespace Game.Simulation.Movement
     }
 
     /// <summary>
-    /// The rules for rearranging the kitchen (decisions 2026-11-04): pieces snap to a grid, can't
-    /// overlap or land on someone, and can't be placed so that any station can no longer be reached.
+    /// The rules for rearranging the kitchen (decisions 2026-11-04): pieces go exactly where the
+    /// player wants, snapping to the furniture around them when close, at any rotation. They can't
+    /// overlap, land on someone, or be placed so that anything can no longer be reached.
     /// Positions are on the floor, in metres.
     /// </summary>
     public sealed class KitchenPlan
     {
-        private readonly Dictionary<object, Vector2> _pieces = new Dictionary<object, Vector2>();
+        private readonly Dictionary<object, Footprint> _pieces = new Dictionary<object, Footprint>();
         private readonly HashSet<object> _rowLocked = new HashSet<object>();
         private readonly Vector2 _roomHalfSize;
         private readonly Vector2 _areaMin;
         private readonly Vector2 _areaMax;
-        private readonly float _gridSize;
+        private readonly float _snapRange;
         private readonly float _stationHalfSize;
         private readonly float _walkerRadius;
         private readonly float _standDistance;
 
-        /// <param name="areaMin">The corner of where pieces can go, as the centre of the piece.</param>
-        public KitchenPlan(Vector2 roomHalfSize, Vector2 areaMin, Vector2 areaMax, float gridSize, float stationHalfSize, float walkerRadius, float standDistance)
+        /// <param name="areaMin">The corner of where stations' centres can go when square to the room.</param>
+        /// <param name="snapRange">How close, in metres, a piece has to get before it snaps into line.</param>
+        public KitchenPlan(Vector2 roomHalfSize, Vector2 areaMin, Vector2 areaMax, float snapRange, float stationHalfSize, float walkerRadius, float standDistance)
         {
             _roomHalfSize = roomHalfSize;
             _areaMin = areaMin;
             _areaMax = areaMax;
-            _gridSize = gridSize;
+            _snapRange = snapRange;
             _stationHalfSize = stationHalfSize;
             _walkerRadius = walkerRadius;
             _standDistance = standDistance;
@@ -44,25 +46,101 @@ namespace Game.Simulation.Movement
 
         public IEnumerable<object> Pieces => _pieces.Keys;
 
-        /// <param name="rowLocked">It stays in its row and only slides along it (the pass, facing the stools).</param>
-        public void Add(object piece, Vector2 position, bool rowLocked = false)
+        /// <param name="rowLocked">It stays in its row, square on, and only slides along it (the pass, facing the stools).</param>
+        public void Add(object piece, Vector2 position, float degrees = 0f, bool rowLocked = false)
         {
-            _pieces[piece] = position;
+            _pieces[piece] = new Footprint(position, degrees);
             if (rowLocked)
                 _rowLocked.Add(piece);
         }
 
-        public Vector2 PositionOf(object piece) => _pieces[piece];
+        public Vector2 PositionOf(object piece) => _pieces[piece].Centre;
 
-        /// <summary>Where this piece would land if carried to <paramref name="point"/>.</summary>
-        public Vector2 Snap(object piece, Vector2 point)
+        public float DegreesOf(object piece) => _pieces[piece].Degrees;
+
+        public bool CanRotate(object piece) => !_rowLocked.Contains(piece);
+
+        /// <summary>
+        /// Where this piece lands if carried to <paramref name="point"/>: exactly there, unless it's
+        /// close to lining up with something. Each direction snaps on its own, so it can sit against
+        /// one neighbour and in line with another, and <paramref name="home"/> (where it came from)
+        /// is caught too, so it can always go back exactly.
+        /// </summary>
+        public Vector2 Snap(object piece, Vector2 point, float degrees, Vector2? home = null)
         {
-            var snapped = new Vector2(
-                (float)Math.Round(point.X / _gridSize) * _gridSize,
-                (float)Math.Round(point.Y / _gridSize) * _gridSize);
             if (_rowLocked.Contains(piece))
-                snapped.Y = _pieces[piece].Y;
+                point.Y = _pieces[piece].Centre.Y;
+
+            if (home.HasValue && (home.Value - point).Length() <= _snapRange)
+                return home.Value;
+
+            var frame = new Footprint(point, degrees);
+            var alongRight = BestCorrection(piece, point, frame.Right, frame.Forward);
+            var alongForward = BestCorrection(piece, point, frame.Forward, frame.Right);
+            var snapped = point + frame.Right * alongRight + frame.Forward * alongForward;
+
+            // Against the walls, when it's square to the room.
+            if (IsSquare(degrees))
+            {
+                snapped.X = ToEdge(snapped.X, _areaMin.X, _areaMax.X);
+                if (!_rowLocked.Contains(piece))
+                    snapped.Y = ToEdge(snapped.Y, _areaMin.Y, _areaMax.Y);
+            }
+            if (_rowLocked.Contains(piece))
+                snapped.Y = _pieces[piece].Centre.Y;
             return snapped;
+        }
+
+        // The smallest nudge along one direction that lines it up with a neighbour turned the same
+        // way: centres level, or edges touching. Only neighbours close on the other direction count.
+        private float BestCorrection(object piece, Vector2 point, Vector2 axis, Vector2 otherAxis)
+        {
+            var size = _stationHalfSize * 2f;
+            var best = 0f;
+            var bestSize = _snapRange;
+            foreach (var pair in _pieces)
+            {
+                if (pair.Key == piece || !SameAxes(pair.Value, axis))
+                    continue;
+
+                var offset = point - pair.Value.Centre;
+                if (Math.Abs(Vector2.Dot(offset, otherAxis)) > size + _snapRange)
+                    continue;
+
+                var along = Vector2.Dot(offset, axis);
+                foreach (var target in new[] { 0f, size, -size })
+                {
+                    var correction = target - along;
+                    if (Math.Abs(correction) < bestSize)
+                    {
+                        bestSize = Math.Abs(correction);
+                        best = correction;
+                    }
+                }
+            }
+            return best;
+        }
+
+        // Whether a neighbour's edges run along this direction, whichever way it's turned.
+        private static bool SameAxes(Footprint other, Vector2 axis)
+        {
+            var dot = Math.Abs(Vector2.Dot(other.Right, axis));
+            return dot > 0.999f || dot < 0.001f;
+        }
+
+        private static bool IsSquare(float degrees)
+        {
+            var remainder = Math.Abs(degrees % 90f);
+            return remainder < 0.01f || remainder > 89.99f;
+        }
+
+        private float ToEdge(float value, float min, float max)
+        {
+            if (Math.Abs(value - min) < _snapRange)
+                return min;
+            if (Math.Abs(value - max) < _snapRange)
+                return max;
+            return value;
         }
 
         /// <summary>The piece under a point on the floor, or null.</summary>
@@ -72,50 +150,53 @@ namespace Game.Simulation.Movement
             var bestDistance = float.MaxValue;
             foreach (var pair in _pieces)
             {
-                var offset = pair.Value - point;
-                if (Math.Abs(offset.X) > _stationHalfSize || Math.Abs(offset.Y) > _stationHalfSize)
+                if (!pair.Value.Contains(point, _stationHalfSize))
                     continue;
-                if (offset.LengthSquared() < bestDistance)
+                var distance = (pair.Value.Centre - point).LengthSquared();
+                if (distance < bestDistance)
                 {
                     best = pair.Key;
-                    bestDistance = offset.LengthSquared();
+                    bestDistance = distance;
                 }
             }
             return best;
         }
 
         /// <param name="people">Where everyone is standing.</param>
-        public Placement Check(object piece, Vector2 position, IEnumerable<Vector2> people)
+        public Placement Check(object piece, Vector2 position, float degrees, IEnumerable<Vector2> people)
         {
-            // A piece in a locked row may be outside the free area; it's the row that holds it.
-            var withinX = position.X >= _areaMin.X && position.X <= _areaMax.X;
-            var withinY = _rowLocked.Contains(piece) || (position.Y >= _areaMin.Y && position.Y <= _areaMax.Y);
-            if (!withinX || !withinY)
-                return Placement.OutsideTheKitchen;
+            var moved = new Footprint(position, degrees);
 
-            var size = _stationHalfSize * 2f;
+            // All of it has to fit, so a turned station can't poke through a wall. A piece in a
+            // locked row is held by the row instead, front to back.
+            var locked = _rowLocked.Contains(piece);
+            foreach (var corner in moved.Corners(_stationHalfSize))
+            {
+                var fitsX = corner.X >= _areaMin.X - _stationHalfSize - 1e-3f && corner.X <= _areaMax.X + _stationHalfSize + 1e-3f;
+                var fitsY = locked || (corner.Y >= _areaMin.Y - _stationHalfSize - 1e-3f && corner.Y <= _areaMax.Y + _stationHalfSize + 1e-3f);
+                if (!fitsX || !fitsY)
+                    return Placement.OutsideTheKitchen;
+            }
+
             foreach (var pair in _pieces)
             {
-                if (pair.Key == piece)
-                    continue;
-                if (Math.Abs(pair.Value.X - position.X) < size - 1e-3f && Math.Abs(pair.Value.Y - position.Y) < size - 1e-3f)
+                if (pair.Key != piece && moved.Overlaps(pair.Value, _stationHalfSize))
                     return Placement.OnAnotherStation;
             }
 
-            var reach = _stationHalfSize + _walkerRadius;
             foreach (var person in people)
             {
-                if (Math.Abs(person.X - position.X) < reach && Math.Abs(person.Y - position.Y) < reach)
+                if (moved.Contains(person, _stationHalfSize, _walkerRadius))
                     return Placement.SomeoneInTheWay;
             }
 
-            var points = new List<Vector2>();
+            var footprints = new List<Footprint>();
             foreach (var pair in _pieces)
-                points.Add(pair.Key == piece ? position : pair.Value);
-            var layout = new StationLayout(points, _roomHalfSize, _stationHalfSize, _walkerRadius, _standDistance);
-            return layout.EveryStationCanBeReached(points, people) ? Placement.Ok : Placement.BlocksAStation;
+                footprints.Add(pair.Key == piece ? moved : pair.Value);
+            var layout = new StationLayout(footprints, _roomHalfSize, _stationHalfSize, _walkerRadius, _standDistance);
+            return layout.EveryStationCanBeReached(footprints, people) ? Placement.Ok : Placement.BlocksAStation;
         }
 
-        public void Move(object piece, Vector2 position) => _pieces[piece] = position;
+        public void Move(object piece, Vector2 position, float degrees) => _pieces[piece] = new Footprint(position, degrees);
     }
 }

@@ -14,16 +14,19 @@ namespace Game.Gameplay
 {
     /// <summary>
     /// Management mode (decisions 2026-11-04): during Plan and Prep, a player presses Select and their
-    /// chef waits while a cursor of theirs rearranges the kitchen. A picks up and places, B cancels or
-    /// goes back to the chef. What's on a station moves with it. Each player has their own cursor,
-    /// and two can't hold the same thing.
+    /// chef waits while a cursor of theirs rearranges the kitchen. A picks up and places, RB and LB
+    /// rotate, B puts what's held back where it was, and Select returns to the chef. Furniture goes exactly where they put it, snapping
+    /// to what's around it when close. What's on a station moves with it. Each player has their own
+    /// cursor, and two can't hold the same thing.
     /// </summary>
     public sealed class LayoutEditor : MonoBehaviour
     {
         private const string ManageAction = "Manage";
         private const string MoveAction = "Move";
         private const string PickAction = "Interact";
-        private const string BackAction = "ButtonB";
+        private const string CancelAction = "ButtonB";
+        private const string RotateLeftAction = "RotateLeft";
+        private const string RotateRightAction = "RotateRight";
 
         public sealed class Cursor
         {
@@ -31,7 +34,9 @@ namespace Game.Gameplay
             public SimVector2 Position;
             public Interactable Held;
             public Vector3 HeldFrom;
+            public float HeldFromDegrees;
             public SimVector2 Landing;
+            public float Degrees;
             public Placement Result;
         }
 
@@ -42,8 +47,10 @@ namespace Game.Gameplay
 
         [Tooltip("Real metres per second the cursor moves at full stick.")]
         [SerializeField, Min(0.1f)] private float _cursorSpeed = 6f;
-        [Tooltip("Metres between the places things can go.")]
-        [SerializeField, Min(0.1f)] private float _gridSize = 0.5f;
+        [Tooltip("How close, in metres, furniture has to get to something before it snaps into line.")]
+        [SerializeField, Min(0f)] private float _snapRange = 0.15f;
+        [Tooltip("Degrees each press of RB or LB turns what's being carried.")]
+        [SerializeField, Min(1f)] private float _rotationStep = 45f;
         [Tooltip("How far a carried station lifts off the floor, to show it's being moved.")]
         [SerializeField, Min(0f)] private float _liftHeight = 0.25f;
         [Tooltip("Half the room's width and depth, for walking.")]
@@ -79,9 +86,9 @@ namespace Game.Gameplay
                 new SimVector2(_roomHalfSize.x, _roomHalfSize.y),
                 new SimVector2(_areaMin.x, _areaMin.y),
                 new SimVector2(_areaMax.x, _areaMax.y),
-                _gridSize, _stationHalfSize, _walkerRadius, _standDistance);
+                _snapRange, _stationHalfSize, _walkerRadius, _standDistance);
             foreach (var station in FindObjectsByType<Interactable>(FindObjectsSortMode.None))
-                _plan.Add(station, Floor(station.transform.position), rowLocked: station is PassStation);
+                _plan.Add(station, Floor(station.transform.position), station.transform.eulerAngles.y, rowLocked: station is PassStation);
         }
 
         private void Update()
@@ -114,6 +121,13 @@ namespace Game.Gameplay
                 var stick = player.actions[MoveAction].ReadValue<Vector2>();
                 MoveCursor(cursor, new SimVector2(stick.x, stick.y) * (_cursorSpeed * Time.unscaledDeltaTime));
 
+                if (player.actions[RotateRightAction].WasPressedThisFrame())
+                    Rotate(cursor, _rotationStep);
+                else if (player.actions[RotateLeftAction].WasPressedThisFrame())
+                    Rotate(cursor, -_rotationStep);
+
+                Light(cursor);
+
                 if (player.actions[PickAction].WasPressedThisFrame())
                 {
                     if (cursor.Held == null)
@@ -121,12 +135,9 @@ namespace Game.Gameplay
                     else
                         Place(cursor);
                 }
-                else if (player.actions[BackAction].WasPressedThisFrame())
+                else if (player.actions[CancelAction].WasPressedThisFrame())
                 {
-                    if (cursor.Held != null)
-                        Cancel(cursor);
-                    else
-                        Leave(player);
+                    Cancel(cursor);
                 }
             }
         }
@@ -150,7 +161,10 @@ namespace Game.Gameplay
                 Cancel(cursor);
             _cursors.Remove(player);
             if (player.TryGetComponent(out PlayerInteractor interactor))
+            {
+                interactor.Hover(null);
                 interactor.IsManaging = false;
+            }
         }
 
         public void MoveCursor(Cursor cursor, SimVector2 by)
@@ -162,13 +176,35 @@ namespace Game.Gameplay
             if (cursor.Held == null)
                 return;
 
-            var landing = _plan.Snap(cursor.Held, cursor.Position);
-            if (landing != cursor.Landing)
-            {
-                cursor.Landing = landing;
-                cursor.Result = Check(cursor);
-            }
-            cursor.Held.transform.position = new Vector3(landing.X, cursor.HeldFrom.y + _liftHeight, landing.Y);
+            UpdateHeld(cursor);
+        }
+
+        public void Rotate(Cursor cursor, float degrees)
+        {
+            if (cursor.Held == null || !_plan.CanRotate(cursor.Held))
+                return;
+            cursor.Degrees = Mathf.Repeat(cursor.Degrees + degrees, 360f);
+            UpdateHeld(cursor);
+        }
+
+        // Works out where what's being carried would land, and shows it there.
+        private void UpdateHeld(Cursor cursor)
+        {
+            var home = Mathf.Approximately(Mathf.DeltaAngle(cursor.Degrees, cursor.HeldFromDegrees), 0f)
+                ? Floor(cursor.HeldFrom)
+                : (SimVector2?)null;
+            cursor.Landing = _plan.Snap(cursor.Held, cursor.Position, cursor.Degrees, home);
+            cursor.Result = Check(cursor);
+            cursor.Held.transform.SetPositionAndRotation(
+                new Vector3(cursor.Landing.X, cursor.HeldFrom.y + _liftHeight, cursor.Landing.Y),
+                Quaternion.Euler(0f, cursor.Degrees, 0f));
+        }
+
+        // Furniture under a cursor lights up, just as when a chef walks up to it.
+        private void Light(Cursor cursor)
+        {
+            if (cursor.Player.TryGetComponent(out PlayerInteractor interactor))
+                interactor.Hover(cursor.Held != null ? cursor.Held : StationUnder(cursor));
         }
 
         public bool PickUp(Cursor cursor)
@@ -179,6 +215,8 @@ namespace Game.Gameplay
 
             cursor.Held = station;
             cursor.HeldFrom = station.transform.position;
+            cursor.HeldFromDegrees = _plan.DegreesOf(station);
+            cursor.Degrees = cursor.HeldFromDegrees;
             cursor.Landing = _plan.PositionOf(station);
             cursor.Result = Placement.Ok;
             cursor.Held.transform.position = cursor.HeldFrom + Vector3.up * _liftHeight;
@@ -195,8 +233,10 @@ namespace Game.Gameplay
                 return false;
 
             var station = cursor.Held;
-            station.transform.position = new Vector3(cursor.Landing.X, cursor.HeldFrom.y, cursor.Landing.Y);
-            _plan.Move(station, cursor.Landing);
+            station.transform.SetPositionAndRotation(
+                new Vector3(cursor.Landing.X, cursor.HeldFrom.y, cursor.Landing.Y),
+                Quaternion.Euler(0f, cursor.Degrees, 0f));
+            _plan.Move(station, cursor.Landing, cursor.Degrees);
             cursor.Held = null;
             Physics.SyncTransforms();
 
@@ -212,12 +252,12 @@ namespace Game.Gameplay
         {
             if (cursor.Held == null)
                 return;
-            cursor.Held.transform.position = cursor.HeldFrom;
+            cursor.Held.transform.SetPositionAndRotation(cursor.HeldFrom, Quaternion.Euler(0f, cursor.HeldFromDegrees, 0f));
             cursor.Held = null;
             cursor.Result = Placement.Ok;
         }
 
-        private Placement Check(Cursor cursor) => _plan.Check(cursor.Held, cursor.Landing, People());
+        private Placement Check(Cursor cursor) => _plan.Check(cursor.Held, cursor.Landing, cursor.Degrees, People());
 
         private IEnumerable<SimVector2> People()
         {

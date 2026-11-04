@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Numerics;
 
 namespace Game.Simulation.Movement
@@ -13,7 +14,7 @@ namespace Game.Simulation.Movement
     {
         private const float CellSize = 0.2f;
 
-        private readonly List<Vector2> _stations;
+        private readonly List<Footprint> _stations;
         private readonly Vector2 _roomHalfSize;
         private readonly float _stationHalfSize;
         private readonly float _radius;
@@ -22,8 +23,13 @@ namespace Game.Simulation.Movement
         private readonly int _height;
 
         public StationLayout(IEnumerable<Vector2> stations, Vector2 roomHalfSize, float stationHalfSize, float walkerRadius, float standDistance)
+            : this(stations.Select(centre => new Footprint(centre)), roomHalfSize, stationHalfSize, walkerRadius, standDistance)
         {
-            _stations = new List<Vector2>(stations);
+        }
+
+        public StationLayout(IEnumerable<Footprint> stations, Vector2 roomHalfSize, float stationHalfSize, float walkerRadius, float standDistance)
+        {
+            _stations = new List<Footprint>(stations);
             _roomHalfSize = roomHalfSize;
             _stationHalfSize = stationHalfSize;
             _radius = walkerRadius;
@@ -37,10 +43,9 @@ namespace Game.Simulation.Movement
         {
             if (Math.Abs(point.X) > _roomHalfSize.X || Math.Abs(point.Y) > _roomHalfSize.Y)
                 return false;
-            var reach = _stationHalfSize + _radius;
             foreach (var station in _stations)
             {
-                if (Math.Abs(point.X - station.X) < reach && Math.Abs(point.Y - station.Y) < reach)
+                if (station.Contains(point, _stationHalfSize, _radius))
                     return false;
             }
             return true;
@@ -64,13 +69,16 @@ namespace Game.Simulation.Movement
         }
 
         /// <summary>The free side of a station nearest the middle of the room, or null if it's boxed in.</summary>
-        public Vector2? StandingSpot(Vector2 station)
+        public Vector2? StandingSpot(Vector2 station) => StandingSpot(new Footprint(station));
+
+        /// <summary>The same for a station at any rotation: its sides turn with it.</summary>
+        public Vector2? StandingSpot(Footprint station)
         {
             Vector2? best = null;
             var bestDistance = float.MaxValue;
-            foreach (var side in new[] { Vector2.UnitY, -Vector2.UnitY, -Vector2.UnitX, Vector2.UnitX })
+            foreach (var side in new[] { station.Forward, -station.Forward, -station.Right, station.Right })
             {
-                var point = station + side * _standDistance;
+                var point = station.Centre + side * _standDistance;
                 var distance = point.LengthSquared();
                 if (IsFree(point) && distance < bestDistance)
                 {
@@ -86,7 +94,7 @@ namespace Game.Simulation.Movement
         /// where everyone is, so nobody can be walled in. One flood over the floor rather than a
         /// route per station, since it runs as a station is carried.
         /// </summary>
-        public bool EveryStationCanBeReached(IReadOnlyList<Vector2> stations, IEnumerable<Vector2> people = null)
+        public bool EveryStationCanBeReached(IReadOnlyList<Footprint> stations, IEnumerable<Vector2> people = null)
         {
             var spots = new List<int>();
             foreach (var station in stations)

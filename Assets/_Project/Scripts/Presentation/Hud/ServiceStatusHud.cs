@@ -34,12 +34,12 @@ namespace Game.Presentation.Hud
         [SerializeField] private Vector2 _cardPadding = new Vector2(36f, 24f);
 
         [Header("Text")]
-        [SerializeField] private string _joinText = "Press A to join\n(keyboard: X)";
+        [SerializeField] private string _joinText = "Press A to join";
         [SerializeField] private string _candidatesText = "Looking for work:";
-        [SerializeField] private string _manageText = "Press Select (keyboard: Tab) to rearrange the kitchen";
+        [SerializeField] private string _manageText = "Press Select to rearrange the kitchen";
         [SerializeField] private string _deliveryText = "Delivered to storage:";
         [SerializeField] private string _openText = "Prep: preheat and get ready, then open up";
-        [SerializeField] private string _readyText = "Press Menu (keyboard: Esc) when ready";
+        [SerializeField] private string _readyText = "Press Menu when ready";
         [SerializeField] private string _playerReadyText = "READY";
         [SerializeField] private string _playerWaitingText = "not ready";
         [SerializeField] private Color _waitingColor = new Color(0.60f, 0.62f, 0.66f);
@@ -152,9 +152,9 @@ namespace Game.Presentation.Hud
             return plan.ToString().TrimEnd();
         }
 
-        // A button as both devices see it, e.g. "[A / X]".
+        // A button as an Xbox controller shows it: players are only ever shown those.
         private static string Button(PromptControl control) =>
-            $"[{HudStyle.Glyph(control, true)} / {HudStyle.Glyph(control, false)}]";
+            $"[{HudStyle.Glyph(control, true)}]";
 
         // Words, not numbers, like the candidates' descriptions. New staff haven't settled in yet.
         private static string Mood(StaffMember member)

@@ -4,17 +4,25 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-04 — Hints only ever show Xbox buttons
+
+**Decision (user's call):** nothing players see names keyboard controls, whatever they're playing with. Hints are always Xbox buttons. The keyboard still works, mainly for testing.
+
+---
+
 ## 2026-11-04 — Layout editing and management mode (Phase 4, milestone 1)
 
 **User's call:** during Plan and mise en place, players can switch to a cursor view with the Select button.
 
 **Details (proposed while building; flagged for review):**
-- **Keyboard:** Tab. **While managing:** the chef waits; A picks up and places, B cancels or goes back to the chef. You can't ready up while managing.
-- **A 0.5 m grid,** finer than the 1 m first suggested, because the starting kitchen isn't on a 1 m grid and pieces need to sit against each other.
+- **Keyboard:** Tab, though hints only ever name Xbox buttons. **While managing:** the chef waits; A picks up and places, B puts what's held back where it was, and Select returns to the chef, the same button that enters (user's call). You can't ready up while managing.
+- **No grid (user's call):** furniture goes exactly where the player puts it, snapping when within 0.15 m of lining up with a neighbour (edges touching or centres level), a wall, or where it came from. Replaces the 0.5 m grid first built.
+- **RB and LB rotate by 45 degrees (user's call).** Keyboard: C and Z. Turned stations take up their own shape, can't poke through walls, and snap to neighbours turned the same way.
+- **Furniture under a cursor lights up,** just as when a chef walks up to it (user's call).
 - **Anything can be moved,** and what's on a station moves with it. Two players can't hold the same station.
 - **Placements are refused** outside the kitchen, on another station, on a person, or if they'd cut off a station or wall someone in. The reason shows at the cursor.
 - **The pass only slides along its row,** and its stool follows, because customers sit on the dining side.
-- **No rotation yet:** stations have no front that matters so far.
+- **The pass doesn't turn,** since it faces the stools.
 - **Service stops rearranging:** management mode isn't available during Service or Review.
 
 ---
