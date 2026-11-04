@@ -107,6 +107,7 @@ namespace Game.Tests.EditMode
             {
                 var stations = scene.GetRootGameObjects()
                     .SelectMany(root => root.GetComponentsInChildren<Interactable>(true))
+                    .Where(station => !(station is StreetDoor)) // nobody works at it
                     .ToArray();
                 var points = stations.Select(s => new Vector2(s.transform.position.x, s.transform.position.z)).ToArray();
                 Assert.That(points, Is.Not.Empty);

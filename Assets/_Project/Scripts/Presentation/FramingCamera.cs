@@ -1,6 +1,8 @@
 using System.Collections.Generic;
 using Game.Gameplay;
 using Game.Gameplay.Customers;
+using Game.Gameplay.Stations;
+using Game.Simulation.Days;
 using Game.Simulation.Movement;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -10,7 +12,9 @@ namespace Game.Presentation
 {
     /// <summary>
     /// Follows the action: keeps every player and customer in view, zooming out as they spread apart
-    /// and in as they gather. It backs away faster than it closes in, so nobody leaves the screen.
+    /// and in as they gather. During service the street door counts too, so someone walking in is
+    /// already on screen and doesn't make it jump. It backs away faster than it closes in, so nobody
+    /// leaves the screen.
     /// </summary>
     [RequireComponent(typeof(Camera))]
     public sealed class FramingCamera : MonoBehaviour
@@ -18,6 +22,7 @@ namespace Game.Presentation
         [SerializeField] private KitchenCompositionRoot _root;
         [SerializeField] private CustomerDirector _customers;
         [SerializeField] private LayoutEditor _editor;
+        [SerializeField] private StreetDoor _door;
 
         [Tooltip("How far the camera looks down from the horizon, in degrees.")]
         [SerializeField, Range(10f, 89f)] private float _tilt = 55f;
@@ -69,6 +74,8 @@ namespace Game.Presentation
                 _points.Add(cursor.Held != null ? cursor.Landing : cursor.Position);
             foreach (var agent in _customers.Agents.Values)
                 _points.Add(Floor(agent.transform.position));
+            if (_points.Count > 0 && _root.Services.Days.Phase == DayPhase.Service)
+                _points.Add(Floor(_door.transform.position));
 
             // Nobody in yet: the kitchen they're about to join.
             if (_points.Count == 0)

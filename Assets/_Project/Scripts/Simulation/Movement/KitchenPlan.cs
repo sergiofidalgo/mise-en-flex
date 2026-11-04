@@ -11,6 +11,7 @@ namespace Game.Simulation.Movement
         OnAnotherStation,
         SomeoneInTheWay,
         CantAfford,
+        NotOnAWall,
     }
 
     /// <summary>

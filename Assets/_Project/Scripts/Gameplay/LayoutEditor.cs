@@ -56,6 +56,7 @@ namespace Game.Gameplay
         [SerializeField] private DayLoop _dayLoop;
         [SerializeField] private StaffDirector _staff;
         [SerializeField] private FurnitureCatalog _catalog;
+        [SerializeField] private StreetDoor _streetDoor;
 
         [Tooltip("Real metres per second the cursor moves at full stick.")]
         [SerializeField, Min(0.1f)] private float _cursorSpeed = 6f;
@@ -96,6 +97,10 @@ namespace Game.Gameplay
         {
             var floor = _root.Services.FloorPlan;
             _plan = new KitchenPlan(floor.KitchenAreaMin, floor.KitchenAreaMax, _snapRange, floor.StationHalfSize, floor.WalkerRadius);
+
+            // The door's own rule keeps it on the walls; the plan only keeps furniture off it.
+            _plan.Add(_streetDoor, Floor(_streetDoor.transform.position), _streetDoor.transform.eulerAngles.y, _streetDoor.HalfSize);
+            _plan.GiveArea(_streetDoor, floor.RoomMin - SimVector2.One, floor.RoomMax + SimVector2.One);
             foreach (var station in _root.Services.Stations.All)
                 _plan.Add(station, Floor(station.transform.position), station.transform.eulerAngles.y, station.HalfSize);
         }
@@ -208,7 +213,7 @@ namespace Game.Gameplay
 
         public void Rotate(Cursor cursor, float degrees)
         {
-            if (cursor.Held == null)
+            if (cursor.Held == null || cursor.Held == _streetDoor)
                 return;
             cursor.Degrees = Mathf.Repeat(cursor.Degrees + degrees, 360f);
             UpdateHeld(cursor);
@@ -218,10 +223,29 @@ namespace Game.Gameplay
         // the angled camera draws it away from the spot it would actually take.
         private void UpdateHeld(Cursor cursor)
         {
+            if (cursor.Held == _streetDoor)
+            {
+                UpdateHeldDoor(cursor);
+                return;
+            }
+
             var home = cursor.Buying == null && Mathf.Approximately(Mathf.DeltaAngle(cursor.Degrees, cursor.HeldFromDegrees), 0f)
                 ? Floor(cursor.HeldFrom)
                 : (SimVector2?)null;
             cursor.Landing = _plan.Snap(cursor.Held, cursor.Position, cursor.Degrees, home);
+            cursor.Result = Check(cursor);
+            cursor.Held.CantGoHere = cursor.Result != Placement.Ok;
+            cursor.Held.transform.position = new Vector3(cursor.Landing.X, cursor.HeldFrom.y, cursor.Landing.Y);
+        }
+
+        // The door faces in from whichever wall it's on, so where it goes also decides how it's turned.
+        private void UpdateHeldDoor(Cursor cursor)
+        {
+            var floor = _root.Services.FloorPlan;
+            var fit = DoorPlacement.Fit(cursor.Position, floor.DoorLineMin, floor.DoorLineMax, floor.DoorSnapRange, floor.DoorEndMargin);
+            cursor.Landing = fit.Position;
+            if (fit.OnAWall)
+                cursor.Degrees = fit.Degrees;
             cursor.Result = Check(cursor);
             cursor.Held.CantGoHere = cursor.Result != Placement.Ok;
             cursor.Held.transform.position = new Vector3(cursor.Landing.X, cursor.HeldFrom.y, cursor.Landing.Y);
@@ -412,6 +436,12 @@ namespace Game.Gameplay
         private Placement Check(Cursor cursor)
         {
             var result = _plan.Check(cursor.Held, cursor.Landing, cursor.Degrees, People());
+            if (result == Placement.Ok && cursor.Held == _streetDoor)
+            {
+                var floor = _root.Services.FloorPlan;
+                var onAWall = DoorPlacement.Fit(cursor.Position, floor.DoorLineMin, floor.DoorLineMax, floor.DoorSnapRange, floor.DoorEndMargin).OnAWall;
+                return onAWall ? Placement.Ok : Placement.NotOnAWall;
+            }
             return result == Placement.Ok && cursor.Buying != null && !CanAfford(cursor.Buying) ? Placement.CantAfford : result;
         }
 

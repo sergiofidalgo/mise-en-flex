@@ -240,7 +240,18 @@ namespace Game.Gameplay.Customers
                     break;
                 place++;
             }
-            return _queueSpots.Length > 0 ? _queueSpots[Mathf.Min(place, _queueSpots.Length - 1)].position : _door.position;
+            if (_queueSpots.Length == 0)
+                return _door.position;
+
+            // The spots move with the door. Near a corner they'd be outside, so they swap sides.
+            var spot = _queueSpots[Mathf.Min(place, _queueSpots.Length - 1)];
+            var room = _root.Services.FloorPlan;
+            var position = spot.position;
+            var inside = position.x >= room.RoomMin.X && position.x <= room.RoomMax.X && position.z >= room.RoomMin.Y && position.z <= room.RoomMax.Y;
+            if (inside)
+                return position;
+            var local = spot.localPosition;
+            return _door.TransformPoint(new Vector3(-local.x, local.y, local.z));
         }
     }
 }

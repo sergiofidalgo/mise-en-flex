@@ -91,11 +91,14 @@ namespace Game.Presentation.Hud
                     Placement.OnAnotherStation => "something's there",
                     Placement.SomeoneInTheWay => "someone's in the way",
                     Placement.CantAfford => "not enough money",
+                    Placement.NotOnAWall => "it goes on an outside wall",
                     _ => null,
                 };
                 return problem != null
                     ? $"{HudStyle.Colored(problem, _blocked)}\n[LB/RB] rotate   {Glyph(PromptControl.East)} cancel"
-                    : $"{Glyph(PromptControl.South)} place   [LB/RB] rotate   {Glyph(PromptControl.East)} cancel";
+                    : cursor.Held is StreetDoor
+                        ? $"{Glyph(PromptControl.South)} place   {Glyph(PromptControl.East)} cancel"
+                        : $"{Glyph(PromptControl.South)} place   [LB/RB] rotate   {Glyph(PromptControl.East)} cancel";
             }
 
             var always = $"{Glyph(PromptControl.North)} shop   [Select] back to chef";

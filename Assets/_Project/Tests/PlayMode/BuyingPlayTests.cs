@@ -196,5 +196,43 @@ namespace Game.Tests.PlayMode
             yield return null;
             Assert.That(bought.Unit.Slots.Sum(s => s.Count), Is.GreaterThan(0));
         }
+
+        [UnityTest]
+        public IEnumerator TheStreetDoorMovesAlongTheOutsideWallsAndCustomersUseIt()
+        {
+            yield return OpenKitchenWithCursor();
+            var door = Object.FindFirstObjectByType<StreetDoor>();
+            Assert.That(_root.Services.Stations.All.Contains(door), Is.False, "nobody works at it");
+            Assert.That(_editor.SaleProblemOf(_cursor, door), Is.EqualTo(SaleProblem.NotForSale));
+
+            var at = door.transform.position;
+            _cursor.Position = new Vector2(at.x, at.z);
+            Assert.That(_editor.PickUp(_cursor), Is.True);
+
+            _editor.MoveCursor(_cursor, new Vector2(-at.x, -5f - at.z)); // the middle of the dining room
+            Assert.That(_editor.Place(_cursor), Is.False);
+            Assert.That(_cursor.Result, Is.EqualTo(Placement.NotOnAWall));
+
+            _editor.MoveCursor(_cursor, new Vector2(-4f, 0f)); // near the west wall
+            Assert.That(_editor.Place(_cursor), Is.True, _cursor.Result.ToString());
+            yield return null;
+            Assert.That(door.transform.position.x, Is.EqualTo(-4.55f).Within(0.01f));
+            Assert.That(Mathf.DeltaAngle(door.transform.eulerAngles.y, 90f), Is.EqualTo(0f).Within(0.01f), "faces into the room");
+        }
+
+        [UnityTest]
+        public IEnumerator FurnitureCantLandInTheDoorway()
+        {
+            yield return OpenKitchenWithCursor();
+            Days.Receive(500f);
+            var door = Object.FindFirstObjectByType<StreetDoor>();
+
+            _cursor.Position = new Vector2(door.transform.position.x, door.transform.position.z + 0.6f);
+            Assert.That(_editor.Buy(_cursor, _editor.Shop.First(e => e.Id == "table")), Is.True);
+            _editor.MoveCursor(_cursor, Vector2.Zero);
+            Assert.That(_editor.Place(_cursor), Is.False);
+            Assert.That(_cursor.Result, Is.EqualTo(Placement.OnAnotherStation));
+            _editor.Cancel(_cursor);
+        }
     }
 }

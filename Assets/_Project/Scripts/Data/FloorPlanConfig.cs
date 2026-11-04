@@ -36,6 +36,15 @@ namespace Game.Data
         [SerializeField] private Vector2 _diningAreaMin = new Vector2(-4.4f, -7.4f);
         [SerializeField] private Vector2 _diningAreaMax = new Vector2(4.4f, -4.2f);
 
+        [Tooltip("Where the street door stands on the dining room's outer walls: the south-west corner of that line.")]
+        [SerializeField] private Vector2 _doorLineMin = new Vector2(-4.55f, -7.55f);
+        [Tooltip("The other end of it: x is the east wall, y how far north the side walls go.")]
+        [SerializeField] private Vector2 _doorLineMax = new Vector2(4.55f, -3.7f);
+        [Tooltip("How close to a wall the door has to be, in metres, to snap onto it.")]
+        [SerializeField, Min(0f)] private float _doorSnapRange = 1f;
+        [Tooltip("How far the door stays from a corner, in metres.")]
+        [SerializeField, Min(0f)] private float _doorEndMargin = 0.7f;
+
         [SerializeField, Min(0f)] private float _stationHalfSize = 0.5f;
         [Tooltip("Half a walker's width, for keeping clear of furniture and walls.")]
         [SerializeField, Min(0f)] private float _walkerRadius = 0.3f;
@@ -51,6 +60,10 @@ namespace Game.Data
         public SimVector2 KitchenAreaMax => ToSim(_kitchenAreaMax);
         public SimVector2 DiningAreaMin => ToSim(_diningAreaMin);
         public SimVector2 DiningAreaMax => ToSim(_diningAreaMax);
+        public SimVector2 DoorLineMin => ToSim(_doorLineMin);
+        public SimVector2 DoorLineMax => ToSim(_doorLineMax);
+        public float DoorSnapRange => _doorSnapRange;
+        public float DoorEndMargin => _doorEndMargin;
         public float StationHalfSize => _stationHalfSize;
         public float WalkerRadius => _walkerRadius;
 

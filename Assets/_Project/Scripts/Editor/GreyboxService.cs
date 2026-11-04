@@ -18,8 +18,14 @@ namespace Game.Editor
         private const float SeatZ = -3.35f;
         // The street door is in the south wall; customers wait along the east wall until a seat's free.
         private static readonly Vector3 DoorPosition = new Vector3(3f, 0f, -7.55f);
-        private const float DoorPanelZ = -7.87f;
-        private static readonly Vector3[] QueuePositions = { new Vector3(4.2f, 0f, -7.2f), new Vector3(4.2f, 0f, -6.4f), new Vector3(4.2f, 0f, -5.6f) };
+        private const float DoorPanelBehind = -0.32f;
+        private const float DoorMatAhead = 0.1f;
+
+        // Furniture stays this far off the doorway, so people have somewhere to step in.
+        private static readonly Vector2 DoorClearance = new Vector2(0.6f, 0.6f);
+
+        // Relative to the door, whichever wall it's on.
+        private static readonly Vector3[] QueueOffsets = { new Vector3(1.2f, 0f, 0.35f), new Vector3(1.2f, 0f, 1.15f), new Vector3(1.2f, 0f, 1.95f) };
 
         private static readonly Vector3 StoolScale = new Vector3(0.36f, 0.22f, 0.36f); // cylinder: 0.44 m tall
         private static readonly Color StoolColor = new Color(0.35f, 0.25f, 0.18f);
@@ -27,7 +33,6 @@ namespace Game.Editor
         private static readonly Color DoorColor = new Color(0.20f, 0.14f, 0.10f);
         private static readonly Vector3 DoorMatScale = new Vector3(1.2f, 0.012f, 0.7f);
         private static readonly Color DoorMatColor = new Color(0.25f, 0.42f, 0.34f);
-        private const float DoorMatZ = -7.45f;
 
         // Customers: slightly shorter and slimmer than chefs, a muted colour so they read apart.
         private static readonly Vector3 CustomerScale = new Vector3(0.6f, 0.8f, 0.6f);
@@ -52,27 +57,39 @@ namespace Game.Editor
                 stool.transform.localPosition = new Vector3(0f, StoolScale.y, 0f);
             }
 
-            var door = new GameObject("Door").transform;
+            // The street door: its root is the doorway people step through, facing into the room.
+            var door = new GameObject("Street door").transform;
             door.SetParent(zone, false);
             door.localPosition = DoorPosition;
-            // Customers walk in facing north, which is no rotation at all.
-            var doorPanel = GreyboxAssets.CreatePrimitive(
-                PrimitiveType.Cube, "DoorPanel", zone, GreyboxAssets.EnsureMaterial("Door", DoorColor), keepCollider: false);
-            doorPanel.transform.localScale = DoorScale;
-            doorPanel.transform.localPosition = new Vector3(DoorPosition.x, DoorScale.y / 2f, DoorPanelZ);
 
-            // The south wall hides the door from the camera, so a mat on the floor shows where it is.
-            var mat = GreyboxAssets.CreatePrimitive(
-                PrimitiveType.Cube, "DoorMat", zone, GreyboxAssets.EnsureMaterial("DoorMat", DoorMatColor), keepCollider: false);
+            // The wall hides the door from the camera, so a mat on the floor shows where it is.
+            var panel = GreyboxAssets.CreatePrimitive(PrimitiveType.Cube, "DoorPanel", door, GreyboxAssets.EnsureMaterial("Door", DoorColor), keepCollider: false);
+            panel.transform.localScale = DoorScale;
+            panel.transform.localPosition = new Vector3(0f, DoorScale.y / 2f, DoorPanelBehind);
+            var mat = GreyboxAssets.CreatePrimitive(PrimitiveType.Cube, "DoorMat", door, GreyboxAssets.EnsureMaterial("DoorMat", DoorMatColor), keepCollider: false);
             mat.transform.localScale = DoorMatScale;
-            mat.transform.localPosition = new Vector3(DoorPosition.x, DoorMatScale.y / 2f, DoorMatZ);
+            mat.transform.localPosition = new Vector3(0f, DoorMatScale.y / 2f, DoorMatAhead);
 
-            var queue = new Transform[QueuePositions.Length];
-            for (var i = 0; i < QueuePositions.Length; i++)
+            var streetDoor = new SerializedObject(door.gameObject.AddComponent<Game.Gameplay.Stations.StreetDoor>());
+            streetDoor.FindProperty("_halfSize").vector2Value = DoorClearance;
+            streetDoor.FindProperty("_itemAnchor").objectReferenceValue = door;
+            streetDoor.ApplyModifiedPropertiesWithoutUndo();
+
+            var doorLight = new SerializedObject(door.gameObject.AddComponent<Game.Presentation.InteractableHighlightView>());
+            doorLight.FindProperty("_interactable").objectReferenceValue = door.GetComponent<Game.Gameplay.Stations.StreetDoor>();
+            doorLight.FindProperty("_shakeTarget").objectReferenceValue = panel.transform;
+            var doorParts = doorLight.FindProperty("_renderers");
+            doorParts.arraySize = 2;
+            doorParts.GetArrayElementAtIndex(0).objectReferenceValue = panel.GetComponent<Renderer>();
+            doorParts.GetArrayElementAtIndex(1).objectReferenceValue = mat.GetComponent<Renderer>();
+            doorLight.ApplyModifiedPropertiesWithoutUndo();
+
+            var queue = new Transform[QueueOffsets.Length];
+            for (var i = 0; i < QueueOffsets.Length; i++)
             {
                 queue[i] = new GameObject($"QueueSpot_{i + 1}").transform;
-                queue[i].SetParent(zone, false);
-                queue[i].localPosition = QueuePositions[i];
+                queue[i].SetParent(door, false);
+                queue[i].localPosition = QueueOffsets[i];
             }
 
             var director = zone.gameObject.AddComponent<CustomerDirector>();

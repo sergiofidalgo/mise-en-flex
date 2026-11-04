@@ -36,6 +36,7 @@ namespace Game.Tests.EditMode
             var scene = EditorSceneManager.OpenScene(KitchenScenePath, OpenSceneMode.Single);
             var stations = scene.GetRootGameObjects()
                 .SelectMany(root => root.GetComponentsInChildren<Game.Gameplay.Stations.Interactable>(true))
+                .Where(station => !(station is Game.Gameplay.Stations.StreetDoor)) // walked through, not around
                 .ToArray();
 
             Assert.That(stations, Is.Not.Empty);

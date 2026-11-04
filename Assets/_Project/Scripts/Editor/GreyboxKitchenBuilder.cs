@@ -367,6 +367,7 @@ namespace Game.Editor
             framing.FindProperty("_root").objectReferenceValue = root;
             framing.FindProperty("_customers").objectReferenceValue = Object.FindFirstObjectByType<Game.Gameplay.Customers.CustomerDirector>();
             framing.FindProperty("_editor").objectReferenceValue = Object.FindFirstObjectByType<LayoutEditor>();
+            framing.FindProperty("_door").objectReferenceValue = Object.FindFirstObjectByType<StreetDoor>();
             framing.FindProperty("_tilt").floatValue = CameraEuler.x;
             framing.ApplyModifiedPropertiesWithoutUndo();
 

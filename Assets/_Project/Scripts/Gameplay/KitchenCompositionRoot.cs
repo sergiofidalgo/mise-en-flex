@@ -36,7 +36,7 @@ namespace Game.Gameplay
 
         private void Awake()
         {
-            var stations = new StationRegistry(FindObjectsByType<Interactable>(FindObjectsSortMode.None));
+            var stations = new StationRegistry(FindObjectsByType<Interactable>(FindObjectsSortMode.None).Where(station => !(station is StreetDoor)));
 
             // One stool per pass counter (counter service, decision 2026-11-02).
             var seats = stations.All.OfType<PassStation>().Count();

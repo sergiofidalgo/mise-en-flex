@@ -39,6 +39,7 @@ namespace Game.Editor
             editor.FindProperty("_dayLoop").objectReferenceValue = root.GetComponent<DayLoop>();
             editor.FindProperty("_staff").objectReferenceValue = zone.GetComponent<StaffDirector>();
             editor.FindProperty("_catalog").objectReferenceValue = furniture;
+            editor.FindProperty("_streetDoor").objectReferenceValue = Object.FindFirstObjectByType<Game.Gameplay.Stations.StreetDoor>();
             editor.ApplyModifiedPropertiesWithoutUndo();
 
             var directorLink = new SerializedObject(zone.GetComponent<StaffDirector>());
