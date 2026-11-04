@@ -25,6 +25,9 @@ namespace Game.Editor
         private static readonly Color StoolColor = new Color(0.35f, 0.25f, 0.18f);
         private static readonly Vector3 DoorScale = new Vector3(0.9f, 1.2f, 0.06f);
         private static readonly Color DoorColor = new Color(0.20f, 0.14f, 0.10f);
+        private static readonly Vector3 DoorMatScale = new Vector3(1.2f, 0.012f, 0.7f);
+        private static readonly Color DoorMatColor = new Color(0.25f, 0.42f, 0.34f);
+        private const float DoorMatZ = -7.45f;
 
         // Customers: slightly shorter and slimmer than chefs, a muted colour so they read apart.
         private static readonly Vector3 CustomerScale = new Vector3(0.6f, 0.8f, 0.6f);
@@ -57,6 +60,12 @@ namespace Game.Editor
                 PrimitiveType.Cube, "DoorPanel", zone, GreyboxAssets.EnsureMaterial("Door", DoorColor), keepCollider: false);
             doorPanel.transform.localScale = DoorScale;
             doorPanel.transform.localPosition = new Vector3(DoorPosition.x, DoorScale.y / 2f, DoorPanelZ);
+
+            // The south wall hides the door from the camera, so a mat on the floor shows where it is.
+            var mat = GreyboxAssets.CreatePrimitive(
+                PrimitiveType.Cube, "DoorMat", zone, GreyboxAssets.EnsureMaterial("DoorMat", DoorMatColor), keepCollider: false);
+            mat.transform.localScale = DoorMatScale;
+            mat.transform.localPosition = new Vector3(DoorPosition.x, DoorMatScale.y / 2f, DoorMatZ);
 
             var queue = new Transform[QueuePositions.Length];
             for (var i = 0; i < QueuePositions.Length; i++)

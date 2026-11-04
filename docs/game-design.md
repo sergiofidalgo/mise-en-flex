@@ -49,7 +49,7 @@ Every feature must serve at least one.
 
 A **shared overhead camera** frames the whole restaurant. Both players see the full kitchen so they can read bottlenecks, plan routes and see their layout pay off. Readability from this camera is a constraint on every asset and food state.
 
-**Decided:** fixed camera for Phases 0–3. A camera that frames both players and zooms is deferred to Phase 4, only if larger size tiers need it.
+**Decided:** the camera follows the action, keeping every player and customer in view and zooming as they spread apart or gather (decision 2026-11-05).
 
 ### 3.2 Close-up station view (dropped 2026-11-02)
 

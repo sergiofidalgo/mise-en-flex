@@ -10,16 +10,14 @@
 | --- | --- | --- | --- |
 | 1 | **Layout editing:** each player gets a cursor in Plan to pick up and place anything | Arrange your own kitchen | Done |
 | 2 | **Buying and selling furniture:** extra counters and stations cost money, and you start with fewer | Counters really are precious | Done |
-| 3 | **Tables:** a dining area away from the pass; you carry plates to them and clear them | Distance matters | |
+| 3 | **Tables:** a dining room beside the kitchen, reached through a door, with a camera that follows the action; you carry plates to tables and clear them | Distance matters | Built, awaiting playtest |
 | 4 | **Waiter:** takes food from the pass to the table and clears the table afterwards | A hire that removes trips | |
 | 5 | **Size tiers:** counter, small room, full dining room | Bigger isn't strictly better | |
 | 6 | **Equipment tiers:** better hobs, more storage slots, more plates | Upgrades as a spending choice | |
 
 ## Proposed, to confirm
 
-- Tables seat one customer at first; orders show above their head, with no order-taking step.
 - Furniture and tiers cost money; rent stays in Phase 5.
-- The fixed camera stays as long as it fits.
 
 ## Out of scope
 

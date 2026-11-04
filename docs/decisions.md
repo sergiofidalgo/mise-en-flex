@@ -10,6 +10,27 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-05 — The floor plan, a camera that follows the action, and tables (Phase 4, milestone 3)
+
+**User's calls:**
+- **A real restaurant floor plan:** customers come into the dining room from the street, not past the kitchen, and a door lets people move between the rooms.
+- **A customer sits and shows their order even at a dirty table;** players clear it before they can put the dish down.
+- **Customers and players collide,** just as hires do.
+- **The camera follows the action,** zooming out as players or customers spread apart and in as they gather. The restaurant can grow as much as players want, so a fixed camera won't do. Replaces the fixed camera decided for Phases 0–3 and moves this up from size tiers.
+
+**Details (proposed while building; flagged for review):**
+- **The building is 10 × 12 m:** the kitchen as it was, and a 5 m deep dining room to its south. A low wall runs between them, so the camera sees over it. The door is 1.2 m wide, west of the hatch, and swings open for whoever's near. It never blocks anyone.
+- **Tables are bought (€50) with none at the start,** and only go in the dining room; kitchen furniture stays in the kitchen. Within a room, layouts are still free.
+- **One seat per table,** with no order-taking step. Stools fill first, then tables. Tables bought in Plan or Prep count from that day's service.
+- **Only players clear tables.** The dishwasher still clears the pass, leaving the tables as the waiter's job.
+- **A customer with no way to their seat gives up:** a lost cover, no penalty, and the seat goes to the next. Someone leaving always gets out, and someone blocked by people for 2 seconds walks through, so a bad layout costs money but can't freeze a service.
+- **Pushing a seated customer moves them,** and they walk straight back.
+- **The camera** keeps its 55 degree tilt, keeps 2 m of floor around everyone, and backs away faster than it closes in. Staff don't count towards the framing, as they stay in the kitchen. Tunable on `FramingCamera`.
+
+**Known limits:** chairs and queue spots aren't protected, so a table can be placed over one; the customer then walks through after 2 seconds and sits inside it. Walking speed may make distance matter too little (see the milestone's playtest).
+
+---
+
 ## 2026-11-04 — Buying and selling furniture (Phase 4, milestone 2)
 
 **User's calls:** you start with **4 counters and 1 hob**. Everything else about the milestone was proposed and accepted as a plan.
@@ -36,10 +57,9 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 - **RB and LB rotate by 45 degrees (user's call),** easing round in about 0.1 s, though the new angle counts straight away (user's call: smooth it now). Keyboard: C and Z. Turned stations take up their own shape, can't poke through walls, and snap to neighbours turned the same way.
 - **Furniture under a cursor lights up,** just as when a chef walks up to it (user's call). It keeps its own colour and only gets brighter: tinting it towards the player's colour was confusing. This replaces the player-colour tint from Phase 0 for chefs too.
 - **Anything can be moved,** and what's on a station moves with it. Two players can't hold the same station.
-- **Placements are refused** outside the kitchen, on another station, or on a person. The reason shows at the cursor.
+- **Placements are refused** outside the piece's own room, on another station, or on a person. The reason shows at the cursor.
 - **A layout is never refused for being bad (user's call):** a blocked hob, a cut-off counter or a walled-in chef are all allowed, and players find out by walking it. This replaces the earlier rules that work stations keep a clear front and that nothing gets cut off. Learning by playing beats being prevented. A helper with no way to a station stands and waits rather than working from a distance.
-- **The pass only slides along its row,** and its stool follows, because customers sit on the dining side.
-- **The pass doesn't turn,** since it faces the stools.
+- **The pass doesn't move:** it's the hatch in the wall between the rooms, so it's part of the building (replaces sliding along its row).
 - **What's carried turns red where it can't go (user's call),** and the floor frame only shows while choosing what to pick up.
 - **What's carried stays on the floor (user's call):** lifted, the angled camera drew it away from where it would land. Being carried shows through brightness, or red.
 - **Service stops rearranging:** management mode isn't available during Service or Review.
