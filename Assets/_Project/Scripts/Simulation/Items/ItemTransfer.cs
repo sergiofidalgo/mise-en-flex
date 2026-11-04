@@ -15,12 +15,13 @@ namespace Game.Simulation.Items
     /// <summary>
     /// The contextual Interact rule. In order:
     /// <list type="number">
-    /// <item>Empty hands take what's on the station; a pan or plate comes with its food.</item>
+    /// <item>Empty hands take what's on the station; a pan or plate comes with its food. A container with food stays and gives one portion.</item>
     /// <item>Full hands put down if the station accepts what they hold.</item>
     /// <item>Food goes into a pan or onto a plate standing on the station.</item>
     /// <item>A held pan or plate scoops up food standing on the station.</item>
     /// <item>Two containers: contents move between them (plating from a pan, back into a pan).</item>
     /// <item>A held container's contents go into the station if it takes them (scraping into the bin).</item>
+    /// <item>A held tray picks up a plate from a plate source (the stack, the sink, the pass).</item>
     /// </list>
     /// </summary>
     public static class ItemTransfer
@@ -31,6 +32,12 @@ namespace Game.Simulation.Items
 
             if (hands.IsEmpty)
             {
+                if (onStation is FoodContainer portions && !portions.IsEmpty)
+                {
+                    hands.Put(portions.Take());
+                    return InteractionOutcome.PickedUp;
+                }
+
                 if (!target.CanTake)
                     return InteractionOutcome.Nothing;
 
@@ -55,6 +62,15 @@ namespace Game.Simulation.Items
 
                 if (held is IItemCollection holding)
                 {
+                    // A plate or pan takes one portion from a container; a tray moves as many as fit.
+                    if (onStation is FoodContainer container && !(held is Tray) && !container.IsEmpty)
+                    {
+                        if (!holding.CanAccept(container.Items[0]))
+                            return InteractionOutcome.Nothing;
+                        holding.Put(container.Take());
+                        return InteractionOutcome.PickedUp;
+                    }
+
                     if (holding.CanAccept(onStation))
                     {
                         holding.Put(target.Take());
@@ -68,6 +84,12 @@ namespace Game.Simulation.Items
 
             if (held is IItemCollection source && Pour(source, target) > 0)
                 return InteractionOutcome.Combined;
+
+            if (held is Tray tray && tray.HasRoom && target is IPlateSource && target.CanTake)
+            {
+                tray.Put(target.Take());
+                return InteractionOutcome.PickedUp;
+            }
 
             return InteractionOutcome.Nothing;
         }

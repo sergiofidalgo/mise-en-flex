@@ -8,7 +8,7 @@ namespace Game.Simulation.Items
     /// wait to be taken back to the stack. Whoever washes (a player scrubbing, a dishwasher working)
     /// adds to the progress of the plate in hand.
     /// </summary>
-    public sealed class Sink : IItemContainer
+    public sealed class Sink : IPlateSource
     {
         private readonly Queue<Plate> _dirty = new Queue<Plate>();
         private readonly Stack<Plate> _clean = new Stack<Plate>();

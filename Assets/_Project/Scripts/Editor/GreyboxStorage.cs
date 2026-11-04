@@ -20,7 +20,6 @@ namespace Game.Editor
             public string Name;
             public Vector3 Position;
             public bool Refrigerated;
-            public bool GivesCrates;
 
             // Portions delivered each morning, per slot.
             public int[] Deliveries = new int[4];
@@ -80,7 +79,6 @@ namespace Game.Editor
 
             var so = new SerializedObject(station);
             so.FindProperty("_refrigerated").boolValue = unit.Refrigerated;
-            so.FindProperty("_givesCrates").boolValue = unit.GivesCrates;
             var slots = so.FindProperty("_slots");
             slots.arraySize = BinOffsets.Length;
             for (var i = 0; i < BinOffsets.Length; i++)

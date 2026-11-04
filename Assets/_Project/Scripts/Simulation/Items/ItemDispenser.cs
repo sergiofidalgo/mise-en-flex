@@ -3,7 +3,7 @@ using System;
 namespace Game.Simulation.Items
 {
     /// <summary>
-    /// An endless supply of one item type, like an ingredient crate. Phase 0 placeholder:
+    /// An endless supply of one item type, like a box of ingredients. Phase 0 placeholder:
     /// replaced by the 4-slot fridge with limited stock in Phase 1, milestone 6.
     /// </summary>
     public sealed class ItemDispenser : IItemContainer
@@ -22,7 +22,7 @@ namespace Game.Simulation.Items
 
         public bool CanTake => true;
 
-        // Crates don't take things back; putting food down needs a counter.
+        // Dispensers don't take things back; putting food down needs a counter.
         public bool CanAccept(Item item) => false;
 
         public Item Take() => _create();

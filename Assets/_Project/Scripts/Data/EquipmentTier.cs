@@ -27,21 +27,30 @@ namespace Game.Data
         [Tooltip("Plates the kitchen owns. Dirty and broken ones aren't available, so this sets the pressure to wash up.")]
         [SerializeField, Min(0)] private int _plateCount = 6;
 
-        [Header("Crate")]
-        [Tooltip("Portions a crate from the storeroom holds.")]
-        [SerializeField, Min(1)] private int _crateCapacity = 6;
+        [Header("Containers")]
+        [SerializeField, Min(0)] private int _containerCount = 6;
+        [Tooltip("Portions of one ingredient a container holds.")]
+        [SerializeField, Min(1)] private int _containerCapacity = 10;
+        [Tooltip("How fast food ages in one, compared to in the open. Should beat room temperature but not a fridge.")]
+        [SerializeField, Min(0f)] private float _containerFreshnessFactor = 0.5f;
 
-        [Header("Prep counter")]
-        [Tooltip("Portions each of the prep counter's four slots holds.")]
-        [SerializeField, Min(1)] private int _prepSlotCapacity = 4;
+        [Header("Trays")]
+        [SerializeField, Min(0)] private int _trayCount = 4;
+        [Tooltip("Things a tray holds: ingredients or plates, in any mix.")]
+        [SerializeField, Min(1)] private int _trayCapacity = 4;
+        [Tooltip("How fast food loose on one ages, compared to in the open.")]
+        [SerializeField, Min(0f)] private float _trayFreshnessFactor = 1.5f;
 
         public int PlateCapacity => _plateCapacity;
 
-        public int CrateCapacity => _crateCapacity;
-
         public int PlateCount => _plateCount;
 
-        public int PrepSlotCapacity => _prepSlotCapacity;
+        public int ContainerCount => _containerCount;
+        public int ContainerCapacity => _containerCapacity;
+        public float ContainerFreshnessFactor => _containerFreshnessFactor;
+        public int TrayCount => _trayCount;
+        public int TrayCapacity => _trayCapacity;
+        public float TrayFreshnessFactor => _trayFreshnessFactor;
 
         public HobProperties Hob => new HobProperties { MaxPower = _hobMaxPower };
 

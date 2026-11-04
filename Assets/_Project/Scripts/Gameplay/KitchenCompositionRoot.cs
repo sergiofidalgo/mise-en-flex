@@ -95,7 +95,6 @@ namespace Game.Gameplay
             cooking.SkipClosedTime(_tuning.OvernightSeconds);
 
             var spoiled = 0;
-            var stored = 0;
             foreach (var storage in _interactables.OfType<StorageStation>())
             {
                 foreach (var ingredient in storage.Unit.RemoveSpoiled(_tuning.SpoiledBelow))
@@ -103,9 +102,11 @@ namespace Game.Gameplay
                     cooking.Remove(ingredient);
                     spoiled++;
                 }
-                stored += storage.Unit.Slots.Sum(slot => slot.Count);
             }
-            return new CloseReport(spoiled, cooking.Ingredients.Count - stored);
+
+            // Left out: neither in storage nor put away in a container.
+            var leftOut = cooking.Ingredients.Count(food => food.EnvironmentTemperature == null && food.FreshnessFactor >= 1f);
+            return new CloseReport(spoiled, leftOut);
         }
 
         private void HandlePhaseChanged(DayPhase phase)

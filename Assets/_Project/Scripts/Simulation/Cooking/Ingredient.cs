@@ -57,6 +57,9 @@ namespace Game.Simulation.Cooking
         /// </summary>
         public float? EnvironmentTemperature { get; set; }
 
+        /// <summary>Multiplies how fast it ages, set by what it's in: below 1 in a container, above in a tray.</summary>
+        public float FreshnessFactor { get; set; } = 1f;
+
         public float CoreTemperature => Temperatures[Core];
 
         public float SurfaceTemperature(IngredientSide side) => Temperatures[SurfaceIndex(side)];

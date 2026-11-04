@@ -60,6 +60,17 @@ namespace Game.Gameplay.Stations
         public bool IsSlotMenuOpen =>
             _target is ISlotMenuStation && _heatUp != null && _heatUp.ReadValue<float>() >= MenuTriggerThreshold;
 
+        /// <summary>
+        /// True while RT (keyboard E) is held with a tray in hand: the face buttons choose what comes
+        /// off it. Not at storage (RT there is its own menu) or a hob (RT turns up the heat).
+        /// </summary>
+        public bool IsTrayMenuOpen =>
+            _hands.Current is Tray && CanOpenTrayMenu && _heatUp != null && _heatUp.ReadValue<float>() >= MenuTriggerThreshold;
+
+        /// <summary>True when holding a tray here could open its menu, for the prompt.</summary>
+        public bool CanOpenTrayMenu =>
+            _hands.Current is Tray tray && !tray.IsEmpty && _target != null && !(_target is ISlotMenuStation) && !(_target is IHeatControl);
+
         public Interactable Target => _target;
 
         /// <summary>Chefs work in Prep and Service; Plan and Review happen between shifts.</summary>
@@ -179,10 +190,73 @@ namespace Game.Gameplay.Stations
         /// <summary>Gives up the held tool (the station places its view).</summary>
         public Item ReleaseTool() => _tool.Take();
 
-        // Stations that answer to face buttons (storage) get them first while the hands are empty.
+        /// <summary>The held tray's contents as a menu, one per face button.</summary>
+        public void DescribeTrayMenu(List<PromptLine> lines)
+        {
+            if (!(_hands.Current is Tray tray))
+                return;
+            for (var i = 0; i < tray.Capacity; i++)
+            {
+                var control = (PromptControl)i;
+                lines.Add(i < tray.Items.Count
+                    ? new PromptLine(control, ItemLabel(tray.Items[i]))
+                    : new PromptLine(control, "—", available: false));
+            }
+        }
+
+        private static string ItemLabel(Item item)
+        {
+            if (!(item is Plate plate))
+                return item.TypeId;
+            if (plate.IsDirty)
+                return "dirty plate";
+            return plate.Items.Count == 0 ? "empty plate" : $"plate: {plate.Items[0].TypeId}";
+        }
+
+        // Puts one chosen thing off the tray, by the same rules as putting it down from the hands.
+        // If it can't go, it stays where it was on the tray.
+        private bool PlaceFromTray(int index)
+        {
+            if (!(_hands.Current is Tray tray) || index >= tray.Items.Count || _target.Container == null)
+                return false;
+
+            var item = tray.TakeAt(index);
+            var single = new ItemSlot();
+            single.Put(item);
+            var outcome = ItemTransfer.Interact(single, _target.Container);
+            if (single.Current != null)
+                tray.InsertAt(index, single.Take());
+            if (outcome == InteractionOutcome.Nothing)
+                return false;
+
+            RefreshHeld(_target.ItemAnchor.position);
+            Interacted?.Invoke(outcome);
+            return true;
+        }
+
+        /// <summary>Puts the views of what's held, and what's on the station faced, where they belong.</summary>
+        public void RefreshHeld(Vector3 spawnPosition)
+        {
+            var views = _services.ItemViews;
+            var move = _services.Tuning.ItemMove;
+            views.Place(_hands.Current, _carryAnchor, move, spawnPosition);
+            var onStation = _target != null ? _target.HeldItem : null;
+            if (onStation != null)
+                views.Place(onStation, _target.AnchorFor(onStation), move, _carryAnchor.position);
+        }
+
+        // Stations that answer to face buttons (storage) get them first while the hands are empty,
+        // or with a tray when their menu is open. An open tray menu comes before everything.
         private bool TryFaceButton(FaceButton button)
         {
-            if (_target is IFaceButtonTarget target && _hands.IsEmpty)
+            if (IsTrayMenuOpen)
+            {
+                if (!PlaceFromTray((int)button))
+                    _target.NotifyDenied();
+                return true;
+            }
+
+            if (_target is IFaceButtonTarget target && (_hands.IsEmpty || (_hands.Current is Tray && IsSlotMenuOpen)))
             {
                 if (!target.TryPress(button, this))
                     _target.NotifyDenied();
@@ -222,19 +296,8 @@ namespace Game.Gameplay.Stations
             else
             {
                 // Re-place both sides; only views whose place changed move. Brand-new items
-                // (from a crate or the plate stack) appear at the station and fly to the hands.
-                var views = _services.ItemViews;
-                var move = _services.Tuning.ItemMove;
-                // An emptied crate is done with: it doesn't need carrying back.
-                if (_hands.Current is Crate crate && crate.IsEmpty)
-                {
-                    _hands.Take();
-                    views.Release(crate);
-                }
-                views.Place(_hands.Current, _carryAnchor, move, _target.ItemAnchor.position);
-                var onStation = _target.HeldItem;
-                if (onStation != null)
-                    views.Place(onStation, _target.AnchorFor(onStation), move, _carryAnchor.position);
+                // (from a rack or the plate stack) appear at the station and fly to the hands.
+                RefreshHeld(_target.ItemAnchor.position);
             }
 
             Interacted?.Invoke(outcome);

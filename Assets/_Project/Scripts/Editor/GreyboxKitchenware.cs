@@ -117,13 +117,16 @@ namespace Game.Editor
         // Knife: grey blade and dark handle, lying flat; root at its base.
         private static readonly Vector3 BladeScale = new Vector3(0.035f, 0.008f, 0.2f);
         private static readonly Vector3 HandleScale = new Vector3(0.035f, 0.02f, 0.1f);
-        private static readonly Color CrateColor = new Color(0.62f, 0.47f, 0.28f);
-        private static readonly Vector3 CrateScale = new Vector3(0.5f, 0.1f, 0.36f);
-        private static readonly Vector3[] CrateSlots =
+        public static readonly Color TrayColor = new Color(0.32f, 0.34f, 0.38f);
+        private static readonly Vector3 TrayScale = new Vector3(0.72f, 0.02f, 0.72f);
+        private static readonly Vector3[] TraySlots =
         {
-            new Vector3(-0.15f, 0f, -0.1f), new Vector3(0f, 0f, -0.1f), new Vector3(0.15f, 0f, -0.1f),
-            new Vector3(-0.15f, 0f, 0.1f), new Vector3(0f, 0f, 0.1f), new Vector3(0.15f, 0f, 0.1f),
+            new Vector3(-0.18f, 0f, -0.18f), new Vector3(0.18f, 0f, -0.18f),
+            new Vector3(-0.18f, 0f, 0.18f), new Vector3(0.18f, 0f, 0.18f),
         };
+        public static readonly Color ContainerColor = new Color(0.72f, 0.78f, 0.82f);
+        private static readonly Vector3 ContainerScale = new Vector3(0.5f, 0.06f, 0.5f);
+        private const float ContainerPileStep = 0.015f;
         private static readonly Color BladeColor = new Color(0.78f, 0.80f, 0.84f);
         private static readonly Color HandleColor = new Color(0.18f, 0.12f, 0.10f);
 
@@ -142,15 +145,31 @@ namespace Game.Editor
             return Save(root, Knife.KnifeTypeId);
         }
 
-        public static GameObject BuildCrate()
+        public static GameObject BuildTray()
         {
-            var root = new GameObject($"PF_Item_{Crate.CrateTypeId}");
+            var root = new GameObject($"PF_Item_{Tray.TrayTypeId}");
             var body = GreyboxAssets.CreatePrimitive(
-                PrimitiveType.Cube, "Body", root.transform, GreyboxAssets.EnsureMaterial("Crate", CrateColor), keepCollider: false);
-            body.transform.localScale = CrateScale;
-            body.transform.localPosition = new Vector3(0f, CrateScale.y / 2f, 0f);
-            AddSlots(root, CrateSlots, CrateScale.y);
-            return Save(root, Crate.CrateTypeId);
+                PrimitiveType.Cube, "Body", root.transform, GreyboxAssets.EnsureMaterial("Tray", TrayColor), keepCollider: false);
+            body.transform.localScale = TrayScale;
+            body.transform.localPosition = new Vector3(0f, TrayScale.y / 2f, 0f);
+            AddSlots(root, TraySlots, TrayScale.y);
+            return Save(root, Tray.TrayTypeId);
+        }
+
+        public static GameObject BuildContainer()
+        {
+            var root = new GameObject($"PF_Item_{FoodContainer.ContainerTypeId}");
+            var body = GreyboxAssets.CreatePrimitive(
+                PrimitiveType.Cube, "Body", root.transform, GreyboxAssets.EnsureMaterial("Container", ContainerColor), keepCollider: false);
+            body.transform.localScale = ContainerScale;
+            body.transform.localPosition = new Vector3(0f, ContainerScale.y / 2f, 0f);
+
+            // Portions pile up in the middle: a full container reads as a heap, not ten neat items.
+            var slots = new Vector3[10];
+            for (var i = 0; i < slots.Length; i++)
+                slots[i] = new Vector3(0f, i * ContainerPileStep, 0f);
+            AddSlots(root, slots, ContainerScale.y);
+            return Save(root, FoodContainer.ContainerTypeId);
         }
 
         public static GameObject BuildPlate()

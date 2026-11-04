@@ -10,9 +10,9 @@ namespace Game.Gameplay.Stations
     /// <summary>
     /// A fridge or shelf with four slots, one per face button. Holding RT opens its radial menu;
     /// while it's open, a face button takes one portion from that slot (empty hands). With food in
-    /// hand, Interact puts it back into the slot for that ingredient, no menu needed, and a crate
-    /// empties into it. The storeroom is one of these that hands out crates and takes deliveries
-    /// (buying and placing units come in Phases 4–5).
+    /// hand, Interact puts it back into the slot for that ingredient, no menu needed. With a tray,
+    /// the menu loads onto the tray. Purchases arrive straight here (decision 2026-11-04): free
+    /// each morning until shopping arrives in Phase 5.
     /// </summary>
     public sealed class StorageStation : Interactable, IFaceButtonTarget, IStationPrompt, ISlotMenuStation
     {
@@ -24,7 +24,7 @@ namespace Game.Gameplay.Stations
             [SerializeField, Min(0)] private int _capacity;
             [Tooltip("Portions in the slot when the scene starts.")]
             [SerializeField, Min(0)] private int _startStock;
-            [Tooltip("Portions delivered each morning (the storeroom), up to the capacity.")]
+            [Tooltip("Portions delivered each morning, up to the capacity.")]
             [SerializeField, Min(0)] private int _dailyDelivery;
             [Tooltip("Where this slot's bin is; food appears here when taken.")]
             [SerializeField] private Transform _bin;
@@ -38,9 +38,6 @@ namespace Game.Gameplay.Stations
 
         [Tooltip("Fridges keep stock at the fridge temperature; shelves at kitchen temperature.")]
         [SerializeField] private bool _refrigerated;
-
-        [Tooltip("Hands out crates instead of single portions: the storeroom.")]
-        [SerializeField] private bool _givesCrates;
 
         [Tooltip("One per face button, in FaceButton order: South (A), East (B), West (X), North (Y).")]
         [SerializeField] private SlotSetup[] _slots = new SlotSetup[4];
@@ -100,21 +97,25 @@ namespace Game.Gameplay.Stations
         public bool TryPress(FaceButton button, PlayerInteractor player)
         {
             var index = (int)button;
-            if (_unit == null || !player.IsSlotMenuOpen || !player.Hands.IsEmpty || !_unit.TryTake(index, out var ingredient))
+            if (_unit == null || !player.IsSlotMenuOpen)
                 return false;
 
-            if (!_givesCrates)
+            // Onto a held tray, or into empty hands.
+            var tray = player.Hands.Current as Tray;
+            if (tray != null ? !tray.HasRoom : !player.Hands.IsEmpty)
+                return false;
+            if (!_unit.TryTake(index, out var ingredient))
+                return false;
+
+            if (tray != null)
+            {
+                tray.Put(ingredient);
+                player.RefreshHeld(BinAnchor(index).position);
+            }
+            else
             {
                 player.ReceiveItem(ingredient, BinAnchor(index).position);
-                return true;
             }
-
-            // A crate of the oldest portions in this slot.
-            var crate = new Crate(_services.Equipment.CrateCapacity);
-            crate.Put(ingredient);
-            while (crate.Items.Count < crate.Capacity && _unit.TryTake(index, out ingredient))
-                crate.Put(ingredient);
-            player.ReceiveItem(crate, BinAnchor(index).position);
             return true;
         }
 
@@ -125,10 +126,10 @@ namespace Game.Gameplay.Stations
 
             if (!player.IsSlotMenuOpen)
             {
-                lines.Add(new PromptLine(PromptControl.Triggers, "open", player.Hands.IsEmpty));
                 var held = player.Hands.Current;
-                if (held is Crate crate)
-                    lines.Add(new PromptLine(PromptControl.South, "restock", !crate.IsEmpty && _unit.CanAccept(crate.Items[crate.Items.Count - 1])));
+                lines.Add(new PromptLine(PromptControl.Triggers, "open", held == null || (held is Tray openTray && openTray.HasRoom)));
+                if (held is Tray tray)
+                    lines.Add(new PromptLine(PromptControl.South, "put back", !tray.IsEmpty && _unit.CanAccept(tray.Items[tray.Items.Count - 1])));
                 else if (held != null)
                     lines.Add(new PromptLine(PromptControl.South, "put back", _unit.CanAccept(held)));
                 return;
@@ -139,7 +140,7 @@ namespace Game.Gameplay.Stations
                 var slot = _unit.Slots[i];
                 var control = (PromptControl)i;
                 lines.Add(slot.IsUsed
-                    ? new PromptLine(control, $"{(_givesCrates ? "crate: " : string.Empty)}{slot.TypeId} ×{slot.Count}", slot.Count > 0 && player.Hands.IsEmpty)
+                    ? new PromptLine(control, $"{slot.TypeId} ×{slot.Count}", slot.Count > 0 && (player.Hands.IsEmpty || (player.Hands.Current is Tray room && room.HasRoom)))
                     : new PromptLine(control, "—", available: false));
             }
         }

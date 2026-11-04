@@ -211,7 +211,7 @@ namespace Game.Simulation.Cooking
             var rateAtReference = ingredient.Properties.FreshnessLossPerHourAt20C / SecondsPerHour;
             var temperatureFactor = (float)Math.Pow(
                 SpoilageQ10, (temperature - SpoilageReferenceTemperature) / 10f);
-            return rateAtReference * temperatureFactor * SpoilageMultiplier * dt;
+            return rateAtReference * temperatureFactor * ingredient.FreshnessFactor * SpoilageMultiplier * dt;
         }
     }
 }

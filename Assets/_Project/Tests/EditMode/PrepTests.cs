@@ -196,7 +196,7 @@ namespace Game.Tests.EditMode
         public void CreateCounter()
         {
             _sim = new CookingSimulation(22f);
-            _counter = new PrepCounter(slotCapacity: 2, whole => _sim.Transform(whole, DicedOnion));
+            _counter = new PrepCounter(whole => _sim.Transform(whole, DicedOnion));
         }
 
         // Presses each time the needle comes round to `offset` degrees from the sweet spot.
@@ -220,14 +220,15 @@ namespace Game.Tests.EditMode
         }
 
         [Test]
-        public void ChoppingToTheEndPutsDicedOnionInASlot()
+        public void TheFinishedCutStaysOnTheBoard()
         {
             _counter.Put(NewOnion());
             ChopToTheEnd();
 
-            Assert.That(_counter.Current, Is.Null);
-            Assert.That(_counter.Slots[0].TypeId, Is.EqualTo("DicedOnion"));
-            Assert.That(_counter.Slots[0].Items[0].CutEvenness, Is.EqualTo(1f).Within(0.001f));
+            var diced = (Ingredient)_counter.Current;
+            Assert.That(diced.TypeId, Is.EqualTo("DicedOnion"));
+            Assert.That(diced.CutEvenness, Is.EqualTo(1f).Within(0.001f));
+            Assert.That(_counter.CanChop, Is.False);
         }
 
         [Test]
@@ -235,55 +236,27 @@ namespace Game.Tests.EditMode
         {
             _counter.Put(NewOnion());
             ChopToTheEnd(offset: 20f); // every chop lands just past the sweet spot
-            Assert.That(_counter.Slots[0].Items[0].CutEvenness, Is.LessThan(0.8f));
+            Assert.That(((Ingredient)_counter.Current).CutEvenness, Is.LessThan(0.8f));
         }
 
         [Test]
-        public void SameIngredientStacksInOneSlot()
-        {
-            _counter.Put(NewOnion());
-            ChopToTheEnd(10.0);
-            _counter.Put(NewOnion());
-            ChopToTheEnd(20.0);
-            Assert.That(_counter.Slots[0].Items, Has.Count.EqualTo(2));
-            Assert.That(_counter.Slots[1].Items, Is.Empty);
-        }
-
-        [Test]
-        public void WhenNoSlotCanTakeItTheCutStaysOnTheBoard()
-        {
-            // Fill all four slots with other prepared food.
-            for (var i = 0; i < PrepCounter.SlotCount; i++)
-                _counter.Put(_sim.AddIngredient(new IngredientProperties { TypeId = $"Prepped{i}", HeatCapacity = 100f, SurfaceFraction = 0.2f }));
-
-            _counter.Put(NewOnion());
-            ChopToTheEnd();
-
-            Assert.That(_counter.Current?.TypeId, Is.EqualTo("DicedOnion"));
-        }
-
-        [Test]
-        public void TakingFromASlotGivesAPortionAndFreesItWhenEmpty()
+        public void AFinishedCutBlocksTheNextOneUntilMoved()
         {
             _counter.Put(NewOnion());
             ChopToTheEnd();
-
-            Assert.That(_counter.TryTakeFromSlot(0, out var portion), Is.True);
-            Assert.That(portion.TypeId, Is.EqualTo("DicedOnion"));
-            Assert.That(_counter.Slots[0].TypeId, Is.Null, "an empty slot is free for any ingredient");
-        }
-
-        [Test]
-        public void PreparedFoodGoesBackIntoItsSlot()
-        {
-            _counter.Put(NewOnion());
-            ChopToTheEnd();
-            _counter.TryTakeFromSlot(0, out var portion);
+            Assert.That(_counter.CanAccept(NewOnion()), Is.False);
 
             var hands = new ItemSlot();
-            hands.Put(portion);
-            Assert.That(ItemTransfer.Interact(hands, _counter), Is.EqualTo(InteractionOutcome.Placed));
-            Assert.That(_counter.Slots[0].Items, Does.Contain(portion));
+            Assert.That(ItemTransfer.Interact(hands, _counter), Is.EqualTo(InteractionOutcome.PickedUp));
+            Assert.That(hands.Current.TypeId, Is.EqualTo("DicedOnion"));
+            Assert.That(_counter.CanAccept(NewOnion()));
+        }
+
+        [Test]
+        public void OnlyFoodToCutGoesOnTheBoard()
+        {
+            var diced = _sim.AddIngredient(DicedOnion);
+            Assert.That(_counter.CanAccept(diced), Is.False);
         }
 
         [Test]
@@ -309,7 +282,7 @@ namespace Game.Tests.EditMode
             var onion = NewOnion();
             _counter.Put(onion);
             ChopToTheEnd();
-            var diced = _counter.Slots[0].Items[0];
+            var diced = (Ingredient)_counter.Current;
 
             Assert.That(diced.CoreTemperature, Is.EqualTo(onion.AverageTemperature).Within(0.01f));
             Assert.That(diced.Freshness, Is.EqualTo(onion.Freshness));

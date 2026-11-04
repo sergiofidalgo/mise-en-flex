@@ -39,14 +39,27 @@ namespace Game.Presentation.Hud
             foreach (var player in PlayerInput.all)
             {
                 var card = CardFor(player);
-                if (!player.TryGetComponent(out PlayerInteractor interactor) || !interactor.CanAct || !(interactor.Target is IStationPrompt prompt))
+                if (!player.TryGetComponent(out PlayerInteractor interactor) || !interactor.CanAct || interactor.Target == null)
                 {
                     card.Hide();
                     continue;
                 }
 
                 _lines.Clear();
-                prompt.DescribeActions(interactor, _lines);
+                var prompt = interactor.Target as IStationPrompt;
+                var diamond = interactor.IsTrayMenuOpen;
+                if (diamond)
+                {
+                    interactor.DescribeTrayMenu(_lines);
+                }
+                else
+                {
+                    prompt?.DescribeActions(interactor, _lines);
+                    diamond = prompt != null && prompt.PromptAsDiamond(interactor);
+                    if (interactor.CanOpenTrayMenu)
+                        _lines.Add(new PromptLine(PromptControl.Triggers, "choose from tray"));
+                }
+
                 var screen = camera.WorldToScreenPoint(interactor.Target.transform.position + Vector3.up * _anchorHeight);
                 if (_lines.Count == 0 || screen.z <= 0f)
                 {
@@ -54,7 +67,7 @@ namespace Game.Presentation.Hud
                     continue;
                 }
 
-                card.Show(_lines, prompt.PromptAsDiamond(interactor), player.currentControlScheme == GamepadScheme,
+                card.Show(_lines, diamond, player.currentControlScheme == GamepadScheme,
                     _settings.GetPlayerColor(player.playerIndex));
                 LayoutRebuilder.ForceRebuildLayoutImmediate(card.Rect);
                 Place(card, interactor.Target, screen);

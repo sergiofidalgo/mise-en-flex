@@ -15,7 +15,7 @@ namespace Game.Simulation.Items
     /// can be taken back until a customer starts on it; then it's theirs until they've finished,
     /// and what's left is a dirty plate that can be cleared.
     /// </summary>
-    public sealed class PassCounter : IItemContainer, IDirtyPlateSource
+    public sealed class PassCounter : IPlateSource, IDirtyPlateSource
     {
         private bool _beingEaten;
 

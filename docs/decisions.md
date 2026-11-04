@@ -4,7 +4,28 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
-## 2026-11-04 — Storeroom, crates and the night (Phase 3)
+## 2026-11-04 — Containers, trays and restocking through shopping
+
+**The user's design:**
+- **Restocking happens through shopping.** Players start with a fridge and a shelf, and purchases go straight there. This replaces the storeroom and crates built earlier the same day. Shopping itself comes later; until then, a free delivery arrives at the fridge and shelf each morning.
+- **The cutting board only cuts.** The finished cut stays on it and blocks the next one until someone moves it; the board's four slots are gone.
+- **Containers** fill a counter and hold up to 10 portions of one ingredient at a time. They keep food fresher than a tray, but not as well as a fridge. Counters become precious, and players plan their kitchen around them.
+- **Trays** fill a counter when put down and hold 4 things in any mix: ingredients, or empty, filled or dirty plates. Food loose on one ages faster. They can serve customers (RT chooses what to give) and move ingredients, including restocking a fridge.
+- **Usual flow:** with a tray, go to the fridge or shelf, then put ingredients in containers for quick access during service or mise en place.
+
+**Details proposed while building (flagged for review, in `EquipmentTier`):**
+- **6 containers and 4 trays,** on racks, carried to any counter by hand until layout editing in Phase 4.
+- **Ageing:** food in a container ages at half the normal rate and on a tray at 1.5×. A fridge still beats a container because of its cold.
+- **Containers give one portion at a time,** oldest first, to hands, plates and pans. A tray loads as many as fit. A container can only be picked up when empty.
+- **RT with a tray** opens a four-button menu of what's on it. Not at storage, where RT loads the tray from the slot menu, or at a hob, where RT is the heat. A with a tray tries the last thing put on.
+- **Daily delivery:** 18 steaks and 8 onions, in fridge slots of 20 + 20 and a shelf slot of 12 onions. Food stored starts at 0, then the first delivery arrives on day 1.
+- **Food in a container doesn't count as "left out" overnight.**
+
+**Not built:** shopping and choosing what to buy, so deliveries are still fixed, and leftovers can pile up.
+
+---
+
+## 2026-11-04 — Storeroom, crates and the night (Phase 3; storeroom and crates since replaced)
 
 **Decisions (proposed while building; flagged for review):**
 - **Storeroom on the east wall,** across the kitchen from the fridge and shelf, kept cold. The trip is the cost of not prepping. It holds 40 steaks and 20 onions.

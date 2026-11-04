@@ -70,36 +70,28 @@ namespace Game.Editor
         private static readonly Vector3 PrepSpareCounterPosition = new Vector3(-1f, 0f, 3.4f);
         private static readonly Vector3 CuttingBoardScale = new Vector3(0.34f, 0.025f, 0.28f);
         private static readonly Color CuttingBoardColor = new Color(0.92f, 0.82f, 0.62f);
-        private const float PrepBinOffset = 0.33f;
-        private static readonly Vector3 PrepBinScale = new Vector3(0.2f, 0.03f, 0.2f);
 
         // Stations: standard 0.9 m counter height, 1 m footprint.
         private const float CounterHeight = 0.9f;
         private const float CounterSize = 1f;
 
-        // Storage on the west wall: a fridge for meat and a shelf for vegetables, starting light so
-        // they need restocking. The storeroom is across the kitchen on purpose: the trip is the
-        // cost of not prepping. Slots in FaceButton order: A, B, X, Y.
+        // Storage on the west wall: a fridge for meat and a shelf for vegetables. Purchases arrive
+        // straight here (free each morning until shopping, Phase 5). Slots in FaceButton order: A, B, X, Y.
         private static readonly GreyboxStorage.Unit[] StorageUnits =
         {
             new GreyboxStorage.Unit
             {
                 Name = "Fridge", Position = new Vector3(-4.4f, 0f, 1.0f), Refrigerated = true,
                 Color = new Color(0.86f, 0.92f, 0.96f),
-                Slots = new (string, int, int)?[] { ("Steak", 9, 3), ("Steak", 9, 3), null, null },
+                Slots = new (string, int, int)?[] { ("Steak", 20, 0), ("Steak", 20, 0), null, null },
+                Deliveries = new[] { 9, 9, 0, 0 },
             },
             new GreyboxStorage.Unit
             {
                 Name = "Shelf", Position = new Vector3(-4.4f, 0f, -0.6f), Refrigerated = false,
                 Color = new Color(0.58f, 0.43f, 0.28f),
-                Slots = new (string, int, int)?[] { ("Tomato", 6, 2), ("Onion", 8, 4), null, null },
-            },
-            new GreyboxStorage.Unit
-            {
-                Name = "Storeroom", Position = new Vector3(4.4f, 0f, -0.6f), Refrigerated = true, GivesCrates = true,
-                Color = new Color(0.42f, 0.50f, 0.62f),
-                Slots = new (string, int, int)?[] { ("Steak", 40, 0), ("Onion", 20, 0), null, null },
-                Deliveries = new[] { 18, 8, 0, 0 },
+                Slots = new (string, int, int)?[] { ("Tomato", 6, 0), ("Onion", 12, 0), null, null },
+                Deliveries = new[] { 0, 8, 0, 0 },
             },
         };
 
@@ -141,6 +133,9 @@ namespace Game.Editor
         private static readonly Vector3 PlateStackPosition = new Vector3(2.2f, 0f, -2.4f);
         private static readonly Color PlateStackColor = new Color(0.80f, 0.80f, 0.78f);
         private const int PlateStackVisualCount = 6;
+        private static readonly Vector3 TrayRackPosition = new Vector3(-4.4f, 0f, 2.6f);
+        private static readonly Vector3 ContainerRackPosition = new Vector3(0f, 0f, 3.4f);
+        private static readonly Color RackColor = new Color(0.46f, 0.48f, 0.52f);
         private static readonly Vector3 SinkPosition = new Vector3(3.2f, 0f, -2.4f);
         private static readonly Color SinkColor = new Color(0.55f, 0.62f, 0.68f);
         private static readonly Color DirtyPlateColor = new Color(0.45f, 0.36f, 0.25f);
@@ -175,7 +170,8 @@ namespace Game.Editor
                     (GreyboxKitchenware.PanTypeId, GreyboxKitchenware.BuildPan()),
                     (Game.Simulation.Items.Plate.PlateTypeId, GreyboxKitchenware.BuildPlate()),
                     (Game.Simulation.Items.Knife.KnifeTypeId, GreyboxKitchenware.BuildKnife()),
-                    (Game.Simulation.Items.Crate.CrateTypeId, GreyboxKitchenware.BuildCrate())),
+                    (Game.Simulation.Items.Tray.TrayTypeId, GreyboxKitchenware.BuildTray()),
+                    (Game.Simulation.Items.FoodContainer.ContainerTypeId, GreyboxKitchenware.BuildContainer())),
             };
             SetMenu(assets.ServiceConfig, assets.Catalog);
             assets.PlayerPrefab = BuildPlayerPrefab(assets.Settings, assets.Tuning);
@@ -427,6 +423,9 @@ namespace Game.Editor
                 sink.transform, CounterHeight, PlateStackVisualCount, GreyboxKitchenware.PlateColor, "Plate", new Vector3(SinkPileOffset, 0f, 0f)));
             sinkPile.ApplyModifiedPropertiesWithoutUndo();
 
+            CreateRack("TrayRack", RackStation.RackKind.Trays, TrayRackPosition, 4, GreyboxKitchenware.TrayColor, stations, settings);
+            CreateRack("ContainerRack", RackStation.RackKind.Containers, ContainerRackPosition, 6, GreyboxKitchenware.ContainerColor, stations, settings);
+
             CreateStation<BinStation>(
                 "Bin", BinPosition, BinSize, BinHeight, GreyboxAssets.EnsureMaterial("Bin", BinColor), stations, settings);
 
@@ -457,27 +456,8 @@ namespace Game.Editor
             boardAnchor.SetParent(prep.transform, false);
             boardAnchor.localPosition = new Vector3(0f, CounterHeight + CuttingBoardScale.y, 0f);
 
-            // Slot bins in FaceButton order, in the controller's diamond as seen from the camera.
-            var offsets = new[]
-            {
-                new Vector3(0f, 0f, -PrepBinOffset), new Vector3(PrepBinOffset, 0f, 0f),
-                new Vector3(-PrepBinOffset, 0f, 0f), new Vector3(0f, 0f, PrepBinOffset),
-            };
-            var binMaterial = GreyboxAssets.EnsureMaterial("StorageBin", new Color(0.55f, 0.57f, 0.60f));
             var so = new SerializedObject(prep);
             so.FindProperty("_boardAnchor").objectReferenceValue = boardAnchor;
-            var slots = so.FindProperty("_slotAnchors");
-            slots.arraySize = offsets.Length;
-            for (var i = 0; i < offsets.Length; i++)
-            {
-                var bin = GreyboxAssets.CreatePrimitive(PrimitiveType.Cube, $"Bin_{(FaceButton)i}", prep.transform, binMaterial, keepCollider: false);
-                bin.transform.localScale = PrepBinScale;
-                bin.transform.localPosition = offsets[i] + Vector3.up * (CounterHeight + PrepBinScale.y / 2f);
-                var anchor = new GameObject($"SlotAnchor_{(FaceButton)i}").transform;
-                anchor.SetParent(prep.transform, false);
-                anchor.localPosition = offsets[i] + Vector3.up * (CounterHeight + PrepBinScale.y);
-                slots.GetArrayElementAtIndex(i).objectReferenceValue = anchor;
-            }
             so.ApplyModifiedPropertiesWithoutUndo();
         }
 
@@ -525,6 +505,19 @@ namespace Game.Editor
             for (var i = 0; i < pips.Length; i++)
                 pipList.GetArrayElementAtIndex(i).objectReferenceValue = pips[i];
             viewSo.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        private static void CreateRack(string name, RackStation.RackKind kind, Vector3 position, int discs, Color color, Transform parent, CoopSettings settings)
+        {
+            var rack = CreateStation<RackStation>(name, position, CounterSize, CounterHeight, GreyboxAssets.EnsureMaterial("Rack", RackColor), parent, settings);
+            var rackSo = new SerializedObject(rack);
+            rackSo.FindProperty("_kind").enumValueIndex = (int)kind;
+            rackSo.ApplyModifiedPropertiesWithoutUndo();
+
+            var pile = new SerializedObject(rack.gameObject.AddComponent<PlatePileView>());
+            pile.FindProperty("_station").objectReferenceValue = rack;
+            SetObjects(pile.FindProperty("_clean"), GreyboxKitchenware.CreatePlatePile(rack.transform, CounterHeight, discs, color, name, Vector3.zero));
+            pile.ApplyModifiedPropertiesWithoutUndo();
         }
 
         private static void SetObjects(SerializedProperty property, GameObject[] values)

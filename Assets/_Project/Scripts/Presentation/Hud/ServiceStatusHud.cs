@@ -36,7 +36,7 @@ namespace Game.Presentation.Hud
         [Header("Text")]
         [SerializeField] private string _joinText = "Press A to join\n(keyboard: X)";
         [SerializeField] private string _candidatesText = "Looking for work:";
-        [SerializeField] private string _deliveryText = "In the storeroom:";
+        [SerializeField] private string _deliveryText = "Delivered to storage:";
         [SerializeField] private string _openText = "Prep: preheat and get ready, then open up";
         [SerializeField] private string _readyText = "Press Menu (keyboard: Esc) when ready";
         [SerializeField] private string _playerReadyText = "READY";

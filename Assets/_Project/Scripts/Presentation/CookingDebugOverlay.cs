@@ -322,9 +322,8 @@ namespace Game.Presentation
                 var counter = prep.Counter;
                 if (counter == null)
                     continue;
-                var slots = counter.Slots.Where(s => s.Items.Count > 0).Select(s => $"{s.TypeId} ×{s.Items.Count}").ToArray();
                 var board = counter.Current != null ? $"board: {counter.Current.TypeId} ({counter.Cuts}/{counter.CutsNeeded} cuts)" : "board empty";
-                GUILayout.Label($"<b>{prep.name}</b>  {board}   slots: {(slots.Length > 0 ? string.Join(",  ", slots) : "empty")}", _text);
+                GUILayout.Label($"<b>{prep.name}</b>  {board}", _text);
             }
         }
 
@@ -393,11 +392,6 @@ namespace Game.Presentation
                             _stored.Add(food);
                         break;
                     case PrepStation prep when prep.Counter != null:
-                        foreach (var slot in prep.Counter.Slots)
-                        {
-                            foreach (var food in slot.Items)
-                                _stored.Add(food);
-                        }
                         Locate(prep.Counter.Current, $"{prep.name} board");
                         break;
                     default:

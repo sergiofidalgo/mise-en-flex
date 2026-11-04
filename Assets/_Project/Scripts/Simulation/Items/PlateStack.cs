@@ -7,7 +7,7 @@ namespace Game.Simulation.Items
     /// The stack of clean plates (decision 2026-11-04: limited, washed plates come back). Takes
     /// back only clean, empty plates, and running out stops service until someone washes up.
     /// </summary>
-    public sealed class PlateStack : IItemContainer
+    public sealed class PlateStack : IPlateSource
     {
         private readonly Stack<Plate> _plates = new Stack<Plate>();
 

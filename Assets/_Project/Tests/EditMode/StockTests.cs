@@ -21,56 +21,11 @@ namespace Game.Tests.EditMode
         private static CookingSimulation Sim() => new CookingSimulation(22f);
 
         [Test]
-        public void ACrateHoldsOneKindUpToItsCapacity()
-        {
-            var sim = Sim();
-            var crate = new Crate(2);
-            Assert.That(crate.IsEmpty);
-            crate.Put(sim.AddIngredient(Food()));
-            Assert.That(crate.CanAccept(sim.AddIngredient(Food("Onion"))), Is.False, "one kind");
-            Assert.That(crate.CanAccept(new Plate(3)), Is.False);
-            crate.Put(sim.AddIngredient(Food()));
-            Assert.That(crate.CanAccept(sim.AddIngredient(Food())), Is.False, "full");
-        }
-
-        [Test]
-        public void ACrateEmptiesIntoStorageAcrossSlots()
-        {
-            var sim = Sim();
-            var fridge = new StorageUnit(4f, new StorageUnit.Slot("Steak", 1), new StorageUnit.Slot("Steak", 1));
-            var crate = new Crate(6);
-            crate.Put(sim.AddIngredient(Food()));
-            crate.Put(sim.AddIngredient(Food()));
-            var hands = new ItemSlot();
-            hands.Put(crate);
-
-            Assert.That(ItemTransfer.Interact(hands, fridge), Is.EqualTo(InteractionOutcome.Combined));
-            Assert.That(crate.IsEmpty);
-            Assert.That(fridge.Slots[0].Count + fridge.Slots[1].Count, Is.EqualTo(2));
-        }
-
-        [Test]
-        public void WhatDoesntFitStaysInTheCrate()
-        {
-            var sim = Sim();
-            var fridge = new StorageUnit(4f, new StorageUnit.Slot("Steak", 1));
-            var crate = new Crate(6);
-            crate.Put(sim.AddIngredient(Food()));
-            crate.Put(sim.AddIngredient(Food()));
-            var hands = new ItemSlot();
-            hands.Put(crate);
-
-            ItemTransfer.Interact(hands, fridge);
-            Assert.That(crate.Items, Has.Count.EqualTo(1));
-            Assert.That(hands.Current, Is.SameAs(crate));
-        }
-
-        [Test]
         public void StockFitsOnlyUpToCapacity()
         {
             var sim = Sim();
-            var storeroom = new StorageUnit(4f, new StorageUnit.Slot("Steak", 3));
-            Assert.That(storeroom.Stock(0, () => sim.AddIngredient(Food()), 18), Is.EqualTo(3));
+            var fridge = new StorageUnit(4f, new StorageUnit.Slot("Steak", 3));
+            Assert.That(fridge.Stock(0, () => sim.AddIngredient(Food()), 18), Is.EqualTo(3));
         }
 
         [Test]
