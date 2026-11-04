@@ -51,8 +51,6 @@ namespace Game.Gameplay
         [SerializeField, Min(0f)] private float _snapRange = 0.15f;
         [Tooltip("Degrees each press of RB or LB turns what's being carried.")]
         [SerializeField, Min(1f)] private float _rotationStep = 45f;
-        [Tooltip("How far a carried station lifts off the floor, to show it's being moved.")]
-        [SerializeField, Min(0f)] private float _liftHeight = 0.25f;
         [Tooltip("Half the room's width and depth, for walking.")]
         [SerializeField] private Vector2 _roomHalfSize = new Vector2(4.6f, 3.6f);
         [Tooltip("Where the centres of stations can go: lowest corner.")]
@@ -194,7 +192,8 @@ namespace Game.Gameplay
             UpdateHeld(cursor);
         }
 
-        // Works out where what's being carried would land, and shows it there.
+        // Works out where what's being carried would land, and shows it there, on the floor: lifted,
+        // the angled camera draws it away from the spot it would actually take.
         private void UpdateHeld(Cursor cursor)
         {
             var home = Mathf.Approximately(Mathf.DeltaAngle(cursor.Degrees, cursor.HeldFromDegrees), 0f)
@@ -204,7 +203,7 @@ namespace Game.Gameplay
             cursor.Result = Check(cursor);
             cursor.Held.CantGoHere = cursor.Result != Placement.Ok;
             cursor.Held.transform.SetPositionAndRotation(
-                new Vector3(cursor.Landing.X, cursor.HeldFrom.y + _liftHeight, cursor.Landing.Y),
+                new Vector3(cursor.Landing.X, cursor.HeldFrom.y, cursor.Landing.Y),
                 Quaternion.Euler(0f, cursor.Degrees, 0f));
         }
 
@@ -227,7 +226,6 @@ namespace Game.Gameplay
             cursor.Degrees = cursor.HeldFromDegrees;
             cursor.Landing = _plan.PositionOf(station);
             cursor.Result = Placement.Ok;
-            cursor.Held.transform.position = cursor.HeldFrom + Vector3.up * _liftHeight;
             return true;
         }
 

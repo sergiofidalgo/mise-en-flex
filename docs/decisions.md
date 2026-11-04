@@ -25,6 +25,7 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 - **The pass doesn't turn,** since it faces the stools.
 - **Work stations have a front (user's call: a boxed-in hob can't be allowed).** Hobs, the board, the sink, the fridge and the shelf need the side facing the room kept clear, and that side turns with them. Counters, piles and racks only need some side free.
 - **What's carried turns red where it can't go (user's call),** and the floor frame only shows while choosing what to pick up.
+- **What's carried stays on the floor (user's call):** lifted, the angled camera drew it away from where it would land. Being carried shows through the player's colour, or red.
 - **Service stops rearranging:** management mode isn't available during Service or Review.
 
 ---
