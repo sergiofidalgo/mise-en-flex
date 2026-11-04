@@ -28,6 +28,10 @@ namespace Game.Gameplay.Staff
                 if (!_dayLoop.WasHereLastFrame(player))
                     continue;
 
+                // In management mode these buttons belong to the cursor.
+                if (player.TryGetComponent(out Stations.PlayerInteractor interactor) && interactor.IsManaging)
+                    continue;
+
                 for (var i = 0; i < HireActions.Length && i < services.Staff.Candidates.Count; i++)
                 {
                     var candidate = services.Staff.Candidates[i];

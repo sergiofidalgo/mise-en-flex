@@ -1,4 +1,5 @@
 using Game.Gameplay;
+using Game.Gameplay.Customers;
 using Game.Gameplay.Staff;
 using UnityEditor;
 using UnityEngine;
@@ -32,10 +33,44 @@ namespace Game.Editor
             pushes.FindProperty("_director").objectReferenceValue = zone.GetComponent<StaffDirector>();
             pushes.ApplyModifiedPropertiesWithoutUndo();
 
+            var editor = new SerializedObject(zone.AddComponent<LayoutEditor>());
+            editor.FindProperty("_root").objectReferenceValue = root;
+            editor.FindProperty("_dayLoop").objectReferenceValue = root.GetComponent<DayLoop>();
+            editor.FindProperty("_staff").objectReferenceValue = zone.GetComponent<StaffDirector>();
+            editor.FindProperty("_customers").objectReferenceValue = Object.FindFirstObjectByType<CustomerDirector>();
+            editor.ApplyModifiedPropertiesWithoutUndo();
+
+            var directorLink = new SerializedObject(zone.GetComponent<StaffDirector>());
+            directorLink.FindProperty("_editor").objectReferenceValue = zone.GetComponent<LayoutEditor>();
+            directorLink.ApplyModifiedPropertiesWithoutUndo();
+
             var menu = new SerializedObject(zone.AddComponent<HiringMenu>());
             menu.FindProperty("_root").objectReferenceValue = root;
             menu.FindProperty("_dayLoop").objectReferenceValue = root.GetComponent<DayLoop>();
             menu.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        /// <summary>The frame a cursor shows on the floor in management mode.</summary>
+        public static GameObject BuildCursorFrame()
+        {
+            const string path = "Assets/_Project/Prefabs/PF_LayoutCursor.prefab";
+            var root = new GameObject("PF_LayoutCursor");
+            var material = GreyboxAssets.EnsureMaterial("LayoutCursor", Color.white);
+            foreach (var (offset, scale) in new[]
+            {
+                (new Vector3(0f, 0f, 0.5f), new Vector3(1.04f, 0.02f, 0.06f)),
+                (new Vector3(0f, 0f, -0.5f), new Vector3(1.04f, 0.02f, 0.06f)),
+                (new Vector3(0.5f, 0f, 0f), new Vector3(0.06f, 0.02f, 1.04f)),
+                (new Vector3(-0.5f, 0f, 0f), new Vector3(0.06f, 0.02f, 1.04f)),
+            })
+            {
+                var bar = GreyboxAssets.CreatePrimitive(PrimitiveType.Cube, "Bar", root.transform, material, keepCollider: false);
+                bar.transform.localPosition = offset;
+                bar.transform.localScale = scale;
+            }
+            var prefab = PrefabUtility.SaveAsPrefabAsset(root, path);
+            Object.DestroyImmediate(root);
+            return prefab;
         }
 
         private static GameObject BuildPrefab()

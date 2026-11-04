@@ -58,8 +58,13 @@ namespace Game.Gameplay
             foreach (var player in PlayerInput.all)
             {
                 var action = player.actions.FindAction(PauseAction);
-                if (action != null && action.WasPressedThisFrame() && _seenLastFrame.Contains(player))
-                    Ready.Toggle(player.playerIndex);
+                if (action == null || !action.WasPressedThisFrame() || !_seenLastFrame.Contains(player))
+                    continue;
+
+                // Still rearranging the kitchen: not ready yet.
+                if (player.TryGetComponent(out Stations.PlayerInteractor interactor) && interactor.IsManaging)
+                    continue;
+                Ready.Toggle(player.playerIndex);
             }
         }
     }

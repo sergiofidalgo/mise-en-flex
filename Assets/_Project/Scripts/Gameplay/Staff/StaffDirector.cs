@@ -24,6 +24,7 @@ namespace Game.Gameplay.Staff
         [SerializeField] private KitchenCompositionRoot _root;
         [SerializeField] private StaffAgent _agentPrefab;
         [SerializeField] private Transform _spawnPoint;
+        [SerializeField] private LayoutEditor _editor;
 
         [Tooltip("How far from a station's centre staff stand.")]
         [SerializeField, Min(0f)] private float _standDistance = 0.85f;
@@ -75,9 +76,7 @@ namespace Game.Gameplay.Staff
             _trayRack = _allStations.OfType<RackStation>().First(r => r.Kind == RackStation.RackKind.Trays);
             _counters = _allStations.OfType<CounterStation>().ToArray();
             _storage = _allStations.OfType<StorageStation>().ToArray();
-            _layout = new StationLayout(
-                _allStations.Select(station => Floor(station.transform.position)),
-                new System.Numerics.Vector2(_roomHalfSize.x, _roomHalfSize.y), _stationHalfSize, _walkerRadius, _standDistance);
+            RebuildLayout();
 
             foreach (var pass in _passes)
                 _stations[pass.DirtyPlates] = pass;
@@ -94,12 +93,27 @@ namespace Game.Gameplay.Staff
             _stations[bin.Sink] = bin;
 
             _root.Services.Days.PhaseChanged += HandlePhaseChanged;
+            if (_editor != null)
+                _editor.LayoutChanged += RebuildLayout;
+        }
+
+        // The kitchen changed: everyone works out their way again.
+        private void RebuildLayout()
+        {
+            _layout = new StationLayout(
+                _allStations.Select(station => Floor(station.transform.position)),
+                new System.Numerics.Vector2(_roomHalfSize.x, _roomHalfSize.y), _stationHalfSize, _walkerRadius, _standDistance);
+            _routes.Clear();
+            foreach (var agent in _agents)
+                agent.Slide = _layout.Slide;
         }
 
         private void OnDestroy()
         {
             if (_root != null && _root.Services != null)
                 _root.Services.Days.PhaseChanged -= HandlePhaseChanged;
+            if (_editor != null)
+                _editor.LayoutChanged -= RebuildLayout;
         }
 
         private void HandlePhaseChanged(DayPhase phase)

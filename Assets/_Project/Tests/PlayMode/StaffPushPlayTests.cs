@@ -92,6 +92,49 @@ namespace Game.Tests.PlayMode
         }
 
         [UnityTest]
+        public IEnumerator AStationCanBeMovedAndItsContentsAndChefFollowTheRules()
+        {
+            yield return OpenKitchenWithChef();
+            var editor = Object.FindFirstObjectByType<LayoutEditor>();
+            var counter = Object.FindObjectsByType<Game.Gameplay.Stations.CounterStation>(FindObjectsSortMode.None).First();
+            var start = counter.transform.position;
+
+            var cursor = editor.Enter(_player);
+            Assert.That(_player.GetComponent<Game.Gameplay.Stations.PlayerInteractor>().IsManaging);
+            cursor.Position = new System.Numerics.Vector2(start.x, start.z);
+            Assert.That(editor.PickUp(cursor), Is.True);
+
+            // Somewhere empty in the open floor.
+            editor.MoveCursor(cursor, new System.Numerics.Vector2(-start.x, -0.5f - start.z));
+            Assert.That(editor.Place(cursor), Is.True, cursor.Result.ToString());
+            yield return null;
+
+            Assert.That(counter.transform.position.x, Is.EqualTo(0f).Within(0.01f));
+            Assert.That(counter.transform.position.y, Is.EqualTo(start.y).Within(0.01f), "back on the floor");
+
+            editor.Leave(_player);
+            Assert.That(_player.GetComponent<Game.Gameplay.Stations.PlayerInteractor>().IsManaging, Is.False);
+        }
+
+        [UnityTest]
+        public IEnumerator CancellingPutsItBack()
+        {
+            yield return OpenKitchenWithChef();
+            var editor = Object.FindFirstObjectByType<LayoutEditor>();
+            var counter = Object.FindObjectsByType<Game.Gameplay.Stations.CounterStation>(FindObjectsSortMode.None).First();
+            var start = counter.transform.position;
+
+            var cursor = editor.Enter(_player);
+            cursor.Position = new System.Numerics.Vector2(start.x, start.z);
+            editor.PickUp(cursor);
+            editor.MoveCursor(cursor, new System.Numerics.Vector2(1f, 0f));
+            editor.Cancel(cursor);
+            yield return null;
+
+            Assert.That((counter.transform.position - start).magnitude, Is.LessThan(0.001f));
+        }
+
+        [UnityTest]
         public IEnumerator ShovedStaffStayWhereTheyWerePushed()
         {
             yield return OpenKitchenWithChef();

@@ -36,6 +36,7 @@ namespace Game.Presentation.Hud
         [Header("Text")]
         [SerializeField] private string _joinText = "Press A to join\n(keyboard: X)";
         [SerializeField] private string _candidatesText = "Looking for work:";
+        [SerializeField] private string _manageText = "Press Select (keyboard: Tab) to rearrange the kitchen";
         [SerializeField] private string _deliveryText = "Delivered to storage:";
         [SerializeField] private string _openText = "Prep: preheat and get ready, then open up";
         [SerializeField] private string _readyText = "Press Menu (keyboard: Esc) when ready";
@@ -84,6 +85,13 @@ namespace Game.Presentation.Hud
                 return;
             }
 
+            // Rearranging the kitchen needs to see all of it.
+            if (PlayerInput.all.Any(p => p.TryGetComponent(out PlayerInteractor interactor) && interactor.IsManaging))
+            {
+                _card.Hide();
+                return;
+            }
+
             switch (days.Phase)
             {
                 case DayPhase.Plan:
@@ -110,10 +118,11 @@ namespace Game.Presentation.Hud
         private string PrepText()
         {
             var services = _root.Services;
+            var text = $"{_openText}\n{_manageText}";
             if (services.LastDelivery.Count == 0)
-                return _openText;
+                return text;
             var parts = services.LastDelivery.Select(d => $"{d.Count} {services.Catalog.DisplayName(d.TypeId)}");
-            return $"{_openText}\n{_deliveryText} {string.Join(", ", parts)}";
+            return $"{text}\n{_deliveryText} {string.Join(", ", parts)}";
         }
 
         // Lists who works here and who could; the buttons are HiringMenu's.
@@ -138,6 +147,8 @@ namespace Game.Presentation.Hud
                 var line = $"{Button(HireButtons[i])}  {candidate.Name}, {RoleName(candidate.Role)}: {candidate.Description}, {currency}{candidate.DailyWage:0}/day";
                 plan.AppendLine(staff.CanHire(candidate, days.Balance) ? line : HudStyle.Colored(line, _waitingColor));
             }
+            plan.AppendLine();
+            plan.AppendLine(_manageText);
             return plan.ToString().TrimEnd();
         }
 

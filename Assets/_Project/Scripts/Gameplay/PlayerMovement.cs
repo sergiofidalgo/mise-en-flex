@@ -64,7 +64,7 @@ namespace Game.Gameplay
         {
             var deltaTime = Time.deltaTime;
             // A station can take over the chef, and the stick with it (washing by hand).
-            var stick = _interactor != null && _interactor.IsBusy ? Vector2.zero : _move.ReadValue<Vector2>();
+            var stick = _interactor != null && (_interactor.IsBusy || _interactor.IsManaging) ? Vector2.zero : _move.ReadValue<Vector2>();
 
             // Read tuning every frame so Inspector edits apply live while playing.
             _mover.Settings = _tuning.Movement;

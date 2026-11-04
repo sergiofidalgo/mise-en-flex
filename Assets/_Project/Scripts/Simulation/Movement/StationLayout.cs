@@ -81,6 +81,67 @@ namespace Game.Simulation.Movement
             return best;
         }
 
+        /// <summary>
+        /// True if every station has somewhere to stand, and all those places connect, along with
+        /// where everyone is, so nobody can be walled in. One flood over the floor rather than a
+        /// route per station, since it runs as a station is carried.
+        /// </summary>
+        public bool EveryStationCanBeReached(IReadOnlyList<Vector2> stations, IEnumerable<Vector2> people = null)
+        {
+            var spots = new List<int>();
+            foreach (var station in stations)
+            {
+                var spot = StandingSpot(station);
+                if (!spot.HasValue)
+                    return false;
+                var cell = NearestFreeCell(spot.Value);
+                if (cell < 0)
+                    return false;
+                spots.Add(cell);
+            }
+            if (people != null)
+            {
+                foreach (var person in people)
+                {
+                    var cell = NearestFreeCell(person);
+                    if (cell < 0)
+                        return false;
+                    spots.Add(cell);
+                }
+            }
+            if (spots.Count == 0)
+                return true;
+
+            var reached = new HashSet<int> { spots[0] };
+            var frontier = new Queue<int>();
+            frontier.Enqueue(spots[0]);
+            while (frontier.Count > 0)
+            {
+                var cell = frontier.Dequeue();
+                var x = cell % _width;
+                var y = cell / _width;
+                foreach (var (dx, dy) in new[] { (1, 0), (-1, 0), (0, 1), (0, -1) })
+                {
+                    var nx = x + dx;
+                    var ny = y + dy;
+                    if (nx < 0 || ny < 0 || nx >= _width || ny >= _height)
+                        continue;
+                    var neighbour = ny * _width + nx;
+                    if (reached.Contains(neighbour) || !IsClear(Centre(cell), Centre(neighbour)))
+                        continue;
+                    reached.Add(neighbour);
+                    frontier.Enqueue(neighbour);
+                }
+            }
+
+            foreach (var cell in spots)
+            {
+                if (!reached.Contains(cell))
+                    return false;
+            }
+            return true;
+        }
+
         /// <summary>A route from one point to another around the furniture, ending at <paramref name="to"/>.</summary>
         /// <returns>The points to walk to in order, or null if there's no way there.</returns>
         public List<Vector2> FindPath(Vector2 from, Vector2 to)

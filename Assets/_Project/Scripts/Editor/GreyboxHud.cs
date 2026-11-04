@@ -95,6 +95,14 @@ namespace Game.Editor
             tags.FindProperty("_root").objectReferenceValue = root;
             tags.ApplyModifiedPropertiesWithoutUndo();
 
+            var layoutHud = new SerializedObject(hud.AddComponent<LayoutEditorHud>());
+            layoutHud.FindProperty("_canvas").objectReferenceValue = hud.GetComponent<RectTransform>();
+            layoutHud.FindProperty("_style").objectReferenceValue = style;
+            layoutHud.FindProperty("_editor").objectReferenceValue = Object.FindFirstObjectByType<LayoutEditor>();
+            layoutHud.FindProperty("_settings").objectReferenceValue = settings;
+            layoutHud.FindProperty("_framePrefab").objectReferenceValue = GreyboxStaff.BuildCursorFrame();
+            layoutHud.ApplyModifiedPropertiesWithoutUndo();
+
             var flips = new SerializedObject(hud.AddComponent<FlipGaugeHud>());
             flips.FindProperty("_canvas").objectReferenceValue = hud.GetComponent<RectTransform>();
             flips.FindProperty("_root").objectReferenceValue = root;

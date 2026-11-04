@@ -4,6 +4,21 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-04 — Layout editing and management mode (Phase 4, milestone 1)
+
+**User's call:** during Plan and mise en place, players can switch to a cursor view with the Select button.
+
+**Details (proposed while building; flagged for review):**
+- **Keyboard:** Tab. **While managing:** the chef waits; A picks up and places, B cancels or goes back to the chef. You can't ready up while managing.
+- **A 0.5 m grid,** finer than the 1 m first suggested, because the starting kitchen isn't on a 1 m grid and pieces need to sit against each other.
+- **Anything can be moved,** and what's on a station moves with it. Two players can't hold the same station.
+- **Placements are refused** outside the kitchen, on another station, on a person, or if they'd cut off a station or wall someone in. The reason shows at the cursor.
+- **The pass only slides along its row,** and its stool follows, because customers sit on the dining side.
+- **No rotation yet:** stations have no front that matters so far.
+- **Service stops rearranging:** management mode isn't available during Service or Review.
+
+---
+
 ## 2026-11-04 — One waiter, no runner; a limited pile of dirty dishes
 
 **Decisions (user's call):**

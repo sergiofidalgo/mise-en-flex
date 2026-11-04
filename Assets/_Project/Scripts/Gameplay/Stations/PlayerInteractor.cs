@@ -80,10 +80,13 @@ namespace Game.Gameplay.Stations
         /// </summary>
         public bool IsBusy { get; set; }
 
+        /// <summary>In management mode: the chef waits while the player's cursor rearranges the kitchen.</summary>
+        public bool IsManaging { get; set; }
+
         /// <summary>The stick right now, for a station that has taken over the chef.</summary>
         public Vector2 MoveInput => _playerInput.actions[MoveActionName].ReadValue<Vector2>();
 
-        public bool CanAct => _services != null &&
+        public bool CanAct => _services != null && !IsManaging &&
             (_services.Days.Phase == DayPhase.Prep || _services.Days.Phase == DayPhase.Service);
 
         /// <summary>Raised after every Interact press that had a target.</summary>
@@ -130,7 +133,7 @@ namespace Game.Gameplay.Stations
 
         private void Update()
         {
-            if (_interactables == null || IsBusy)
+            if (_interactables == null || IsBusy || IsManaging)
                 return;
 
             SetTarget(FindTarget());

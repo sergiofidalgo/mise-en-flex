@@ -1,6 +1,6 @@
 # Phase 4 plan: Building
 
-*Drafted 2026-11-04, awaiting the go-ahead. Decisions in `../decisions.md`.*
+*Started 2026-11-04. Decisions in `../decisions.md`.*
 
 **Done when:** during Plan you rearrange your kitchen with your own cursor, and a better layout visibly saves trips. You can grow from a counter to a dining room with tables, where a waiter earns their wage.
 
@@ -8,7 +8,7 @@
 
 | # | Milestone | Playable result | Status |
 | --- | --- | --- | --- |
-| 1 | **Layout editing:** each player gets a cursor in Plan to pick up and place anything | Arrange your own kitchen | |
+| 1 | **Layout editing:** each player gets a cursor in Plan to pick up and place anything | Arrange your own kitchen | Built, awaiting playtest |
 | 2 | **Buying and selling furniture:** extra counters and stations cost money, and you start with fewer | Counters really are precious | |
 | 3 | **Tables:** a dining area away from the pass; you carry plates to them and clear them | Distance matters | |
 | 4 | **Waiter:** takes food from the pass to the table and clears the table afterwards | A hire that removes trips | |
@@ -17,9 +17,6 @@
 
 ## Proposed, to confirm
 
-- Cursor snaps to a 1 m grid; A picks up and places, B cancels; things can be rotated.
-- Placements that would block a station from being reached are refused.
-- What's on a station moves with it.
 - About 4 free counters once buying exists.
 - Tables seat one customer at first; orders show above their head, with no order-taking step.
 - Furniture and tiers cost money; rent stays in Phase 5.

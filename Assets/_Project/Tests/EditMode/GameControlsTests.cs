@@ -67,6 +67,7 @@ namespace Game.Tests.EditMode
         [TestCase("Gameplay", "ButtonY", "<Keyboard>/w", "<Gamepad>/buttonNorth")]
         [TestCase("Gameplay", "HeatDown", "<Keyboard>/q", "<Gamepad>/leftTrigger")]
         [TestCase("Gameplay", "HeatUp", "<Keyboard>/e", "<Gamepad>/rightTrigger")]
+        [TestCase("Gameplay", "Manage", "<Keyboard>/tab", "<Gamepad>/select")]
         public void KeyboardMirrorsFaceButtons(string map, string action, string key, string button)
         {
             var paths = _controls.FindActionMap(map, true).FindAction(action, true).bindings.Select(b => b.path).ToArray();
