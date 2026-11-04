@@ -9,7 +9,7 @@
 | # | Milestone | Playable result | Status |
 | --- | --- | --- | --- |
 | 1 | **Layout editing:** each player gets a cursor in Plan to pick up and place anything | Arrange your own kitchen | Done |
-| 2 | **Buying and selling furniture:** extra counters and stations cost money, and you start with fewer | Counters really are precious | Built, awaiting playtest |
+| 2 | **Buying and selling furniture:** extra counters and stations cost money, and you start with fewer | Counters really are precious | Done |
 | 3 | **Tables:** a dining area away from the pass; you carry plates to them and clear them | Distance matters | |
 | 4 | **Waiter:** takes food from the pass to the table and clears the table afterwards | A hire that removes trips | |
 | 5 | **Size tiers:** counter, small room, full dining room | Bigger isn't strictly better | |
