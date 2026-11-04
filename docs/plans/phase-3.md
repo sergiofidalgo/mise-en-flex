@@ -21,7 +21,7 @@ Order changed 2026-11-04: 3 and 4 come before 2.
 | # | Milestone | Playable result | Status |
 | --- | --- | --- | --- |
 | 1 | **The daily loop:** Plan → Prep → Service → Close → Review, with a day counter; the service summary becomes the Review | Play day after day | Done (played 3 days, 2026-11-04) |
-| 2 | **Stock that lasts:** stock carries over and ages, a morning delivery to the fridge and shelf, containers and trays for quick access | Prep matters | Built, awaiting playtest |
+| 2 | **Stock that lasts:** stock carries over and ages, a morning delivery to the fridge and shelf, containers and trays for quick access | Prep matters | Done |
 | 3 | **Plates and washing up:** limited plates, dirty ones come back from the pass, a sink | A new job competes for your time | Done |
 | 4 | **Staff and the dishwasher:** skill, speed, fatigue, mistakes; hiring in Plan; daily wages | Your first hire takes a job off you | Done |
 | 5 | **Prep assistant:** fills containers and does simple cuts | Prep and storage flow without you | |
