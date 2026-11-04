@@ -23,6 +23,8 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 **Decisions:** the interface is smaller and see-through, and sits above the washing chef. The point keeps moving far less after you let go (damping 5, was 2.5), runs away more gently (instability 4, was 5) and gets smaller nudges (1.4, was 1.8). In the simulation, the coast after a full push drops from about 1.6 circle radii of travel to about 0.4.
 
+**Then, after more play (too easy):** damping 4.2, instability 4.5, nudge 1.6, between the first and second tuning.
+
 **Trade-off:** ordinary over-correcting used to be heavily punished and now mostly isn't; only slamming the stick around with slow reactions is. This softens "small movements shift it drastically" in the earlier entry. Doing nothing still never cleans a plate.
 
 ---

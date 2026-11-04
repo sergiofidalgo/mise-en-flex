@@ -10,16 +10,16 @@ namespace Game.Simulation.Items
         public float StickAcceleration { get; set; } = 10f;
 
         /// <summary>Acceleration away from the centre per unit of distance: the point won't stay by itself.</summary>
-        public float Instability { get; set; } = 4f;
+        public float Instability { get; set; } = 4.5f;
 
         /// <summary>How fast speed dies away, per second.</summary>
-        public float Damping { get; set; } = 5f;
+        public float Damping { get; set; } = 4.2f;
 
         /// <summary>
         /// Size of the random nudge. Must stay below Instability × OkRadius, or a player doing
         /// nothing could drift back into range: not reacting must never clean a plate.
         /// </summary>
-        public float Nudge { get; set; } = 1.4f;
+        public float Nudge { get; set; } = 1.6f;
 
         /// <summary>Seconds between new nudge directions.</summary>
         public float NudgeInterval { get; set; } = 0.5f;
