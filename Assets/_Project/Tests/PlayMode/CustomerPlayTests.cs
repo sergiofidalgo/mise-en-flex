@@ -2,7 +2,10 @@ using System.Collections;
 using System.Linq;
 using Game.Gameplay;
 using Game.Gameplay.Customers;
+using Game.Gameplay.Stations;
 using Game.Simulation.Days;
+using Game.Simulation.Items;
+using Game.Simulation.Movement;
 using Game.Simulation.Service;
 using NUnit.Framework;
 using UnityEngine;
@@ -20,6 +23,7 @@ namespace Game.Tests.PlayMode
         private KitchenCompositionRoot _root;
         private CustomerDirector _customers;
         private PlayerInput _player;
+        private TableStation _table;
 
         private IEnumerator OpenForService()
         {
@@ -109,6 +113,148 @@ namespace Game.Tests.PlayMode
             while (customer.State == CustomerState.Waiting)
                 service.Tick(1f);
             yield return WaitFor(() => customer.State == CustomerState.Gone, 15f);
+        }
+
+        // Buys a table during Plan and opens up. Everyone sits on the stools first.
+        private IEnumerator OpenWithATable()
+        {
+            yield return SceneManager.LoadSceneAsync(SceneName);
+            yield return null;
+            _root = Object.FindFirstObjectByType<KitchenCompositionRoot>();
+            _customers = Object.FindFirstObjectByType<CustomerDirector>();
+            var keyboard = InputSystem.GetDevice<Keyboard>() ?? InputSystem.AddDevice<Keyboard>();
+            var mouse = InputSystem.GetDevice<Mouse>() ?? InputSystem.AddDevice<Mouse>();
+            _player = Object.FindFirstObjectByType<PlayerInputManager>().JoinPlayer(controlScheme: "Keyboard&Mouse", pairWithDevices: new InputDevice[] { keyboard, mouse });
+            yield return null;
+            yield return null;
+
+            var editor = Object.FindFirstObjectByType<LayoutEditor>();
+            var cursor = editor.Enter(_player);
+            _root.Services.Days.Receive(100f);
+
+            cursor.Position = new System.Numerics.Vector2(0f, 0f);
+            Assert.That(editor.Buy(cursor, editor.Shop.First(e => e.Id == "table")), Is.True);
+            _table = (TableStation)cursor.Held;
+            editor.MoveCursor(cursor, System.Numerics.Vector2.Zero);
+            Assert.That(editor.Place(cursor), Is.False, "not in the kitchen");
+            Assert.That(cursor.Result, Is.EqualTo(Placement.OutsideTheKitchen));
+
+            editor.MoveCursor(cursor, new System.Numerics.Vector2(-2f, -5.5f));
+            Assert.That(editor.Place(cursor), Is.True, cursor.Result.ToString());
+            editor.Leave(_player);
+
+            ControlTheService();
+            var days = _root.Services.Days;
+            days.Advance();
+            days.Advance();
+            yield return null;
+        }
+
+        // A service whose timing the test controls: nobody arrives until it's asked for, and nobody
+        // loses patience, whatever the settings being played with are.
+        private void ControlTheService()
+        {
+            var settings = _root.Services.ServiceConfig.ToSettings(1);
+            settings.DurationSeconds = 100000f;
+            settings.LastOrdersSeconds = 0f;
+            settings.ArrivalIntervalSeconds = 2000f;
+            settings.ArrivalJitter = 0f;
+            settings.RushMultiplier = 1f;
+            settings.PatienceSeconds = 100000f;
+            settings.EatSeconds = 10f;
+            _root.Services.ReplaceService(new ServiceSimulation(settings, _root.Services.Service.SeatCount));
+        }
+
+        private static Plate Meal(KitchenCompositionRoot root)
+        {
+            var plate = new Plate(3);
+            plate.Put(root.Services.CreateItem("Steak"));
+            return plate;
+        }
+
+        [UnityTest]
+        public IEnumerator ATableAddsASeatAndServesLikeThePass()
+        {
+            yield return OpenWithATable();
+            var service = _root.Services.Service;
+            Assert.That(service.SeatCount, Is.EqualTo(4));
+
+            Customer customer = null;
+            for (var i = 0; i < 4; i++)
+                customer = NextCustomer();
+            Assert.That(customer.Seat, Is.EqualTo(_table.SeatIndex), "once the stools are full");
+
+            yield return WaitFor(() => customer.State == CustomerState.Waiting, 20f);
+            var agent = _customers.Agents[customer];
+            Assert.That((agent.transform.position - _table.Seat.position).magnitude, Is.LessThan(0.2f), "in its chair");
+
+            _table.Container.Put(Meal(_root));
+            Assert.That(customer.State, Is.EqualTo(CustomerState.Eating));
+        }
+
+        [UnityTest]
+        public IEnumerator ACustomerSitsAndOrdersAtADirtyTableButWaitsForItToBeCleared()
+        {
+            yield return OpenWithATable();
+            var service = _root.Services.Service;
+            Customer customer = null;
+            for (var i = 0; i < 4; i++)
+                customer = NextCustomer();
+            yield return WaitFor(() => customer.State == CustomerState.Waiting, 20f);
+
+            // Eaten: the dirty plate stays.
+            _table.Container.Put(Meal(_root));
+            yield return WaitFor(() => _table.DirtyPlates.HasDirtyPlate, 5f);
+
+            var next = NextCustomer();
+            Assert.That(next.Seat, Is.EqualTo(_table.SeatIndex));
+            yield return WaitFor(() => next.State == CustomerState.Waiting, 20f);
+            Assert.That(next.Order, Is.Not.Null, "ordering");
+
+            var meal = Meal(_root);
+            Assert.That(_table.Container.CanAccept(meal), Is.False, "clear it first");
+            var dirty = _table.Container.Take();
+            Assert.That(dirty, Is.Not.Null);
+            Assert.That(_table.Container.CanAccept(meal), Is.True);
+            _table.Container.Put(meal);
+            Assert.That(next.State, Is.EqualTo(CustomerState.Eating));
+        }
+
+        [UnityTest]
+        public IEnumerator WithTheStreetDoorBoxedInTheyGiveUpAndTheServiceCarriesOn()
+        {
+            yield return SceneManager.LoadSceneAsync(SceneName);
+            yield return null;
+            _root = Object.FindFirstObjectByType<KitchenCompositionRoot>();
+            _customers = Object.FindFirstObjectByType<CustomerDirector>();
+            var keyboard = InputSystem.GetDevice<Keyboard>() ?? InputSystem.AddDevice<Keyboard>();
+            var mouse = InputSystem.GetDevice<Mouse>() ?? InputSystem.AddDevice<Mouse>();
+            _player = Object.FindFirstObjectByType<PlayerInputManager>().JoinPlayer(controlScheme: "Keyboard&Mouse", pairWithDevices: new InputDevice[] { keyboard, mouse });
+            yield return null;
+            yield return null;
+
+            var editor = Object.FindFirstObjectByType<LayoutEditor>();
+            var cursor = editor.Enter(_player);
+            _root.Services.Days.Receive(500f);
+            foreach (var spot in new[] { new System.Numerics.Vector2(2f, -7.4f), new System.Numerics.Vector2(4f, -7.4f), new System.Numerics.Vector2(3f, -6.4f) })
+            {
+                cursor.Position = spot;
+                Assert.That(editor.Buy(cursor, editor.Shop.First(e => e.Id == "table")), Is.True);
+                editor.MoveCursor(cursor, System.Numerics.Vector2.Zero);
+                Assert.That(editor.Place(cursor), Is.True, cursor.Result.ToString());
+            }
+            editor.Leave(_player);
+
+            ControlTheService();
+            var days = _root.Services.Days;
+            days.Advance();
+            days.Advance();
+            yield return null;
+
+            var customer = NextCustomer();
+            yield return WaitFor(() => customer.State == CustomerState.Gone, 15f);
+            Assert.That(customer.WalkedOut, Is.True);
+            Assert.That(_root.Services.Service.LostCovers, Is.EqualTo(1));
         }
     }
 }

@@ -27,6 +27,9 @@ namespace Game.Gameplay.Stations
 
         public string FurnitureId => _furnitureId;
 
+        /// <summary>It goes in the dining room rather than the kitchen.</summary>
+        public virtual bool BelongsInDiningRoom => false;
+
         /// <summary>True if nothing would be lost by selling it.</summary>
         public virtual bool IsClear => false;
 

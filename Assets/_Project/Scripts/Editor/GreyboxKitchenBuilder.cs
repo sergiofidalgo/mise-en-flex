@@ -37,10 +37,19 @@ namespace Game.Editor
         private const string HobFurniture = "hob";
         private const string FridgeFurniture = "fridge";
         private const string ShelfFurniture = "shelf";
+        private const string TableFurniture = "table";
         private const float CounterPrice = 30f;
         private const float HobPrice = 80f;
         private const float ShelfPrice = 60f;
         private const float FridgePrice = 120f;
+        private const float TablePrice = 50f;
+
+        // A table: a little lower than a counter, with a chair at its south side where its customer sits.
+        private const float TableHeight = 0.75f;
+        private const float ChairDistance = 0.85f;
+        private static readonly Color TableColor = new Color(0.50f, 0.34f, 0.22f);
+        private static readonly Color ChairColor = new Color(0.35f, 0.25f, 0.18f);
+        private static readonly Vector3 ChairScale = new Vector3(0.36f, 0.22f, 0.36f); // cylinder: 0.44 m tall
         private const string PlayerPrefabPath = "Assets/_Project/Prefabs/PF_Player.prefab";
         private const string ScenePath = "Assets/_Project/Scenes/Kitchen_Greybox.unity";
         private const string JoinActionPath = "Gameplay/Join";
@@ -636,6 +645,7 @@ namespace Game.Editor
             var hob = SaveFurniture(CreateHob("PF_Hob", Vector3.zero, GreyboxAssets.EnsureMaterial("Hob", HobColor), null));
             var fridge = SaveFurniture(BuildStorageForSale("PF_Fridge", StorageUnits[0]));
             var shelf = SaveFurniture(BuildStorageForSale("PF_Shelf", StorageUnits[1]));
+            var table = SaveFurniture(BuildTable());
 
             var catalog = GreyboxAssets.EnsureAsset<FurnitureCatalog>(FurnitureCatalogPath);
             var so = new SerializedObject(catalog);
@@ -644,9 +654,26 @@ namespace Game.Editor
             SetFurniture(entries, HobFurniture, "Hob", HobPrice, keepOne: true, hob);
             SetFurniture(entries, ShelfFurniture, "Shelf", ShelfPrice, keepOne: true, shelf);
             SetFurniture(entries, FridgeFurniture, "Fridge", FridgePrice, keepOne: true, fridge);
+            SetFurniture(entries, TableFurniture, "Table", TablePrice, keepOne: false, table);
             so.ApplyModifiedPropertiesWithoutUndo();
             AssetDatabase.SaveAssets();
             return catalog;
+        }
+
+        private static TableStation BuildTable()
+        {
+            var table = CreateStation<TableStation>(
+                "PF_Table", Vector3.zero, CounterSize, TableHeight, GreyboxAssets.EnsureMaterial("Table", TableColor), null, TableFurniture);
+
+            var seat = new GameObject("Seat").transform;
+            seat.SetParent(table.transform, false);
+            seat.localPosition = new Vector3(0f, 0f, -ChairDistance);
+            var chair = GreyboxAssets.CreatePrimitive(PrimitiveType.Cylinder, "Chair", seat, GreyboxAssets.EnsureMaterial("Stool", ChairColor), keepCollider: false);
+            chair.transform.localScale = ChairScale;
+            chair.transform.localPosition = new Vector3(0f, ChairScale.y, 0f);
+
+            SetReference(table, "_seat", seat);
+            return table;
         }
 
         // The same as the starting unit, without its morning delivery.

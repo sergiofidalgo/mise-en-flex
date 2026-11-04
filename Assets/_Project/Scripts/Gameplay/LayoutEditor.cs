@@ -306,6 +306,7 @@ namespace Game.Gameplay
             cursor.Held.CantGoHere = false;
             if (cursor.Buying != null)
             {
+                _plan.Remove(cursor.Held);
                 Destroy(cursor.Held.gameObject);
                 cursor.Buying = null;
             }
@@ -357,6 +358,8 @@ namespace Game.Gameplay
             cursor.ShopOpen = false;
             cursor.Buying = entry;
             cursor.Held = instance.GetComponent<Interactable>();
+            if (cursor.Held.BelongsInDiningRoom)
+                _plan.GiveArea(cursor.Held, _root.Services.FloorPlan.DiningAreaMin, _root.Services.FloorPlan.DiningAreaMax);
             cursor.HeldFrom = position;
             cursor.HeldFromDegrees = 0f;
             cursor.Degrees = 0f;

@@ -108,6 +108,11 @@ namespace Game.Gameplay
 
         private void HandlePhaseChanged(DayPhase phase)
         {
+            if (phase == DayPhase.Service)
+            {
+                OpenSeats();
+                return;
+            }
             if (phase == DayPhase.Prep)
             {
                 Services.LastDelivery = Services.Stations.All.OfType<StorageStation>().SelectMany(s => s.TakeDelivery()).ToList();
@@ -124,6 +129,15 @@ namespace Game.Gameplay
             var sink = Services.Stations.All.OfType<SinkStation>().FirstOrDefault();
             if (stack != null && sink != null)
                 stack.Stack.AddNew(sink.Sink.TakeBrokenCount(), _equipment.PlateCapacity);
+        }
+
+        // Doors open: tables bought since this morning join the stools, which come first.
+        private void OpenSeats()
+        {
+            var seats = _seats;
+            foreach (var table in Services.Stations.All.OfType<TableStation>())
+                table.AssignSeat(seats++);
+            Services.Service.OpenSeats(seats);
         }
 
         private void BindPlayer(PlayerInput player)

@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Text;
+using Game.Gameplay;
 using Game.Gameplay.Stations;
 using Game.Simulation.Quality;
 using UnityEngine;
@@ -21,27 +22,43 @@ namespace Game.Presentation
         [SerializeField, Min(8)] private int _fontSize = 14;
         [SerializeField, Min(100f)] private float _width = 340f;
 
-        private readonly List<(PassStation Pass, DishScore Score, float Until)> _cards = new List<(PassStation, DishScore, float)>();
+        private readonly List<(ServingStation Pass, DishScore Score, float Until)> _cards = new List<(ServingStation, DishScore, float)>();
         private readonly StringBuilder _text = new StringBuilder();
-        private PassStation[] _passes;
+        private KitchenCompositionRoot _root;
         private GUIStyle _style;
 
         private void Start()
         {
-            _passes = FindObjectsByType<PassStation>(FindObjectsSortMode.None);
-            foreach (var pass in _passes)
-                pass.Served += HandleServed;
+            _root = GetComponent<KitchenCompositionRoot>();
+            foreach (var station in _root.Services.Stations.All)
+                Watch(station);
+            _root.Services.Stations.Added += Watch;
+            _root.Services.Stations.Removed += Forget;
         }
 
         private void OnDestroy()
         {
-            if (_passes == null)
+            if (_root == null)
                 return;
-            foreach (var pass in _passes)
-                pass.Served -= HandleServed;
+            foreach (var station in _root.Services.Stations.All)
+                Forget(station);
+            _root.Services.Stations.Added -= Watch;
+            _root.Services.Stations.Removed -= Forget;
         }
 
-        private void HandleServed(PassStation pass, DishScore score)
+        private void Watch(Interactable station)
+        {
+            if (station is ServingStation serving)
+                serving.Served += HandleServed;
+        }
+
+        private void Forget(Interactable station)
+        {
+            if (station is ServingStation serving)
+                serving.Served -= HandleServed;
+        }
+
+        private void HandleServed(ServingStation pass, DishScore score)
         {
             _cards.RemoveAll(card => card.Pass == pass);
             _cards.Add((pass, score, Time.time + _duration));

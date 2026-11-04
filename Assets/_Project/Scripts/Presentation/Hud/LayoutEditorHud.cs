@@ -87,7 +87,7 @@ namespace Game.Presentation.Hud
             {
                 var problem = cursor.Result switch
                 {
-                    Placement.OutsideTheKitchen => "outside the kitchen",
+                    Placement.OutsideTheKitchen => "not in this room",
                     Placement.OnAnotherStation => "something's there",
                     Placement.SomeoneInTheWay => "someone's in the way",
                     Placement.CantAfford => "not enough money",

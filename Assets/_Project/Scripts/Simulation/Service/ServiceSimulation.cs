@@ -75,7 +75,7 @@ namespace Game.Simulation.Service
         public int SeatCount => _seats.Length;
 
         /// <summary>Who is sitting at (or walking to) <paramref name="seat"/>, or null.</summary>
-        public Customer AtSeat(int seat) => _seats[seat];
+        public Customer AtSeat(int seat) => seat >= 0 && seat < _seats.Length ? _seats[seat] : null;
 
         /// <summary>Customers who left unserved: turned away at a full door, or out of patience.</summary>
         public int LostCovers { get; private set; }

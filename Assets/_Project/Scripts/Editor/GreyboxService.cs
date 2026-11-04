@@ -71,9 +71,15 @@ namespace Game.Editor
             so.FindProperty("_root").objectReferenceValue = root;
             so.FindProperty("_customerPrefab").objectReferenceValue = BuildCustomerPrefab().GetComponent<CustomerAgent>();
             so.FindProperty("_door").objectReferenceValue = door;
-            SetArray(so.FindProperty("_seats"), seats);
             SetArray(so.FindProperty("_queueSpots"), queue);
             so.ApplyModifiedPropertiesWithoutUndo();
+
+            foreach (var pass in Object.FindObjectsByType<Game.Gameplay.Stations.PassStation>(FindObjectsSortMode.None))
+            {
+                var passSo = new SerializedObject(pass);
+                passSo.FindProperty("_seat").objectReferenceValue = seats[pass.SeatIndex];
+                passSo.ApplyModifiedPropertiesWithoutUndo();
+            }
         }
 
         private static GameObject BuildCustomerPrefab()
