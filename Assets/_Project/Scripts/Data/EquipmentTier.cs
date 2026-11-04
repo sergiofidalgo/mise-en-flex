@@ -27,11 +27,17 @@ namespace Game.Data
         [Tooltip("Plates the kitchen owns. Dirty and broken ones aren't available, so this sets the pressure to wash up.")]
         [SerializeField, Min(0)] private int _plateCount = 6;
 
+        [Header("Crate")]
+        [Tooltip("Portions a crate from the storeroom holds.")]
+        [SerializeField, Min(1)] private int _crateCapacity = 6;
+
         [Header("Prep counter")]
         [Tooltip("Portions each of the prep counter's four slots holds.")]
         [SerializeField, Min(1)] private int _prepSlotCapacity = 4;
 
         public int PlateCapacity => _plateCapacity;
+
+        public int CrateCapacity => _crateCapacity;
 
         public int PlateCount => _plateCount;
 

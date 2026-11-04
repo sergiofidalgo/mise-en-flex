@@ -117,6 +117,13 @@ namespace Game.Editor
         // Knife: grey blade and dark handle, lying flat; root at its base.
         private static readonly Vector3 BladeScale = new Vector3(0.035f, 0.008f, 0.2f);
         private static readonly Vector3 HandleScale = new Vector3(0.035f, 0.02f, 0.1f);
+        private static readonly Color CrateColor = new Color(0.62f, 0.47f, 0.28f);
+        private static readonly Vector3 CrateScale = new Vector3(0.5f, 0.1f, 0.36f);
+        private static readonly Vector3[] CrateSlots =
+        {
+            new Vector3(-0.15f, 0f, -0.1f), new Vector3(0f, 0f, -0.1f), new Vector3(0.15f, 0f, -0.1f),
+            new Vector3(-0.15f, 0f, 0.1f), new Vector3(0f, 0f, 0.1f), new Vector3(0.15f, 0f, 0.1f),
+        };
         private static readonly Color BladeColor = new Color(0.78f, 0.80f, 0.84f);
         private static readonly Color HandleColor = new Color(0.18f, 0.12f, 0.10f);
 
@@ -133,6 +140,17 @@ namespace Game.Editor
             handle.transform.localScale = HandleScale;
             handle.transform.localPosition = new Vector3(0f, HandleScale.y / 2f, -HandleScale.z / 2f);
             return Save(root, Knife.KnifeTypeId);
+        }
+
+        public static GameObject BuildCrate()
+        {
+            var root = new GameObject($"PF_Item_{Crate.CrateTypeId}");
+            var body = GreyboxAssets.CreatePrimitive(
+                PrimitiveType.Cube, "Body", root.transform, GreyboxAssets.EnsureMaterial("Crate", CrateColor), keepCollider: false);
+            body.transform.localScale = CrateScale;
+            body.transform.localPosition = new Vector3(0f, CrateScale.y / 2f, 0f);
+            AddSlots(root, CrateSlots, CrateScale.y);
+            return Save(root, Crate.CrateTypeId);
         }
 
         public static GameObject BuildPlate()

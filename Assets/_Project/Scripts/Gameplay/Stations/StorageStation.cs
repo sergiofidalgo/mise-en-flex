@@ -10,8 +10,9 @@ namespace Game.Gameplay.Stations
     /// <summary>
     /// A fridge or shelf with four slots, one per face button. Holding RT opens its radial menu;
     /// while it's open, a face button takes one portion from that slot (empty hands). With food in
-    /// hand, Interact puts it back into the slot for that ingredient, no menu needed. Stock tops up each morning (restocking during Prep comes in
-    /// milestone 2 of Phase 3, buying and placing units in Phases 4–5).
+    /// hand, Interact puts it back into the slot for that ingredient, no menu needed, and a crate
+    /// empties into it. The storeroom is one of these that hands out crates and takes deliveries
+    /// (buying and placing units come in Phases 4–5).
     /// </summary>
     public sealed class StorageStation : Interactable, IFaceButtonTarget, IStationPrompt, ISlotMenuStation
     {
@@ -23,17 +24,23 @@ namespace Game.Gameplay.Stations
             [SerializeField, Min(0)] private int _capacity;
             [Tooltip("Portions in the slot when the scene starts.")]
             [SerializeField, Min(0)] private int _startStock;
+            [Tooltip("Portions delivered each morning (the storeroom), up to the capacity.")]
+            [SerializeField, Min(0)] private int _dailyDelivery;
             [Tooltip("Where this slot's bin is; food appears here when taken.")]
             [SerializeField] private Transform _bin;
 
             public string TypeId => _typeId;
             public int Capacity => _capacity;
             public int StartStock => _startStock;
+            public int DailyDelivery => _dailyDelivery;
             public Transform Bin => _bin;
         }
 
         [Tooltip("Fridges keep stock at the fridge temperature; shelves at kitchen temperature.")]
         [SerializeField] private bool _refrigerated;
+
+        [Tooltip("Hands out crates instead of single portions: the storeroom.")]
+        [SerializeField] private bool _givesCrates;
 
         [Tooltip("One per face button, in FaceButton order: South (A), East (B), West (X), North (Y).")]
         [SerializeField] private SlotSetup[] _slots = new SlotSetup[4];
@@ -70,21 +77,21 @@ namespace Game.Gameplay.Stations
             _container = new StoreBack(_unit, services);
         }
 
-        /// <summary>
-        /// Refills each slot up to its starting stock; what's already there stays and keeps ageing.
-        /// TODO(Phase 3, milestone 2): replaced by restocking from a storeroom.
-        /// </summary>
-        public void TopUp()
+        /// <summary>The morning delivery, up to each slot's capacity.</summary>
+        /// <returns>What arrived, as (type id, portions).</returns>
+        public List<(string TypeId, int Count)> TakeDelivery()
         {
+            var delivered = new List<(string, int)>();
             for (var i = 0; i < _slots.Length; i++)
             {
                 var setup = _slots[i];
-                if (setup == null || string.IsNullOrEmpty(setup.TypeId))
+                if (setup == null || string.IsNullOrEmpty(setup.TypeId) || setup.DailyDelivery <= 0)
                     continue;
-                var missing = setup.StartStock - _unit.Slots[i].Count;
-                if (missing > 0)
-                    _unit.Stock(i, () => (Ingredient)_services.CreateItem(setup.TypeId, _unit.Temperature), missing);
+                var count = _unit.Stock(i, () => (Ingredient)_services.CreateItem(setup.TypeId, _unit.Temperature), setup.DailyDelivery);
+                if (count > 0)
+                    delivered.Add((setup.TypeId, count));
             }
+            return delivered;
         }
 
         public Transform BinAnchor(int slotIndex) =>
@@ -96,7 +103,18 @@ namespace Game.Gameplay.Stations
             if (_unit == null || !player.IsSlotMenuOpen || !player.Hands.IsEmpty || !_unit.TryTake(index, out var ingredient))
                 return false;
 
-            player.ReceiveItem(ingredient, BinAnchor(index).position);
+            if (!_givesCrates)
+            {
+                player.ReceiveItem(ingredient, BinAnchor(index).position);
+                return true;
+            }
+
+            // A crate of the oldest portions in this slot.
+            var crate = new Crate(_services.Equipment.CrateCapacity);
+            crate.Put(ingredient);
+            while (crate.Items.Count < crate.Capacity && _unit.TryTake(index, out ingredient))
+                crate.Put(ingredient);
+            player.ReceiveItem(crate, BinAnchor(index).position);
             return true;
         }
 
@@ -108,8 +126,11 @@ namespace Game.Gameplay.Stations
             if (!player.IsSlotMenuOpen)
             {
                 lines.Add(new PromptLine(PromptControl.Triggers, "open", player.Hands.IsEmpty));
-                if (!player.Hands.IsEmpty)
-                    lines.Add(new PromptLine(PromptControl.South, "put back", _unit.CanAccept(player.Hands.Current)));
+                var held = player.Hands.Current;
+                if (held is Crate crate)
+                    lines.Add(new PromptLine(PromptControl.South, "restock", !crate.IsEmpty && _unit.CanAccept(crate.Items[crate.Items.Count - 1])));
+                else if (held != null)
+                    lines.Add(new PromptLine(PromptControl.South, "put back", _unit.CanAccept(held)));
                 return;
             }
 
@@ -118,7 +139,7 @@ namespace Game.Gameplay.Stations
                 var slot = _unit.Slots[i];
                 var control = (PromptControl)i;
                 lines.Add(slot.IsUsed
-                    ? new PromptLine(control, $"{slot.TypeId} ×{slot.Count}", slot.Count > 0 && player.Hands.IsEmpty)
+                    ? new PromptLine(control, $"{(_givesCrates ? "crate: " : string.Empty)}{slot.TypeId} ×{slot.Count}", slot.Count > 0 && player.Hands.IsEmpty)
                     : new PromptLine(control, "—", available: false));
             }
         }

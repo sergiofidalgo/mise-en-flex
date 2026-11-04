@@ -20,6 +20,10 @@ namespace Game.Editor
             public string Name;
             public Vector3 Position;
             public bool Refrigerated;
+            public bool GivesCrates;
+
+            // Portions delivered each morning, per slot.
+            public int[] Deliveries = new int[4];
             public Color Color;
 
             // In FaceButton order: South (A), East (B), West (X), North (Y). Null = unused slot.
@@ -76,6 +80,7 @@ namespace Game.Editor
 
             var so = new SerializedObject(station);
             so.FindProperty("_refrigerated").boolValue = unit.Refrigerated;
+            so.FindProperty("_givesCrates").boolValue = unit.GivesCrates;
             var slots = so.FindProperty("_slots");
             slots.arraySize = BinOffsets.Length;
             for (var i = 0; i < BinOffsets.Length; i++)
@@ -85,6 +90,7 @@ namespace Game.Editor
                 element.FindPropertyRelative("_typeId").stringValue = slot?.TypeId ?? string.Empty;
                 element.FindPropertyRelative("_capacity").intValue = slot?.Capacity ?? 0;
                 element.FindPropertyRelative("_startStock").intValue = slot?.StartStock ?? 0;
+                element.FindPropertyRelative("_dailyDelivery").intValue = unit.Deliveries[i];
                 element.FindPropertyRelative("_bin").objectReferenceValue = bins[i];
             }
             so.ApplyModifiedPropertiesWithoutUndo();

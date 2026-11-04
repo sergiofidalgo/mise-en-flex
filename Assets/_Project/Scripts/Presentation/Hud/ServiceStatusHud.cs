@@ -36,6 +36,7 @@ namespace Game.Presentation.Hud
         [Header("Text")]
         [SerializeField] private string _joinText = "Press A to join\n(keyboard: X)";
         [SerializeField] private string _candidatesText = "Looking for work:";
+        [SerializeField] private string _deliveryText = "In the storeroom:";
         [SerializeField] private string _openText = "Prep: preheat and get ready, then open up";
         [SerializeField] private string _readyText = "Press Menu (keyboard: Esc) when ready";
         [SerializeField] private string _playerReadyText = "READY";
@@ -90,7 +91,7 @@ namespace Game.Presentation.Hud
                     break;
                 case DayPhase.Prep:
                     // Up out of the way: this is a phase players work through.
-                    _card.ShowAt(WithReady(_openText), new Vector2(0f, top - _prepCardTopMargin));
+                    _card.ShowAt(WithReady(PrepText()), new Vector2(0f, top - _prepCardTopMargin));
                     break;
                 case DayPhase.Review:
                     if (_summaryDay != days.Day)
@@ -104,6 +105,15 @@ namespace Game.Presentation.Hud
                     _card.Hide();
                     break;
             }
+        }
+
+        private string PrepText()
+        {
+            var services = _root.Services;
+            if (services.LastDelivery.Count == 0)
+                return _openText;
+            var parts = services.LastDelivery.Select(d => $"{d.Count} {services.Catalog.DisplayName(d.TypeId)}");
+            return $"{_openText}\n{_deliveryText} {string.Join(", ", parts)}";
         }
 
         // Lists who works here and who could; the buttons are HiringMenu's.
@@ -197,6 +207,11 @@ namespace Game.Presentation.Hud
                 _text.AppendLine($"Heard {summary.TopComplaintCount}x: \"{summary.TopComplaint.Line}\"");
 
             _text.AppendLine();
+            if (days.LastClose.Spoiled > 0 || days.LastClose.LeftOut > 0)
+            {
+                _text.AppendLine($"Overnight: {days.LastClose.Spoiled} spoiled, {days.LastClose.LeftOut} left out");
+                _text.AppendLine();
+            }
             foreach (var member in _root.Services.Staff.Hired)
                 _text.AppendLine($"{member.Name} washed {member.JobsToday}, broke {member.MistakesToday}");
             if (days.LastWages > 0f)

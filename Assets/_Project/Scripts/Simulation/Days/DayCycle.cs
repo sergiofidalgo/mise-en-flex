@@ -13,6 +13,22 @@ namespace Game.Simulation.Days
         Review,
     }
 
+    /// <summary>What closing up found (Close is summarised: decision 2026-11-03).</summary>
+    public readonly struct CloseReport
+    {
+        public CloseReport(int spoiled, int leftOut)
+        {
+            Spoiled = spoiled;
+            LeftOut = leftOut;
+        }
+
+        /// <summary>Stored food too old to keep, thrown out.</summary>
+        public int Spoiled { get; }
+
+        /// <summary>Food not in storage overnight, still where it was and aged at room temperature.</summary>
+        public int LeftOut { get; }
+    }
+
     /// <summary>
     /// The restaurant's days: Plan → Prep → Service → Review, then the next day's Plan. Money
     /// carries from day to day. Lasts for the session until saves arrive in Phase 5.
@@ -36,6 +52,9 @@ namespace Game.Simulation.Days
 
         /// <summary>Wages paid for the latest day.</summary>
         public float LastWages { get; private set; }
+
+        /// <summary>What the latest closing up found.</summary>
+        public CloseReport LastClose { get; private set; }
 
         /// <summary>Raised whenever the phase changes.</summary>
         public event Action<DayPhase> PhaseChanged;
@@ -61,12 +80,13 @@ namespace Game.Simulation.Days
         }
 
         /// <summary>The service has finished: banks its money, pays the wages and moves on to the Review.</summary>
-        public void FinishService(ServiceSummary summary, float wages = 0f)
+        public void FinishService(ServiceSummary summary, float wages = 0f, CloseReport close = default)
         {
             if (Phase != DayPhase.Service)
                 throw new InvalidOperationException($"No service to finish during {Phase}.");
             LastService = summary;
             LastWages = wages;
+            LastClose = close;
             Balance += summary.Money - wages;
             SetPhase(DayPhase.Review);
         }

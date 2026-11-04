@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Game.Data;
 using Game.Gameplay.Items;
 using Game.Simulation.Cooking;
@@ -53,6 +54,9 @@ namespace Game.Gameplay
         public ServiceConfig ServiceConfig { get; }
 
         public DayCycle Days { get; }
+
+        /// <summary>What this morning's delivery brought, as (type id, portions).</summary>
+        public List<(string TypeId, int Count)> LastDelivery { get; set; } = new List<(string, int)>();
 
         public StaffRoster Staff { get; }
         public StaffConfig StaffConfig { get; }

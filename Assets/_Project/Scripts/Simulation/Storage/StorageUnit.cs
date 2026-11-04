@@ -97,6 +97,24 @@ namespace Game.Simulation.Storage
             Store(slot, ingredient);
         }
 
+        /// <summary>Throws out everything below <paramref name="freshness"/>.</summary>
+        /// <returns>The food thrown out, for whoever keeps track of it.</returns>
+        public List<Ingredient> RemoveSpoiled(float freshness)
+        {
+            var spoiled = new List<Ingredient>();
+            foreach (var slot in _slots)
+            {
+                for (var i = slot.Items.Count - 1; i >= 0; i--)
+                {
+                    if (slot.Items[i].Freshness >= freshness)
+                        continue;
+                    spoiled.Add(slot.Items[i]);
+                    slot.Items.RemoveAt(i);
+                }
+            }
+            return spoiled;
+        }
+
         private Slot FindSlotWithRoom(Ingredient ingredient)
         {
             foreach (var slot in _slots)

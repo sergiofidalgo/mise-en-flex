@@ -70,6 +70,12 @@ namespace Game.Data
         [Tooltip("Average browning from which the crust scores full marks.")]
         [SerializeField, Min(0f)] private float _crustGoodMin = 0.6f;
 
+        [Header("Overnight")]
+        [Tooltip("In-game hours between closing and the next day. Food ages through them.")]
+        [SerializeField, Min(0f)] private float _overnightHours = 18f;
+        [Tooltip("Stored food below this freshness gets thrown out at closing.")]
+        [SerializeField, Range(0f, 1f)] private float _spoiledBelow = 0.1f;
+
         [Header("Washing by hand")]
         [Tooltip("Acceleration at full stick: high, so small movements shift the point a lot.")]
         [SerializeField, Min(0f)] private float _washStick = 10f;
@@ -91,6 +97,10 @@ namespace Game.Data
         [SerializeField, Min(0f)] private float _flipGoodFrom = 0.7f;
         [Tooltip("Browning where the green band ends.")]
         [SerializeField, Min(0f)] private float _flipGoodTo = 1.1f;
+
+        public float OvernightSeconds => _overnightHours * 3600f;
+
+        public float SpoiledBelow => _spoiledBelow;
 
         public WashGameSettings WashGame => new WashGameSettings
         {

@@ -4,6 +4,19 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-04 — Storeroom, crates and the night (Phase 3)
+
+**Decisions (proposed while building; flagged for review):**
+- **Storeroom on the east wall,** across the kitchen from the fridge and shelf, kept cold. The trip is the cost of not prepping. It holds 40 steaks and 20 onions.
+- **A free delivery each morning,** as Prep starts: 18 steaks and 8 onions, up to capacity. The Prep card says what arrived. Tomatoes aren't delivered, since nobody orders them.
+- **The line starts light on day 1** (6 steaks, 4 onions, 2 tomatoes) and no longer refills by itself. This replaces the temporary morning top-up.
+- **Crates:** the storeroom's menu hands out a crate of up to 6 of the oldest portions in that slot. Interact empties it into the fridge or shelf, and what doesn't fit stays in the crate. An emptied crate disappears rather than needing to be carried back.
+- **Closing runs as the service ends:** 18 in-game hours pass, hobs turn off, and food ages at the temperature around it. Stored food below 10% freshness is thrown out. Food left out stays where it is, aged at room temperature. The Review lists both, which is the Close line agreed in the plan.
+
+**Known effect, to judge in play:** a night in the cold costs a steak about 25% freshness, and storage hands out the oldest first. That alone takes a day-old steak from a perfect score to about 98%, which costs most of the top tip on the steep curve. So overstocking hurts, but with fixed deliveries the player can't yet order less. Buying comes in Phase 5.
+
+---
+
 ## 2026-11-04 — Wash game: less inertia, interface above the chef
 
 **Playtest:** the mechanic feels good, but the point had too much inertia and the interface was intrusive.

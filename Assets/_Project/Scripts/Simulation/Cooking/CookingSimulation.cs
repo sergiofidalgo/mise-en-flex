@@ -107,6 +107,31 @@ namespace Game.Simulation.Cooking
             }
         }
 
+        /// <summary>
+        /// Jumps ahead with the kitchen closed: hobs off, everything settled at the temperature
+        /// around it, ageing at that temperature. Worked out directly rather than stepped, because
+        /// a night would take hundreds of thousands of steps.
+        /// </summary>
+        public void SkipClosedTime(float seconds)
+        {
+            foreach (var hob in _hobs)
+                hob.Dial = 0f;
+            foreach (var pan in _pans)
+                pan.Temperature = AmbientTemperature;
+
+            foreach (var ingredient in _ingredients)
+            {
+                var around = ingredient.EnvironmentTemperature ?? AmbientTemperature;
+                for (var i = 0; i < ingredient.Temperatures.Length; i++)
+                    ingredient.Temperatures[i] = around;
+                ingredient.LoseFreshness(FreshnessLossAt(ingredient, around, seconds));
+                if (ingredient.Pan == null)
+                    ingredient.SecondsOutOfPan += seconds;
+            }
+
+            ElapsedSeconds += seconds;
+        }
+
         private void Step(float dt)
         {
             foreach (var pan in _pans)
@@ -179,11 +204,13 @@ namespace Game.Simulation.Cooking
                 ingredient.AddBrowning(surface, ingredient.Properties.BrowningRate * excess * dt);
         }
 
-        private float FreshnessLoss(Ingredient ingredient, float dt)
+        private float FreshnessLoss(Ingredient ingredient, float dt) => FreshnessLossAt(ingredient, ingredient.CoreTemperature, dt);
+
+        private float FreshnessLossAt(Ingredient ingredient, float temperature, float dt)
         {
             var rateAtReference = ingredient.Properties.FreshnessLossPerHourAt20C / SecondsPerHour;
             var temperatureFactor = (float)Math.Pow(
-                SpoilageQ10, (ingredient.CoreTemperature - SpoilageReferenceTemperature) / 10f);
+                SpoilageQ10, (temperature - SpoilageReferenceTemperature) / 10f);
             return rateAtReference * temperatureFactor * SpoilageMultiplier * dt;
         }
     }

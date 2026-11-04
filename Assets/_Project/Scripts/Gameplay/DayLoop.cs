@@ -32,7 +32,7 @@ namespace Game.Gameplay
             if (days.Phase == DayPhase.Service)
             {
                 if (_root.Services.Service.Phase == ServicePhase.Finished)
-                    days.FinishService(ServiceSummary.From(_root.Services.Service), _root.Services.Staff.TotalWages);
+                    days.FinishService(ServiceSummary.From(_root.Services.Service), _root.Services.Staff.TotalWages, _root.CloseKitchen());
             }
             else
             {

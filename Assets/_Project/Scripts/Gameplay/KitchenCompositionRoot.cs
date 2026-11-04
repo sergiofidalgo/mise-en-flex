@@ -85,8 +85,36 @@ namespace Game.Gameplay
         private ServiceSimulation NewService(int day) =>
             new ServiceSimulation(_serviceConfig.ToSettings(day), _seats, _realism.CustomerPatience);
 
+        /// <summary>
+        /// Closes up after a service: the night passes, stored food too old to keep gets thrown out,
+        /// and food left out stays where it is, aged at room temperature.
+        /// </summary>
+        public CloseReport CloseKitchen()
+        {
+            var cooking = Services.Cooking;
+            cooking.SkipClosedTime(_tuning.OvernightSeconds);
+
+            var spoiled = 0;
+            var stored = 0;
+            foreach (var storage in _interactables.OfType<StorageStation>())
+            {
+                foreach (var ingredient in storage.Unit.RemoveSpoiled(_tuning.SpoiledBelow))
+                {
+                    cooking.Remove(ingredient);
+                    spoiled++;
+                }
+                stored += storage.Unit.Slots.Sum(slot => slot.Count);
+            }
+            return new CloseReport(spoiled, cooking.Ingredients.Count - stored);
+        }
+
         private void HandlePhaseChanged(DayPhase phase)
         {
+            if (phase == DayPhase.Prep)
+            {
+                Services.LastDelivery = _interactables.OfType<StorageStation>().SelectMany(s => s.TakeDelivery()).ToList();
+                return;
+            }
             if (phase != DayPhase.Plan)
                 return;
 
@@ -98,11 +126,6 @@ namespace Game.Gameplay
             var sink = _interactables.OfType<SinkStation>().FirstOrDefault();
             if (stack != null && sink != null)
                 stack.Stack.AddNew(sink.Sink.TakeBrokenCount(), _equipment.PlateCapacity);
-
-            // TODO(Phase 3, milestone 2): stock tops up by itself each morning until there's a
-            // storeroom and deliveries to restock from.
-            foreach (var storage in _interactables.OfType<StorageStation>())
-                storage.TopUp();
         }
 
         private void BindPlayer(PlayerInput player)

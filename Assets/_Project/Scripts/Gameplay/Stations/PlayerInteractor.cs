@@ -225,6 +225,12 @@ namespace Game.Gameplay.Stations
                 // (from a crate or the plate stack) appear at the station and fly to the hands.
                 var views = _services.ItemViews;
                 var move = _services.Tuning.ItemMove;
+                // An emptied crate is done with: it doesn't need carrying back.
+                if (_hands.Current is Crate crate && crate.IsEmpty)
+                {
+                    _hands.Take();
+                    views.Release(crate);
+                }
                 views.Place(_hands.Current, _carryAnchor, move, _target.ItemAnchor.position);
                 var onStation = _target.HeldItem;
                 if (onStation != null)

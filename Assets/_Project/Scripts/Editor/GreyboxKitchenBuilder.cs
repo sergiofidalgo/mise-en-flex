@@ -77,22 +77,29 @@ namespace Game.Editor
         private const float CounterHeight = 0.9f;
         private const float CounterSize = 1f;
 
-        // Storage on the west wall (replaces the Phase 0 crates): a fridge for meat and a shelf
-        // for vegetables. Slots in FaceButton order: A, B, X, Y. Capacity and starting stock are
-        // placeholders until restocking (Phase 3) and buying storage (Phases 4–5).
+        // Storage on the west wall: a fridge for meat and a shelf for vegetables, starting light so
+        // they need restocking. The storeroom is across the kitchen on purpose: the trip is the
+        // cost of not prepping. Slots in FaceButton order: A, B, X, Y.
         private static readonly GreyboxStorage.Unit[] StorageUnits =
         {
             new GreyboxStorage.Unit
             {
                 Name = "Fridge", Position = new Vector3(-4.4f, 0f, 1.0f), Refrigerated = true,
                 Color = new Color(0.86f, 0.92f, 0.96f),
-                Slots = new (string, int, int)?[] { ("Steak", 9, 9), ("Steak", 9, 9), null, null },
+                Slots = new (string, int, int)?[] { ("Steak", 9, 3), ("Steak", 9, 3), null, null },
             },
             new GreyboxStorage.Unit
             {
                 Name = "Shelf", Position = new Vector3(-4.4f, 0f, -0.6f), Refrigerated = false,
                 Color = new Color(0.58f, 0.43f, 0.28f),
-                Slots = new (string, int, int)?[] { ("Tomato", 6, 6), ("Onion", 8, 8), null, null },
+                Slots = new (string, int, int)?[] { ("Tomato", 6, 2), ("Onion", 8, 4), null, null },
+            },
+            new GreyboxStorage.Unit
+            {
+                Name = "Storeroom", Position = new Vector3(4.4f, 0f, -0.6f), Refrigerated = true, GivesCrates = true,
+                Color = new Color(0.42f, 0.50f, 0.62f),
+                Slots = new (string, int, int)?[] { ("Steak", 40, 0), ("Onion", 20, 0), null, null },
+                Deliveries = new[] { 18, 8, 0, 0 },
             },
         };
 
@@ -167,7 +174,8 @@ namespace Game.Editor
                 Catalog = GreyboxIngredients.BuildCatalog(
                     (GreyboxKitchenware.PanTypeId, GreyboxKitchenware.BuildPan()),
                     (Game.Simulation.Items.Plate.PlateTypeId, GreyboxKitchenware.BuildPlate()),
-                    (Game.Simulation.Items.Knife.KnifeTypeId, GreyboxKitchenware.BuildKnife())),
+                    (Game.Simulation.Items.Knife.KnifeTypeId, GreyboxKitchenware.BuildKnife()),
+                    (Game.Simulation.Items.Crate.CrateTypeId, GreyboxKitchenware.BuildCrate())),
             };
             SetMenu(assets.ServiceConfig, assets.Catalog);
             assets.PlayerPrefab = BuildPlayerPrefab(assets.Settings, assets.Tuning);
