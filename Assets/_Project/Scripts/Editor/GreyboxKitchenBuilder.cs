@@ -80,7 +80,6 @@ namespace Game.Editor
         private static readonly Color PrepColor = new Color(0.78f, 0.64f, 0.45f);
         private static readonly Vector3 KnifeRackPosition = new Vector3(-3f, 0f, 3.4f);
         private static readonly Vector3 PrepCounterPosition = new Vector3(-2f, 0f, 3.4f);
-        private static readonly Vector3 PrepSpareCounterPosition = new Vector3(-1f, 0f, 3.4f);
         private static readonly Vector3 CuttingBoardScale = new Vector3(0.34f, 0.025f, 0.28f);
         private static readonly Color CuttingBoardColor = new Color(0.92f, 0.82f, 0.62f);
 
@@ -117,8 +116,6 @@ namespace Game.Editor
             ("Island", new Color(0.70f, 0.58f, 0.42f), CounterSize, CounterHeight,
                 new[] { new Vector3(-1.5f, 0f, 0.8f), new Vector3(-0.5f, 0f, 0.8f), new Vector3(0.5f, 0f, 0.8f), new Vector3(1.5f, 0f, 0.8f) }),
             // Extra counters along the walls, for testing containers and trays (2026-11-04).
-            ("WallCounter", new Color(0.62f, 0.52f, 0.40f), CounterSize, CounterHeight,
-                new[] { new Vector3(4.4f, 0f, 3.4f), new Vector3(4.4f, 0f, -0.6f), new Vector3(-4.4f, 0f, -1.9f) }),
         };
 
         // The pass along the front, facing the dining side: plates put here are served and scored.
@@ -129,8 +126,8 @@ namespace Game.Editor
         private const float DiningStripDepth = 1f;
         private static readonly Color DiningColor = new Color(0.55f, 0.45f, 0.40f);
 
-        // Hobs along the back wall, right of prep. Each has a burner ring and its own pan.
-        private static readonly Vector3[] HobPositions = { new Vector3(1f, 0f, 3.4f), new Vector3(2f, 0f, 3.4f), new Vector3(3f, 0f, 3.4f) };
+        // One hob on the back wall, right of prep, with its burner ring and its own pan. More are bought.
+        private static readonly Vector3[] HobPositions = { new Vector3(1f, 0f, 3.4f) };
         private static readonly Color HobColor = new Color(0.22f, 0.22f, 0.25f);
         // Wider than the pan (0.44 m), so the glowing ring stays visible around it.
         private const float BurnerDiameter = 0.62f;
@@ -472,7 +469,6 @@ namespace Game.Editor
             var material = GreyboxAssets.EnsureMaterial("Prep", PrepColor);
 
             CreateStation<KnifeRackStation>("KnifeRack", KnifeRackPosition, CounterSize, CounterHeight, material, zone);
-            CreateStation<CounterStation>("Prep_Counter", PrepSpareCounterPosition, CounterSize, CounterHeight, material, zone);
 
             var prep = CreateStation<PrepStation>("MiseEnPlace", PrepCounterPosition, CounterSize, CounterHeight, material, zone);
             var board = GreyboxAssets.CreatePrimitive(

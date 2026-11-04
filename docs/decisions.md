@@ -10,6 +10,22 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-04 — Buying and selling furniture (Phase 4, milestone 2)
+
+**User's calls:** you start with **4 counters and 1 hob**. Everything else about the milestone was proposed and accepted as a plan.
+
+**Details (tunable in `FurnitureCatalog`):**
+- **Y opens a shop in management mode,** during Plan and Prep: counter €30, hob €80, shelf €60, fridge €120. These are first guesses, not yet checked against a full day's earnings.
+- **You pay when it goes down,** so B backs out for free. If two players are placing at once and the money runs out, the second gets "not enough money". Unlike wages, a purchase can't cause debt.
+- **X sells for half the price,** free starting furniture included, so a starting counter is worth €15.
+- **Only empty pieces sell,** a hob only with its pan home, and not while it's carried or a helper is headed to it. The pass, sink, piles, board, racks and bin aren't for sale.
+- **The last hob, fridge and shelf can't be sold.** This is the exception to learning by playing: with no hob and no money the restaurant couldn't recover, and deliveries need a fridge and a shelf to arrive in. Selling a fridge or shelf hands its delivery to the one that's left.
+- **A bought hob comes with its own pan,** and a sold one takes its pan with it.
+
+**Not built:** bought furniture and layouts last from day to day but not after quitting, until saves in Phase 5.
+
+---
+
 ## 2026-11-04 — Layout editing and management mode (Phase 4, milestone 1)
 
 **User's call:** during Plan and mise en place, players can switch to a cursor view with the Select button.
