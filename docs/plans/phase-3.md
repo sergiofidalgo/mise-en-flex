@@ -22,8 +22,8 @@ Order changed 2026-11-04: 3 and 4 come before 2.
 | --- | --- | --- | --- |
 | 1 | **The daily loop:** Plan → Prep → Service → Close → Review, with a day counter; the service summary becomes the Review | Play day after day | Done (played 3 days, 2026-11-04) |
 | 2 | **Stock that lasts:** stock carries over and ages, a morning delivery to a storeroom, crates to restock the line | Prep matters | |
-| 3 | **Plates and washing up:** limited plates, dirty ones come back from the pass, a sink | A new job competes for your time | Built, awaiting playtest |
-| 4 | **Staff and the dishwasher:** skill, speed, fatigue, mistakes; hiring in Plan; daily wages | Your first hire takes a job off you | Built, awaiting playtest |
+| 3 | **Plates and washing up:** limited plates, dirty ones come back from the pass, a sink | A new job competes for your time | Done |
+| 4 | **Staff and the dishwasher:** skill, speed, fatigue, mistakes; hiring in Plan; daily wages | Your first hire takes a job off you | Done |
 | 5 | **Prep assistant:** restocks the line and does simple cuts | Prep and storage flow without you | |
 | 6 | **Morale:** responds to workload and how service went, and affects speed and mistakes | Staff feel like people | |
 

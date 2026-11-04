@@ -16,15 +16,15 @@ namespace Game.Presentation.Hud
         [SerializeField] private SinkStation _sink;
 
         [Tooltip("Canvas pixels: the circle's diameter.")]
-        [SerializeField, Min(1f)] private float _diameter = 190f;
-        [SerializeField, Min(1f)] private float _pointSize = 24f;
+        [SerializeField, Min(1f)] private float _diameter = 110f;
+        [SerializeField, Min(1f)] private float _pointSize = 16f;
         [Tooltip("Canvas pixels from the sink to the circle's centre.")]
-        [SerializeField] private Vector2 _offset = new Vector2(-190f, 130f);
+        [SerializeField] private Vector2 _offset = new Vector2(-105f, 60f);
         [Tooltip("Fraction of the circle shown as the target. Matches where washing reaches full speed.")]
         [SerializeField, Range(0f, 1f)] private float _targetRadius = 0.25f;
-        [SerializeField, Min(1f)] private float _barHeight = 10f;
-        [SerializeField] private Color _rim = new Color(0.10f, 0.11f, 0.13f, 0.9f);
-        [SerializeField] private Color _target = new Color(0.25f, 0.45f, 0.28f, 1f);
+        [SerializeField, Min(1f)] private float _barHeight = 5f;
+        [SerializeField] private Color _rim = new Color(0.10f, 0.11f, 0.13f, 0.55f);
+        [SerializeField] private Color _target = new Color(0.25f, 0.45f, 0.28f, 0.7f);
         [SerializeField] private Color _good = new Color(0.45f, 0.85f, 0.40f);
         [SerializeField] private Color _bad = new Color(0.95f, 0.30f, 0.26f);
         [SerializeField] private Color _barColor = new Color(0.55f, 0.80f, 0.95f);
@@ -66,7 +66,7 @@ namespace Game.Presentation.Hud
             bar.anchorMin = bar.anchorMax = new Vector2(0.5f, 0f);
             bar.pivot = new Vector2(0.5f, 1f);
             bar.sizeDelta = new Vector2(_diameter, _barHeight);
-            bar.anchoredPosition = new Vector2(0f, -8f);
+            bar.anchoredPosition = new Vector2(0f, -5f);
             _barFill = Plain("Fill", bar, _barColor);
             _barFill.anchorMin = Vector2.zero;
             _barFill.anchorMax = new Vector2(0f, 1f);
