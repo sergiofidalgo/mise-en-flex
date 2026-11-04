@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Game.Simulation.Items;
 using Game.Simulation.Quality;
 
@@ -31,6 +32,12 @@ namespace Game.Simulation.Service
         // Orders roll on their own generator, so changing the menu doesn't move the arrivals.
         private readonly Random _orderRandom;
         private readonly Random _reviewRandom;
+        // Group sizes too: the first numbers of seats a table has don't change who comes when.
+        private readonly Random _partyRandom;
+
+        // Each table's seats, in the order they were opened. A stool is a table for one.
+        private readonly List<int[]> _tables = new List<int[]>();
+        private readonly List<int> _tableSizes = new List<int>();
         private readonly List<Review> _reviews = new List<Review>();
         private float _nextArrivalIn;
         private int _nextId = 1;
@@ -40,10 +47,11 @@ namespace Game.Simulation.Service
         {
             Settings = settings;
             PatienceMultiplier = patienceMultiplier;
-            _seats = new Customer[seatCount];
+            OpenSeats(Enumerable.Repeat(1, seatCount).ToArray());
             _random = new Random(settings.Seed);
             _orderRandom = new Random(unchecked(settings.Seed * 31 + 17));
             _reviewRandom = new Random(unchecked(settings.Seed * 31 + 29));
+            _partyRandom = new Random(unchecked(settings.Seed * 31 + 41));
             _nextArrivalIn = NextGap(0f);
         }
 
@@ -146,7 +154,11 @@ namespace Game.Simulation.Service
                     if (customer.EatingLeft <= 0f)
                     {
                         Settle(customer);
-                        StartLeaving(customer);
+                        customer.State = CustomerState.DoneEating;
+
+                        // They wait for each other, and leave together once the last has finished.
+                        if (customer.Party.All(member => member.State == CustomerState.DoneEating))
+                            LeaveTogether(customer.Party);
                     }
                 }
             }
@@ -179,17 +191,35 @@ namespace Game.Simulation.Service
         {
             if (customer.State != CustomerState.WalkingToSeat)
                 return;
-            customer.WalkedOut = true;
-            LostCovers++;
-            StartLeaving(customer);
+            foreach (var member in customer.Party)
+            {
+                if (!IsUnserved(member))
+                    continue;
+                member.WalkedOut = true;
+                LostCovers++;
+            }
+            LeaveTogether(customer.Party);
         }
 
-        /// <summary>Sets how many seats today's service has, before anyone's arrived: tables bought count.</summary>
-        public void OpenSeats(int count)
+        /// <summary>
+        /// Sets today's seating, before anyone's arrived: how many chairs each table has, stools
+        /// being tables for one. Seats are numbered through the tables in this order.
+        /// </summary>
+        public void OpenSeats(IReadOnlyList<int> tables)
         {
             if (_customers.Count > 0)
                 throw new InvalidOperationException("Seats are set before the first customer.");
-            _seats = new Customer[count];
+
+            _tables.Clear();
+            _tableSizes.Clear();
+            var next = 0;
+            foreach (var chairs in tables)
+            {
+                _tables.Add(Enumerable.Range(next, chairs).ToArray());
+                _tableSizes.Add(chairs);
+                next += chairs;
+            }
+            _seats = new Customer[next];
         }
 
         /// <summary>Gameplay: the customer has walked out of the door.</summary>
@@ -220,28 +250,82 @@ namespace Game.Simulation.Service
 
         private void Arrive()
         {
-            var customer = new Customer(_nextId++) { Order = Settings.Menu?.Pick(_orderRandom) };
-            _customers.Add(customer);
-
-            var seat = Array.IndexOf(_seats, null);
-            if (seat >= 0)
+            var size = PartyMix.PickSize(_tableSizes, _partyRandom);
+            var party = new Customer[size];
+            for (var i = 0; i < size; i++)
             {
-                Seat(customer, seat);
+                party[i] = new Customer(_nextId++) { Order = Settings.Menu?.Pick(_orderRandom), Party = party };
+                _customers.Add(party[i]);
             }
-            else if (_queue.Count < Settings.MaxQueue)
+
+            if (TrySeat(party))
             {
-                customer.State = CustomerState.Queueing;
-                _queue.Add(customer);
+                // Seated, and on their way.
+            }
+            else if (Settings.MaxQueue > 0 && (_queue.Count == 0 || _queue.Count + size <= Settings.MaxQueue))
+            {
+                // A big group can always wait if nobody else is, or it could never come in at all.
+                foreach (var member in party)
+                {
+                    member.State = CustomerState.Queueing;
+                    _queue.Add(member);
+                }
             }
             else
             {
-                customer.WalkedOut = true;
-                customer.State = CustomerState.Leaving;
-                LostCovers++;
+                foreach (var member in party)
+                {
+                    member.WalkedOut = true;
+                    member.State = CustomerState.Leaving;
+                    LostCovers++;
+                }
             }
 
-            Arrived?.Invoke(customer);
+            foreach (var member in party)
+                Arrived?.Invoke(member);
         }
+
+        // The smallest free table that fits them: groups don't share, and someone alone doesn't take
+        // a big table while a small one's free.
+        private bool TrySeat(IReadOnlyList<Customer> party)
+        {
+            int[] best = null;
+            foreach (var table in _tables)
+            {
+                if (table.Length < party.Count || (best != null && table.Length >= best.Length))
+                    continue;
+                if (Array.TrueForAll(table, seat => _seats[seat] == null))
+                    best = table;
+            }
+            if (best == null)
+                return false;
+            for (var i = 0; i < party.Count; i++)
+                Seat(party[i], best[i]);
+            return true;
+        }
+
+        // A table's come free: the longest-waiting group that fits gets it, so a big group at the
+        // front doesn't keep someone alone from an empty stool.
+        private void SeatFromQueue()
+        {
+            for (var i = 0; i < _queue.Count;)
+            {
+                var party = _queue[i].Party;
+                if (TrySeat(party))
+                {
+                    foreach (var member in party)
+                        _queue.Remove(member);
+                    i = 0;
+                }
+                else
+                {
+                    i += party.Count;
+                }
+            }
+        }
+
+        private static bool IsUnserved(Customer customer) =>
+            customer.State == CustomerState.Waiting || customer.State == CustomerState.Queueing || customer.State == CustomerState.WalkingToSeat;
 
         private void Seat(Customer customer, int seat)
         {
@@ -251,7 +335,9 @@ namespace Game.Simulation.Service
         }
 
         // Linear drain: a seated customer goes from full to empty over PatienceSeconds × the dial;
-        // queueing drains at QueuePatienceRate of that. Walking to the stool doesn't count.
+        // queueing drains at QueuePatienceRate of that. Walking to the stool doesn't count. A group
+        // shares one meter: it drains once, through the first of them waiting, and if it runs out
+        // they all go. Anyone already eating pays for what they've had.
         private void DrainPatience(Customer customer, float seconds)
         {
             if (Settings.PatienceSeconds <= 0f)
@@ -260,26 +346,48 @@ namespace Game.Simulation.Service
             // lose it at the normal rate, so a service can always finish.
             if (PatienceMultiplier <= 0f && !IsClosed)
                 return;
-            var dial = PatienceMultiplier > 0f ? PatienceMultiplier : 1f;
-            var rate = customer.State == CustomerState.Queueing ? Settings.QueuePatienceRate : 1f;
-            customer.Patience = Math.Max(0f, customer.Patience - rate * seconds / (Settings.PatienceSeconds * dial));
-            if (customer.Patience > 0f)
+            if (customer.Party.First(IsDraining) != customer)
                 return;
 
-            customer.WalkedOut = true;
-            customer.RanOutOfPatience = true;
-            LostCovers++;
-            WalkOuts++;
-            _queue.Remove(customer);
+            var dial = PatienceMultiplier > 0f ? PatienceMultiplier : 1f;
+            var rate = customer.State == CustomerState.Queueing ? Settings.QueuePatienceRate : 1f;
+            var left = Math.Max(0f, customer.Patience - rate * seconds / (Settings.PatienceSeconds * dial));
+            foreach (var member in customer.Party)
+            {
+                if (IsUnserved(member))
+                    member.Patience = left;
+            }
+            if (left > 0f)
+                return;
 
-            customer.WalkOutPenalty = Billing.WalkOutPenalty(customer.Order, Settings.Payment);
-            Money -= customer.WalkOutPenalty;
-            WalkOutLosses += customer.WalkOutPenalty;
-            WalkedOut?.Invoke(customer);
+            foreach (var member in customer.Party)
+            {
+                if (member.State == CustomerState.Eating)
+                {
+                    Settle(member);
+                    continue;
+                }
+                if (!IsUnserved(member))
+                    continue;
 
-            LeaveReview(customer);
-            StartLeaving(customer);
+                member.WalkedOut = true;
+                member.RanOutOfPatience = true;
+                LostCovers++;
+                WalkOuts++;
+                _queue.Remove(member);
+
+                member.WalkOutPenalty = Billing.WalkOutPenalty(member.Order, Settings.Payment);
+                Money -= member.WalkOutPenalty;
+                WalkOutLosses += member.WalkOutPenalty;
+                WalkedOut?.Invoke(member);
+
+                LeaveReview(member);
+            }
+            LeaveTogether(customer.Party);
         }
+
+        private static bool IsDraining(Customer customer) =>
+            customer.State == CustomerState.Waiting || customer.State == CustomerState.Queueing;
 
         // Paying and reviewing happen when they finish, as they get up to leave.
         private void Settle(Customer customer)
@@ -301,21 +409,17 @@ namespace Game.Simulation.Service
             Reviewed?.Invoke(review);
         }
 
-        private void StartLeaving(Customer customer)
+        // They all get up, and their table goes to whoever's next.
+        private void LeaveTogether(IReadOnlyList<Customer> party)
         {
-            customer.State = CustomerState.Leaving;
-            if (customer.Seat >= 0 && _seats[customer.Seat] == customer)
+            foreach (var member in party)
             {
-                var seat = customer.Seat;
-                _seats[seat] = null;
-                // The longest-waiting customer by the door takes the free stool.
-                if (_queue.Count > 0)
-                {
-                    var next = _queue[0];
-                    _queue.RemoveAt(0);
-                    Seat(next, seat);
-                }
+                member.State = CustomerState.Leaving;
+                if (member.Seat >= 0 && _seats[member.Seat] == member)
+                    _seats[member.Seat] = null;
+                _queue.Remove(member);
             }
+            SeatFromQueue();
         }
 
         private bool EveryoneHasGone()

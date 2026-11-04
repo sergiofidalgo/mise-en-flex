@@ -12,6 +12,8 @@ namespace Game.Simulation.Service
         /// <summary>Seated, waiting to be served.</summary>
         Waiting,
         Eating,
+        /// <summary>Finished and paid, still at the table until their group has finished too.</summary>
+        DoneEating,
         /// <summary>Walking out (gameplay moves them and calls Left).</summary>
         Leaving,
         Gone,
@@ -28,6 +30,9 @@ namespace Game.Simulation.Service
         public int Id { get; }
 
         public CustomerState State { get; internal set; }
+
+        /// <summary>Who they came with, themselves included. They sit together and leave together.</summary>
+        public System.Collections.Generic.IReadOnlyList<Customer> Party { get; internal set; }
 
         /// <summary>The seat they were given, or -1 while queueing.</summary>
         public int Seat { get; internal set; } = -1;

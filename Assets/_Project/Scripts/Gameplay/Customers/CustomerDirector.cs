@@ -135,6 +135,7 @@ namespace Game.Gameplay.Customers
                         break;
                     case CustomerState.Waiting:
                     case CustomerState.Eating:
+                    case CustomerState.DoneEating:
                         // Sitting; pushed off their seat, they go back to it.
                         if (Walk(agent, SeatSpot(customer.Seat), step) != WalkResult.Walking && StationAt(customer.Seat) != null)
                             agent.Face(StationAt(customer.Seat).transform.position - agent.transform.position);

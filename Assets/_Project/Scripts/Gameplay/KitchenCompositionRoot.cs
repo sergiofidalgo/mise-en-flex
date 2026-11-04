@@ -137,7 +137,7 @@ namespace Game.Gameplay
             var seats = _seats;
             foreach (var table in Services.Stations.All.OfType<TableStation>())
                 table.AssignSeat(seats++);
-            Services.Service.OpenSeats(seats);
+            Services.Service.OpenSeats(Enumerable.Repeat(1, seats).ToArray());
         }
 
         private void BindPlayer(PlayerInput player)

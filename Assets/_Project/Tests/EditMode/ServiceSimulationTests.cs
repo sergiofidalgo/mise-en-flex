@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using Game.Simulation.Items;
 using Game.Simulation.Quality;
@@ -13,7 +14,7 @@ namespace Game.Tests.EditMode
 
         // Patience defaults to longer than a service, so seating tests aren't cut short by walk-outs.
         private static ServiceSettings Settings(float interval = 12f * Minute, float jitter = 0f, float rush = 1f, int queue = 3,
-            float patience = 24f * Hour) => new ServiceSettings
+            float patience = 24f * Hour, int seed = 7) => new ServiceSettings
         {
             PatienceSeconds = patience,
             QueuePatienceRate = 0.5f,
@@ -25,7 +26,7 @@ namespace Game.Tests.EditMode
             RushMultiplier = rush,
             EatSeconds = 15f * Minute,
             MaxQueue = queue,
-            Seed = 7,
+            Seed = seed,
         };
 
         private static Plate PlateWithFood()
@@ -374,7 +375,7 @@ namespace Game.Tests.EditMode
         public void SeatsBoughtBeforeServiceCount()
         {
             var service = new ServiceSimulation(Settings(), seatCount: 3);
-            service.OpenSeats(5);
+            service.OpenSeats(new[] { 1, 1, 1, 1, 1 });
             Assert.That(service.SeatCount, Is.EqualTo(5));
         }
 
@@ -395,6 +396,158 @@ namespace Game.Tests.EditMode
             Assert.That(first.WalkedOut, Is.True);
             Assert.That(service.LostCovers, Is.EqualTo(1));
             Assert.That(service.Money, Is.EqualTo(0f), "no penalty: they never got to sit");
+            Assert.That(second.State, Is.EqualTo(CustomerState.WalkingToSeat));
+        }
+
+        // Only tables for the given numbers of chairs, and one arrival per tick of the interval.
+        private static ServiceSimulation Tables(params int[] tables)
+        {
+            var service = new ServiceSimulation(Settings(), seatCount: 1);
+            service.OpenSeats(tables);
+            return service;
+        }
+
+        private static IReadOnlyList<Customer> NextParty(ServiceSimulation service)
+        {
+            var count = service.Customers.Count;
+            while (service.Customers.Count == count)
+                service.Tick(1f);
+            return service.Customers.Last().Party;
+        }
+
+        [Test]
+        public void TheMixFollowsTheTables()
+        {
+            var layout = new[] { 1, 1, 1, 4 };
+            Assert.That(PartyMix.Chance(1, layout), Is.EqualTo(0.8125f).Within(0.001f));
+            Assert.That(PartyMix.Chance(4, layout), Is.EqualTo(0.0625f).Within(0.001f));
+            Assert.That(PartyMix.Chance(5, layout), Is.EqualTo(0f));
+            Assert.That(Enumerable.Range(1, 4).Sum(size => PartyMix.Chance(size, layout)), Is.EqualTo(1f).Within(0.001f));
+        }
+
+        [Test]
+        public void WithOnlySingleSeatsEveryoneComesAlone()
+        {
+            var random = new System.Random(1);
+            for (var i = 0; i < 50; i++)
+                Assert.That(PartyMix.PickSize(new[] { 1, 1, 1 }, random), Is.EqualTo(1));
+        }
+
+        [Test]
+        public void TheBiggestTableSetsTheBiggestGroup()
+        {
+            var random = new System.Random(1);
+            var sizes = Enumerable.Range(0, 400).Select(_ => PartyMix.PickSize(new[] { 3 }, random)).ToArray();
+            Assert.That(sizes.Max(), Is.EqualTo(3));
+            Assert.That(sizes.Min(), Is.EqualTo(1));
+        }
+
+        // The first group through the door, of a given size: which size comes depends on the seed.
+        private static IReadOnlyList<Customer> FirstPartyOf(int size, out ServiceSimulation service, float patience, params int[] tables)
+        {
+            for (var seed = 1; ; seed++)
+            {
+                service = new ServiceSimulation(Settings(interval: 5f * Minute, patience: patience, seed: seed), seatCount: 1);
+                service.OpenSeats(tables);
+                var party = NextParty(service);
+                if (party.Count == size)
+                    return party;
+            }
+        }
+
+        [Test]
+        public void AGroupSitsTogetherAtOneTable()
+        {
+            var party = FirstPartyOf(3, out _, 24f * Hour, 1, 4);
+
+            Assert.That(party.Select(c => c.Seat).Distinct().Count(), Is.EqualTo(3), "a chair each");
+            Assert.That(party.All(c => c.Seat >= 1 && c.Seat <= 4), Is.True, "at the table for four");
+            Assert.That(party.All(c => c.State == CustomerState.WalkingToSeat), Is.True);
+        }
+
+        [Test]
+        public void SomeoneAloneTakesTheSmallestFreeTable()
+        {
+            var party = FirstPartyOf(1, out _, 24f * Hour, 4, 1, 2);
+            Assert.That(party[0].Seat, Is.EqualTo(4), "the single seat, not the table for four");
+        }
+
+        [Test]
+        public void GroupsDontShareATable()
+        {
+            var service = Tables(2);
+            var first = NextParty(service);
+            var second = NextParty(service);
+
+            Assert.That(second.All(c => c.State == CustomerState.Queueing), Is.True, "one chair may be free, but it's taken");
+            Assert.That(first.All(c => c.State == CustomerState.WalkingToSeat), Is.True);
+        }
+
+        [Test]
+        public void AGroupLeavesTogetherAfterTheLastHasEaten()
+        {
+            var party = FirstPartyOf(2, out var service, 24f * Hour, 2);
+            foreach (var customer in party)
+                service.SitDown(customer);
+
+            var eating = service.Settings.EatSeconds;
+            service.Serve(party[0].Seat, PlateWithFood());
+            service.Tick(eating / 2f);
+            service.Serve(party[1].Seat, PlateWithFood());
+
+            service.Tick(eating * 0.6f);
+            Assert.That(party[0].State, Is.EqualTo(CustomerState.DoneEating), "finished, waiting for their friend");
+            Assert.That(party[0].Bill, Is.Not.Null, "paid");
+            Assert.That(party[1].State, Is.EqualTo(CustomerState.Eating));
+
+            service.Tick(eating * 0.5f);
+            Assert.That(party[0].State, Is.EqualTo(CustomerState.Leaving));
+            Assert.That(party[1].State, Is.EqualTo(CustomerState.Leaving));
+        }
+
+        [Test]
+        public void AGroupSharesOnePatienceMeterAndWalksOutTogether()
+        {
+            var patience = 40f * Minute;
+            var party = FirstPartyOf(2, out var service, patience, 2);
+            foreach (var customer in party)
+                service.SitDown(customer);
+
+            // Draining once, not twice: with two waiting it takes as long as for one.
+            service.Tick(patience / 2f);
+            Assert.That(party[0].Patience, Is.EqualTo(0.5f).Within(0.01f));
+            Assert.That(party[1].Patience, Is.EqualTo(party[0].Patience));
+
+            service.Serve(party[0].Seat, PlateWithFood());
+            service.Tick(patience * 0.6f);
+            Assert.That(party[1].RanOutOfPatience, Is.True);
+            Assert.That(party[0].RanOutOfPatience, Is.False, "they were served");
+            Assert.That(party[0].Bill, Is.Not.Null, "and paid for it");
+            Assert.That(party.All(c => c.State == CustomerState.Leaving), Is.True);
+        }
+
+        [Test]
+        public void ABigGroupInTheQueueDoesntKeepSomeoneAloneFromAFreeStool()
+        {
+            // The group waits for the table for four while someone alone takes the stool behind them.
+            var party = FirstPartyOf(4, out var service, 24f * Hour, 4, 1);
+            foreach (var member in party)
+                service.GiveUp(member);
+            Assert.That(party.All(c => c.State == CustomerState.Leaving), Is.True);
+        }
+
+        [Test]
+        public void TheLongestWaitingGroupThatFitsGetsTheTable()
+        {
+            var service = new ServiceSimulation(Settings(queue: 9), seatCount: 1);
+            service.OpenSeats(new[] { 1, 1 });
+            var first = NextParty(service)[0];
+            var second = NextParty(service)[0];
+            var third = NextParty(service)[0];
+            Assert.That(third.State, Is.EqualTo(CustomerState.Queueing));
+
+            service.GiveUp(first);
+            Assert.That(third.State, Is.EqualTo(CustomerState.WalkingToSeat));
             Assert.That(second.State, Is.EqualTo(CustomerState.WalkingToSeat));
         }
     }
