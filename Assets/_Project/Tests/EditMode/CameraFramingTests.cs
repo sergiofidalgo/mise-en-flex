@@ -1,0 +1,83 @@
+using System;
+using System.Numerics;
+using Game.Simulation.Movement;
+using NUnit.Framework;
+
+namespace Game.Tests.EditMode
+{
+    public class CameraFramingTests
+    {
+        private const float Tilt = 55f;
+        private const float Fov = 45f;
+        private const float Aspect = 16f / 9f;
+
+        private static Vector3 Fit(float margin, params Vector2[] points) =>
+            CameraFraming.Fit(points, Tilt, Fov, Aspect, margin, 1f, 200f);
+
+        // Projects a floor point the way a camera with this tilt does, and checks it's on screen.
+        private static void AssertInView(Vector3 camera, Vector2 point)
+        {
+            var radians = Tilt * (float)Math.PI / 180f;
+            var forward = new Vector3(0f, -(float)Math.Sin(radians), (float)Math.Cos(radians));
+            var up = new Vector3(0f, (float)Math.Cos(radians), (float)Math.Sin(radians));
+            var relative = new Vector3(point.X, 0f, point.Y) - camera;
+            var depth = Vector3.Dot(relative, forward);
+            var halfHeight = depth * (float)Math.Tan(Fov * Math.PI / 360f);
+
+            Assert.That(Math.Abs(Vector3.Dot(relative, up)), Is.LessThanOrEqualTo(halfHeight + 0.001f), $"{point} up and down");
+            Assert.That(Math.Abs(relative.X), Is.LessThanOrEqualTo(halfHeight * Aspect + 0.001f), $"{point} across");
+        }
+
+        [Test]
+        public void EveryoneStaysInView()
+        {
+            var points = new[] { new Vector2(-4f, 3f), new Vector2(4f, -7f), new Vector2(-4f, -7f), new Vector2(4f, 3f), new Vector2(0f, 0f) };
+            var camera = Fit(0f, points);
+            foreach (var point in points)
+                AssertInView(camera, point);
+        }
+
+        [Test]
+        public void AWideRoomStaysInViewAcross()
+        {
+            var points = new[] { new Vector2(-30f, 0f), new Vector2(30f, 0f) };
+            var camera = Fit(0f, points);
+            foreach (var point in points)
+                AssertInView(camera, point);
+        }
+
+        [Test]
+        public void ItBacksAwayAsPeopleSpreadApart()
+        {
+            var close = Fit(1f, new Vector2(0f, 0f), new Vector2(1f, 0f));
+            var apart = Fit(1f, new Vector2(-6f, 0f), new Vector2(6f, 0f));
+            var alongTheRoom = Fit(1f, new Vector2(0f, -6f), new Vector2(0f, 6f));
+
+            Assert.That(apart.Y, Is.GreaterThan(close.Y));
+            Assert.That(alongTheRoom.Y, Is.GreaterThan(close.Y));
+        }
+
+        [Test]
+        public void ItCentresOnThem()
+        {
+            Assert.That(Fit(0f, new Vector2(6f, 0f), new Vector2(10f, 0f)).X, Is.EqualTo(8f).Within(0.001f));
+        }
+
+        [Test]
+        public void TheMarginKeepsFloorAroundThem()
+        {
+            var camera = Fit(2f, new Vector2(-5f, -3f), new Vector2(5f, 3f));
+            AssertInView(camera, new Vector2(-7f, -5f));
+            AssertInView(camera, new Vector2(7f, 5f));
+        }
+
+        [Test]
+        public void ItStaysWithinItsLimits()
+        {
+            var one = new[] { Vector2.Zero };
+            Assert.That(CameraFraming.Fit(one, Tilt, Fov, Aspect, 0f, 8f, 40f).Y, Is.EqualTo(8f));
+            var far = new[] { new Vector2(-500f, 0f), new Vector2(500f, 0f) };
+            Assert.That(CameraFraming.Fit(far, Tilt, Fov, Aspect, 0f, 8f, 40f).Y, Is.EqualTo(40f));
+        }
+    }
+}

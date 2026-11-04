@@ -62,16 +62,6 @@ namespace Game.Gameplay.Customers
             _agents[customer] = agent;
         }
 
-        /// <summary>A pass counter moved: its stool goes with it.</summary>
-        public void MoveSeat(int seat, float x)
-        {
-            if (seat < 0 || seat >= _seats.Length)
-                return;
-            var position = _seats[seat].position;
-            position.x = x;
-            _seats[seat].position = position;
-        }
-
         private void Update()
         {
             if (_service == null)

@@ -103,7 +103,8 @@ namespace Game.Presentation.Hud
             if (under == null)
                 return always;
             var sale = SaleText(cursor, under);
-            return $"{Glyph(PromptControl.South)} move {under.name}{(sale != null ? "   " + sale : "")}\n{always}";
+            var move = _editor.CanMove(under) ? $"{Glyph(PromptControl.South)} move {under.name}" : under.name;
+            return $"{move}{(sale != null ? "   " + sale : "")}\n{always}";
         }
 
         private string SaleText(LayoutEditor.Cursor cursor, Interactable station)

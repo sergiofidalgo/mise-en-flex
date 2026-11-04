@@ -10,7 +10,7 @@ namespace Game.Tests.EditMode
         private static readonly Vector2[] Nobody = new Vector2[0];
 
         private static KitchenPlan Plan() => new KitchenPlan(
-            new Vector2(4.6f, 3.6f), new Vector2(-4.4f, -2.4f), new Vector2(4.4f, 3.4f),
+            new Vector2(-4.4f, -2.4f), new Vector2(4.4f, 3.4f),
             snapRange: 0.15f, stationHalfSize: 0.5f, walkerRadius: 0.3f);
 
         private static void AssertNear(Vector2 actual, Vector2 expected) =>
@@ -90,13 +90,15 @@ namespace Game.Tests.EditMode
         }
 
         [Test]
-        public void ThePassOnlySlidesAlongItsRowAndDoesntTurn()
+        public void APieceGivenAnotherRoomStaysInIt()
         {
             var plan = Plan();
-            var pass = new object();
-            plan.Add(pass, new Vector2(0f, -2.4f), rowLocked: true);
-            Assert.That(plan.Snap(pass, new Vector2(1.2f, 1f), 0f).Y, Is.EqualTo(-2.4f));
-            Assert.That(plan.CanRotate(pass), Is.False);
+            var table = new object();
+            plan.Add(table, new Vector2(0f, -5f));
+            plan.GiveArea(table, new Vector2(-4.4f, -7.4f), new Vector2(4.4f, -4.2f));
+
+            Assert.That(plan.Check(table, new Vector2(0f, -6f), 0f, Nobody), Is.EqualTo(Placement.Ok));
+            Assert.That(plan.Check(table, new Vector2(0f, 1f), 0f, Nobody), Is.EqualTo(Placement.OutsideTheKitchen), "that's the kitchen");
         }
 
         [Test]

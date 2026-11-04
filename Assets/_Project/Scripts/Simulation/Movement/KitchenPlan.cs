@@ -14,27 +14,25 @@ namespace Game.Simulation.Movement
     }
 
     /// <summary>
-    /// The rules for rearranging the kitchen (decisions 2026-11-04): pieces go exactly where the
+    /// The rules for rearranging the restaurant (decisions 2026-11-04): pieces go exactly where the
     /// player wants, snapping to the furniture around them when close, at any rotation. They can't
-    /// overlap, land on someone, or be placed so that anything can no longer be reached.
+    /// overlap, land on someone, or leave their own room. Bad layouts are the player's to discover.
     /// Positions are on the floor, in metres.
     /// </summary>
     public sealed class KitchenPlan
     {
         private readonly Dictionary<object, Footprint> _pieces = new Dictionary<object, Footprint>();
-        private readonly HashSet<object> _rowLocked = new HashSet<object>();
-        private readonly Vector2 _roomHalfSize;
+        private readonly Dictionary<object, (Vector2 Min, Vector2 Max)> _otherAreas = new Dictionary<object, (Vector2, Vector2)>();
         private readonly Vector2 _areaMin;
         private readonly Vector2 _areaMax;
         private readonly float _snapRange;
         private readonly float _stationHalfSize;
         private readonly float _walkerRadius;
 
-        /// <param name="areaMin">The corner of where stations' centres can go when square to the room.</param>
+        /// <param name="areaMin">The corner of where pieces' centres can go when square to the room, unless given their own area.</param>
         /// <param name="snapRange">How close, in metres, a piece has to get before it snaps into line.</param>
-        public KitchenPlan(Vector2 roomHalfSize, Vector2 areaMin, Vector2 areaMax, float snapRange, float stationHalfSize, float walkerRadius)
+        public KitchenPlan(Vector2 areaMin, Vector2 areaMax, float snapRange, float stationHalfSize, float walkerRadius)
         {
-            _roomHalfSize = roomHalfSize;
             _areaMin = areaMin;
             _areaMax = areaMax;
             _snapRange = snapRange;
@@ -44,19 +42,17 @@ namespace Game.Simulation.Movement
 
         public IEnumerable<object> Pieces => _pieces.Keys;
 
-        /// <param name="rowLocked">It stays in its row, square on, and only slides along it (the pass, facing the stools).</param>
-        public void Add(object piece, Vector2 position, float degrees = 0f, bool rowLocked = false)
-        {
-            _pieces[piece] = new Footprint(position, degrees);
-            if (rowLocked)
-                _rowLocked.Add(piece);
-        }
+        public void Add(object piece, Vector2 position, float degrees = 0f) => _pieces[piece] = new Footprint(position, degrees);
+
+        /// <summary>This piece belongs in another room: its centre stays between these corners instead.</summary>
+        public void GiveArea(object piece, Vector2 min, Vector2 max) => _otherAreas[piece] = (min, max);
+
+        private (Vector2 Min, Vector2 Max) AreaOf(object piece) =>
+            _otherAreas.TryGetValue(piece, out var area) ? area : (_areaMin, _areaMax);
 
         public Vector2 PositionOf(object piece) => _pieces[piece].Centre;
 
         public float DegreesOf(object piece) => _pieces[piece].Degrees;
-
-        public bool CanRotate(object piece) => !_rowLocked.Contains(piece);
 
         /// <summary>
         /// Where this piece lands if carried to <paramref name="point"/>: exactly there, unless it's
@@ -66,9 +62,6 @@ namespace Game.Simulation.Movement
         /// </summary>
         public Vector2 Snap(object piece, Vector2 point, float degrees, Vector2? home = null)
         {
-            if (_rowLocked.Contains(piece))
-                point.Y = _pieces[piece].Centre.Y;
-
             if (home.HasValue && (home.Value - point).Length() <= _snapRange)
                 return home.Value;
 
@@ -80,12 +73,10 @@ namespace Game.Simulation.Movement
             // Against the walls, when it's square to the room.
             if (IsSquare(degrees))
             {
-                snapped.X = ToEdge(snapped.X, _areaMin.X, _areaMax.X);
-                if (!_rowLocked.Contains(piece))
-                    snapped.Y = ToEdge(snapped.Y, _areaMin.Y, _areaMax.Y);
+                var area = AreaOf(piece);
+                snapped.X = ToEdge(snapped.X, area.Min.X, area.Max.X);
+                snapped.Y = ToEdge(snapped.Y, area.Min.Y, area.Max.Y);
             }
-            if (_rowLocked.Contains(piece))
-                snapped.Y = _pieces[piece].Centre.Y;
             return snapped;
         }
 
@@ -165,13 +156,12 @@ namespace Game.Simulation.Movement
         {
             var moved = new Footprint(position, degrees);
 
-            // All of it has to fit, so a turned station can't poke through a wall. A piece in a
-            // locked row is held by the row instead, front to back.
-            var locked = _rowLocked.Contains(piece);
+            // All of it has to fit, so a turned station can't poke through a wall.
+            var area = AreaOf(piece);
             foreach (var corner in moved.Corners(_stationHalfSize))
             {
-                var fitsX = corner.X >= _areaMin.X - _stationHalfSize - 1e-3f && corner.X <= _areaMax.X + _stationHalfSize + 1e-3f;
-                var fitsY = locked || (corner.Y >= _areaMin.Y - _stationHalfSize - 1e-3f && corner.Y <= _areaMax.Y + _stationHalfSize + 1e-3f);
+                var fitsX = corner.X >= area.Min.X - _stationHalfSize - 1e-3f && corner.X <= area.Max.X + _stationHalfSize + 1e-3f;
+                var fitsY = corner.Y >= area.Min.Y - _stationHalfSize - 1e-3f && corner.Y <= area.Max.Y + _stationHalfSize + 1e-3f;
                 if (!fitsX || !fitsY)
                     return Placement.OutsideTheKitchen;
             }
@@ -194,7 +184,7 @@ namespace Game.Simulation.Movement
         public void Remove(object piece)
         {
             _pieces.Remove(piece);
-            _rowLocked.Remove(piece);
+            _otherAreas.Remove(piece);
         }
 
         public void Move(object piece, Vector2 position, float degrees) => _pieces[piece] = new Footprint(position, degrees);

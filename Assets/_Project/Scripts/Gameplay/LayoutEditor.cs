@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Game.Data;
-using Game.Gameplay.Customers;
 using Game.Gameplay.Staff;
 using Game.Gameplay.Stations;
 using Game.Simulation.Days;
@@ -56,7 +55,6 @@ namespace Game.Gameplay
         [SerializeField] private KitchenCompositionRoot _root;
         [SerializeField] private DayLoop _dayLoop;
         [SerializeField] private StaffDirector _staff;
-        [SerializeField] private CustomerDirector _customers;
         [SerializeField] private FurnitureCatalog _catalog;
 
         [Tooltip("Real metres per second the cursor moves at full stick.")]
@@ -69,14 +67,6 @@ namespace Game.Gameplay
         [SerializeField, Min(0.001f)] private float _turnSmoothing = 0.05f;
         [Tooltip("How far the stick has to go to move down the shop's list.")]
         [SerializeField, Range(0.1f, 1f)] private float _shopStickThreshold = 0.5f;
-        [Tooltip("Half the room's width and depth, for walking.")]
-        [SerializeField] private Vector2 _roomHalfSize = new Vector2(4.6f, 3.6f);
-        [Tooltip("Where the centres of stations can go: lowest corner.")]
-        [SerializeField] private Vector2 _areaMin = new Vector2(-4.4f, -2.4f);
-        [Tooltip("Where the centres of stations can go: highest corner.")]
-        [SerializeField] private Vector2 _areaMax = new Vector2(4.4f, 3.4f);
-        [SerializeField, Min(0f)] private float _stationHalfSize = 0.5f;
-        [SerializeField, Min(0f)] private float _walkerRadius = 0.3f;
 
         private readonly Dictionary<PlayerInput, Cursor> _cursors = new Dictionary<PlayerInput, Cursor>();
         private readonly Dictionary<object, Interactable> _stations = new Dictionary<object, Interactable>();
@@ -87,6 +77,9 @@ namespace Game.Gameplay
         public event Action LayoutChanged;
 
         public IReadOnlyList<FurnitureCatalog.Entry> Shop => _catalog.Entries;
+
+        /// <summary>The pass is built into the wall between the rooms; anything else can move.</summary>
+        public bool CanMove(Interactable station) => !(station is PassStation);
 
         public bool CanAfford(FurnitureCatalog.Entry entry) => _root.Services.Days.Balance >= entry.Price;
 
@@ -101,13 +94,10 @@ namespace Game.Gameplay
 
         private void Start()
         {
-            _plan = new KitchenPlan(
-                new SimVector2(_roomHalfSize.x, _roomHalfSize.y),
-                new SimVector2(_areaMin.x, _areaMin.y),
-                new SimVector2(_areaMax.x, _areaMax.y),
-                _snapRange, _stationHalfSize, _walkerRadius);
+            var floor = _root.Services.FloorPlan;
+            _plan = new KitchenPlan(floor.KitchenAreaMin, floor.KitchenAreaMax, _snapRange, floor.StationHalfSize, floor.WalkerRadius);
             foreach (var station in _root.Services.Stations.All)
-                _plan.Add(station, Floor(station.transform.position), station.transform.eulerAngles.y, rowLocked: station is PassStation);
+                _plan.Add(station, Floor(station.transform.position), station.transform.eulerAngles.y);
         }
 
         private void Update()
@@ -205,9 +195,10 @@ namespace Game.Gameplay
 
         public void MoveCursor(Cursor cursor, SimVector2 by)
         {
+            var floor = _root.Services.FloorPlan;
             cursor.Position = new SimVector2(
-                Mathf.Clamp(cursor.Position.X + by.X, -_roomHalfSize.x, _roomHalfSize.x),
-                Mathf.Clamp(cursor.Position.Y + by.Y, -_roomHalfSize.y, _roomHalfSize.y));
+                Mathf.Clamp(cursor.Position.X + by.X, floor.RoomMin.X, floor.RoomMax.X),
+                Mathf.Clamp(cursor.Position.Y + by.Y, floor.RoomMin.Y, floor.RoomMax.Y));
 
             if (cursor.Held == null)
                 return;
@@ -217,7 +208,7 @@ namespace Game.Gameplay
 
         public void Rotate(Cursor cursor, float degrees)
         {
-            if (cursor.Held == null || !_plan.CanRotate(cursor.Held))
+            if (cursor.Held == null)
                 return;
             cursor.Degrees = Mathf.Repeat(cursor.Degrees + degrees, 360f);
             UpdateHeld(cursor);
@@ -259,7 +250,7 @@ namespace Game.Gameplay
         public bool PickUp(Cursor cursor)
         {
             var station = StationUnder(cursor);
-            if (station == null || _cursors.Values.Any(other => other.Held == station))
+            if (station == null || !CanMove(station) || _cursors.Values.Any(other => other.Held == station))
                 return false;
 
             cursor.Held = station;
@@ -303,10 +294,6 @@ namespace Game.Gameplay
             }
             cursor.Held = null;
             Physics.SyncTransforms();
-
-            // A stool stays in front of its pass counter.
-            if (station is PassStation pass && _customers != null)
-                _customers.MoveSeat(pass.SeatIndex, cursor.Landing.X);
 
             LayoutChanged?.Invoke();
             return true;

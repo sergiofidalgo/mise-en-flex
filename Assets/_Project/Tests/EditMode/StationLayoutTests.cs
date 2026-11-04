@@ -153,5 +153,44 @@ namespace Game.Tests.EditMode
 
             Assert.That(layout.FindPathTo(new Vector2(0f, -2f), far), Is.Null);
         }
+
+        // Two rooms, with a wall right across and a door in the middle of it.
+        private static StationLayout TwoRooms(params Footprint[] stations) => new StationLayout(stations, new FloorPlan(
+            new Vector2(-4.6f, -7.6f), new Vector2(4.6f, 3.6f),
+            new[] { (new Vector2(-5f, -3.1f), new Vector2(-0.6f, -2.9f)), (new Vector2(0.6f, -3.1f), new Vector2(5f, -2.9f)) },
+            0.5f, 0.3f, 0.85f));
+
+        [Test]
+        public void AWallIsntFloor()
+        {
+            var layout = TwoRooms();
+            Assert.That(layout.IsFree(new Vector2(-2f, -3f)), Is.False);
+            Assert.That(layout.IsFree(new Vector2(-2f, -2.5f)), Is.True);
+            Assert.That(layout.IsFree(new Vector2(0f, -3f)), Is.True, "the doorway");
+        }
+
+        [Test]
+        public void TheRoomDoesntHaveToBeCentred()
+        {
+            var layout = TwoRooms();
+            Assert.That(layout.IsFree(new Vector2(0f, -7f)), Is.True);
+            Assert.That(layout.IsFree(new Vector2(0f, -7.8f)), Is.False);
+            Assert.That(layout.IsFree(new Vector2(0f, 3.8f)), Is.False);
+        }
+
+        [Test]
+        public void TheWayBetweenRoomsIsThroughTheDoor()
+        {
+            var path = TwoRooms().FindPath(new Vector2(-3f, -5f), new Vector2(-3f, 0f));
+            Assert.That(path, Is.Not.Null);
+            Assert.That(path.Any(point => System.Math.Abs(point.X) < 0.6f), Is.True, "through the door");
+        }
+
+        [Test]
+        public void ADoorBlockedByFurnitureClosesTheWay()
+        {
+            var layout = TwoRooms(new Footprint(new Vector2(0f, -2.4f)));
+            Assert.That(layout.FindPath(new Vector2(-3f, -5f), new Vector2(-3f, 0f)), Is.Null);
+        }
     }
 }

@@ -1,0 +1,67 @@
+using System.Collections.Generic;
+using Game.Simulation.Movement;
+using UnityEngine;
+using SimVector2 = System.Numerics.Vector2;
+
+namespace Game.Data
+{
+    /// <summary>
+    /// The building: a kitchen and a dining room side by side, with a low wall between them. The
+    /// pass is the hatch through it, and a door lets people walk between the two.
+    /// </summary>
+    [CreateAssetMenu(menuName = "Game/Floor Plan", fileName = "FloorPlanConfig")]
+    public sealed class FloorPlanConfig : ScriptableObject
+    {
+        [Tooltip("The corner of where someone's centre can be, clear of the outer walls (x, z).")]
+        [SerializeField] private Vector2 _roomMin = new Vector2(-4.6f, -7.6f);
+        [SerializeField] private Vector2 _roomMax = new Vector2(4.6f, 3.6f);
+
+        [Tooltip("Walls inside the building, as x, z, width, depth. A door is a gap between two.")]
+        [SerializeField] private Rect[] _walls =
+        {
+            new Rect(-5f, -3.1f, 1.4f, 0.2f),   // west wall to the kitchen door
+            new Rect(-2.4f, -3.1f, 0.9f, 0.2f), // kitchen door to the hatch
+            new Rect(1.5f, -3.1f, 3.5f, 0.2f),  // hatch to the east wall
+        };
+
+        [Tooltip("Where the kitchen door's hinge is, and how wide it is, along the wall.")]
+        [SerializeField] private Vector2 _kitchenDoorHinge = new Vector2(-3.6f, -3f);
+        [SerializeField, Min(0.1f)] private float _kitchenDoorWidth = 1.2f;
+
+        [Tooltip("Where kitchen furniture's centres can go when square to the room.")]
+        [SerializeField] private Vector2 _kitchenAreaMin = new Vector2(-4.4f, -2.4f);
+        [SerializeField] private Vector2 _kitchenAreaMax = new Vector2(4.4f, 3.4f);
+
+        [Tooltip("Where dining furniture's centres can go when square to the room.")]
+        [SerializeField] private Vector2 _diningAreaMin = new Vector2(-4.4f, -7.4f);
+        [SerializeField] private Vector2 _diningAreaMax = new Vector2(4.4f, -4.2f);
+
+        [SerializeField, Min(0f)] private float _stationHalfSize = 0.5f;
+        [Tooltip("Half a walker's width, for keeping clear of furniture and walls.")]
+        [SerializeField, Min(0f)] private float _walkerRadius = 0.3f;
+        [Tooltip("How far from a station's centre someone stands to work at it.")]
+        [SerializeField, Min(0f)] private float _standDistance = 0.85f;
+
+        public Rect[] Walls => _walls;
+        public Vector2 KitchenDoorHinge => _kitchenDoorHinge;
+        public float KitchenDoorWidth => _kitchenDoorWidth;
+        public SimVector2 RoomMin => ToSim(_roomMin);
+        public SimVector2 RoomMax => ToSim(_roomMax);
+        public SimVector2 KitchenAreaMin => ToSim(_kitchenAreaMin);
+        public SimVector2 KitchenAreaMax => ToSim(_kitchenAreaMax);
+        public SimVector2 DiningAreaMin => ToSim(_diningAreaMin);
+        public SimVector2 DiningAreaMax => ToSim(_diningAreaMax);
+        public float StationHalfSize => _stationHalfSize;
+        public float WalkerRadius => _walkerRadius;
+
+        public FloorPlan ToPlan()
+        {
+            var walls = new List<(SimVector2, SimVector2)>();
+            foreach (var wall in _walls)
+                walls.Add((ToSim(wall.min), ToSim(wall.max)));
+            return new FloorPlan(RoomMin, RoomMax, walls, _stationHalfSize, _walkerRadius, _standDistance);
+        }
+
+        private static SimVector2 ToSim(Vector2 value) => new SimVector2(value.x, value.y);
+    }
+}

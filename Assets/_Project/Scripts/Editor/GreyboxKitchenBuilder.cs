@@ -28,6 +28,7 @@ namespace Game.Editor
         private const string ServiceConfigPath = SettingsFolder + "/ServiceConfig.asset";
         private const string StaffConfigPath = SettingsFolder + "/StaffConfig.asset";
         private const string FurnitureCatalogPath = SettingsFolder + "/FurnitureCatalog.asset";
+        private const string FloorPlanPath = SettingsFolder + "/FloorPlanConfig.asset";
         private const string FurniturePrefabFolder = "Assets/_Project/Prefabs/Furniture";
 
         // Furniture ids, and what each costs the first time the catalogue is created. After that the
@@ -46,7 +47,11 @@ namespace Game.Editor
 
         // Greybox layout, in metres. The kitchen is 10 x 8 with the camera looking north (+Z).
         private const float FloorWidth = 10f;
-        private const float FloorDepth = 8f;
+        private const float FloorNorth = 4f;
+        private const float FloorSouth = -8f;
+        private const float DividingWallZ = -3f;
+        private const float KitchenDoorThickness = 0.08f;
+        private static readonly Color KitchenDoorColor = new Color(0.45f, 0.33f, 0.22f);
         private static readonly Vector3[] SpawnPositions = { new Vector3(-2.5f, 0f, -0.8f), new Vector3(2.5f, 0f, -0.8f) };
         private const float WallHeight = 1f;
         private const float WallThickness = 0.2f;
@@ -123,7 +128,6 @@ namespace Game.Editor
         private static readonly Color PassColor = new Color(0.88f, 0.88f, 0.85f);
 
         // Strip in front of the pass marking where the dining room will be.
-        private const float DiningStripDepth = 1f;
         private static readonly Color DiningColor = new Color(0.55f, 0.45f, 0.40f);
 
         // One hob on the back wall, right of prep, with its burner ring and its own pan. More are bought.
@@ -182,6 +186,7 @@ namespace Game.Editor
                 Realism = GreyboxAssets.EnsureAsset<RealismSettings>(RealismPath),
                 ServiceConfig = GreyboxAssets.EnsureAsset<ServiceConfig>(ServiceConfigPath),
                 StaffConfig = GreyboxAssets.EnsureAsset<StaffConfig>(StaffConfigPath),
+                FloorPlan = GreyboxAssets.EnsureAsset<FloorPlanConfig>(FloorPlanPath),
                 Catalog = GreyboxIngredients.BuildCatalog(
                     (GreyboxKitchenware.PanTypeId, GreyboxKitchenware.BuildPan()),
                     (Game.Simulation.Items.Plate.PlateTypeId, GreyboxKitchenware.BuildPlate()),
@@ -206,6 +211,7 @@ namespace Game.Editor
             public ServiceConfig ServiceConfig;
             public StaffConfig StaffConfig;
             public FurnitureCatalog Furniture;
+            public FloorPlanConfig FloorPlan;
             public ItemCatalog Catalog;
             public GameObject PlayerPrefab;
         }
@@ -295,10 +301,11 @@ namespace Game.Editor
 
             var floor = GameObject.CreatePrimitive(PrimitiveType.Plane);
             floor.name = "Floor";
-            floor.transform.localScale = new Vector3(FloorWidth / 10f, 1f, FloorDepth / 10f); // plane is 10x10
+            floor.transform.localScale = new Vector3(FloorWidth / 10f, 1f, (FloorNorth - FloorSouth) / 10f); // plane is 10x10
+            floor.transform.localPosition = new Vector3(0f, 0f, (FloorNorth + FloorSouth) / 2f);
             floor.GetComponent<Renderer>().sharedMaterial = GreyboxAssets.EnsureMaterial("Floor", FloorColor);
-            BuildDiningStrip();
-            BuildBoundaryWalls();
+            BuildDiningFloor();
+            BuildWalls(assets.FloorPlan);
             BuildStations();
 
             var spawnRoot = new GameObject("SpawnPoints").transform;
@@ -334,6 +341,7 @@ namespace Game.Editor
             rootSo.FindProperty("_realism").objectReferenceValue = assets.Realism;
             rootSo.FindProperty("_serviceConfig").objectReferenceValue = assets.ServiceConfig;
             rootSo.FindProperty("_staffConfig").objectReferenceValue = assets.StaffConfig;
+            rootSo.FindProperty("_floorPlan").objectReferenceValue = assets.FloorPlan;
             rootSo.FindProperty("_playerInputManager").objectReferenceValue = manager;
             rootSo.ApplyModifiedPropertiesWithoutUndo();
 
@@ -346,35 +354,62 @@ namespace Game.Editor
 
             GreyboxHud.BuildCanvas(GreyboxHud.EnsureStyle(), settings, root, assets.Catalog);
 
+            var framing = new SerializedObject(camera.gameObject.AddComponent<FramingCamera>());
+            framing.FindProperty("_root").objectReferenceValue = root;
+            framing.FindProperty("_customers").objectReferenceValue = Object.FindFirstObjectByType<Game.Gameplay.Customers.CustomerDirector>();
+            framing.FindProperty("_editor").objectReferenceValue = Object.FindFirstObjectByType<LayoutEditor>();
+            framing.FindProperty("_tilt").floatValue = CameraEuler.x;
+            framing.ApplyModifiedPropertiesWithoutUndo();
+
             GreyboxAssets.EnsureFolder(System.IO.Path.GetDirectoryName(ScenePath));
             EditorSceneManager.SaveScene(scene, ScenePath);
             EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(ScenePath, true) };
         }
 
-        // A different floor colour along the south wall, where the dining room will be.
-        // Walkable and without a collider; a few millimetres up to avoid z-fighting with the floor.
-        private static void BuildDiningStrip()
+        // The dining room's floor, in its own colour. Walkable and without a collider; a few
+        // millimetres up to avoid z-fighting with the floor.
+        private static void BuildDiningFloor()
         {
             const float lift = 0.005f;
-            var strip = GreyboxAssets.CreatePrimitive(
-                PrimitiveType.Cube, "DiningStrip", null, GreyboxAssets.EnsureMaterial("Dining", DiningColor), keepCollider: false);
-            strip.transform.localScale = new Vector3(FloorWidth, lift, DiningStripDepth);
-            strip.transform.localPosition = new Vector3(0f, lift / 2f, -FloorDepth / 2f + WallThickness / 2f + DiningStripDepth / 2f);
+            var depth = DividingWallZ - FloorSouth;
+            var floor = GreyboxAssets.CreatePrimitive(
+                PrimitiveType.Cube, "DiningFloor", null, GreyboxAssets.EnsureMaterial("Dining", DiningColor), keepCollider: false);
+            floor.transform.localScale = new Vector3(FloorWidth, lift, depth);
+            floor.transform.localPosition = new Vector3(0f, lift / 2f, FloorSouth + depth / 2f);
         }
 
-        // Low walls around the floor so players can't walk off the edge.
-        private static void BuildBoundaryWalls()
+        // Low walls around the building so players can't walk off the edge, and between its rooms.
+        private static void BuildWalls(FloorPlanConfig floorPlan)
         {
             var walls = new GameObject("Walls").transform;
             var material = GreyboxAssets.EnsureMaterial("Wall", WallColor);
             var halfWidth = FloorWidth / 2f;
-            var halfDepth = FloorDepth / 2f;
+            var depth = FloorNorth - FloorSouth;
+            var centreZ = (FloorNorth + FloorSouth) / 2f;
             var y = WallHeight / 2f;
 
-            CreateWall("Wall_North", new Vector3(0f, y, halfDepth), new Vector3(FloorWidth, WallHeight, WallThickness));
-            CreateWall("Wall_South", new Vector3(0f, y, -halfDepth), new Vector3(FloorWidth, WallHeight, WallThickness));
-            CreateWall("Wall_East", new Vector3(halfWidth, y, 0f), new Vector3(WallThickness, WallHeight, FloorDepth));
-            CreateWall("Wall_West", new Vector3(-halfWidth, y, 0f), new Vector3(WallThickness, WallHeight, FloorDepth));
+            CreateWall("Wall_North", new Vector3(0f, y, FloorNorth), new Vector3(FloorWidth, WallHeight, WallThickness));
+            CreateWall("Wall_South", new Vector3(0f, y, FloorSouth), new Vector3(FloorWidth, WallHeight, WallThickness));
+            CreateWall("Wall_East", new Vector3(halfWidth, y, centreZ), new Vector3(WallThickness, WallHeight, depth));
+            CreateWall("Wall_West", new Vector3(-halfWidth, y, centreZ), new Vector3(WallThickness, WallHeight, depth));
+
+            for (var i = 0; i < floorPlan.Walls.Length; i++)
+            {
+                var wall = floorPlan.Walls[i];
+                CreateWall($"Wall_Inside_{i + 1}", new Vector3(wall.center.x, y, wall.center.y), new Vector3(wall.width, WallHeight, wall.height));
+            }
+
+            // The door between the rooms: a panel on a hinge, swung by whoever comes near.
+            var hinge = new GameObject("KitchenDoor").transform;
+            hinge.SetParent(walls, false);
+            hinge.localPosition = new Vector3(floorPlan.KitchenDoorHinge.x, 0f, floorPlan.KitchenDoorHinge.y);
+            var panel = GreyboxAssets.CreatePrimitive(
+                PrimitiveType.Cube, "Panel", hinge, GreyboxAssets.EnsureMaterial("KitchenDoor", KitchenDoorColor), keepCollider: false);
+            panel.transform.localScale = new Vector3(floorPlan.KitchenDoorWidth, WallHeight, KitchenDoorThickness);
+            panel.transform.localPosition = new Vector3(floorPlan.KitchenDoorWidth / 2f, y, 0f);
+            var door = new SerializedObject(hinge.gameObject.AddComponent<SwingDoorView>());
+            door.FindProperty("_doorway").vector3Value = hinge.localPosition + Vector3.right * (floorPlan.KitchenDoorWidth / 2f);
+            door.ApplyModifiedPropertiesWithoutUndo();
 
             void CreateWall(string name, Vector3 position, Vector3 scale)
             {

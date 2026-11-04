@@ -6,22 +6,24 @@ using UnityEngine;
 namespace Game.Editor
 {
     /// <summary>
-    /// Builds counter service (decision 2026-11-02): a stool in front of each pass counter, a door
-    /// at the east end of the dining strip, queue spots by the door, the greybox customer prefab
+    /// Builds counter service (decision 2026-11-02): a stool in front of each pass counter, a street
+    /// door into the dining room, queue spots by the door, the greybox customer prefab
     /// and the customer director that runs them.
     /// </summary>
     public static class GreyboxService
     {
         private const string CustomerPrefabPath = "Assets/_Project/Prefabs/PF_Customer.prefab";
 
-        // Dining strip runs along the south wall in front of the pass (pass front edge at z = -2.9).
+        // Stools stand in front of the pass (pass front edge at z = -2.9).
         private const float SeatZ = -3.35f;
-        private static readonly Vector3 DoorPosition = new Vector3(4.55f, 0f, -3.4f);
-        private static readonly float[] QueueX = { 4.0f, 3.4f, 2.8f };
+        // The street door is in the south wall; customers wait along the east wall until a seat's free.
+        private static readonly Vector3 DoorPosition = new Vector3(3f, 0f, -7.55f);
+        private const float DoorPanelZ = -7.87f;
+        private static readonly Vector3[] QueuePositions = { new Vector3(4.2f, 0f, -7.2f), new Vector3(4.2f, 0f, -6.4f), new Vector3(4.2f, 0f, -5.6f) };
 
         private static readonly Vector3 StoolScale = new Vector3(0.36f, 0.22f, 0.36f); // cylinder: 0.44 m tall
         private static readonly Color StoolColor = new Color(0.35f, 0.25f, 0.18f);
-        private static readonly Vector3 DoorScale = new Vector3(0.06f, 1.2f, 0.9f);
+        private static readonly Vector3 DoorScale = new Vector3(0.9f, 1.2f, 0.06f);
         private static readonly Color DoorColor = new Color(0.20f, 0.14f, 0.10f);
 
         // Customers: slightly shorter and slimmer than chefs, a muted colour so they read apart.
@@ -49,18 +51,18 @@ namespace Game.Editor
             var door = new GameObject("Door").transform;
             door.SetParent(zone, false);
             door.localPosition = DoorPosition;
-            door.localRotation = Quaternion.Euler(0f, -90f, 0f); // customers walk in facing west
+            // Customers walk in facing north, which is no rotation at all.
             var doorPanel = GreyboxAssets.CreatePrimitive(
                 PrimitiveType.Cube, "DoorPanel", zone, GreyboxAssets.EnsureMaterial("Door", DoorColor), keepCollider: false);
             doorPanel.transform.localScale = DoorScale;
-            doorPanel.transform.localPosition = new Vector3(4.9f - DoorScale.x / 2f, DoorScale.y / 2f, DoorPosition.z);
+            doorPanel.transform.localPosition = new Vector3(DoorPosition.x, DoorScale.y / 2f, DoorPanelZ);
 
-            var queue = new Transform[QueueX.Length];
-            for (var i = 0; i < QueueX.Length; i++)
+            var queue = new Transform[QueuePositions.Length];
+            for (var i = 0; i < QueuePositions.Length; i++)
             {
                 queue[i] = new GameObject($"QueueSpot_{i + 1}").transform;
                 queue[i].SetParent(zone, false);
-                queue[i].localPosition = new Vector3(QueueX[i], 0f, -3.55f);
+                queue[i].localPosition = QueuePositions[i];
             }
 
             var director = zone.gameObject.AddComponent<CustomerDirector>();

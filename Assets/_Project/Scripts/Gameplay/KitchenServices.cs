@@ -5,6 +5,7 @@ using Game.Gameplay.Items;
 using Game.Simulation.Cooking;
 using Game.Simulation.Days;
 using Game.Simulation.Items;
+using Game.Simulation.Movement;
 using Game.Simulation.Staff;
 using Game.Simulation.Service;
 
@@ -28,7 +29,8 @@ namespace Game.Gameplay
             DayCycle days,
             StaffRoster staff,
             StaffConfig staffConfig,
-            StationRegistry stations)
+            StationRegistry stations,
+            FloorPlanConfig floorPlan)
         {
             Cooking = cooking;
             ItemViews = itemViews;
@@ -42,6 +44,7 @@ namespace Game.Gameplay
             Staff = staff;
             StaffConfig = staffConfig;
             Stations = stations;
+            FloorPlan = floorPlan;
         }
 
         public CookingSimulation Cooking { get; }
@@ -65,6 +68,21 @@ namespace Game.Gameplay
 
         /// <summary>The stations in the kitchen right now.</summary>
         public StationRegistry Stations { get; }
+
+        /// <summary>The building: its rooms, walls and doors.</summary>
+        public FloorPlanConfig FloorPlan { get; }
+
+        /// <summary>Where people can walk with the furniture as it stands now.</summary>
+        public StationLayout NewLayout()
+        {
+            var footprints = new List<Footprint>();
+            foreach (var station in Stations.All)
+            {
+                var position = station.transform.position;
+                footprints.Add(new Footprint(new System.Numerics.Vector2(position.x, position.z), station.transform.eulerAngles.y));
+            }
+            return new StationLayout(footprints, FloorPlan.ToPlan());
+        }
 
         /// <summary>Raised when a new day's service replaces the last, so listeners can move over to it.</summary>
         public event Action<ServiceSimulation, ServiceSimulation> ServiceReplaced;

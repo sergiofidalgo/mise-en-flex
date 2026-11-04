@@ -37,13 +37,16 @@ namespace Game.Editor
             editor.FindProperty("_root").objectReferenceValue = root;
             editor.FindProperty("_dayLoop").objectReferenceValue = root.GetComponent<DayLoop>();
             editor.FindProperty("_staff").objectReferenceValue = zone.GetComponent<StaffDirector>();
-            editor.FindProperty("_customers").objectReferenceValue = Object.FindFirstObjectByType<CustomerDirector>();
             editor.FindProperty("_catalog").objectReferenceValue = furniture;
             editor.ApplyModifiedPropertiesWithoutUndo();
 
             var directorLink = new SerializedObject(zone.GetComponent<StaffDirector>());
             directorLink.FindProperty("_editor").objectReferenceValue = zone.GetComponent<LayoutEditor>();
             directorLink.ApplyModifiedPropertiesWithoutUndo();
+
+            var door = new SerializedObject(Object.FindFirstObjectByType<Game.Presentation.SwingDoorView>());
+            door.FindProperty("_staff").objectReferenceValue = zone.GetComponent<StaffDirector>();
+            door.ApplyModifiedPropertiesWithoutUndo();
 
             var menu = new SerializedObject(zone.AddComponent<HiringMenu>());
             menu.FindProperty("_root").objectReferenceValue = root;

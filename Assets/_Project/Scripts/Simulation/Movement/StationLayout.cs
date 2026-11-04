@@ -15,7 +15,9 @@ namespace Game.Simulation.Movement
         private const float CellSize = 0.2f;
 
         private readonly List<Footprint> _stations;
-        private readonly Vector2 _roomHalfSize;
+        private readonly Vector2 _roomMin;
+        private readonly Vector2 _roomMax;
+        private readonly IReadOnlyList<(Vector2 Min, Vector2 Max)> _walls;
         private readonly float _stationHalfSize;
         private readonly float _radius;
         private readonly float _standDistance;
@@ -29,21 +31,35 @@ namespace Game.Simulation.Movement
         }
 
         public StationLayout(IEnumerable<Footprint> stations, Vector2 roomHalfSize, float stationHalfSize, float walkerRadius, float standDistance)
+            : this(stations, new FloorPlan(-roomHalfSize, roomHalfSize, Array.Empty<(Vector2, Vector2)>(), stationHalfSize, walkerRadius, standDistance))
+        {
+        }
+
+        public StationLayout(IEnumerable<Footprint> stations, FloorPlan plan)
         {
             _stations = new List<Footprint>(stations);
-            _roomHalfSize = roomHalfSize;
-            _stationHalfSize = stationHalfSize;
-            _radius = walkerRadius;
-            _standDistance = standDistance;
-            _width = (int)(roomHalfSize.X * 2f / CellSize) + 1;
-            _height = (int)(roomHalfSize.Y * 2f / CellSize) + 1;
+            _roomMin = plan.RoomMin;
+            _roomMax = plan.RoomMax;
+            _walls = plan.Walls;
+            _stationHalfSize = plan.StationHalfSize;
+            _radius = plan.WalkerRadius;
+            _standDistance = plan.StandDistance;
+            _width = (int)((_roomMax.X - _roomMin.X) / CellSize) + 1;
+            _height = (int)((_roomMax.Y - _roomMin.Y) / CellSize) + 1;
         }
 
         /// <summary>True if someone could stand here without touching furniture or leaving the room.</summary>
         public bool IsFree(Vector2 point)
         {
-            if (Math.Abs(point.X) > _roomHalfSize.X || Math.Abs(point.Y) > _roomHalfSize.Y)
+            if (point.X < _roomMin.X || point.X > _roomMax.X || point.Y < _roomMin.Y || point.Y > _roomMax.Y)
                 return false;
+            foreach (var wall in _walls)
+            {
+                var gapX = Math.Max(0f, Math.Max(wall.Min.X - point.X, point.X - wall.Max.X));
+                var gapY = Math.Max(0f, Math.Max(wall.Min.Y - point.Y, point.Y - wall.Max.Y));
+                if (gapX * gapX + gapY * gapY < _radius * _radius)
+                    return false;
+            }
             foreach (var station in _stations)
             {
                 if (station.Contains(point, _stationHalfSize, _radius))
@@ -256,7 +272,7 @@ namespace Game.Simulation.Movement
         }
 
         private Vector2 Centre(int cell) =>
-            new Vector2(-_roomHalfSize.X + (cell % _width) * CellSize, -_roomHalfSize.Y + (cell / _width) * CellSize);
+            new Vector2(_roomMin.X + (cell % _width) * CellSize, _roomMin.Y + (cell / _width) * CellSize);
 
         private int NearestFreeCell(Vector2 point)
         {

@@ -27,12 +27,6 @@ namespace Game.Gameplay.Staff
         [SerializeField] private Transform _spawnPoint;
         [SerializeField] private LayoutEditor _editor;
 
-        [Tooltip("How far from a station's centre staff stand.")]
-        [SerializeField, Min(0f)] private float _standDistance = 0.85f;
-        [Tooltip("Half a station's width, for walking around it.")]
-        [SerializeField, Min(0f)] private float _stationHalfSize = 0.5f;
-        [Tooltip("How much room a walking staff member takes.")]
-        [SerializeField, Min(0f)] private float _walkerRadius = 0.3f;
         [Tooltip("Metres from a spot that counts as there, when someone's already standing on it.")]
         [SerializeField, Min(0f)] private float _shareSpotDistance = 0.8f;
         [Tooltip("Metres off their spot that counts as being pushed away from what they're doing.")]
@@ -45,8 +39,6 @@ namespace Game.Gameplay.Staff
         [SerializeField, Min(0.1f)] private float _noWayRetrySeconds = 1f;
         [Tooltip("Metres between staff arriving, so nobody starts inside anyone else.")]
         [SerializeField, Min(0f)] private float _arrivalSpacing = 0.9f;
-        [Tooltip("Half the room's width and depth: staff stay inside.")]
-        [SerializeField] private Vector2 _roomHalfSize = new Vector2(4.6f, 3.6f);
 
         private readonly List<StaffAgent> _agents = new List<StaffAgent>();
         private readonly Dictionary<object, Interactable> _stations = new Dictionary<object, Interactable>();
@@ -141,9 +133,7 @@ namespace Game.Gameplay.Staff
         // The kitchen changed: everyone works out their way again.
         private void RebuildLayout()
         {
-            _layout = new StationLayout(
-                _root.Services.Stations.All.Select(station => new Footprint(Floor(station.transform.position), station.transform.eulerAngles.y)),
-                new System.Numerics.Vector2(_roomHalfSize.x, _roomHalfSize.y), _stationHalfSize, _walkerRadius, _standDistance);
+            _layout = _root.Services.NewLayout();
             _routes.Clear();
             foreach (var agent in _agents)
                 agent.Slide = _layout.Slide;

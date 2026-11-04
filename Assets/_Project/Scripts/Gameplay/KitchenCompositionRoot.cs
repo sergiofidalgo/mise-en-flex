@@ -23,6 +23,7 @@ namespace Game.Gameplay
         [SerializeField] private RealismSettings _realism;
         [SerializeField] private ServiceConfig _serviceConfig;
         [SerializeField] private StaffConfig _staffConfig;
+        [SerializeField] private FloorPlanConfig _floorPlan;
         [SerializeField] private PlayerInputManager _playerInputManager;
 
         /// <summary>Available from Awake; presentation (e.g. the debug overlay) reads it.</summary>
@@ -44,7 +45,7 @@ namespace Game.Gameplay
             var days = new DayCycle(_staffConfig.StartingMoney);
             days.PhaseChanged += HandlePhaseChanged;
             var service = NewService(days.Day);
-            Services = new KitchenServices(cooking, new ItemViewRegistry(_itemCatalog), _itemCatalog, _equipment, _tuning, _realism, service, _serviceConfig, days, new StaffRoster(), _staffConfig, stations);
+            Services = new KitchenServices(cooking, new ItemViewRegistry(_itemCatalog), _itemCatalog, _equipment, _tuning, _realism, service, _serviceConfig, days, new StaffRoster(), _staffConfig, stations, _floorPlan);
             Services.Staff.Candidates = _staffConfig.CandidatesFor(days.Day);
 
             foreach (var station in stations.All)
