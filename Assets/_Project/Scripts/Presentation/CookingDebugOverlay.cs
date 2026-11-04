@@ -37,6 +37,9 @@ namespace Game.Presentation
         private const float LocationWidth = 130f;
 
         [SerializeField] private KitchenCompositionRoot _root;
+
+        private System.Collections.Generic.IEnumerable<Game.Gameplay.Stations.Interactable> Stations =>
+            _root.Services.Stations.All.OrderBy(s => s.name);
         [SerializeField] private bool _visible = true;
         [SerializeField, Min(8)] private int _fontSize = 12;
         [SerializeField, Range(0f, 1f)] private float _backgroundOpacity = 0.88f;
@@ -68,7 +71,6 @@ namespace Game.Presentation
 
         private readonly Dictionary<Ingredient, string> _locations = new Dictionary<Ingredient, string>();
         private readonly HashSet<Ingredient> _stored = new HashSet<Ingredient>();
-        private Interactable[] _stations;
         private GUIStyle _panel;
         private GUIStyle _text;
         private GUIStyle _bold;
@@ -81,8 +83,6 @@ namespace Game.Presentation
             var saved = PlayerPrefs.GetString(CollapsedPrefsKey, string.Empty);
             foreach (var key in saved.Split(new[] { '|' }, System.StringSplitOptions.RemoveEmptyEntries))
                 _collapsed.Add(key);
-
-            _stations = FindObjectsByType<Interactable>(FindObjectsSortMode.None).OrderBy(s => s.name).ToArray();
         }
 
         private void Update()
@@ -96,7 +96,7 @@ namespace Game.Presentation
         private void OnGUI()
         {
             var services = _root != null ? _root.Services : null;
-            if (!_visible || services == null || _stations == null)
+            if (!_visible || services == null)
                 return;
 
             EnsureStyles();
@@ -258,7 +258,7 @@ namespace Game.Presentation
             if (!Section("Hobs"))
                 return;
             var index = 0;
-            foreach (var hob in _stations.OfType<HobStation>())
+            foreach (var hob in _root.Services.Stations.All.OfType<HobStation>().OrderBy(h => h.name))
             {
                 index++;
                 if (hob.Hob == null)
@@ -279,7 +279,7 @@ namespace Game.Presentation
             // Pans away from a hob (carried, on a counter): their heat matters too.
             foreach (var pan in _root.Services.Cooking.Pans)
             {
-                if (_stations.OfType<HobStation>().Any(h => h.Hob?.Pan == pan))
+                if (_root.Services.Stations.All.OfType<HobStation>().Any(h => h.Hob?.Pan == pan))
                     continue;
                 GUILayout.Label($"<b>Pan off the heat</b>  {Coloured($"{pan.Temperature:0} °C", PanColour(pan.Temperature))}  {Coloured(PanLocation(pan), Dim)}", _text);
                 foreach (var food in pan.Contents)
@@ -308,7 +308,7 @@ namespace Game.Presentation
         {
             if (!Section("Storage"))
                 return;
-            foreach (var storage in _stations.OfType<StorageStation>())
+            foreach (var storage in Stations.OfType<StorageStation>())
             {
                 if (storage.Unit == null)
                     continue;
@@ -319,7 +319,7 @@ namespace Game.Presentation
                 GUILayout.Label($"<b>{storage.name}</b> {storage.Unit.Temperature:0} °C:  {string.Join(",  ", parts)}   {Coloured($"fresh {fresh:P0}", FreshColour(fresh))}", _text);
             }
 
-            foreach (var prep in _stations.OfType<PrepStation>())
+            foreach (var prep in Stations.OfType<PrepStation>())
             {
                 var counter = prep.Counter;
                 if (counter == null)
@@ -385,7 +385,7 @@ namespace Game.Presentation
                     Locate(interactor.Hands.Current, $"P{player.playerIndex + 1} hands");
             }
 
-            foreach (var station in _stations)
+            foreach (var station in Stations)
             {
                 switch (station)
                 {
@@ -424,7 +424,7 @@ namespace Game.Presentation
                 if (player.TryGetComponent(out PlayerInteractor interactor) && interactor.Hands.Current == pan)
                     return $"P{player.playerIndex + 1} hands";
             }
-            var station = _stations.FirstOrDefault(s => s.HeldItem == pan);
+            var station = Stations.FirstOrDefault(s => s.HeldItem == pan);
             return station != null ? station.name : "loose";
         }
 

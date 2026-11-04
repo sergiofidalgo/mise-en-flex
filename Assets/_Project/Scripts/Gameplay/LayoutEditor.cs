@@ -87,7 +87,7 @@ namespace Game.Gameplay
                 new SimVector2(_areaMin.x, _areaMin.y),
                 new SimVector2(_areaMax.x, _areaMax.y),
                 _snapRange, _stationHalfSize, _walkerRadius);
-            foreach (var station in FindObjectsByType<Interactable>(FindObjectsSortMode.None))
+            foreach (var station in _root.Services.Stations.All)
                 _plan.Add(station, Floor(station.transform.position), station.transform.eulerAngles.y, rowLocked: station is PassStation);
         }
 

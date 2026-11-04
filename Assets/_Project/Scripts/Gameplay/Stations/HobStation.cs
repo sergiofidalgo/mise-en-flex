@@ -16,6 +16,9 @@ namespace Game.Gameplay.Stations
 
         public Hob Hob => _slot?.Hob;
 
+        /// <summary>Null until bound.</summary>
+        public KitchenServices Services => _services;
+
         public override IItemContainer Container => _slot;
 
         public bool PromptAsDiamond(PlayerInteractor player) => false;

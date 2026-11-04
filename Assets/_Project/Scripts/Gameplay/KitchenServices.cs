@@ -27,7 +27,8 @@ namespace Game.Gameplay
             ServiceConfig serviceConfig,
             DayCycle days,
             StaffRoster staff,
-            StaffConfig staffConfig)
+            StaffConfig staffConfig,
+            StationRegistry stations)
         {
             Cooking = cooking;
             ItemViews = itemViews;
@@ -40,6 +41,7 @@ namespace Game.Gameplay
             Days = days;
             Staff = staff;
             StaffConfig = staffConfig;
+            Stations = stations;
         }
 
         public CookingSimulation Cooking { get; }
@@ -60,6 +62,9 @@ namespace Game.Gameplay
 
         public StaffRoster Staff { get; }
         public StaffConfig StaffConfig { get; }
+
+        /// <summary>The stations in the kitchen right now.</summary>
+        public StationRegistry Stations { get; }
 
         /// <summary>Raised when a new day's service replaces the last, so listeners can move over to it.</summary>
         public event Action<ServiceSimulation, ServiceSimulation> ServiceReplaced;

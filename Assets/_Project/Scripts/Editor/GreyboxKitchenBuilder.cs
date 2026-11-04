@@ -333,8 +333,6 @@ namespace Game.Editor
             GreyboxStaff.Build(root);
 
             GreyboxHud.BuildCanvas(GreyboxHud.EnsureStyle(), settings, root, assets.Catalog);
-            foreach (var chip in Object.FindObjectsByType<DonenessChipView>(FindObjectsSortMode.None))
-                SetReference(chip, "_root", root);
 
             GreyboxAssets.EnsureFolder(System.IO.Path.GetDirectoryName(ScenePath));
             EditorSceneManager.SaveScene(scene, ScenePath);
@@ -508,7 +506,7 @@ namespace Game.Editor
             var chipSo = new SerializedObject(chipView);
             chipSo.FindProperty("_hob").objectReferenceValue = hob;
             chipSo.FindProperty("_chip").objectReferenceValue = chip.GetComponent<Renderer>();
-            chipSo.ApplyModifiedPropertiesWithoutUndo(); // _root is set once the composition root exists
+            chipSo.ApplyModifiedPropertiesWithoutUndo();
 
             var view = hob.gameObject.AddComponent<HobView>();
             var viewSo = new SerializedObject(view);

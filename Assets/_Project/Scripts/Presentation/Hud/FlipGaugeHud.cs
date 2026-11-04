@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using Game.Gameplay;
 using Game.Gameplay.Stations;
 using Game.Simulation.Cooking;
@@ -33,18 +34,15 @@ namespace Game.Presentation.Hud
         [SerializeField, Min(0f)] private float _burningFrom = 1.6f;
 
         private readonly Dictionary<HobStation, Gauge> _gauges = new Dictionary<HobStation, Gauge>();
-        private HobStation[] _hobs;
-
-        private void Start() => _hobs = FindObjectsByType<HobStation>(FindObjectsSortMode.None);
 
         private void LateUpdate()
         {
             var camera = Camera.main;
-            if (camera == null || _hobs == null || _root.Services == null)
+            if (camera == null || _root.Services == null)
                 return;
 
             var settings = _root.Services.Tuning.FlipGauge;
-            foreach (var hob in _hobs)
+            foreach (var hob in _root.Services.Stations.All.OfType<HobStation>())
             {
                 var gauge = GaugeFor(hob);
                 var pan = hob.Hob?.Pan;

@@ -1,4 +1,3 @@
-using Game.Gameplay;
 using Game.Gameplay.Stations;
 using UnityEngine;
 
@@ -15,7 +14,6 @@ namespace Game.Presentation
         private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
 
         [SerializeField] private HobStation _hob;
-        [SerializeField] private KitchenCompositionRoot _root;
         [SerializeField] private Renderer _chip;
 
         private MaterialPropertyBlock _block;
@@ -32,7 +30,7 @@ namespace Game.Presentation
             var food = pan != null && pan.Contents.Count > 0 ? pan.Contents[0] : null;
 
             IngredientView view = null;
-            if (food != null && _hob.IsTargeted && _root.Services.ItemViews.TryGetView(food, out var itemView))
+            if (food != null && _hob.IsTargeted && _hob.Services.ItemViews.TryGetView(food, out var itemView))
                 itemView.TryGetComponent(out view);
 
             var show = view != null && view.ShowsDoneness;

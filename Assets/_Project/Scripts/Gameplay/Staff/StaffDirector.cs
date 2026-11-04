@@ -5,6 +5,7 @@ using Game.Simulation.Days;
 using Game.Simulation.Items;
 using Game.Simulation.Movement;
 using Game.Simulation.Staff;
+using Game.Simulation.Storage;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -56,28 +57,25 @@ namespace Game.Gameplay.Staff
         /// <summary>Everyone currently working in the kitchen.</summary>
         public IReadOnlyList<StaffAgent> Agents => _agents;
 
-        private Interactable[] _allStations;
         private PassStation[] _passes;
         private SinkStation _sink;
         private PlateStackStation _stack;
         private DirtyPileStation _dirtyPile;
         private PrepStation _board;
         private RackStation _trayRack;
-        private CounterStation[] _counters;
-        private StorageStation[] _storage;
+        private readonly List<ItemSlot> _counters = new List<ItemSlot>();
+        private readonly List<StorageUnit> _storage = new List<StorageUnit>();
         private int _nextSeed;
 
         private void Start()
         {
-            _allStations = FindObjectsByType<Interactable>(FindObjectsSortMode.None);
-            _passes = _allStations.OfType<PassStation>().OrderBy(p => p.SeatIndex).ToArray();
-            _sink = _allStations.OfType<SinkStation>().First();
-            _stack = _allStations.OfType<PlateStackStation>().First();
-            _dirtyPile = _allStations.OfType<DirtyPileStation>().First();
-            _board = _allStations.OfType<PrepStation>().First();
-            _trayRack = _allStations.OfType<RackStation>().First(r => r.Kind == RackStation.RackKind.Trays);
-            _counters = _allStations.OfType<CounterStation>().ToArray();
-            _storage = _allStations.OfType<StorageStation>().ToArray();
+            var all = _root.Services.Stations.All;
+            _passes = all.OfType<PassStation>().OrderBy(p => p.SeatIndex).ToArray();
+            _sink = all.OfType<SinkStation>().First();
+            _stack = all.OfType<PlateStackStation>().First();
+            _dirtyPile = all.OfType<DirtyPileStation>().First();
+            _board = all.OfType<PrepStation>().First();
+            _trayRack = all.OfType<RackStation>().First(r => r.Kind == RackStation.RackKind.Trays);
             RebuildLayout();
 
             foreach (var pass in _passes)
@@ -87,23 +85,64 @@ namespace Game.Gameplay.Staff
             _stations[_dirtyPile.Pile] = _dirtyPile;
             _stations[_board.Counter] = _board;
             _stations[_trayRack.Rack] = _trayRack;
-            foreach (var counter in _counters)
-                _stations[counter.Slot] = counter;
-            foreach (var unit in _storage)
-                _stations[unit.Unit] = unit;
-            var bin = _allStations.OfType<BinStation>().First();
+            foreach (var station in all)
+                HandleStationAdded(station);
+            var bin = all.OfType<BinStation>().First();
             _stations[bin.Sink] = bin;
 
+            _root.Services.Stations.Added += HandleStationAdded;
+            _root.Services.Stations.Removed += HandleStationRemoved;
             _root.Services.Days.PhaseChanged += HandlePhaseChanged;
             if (_editor != null)
                 _editor.LayoutChanged += RebuildLayout;
+        }
+
+        // Bought furniture joins the places they can work from, and sold furniture leaves them.
+        private void HandleStationAdded(Interactable station)
+        {
+            if (station is CounterStation counter)
+            {
+                _counters.Add(counter.Slot);
+                _stations[counter.Slot] = counter;
+            }
+            else if (station is StorageStation storage)
+            {
+                _storage.Add(storage.Unit);
+                _stations[storage.Unit] = storage;
+            }
+        }
+
+        private void HandleStationRemoved(Interactable station)
+        {
+            if (station is CounterStation counter)
+            {
+                _counters.Remove(counter.Slot);
+                _stations.Remove(counter.Slot);
+            }
+            else if (station is StorageStation storage)
+            {
+                _storage.Remove(storage.Unit);
+                _stations.Remove(storage.Unit);
+            }
+        }
+
+        /// <summary>True if a helper is working at this station or on their way to it.</summary>
+        public bool IsHeadedTo(Interactable station)
+        {
+            foreach (var agent in _agents)
+            {
+                var target = agent.Job.Target;
+                if (target != null && _stations.TryGetValue(target, out var there) && there == station)
+                    return true;
+            }
+            return false;
         }
 
         // The kitchen changed: everyone works out their way again.
         private void RebuildLayout()
         {
             _layout = new StationLayout(
-                _allStations.Select(station => new Footprint(Floor(station.transform.position), station.transform.eulerAngles.y)),
+                _root.Services.Stations.All.Select(station => new Footprint(Floor(station.transform.position), station.transform.eulerAngles.y)),
                 new System.Numerics.Vector2(_roomHalfSize.x, _roomHalfSize.y), _stationHalfSize, _walkerRadius, _standDistance);
             _routes.Clear();
             foreach (var agent in _agents)
@@ -113,7 +152,11 @@ namespace Game.Gameplay.Staff
         private void OnDestroy()
         {
             if (_root != null && _root.Services != null)
+            {
                 _root.Services.Days.PhaseChanged -= HandlePhaseChanged;
+                _root.Services.Stations.Added -= HandleStationAdded;
+                _root.Services.Stations.Removed -= HandleStationRemoved;
+            }
             if (_editor != null)
                 _editor.LayoutChanged -= RebuildLayout;
         }
@@ -180,11 +223,11 @@ namespace Game.Gameplay.Staff
             {
                 return new PrepAssistant(
                     member,
-                    _counters.Select(c => c.Slot).ToArray(),
-                    _storage.Select(s => s.Unit).ToArray(),
+                    _counters,
+                    _storage,
                     _board.Counter,
                     _trayRack.Rack,
-                    _allStations.OfType<BinStation>().First().Sink,
+                    services.Stations.All.OfType<BinStation>().First().Sink,
                     services.Cooking,
                     settings,
                     seed);

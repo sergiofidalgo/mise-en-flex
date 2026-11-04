@@ -25,8 +25,6 @@ namespace Game.Gameplay
         [SerializeField] private StaffConfig _staffConfig;
         [SerializeField] private PlayerInputManager _playerInputManager;
 
-        private Interactable[] _interactables;
-
         /// <summary>Available from Awake; presentation (e.g. the debug overlay) reads it.</summary>
         public KitchenServices Services { get; private set; }
 
@@ -37,22 +35,20 @@ namespace Game.Gameplay
 
         private void Awake()
         {
-            // TODO(Phase 4): stations will be placed and moved during Plan, so they must register
-            // and unregister themselves instead of being collected once here.
-            _interactables = FindObjectsByType<Interactable>(FindObjectsSortMode.None);
+            var stations = new StationRegistry(FindObjectsByType<Interactable>(FindObjectsSortMode.None));
 
             // One stool per pass counter (counter service, decision 2026-11-02).
-            var seats = _interactables.OfType<PassStation>().Count();
+            var seats = stations.All.OfType<PassStation>().Count();
             var cooking = new CookingSimulation(_tuning.AmbientTemperature, _realism.SpoilageMultiplier);
             _seats = seats;
             var days = new DayCycle(_staffConfig.StartingMoney);
             days.PhaseChanged += HandlePhaseChanged;
             var service = NewService(days.Day);
-            Services = new KitchenServices(cooking, new ItemViewRegistry(_itemCatalog), _itemCatalog, _equipment, _tuning, _realism, service, _serviceConfig, days, new StaffRoster(), _staffConfig);
+            Services = new KitchenServices(cooking, new ItemViewRegistry(_itemCatalog), _itemCatalog, _equipment, _tuning, _realism, service, _serviceConfig, days, new StaffRoster(), _staffConfig, stations);
             Services.Staff.Candidates = _staffConfig.CandidatesFor(days.Day);
 
-            foreach (var interactable in _interactables)
-                interactable.Bind(Services);
+            foreach (var station in stations.All)
+                station.Bind(Services);
         }
 
         private void OnEnable()
@@ -95,7 +91,7 @@ namespace Game.Gameplay
             cooking.SkipClosedTime(_tuning.OvernightSeconds);
 
             var spoiled = 0;
-            foreach (var storage in _interactables.OfType<StorageStation>())
+            foreach (var storage in Services.Stations.All.OfType<StorageStation>())
             {
                 foreach (var ingredient in storage.Unit.RemoveSpoiled(_tuning.SpoiledBelow))
                 {
@@ -113,7 +109,7 @@ namespace Game.Gameplay
         {
             if (phase == DayPhase.Prep)
             {
-                Services.LastDelivery = _interactables.OfType<StorageStation>().SelectMany(s => s.TakeDelivery()).ToList();
+                Services.LastDelivery = Services.Stations.All.OfType<StorageStation>().SelectMany(s => s.TakeDelivery()).ToList();
                 return;
             }
             if (phase != DayPhase.Plan)
@@ -123,8 +119,8 @@ namespace Game.Gameplay
             Services.Staff.Candidates = _staffConfig.CandidatesFor(Services.Days.Day);
 
             // TODO(Phase 5): broken plates get replaced for free each morning until they can be bought.
-            var stack = _interactables.OfType<PlateStackStation>().FirstOrDefault();
-            var sink = _interactables.OfType<SinkStation>().FirstOrDefault();
+            var stack = Services.Stations.All.OfType<PlateStackStation>().FirstOrDefault();
+            var sink = Services.Stations.All.OfType<SinkStation>().FirstOrDefault();
             if (stack != null && sink != null)
                 stack.Stack.AddNew(sink.Sink.TakeBrokenCount(), _equipment.PlateCapacity);
         }
@@ -132,7 +128,7 @@ namespace Game.Gameplay
         private void BindPlayer(PlayerInput player)
         {
             if (player.TryGetComponent(out PlayerInteractor interactor))
-                interactor.Bind(_interactables, Services);
+                interactor.Bind(Services.Stations.All, Services);
         }
     }
 }
