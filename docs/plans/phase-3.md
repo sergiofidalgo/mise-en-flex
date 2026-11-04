@@ -8,7 +8,7 @@
 
 ## Decisions
 
-- **Waiter and runner move to Phase 4,** with tables: at a counter, they'd have nothing to do.
+- **The waiter moves to Phase 4,** with tables: at a counter, they'd have nothing to do. (No separate runner: decided 2026-11-04.)
 - **Prep has no time limit;** it ends when all players ready up.
 - **Close is summarised,** with a line for waste and spoilage.
 - **Staff have fixed roles.**

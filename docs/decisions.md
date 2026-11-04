@@ -4,6 +4,16 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-04 — One waiter, no runner; a limited pile of dirty dishes
+
+**Decisions (user's call):**
+- **The waiter does both jobs:** takes food to the table and clears the table afterwards. There's no separate runner. Replaces the roadmap's and design doc's waiter and runner.
+- **Dirty dishes get a pile with a maximum,** just like clean plates.
+
+**Reason:** One clear hire instead of two similar ones, and a full pile makes falling behind on washing up visible.
+
+---
+
 ## 2026-11-04 — Morale (Phase 3)
 
 **Decisions (proposed while building; flagged for review, tunable in `StaffConfig`):**
