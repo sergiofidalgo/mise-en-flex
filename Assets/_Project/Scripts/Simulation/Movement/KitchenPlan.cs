@@ -189,8 +189,10 @@ namespace Game.Simulation.Movement
         }
 
         /// <param name="people">Where everyone is standing.</param>
-        public Placement Check(object piece, Vector2 position, float degrees, IEnumerable<Vector2> people)
+        /// <param name="blocked">If given, is filled with the pieces this placement would cut off.</param>
+        public Placement Check(object piece, Vector2 position, float degrees, IEnumerable<Vector2> people, List<object> blocked = null)
         {
+            blocked?.Clear();
             var moved = new Footprint(position, degrees);
 
             // All of it has to fit, so a turned station can't poke through a wall. A piece in a
@@ -222,26 +224,47 @@ namespace Game.Simulation.Movement
             var layout = Layout(footprints);
 
             // Everything needs somewhere to stand: its front if it has one, otherwise any side.
-            var places = new List<Vector2>();
+            var needs = new List<IReadOnlyList<Vector2>>();
+            var owners = new List<object>();
+            var inTheWay = blocked ?? new List<object>();
             foreach (var pair in _pieces)
             {
                 var footprint = pair.Key == piece ? moved : pair.Value;
-                Vector2? place;
+                List<Vector2> places;
                 if (_fronts.TryGetValue(pair.Key, out var front))
                 {
                     var point = footprint.Centre + footprint.Direction(front) * _standDistance;
-                    place = layout.IsFree(point) ? point : (Vector2?)null;
+                    places = layout.IsFree(point) ? new List<Vector2> { point } : new List<Vector2>();
                 }
                 else
                 {
-                    place = layout.StandingSpot(footprint);
+                    places = layout.FreeSides(footprint);
                 }
 
-                if (!place.HasValue)
-                    return Placement.BlocksAStation;
-                places.Add(place.Value);
+                if (places.Count == 0)
+                {
+                    inTheWay.Add(pair.Key);
+                    continue;
+                }
+                needs.Add(places);
+                owners.Add(pair.Key);
             }
-            return layout.AreConnected(places, people) ? Placement.Ok : Placement.BlocksAStation;
+
+            // Nobody can be walled in either; a person isn't a piece, so has no owner to report.
+            foreach (var person in people)
+            {
+                needs.Add(new List<Vector2> { person });
+                owners.Add(null);
+            }
+
+            var walledIn = false;
+            foreach (var index in layout.CutOff(needs))
+            {
+                walledIn = true;
+                if (owners[index] != null)
+                    inTheWay.Add(owners[index]);
+            }
+            return inTheWay.Count > 0 || walledIn ? Placement.BlocksAStation : Placement.Ok;
         }
 
         private StationLayout Layout(IEnumerable<Footprint> footprints) =>

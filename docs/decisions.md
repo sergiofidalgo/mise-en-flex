@@ -24,8 +24,9 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 - **The pass only slides along its row,** and its stool follows, because customers sit on the dining side.
 - **The pass doesn't turn,** since it faces the stools.
 - **Work stations have a front (user's call: a boxed-in hob can't be allowed).** Hobs, the board, the sink, the fridge and the shelf need the side facing the room kept clear, and that side turns with them. Counters, piles and racks only need some side free.
-- **What's carried turns red where it can't go (user's call),** and the floor frame only shows while choosing what to pick up.
-- **What's carried stays on the floor (user's call):** lifted, the angled camera drew it away from where it would land. Being carried shows through the player's colour, or red.
+- **What's carried turns red where it can't go (user's call),** and the floor frame only shows while choosing what to pick up. Whatever it would cut off turns red too, so "that would block something" shows what (proposed, flagged for review).
+- **Hobs can share a chef (user's call):** three hobs around one spot are fine as long as each front is clear and a chef can get in. The check now rounds the corners of the clearance around furniture, and a counter counts as reachable from any free side rather than only the one nearest the middle of the room.
+- **What's carried stays on the floor (user's call):** lifted, the angled camera drew it away from where it would land. Being carried shows through brightness, or red.
 - **Service stops rearranging:** management mode isn't available during Service or Review.
 
 ---

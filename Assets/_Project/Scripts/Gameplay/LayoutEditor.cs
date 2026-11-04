@@ -38,6 +38,7 @@ namespace Game.Gameplay
             public SimVector2 Landing;
             public float Degrees;
             public Placement Result;
+            public readonly List<object> Blocked = new List<object>();
         }
 
         [SerializeField] private KitchenCompositionRoot _root;
@@ -201,7 +202,7 @@ namespace Game.Gameplay
                 : (SimVector2?)null;
             cursor.Landing = _plan.Snap(cursor.Held, cursor.Position, cursor.Degrees, home);
             cursor.Result = Check(cursor);
-            cursor.Held.CantGoHere = cursor.Result != Placement.Ok;
+            cursor.Held.MarkedRed = cursor.Result != Placement.Ok;
             cursor.Held.transform.SetPositionAndRotation(
                 new Vector3(cursor.Landing.X, cursor.HeldFrom.y, cursor.Landing.Y),
                 Quaternion.Euler(0f, cursor.Degrees, 0f));
@@ -239,7 +240,7 @@ namespace Game.Gameplay
                 return false;
 
             var station = cursor.Held;
-            station.CantGoHere = false;
+            station.MarkedRed = false;
             station.transform.SetPositionAndRotation(
                 new Vector3(cursor.Landing.X, cursor.HeldFrom.y, cursor.Landing.Y),
                 Quaternion.Euler(0f, cursor.Degrees, 0f));
@@ -259,13 +260,29 @@ namespace Game.Gameplay
         {
             if (cursor.Held == null)
                 return;
-            cursor.Held.CantGoHere = false;
+            ClearBlocked(cursor);
+            cursor.Held.MarkedRed = false;
             cursor.Held.transform.SetPositionAndRotation(cursor.HeldFrom, Quaternion.Euler(0f, cursor.HeldFromDegrees, 0f));
             cursor.Held = null;
             cursor.Result = Placement.Ok;
         }
 
-        private Placement Check(Cursor cursor) => _plan.Check(cursor.Held, cursor.Landing, cursor.Degrees, People());
+        // Whatever a placement would cut off turns red too, so it's clear what it would block.
+        private Placement Check(Cursor cursor)
+        {
+            ClearBlocked(cursor);
+            var result = _plan.Check(cursor.Held, cursor.Landing, cursor.Degrees, People(), cursor.Blocked);
+            foreach (var piece in cursor.Blocked)
+                ((Interactable)piece).MarkedRed = true;
+            return result;
+        }
+
+        private static void ClearBlocked(Cursor cursor)
+        {
+            foreach (var piece in cursor.Blocked)
+                ((Interactable)piece).MarkedRed = false;
+            cursor.Blocked.Clear();
+        }
 
         private IEnumerable<SimVector2> People()
         {

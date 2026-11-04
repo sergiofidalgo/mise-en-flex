@@ -21,6 +21,8 @@ namespace Game.Simulation.Movement
         private readonly float _standDistance;
         private readonly int _width;
         private readonly int _height;
+        private bool[] _freeCells;
+        private int[] _regions;
 
         public StationLayout(IEnumerable<Vector2> stations, Vector2 roomHalfSize, float stationHalfSize, float walkerRadius, float standDistance)
             : this(stations.Select(centre => new Footprint(centre)), roomHalfSize, stationHalfSize, walkerRadius, standDistance)
@@ -76,11 +78,10 @@ namespace Game.Simulation.Movement
         {
             Vector2? best = null;
             var bestDistance = float.MaxValue;
-            foreach (var side in new[] { station.Forward, -station.Forward, -station.Right, station.Right })
+            foreach (var point in FreeSides(station))
             {
-                var point = station.Centre + side * _standDistance;
                 var distance = point.LengthSquared();
-                if (IsFree(point) && distance < bestDistance)
+                if (distance < bestDistance)
                 {
                     best = point;
                     bestDistance = distance;
@@ -89,77 +90,119 @@ namespace Game.Simulation.Movement
             return best;
         }
 
-        /// <summary>
-        /// True if every station has somewhere to stand, and all those places connect, along with
-        /// where everyone is, so nobody can be walled in. One flood over the floor rather than a
-        /// route per station, since it runs as a station is carried.
-        /// </summary>
-        public bool EveryStationCanBeReached(IReadOnlyList<Footprint> stations, IEnumerable<Vector2> people = null)
+        /// <summary>Everywhere someone could stand to reach this station.</summary>
+        public List<Vector2> FreeSides(Footprint station)
         {
-            var spots = new List<Vector2>();
-            foreach (var station in stations)
+            var sides = new List<Vector2>();
+            foreach (var side in new[] { station.Forward, -station.Forward, -station.Right, station.Right })
             {
-                var spot = StandingSpot(station);
-                if (!spot.HasValue)
-                    return false;
-                spots.Add(spot.Value);
+                var point = station.Centre + side * _standDistance;
+                if (IsFree(point))
+                    sides.Add(point);
             }
-            return AreConnected(spots, people);
+            return sides;
         }
 
-        /// <summary>True if all these places, and everyone standing around, connect on foot.</summary>
-        public bool AreConnected(IEnumerable<Vector2> places, IEnumerable<Vector2> people = null)
+        /// <summary>
+        /// Which of these can't be reached, given that everything has to connect on foot. Each need
+        /// is the places that would do: one for a hob's front or a person, any free side for a
+        /// counter. The floor is split into regions you can walk around in, and the region most
+        /// needs can use is the room; what can't use it is cut off.
+        /// </summary>
+        /// <returns>The indices of the needs that are cut off.</returns>
+        public List<int> CutOff(IReadOnlyList<IReadOnlyList<Vector2>> needs)
         {
-            var spots = new List<int>();
-            foreach (var place in places)
+            var regions = Regions();
+            var reachable = new List<HashSet<int>>();
+            var uses = new Dictionary<int, int>();
+            foreach (var need in needs)
             {
-                var cell = NearestFreeCell(place);
-                if (cell < 0)
-                    return false;
-                spots.Add(cell);
-            }
-
-            if (people != null)
-            {
-                foreach (var person in people)
+                var regionsOfNeed = new HashSet<int>();
+                foreach (var place in need)
                 {
-                    var cell = NearestFreeCell(person);
-                    if (cell < 0)
-                        return false;
-                    spots.Add(cell);
+                    var cell = NearestFreeCell(place);
+                    if (cell >= 0)
+                        regionsOfNeed.Add(regions[cell]);
                 }
+                reachable.Add(regionsOfNeed);
+                foreach (var region in regionsOfNeed)
+                    uses[region] = uses.TryGetValue(region, out var count) ? count + 1 : 1;
             }
-            if (spots.Count == 0)
-                return true;
 
-            var reached = new HashSet<int> { spots[0] };
-            var frontier = new Queue<int>();
-            frontier.Enqueue(spots[0]);
-            while (frontier.Count > 0)
+            var room = -1;
+            var mostUses = 0;
+            foreach (var pair in uses)
             {
-                var cell = frontier.Dequeue();
-                var x = cell % _width;
-                var y = cell / _width;
-                foreach (var (dx, dy) in new[] { (1, 0), (-1, 0), (0, 1), (0, -1) })
+                if (pair.Value > mostUses || (pair.Value == mostUses && pair.Key < room))
                 {
-                    var nx = x + dx;
-                    var ny = y + dy;
-                    if (nx < 0 || ny < 0 || nx >= _width || ny >= _height)
-                        continue;
-                    var neighbour = ny * _width + nx;
-                    if (reached.Contains(neighbour) || !IsClear(Centre(cell), Centre(neighbour)))
-                        continue;
-                    reached.Add(neighbour);
-                    frontier.Enqueue(neighbour);
+                    room = pair.Key;
+                    mostUses = pair.Value;
                 }
             }
 
-            foreach (var cell in spots)
+            var cutOff = new List<int>();
+            for (var i = 0; i < reachable.Count; i++)
             {
-                if (!reached.Contains(cell))
-                    return false;
+                if (!reachable[i].Contains(room))
+                    cutOff.Add(i);
             }
-            return true;
+            return cutOff;
+        }
+
+        // Numbers each free cell by the walkable region it's in; -1 for cells under furniture.
+        private int[] Regions()
+        {
+            if (_regions != null)
+                return _regions;
+
+            var free = FreeCells();
+            _regions = new int[free.Length];
+            for (var i = 0; i < _regions.Length; i++)
+                _regions[i] = -1;
+
+            var region = 0;
+            var frontier = new Stack<int>();
+            for (var start = 0; start < free.Length; start++)
+            {
+                if (!free[start] || _regions[start] >= 0)
+                    continue;
+
+                _regions[start] = region;
+                frontier.Push(start);
+                while (frontier.Count > 0)
+                {
+                    var cell = frontier.Pop();
+                    var x = cell % _width;
+                    var y = cell / _width;
+                    for (var dy = -1; dy <= 1; dy++)
+                    {
+                        for (var dx = -1; dx <= 1; dx++)
+                        {
+                            var nx = x + dx;
+                            var ny = y + dy;
+                            if ((dx == 0 && dy == 0) || nx < 0 || ny < 0 || nx >= _width || ny >= _height)
+                                continue;
+                            var neighbour = ny * _width + nx;
+                            if (!free[neighbour] || _regions[neighbour] >= 0 || !IsClear(Centre(cell), Centre(neighbour)))
+                                continue;
+                            _regions[neighbour] = region;
+                            frontier.Push(neighbour);
+                        }
+                    }
+                }
+                region++;
+            }
+            return _regions;
+        }
+
+        private bool[] FreeCells()
+        {
+            if (_freeCells != null)
+                return _freeCells;
+            _freeCells = new bool[_width * _height];
+            for (var cell = 0; cell < _freeCells.Length; cell++)
+                _freeCells[cell] = IsFree(Centre(cell));
+            return _freeCells;
         }
 
         /// <summary>A route from one point to another around the furniture, ending at <paramref name="to"/>.</summary>
@@ -294,13 +337,15 @@ namespace Game.Simulation.Movement
 
         private int NearestFreeCell(Vector2 point)
         {
+            var free = FreeCells();
             var best = -1;
             var bestDistance = float.MaxValue;
-            for (var cell = 0; cell < _width * _height; cell++)
+            for (var cell = 0; cell < free.Length; cell++)
             {
-                var centre = Centre(cell);
-                var distance = (centre - point).LengthSquared();
-                if (distance < bestDistance && IsFree(centre))
+                if (!free[cell])
+                    continue;
+                var distance = (Centre(cell) - point).LengthSquared();
+                if (distance < bestDistance)
                 {
                     best = cell;
                     bestDistance = distance;

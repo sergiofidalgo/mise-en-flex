@@ -39,12 +39,20 @@ namespace Game.Simulation.Movement
         /// <summary>A direction given relative to the station (x along its right, y along its forward), on the floor.</summary>
         public Vector2 Direction(Vector2 local) => Right * local.X + Forward * local.Y;
 
-        /// <summary>True if the point is within this square, grown by <paramref name="margin"/>.</summary>
+        /// <summary>
+        /// True if the point is within this square, or closer to it than <paramref name="margin"/>.
+        /// That keeps the corners round: someone round slips past a corner they'd hit if the margin
+        /// were simply a bigger square, 1.4 times further out on the diagonal.
+        /// </summary>
         public bool Contains(Vector2 point, float halfSize, float margin = 0f)
         {
             var offset = point - Centre;
-            var reach = halfSize + margin;
-            return Math.Abs(Vector2.Dot(offset, Right)) < reach && Math.Abs(Vector2.Dot(offset, Forward)) < reach;
+            var outsideRight = Math.Abs(Vector2.Dot(offset, Right)) - halfSize;
+            var outsideForward = Math.Abs(Vector2.Dot(offset, Forward)) - halfSize;
+            if (outsideRight >= margin || outsideForward >= margin)
+                return false;
+            var pastACorner = outsideRight > 0f && outsideForward > 0f;
+            return !pastACorner || outsideRight * outsideRight + outsideForward * outsideForward < margin * margin;
         }
 
         /// <summary>
