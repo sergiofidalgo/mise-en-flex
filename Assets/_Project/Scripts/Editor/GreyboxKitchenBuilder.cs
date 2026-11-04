@@ -143,6 +143,9 @@ namespace Game.Editor
         private static readonly Color SinkColor = new Color(0.55f, 0.62f, 0.68f);
         private static readonly Color DirtyPlateColor = new Color(0.45f, 0.36f, 0.25f);
         private const float SinkPileOffset = 0.2f;
+        private const int SinkVisualCount = 2;
+        private static readonly Vector3 DirtyPilePosition = new Vector3(4.2f, 0f, -2.4f);
+        private static readonly Color DirtyPileColor = new Color(0.50f, 0.46f, 0.42f);
         private static readonly Vector3 BinPosition = new Vector3(4.5f, 0f, 1f);
         private static readonly Color BinColor = new Color(0.25f, 0.55f, 0.30f);
         private const float BinSize = 0.7f;
@@ -421,10 +424,18 @@ namespace Game.Editor
             var sinkPile = new SerializedObject(sink.gameObject.AddComponent<PlatePileView>());
             sinkPile.FindProperty("_station").objectReferenceValue = sink;
             SetObjects(sinkPile.FindProperty("_dirty"), GreyboxKitchenware.CreatePlatePile(
-                sink.transform, CounterHeight, PlateStackVisualCount, DirtyPlateColor, "DirtyPlate", new Vector3(-SinkPileOffset, 0f, 0f)));
+                sink.transform, CounterHeight, SinkVisualCount, DirtyPlateColor, "DirtyPlate", new Vector3(-SinkPileOffset, 0f, 0f)));
             SetObjects(sinkPile.FindProperty("_clean"), GreyboxKitchenware.CreatePlatePile(
-                sink.transform, CounterHeight, PlateStackVisualCount, GreyboxKitchenware.PlateColor, "Plate", new Vector3(SinkPileOffset, 0f, 0f)));
+                sink.transform, CounterHeight, SinkVisualCount, GreyboxKitchenware.PlateColor, "Plate", new Vector3(SinkPileOffset, 0f, 0f)));
             sinkPile.ApplyModifiedPropertiesWithoutUndo();
+
+            var dirtyPile = CreateStation<DirtyPileStation>(
+                "DirtyPile", DirtyPilePosition, CounterSize, CounterHeight, GreyboxAssets.EnsureMaterial("DirtyPile", DirtyPileColor), stations, settings);
+            var dirtyView = new SerializedObject(dirtyPile.gameObject.AddComponent<PlatePileView>());
+            dirtyView.FindProperty("_station").objectReferenceValue = dirtyPile;
+            SetObjects(dirtyView.FindProperty("_dirty"), GreyboxKitchenware.CreatePlatePile(
+                dirtyPile.transform, CounterHeight, PlateStackVisualCount, DirtyPlateColor, "DirtyPlate", Vector3.zero));
+            dirtyView.ApplyModifiedPropertiesWithoutUndo();
 
             CreateRack("TrayRack", RackStation.RackKind.Trays, TrayRackPosition, 4, GreyboxKitchenware.TrayColor, stations, settings);
             CreateRack("ContainerRack", RackStation.RackKind.Containers, ContainerRackPosition, 6, GreyboxKitchenware.ContainerColor, stations, settings);

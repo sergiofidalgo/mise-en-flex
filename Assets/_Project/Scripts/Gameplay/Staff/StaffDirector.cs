@@ -57,6 +57,7 @@ namespace Game.Gameplay.Staff
         private PassStation[] _passes;
         private SinkStation _sink;
         private PlateStackStation _stack;
+        private DirtyPileStation _dirtyPile;
         private PrepStation _board;
         private RackStation _trayRack;
         private CounterStation[] _counters;
@@ -69,6 +70,7 @@ namespace Game.Gameplay.Staff
             _passes = _allStations.OfType<PassStation>().OrderBy(p => p.SeatIndex).ToArray();
             _sink = _allStations.OfType<SinkStation>().First();
             _stack = _allStations.OfType<PlateStackStation>().First();
+            _dirtyPile = _allStations.OfType<DirtyPileStation>().First();
             _board = _allStations.OfType<PrepStation>().First();
             _trayRack = _allStations.OfType<RackStation>().First(r => r.Kind == RackStation.RackKind.Trays);
             _counters = _allStations.OfType<CounterStation>().ToArray();
@@ -81,6 +83,7 @@ namespace Game.Gameplay.Staff
                 _stations[pass.DirtyPlates] = pass;
             _stations[_sink.Sink] = _sink;
             _stations[_stack.Stack] = _stack;
+            _stations[_dirtyPile.Pile] = _dirtyPile;
             _stations[_board.Counter] = _board;
             _stations[_trayRack.Rack] = _trayRack;
             foreach (var counter in _counters)
@@ -170,7 +173,7 @@ namespace Game.Gameplay.Staff
                     settings,
                     seed);
             }
-            return new Dishwasher(member, _sink.Sink, _stack.Stack, _passes.Select(p => p.DirtyPlates).ToArray(), settings, seed);
+            return new Dishwasher(member, _sink.Sink, _dirtyPile.Pile, _stack.Stack, _passes.Select(p => p.DirtyPlates).ToArray(), settings, seed);
         }
 
         private void HandleItemGone(Item item) => _root.Services.ItemViews.Release(item);

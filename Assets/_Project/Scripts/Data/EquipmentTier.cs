@@ -27,6 +27,14 @@ namespace Game.Data
         [Tooltip("Plates the kitchen owns. Dirty and broken ones aren't available, so this sets the pressure to wash up.")]
         [SerializeField, Min(0)] private int _plateCount = 6;
 
+        [Header("Washing up")]
+        [Tooltip("Dirty plates the pile holds before plates have to stay where they are.")]
+        [SerializeField, Min(1)] private int _dirtyPileCapacity = 6;
+        [Tooltip("Clean plates the stack holds.")]
+        [SerializeField, Min(1)] private int _cleanPileCapacity = 6;
+        [Tooltip("Plates the sink holds at once, dirty and clean together.")]
+        [SerializeField, Min(1)] private int _sinkCapacity = 2;
+
         [Header("Containers")]
         [SerializeField, Min(0)] private int _containerCount = 6;
         [Tooltip("Portions of one ingredient a container holds.")]
@@ -45,6 +53,9 @@ namespace Game.Data
 
         public int PlateCount => _plateCount;
 
+        public int DirtyPileCapacity => _dirtyPileCapacity;
+        public int CleanPileCapacity => _cleanPileCapacity;
+        public int SinkCapacity => _sinkCapacity;
         public int ContainerCount => _containerCount;
         public int ContainerCapacity => _containerCapacity;
         public float ContainerFreshnessFactor => _containerFreshnessFactor;

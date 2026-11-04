@@ -33,19 +33,20 @@ namespace Game.Tests.EditMode
             return plate;
         }
 
-        private static (Dishwasher Job, Sink Sink, PlateStack Stack, FakePass Pass) Kitchen(Candidate person = null, StaffSettings settings = null, int seed = 1)
+        private static (Dishwasher Job, Sink Sink, PlateStack Stack, FakePass Pass, DirtyPile Pile) Kitchen(Candidate person = null, StaffSettings settings = null, int seed = 1, int pileCapacity = 1000, int sinkCapacity = 1000)
         {
-            var sink = new Sink();
+            var sink = new Sink(sinkCapacity);
+            var pile = new DirtyPile(pileCapacity);
             var stack = new PlateStack(0, 3);
             var pass = new FakePass();
-            var job = new Dishwasher(new StaffMember(person ?? Person()), sink, stack, new IDirtyPlateSource[] { pass }, settings ?? new StaffSettings(), seed);
-            return (job, sink, stack, pass);
+            var job = new Dishwasher(new StaffMember(person ?? Person()), sink, pile, stack, new IDirtyPlateSource[] { pass }, settings ?? new StaffSettings(), seed);
+            return (job, sink, stack, pass, pile);
         }
 
         [Test]
         public void AFullLoopTakesAPlateFromThePassToTheStack()
         {
-            var (job, sink, stack, pass) = Kitchen();
+            var (job, sink, stack, pass, pile) = Kitchen();
             job.Tick(1f);
             Assert.That(job.Task, Is.EqualTo(DishwasherTask.Idle), "nothing to do yet");
 
@@ -56,14 +57,22 @@ namespace Game.Tests.EditMode
             job.Arrived();
             Assert.That(pass.HasDirtyPlate, Is.False);
             Assert.That(job.Carried, Is.Not.Null);
-            Assert.That(job.Task, Is.EqualTo(DishwasherTask.ToSink));
+            Assert.That(job.Task, Is.EqualTo(DishwasherTask.ToPile));
 
             job.Arrived();
-            Assert.That(sink.DirtyCount, Is.EqualTo(1));
+            Assert.That(pile.Count, Is.EqualTo(1));
             Assert.That(job.Carried, Is.Null);
 
-            job.Tick(1f); // decides to go and wash
+            job.Tick(1f); // goes to fetch it for the sink
+            Assert.That(job.Task, Is.EqualTo(DishwasherTask.ToPile));
+            job.Arrived();
+            Assert.That(job.Carried, Is.Not.Null);
+            Assert.That(pile.Count, Is.EqualTo(0));
             Assert.That(job.Task, Is.EqualTo(DishwasherTask.ToSink));
+            job.Arrived();
+            Assert.That(sink.DirtyCount, Is.EqualTo(1));
+
+            job.Tick(1f); // decides to wash
             job.Arrived();
             Assert.That(job.Task, Is.EqualTo(DishwasherTask.Washing));
 
@@ -83,6 +92,54 @@ namespace Game.Tests.EditMode
         }
 
         [Test]
+        public void TheyLeaveThePassAloneWhenThePileIsFullAndWashInstead()
+        {
+            var (job, sink, _, pass, pile) = Kitchen(pileCapacity: 1, sinkCapacity: 1);
+            pile.Put(Dirty());
+            sink.Put(Dirty());
+            pass.Plate = Dirty();
+
+            job.Tick(1f);
+            Assert.That(job.Task, Is.EqualTo(DishwasherTask.ToSink), "washing makes room");
+            Assert.That(pass.HasDirtyPlate);
+        }
+
+        [Test]
+        public void IfThePileFillsUpOnTheWayTheyGoToTheSink()
+        {
+            var (job, sink, _, pass, pile) = Kitchen(pileCapacity: 1);
+            pass.Plate = Dirty();
+            job.Tick(1f);
+            job.Arrived();
+            pile.Put(Dirty()); // a chef got there first
+
+            job.Arrived();
+            Assert.That(job.Task, Is.EqualTo(DishwasherTask.ToSink));
+            job.Arrived();
+            Assert.That(sink.DirtyCount, Is.EqualTo(1));
+            Assert.That(job.Carried, Is.Null);
+        }
+
+        [Test]
+        public void WithEverythingFullTheyStillGetThrough()
+        {
+            var (job, sink, _, pass, pile) = Kitchen(pileCapacity: 1, sinkCapacity: 1);
+            pass.Plate = Dirty();
+            job.Tick(1f);
+            job.Arrived();
+            pile.Put(Dirty());
+            sink.Put(Dirty());
+
+            job.Arrived(); // the pile's full
+            job.Arrived(); // the sink's full: they wash to make room
+            Assert.That(job.Task, Is.EqualTo(DishwasherTask.Washing));
+
+            job.Tick(151f);
+            Assert.That(sink.CleanCount, Is.EqualTo(1));
+            Assert.That(job.Carried, Is.Not.Null, "still holding theirs");
+        }
+
+        [Test]
         public void TheyLeaveAPlateOfFoodAlone()
         {
             var sink = new Sink();
@@ -90,7 +147,7 @@ namespace Game.Tests.EditMode
             var plate = new Plate(3);
             plate.Put(new Item("Steak"));
             counter.Put(plate);
-            var job = new Dishwasher(new StaffMember(Person()), sink, new PlateStack(0, 3), new IDirtyPlateSource[] { counter }, new StaffSettings(), 1);
+            var job = new Dishwasher(new StaffMember(Person()), sink, new DirtyPile(6), new PlateStack(0, 3), new IDirtyPlateSource[] { counter }, new StaffSettings(), 1);
 
             job.Tick(1f);
             Assert.That(job.Task, Is.EqualTo(DishwasherTask.Idle));
@@ -104,7 +161,7 @@ namespace Game.Tests.EditMode
         [Test]
         public void IfAPlayerGetsThereFirstTheyDoSomethingElse()
         {
-            var (job, _, _, pass) = Kitchen();
+            var (job, _, _, pass, _) = Kitchen();
             pass.Plate = Dirty();
             job.Tick(1f);
             pass.TakeDirtyPlate();
@@ -118,7 +175,7 @@ namespace Game.Tests.EditMode
         {
             float Seconds(float speed)
             {
-                var (job, sink, _, _) = Kitchen(Person(speed: speed));
+                var (job, sink, _, _, _) = Kitchen(Person(speed: speed));
                 sink.Put(Dirty());
                 job.Tick(0f);
                 job.Arrived();
@@ -157,7 +214,7 @@ namespace Game.Tests.EditMode
             int Broken(float skill)
             {
                 var settings = new StaffSettings { WashSecondsPerPlate = 1f, FatigueMistakes = 0f, FatiguePerPlate = 0f };
-                var (job, sink, stack, _) = Kitchen(Person(skill: skill), settings, seed: 3);
+                var (job, sink, stack, _, _) = Kitchen(Person(skill: skill), settings, seed: 3);
                 for (var i = 0; i < 200; i++)
                     sink.Put(Dirty());
                 for (var i = 0; i < 2000 && (sink.DirtyCount > 0 || job.Carried != null || sink.CleanCount > 0); i++)
@@ -177,12 +234,12 @@ namespace Game.Tests.EditMode
         [Test]
         public void LettingSomeoneGoPutsTheirPlateBack()
         {
-            var (job, sink, _, pass) = Kitchen();
+            var (job, _, _, pass, pile) = Kitchen();
             pass.Plate = Dirty();
             job.Tick(1f);
             job.Arrived();
             job.PutDownCarried();
-            Assert.That(sink.DirtyCount, Is.EqualTo(1));
+            Assert.That(pile.Count, Is.EqualTo(1));
             Assert.That(job.Carried, Is.Null);
         }
 

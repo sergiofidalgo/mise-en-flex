@@ -92,6 +92,51 @@ namespace Game.Tests.EditMode
         }
 
         [Test]
+        public void TheSinkHoldsOnlySoManyPlatesDirtyOrClean()
+        {
+            var sink = new Sink(capacity: 2);
+            sink.Put(Dirty());
+            sink.Put(Dirty());
+            Assert.That(sink.CanAccept(Dirty()), Is.False, "full");
+
+            sink.Wash(1f);
+            Assert.That(sink.CanAccept(Dirty()), Is.False, "a clean plate still takes up room");
+            sink.Take();
+            Assert.That(sink.CanAccept(Dirty()));
+        }
+
+        [Test]
+        public void TheDirtyPileHasALimit()
+        {
+            var pile = new DirtyPile(2);
+            pile.Put(Dirty());
+            pile.Put(Dirty());
+            Assert.That(pile.CanAccept(Dirty()), Is.False);
+            Assert.That(pile.CanAccept(new Plate(3)), Is.False, "clean plates don't go here");
+
+            pile.Take();
+            Assert.That(pile.CanAccept(Dirty()));
+        }
+
+        [Test]
+        public void TheCleanStackHasALimit()
+        {
+            var stack = new PlateStack(2, 3, capacity: 2);
+            Assert.That(stack.CanAccept(new Plate(3)), Is.False);
+            stack.Take();
+            Assert.That(stack.CanAccept(new Plate(3)));
+        }
+
+        [Test]
+        public void ThePilesAndSinkHoldWhatTheDesignSays()
+        {
+            var equipment = UnityEditor.AssetDatabase.LoadAssetAtPath<Game.Data.EquipmentTier>("Assets/_Project/Data/Settings/EquipmentTier_Basic.asset");
+            Assert.That(equipment.DirtyPileCapacity, Is.EqualTo(6));
+            Assert.That(equipment.CleanPileCapacity, Is.EqualTo(6));
+            Assert.That(equipment.SinkCapacity, Is.EqualTo(2));
+        }
+
+        [Test]
         public void BreakingAPlateLosesItForGood()
         {
             var sink = new Sink();

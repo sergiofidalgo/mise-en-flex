@@ -29,7 +29,7 @@ namespace Game.Gameplay.Stations
         public override void Bind(KitchenServices services)
         {
             _services = services;
-            Sink = new Sink();
+            Sink = new Sink(services.Equipment.SinkCapacity);
             Sink.Received += HandleReceived;
         }
 
@@ -101,7 +101,7 @@ namespace Game.Gameplay.Stations
                 lines.Add(new PromptLine(PromptControl.West, "nothing to wash", false));
 
             if (held != null)
-                lines.Add(new PromptLine(PromptControl.South, "drop plate", Sink.CanAccept(held)));
+                lines.Add(new PromptLine(PromptControl.South, Sink.HasRoom ? "put in sink" : "sink is full", Sink.CanAccept(held)));
             else if (Sink.CanTake)
                 lines.Add(new PromptLine(PromptControl.South, $"take clean ({Sink.CleanCount})"));
         }

@@ -8,7 +8,10 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 **Decisions (user's call):**
 - **The waiter does both jobs:** takes food to the table and clears the table afterwards. There's no separate runner. Replaces the roadmap's and design doc's waiter and runner.
-- **Dirty dishes get a pile with a maximum,** just like clean plates.
+- **Dirty dishes get a pile with a maximum,** just like clean plates. The pile holds 6, the clean pile holds 6 and the sink holds 2, as three separate things. Plates go from the pass to the dirty pile, to the sink, to the clean pile, in hands or on a tray.
+- **Management mode:** during mise en place, players can switch to the cursor view with the Select button on the Xbox controller.
+
+**Note:** the kitchen owns 6 plates, so the dirty pile can't actually fill up until there are more plates. The sink's limit of 2 is what bites for now.
 
 **Reason:** One clear hire instead of two similar ones, and a full pile makes falling behind on washing up visible.
 

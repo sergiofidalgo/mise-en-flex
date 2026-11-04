@@ -20,7 +20,7 @@ namespace Game.Gameplay.Stations
         public override void Bind(KitchenServices services)
         {
             _services = services;
-            Stack = new PlateStack(services.Equipment.PlateCount, services.Equipment.PlateCapacity);
+            Stack = new PlateStack(services.Equipment.PlateCount, services.Equipment.PlateCapacity, services.Equipment.CleanPileCapacity);
             Stack.Returned += HandleReturned;
         }
 

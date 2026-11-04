@@ -11,11 +11,15 @@ namespace Game.Simulation.Items
     {
         private readonly Stack<Plate> _plates = new Stack<Plate>();
 
-        public PlateStack(int count, int plateCapacity)
+        /// <param name="capacity">The most it holds; plates beyond that have to go elsewhere.</param>
+        public PlateStack(int count, int plateCapacity, int capacity = int.MaxValue)
         {
+            Capacity = capacity;
             for (var i = 0; i < count; i++)
                 _plates.Push(new Plate(plateCapacity));
         }
+
+        public int Capacity { get; }
 
         public int Count => _plates.Count;
 
@@ -31,7 +35,7 @@ namespace Game.Simulation.Items
                 _plates.Push(new Plate(plateCapacity));
         }
 
-        public bool CanAccept(Item item) => item is Plate plate && !plate.IsDirty && plate.Items.Count == 0;
+        public bool CanAccept(Item item) => item is Plate plate && !plate.IsDirty && plate.Items.Count == 0 && _plates.Count < Capacity;
 
         public Item Take()
         {
