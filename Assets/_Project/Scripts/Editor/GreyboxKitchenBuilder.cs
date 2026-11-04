@@ -102,7 +102,10 @@ namespace Game.Editor
         private static readonly (string Name, Color Color, float Size, float Height, Vector3[] Positions)[] CounterZones =
         {
             ("Island", new Color(0.70f, 0.58f, 0.42f), CounterSize, CounterHeight,
-                new[] { new Vector3(-0.5f, 0f, 0.8f), new Vector3(0.5f, 0f, 0.8f) }),
+                new[] { new Vector3(-1.5f, 0f, 0.8f), new Vector3(-0.5f, 0f, 0.8f), new Vector3(0.5f, 0f, 0.8f), new Vector3(1.5f, 0f, 0.8f) }),
+            // Extra counters along the walls, for testing containers and trays (2026-11-04).
+            ("WallCounter", new Color(0.62f, 0.52f, 0.40f), CounterSize, CounterHeight,
+                new[] { new Vector3(4.4f, 0f, 3.4f), new Vector3(4.4f, 0f, -0.6f), new Vector3(-4.4f, 0f, -1.9f) }),
         };
 
         // The pass along the front, facing the dining side: plates put here are served and scored.

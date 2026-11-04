@@ -23,6 +23,8 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 **Returning things:** clean plates, empty trays and containers go back to their piles, and ingredients back to storage. A tray returns everything on it that fits, wherever it is on the tray. Diced onion has a fridge slot (10), so cut food can be put away too.
 
+**More counters for testing:** 8 free counters instead of 3 (a longer island and three along the walls). The final number is a design question, since counters are meant to be precious.
+
 **Not built:** shopping and choosing what to buy, so deliveries are still fixed, and leftovers can pile up.
 
 ---
