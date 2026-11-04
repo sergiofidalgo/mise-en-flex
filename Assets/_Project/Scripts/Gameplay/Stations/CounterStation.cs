@@ -16,6 +16,8 @@ namespace Game.Gameplay.Stations
         /// <summary>What's on this counter, for staff who work from it.</summary>
         public ItemSlot Slot => _slot;
 
+        public override bool IsClear => _slot.Current == null;
+
         public bool PromptAsDiamond(PlayerInteractor player) => false;
 
         public void DescribeActions(PlayerInteractor player, List<PromptLine> lines)

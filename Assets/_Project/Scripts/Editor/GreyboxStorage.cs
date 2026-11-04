@@ -18,6 +18,7 @@ namespace Game.Editor
         public sealed class Unit
         {
             public string Name;
+            public string FurnitureId;
             public Vector3 Position;
             public bool Refrigerated;
             public Color Color;
@@ -45,7 +46,7 @@ namespace Game.Editor
 
         public delegate T StationFactory<T>(string name, Vector3 position, Material material) where T : Interactable;
 
-        public static void Build(Unit unit, float height, StationFactory<StorageStation> createStation)
+        public static StorageStation Build(Unit unit, float height, StationFactory<StorageStation> createStation)
         {
             var station = createStation(unit.Name, unit.Position, GreyboxAssets.EnsureMaterial(unit.Name, unit.Color));
             var binMaterial = GreyboxAssets.EnsureMaterial("StorageBin", BinColor);
@@ -98,6 +99,7 @@ namespace Game.Editor
                 element.FindPropertyRelative("_count").intValue = unit.Deliveries[i].Count;
             }
             so.ApplyModifiedPropertiesWithoutUndo();
+            return station;
         }
     }
 }

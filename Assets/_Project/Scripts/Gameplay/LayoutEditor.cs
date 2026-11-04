@@ -1,10 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Game.Data;
 using Game.Gameplay.Customers;
 using Game.Gameplay.Staff;
 using Game.Gameplay.Stations;
 using Game.Simulation.Days;
+using Game.Simulation.Furniture;
 using Game.Simulation.Movement;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -17,7 +19,8 @@ namespace Game.Gameplay
     /// chef waits while a cursor of theirs rearranges the kitchen. A picks up and places, RB and LB
     /// rotate, B puts what's held back where it was, and Select returns to the chef. Furniture goes exactly where they put it, snapping
     /// to what's around it when close. What's on a station moves with it. Each player has their own
-    /// cursor, and two can't hold the same thing.
+    /// cursor, and two can't hold the same thing. Y opens the shop, whose furniture is carried like any
+    /// other and paid for when it goes down, and X sells what's under the cursor.
     /// </summary>
     public sealed class LayoutEditor : MonoBehaviour
     {
@@ -27,6 +30,8 @@ namespace Game.Gameplay
         private const string CancelAction = "ButtonB";
         private const string RotateLeftAction = "RotateLeft";
         private const string RotateRightAction = "RotateRight";
+        private const string ShopAction = "ButtonY";
+        private const string SellAction = "Use";
 
         public sealed class Cursor
         {
@@ -39,12 +44,20 @@ namespace Game.Gameplay
             public float Degrees;
             public Placement Result;
             public float TurnVelocity;
+
+            // Being bought: not furniture yet, and not paid for until it goes down.
+            public FurnitureCatalog.Entry Buying;
+
+            public bool ShopOpen;
+            public int ShopIndex;
+            public bool ShopStickHeld;
         }
 
         [SerializeField] private KitchenCompositionRoot _root;
         [SerializeField] private DayLoop _dayLoop;
         [SerializeField] private StaffDirector _staff;
         [SerializeField] private CustomerDirector _customers;
+        [SerializeField] private FurnitureCatalog _catalog;
 
         [Tooltip("Real metres per second the cursor moves at full stick.")]
         [SerializeField, Min(0.1f)] private float _cursorSpeed = 6f;
@@ -54,6 +67,8 @@ namespace Game.Gameplay
         [SerializeField, Min(1f)] private float _rotationStep = 45f;
         [Tooltip("How quickly what's being carried eases round to its new angle: it takes about twice this, in seconds.")]
         [SerializeField, Min(0.001f)] private float _turnSmoothing = 0.05f;
+        [Tooltip("How far the stick has to go to move down the shop's list.")]
+        [SerializeField, Range(0.1f, 1f)] private float _shopStickThreshold = 0.5f;
         [Tooltip("Half the room's width and depth, for walking.")]
         [SerializeField] private Vector2 _roomHalfSize = new Vector2(4.6f, 3.6f);
         [Tooltip("Where the centres of stations can go: lowest corner.")]
@@ -70,6 +85,10 @@ namespace Game.Gameplay
         public IEnumerable<Cursor> Cursors => _cursors.Values;
 
         public event Action LayoutChanged;
+
+        public IReadOnlyList<FurnitureCatalog.Entry> Shop => _catalog.Entries;
+
+        public bool CanAfford(FurnitureCatalog.Entry entry) => _root.Services.Days.Balance >= entry.Price;
 
         /// <summary>The station under a cursor, or null.</summary>
         public Interactable StationUnder(Cursor cursor)
@@ -118,6 +137,12 @@ namespace Game.Gameplay
                 if (!_cursors.TryGetValue(player, out var cursor))
                     continue;
 
+                if (cursor.ShopOpen)
+                {
+                    UpdateShop(cursor);
+                    continue;
+                }
+
                 var stick = player.actions[MoveAction].ReadValue<Vector2>();
                 MoveCursor(cursor, new SimVector2(stick.x, stick.y) * (_cursorSpeed * Time.unscaledDeltaTime));
 
@@ -139,6 +164,16 @@ namespace Game.Gameplay
                 else if (player.actions[CancelAction].WasPressedThisFrame())
                 {
                     Cancel(cursor);
+                }
+                else if (cursor.Held == null && player.actions[ShopAction].WasPressedThisFrame())
+                {
+                    cursor.ShopOpen = true;
+                    cursor.ShopStickHeld = true; // until it's let go, so opening doesn't also move the list
+                }
+                else if (cursor.Held == null && player.actions[SellAction].WasPressedThisFrame())
+                {
+                    if (!Sell(cursor))
+                        StationUnder(cursor)?.NotifyDenied();
                 }
             }
         }
@@ -192,7 +227,7 @@ namespace Game.Gameplay
         // the angled camera draws it away from the spot it would actually take.
         private void UpdateHeld(Cursor cursor)
         {
-            var home = Mathf.Approximately(Mathf.DeltaAngle(cursor.Degrees, cursor.HeldFromDegrees), 0f)
+            var home = cursor.Buying == null && Mathf.Approximately(Mathf.DeltaAngle(cursor.Degrees, cursor.HeldFromDegrees), 0f)
                 ? Floor(cursor.HeldFrom)
                 : (SimVector2?)null;
             cursor.Landing = _plan.Snap(cursor.Held, cursor.Position, cursor.Degrees, home);
@@ -247,11 +282,25 @@ namespace Game.Gameplay
                 return false;
 
             var station = cursor.Held;
+            var buying = cursor.Buying;
+            if (buying != null && !_root.Services.Days.TrySpend(buying.Price))
+                return false;
             station.CantGoHere = false;
             station.transform.SetPositionAndRotation(
                 new Vector3(cursor.Landing.X, cursor.HeldFrom.y, cursor.Landing.Y),
                 Quaternion.Euler(0f, cursor.Degrees, 0f));
-            _plan.Move(station, cursor.Landing, cursor.Degrees);
+            if (buying != null)
+            {
+                // Now it's furniture: it works, and everyone knows about it.
+                station.Bind(_root.Services);
+                _plan.Add(station, cursor.Landing, cursor.Degrees);
+                _root.Services.Stations.Add(station);
+                cursor.Buying = null;
+            }
+            else
+            {
+                _plan.Move(station, cursor.Landing, cursor.Degrees);
+            }
             cursor.Held = null;
             Physics.SyncTransforms();
 
@@ -268,12 +317,112 @@ namespace Game.Gameplay
             if (cursor.Held == null)
                 return;
             cursor.Held.CantGoHere = false;
-            cursor.Held.transform.SetPositionAndRotation(cursor.HeldFrom, Quaternion.Euler(0f, cursor.HeldFromDegrees, 0f));
+            if (cursor.Buying != null)
+            {
+                Destroy(cursor.Held.gameObject);
+                cursor.Buying = null;
+            }
+            else
+            {
+                cursor.Held.transform.SetPositionAndRotation(cursor.HeldFrom, Quaternion.Euler(0f, cursor.HeldFromDegrees, 0f));
+            }
             cursor.Held = null;
             cursor.Result = Placement.Ok;
         }
 
-        private Placement Check(Cursor cursor) => _plan.Check(cursor.Held, cursor.Landing, cursor.Degrees, People());
+        // The stick moves down the list, one press at a time; A buys, and B or Y closes it.
+        private void UpdateShop(Cursor cursor)
+        {
+            var actions = cursor.Player.actions;
+            if (actions[CancelAction].WasPressedThisFrame() || actions[ShopAction].WasPressedThisFrame())
+            {
+                cursor.ShopOpen = false;
+                return;
+            }
+
+            var stick = actions[MoveAction].ReadValue<Vector2>().y;
+            if (Mathf.Abs(stick) < _shopStickThreshold)
+            {
+                cursor.ShopStickHeld = false;
+            }
+            else if (!cursor.ShopStickHeld)
+            {
+                cursor.ShopStickHeld = true;
+                var count = _catalog.Entries.Length;
+                cursor.ShopIndex = (cursor.ShopIndex + (stick > 0f ? count - 1 : 1)) % count;
+            }
+
+            if (actions[PickAction].WasPressedThisFrame() && !Buy(cursor, _catalog.Entries[cursor.ShopIndex]))
+                cursor.Result = Placement.CantAfford;
+        }
+
+        /// <summary>Puts a new piece on the cursor, to be carried like any other. Nothing's paid yet.</summary>
+        /// <returns>False if the money isn't there.</returns>
+        public bool Buy(Cursor cursor, FurnitureCatalog.Entry entry)
+        {
+            if (cursor.Held != null || !CanAfford(entry))
+                return false;
+
+            var position = new Vector3(cursor.Position.X, 0f, cursor.Position.Y);
+            var instance = Instantiate(entry.Prefab, position, Quaternion.identity);
+            instance.name = entry.DisplayName;
+
+            cursor.ShopOpen = false;
+            cursor.Buying = entry;
+            cursor.Held = instance.GetComponent<Interactable>();
+            cursor.HeldFrom = position;
+            cursor.HeldFromDegrees = 0f;
+            cursor.Degrees = 0f;
+            cursor.TurnVelocity = 0f;
+            UpdateHeld(cursor);
+            return true;
+        }
+
+        /// <summary>What's stopping this being sold right now, if anything.</summary>
+        public SaleProblem SaleProblemOf(Cursor cursor, Interactable station)
+        {
+            var entry = _catalog.Find(station.FurnitureId);
+            var carried = _cursors.Values.Any(other => other.Held == station);
+            var howMany = _root.Services.Stations.All.Count(other => other.FurnitureId == station.FurnitureId);
+            return FurnitureRules.CheckSale(entry != null, station.IsClear, carried || _staff.IsHeadedTo(station), entry != null && entry.KeepOne, howMany);
+        }
+
+        /// <summary>What selling this would pay.</summary>
+        public float SellPriceOf(Interactable station)
+        {
+            var entry = _catalog.Find(station.FurnitureId);
+            return entry != null ? FurnitureRules.SellPrice(entry.Price, _catalog.SellFraction) : 0f;
+        }
+
+        /// <summary>Sells what's under the cursor, if it can be sold.</summary>
+        public bool Sell(Cursor cursor)
+        {
+            var station = StationUnder(cursor);
+            if (station == null || cursor.Held != null || SaleProblemOf(cursor, station) != SaleProblem.None)
+                return false;
+
+            var services = _root.Services;
+            services.Days.Receive(SellPriceOf(station));
+
+            // Morning deliveries need somewhere to go; there's always another, as the last can't be sold.
+            if (station is StorageStation storage)
+                storage.PassDeliveriesTo(services.Stations.All.OfType<StorageStation>().First(other => other != storage && other.FurnitureId == storage.FurnitureId));
+
+            station.Retire(services);
+            services.Stations.Remove(station);
+            _plan.Remove(station);
+            station.gameObject.SetActive(false); // gone this frame, for anything looking before it's destroyed
+            Destroy(station.gameObject);
+            Physics.SyncTransforms();
+            LayoutChanged?.Invoke();
+            return true;
+        }
+
+        private Placement Check(Cursor cursor)
+        {
+            var result = _plan.Check(cursor.Held, cursor.Landing, cursor.Degrees, People());
+            return result == Placement.Ok && cursor.Buying != null && !CanAfford(cursor.Buying) ? Placement.CantAfford : result;
+        }
 
         private IEnumerable<SimVector2> People()
         {

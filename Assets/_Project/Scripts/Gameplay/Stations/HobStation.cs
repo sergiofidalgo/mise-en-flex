@@ -23,6 +23,17 @@ namespace Game.Gameplay.Stations
 
         public bool PromptAsDiamond(PlayerInteractor player) => false;
 
+        // Its own pan goes with it, so the pan has to be home and empty.
+        public override bool IsClear => Hob?.Pan != null && Hob.Pan.Contents.Count == 0;
+
+        public override void Retire(KitchenServices services)
+        {
+            var pan = Hob.Pan;
+            services.ItemViews.Release(pan);
+            services.Cooking.Remove(pan);
+            services.Cooking.Remove(Hob);
+        }
+
         public override void Bind(KitchenServices services)
         {
             _services = services;

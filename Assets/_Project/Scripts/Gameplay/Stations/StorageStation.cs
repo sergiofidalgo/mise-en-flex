@@ -55,6 +55,15 @@ namespace Game.Gameplay.Stations
 
         public bool IsRefrigerated => _refrigerated;
 
+        public override bool IsClear => _unit != null && _unit.Slots.All(slot => slot.Count == 0);
+
+        /// <summary>This one's being sold: what arrives here each morning arrives there instead.</summary>
+        public void PassDeliveriesTo(StorageStation other)
+        {
+            other._deliveries = other._deliveries.Concat(_deliveries).ToArray();
+            _deliveries = Array.Empty<Delivery>();
+        }
+
         public override IItemContainer Container => _container;
 
         public bool PromptAsDiamond(PlayerInteractor player) => player.IsSlotMenuOpen;

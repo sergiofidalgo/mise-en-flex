@@ -16,7 +16,7 @@ namespace Game.Editor
         private static readonly Color BodyColor = new Color(0.30f, 0.62f, 0.55f);
         private static readonly Vector3 CarryPosition = new Vector3(0f, 1.0f, 0.42f);
 
-        public static void Build(KitchenCompositionRoot root)
+        public static void Build(KitchenCompositionRoot root, Game.Data.FurnitureCatalog furniture)
         {
             var zone = new GameObject("Zone_Staff");
             var spawn = new GameObject("StaffSpawn").transform;
@@ -38,6 +38,7 @@ namespace Game.Editor
             editor.FindProperty("_dayLoop").objectReferenceValue = root.GetComponent<DayLoop>();
             editor.FindProperty("_staff").objectReferenceValue = zone.GetComponent<StaffDirector>();
             editor.FindProperty("_customers").objectReferenceValue = Object.FindFirstObjectByType<CustomerDirector>();
+            editor.FindProperty("_catalog").objectReferenceValue = furniture;
             editor.ApplyModifiedPropertiesWithoutUndo();
 
             var directorLink = new SerializedObject(zone.GetComponent<StaffDirector>());

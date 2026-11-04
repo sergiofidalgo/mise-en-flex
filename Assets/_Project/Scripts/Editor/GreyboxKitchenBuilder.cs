@@ -27,6 +27,19 @@ namespace Game.Editor
         private const string RealismPath = SettingsFolder + "/RealismSettings.asset";
         private const string ServiceConfigPath = SettingsFolder + "/ServiceConfig.asset";
         private const string StaffConfigPath = SettingsFolder + "/StaffConfig.asset";
+        private const string FurnitureCatalogPath = SettingsFolder + "/FurnitureCatalog.asset";
+        private const string FurniturePrefabFolder = "Assets/_Project/Prefabs/Furniture";
+
+        // Furniture ids, and what each costs the first time the catalogue is created. After that the
+        // asset is what's tuned.
+        private const string CounterFurniture = "counter";
+        private const string HobFurniture = "hob";
+        private const string FridgeFurniture = "fridge";
+        private const string ShelfFurniture = "shelf";
+        private const float CounterPrice = 30f;
+        private const float HobPrice = 80f;
+        private const float ShelfPrice = 60f;
+        private const float FridgePrice = 120f;
         private const string PlayerPrefabPath = "Assets/_Project/Prefabs/PF_Player.prefab";
         private const string ScenePath = "Assets/_Project/Scenes/Kitchen_Greybox.unity";
         private const string JoinActionPath = "Gameplay/Join";
@@ -81,14 +94,14 @@ namespace Game.Editor
         {
             new GreyboxStorage.Unit
             {
-                Name = "Fridge", Position = new Vector3(-4.4f, 0f, 1.0f), Refrigerated = true,
+                Name = "Fridge", FurnitureId = FridgeFurniture, Position = new Vector3(-4.4f, 0f, 1.0f), Refrigerated = true,
                 Color = new Color(0.86f, 0.92f, 0.96f),
                 SlotCapacity = 6,
                 Deliveries = new[] { ("Steak", 18) },
             },
             new GreyboxStorage.Unit
             {
-                Name = "Shelf", Position = new Vector3(-4.4f, 0f, -0.6f), Refrigerated = false,
+                Name = "Shelf", FurnitureId = ShelfFurniture, Position = new Vector3(-4.4f, 0f, -0.6f), Refrigerated = false,
                 Color = new Color(0.58f, 0.43f, 0.28f),
                 SlotCapacity = 6,
                 Deliveries = new[] { ("Onion", 8) },
@@ -181,6 +194,7 @@ namespace Game.Editor
             };
             SetMenu(assets.ServiceConfig, assets.Catalog);
             assets.PlayerPrefab = BuildPlayerPrefab(assets.Settings, assets.Tuning);
+            assets.Furniture = BuildFurniture();
             BuildScene(scene, assets);
             AssetDatabase.SaveAssets();
             Debug.Log($"[GreyboxKitchenBuilder] Built {PlayerPrefabPath}, ingredients and {ScenePath}.");
@@ -194,6 +208,7 @@ namespace Game.Editor
             public RealismSettings Realism;
             public ServiceConfig ServiceConfig;
             public StaffConfig StaffConfig;
+            public FurnitureCatalog Furniture;
             public ItemCatalog Catalog;
             public GameObject PlayerPrefab;
         }
@@ -330,7 +345,7 @@ namespace Game.Editor
             root.gameObject.AddComponent<QualityCardOverlay>();
             SetReference(root.gameObject.AddComponent<DayLoop>(), "_root", root);
             GreyboxService.Build(PassPositions, root);
-            GreyboxStaff.Build(root);
+            GreyboxStaff.Build(root, assets.Furniture);
 
             GreyboxHud.BuildCanvas(GreyboxHud.EnsureStyle(), settings, root, assets.Catalog);
 
@@ -384,7 +399,7 @@ namespace Game.Editor
                 for (var i = 0; i < zone.Positions.Length; i++)
                 {
                     CreateStation<CounterStation>(
-                        $"{zone.Name}_{i + 1:00}", zone.Positions[i], zone.Size, zone.Height, material, zoneRoot);
+                        $"{zone.Name}_{i + 1:00}", zone.Positions[i], zone.Size, zone.Height, material, zoneRoot, CounterFurniture);
                 }
             }
 
@@ -446,7 +461,7 @@ namespace Game.Editor
             foreach (var unit in StorageUnits)
             {
                 GreyboxStorage.Build(unit, CounterHeight, (name, position, material) =>
-                    CreateStation<StorageStation>(name, position, CounterSize, CounterHeight, material, storage));
+                    CreateStation<StorageStation>(name, position, CounterSize, CounterHeight, material, storage, unit.FurnitureId));
             }
         }
 
@@ -476,9 +491,9 @@ namespace Game.Editor
         // A hob: counter body, a burner ring that glows with the dial around the pan, and heat
         // pips along the back of the top.
         // Its pan is a separate, carryable item created at runtime.
-        private static void CreateHob(string name, Vector3 position, Material material, Transform parent)
+        private static HobStation CreateHob(string name, Vector3 position, Material material, Transform parent)
         {
-            var hob = CreateStation<HobStation>(name, position, CounterSize, CounterHeight, material, parent);
+            var hob = CreateStation<HobStation>(name, position, CounterSize, CounterHeight, material, parent, HobFurniture);
             var top = CounterHeight;
 
             var burner = GreyboxAssets.CreatePrimitive(
@@ -517,6 +532,7 @@ namespace Game.Editor
             for (var i = 0; i < pips.Length; i++)
                 pipList.GetArrayElementAtIndex(i).objectReferenceValue = pips[i];
             viewSo.ApplyModifiedPropertiesWithoutUndo();
+            return hob;
         }
 
         private static void CreateRack(string name, RackStation.RackKind kind, Vector3 position, int discs, Color color, Transform parent)
@@ -540,7 +556,7 @@ namespace Game.Editor
         }
 
         private static T CreateStation<T>(
-            string name, Vector3 position, float size, float height, Material material, Transform parent)
+            string name, Vector3 position, float size, float height, Material material, Transform parent, string furnitureId = "")
             where T : Interactable
         {
             var root = new GameObject(name).transform;
@@ -561,6 +577,9 @@ namespace Game.Editor
 
             var station = root.gameObject.AddComponent<T>();
             SetReference(station, "_itemAnchor", anchor);
+            var stationSo = new SerializedObject(station);
+            stationSo.FindProperty("_furnitureId").stringValue = furnitureId;
+            stationSo.ApplyModifiedPropertiesWithoutUndo();
 
             var highlight = root.gameObject.AddComponent<InteractableHighlightView>();
             var so = new SerializedObject(highlight);
@@ -572,6 +591,73 @@ namespace Game.Editor
             so.ApplyModifiedPropertiesWithoutUndo();
 
             return station;
+        }
+
+        // What can be bought: built the same way as the starting kitchen, saved as prefabs. Prices are
+        // only set when an entry is first made, so tuning in the asset survives a rebuild.
+        private static FurnitureCatalog BuildFurniture()
+        {
+            GreyboxAssets.EnsureFolder(FurniturePrefabFolder);
+            var island = CounterZones[0];
+
+            var counter = SaveFurniture(CreateStation<CounterStation>(
+                "PF_Counter", Vector3.zero, CounterSize, CounterHeight, GreyboxAssets.EnsureMaterial(island.Name, island.Color), null, CounterFurniture));
+            var hob = SaveFurniture(CreateHob("PF_Hob", Vector3.zero, GreyboxAssets.EnsureMaterial("Hob", HobColor), null));
+            var fridge = SaveFurniture(BuildStorageForSale("PF_Fridge", StorageUnits[0]));
+            var shelf = SaveFurniture(BuildStorageForSale("PF_Shelf", StorageUnits[1]));
+
+            var catalog = GreyboxAssets.EnsureAsset<FurnitureCatalog>(FurnitureCatalogPath);
+            var so = new SerializedObject(catalog);
+            var entries = so.FindProperty("_entries");
+            SetFurniture(entries, CounterFurniture, "Counter", CounterPrice, keepOne: false, counter);
+            SetFurniture(entries, HobFurniture, "Hob", HobPrice, keepOne: true, hob);
+            SetFurniture(entries, ShelfFurniture, "Shelf", ShelfPrice, keepOne: true, shelf);
+            SetFurniture(entries, FridgeFurniture, "Fridge", FridgePrice, keepOne: true, fridge);
+            so.ApplyModifiedPropertiesWithoutUndo();
+            AssetDatabase.SaveAssets();
+            return catalog;
+        }
+
+        // The same as the starting unit, without its morning delivery.
+        private static StorageStation BuildStorageForSale(string name, GreyboxStorage.Unit unit)
+        {
+            var forSale = new GreyboxStorage.Unit
+            {
+                Name = unit.Name, FurnitureId = unit.FurnitureId, Position = Vector3.zero,
+                Refrigerated = unit.Refrigerated, Color = unit.Color, SlotCapacity = unit.SlotCapacity,
+            };
+            var station = GreyboxStorage.Build(forSale, CounterHeight, (stationName, position, material) =>
+                CreateStation<StorageStation>(stationName, position, CounterSize, CounterHeight, material, null, unit.FurnitureId));
+            station.name = name;
+            return station;
+        }
+
+        private static GameObject SaveFurniture(Interactable station)
+        {
+            var prefab = PrefabUtility.SaveAsPrefabAsset(station.gameObject, $"{FurniturePrefabFolder}/{station.name}.prefab");
+            Object.DestroyImmediate(station.gameObject);
+            return prefab;
+        }
+
+        private static void SetFurniture(SerializedProperty entries, string id, string displayName, float price, bool keepOne, GameObject prefab)
+        {
+            for (var i = 0; i < entries.arraySize; i++)
+            {
+                var existing = entries.GetArrayElementAtIndex(i);
+                if (existing.FindPropertyRelative("_id").stringValue == id)
+                {
+                    existing.FindPropertyRelative("_prefab").objectReferenceValue = prefab;
+                    return;
+                }
+            }
+
+            entries.arraySize++;
+            var entry = entries.GetArrayElementAtIndex(entries.arraySize - 1);
+            entry.FindPropertyRelative("_id").stringValue = id;
+            entry.FindPropertyRelative("_displayName").stringValue = displayName;
+            entry.FindPropertyRelative("_price").floatValue = price;
+            entry.FindPropertyRelative("_keepOne").boolValue = keepOne;
+            entry.FindPropertyRelative("_prefab").objectReferenceValue = prefab;
         }
 
         private static void SetReference(Object target, string field, Object value)

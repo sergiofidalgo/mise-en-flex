@@ -10,6 +10,7 @@ namespace Game.Simulation.Movement
         OutsideTheKitchen,
         OnAnotherStation,
         SomeoneInTheWay,
+        CantAfford,
     }
 
     /// <summary>

@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using Game.Data;
 using Game.Gameplay;
 using Game.Gameplay.Stations;
+using Game.Simulation.Furniture;
 using Game.Simulation.Movement;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -21,6 +22,7 @@ namespace Game.Presentation.Hud
         [SerializeField] private HudStyle _style;
         [SerializeField] private LayoutEditor _editor;
         [SerializeField] private CoopSettings _settings;
+        [SerializeField] private KitchenCompositionRoot _root;
         [SerializeField] private GameObject _framePrefab;
         [SerializeField] private Color _blocked = new Color(0.95f, 0.30f, 0.26f);
         [Tooltip("Metres above the floor where the label sits.")]
@@ -78,6 +80,9 @@ namespace Game.Presentation.Hud
 
         private string Text(LayoutEditor.Cursor cursor)
         {
+            if (cursor.ShopOpen)
+                return ShopText(cursor);
+
             if (cursor.Held != null)
             {
                 var problem = cursor.Result switch
@@ -85,6 +90,7 @@ namespace Game.Presentation.Hud
                     Placement.OutsideTheKitchen => "outside the kitchen",
                     Placement.OnAnotherStation => "something's there",
                     Placement.SomeoneInTheWay => "someone's in the way",
+                    Placement.CantAfford => "not enough money",
                     _ => null,
                 };
                 return problem != null
@@ -92,11 +98,44 @@ namespace Game.Presentation.Hud
                     : $"{Glyph(PromptControl.South)} place   [LB/RB] rotate   {Glyph(PromptControl.East)} cancel";
             }
 
+            var always = $"{Glyph(PromptControl.North)} shop   [Select] back to chef";
             var under = _editor.StationUnder(cursor);
-            return under != null
-                ? $"{Glyph(PromptControl.South)} move {under.name}   [Select] back to chef"
-                : "[Select] back to chef";
+            if (under == null)
+                return always;
+            var sale = SaleText(cursor, under);
+            return $"{Glyph(PromptControl.South)} move {under.name}{(sale != null ? "   " + sale : "")}\n{always}";
         }
+
+        private string SaleText(LayoutEditor.Cursor cursor, Interactable station)
+        {
+            var problem = _editor.SaleProblemOf(cursor, station) switch
+            {
+                SaleProblem.NotForSale => "",
+                SaleProblem.NotEmpty => "clear it to sell",
+                SaleProblem.InUse => "in use",
+                SaleProblem.LastOne => "your last one",
+                _ => null,
+            };
+            if (problem == null)
+                return $"{Glyph(PromptControl.West)} sell {Money(_editor.SellPriceOf(station))}";
+            return problem.Length > 0 ? HudStyle.Colored(problem, _blocked) : null;
+        }
+
+        private string ShopText(LayoutEditor.Cursor cursor)
+        {
+            var text = new System.Text.StringBuilder();
+            text.AppendLine($"{Money(_root.Services.Days.Balance)} to spend");
+            for (var i = 0; i < _editor.Shop.Count; i++)
+            {
+                var entry = _editor.Shop[i];
+                var line = $"{(i == cursor.ShopIndex ? "> " : "  ")}{entry.DisplayName}  {Money(entry.Price)}";
+                text.AppendLine(_editor.CanAfford(entry) ? line : HudStyle.Colored(line, _blocked));
+            }
+            text.Append($"{Glyph(PromptControl.South)} buy   {Glyph(PromptControl.East)} close");
+            return text.ToString();
+        }
+
+        private string Money(float amount) => $"{_root.Services.ServiceConfig.Currency}{amount:0}";
 
         private static string Glyph(PromptControl control) =>
             $"[{HudStyle.Glyph(control, true)}]";

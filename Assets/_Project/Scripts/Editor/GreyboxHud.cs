@@ -100,6 +100,7 @@ namespace Game.Editor
             layoutHud.FindProperty("_style").objectReferenceValue = style;
             layoutHud.FindProperty("_editor").objectReferenceValue = Object.FindFirstObjectByType<LayoutEditor>();
             layoutHud.FindProperty("_settings").objectReferenceValue = settings;
+            layoutHud.FindProperty("_root").objectReferenceValue = root;
             layoutHud.FindProperty("_framePrefab").objectReferenceValue = GreyboxStaff.BuildCursorFrame();
             layoutHud.ApplyModifiedPropertiesWithoutUndo();
 

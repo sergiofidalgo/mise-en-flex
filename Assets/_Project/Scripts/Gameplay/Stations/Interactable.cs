@@ -14,6 +14,9 @@ namespace Game.Gameplay.Stations
         [Tooltip("Where items on this station sit (e.g. the counter top).")]
         [SerializeField] private Transform _itemAnchor;
 
+        [Tooltip("Its entry in the furniture catalogue. Empty: it isn't for sale.")]
+        [SerializeField] private string _furnitureId;
+
         private readonly List<PlayerInteractor> _targeters = new List<PlayerInteractor>();
         private bool _cantGoHere;
 
@@ -21,6 +24,16 @@ namespace Game.Gameplay.Stations
         public abstract IItemContainer Container { get; }
 
         public Transform ItemAnchor => _itemAnchor;
+
+        public string FurnitureId => _furnitureId;
+
+        /// <summary>True if nothing would be lost by selling it.</summary>
+        public virtual bool IsClear => false;
+
+        /// <summary>It's been sold: anything it added to the simulation goes with it.</summary>
+        public virtual void Retire(KitchenServices services)
+        {
+        }
 
         public bool IsTargeted => _targeters.Count > 0;
 
