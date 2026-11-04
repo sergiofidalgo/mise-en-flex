@@ -9,8 +9,8 @@ using UnityEngine.InputSystem;
 namespace Game.Presentation.Hud
 {
     /// <summary>
-    /// Each player's cursor in management mode: a frame on the floor in their colour, red where a
-    /// carried station can't go, with a short label of what the buttons do there and why not.
+    /// Each player's cursor in management mode: a frame on the floor in their colour while choosing
+    /// what to pick up, with a short label of what the buttons do there and why not.
     /// Only Xbox buttons are named, whatever the player is using (decision 2026-11-04).
     /// </summary>
     public sealed class LayoutEditorHud : MonoBehaviour
@@ -47,9 +47,10 @@ namespace Game.Presentation.Hud
                     _views[cursor.Player] = view;
                 }
 
-                var blocked = cursor.Held != null && cursor.Result != Placement.Ok;
+                // What's carried shows for itself, turning red where it can't go; the frame is for choosing.
+                view.Frame.SetActive(cursor.Held == null);
                 var position = cursor.Held != null ? cursor.Landing : cursor.Position;
-                var color = blocked ? _blocked : _settings.GetPlayerColor(cursor.Player.playerIndex);
+                var color = _settings.GetPlayerColor(cursor.Player.playerIndex);
                 view.Frame.transform.position = new Vector3(position.X, 0.02f, position.Y);
                 foreach (var part in view.Frame.GetComponentsInChildren<Renderer>())
                 {
@@ -84,7 +85,7 @@ namespace Game.Presentation.Hud
                     Placement.OutsideTheKitchen => "outside the kitchen",
                     Placement.OnAnotherStation => "something's there",
                     Placement.SomeoneInTheWay => "someone's in the way",
-                    Placement.BlocksAStation => "that would block a station",
+                    Placement.BlocksAStation => "that would block something",
                     _ => null,
                 };
                 return problem != null

@@ -96,17 +96,29 @@ namespace Game.Simulation.Movement
         /// </summary>
         public bool EveryStationCanBeReached(IReadOnlyList<Footprint> stations, IEnumerable<Vector2> people = null)
         {
-            var spots = new List<int>();
+            var spots = new List<Vector2>();
             foreach (var station in stations)
             {
                 var spot = StandingSpot(station);
                 if (!spot.HasValue)
                     return false;
-                var cell = NearestFreeCell(spot.Value);
+                spots.Add(spot.Value);
+            }
+            return AreConnected(spots, people);
+        }
+
+        /// <summary>True if all these places, and everyone standing around, connect on foot.</summary>
+        public bool AreConnected(IEnumerable<Vector2> places, IEnumerable<Vector2> people = null)
+        {
+            var spots = new List<int>();
+            foreach (var place in places)
+            {
+                var cell = NearestFreeCell(place);
                 if (cell < 0)
                     return false;
                 spots.Add(cell);
             }
+
             if (people != null)
             {
                 foreach (var person in people)

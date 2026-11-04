@@ -23,6 +23,8 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 - **Placements are refused** outside the kitchen, on another station, on a person, or if they'd cut off a station or wall someone in. The reason shows at the cursor.
 - **The pass only slides along its row,** and its stool follows, because customers sit on the dining side.
 - **The pass doesn't turn,** since it faces the stools.
+- **Work stations have a front (user's call: a boxed-in hob can't be allowed).** Hobs, the board, the sink, the fridge and the shelf need the side facing the room kept clear, and that side turns with them. Counters, piles and racks only need some side free.
+- **What's carried turns red where it can't go (user's call),** and the floor frame only shows while choosing what to pick up.
 - **Service stops rearranging:** management mode isn't available during Service or Review.
 
 ---

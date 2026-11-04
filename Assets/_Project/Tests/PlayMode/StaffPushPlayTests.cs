@@ -127,7 +127,9 @@ namespace Game.Tests.PlayMode
             var cursor = editor.Enter(_player);
             cursor.Position = new System.Numerics.Vector2(start.x, start.z);
             editor.PickUp(cursor);
-            editor.MoveCursor(cursor, new System.Numerics.Vector2(0f, -1.35f)); // open floor, clear of the island
+            // Open floor south-east of the island: its front and everyone else's stay clear, even turned.
+            var away = new System.Numerics.Vector2(2.5f - start.x, -0.4f - start.z);
+            editor.MoveCursor(cursor, away);
             Assert.That(editor.Place(cursor), Is.True, cursor.Result.ToString());
 
             editor.PickUp(cursor);
@@ -138,7 +140,7 @@ namespace Game.Tests.PlayMode
 
             editor.PickUp(cursor);
             editor.Rotate(cursor, -45f);
-            editor.MoveCursor(cursor, new System.Numerics.Vector2(0.05f, 1.3f)); // nearly home: it snaps into line
+            editor.MoveCursor(cursor, new System.Numerics.Vector2(0.05f - away.X, -away.Y)); // nearly home: it snaps into line
             Assert.That(editor.Place(cursor), Is.True, cursor.Result.ToString());
             yield return null;
 

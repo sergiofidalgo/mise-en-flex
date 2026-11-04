@@ -89,6 +89,13 @@ namespace Game.Gameplay
                 _snapRange, _stationHalfSize, _walkerRadius, _standDistance);
             foreach (var station in FindObjectsByType<Interactable>(FindObjectsSortMode.None))
                 _plan.Add(station, Floor(station.transform.position), station.transform.eulerAngles.y, rowLocked: station is PassStation);
+
+            // What a chef works facing one side of needs that side clear; a counter or pile doesn't.
+            foreach (var station in FindObjectsByType<Interactable>(FindObjectsSortMode.None))
+            {
+                if (station is HobStation || station is PrepStation || station is SinkStation || station is StorageStation)
+                    _plan.GiveFront(station);
+            }
         }
 
         private void Update()
@@ -195,6 +202,7 @@ namespace Game.Gameplay
                 : (SimVector2?)null;
             cursor.Landing = _plan.Snap(cursor.Held, cursor.Position, cursor.Degrees, home);
             cursor.Result = Check(cursor);
+            cursor.Held.CantGoHere = cursor.Result != Placement.Ok;
             cursor.Held.transform.SetPositionAndRotation(
                 new Vector3(cursor.Landing.X, cursor.HeldFrom.y + _liftHeight, cursor.Landing.Y),
                 Quaternion.Euler(0f, cursor.Degrees, 0f));
@@ -233,6 +241,7 @@ namespace Game.Gameplay
                 return false;
 
             var station = cursor.Held;
+            station.CantGoHere = false;
             station.transform.SetPositionAndRotation(
                 new Vector3(cursor.Landing.X, cursor.HeldFrom.y, cursor.Landing.Y),
                 Quaternion.Euler(0f, cursor.Degrees, 0f));
@@ -252,6 +261,7 @@ namespace Game.Gameplay
         {
             if (cursor.Held == null)
                 return;
+            cursor.Held.CantGoHere = false;
             cursor.Held.transform.SetPositionAndRotation(cursor.HeldFrom, Quaternion.Euler(0f, cursor.HeldFromDegrees, 0f));
             cursor.Held = null;
             cursor.Result = Placement.Ok;

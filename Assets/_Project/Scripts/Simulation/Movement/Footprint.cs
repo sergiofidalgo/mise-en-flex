@@ -36,6 +36,9 @@ namespace Game.Simulation.Movement
             }
         }
 
+        /// <summary>A direction given relative to the station (x along its right, y along its forward), on the floor.</summary>
+        public Vector2 Direction(Vector2 local) => Right * local.X + Forward * local.Y;
+
         /// <summary>True if the point is within this square, grown by <paramref name="margin"/>.</summary>
         public bool Contains(Vector2 point, float halfSize, float margin = 0f)
         {

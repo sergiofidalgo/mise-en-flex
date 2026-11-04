@@ -23,6 +23,7 @@ namespace Game.Simulation.Movement
     {
         private readonly Dictionary<object, Footprint> _pieces = new Dictionary<object, Footprint>();
         private readonly HashSet<object> _rowLocked = new HashSet<object>();
+        private readonly Dictionary<object, Vector2> _fronts = new Dictionary<object, Vector2>();
         private readonly Vector2 _roomHalfSize;
         private readonly Vector2 _areaMin;
         private readonly Vector2 _areaMax;
@@ -52,6 +53,31 @@ namespace Game.Simulation.Movement
             _pieces[piece] = new Footprint(position, degrees);
             if (rowLocked)
                 _rowLocked.Add(piece);
+        }
+
+        /// <summary>
+        /// Gives a piece a front: the side a chef works it from, which has to stay clear wherever it
+        /// goes. A hob boxed in on that side can't be used (decision 2026-11-04), whereas a plain
+        /// counter can be reached from any side. It's the side facing the room right now, and it
+        /// turns with the piece.
+        /// </summary>
+        public void GiveFront(object piece)
+        {
+            var footprint = _pieces[piece];
+            var spot = Layout(_pieces.Values).StandingSpot(footprint);
+            if (!spot.HasValue)
+                return;
+            var offset = (spot.Value - footprint.Centre) / _standDistance;
+            _fronts[piece] = new Vector2(Vector2.Dot(offset, footprint.Right), Vector2.Dot(offset, footprint.Forward));
+        }
+
+        /// <summary>Where a chef stands to work a piece that has a front; null if it hasn't one.</summary>
+        public Vector2? FrontOf(object piece)
+        {
+            if (!_fronts.TryGetValue(piece, out var front))
+                return null;
+            var footprint = _pieces[piece];
+            return footprint.Centre + footprint.Direction(front) * _standDistance;
         }
 
         public Vector2 PositionOf(object piece) => _pieces[piece].Centre;
@@ -193,9 +219,33 @@ namespace Game.Simulation.Movement
             var footprints = new List<Footprint>();
             foreach (var pair in _pieces)
                 footprints.Add(pair.Key == piece ? moved : pair.Value);
-            var layout = new StationLayout(footprints, _roomHalfSize, _stationHalfSize, _walkerRadius, _standDistance);
-            return layout.EveryStationCanBeReached(footprints, people) ? Placement.Ok : Placement.BlocksAStation;
+            var layout = Layout(footprints);
+
+            // Everything needs somewhere to stand: its front if it has one, otherwise any side.
+            var places = new List<Vector2>();
+            foreach (var pair in _pieces)
+            {
+                var footprint = pair.Key == piece ? moved : pair.Value;
+                Vector2? place;
+                if (_fronts.TryGetValue(pair.Key, out var front))
+                {
+                    var point = footprint.Centre + footprint.Direction(front) * _standDistance;
+                    place = layout.IsFree(point) ? point : (Vector2?)null;
+                }
+                else
+                {
+                    place = layout.StandingSpot(footprint);
+                }
+
+                if (!place.HasValue)
+                    return Placement.BlocksAStation;
+                places.Add(place.Value);
+            }
+            return layout.AreConnected(places, people) ? Placement.Ok : Placement.BlocksAStation;
         }
+
+        private StationLayout Layout(IEnumerable<Footprint> footprints) =>
+            new StationLayout(footprints, _roomHalfSize, _stationHalfSize, _walkerRadius, _standDistance);
 
         public void Move(object piece, Vector2 position, float degrees) => _pieces[piece] = new Footprint(position, degrees);
     }

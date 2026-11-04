@@ -15,6 +15,7 @@ namespace Game.Gameplay.Stations
         [SerializeField] private Transform _itemAnchor;
 
         private readonly List<PlayerInteractor> _targeters = new List<PlayerInteractor>();
+        private bool _cantGoHere;
 
         /// <summary>What Interact takes from and puts into. Null until bound.</summary>
         public abstract IItemContainer Container { get; }
@@ -27,6 +28,19 @@ namespace Game.Gameplay.Stations
         public int TargeterPlayerIndex => _targeters.Count > 0 ? _targeters[_targeters.Count - 1].PlayerIndex : -1;
 
         public event Action HighlightChanged;
+
+        /// <summary>Being carried in management mode, somewhere it can't be put down.</summary>
+        public bool CantGoHere
+        {
+            get => _cantGoHere;
+            set
+            {
+                if (_cantGoHere == value)
+                    return;
+                _cantGoHere = value;
+                HighlightChanged?.Invoke();
+            }
+        }
 
         /// <summary>Raised when Interact or Use was pressed on this but nothing could happen.</summary>
         public event Action Denied;

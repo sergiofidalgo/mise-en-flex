@@ -169,6 +169,64 @@ namespace Game.Tests.EditMode
             Assert.That(plan.Check(last, new Vector2(0f, 0f), 0f, new[] { new Vector2(0f, -2f) }), Is.EqualTo(Placement.BlocksAStation), "a chef would be");
         }
 
+        // Three hobs along the north wall, working from the south.
+        private static (KitchenPlan Plan, object Left, object Right) HobsOnTheWall()
+        {
+            var plan = Plan();
+            var left = new object();
+            var middle = new object();
+            var right = new object();
+            plan.Add(left, new Vector2(1f, 3.4f));
+            plan.Add(middle, new Vector2(2f, 3.4f));
+            plan.Add(right, new Vector2(3f, 3.4f));
+            plan.GiveFront(left);
+            plan.GiveFront(middle);
+            plan.GiveFront(right);
+            return (plan, left, right);
+        }
+
+        [Test]
+        public void AHobsFrontFacesTheRoom()
+        {
+            var (plan, left, _) = HobsOnTheWall();
+            var front = plan.FrontOf(left).Value;
+            Assert.That((front - new Vector2(1f, 2.55f)).Length(), Is.LessThan(0.001f));
+        }
+
+        [Test]
+        public void AHobCantBeBoxedInByAnotherHob()
+        {
+            // The reported layout: an L of hobs, with the corner hob's front blocked.
+            var (plan, _, right) = HobsOnTheWall();
+            Assert.That(plan.Check(right, new Vector2(1f, 2.4f), 0f, Nobody), Is.EqualTo(Placement.BlocksAStation));
+        }
+
+        [Test]
+        public void TurningAHobTurnsItsFront()
+        {
+            var plan = Plan();
+            var hob = new object();
+            plan.Add(hob, new Vector2(0f, 3.4f));
+            plan.GiveFront(hob);
+            plan.Move(hob, new Vector2(0f, 0f), 90f);
+
+            var front = plan.FrontOf(hob).Value;
+            Assert.That(Vector2.Dot(front, Vector2.UnitY), Is.EqualTo(0f).Within(0.001f), "no longer south");
+            Assert.That(front.Length(), Is.EqualTo(0.85f).Within(0.001f));
+        }
+
+        [Test]
+        public void ACounterCanStillBeReachedFromAnySide()
+        {
+            var plan = Plan();
+            var counter = new object();
+            var other = new object();
+            plan.Add(counter, new Vector2(1f, 3.4f));
+            plan.Add(other, new Vector2(3f, 1f));
+            // Right in front of the counter: fine, it has other sides.
+            Assert.That(plan.Check(other, new Vector2(1f, 2.4f), 0f, Nobody), Is.EqualTo(Placement.Ok));
+        }
+
         [Test]
         public void ATurnedStationTakesUpItsOwnShape()
         {
