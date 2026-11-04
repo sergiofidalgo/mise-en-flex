@@ -172,6 +172,8 @@ namespace Game.Presentation
             if (waiting.Count > 0)
                 GUILayout.Label("patience  " + string.Join("   ", waiting.Select(c =>
                     $"#{c.Id} {Coloured($"{c.Patience:P0}", c.Patience > 0.4f ? Good : c.Patience > 0.15f ? Warn : Bad)}")), _text);
+            foreach (var member in services.Staff.Hired)
+                GUILayout.Label($"{member.Name}: morale {(member.Morale < 0f ? "new" : $"{member.Morale:P0}")}   fatigue {member.Fatigue:P0}   jobs {member.JobsToday}   mistakes {member.MistakesToday}", _text);
             DrawSatisfaction(service, currency);
             DrawReviews(service);
         }

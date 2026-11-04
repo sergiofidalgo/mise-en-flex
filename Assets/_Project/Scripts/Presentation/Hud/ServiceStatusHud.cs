@@ -127,7 +127,7 @@ namespace Game.Presentation.Hud
             plan.AppendLine();
 
             foreach (var member in staff.Hired)
-                plan.AppendLine($"{member.Name}, {RoleName(member.Role)}: {member.Description}, {currency}{member.DailyWage:0}/day   {Button(PromptControl.East)} let go");
+                plan.AppendLine($"{member.Name}, {RoleName(member.Role)}: {member.Description}, {Mood(member)}, {currency}{member.DailyWage:0}/day   {Button(PromptControl.East)} let go");
             if (staff.Hired.Count > 0)
                 plan.AppendLine();
 
@@ -144,6 +144,20 @@ namespace Game.Presentation.Hud
         // A button as both devices see it, e.g. "[A / X]".
         private static string Button(PromptControl control) =>
             $"[{HudStyle.Glyph(control, true)} / {HudStyle.Glyph(control, false)}]";
+
+        // Words, not numbers, like the candidates' descriptions. New staff haven't settled in yet.
+        private static string Mood(StaffMember member)
+        {
+            if (member.Morale < 0f)
+                return "new";
+            if (member.Morale >= 0.75f)
+                return HudStyle.Colored("happy", new Color(0.45f, 0.85f, 0.40f));
+            if (member.Morale >= 0.45f)
+                return "doing fine";
+            if (member.Morale >= 0.25f)
+                return HudStyle.Colored("unhappy", new Color(0.96f, 0.76f, 0.25f));
+            return HudStyle.Colored("fed up", new Color(0.95f, 0.30f, 0.26f));
+        }
 
         private static string RoleName(StaffRole role) => role == StaffRole.PrepAssistant ? "prep assistant" : "dishwasher";
 
@@ -217,7 +231,9 @@ namespace Game.Presentation.Hud
                 _text.AppendLine();
             }
             foreach (var member in _root.Services.Staff.Hired)
-                _text.AppendLine(WorkDone(member));
+                _text.AppendLine($"{WorkDone(member)}, {Mood(member)}");
+            foreach (var member in _root.Services.Staff.LastQuit)
+                _text.AppendLine(HudStyle.Colored($"{WorkDone(member)}, and quit", _badColor));
             if (days.LastWages > 0f)
                 _text.AppendLine($"Wages -{currency}{days.LastWages:0}");
             _text.Append($"Balance {FormatMoney(days.Balance, currency)}");

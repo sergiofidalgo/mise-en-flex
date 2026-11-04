@@ -79,6 +79,24 @@ namespace Game.Data
         [Tooltip("Added to the chance of a mistake when fully fatigued.")]
         [SerializeField, Range(0f, 1f)] private float _fatigueMistakes = 0.1f;
 
+        [Header("Morale")]
+        [Tooltip("Morale (0..1) someone starts with, and at which it neither helps nor hurts their work.")]
+        [SerializeField, Range(0f, 1f)] private float _neutralMorale = 0.6f;
+        [Tooltip("How much morale changes their speed: at 0.3, a full point of morale is 30% of their speed.")]
+        [SerializeField, Min(0f)] private float _moraleSpeedEffect = 0.3f;
+        [Tooltip("Added to the chance of a mistake per point of morale below neutral.")]
+        [SerializeField, Min(0f)] private float _moraleMistakeEffect = 0.15f;
+        [Tooltip("Morale change for the best or worst possible rating of the day; 3 stars is neutral.")]
+        [SerializeField, Min(0f)] private float _moraleFromRating = 0.1f;
+        [Tooltip("Morale lost if everyone walked out, in proportion to the share who did.")]
+        [SerializeField, Min(0f)] private float _moraleFromWalkOuts = 0.15f;
+        [Tooltip("Fatigue at the end of a day above which it starts to hurt morale.")]
+        [SerializeField, Range(0f, 1f)] private float _comfortableFatigue = 0.5f;
+        [Tooltip("Morale lost for ending the day completely exhausted.")]
+        [SerializeField, Min(0f)] private float _moraleFromOverwork = 0.2f;
+        [Tooltip("Below this morale at the end of a day, they quit.")]
+        [SerializeField, Range(0f, 1f)] private float _quitBelow = 0.1f;
+
         public float StartingMoney => _startingMoney;
         public float WalkSpeed => _walkSpeed;
         public int Seed => _seed;
@@ -93,6 +111,14 @@ namespace Game.Data
             FatiguePerJob = _fatiguePerJob,
             RefillBelow = _refillBelow,
             BoardPatienceSeconds = _boardPatienceSeconds,
+            NeutralMorale = _neutralMorale,
+            MoraleSpeedEffect = _moraleSpeedEffect,
+            MoraleMistakeEffect = _moraleMistakeEffect,
+            MoraleFromRating = _moraleFromRating,
+            MoraleFromWalkOuts = _moraleFromWalkOuts,
+            ComfortableFatigue = _comfortableFatigue,
+            MoraleFromOverwork = _moraleFromOverwork,
+            QuitBelow = _quitBelow,
         };
 
         public System.Collections.Generic.IReadOnlyList<Candidate> CandidatesFor(int day) =>

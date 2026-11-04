@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Game.Simulation.Service;
 
 namespace Game.Simulation.Staff
 {
@@ -35,6 +36,23 @@ namespace Game.Simulation.Staff
         }
 
         public void Fire(StaffMember member) => _hired.Remove(member);
+
+        /// <summary>Who quit at the end of the latest day.</summary>
+        public IReadOnlyList<StaffMember> LastQuit { get; private set; } = Array.Empty<StaffMember>();
+
+        /// <summary>The day is over: everyone's morale moves, and anyone too fed up quits.</summary>
+        public void EndDay(ServiceSummary summary, StaffSettings settings)
+        {
+            var customers = summary.Served + summary.WalkOuts;
+            var walkOutShare = customers > 0 ? summary.WalkOuts / (float)customers : 0f;
+            foreach (var member in _hired)
+                member.EndDay(summary.Rating, walkOutShare, settings);
+
+            var quit = _hired.Where(member => member.Morale < settings.QuitBelow).ToList();
+            foreach (var member in quit)
+                _hired.Remove(member);
+            LastQuit = quit;
+        }
     }
 
     /// <summary>

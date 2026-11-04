@@ -29,6 +29,30 @@ namespace Game.Simulation.Staff
         /// <summary>Fatigue gained per portion a prep assistant moves or cuts.</summary>
         public float FatiguePerJob { get; set; } = 0.02f;
 
+        /// <summary>Morale someone starts with, and at which it neither helps nor hurts their work.</summary>
+        public float NeutralMorale { get; set; } = 0.6f;
+
+        /// <summary>How much morale changes their speed: at 0.3, a full point of morale is 30% of their speed.</summary>
+        public float MoraleSpeedEffect { get; set; } = 0.3f;
+
+        /// <summary>Added to the chance of a mistake per point of morale below neutral.</summary>
+        public float MoraleMistakeEffect { get; set; } = 0.15f;
+
+        /// <summary>Morale change for the best or worst possible rating of the day; 3 stars is neutral.</summary>
+        public float MoraleFromRating { get; set; } = 0.1f;
+
+        /// <summary>Morale lost if everyone walked out, in proportion to the share who did.</summary>
+        public float MoraleFromWalkOuts { get; set; } = 0.15f;
+
+        /// <summary>Fatigue at the end of a day above which it starts to hurt morale.</summary>
+        public float ComfortableFatigue { get; set; } = 0.5f;
+
+        /// <summary>Morale lost for ending the day completely exhausted.</summary>
+        public float MoraleFromOverwork { get; set; } = 0.2f;
+
+        /// <summary>Below this morale at the end of a day, they quit.</summary>
+        public float QuitBelow { get; set; } = 0.1f;
+
         /// <summary>A container below this share of full gets refilled.</summary>
         public float RefillBelow { get; set; } = 0.5f;
 
@@ -85,13 +109,41 @@ namespace Game.Simulation.Staff
         /// <summary>0 (fresh) to 1 (exhausted). Rests overnight.</summary>
         public float Fatigue { get; private set; }
 
+        /// <summary>0 (fed up) to 1 (delighted). Carries from day to day, unlike fatigue.</summary>
+        public float Morale { get; set; } = -1f;
+
         public int JobsToday { get; private set; }
         public int MistakesToday { get; private set; }
 
-        public float WorkingSpeed(StaffSettings settings) => Speed * (1f - settings.FatigueSlowdown * Fatigue);
+        public float WorkingSpeed(StaffSettings settings) =>
+            Speed * (1f - settings.FatigueSlowdown * Fatigue) * (1f + settings.MoraleSpeedEffect * (CurrentMorale(settings) - settings.NeutralMorale));
 
+        // Only low morale adds mistakes: being happy doesn't make someone more skilled.
         public float MistakeChance(StaffSettings settings) =>
-            Math.Clamp(1f - Skill + settings.FatigueMistakes * Fatigue, 0f, 1f);
+            Math.Clamp(1f - Skill + settings.FatigueMistakes * Fatigue + settings.MoraleMistakeEffect * Math.Max(0f, settings.NeutralMorale - CurrentMorale(settings)), 0f, 1f);
+
+        // Someone new starts at neutral.
+        private float CurrentMorale(StaffSettings settings)
+        {
+            if (Morale < 0f)
+                Morale = settings.NeutralMorale;
+            return Morale;
+        }
+
+        /// <summary>
+        /// The day is over: morale follows how the service went and how hard they worked. A good
+        /// rating lifts everyone, walk-outs get them down, and ending a day exhausted wears on them.
+        /// </summary>
+        public void EndDay(float? rating, float walkOutShare, StaffSettings settings)
+        {
+            var morale = CurrentMorale(settings);
+            if (rating.HasValue)
+                morale += settings.MoraleFromRating * Math.Clamp((rating.Value - 3f) / 2f, -1f, 1f);
+            morale -= settings.MoraleFromWalkOuts * Math.Clamp(walkOutShare, 0f, 1f);
+            if (settings.ComfortableFatigue < 1f && Fatigue > settings.ComfortableFatigue)
+                morale -= settings.MoraleFromOverwork * (Fatigue - settings.ComfortableFatigue) / (1f - settings.ComfortableFatigue);
+            Morale = Math.Clamp(morale, 0f, 1f);
+        }
 
         public void RecordJob(float fatigue, bool mistake)
         {

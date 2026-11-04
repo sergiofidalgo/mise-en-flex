@@ -4,6 +4,19 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-04 — Morale (Phase 3)
+
+**Decisions (proposed while building; flagged for review, tunable in `StaffConfig`):**
+- **Everyone starts at 60%,** where it neither helps nor hurts. Morale carries from day to day, while fatigue resets overnight.
+- **It changes at the end of each day:** a good rating lifts it (up to +10% at 5 stars, down to -10% at 1 star, 3 stars neutral), walk-outs lower it (up to -15% if everyone walked out), and ending a day past 50% fatigue wears on it (up to -20%).
+- **Its effects:** speed changes by 3% per 10 points away from neutral, in both directions. Mistakes get likelier only below neutral, because being happy doesn't add skill.
+- **Below 10%, they quit** at the end of the day, in the Review. Wages for that day are still paid.
+- **Players see words, not numbers:** new, happy, doing fine, unhappy, fed up, on the Plan card and in the Review. The debug overlay shows the numbers.
+
+**Reason:** Makes staff feel like people, and ties how a service goes to how the team works the next day. Pay and how you treat them (pushing them around, say) don't affect it yet.
+
+---
+
 ## 2026-11-04 — People push each other; onions burn visibly
 
 **Pushing (user's call):** chefs and staff can push each other. Someone idle gets moved along by whoever walks into them, and two walking into each other with equal force don't move. A helper pushed away from their work stops, walks back when there's space, and carries on.
