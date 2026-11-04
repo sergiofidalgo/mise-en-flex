@@ -30,7 +30,7 @@ namespace Game.Data
         [Header("Containers")]
         [SerializeField, Min(0)] private int _containerCount = 6;
         [Tooltip("Portions of one ingredient a container holds.")]
-        [SerializeField, Min(1)] private int _containerCapacity = 10;
+        [SerializeField, Min(1)] private int _containerCapacity = 6;
         [Tooltip("How fast food ages in one, compared to in the open. Should beat room temperature but not a fridge.")]
         [SerializeField, Min(0f)] private float _containerFreshnessFactor = 0.5f;
 

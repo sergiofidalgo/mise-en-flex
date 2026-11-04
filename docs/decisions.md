@@ -19,7 +19,7 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 **The user's design:**
 - **Restocking happens through shopping.** Players start with a fridge and a shelf, and purchases go straight there. This replaces the storeroom and crates built earlier the same day. Shopping itself comes later; until then, a free delivery arrives at the fridge and shelf each morning.
 - **The cutting board only cuts.** The finished cut stays on it and blocks the next one until someone moves it; the board's four slots are gone.
-- **Containers** fill a counter and hold up to 10 portions of one ingredient at a time. They keep food fresher than a tray, but not as well as a fridge. Counters become precious, and players plan their kitchen around them.
+- **Containers** fill a counter and hold up to 6 portions of one ingredient at a time (first 10, changed after play). They keep food fresher than a tray, but not as well as a fridge. Counters become precious, and players plan their kitchen around them.
 - **Trays** fill a counter when put down and hold 4 things in any mix: ingredients, or empty, filled or dirty plates. Food loose on one ages faster. They can serve customers (RT chooses what to give) and move ingredients, including restocking a fridge.
 - **Usual flow:** with a tray, go to the fridge or shelf, then put ingredients in containers for quick access during service or mise en place.
 

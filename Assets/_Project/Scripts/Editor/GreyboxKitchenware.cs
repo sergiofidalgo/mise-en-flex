@@ -164,8 +164,8 @@ namespace Game.Editor
             body.transform.localScale = ContainerScale;
             body.transform.localPosition = new Vector3(0f, ContainerScale.y / 2f, 0f);
 
-            // Portions pile up in the middle: a full container reads as a heap, not ten neat items.
-            var slots = new Vector3[10];
+            // Portions pile up in the middle: a full container reads as a heap, not six neat items.
+            var slots = new Vector3[6];
             for (var i = 0; i < slots.Length; i++)
                 slots[i] = new Vector3(0f, i * ContainerPileStep, 0f);
             AddSlots(root, slots, ContainerScale.y);

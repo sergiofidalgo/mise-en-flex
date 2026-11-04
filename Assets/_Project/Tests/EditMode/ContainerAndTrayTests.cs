@@ -64,10 +64,10 @@ namespace Game.Tests.EditMode
         }
 
         [Test]
-        public void ContainersHoldTenByDesign()
+        public void ContainersAndTraysHoldWhatTheDesignSays()
         {
             var equipment = AssetDatabase.LoadAssetAtPath<EquipmentTier>("Assets/_Project/Data/Settings/EquipmentTier_Basic.asset");
-            Assert.That(equipment.ContainerCapacity, Is.EqualTo(10));
+            Assert.That(equipment.ContainerCapacity, Is.EqualTo(6));
             Assert.That(equipment.TrayCapacity, Is.EqualTo(4));
         }
 
