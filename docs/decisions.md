@@ -8,7 +8,7 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 **Decision (user's call):** food isn't tied to a fridge or shelf. Refrigerated food can go on the shelf and anything can go in the fridge, and the cost is freshness: meat on a shelf spoils much faster. Replaces the fixed slot for each ingredient.
 
-**Details (proposed while building):** each unit still has four slots, one ingredient per slot at a time, free again when empty. A portion goes with the same ingredient if there's room, or else into a free slot. The fridge's slots hold 20 and the shelf's 12. Deliveries fill the same way (18 steaks to the fridge, 8 onions to the shelf), and tomatoes and diced onion no longer get a reserved place.
+**Details (proposed while building):** each unit still has four slots, one ingredient per slot at a time, free again when empty. A portion goes with the same ingredient if there's room, or else into a free slot. Slots hold up to 6 (user's call), so each unit holds 24. Deliveries fill the same way (18 steaks to the fridge, 8 onions to the shelf), and tomatoes and diced onion no longer get a reserved place.
 
 **Measured by the existing model:** a night on the shelf costs a steak about 86% freshness, against about 25% in the fridge. Stored food below 10% gets thrown out, so a steak left on the shelf won't survive much more than a night.
 

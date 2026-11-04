@@ -83,14 +83,14 @@ namespace Game.Editor
             {
                 Name = "Fridge", Position = new Vector3(-4.4f, 0f, 1.0f), Refrigerated = true,
                 Color = new Color(0.86f, 0.92f, 0.96f),
-                SlotCapacity = 20,
+                SlotCapacity = 6,
                 Deliveries = new[] { ("Steak", 18) },
             },
             new GreyboxStorage.Unit
             {
                 Name = "Shelf", Position = new Vector3(-4.4f, 0f, -0.6f), Refrigerated = false,
                 Color = new Color(0.58f, 0.43f, 0.28f),
-                SlotCapacity = 12,
+                SlotCapacity = 6,
                 Deliveries = new[] { ("Onion", 8) },
             },
         };
