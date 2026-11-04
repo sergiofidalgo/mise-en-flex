@@ -31,6 +31,28 @@ namespace Game.Tests.EditMode
         }
 
         [Test]
+        public void PushedIntoFurnitureTheySlideAlongIt()
+        {
+            var layout = Layout(new Vector2(0f, 0f));
+            var touching = new Vector2(-2f, 0.81f); // just north of the row, clear of the station's x
+            var beside = new Vector2(0f, 0.81f);
+
+            var slid = layout.Slide(beside, new Vector2(0.2f, -0.2f));
+            Assert.That(slid.X, Is.EqualTo(0.2f).Within(0.001f), "the part of the push that fits");
+            Assert.That(slid.Y, Is.EqualTo(0.81f).Within(0.001f), "the furniture stops the rest");
+
+            Assert.That(layout.Slide(touching, new Vector2(0.1f, 0f)), Is.EqualTo(touching + new Vector2(0.1f, 0f)));
+        }
+
+        [Test]
+        public void StraightIntoFurnitureGoesNowhere()
+        {
+            var layout = Layout(new Vector2(0f, 0f));
+            var beside = new Vector2(0f, 0.81f);
+            Assert.That(layout.Slide(beside, new Vector2(0f, -0.2f)), Is.EqualTo(beside));
+        }
+
+        [Test]
         public void AnOpenRoomIsAStraightLine()
         {
             var path = Layout().FindPath(new Vector2(-2f, 0f), new Vector2(2f, 0f));

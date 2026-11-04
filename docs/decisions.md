@@ -8,7 +8,9 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 **Pushing (user's call):** chefs and staff can push each other. Someone idle gets moved along by whoever walks into them, and two walking into each other with equal force don't move. A helper pushed away from their work stops, walks back when there's space, and carries on.
 
-**Details (proposed while building):** each person gives way in proportion to how hard the other is pushing, so a stronger push wins by the difference. Someone pinned against furniture can't give way, so the pusher stops. The food stays on the board while a helper is pushed off it, and a chef can take it in the meantime. A chef pushed while washing keeps washing for now.
+**After play:** bodies have weight: an idle body soaks up 40% of a push (`_resistance` on `PushResolver`), so it moves at 60% of walking pace. A pushed helper doesn't fight back while pressed, so you can keep pushing them as far as you like; they head back 0.8 s after nobody's touching them. Helpers slide along furniture when pushed into it, as chefs do.
+
+**Details (proposed while building):** the stronger push wins by the difference. Someone pinned against furniture can't give way, so the pusher stops. The food stays on the board while a helper is pushed off it, and a chef can take it in the meantime. A chef pushed while washing keeps washing for now.
 
 **Onions burn (user's call):** food left on the heat after it's cooked burns, onions included. Diced onion browns faster (1/14000, was 1/30000). It wasn't showing a burn at all, because the view showed the side facing up and onions don't get flipped; loose food now shows its darkest side. Food tags say "Burnt" for any burnt food.
 

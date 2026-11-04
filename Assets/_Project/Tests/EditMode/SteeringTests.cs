@@ -86,13 +86,13 @@ namespace Game.Tests.EditMode
         // The pushing rule.
         private const float Body = 0.7f;
 
-        private static (Vector2 A, Vector2 B) Walk(Vector2 a, Vector2 moveA, Vector2 b, Vector2 moveB, int frames)
+        private static (Vector2 A, Vector2 B) Walk(Vector2 a, Vector2 moveA, Vector2 b, Vector2 moveB, int frames, float resistance = 0f)
         {
             for (var i = 0; i < frames; i++)
             {
                 a += moveA;
                 b += moveB;
-                var (shiftA, shiftB) = PushSolver.Separate(a, moveA, b, moveB, Body);
+                var (shiftA, shiftB) = PushSolver.Separate(a, moveA, b, moveB, Body, resistance);
                 a += shiftA;
                 b += shiftB;
             }
@@ -115,6 +115,31 @@ namespace Game.Tests.EditMode
             Assert.That(a.X, Is.EqualTo(1.8f).Within(0.01f), "the pusher keeps walking");
             Assert.That(b.X, Is.EqualTo(2.5f).Within(0.01f), "the idle one goes along");
             Assert.That((b - a).Length(), Is.EqualTo(Body).Within(0.001f));
+        }
+
+        [Test]
+        public void ABodysWeightSlowsThePush()
+        {
+            var (a, b) = Walk(Vector2.Zero, new Vector2(0.03f, 0f), new Vector2(0.7f, 0f), Vector2.Zero, 60, resistance: 0.4f);
+
+            Assert.That(b.X, Is.EqualTo(0.7f + 60f * 0.03f * 0.6f).Within(0.02f), "at 60% of walking pace");
+            Assert.That((b - a).Length(), Is.EqualTo(Body).Within(0.001f));
+        }
+
+        [Test]
+        public void KeepingOnPushingKeepsThemMoving()
+        {
+            var (_, soon) = Walk(Vector2.Zero, new Vector2(0.03f, 0f), new Vector2(0.7f, 0f), Vector2.Zero, 60, resistance: 0.4f);
+            var (_, later) = Walk(Vector2.Zero, new Vector2(0.03f, 0f), new Vector2(0.7f, 0f), Vector2.Zero, 180, resistance: 0.4f);
+            Assert.That(later.X, Is.GreaterThan(soon.X + 1f));
+        }
+
+        [Test]
+        public void EqualPushesStillGoNowhereWithWeight()
+        {
+            var (a, b) = Walk(Vector2.Zero, new Vector2(0.03f, 0f), new Vector2(0.7f, 0f), new Vector2(-0.03f, 0f), 120, resistance: 0.4f);
+            Assert.That(a.X, Is.EqualTo(0f).Within(0.01f));
+            Assert.That(b.X, Is.EqualTo(0.7f).Within(0.01f));
         }
 
         [Test]

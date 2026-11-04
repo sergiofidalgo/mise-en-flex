@@ -24,17 +24,15 @@ namespace Game.Gameplay.Staff
 
         public float BodyRadius => _bodyRadius;
 
-        /// <summary>Set by the director: whether a floor position is clear of furniture.</summary>
-        public System.Func<System.Numerics.Vector2, bool> IsFree { get; set; }
+        /// <summary>Set by the director: where a move on the floor ends up, given the furniture.</summary>
+        public System.Func<System.Numerics.Vector2, System.Numerics.Vector2, System.Numerics.Vector2> Slide { get; set; }
 
         public System.Numerics.Vector2 Shove(System.Numerics.Vector2 shift)
         {
             var from = new System.Numerics.Vector2(transform.position.x, transform.position.z);
-            var to = from + shift;
-            if (IsFree != null && !IsFree(to))
-                return System.Numerics.Vector2.Zero;
+            var to = Slide != null ? Slide(from, shift) : from + shift;
             transform.position = new Vector3(to.X, transform.position.y, to.Y);
-            return shift;
+            return to - from;
         }
 
         public void Initialize(StaffMember member, IStaffJob job)

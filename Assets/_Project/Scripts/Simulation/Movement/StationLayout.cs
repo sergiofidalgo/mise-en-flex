@@ -46,6 +46,23 @@ namespace Game.Simulation.Movement
             return true;
         }
 
+        /// <summary>
+        /// Where someone ends up moved by <paramref name="shift"/>: if furniture is in the way they
+        /// slide along it, keeping whichever part of the move still fits, like a chef does.
+        /// </summary>
+        public Vector2 Slide(Vector2 from, Vector2 shift)
+        {
+            if (IsFree(from + shift))
+                return from + shift;
+            var alongX = new Vector2(from.X + shift.X, from.Y);
+            if (shift.X != 0f && IsFree(alongX))
+                return alongX;
+            var alongY = new Vector2(from.X, from.Y + shift.Y);
+            if (shift.Y != 0f && IsFree(alongY))
+                return alongY;
+            return from;
+        }
+
         /// <summary>The free side of a station nearest the middle of the room, or null if it's boxed in.</summary>
         public Vector2? StandingSpot(Vector2 station)
         {

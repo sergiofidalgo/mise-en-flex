@@ -35,6 +35,10 @@ namespace Game.Gameplay.Staff
         [SerializeField, Min(0f)] private float _shareSpotDistance = 0.8f;
         [Tooltip("Metres off their spot that counts as being pushed away from what they're doing.")]
         [SerializeField, Min(0f)] private float _pushedAwayDistance = 0.15f;
+        [Tooltip("Metres beyond touching that still counts as someone pressing against them.")]
+        [SerializeField, Min(0f)] private float _contactMargin = 0.2f;
+        [Tooltip("Real seconds after being pushed before they start back to their work.")]
+        [SerializeField, Min(0f)] private float _returnDelay = 0.8f;
         [Tooltip("Metres between staff arriving, so nobody starts inside anyone else.")]
         [SerializeField, Min(0f)] private float _arrivalSpacing = 0.9f;
         [Tooltip("Half the room's width and depth: staff stay inside.")]
@@ -126,7 +130,7 @@ namespace Game.Gameplay.Staff
                 job.ItemGone += HandleItemGone;
                 job.FoodChanged += HandleFoodChanged;
                 var agent = Instantiate(_agentPrefab, FreeArrivalSpot(), _spawnPoint.rotation);
-                agent.IsFree = _layout.IsFree;
+                agent.Slide = _layout.Slide;
                 agent.name = $"Staff_{member.Name}";
                 agent.Initialize(member, job);
                 _agents.Add(agent);
@@ -243,9 +247,19 @@ namespace Game.Gameplay.Staff
             var point = route.Points[route.Next];
             CollectOthers(agent);
 
+            // Being pushed: they go along with it, like anyone standing still, and only head back
+            // a moment after nobody's pressing against them.
+            if (route.Interrupted)
+            {
+                if (SomeoneAt(here, Steering.BodyDistance + _contactMargin))
+                    route.ReturnAt = Time.time + _returnDelay;
+                if (Time.time < route.ReturnAt)
+                    return false;
+            }
+
             // Someone's standing where they need to be. Starting a job, close enough will do.
             // Going back to one they were pushed from, they wait for the space.
-            if (route.Next == route.Points.Count - 1 && (point - here).Length() <= _shareSpotDistance && SomeoneAt(point))
+            if (route.Next == route.Points.Count - 1 && (point - here).Length() <= _shareSpotDistance && SomeoneAt(point, Steering.BodyDistance))
             {
                 if (route.Interrupted)
                     return false;
@@ -289,11 +303,11 @@ namespace Game.Gameplay.Staff
                 _others.Add(Floor(player.transform.position));
         }
 
-        private bool SomeoneAt(System.Numerics.Vector2 point)
+        private bool SomeoneAt(System.Numerics.Vector2 point, float within)
         {
             foreach (var other in _others)
             {
-                if ((other - point).Length() < Steering.BodyDistance)
+                if ((other - point).Length() < within)
                     return true;
             }
             return false;
@@ -321,6 +335,9 @@ namespace Game.Gameplay.Staff
 
             // Pushed away from what they were doing: the job waits until they're back.
             public bool Interrupted;
+
+            // When they may start back, once nobody's pressing against them.
+            public float ReturnAt;
         }
     }
 }
