@@ -14,6 +14,8 @@ namespace Game.Gameplay.Stations
 
         public override IItemContainer Container => _sink;
 
+        public ItemSink Sink => _sink;
+
         public override void Bind(KitchenServices services)
         {
             _services = services;

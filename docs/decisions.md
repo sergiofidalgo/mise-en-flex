@@ -8,14 +8,16 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 **Agreed:** the assistant keeps the containers players set out stocked. A container with some food in it says what it's for; when it runs low, they bring more from storage by tray, cutting at the board if what's stored is still whole. Empty containers are left alone: only players decide what a container is for. They never touch the hob or the steak.
 
+**After playtest (user's calls):** assistants don't restock storage; they only keep containers filled, going by the first ingredient players store. A tray only comes out to move several portions and goes back afterwards; food to cut is carried by hand. If they end up holding food with nowhere to put it, whole food goes back to storage and food already cut goes in the bin.
+
 **Details (proposed while building; flagged for review, tunable in `StaffConfig`):**
 - **Refills below half full,** emptiest first, up to 4 portions a trip and never past full.
-- **Takes a tray from the rack and keeps it for the shift,** so one of the 4 trays is theirs. With none free, they can't work.
+- **With no tray free, they carry one portion at a time by hand.**
 - **Cuts one item in 4 real seconds** at average speed, without the dial. Skill and tiredness set how even the cut is. A mistake drops a portion, which is lost.
 - **A busy board:** they don't fetch food to cut while it's in use, and if a chef gets there first they wait 5 real seconds, then put the food back. A chef can take food off the board mid-cut.
 - **Candidates:** every day offers at least one person per role. Four assistant types, €40–80 a day.
-- **Leftovers on their tray** go to a matching container, otherwise back to storage; with no room anywhere, they're lost.
-- **Staff walk in straight lines, through counters,** since there's no pathfinding yet. They pick the free side of a station nearest the middle of the room to stand on.
+- **Leftovers** go to a matching container first. Whole food with no room in storage also goes in the bin.
+- **Staff walk around furniture,** by pathfinding, and stand on the free side of a station nearest the middle of the room. They still walk through chefs and each other.
 
 ---
 

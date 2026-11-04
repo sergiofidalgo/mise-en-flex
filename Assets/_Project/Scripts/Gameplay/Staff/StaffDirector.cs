@@ -3,6 +3,7 @@ using System.Linq;
 using Game.Gameplay.Stations;
 using Game.Simulation.Days;
 using Game.Simulation.Items;
+using Game.Simulation.Movement;
 using Game.Simulation.Staff;
 using UnityEngine;
 
@@ -10,9 +11,8 @@ namespace Game.Gameplay.Staff
 {
     /// <summary>
     /// Puts the hired staff in the kitchen each morning and runs them while the kitchen is live:
-    /// walking them to where their job says, showing what they carry and reporting arrivals. Staff
-    /// use the same stations as players (decision 2026-11-04). They take the straight line there:
-    /// no pathfinding yet, so they can walk through counters.
+    /// walking them around the furniture to where their job says, showing what they carry and
+    /// reporting arrivals. Staff use the same stations as players (decision 2026-11-04).
     /// </summary>
     public sealed class StaffDirector : MonoBehaviour
     {
@@ -25,14 +25,17 @@ namespace Game.Gameplay.Staff
 
         [Tooltip("How far from a station's centre staff stand.")]
         [SerializeField, Min(0f)] private float _standDistance = 0.85f;
-        [Tooltip("How far from another station's centre a standing spot has to be, along either axis.")]
-        [SerializeField, Min(0f)] private float _clearance = 0.75f;
-        [Tooltip("Half the room's width and depth: standing spots stay inside.")]
+        [Tooltip("Half a station's width, for walking around it.")]
+        [SerializeField, Min(0f)] private float _stationHalfSize = 0.5f;
+        [Tooltip("How much room a walking staff member takes.")]
+        [SerializeField, Min(0f)] private float _walkerRadius = 0.3f;
+        [Tooltip("Half the room's width and depth: staff stay inside.")]
         [SerializeField] private Vector2 _roomHalfSize = new Vector2(4.6f, 3.6f);
 
         private readonly List<StaffAgent> _agents = new List<StaffAgent>();
         private readonly Dictionary<object, Interactable> _stations = new Dictionary<object, Interactable>();
-        private readonly Dictionary<Interactable, Vector3> _spots = new Dictionary<Interactable, Vector3>();
+        private readonly Dictionary<StaffAgent, Route> _routes = new Dictionary<StaffAgent, Route>();
+        private StationLayout _layout;
         private Interactable[] _allStations;
         private PassStation[] _passes;
         private SinkStation _sink;
@@ -53,6 +56,9 @@ namespace Game.Gameplay.Staff
             _trayRack = _allStations.OfType<RackStation>().First(r => r.Kind == RackStation.RackKind.Trays);
             _counters = _allStations.OfType<CounterStation>().ToArray();
             _storage = _allStations.OfType<StorageStation>().ToArray();
+            _layout = new StationLayout(
+                _allStations.Select(station => Floor(station.transform.position)),
+                new System.Numerics.Vector2(_roomHalfSize.x, _roomHalfSize.y), _stationHalfSize, _walkerRadius, _standDistance);
 
             foreach (var pass in _passes)
                 _stations[pass.DirtyPlates] = pass;
@@ -64,6 +70,8 @@ namespace Game.Gameplay.Staff
                 _stations[counter.Slot] = counter;
             foreach (var unit in _storage)
                 _stations[unit.Unit] = unit;
+            var bin = _allStations.OfType<BinStation>().First();
+            _stations[bin.Sink] = bin;
 
             _root.Services.Days.PhaseChanged += HandlePhaseChanged;
         }
@@ -90,6 +98,7 @@ namespace Game.Gameplay.Staff
                     continue;
                 _agents[i].Job.Release();
                 services.ItemViews.ReleaseMissing(services.Cooking);
+                _routes.Remove(_agents[i]);
                 Destroy(_agents[i].gameObject);
                 _agents.RemoveAt(i);
             }
@@ -123,6 +132,7 @@ namespace Game.Gameplay.Staff
                     _storage.Select(s => s.Unit).ToArray(),
                     _board.Counter,
                     _trayRack.Rack,
+                    _allStations.OfType<BinStation>().First().Sink,
                     services.Cooking,
                     settings,
                     seed);
@@ -156,7 +166,7 @@ namespace Game.Gameplay.Staff
 
                 if (job.Target != null && _stations.TryGetValue(job.Target, out var station))
                 {
-                    if (agent.WalkTowards(SpotFor(station), step, ArriveDistance))
+                    if (WalkRoute(agent, job.Target, station, step))
                     {
                         agent.Face(station.transform.position - agent.transform.position);
                         job.Arrived();
@@ -173,41 +183,45 @@ namespace Game.Gameplay.Staff
             }
         }
 
-        // The side of the station nearest the middle of the room with space to stand.
-        private Vector3 SpotFor(Interactable station)
+        // Walks along the route to the job's target, working a new one out when the target changes.
+        // Returns true once they've reached the end.
+        private bool WalkRoute(StaffAgent agent, object target, Interactable station, float step)
         {
-            if (_spots.TryGetValue(station, out var spot))
-                return spot;
-
-            var centre = station.transform.position;
-            var sides = new[] { Vector3.forward, Vector3.back, Vector3.left, Vector3.right }
-                .Select(side => centre + side * _standDistance)
-                .OrderBy(point => new Vector2(point.x, point.z).sqrMagnitude);
-
-            spot = centre;
-            foreach (var point in sides)
+            if (!_routes.TryGetValue(agent, out var route) || route.Target != target)
             {
-                if (Mathf.Abs(point.x) <= _roomHalfSize.x && Mathf.Abs(point.z) <= _roomHalfSize.y && IsClear(point, station))
-                {
-                    spot = point;
-                    break;
-                }
+                route = new Route { Target = target, Points = PlanRoute(agent, station) };
+                _routes[agent] = route;
             }
-            _spots[station] = spot;
-            return spot;
-        }
 
-        private bool IsClear(Vector3 point, Interactable except)
-        {
-            foreach (var other in _allStations)
+            while (route.Next < route.Points.Count)
             {
-                if (other == except)
-                    continue;
-                var offset = other.transform.position - point;
-                if (Mathf.Abs(offset.x) < _clearance && Mathf.Abs(offset.z) < _clearance)
+                var point = route.Points[route.Next];
+                if (!agent.WalkTowards(new Vector3(point.X, 0f, point.Y), step, ArriveDistance))
                     return false;
+                route.Next++;
             }
             return true;
+        }
+
+        private List<System.Numerics.Vector2> PlanRoute(StaffAgent agent, Interactable station)
+        {
+            var here = Floor(agent.transform.position);
+            var spot = _layout.StandingSpot(Floor(station.transform.position));
+            var route = spot.HasValue ? _layout.FindPath(here, spot.Value) : null;
+            if (route != null)
+                return route;
+
+            Debug.LogWarning($"[StaffDirector] {agent.name} has no way to reach {station.name}.");
+            return new List<System.Numerics.Vector2>();
+        }
+
+        private static System.Numerics.Vector2 Floor(Vector3 position) => new System.Numerics.Vector2(position.x, position.z);
+
+        private sealed class Route
+        {
+            public object Target;
+            public List<System.Numerics.Vector2> Points;
+            public int Next;
         }
     }
 }

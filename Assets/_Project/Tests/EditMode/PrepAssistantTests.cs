@@ -15,6 +15,8 @@ namespace Game.Tests.EditMode
         private StorageUnit _fridge;
         private PrepCounter _board;
         private ItemRack _trays;
+        private ItemSink _bin;
+        private int _binned;
         private PrepAssistant _job;
 
         private static IngredientProperties Properties(string typeId, string cutsInto = null) => new IngredientProperties
@@ -40,8 +42,15 @@ namespace Game.Tests.EditMode
             _fridge = new StorageUnit(4f, new StorageUnit.Slot(6), new StorageUnit.Slot(6));
             _board = new PrepCounter(whole => _sim.Transform(whole, Properties("DicedOnion")));
             _trays = new ItemRack(trays, () => new Tray(4, 1.5f), item => item is Tray tray && tray.IsEmpty);
+            _bin = new ItemSink();
+            _binned = 0;
+            _bin.Discarded += item =>
+            {
+                _binned++;
+                _sim.Remove((Ingredient)item);
+            };
             var member = new StaffMember(new Candidate("Ana", StaffRole.PrepAssistant, "steady", skill, speed, 40f));
-            _job = new PrepAssistant(member, new[] { _counter }, new[] { _fridge }, _board, _trays, _sim, settings ?? new StaffSettings { FatiguePerJob = 0f, FatigueMistakes = 0f }, 1);
+            _job = new PrepAssistant(member, new[] { _counter }, new[] { _fridge }, _board, _trays, _bin, _sim, settings ?? new StaffSettings { FatiguePerJob = 0f, FatigueMistakes = 0f }, 1);
         }
 
         private FoodContainer SetOutContainer(string typeId, int portions)
@@ -59,7 +68,8 @@ namespace Game.Tests.EditMode
             for (var i = 0; i < rounds; i++)
             {
                 _job.Tick(seconds);
-                if (_job.Task == PrepTask.ToRack || _job.Task == PrepTask.ToStorage || _job.Task == PrepTask.ToBoard || _job.Task == PrepTask.ToContainer)
+                if (_job.Task == PrepTask.ToRack || _job.Task == PrepTask.ToStorage || _job.Task == PrepTask.ToBoard || _job.Task == PrepTask.ToContainer
+                    || _job.Task == PrepTask.ToBin || _job.Task == PrepTask.ReturningTray)
                     _job.Arrived();
             }
         }
@@ -79,7 +89,7 @@ namespace Game.Tests.EditMode
         }
 
         [Test]
-        public void TheyTakeATrayFromTheRackFirstAndKeepIt()
+        public void ATrayIsOnlyOutForTheTrip()
         {
             Kitchen();
             SetOutContainer("Steak", 1);
@@ -89,18 +99,39 @@ namespace Game.Tests.EditMode
             Assert.That(_job.Task, Is.EqualTo(PrepTask.ToRack));
             Assert.That(_job.Target, Is.SameAs(_trays));
             _job.Arrived();
-            Assert.That(_job.Tray, Is.Not.Null);
+            Assert.That(_job.Carried, Is.InstanceOf<Tray>());
             Assert.That(_trays.Count, Is.EqualTo(0));
+
+            Work();
+
+            Assert.That(_job.Tray, Is.Null, "it went back");
+            Assert.That(_job.Carried, Is.Null);
+            Assert.That(_trays.Count, Is.EqualTo(1));
         }
 
         [Test]
-        public void WithNoTrayFreeTheyCantHelp()
+        public void WithNoTrayFreeTheyCarryByHand()
         {
             Kitchen(trays: 0);
-            SetOutContainer("Steak", 1);
+            var container = SetOutContainer("Steak", 1);
             _fridge.Stock("Steak", () => Food(), 6);
+
+            _job.Tick(1f);
+            _job.Arrived();
+            Assert.That(_job.Carried, Is.InstanceOf<Ingredient>());
+
             Work();
-            Assert.That(_fridge.Slots[0].Count, Is.EqualTo(6));
+            Assert.That(container.Items.Count, Is.GreaterThanOrEqualTo(3));
+        }
+
+        [Test]
+        public void TheyDontRestockStorage()
+        {
+            Kitchen();
+            _fridge.Stock("Steak", () => Food(), 2);
+            Work();
+            Assert.That(_fridge.Slots[0].Count, Is.EqualTo(2), "nothing moved without a container asking");
+            Assert.That(_job.Task, Is.EqualTo(PrepTask.Idle));
         }
 
         [Test]
@@ -170,20 +201,22 @@ namespace Game.Tests.EditMode
             SetOutContainer("DicedOnion", 1);
             _fridge.Stock("Onion", () => _sim.AddIngredient(Properties("Onion", "DicedOnion")), 2);
 
-            _job.Tick(1f); _job.Arrived(); // the tray
-            _job.Tick(1f); _job.Arrived(); // storage
+            _job.Tick(1f); _job.Arrived(); // storage: food to cut goes by hand
             Assert.That(_job.Task, Is.EqualTo(PrepTask.ToBoard));
+            Assert.That(_job.Tray, Is.Null);
+            Assert.That(_job.InHand, Is.Not.Null);
             _board.Put(_sim.AddIngredient(Properties("Onion", "DicedOnion"))); // a chef got there first
             _job.Arrived();
             Assert.That(_job.Task, Is.EqualTo(PrepTask.WaitingForBoard));
 
             _job.Tick(121f);
             Assert.That(_job.Task, Is.EqualTo(PrepTask.Idle));
-            Assert.That(_job.Tray.IsEmpty, Is.False, "still holding the onion");
+            Assert.That(_job.InHand, Is.Not.Null, "still holding the onion");
 
             Work(rounds: 2);
-            Assert.That(_job.Tray.IsEmpty, "put it back");
+            Assert.That(_job.InHand, Is.Null, "whole food goes back");
             Assert.That(_fridge.Slots[0].Count, Is.EqualTo(2));
+            Assert.That(_binned, Is.EqualTo(0));
         }
 
         [Test]
@@ -205,7 +238,6 @@ namespace Game.Tests.EditMode
             Kitchen();
             SetOutContainer("DicedOnion", 1);
             _fridge.Stock("Onion", () => _sim.AddIngredient(Properties("Onion", "DicedOnion")), 1);
-            _job.Tick(1f); _job.Arrived();
             _job.Tick(1f); _job.Arrived();
             _job.Arrived();
             Assert.That(_job.Task, Is.EqualTo(PrepTask.Cutting));
@@ -232,22 +264,63 @@ namespace Game.Tests.EditMode
         }
 
         [Test]
-        public void IfTheContainerIsGoneTheFoodGoesBack()
+        public void IfTheContainerIsGoneWholeFoodGoesBack()
         {
             Kitchen();
             var container = SetOutContainer("Steak", 1);
             _fridge.Stock("Steak", () => Food(), 4);
-            _job.Tick(1f); _job.Arrived();
-            _job.Tick(1f); _job.Arrived();
+            _job.Tick(1f); _job.Arrived(); // tray
+            _job.Arrived(); // storage
             Assert.That(_job.Task, Is.EqualTo(PrepTask.ToContainer));
 
             container.Take();
             _counter.Take(); // a chef moved it
             _job.Arrived();
-            Work(rounds: 3);
+            Work();
 
-            Assert.That(_job.Tray.IsEmpty);
             Assert.That(_fridge.Slots[0].Count, Is.EqualTo(4));
+            Assert.That(_binned, Is.EqualTo(0));
+            Assert.That(_job.Carried, Is.Null);
+        }
+
+        [Test]
+        public void IfTheContainerIsGoneCutFoodGoesInTheBin()
+        {
+            Kitchen();
+            var container = SetOutContainer("DicedOnion", 1);
+            _fridge.Stock("Onion", () => _sim.AddIngredient(Properties("Onion", "DicedOnion")), 1);
+            _job.Tick(1f); _job.Arrived(); // storage
+            _job.Arrived(); // board
+            _job.Tick(1000f); // cut
+            Assert.That(_job.Task, Is.EqualTo(PrepTask.ToContainer));
+            Assert.That(_job.InHand.TypeId, Is.EqualTo("DicedOnion"));
+
+            container.Take();
+            _counter.Take();
+            _job.Arrived();
+            _job.Tick(1f);
+            Assert.That(_job.Task, Is.EqualTo(PrepTask.ToBin));
+            _job.Arrived();
+
+            Assert.That(_binned, Is.EqualTo(1));
+            Assert.That(_job.Carried, Is.Null);
+        }
+
+        [Test]
+        public void WholeFoodWithNoRoomInStorageIsBinned()
+        {
+            Kitchen();
+            var container = SetOutContainer("Steak", 1);
+            _fridge.Stock("Steak", () => Food(), 1);
+            _job.Tick(1f); _job.Arrived();
+            _job.Arrived();
+
+            _fridge.Stock("Onion", () => Food("Onion"), 12); // storage fills up
+            container.Take();
+            _counter.Take();
+            _job.Arrived();
+            _job.Tick(1f);
+            Assert.That(_job.Task, Is.EqualTo(PrepTask.ToBin));
         }
 
         [Test]
@@ -257,7 +330,7 @@ namespace Game.Tests.EditMode
             SetOutContainer("Steak", 1);
             _fridge.Stock("Steak", () => Food(), 4);
             _job.Tick(1f); _job.Arrived();
-            _job.Tick(1f); _job.Arrived();
+            _job.Arrived();
             Assert.That(_job.Tray.IsEmpty, Is.False);
 
             _job.Release();

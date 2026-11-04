@@ -16,14 +16,18 @@ namespace Game.Simulation.Staff
         WaitingForBoard,
         Cutting,
         ToContainer,
+        ToBin,
+        ReturningTray,
     }
 
     /// <summary>
-    /// What a prep assistant does (decision 2026-11-04): keeps the containers the players set out
-    /// stocked. A container with some food in it says what it's for; when it runs low they bring
-    /// more from storage by tray, cutting at the board if what's stored is still whole. Empty
-    /// containers are left alone, because only players decide what a container is for. They follow
-    /// the player's rules: one tray, one board, and they can be beaten to either.
+    /// What a prep assistant does (decisions 2026-11-04): keeps the containers the players set out
+    /// stocked, going by the ingredient in each. They don't restock storage. When a container runs
+    /// low, they bring portions from storage, on a tray if the rack has one and by hand otherwise,
+    /// and the tray goes back afterwards. If what's stored is still whole, they carry one by hand to
+    /// the board and cut it. Empty containers are left alone: only players decide what a container
+    /// is for. If food ends up with nowhere to go, whole food goes back to storage and cut food in
+    /// the bin. They follow the player's rules, and can be beaten to a board or a container.
     /// </summary>
     public sealed class PrepAssistant : IStaffJob
     {
@@ -31,6 +35,7 @@ namespace Game.Simulation.Staff
         private readonly IReadOnlyList<StorageUnit> _storage;
         private readonly PrepCounter _board;
         private readonly ItemRack _trays;
+        private readonly ItemSink _bin;
         private readonly CookingSimulation _cooking;
         private readonly StaffSettings _settings;
         private readonly Random _random;
@@ -48,6 +53,7 @@ namespace Game.Simulation.Staff
             IReadOnlyList<StorageUnit> storage,
             PrepCounter board,
             ItemRack trays,
+            ItemSink bin,
             CookingSimulation cooking,
             StaffSettings settings,
             int seed)
@@ -57,6 +63,7 @@ namespace Game.Simulation.Staff
             _storage = storage;
             _board = board;
             _trays = trays;
+            _bin = bin;
             _cooking = cooking;
             _settings = settings;
             _random = new Random(seed);
@@ -66,14 +73,17 @@ namespace Game.Simulation.Staff
 
         public PrepTask Task { get; private set; }
 
-        /// <summary>Their tray, kept for the shift once they've taken one from the rack.</summary>
+        /// <summary>The tray they're using for this trip, or null.</summary>
         public Tray Tray { get; private set; }
+
+        /// <summary>Food carried by hand, or null.</summary>
+        public Ingredient InHand { get; private set; }
 
         public ItemSlot TargetCounter { get; private set; }
 
         public StorageUnit TargetUnit { get; private set; }
 
-        public Item Carried => Tray;
+        public Item Carried => Tray != null ? Tray : InHand;
 
         public object Target
         {
@@ -82,6 +92,7 @@ namespace Game.Simulation.Staff
                 switch (Task)
                 {
                     case PrepTask.ToRack:
+                    case PrepTask.ReturningTray:
                         return _trays;
                     case PrepTask.ToStorage:
                         return TargetUnit;
@@ -91,6 +102,8 @@ namespace Game.Simulation.Staff
                         return _board;
                     case PrepTask.ToContainer:
                         return TargetCounter;
+                    case PrepTask.ToBin:
+                        return _bin;
                     default:
                         return null;
                 }
@@ -123,6 +136,11 @@ namespace Game.Simulation.Staff
             {
                 case PrepTask.ToRack:
                     Tray = _trays.CanTake ? (Tray)_trays.Take() : null;
+                    Task = PrepTask.ToStorage;
+                    break;
+                case PrepTask.ReturningTray:
+                    _trays.Put(Tray);
+                    Tray = null;
                     Task = PrepTask.Idle;
                     break;
                 case PrepTask.ToStorage:
@@ -136,55 +154,50 @@ namespace Game.Simulation.Staff
                 case PrepTask.ToContainer:
                     ArrivedAtContainer();
                     break;
+                case PrepTask.ToBin:
+                    ArrivedAtBin();
+                    break;
             }
         }
 
         public void Release()
         {
-            if (Tray == null)
-                return;
-
-            // What's on the tray goes back to storage; anything that doesn't fit is lost.
-            for (var i = Tray.Items.Count - 1; i >= 0; i--)
+            while (TryTakeCarriedFood(out var food))
             {
-                var item = Tray.TakeAt(i);
-                var unit = FindRoomFor(item);
+                var unit = IsCut(food) ? null : FindRoomFor(food);
                 if (unit != null)
-                {
-                    unit.Put(item);
-                }
-                else if (item is Ingredient ingredient)
-                {
-                    _cooking.Remove(ingredient);
-                }
-                ItemGone?.Invoke(item);
+                    unit.Put(food);
+                else
+                    _cooking.Remove(food);
+                ItemGone?.Invoke(food);
             }
 
-            _trays.Put(Tray);
-            Tray = null;
+            if (Tray != null)
+            {
+                _trays.Put(Tray);
+                Tray = null;
+            }
             Task = PrepTask.Idle;
         }
 
         private void Decide()
         {
-            if (Tray == null)
+            if (HasCarriedFood)
             {
-                if (_trays.CanTake && LowContainersByFill().Count > 0)
-                    Task = PrepTask.ToRack;
+                PutAwayLeftovers();
                 return;
             }
 
-            if (!Tray.IsEmpty)
+            if (Tray != null)
             {
-                PutAwayLeftovers();
+                Task = PrepTask.ReturningTray;
                 return;
             }
 
             // The emptiest container first, skipping any they can't do anything for.
             foreach (var counter in LowContainersByFill())
             {
-                var container = (FoodContainer)counter.Current;
-                if (TryStartFetch(container.HoldsTypeId, counter))
+                if (TryStartFetch(((FoodContainer)counter.Current).HoldsTypeId, counter))
                     return;
             }
         }
@@ -208,18 +221,19 @@ namespace Game.Simulation.Staff
             _returning = false;
             TargetCounter = counter;
             TargetUnit = unit;
-            Task = PrepTask.ToStorage;
+
+            // A tray for several portions, if there's one free. Food to cut goes by hand.
+            Task = !_fetchingWhole && _trays.CanTake ? PrepTask.ToRack : PrepTask.ToStorage;
             return true;
         }
 
+        // Food they're holding that isn't going where it was meant to.
         private void PutAwayLeftovers()
         {
-            var item = Tray.Items[Tray.Items.Count - 1];
-
-            // Back where it was going if there's room, otherwise back to storage.
+            var food = PeekCarriedFood();
             foreach (var counter in _counters)
             {
-                if (counter.Current is FoodContainer container && !container.IsEmpty && container.CanAccept(item))
+                if (counter.Current is FoodContainer container && !container.IsEmpty && container.CanAccept(food))
                 {
                     TargetCounter = counter;
                     Task = PrepTask.ToContainer;
@@ -227,31 +241,21 @@ namespace Game.Simulation.Staff
                 }
             }
 
-            TargetUnit = FindRoomFor(item);
-            if (TargetUnit == null)
-            {
-                // Nowhere for it at all: it's lost rather than carried forever.
-                Tray.TakeAt(Tray.Items.Count - 1);
-                if (item is Ingredient ingredient)
-                    _cooking.Remove(ingredient);
-                ItemGone?.Invoke(item);
-                return;
-            }
-            _returning = true;
-            Task = PrepTask.ToStorage;
+            // Whole food goes back if there's room; food already cut, or with no room, gets binned.
+            TargetUnit = IsCut(food) ? null : FindRoomFor(food);
+            _returning = TargetUnit != null;
+            Task = _returning ? PrepTask.ToStorage : PrepTask.ToBin;
         }
 
         private void ArrivedAtStorage()
         {
             if (_returning)
             {
-                for (var i = Tray.Items.Count - 1; i >= 0; i--)
+                while (TryPeekCarriedFood(out var food) && !IsCut(food) && TargetUnit.CanAccept(food))
                 {
-                    if (!TargetUnit.CanAccept(Tray.Items[i]))
-                        continue;
-                    var item = Tray.TakeAt(i);
-                    TargetUnit.Put(item);
-                    ItemGone?.Invoke(item);
+                    TryTakeCarriedFood(out food);
+                    TargetUnit.Put(food);
+                    ItemGone?.Invoke(food);
                 }
                 _returning = false;
                 Task = PrepTask.Idle;
@@ -265,7 +269,7 @@ namespace Game.Simulation.Staff
                     var slot = TargetUnit.Slots[s];
                     if (slot.Count > 0 && slot.Stock[0].Properties.CutIntoTypeId == _wanted && TargetUnit.TryTake(s, out var whole))
                     {
-                        Tray.Put(whole);
+                        InHand = whole;
                         _cutting = whole;
                         Task = PrepTask.ToBoard;
                         return;
@@ -278,13 +282,16 @@ namespace Game.Simulation.Staff
             var room = TargetCounter.Current is FoodContainer container ? container.Capacity - container.Items.Count : 0;
             for (var s = 0; s < TargetUnit.Slots.Count; s++)
             {
-                while (room > 0 && Tray.HasRoom && TargetUnit.Slots[s].TypeId == _wanted && TargetUnit.TryTake(s, out var portion))
+                while (room > 0 && CanCarryMore && TargetUnit.Slots[s].TypeId == _wanted && TargetUnit.TryTake(s, out var portion))
                 {
-                    Tray.Put(portion);
+                    if (Tray != null)
+                        Tray.Put(portion);
+                    else
+                        InHand = portion;
                     room--;
                 }
             }
-            Task = Tray.IsEmpty ? PrepTask.Idle : PrepTask.ToContainer;
+            Task = HasCarriedFood ? PrepTask.ToContainer : PrepTask.Idle;
         }
 
         private void Wait(float seconds)
@@ -292,7 +299,7 @@ namespace Game.Simulation.Staff
             if (TryStartCut())
                 return;
 
-            // The board stayed busy: put the whole ingredient away and think again.
+            // The board stayed busy: they think again, and the food goes back.
             _waited += seconds;
             if (_waited >= _settings.BoardPatienceSeconds)
             {
@@ -303,7 +310,7 @@ namespace Game.Simulation.Staff
 
         private bool TryStartCut()
         {
-            if (_cutting == null || IndexOnTray(_cutting) < 0)
+            if (_cutting == null || InHand != _cutting)
             {
                 Task = PrepTask.Idle;
                 return true;
@@ -311,7 +318,7 @@ namespace Game.Simulation.Staff
             if (!_board.CanAccept(_cutting))
                 return false;
 
-            Tray.TakeAt(IndexOnTray(_cutting));
+            InHand = null;
             _board.Put(_cutting);
             _cutLeft = _settings.CutSeconds;
             Task = PrepTask.Cutting;
@@ -335,9 +342,8 @@ namespace Game.Simulation.Staff
 
             // Skill and tiredness decide how even it comes out.
             var slip = (float)_random.NextDouble() * Member.MistakeChance(_settings);
-            var product = _board.CutWithoutDial(Math.Clamp(1f - slip, 0f, 1f));
-            _board.Take();
-            Tray.Put(product);
+            _board.CutWithoutDial(Math.Clamp(1f - slip, 0f, 1f));
+            InHand = (Ingredient)_board.Take();
             _cutting = null;
             Member.RecordJob(_settings.FatiguePerJob, mistake: false);
             Task = PrepTask.ToContainer;
@@ -348,26 +354,70 @@ namespace Game.Simulation.Staff
         {
             if (TargetCounter.Current is FoodContainer container)
             {
-                for (var i = Tray.Items.Count - 1; i >= 0; i--)
+                while (TryPeekCarriedFood(out var food) && container.CanAccept(food))
                 {
-                    if (!container.CanAccept(Tray.Items[i]))
-                        continue;
-
-                    var item = Tray.TakeAt(i);
+                    TryTakeCarriedFood(out food);
                     var dropped = _random.NextDouble() < Member.MistakeChance(_settings);
                     if (dropped)
                     {
-                        _cooking.Remove((Ingredient)item);
-                        ItemGone?.Invoke(item);
+                        _cooking.Remove(food);
+                        ItemGone?.Invoke(food);
                     }
                     else
                     {
-                        container.Put(item);
+                        container.Put(food);
                     }
                     Member.RecordJob(_settings.FatiguePerJob, dropped);
                 }
             }
             Task = PrepTask.Idle;
+        }
+
+        private void ArrivedAtBin()
+        {
+            // Only what has nowhere else to go: cut food, or food with no room in storage.
+            while (TryPeekCarriedFood(out var food) && (IsCut(food) || FindRoomFor(food) == null))
+            {
+                TryTakeCarriedFood(out food);
+                _bin.Put(food);
+            }
+            Task = PrepTask.Idle;
+        }
+
+        private static bool IsCut(Ingredient food) => food.CutEvenness.HasValue;
+
+        private bool HasCarriedFood => InHand != null || (Tray != null && !Tray.IsEmpty);
+
+        // With a tray, up to its capacity; by hand, one.
+        private bool CanCarryMore => Tray != null ? Tray.HasRoom : InHand == null;
+
+        private Ingredient PeekCarriedFood()
+        {
+            TryPeekCarriedFood(out var food);
+            return food;
+        }
+
+        private bool TryPeekCarriedFood(out Ingredient food)
+        {
+            food = InHand ?? (Tray != null && !Tray.IsEmpty ? (Ingredient)Tray.Items[Tray.Items.Count - 1] : null);
+            return food != null;
+        }
+
+        private bool TryTakeCarriedFood(out Ingredient food)
+        {
+            if (InHand != null)
+            {
+                food = InHand;
+                InHand = null;
+                return true;
+            }
+            if (Tray != null && !Tray.IsEmpty)
+            {
+                food = (Ingredient)Tray.Take();
+                return true;
+            }
+            food = null;
+            return false;
         }
 
         private List<ItemSlot> LowContainersByFill()
@@ -419,16 +469,6 @@ namespace Game.Simulation.Staff
                     return unit;
             }
             return null;
-        }
-
-        private int IndexOnTray(Item item)
-        {
-            for (var i = 0; i < Tray.Items.Count; i++)
-            {
-                if (Tray.Items[i] == item)
-                    return i;
-            }
-            return -1;
         }
     }
 }
