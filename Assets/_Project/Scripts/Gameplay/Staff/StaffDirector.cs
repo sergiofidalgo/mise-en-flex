@@ -70,7 +70,7 @@ namespace Game.Gameplay.Staff
                 if (_agents.Any(a => a.Member == member))
                     continue;
 
-                var passes = _passes.Select(p => p.Container).ToArray();
+                var passes = _passes.Select(p => p.DirtyPlates).ToArray();
                 var job = new Dishwasher(member, _sink.Sink, _stack.Stack, passes, services.StaffConfig.ToSettings(), services.StaffConfig.Seed + _nextSeed++);
                 var agent = Instantiate(_agentPrefab, _spawnPoint.position, _spawnPoint.rotation);
                 agent.name = $"Staff_{member.Name}";

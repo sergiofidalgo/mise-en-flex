@@ -23,6 +23,7 @@ namespace Game.Gameplay.Stations
         private const string HeatUpActionName = "HeatUp";
         private const string ButtonBActionName = "ButtonB";
         private const string ButtonYActionName = "ButtonY";
+        private const string MoveActionName = "Move";
 
         [Tooltip("Where carried items sit, in front of the chef's chest.")]
         [SerializeField] private Transform _carryAnchor;
@@ -62,6 +63,15 @@ namespace Game.Gameplay.Stations
         public Interactable Target => _target;
 
         /// <summary>Chefs work in Prep and Service; Plan and Review happen between shifts.</summary>
+        /// <summary>
+        /// Set by a station that takes over the chef, like washing by hand: they stay put, the stick
+        /// goes to the station, and only Use works (to stop).
+        /// </summary>
+        public bool IsBusy { get; set; }
+
+        /// <summary>The stick right now, for a station that has taken over the chef.</summary>
+        public Vector2 MoveInput => _playerInput.actions[MoveActionName].ReadValue<Vector2>();
+
         public bool CanAct => _services != null &&
             (_services.Days.Phase == DayPhase.Prep || _services.Days.Phase == DayPhase.Service);
 
@@ -109,7 +119,7 @@ namespace Game.Gameplay.Stations
 
         private void Update()
         {
-            if (_interactables == null)
+            if (_interactables == null || IsBusy)
                 return;
 
             SetTarget(FindTarget());
@@ -183,19 +193,19 @@ namespace Game.Gameplay.Stations
 
         private void HandleButtonB(InputAction.CallbackContext context)
         {
-            if (CanAct && _target != null && !TryFaceButton(FaceButton.East))
+            if (CanAct && !IsBusy && _target != null && !TryFaceButton(FaceButton.East))
                 _target.NotifyDenied();
         }
 
         private void HandleButtonY(InputAction.CallbackContext context)
         {
-            if (CanAct && _target != null && !TryFaceButton(FaceButton.North))
+            if (CanAct && !IsBusy && _target != null && !TryFaceButton(FaceButton.North))
                 _target.NotifyDenied();
         }
 
         private void HandleInteract(InputAction.CallbackContext context)
         {
-            if (_target == null || !CanAct)
+            if (_target == null || !CanAct || IsBusy)
                 return;
             if (TryFaceButton(FaceButton.South))
                 return;

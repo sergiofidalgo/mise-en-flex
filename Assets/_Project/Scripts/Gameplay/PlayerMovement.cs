@@ -21,6 +21,7 @@ namespace Game.Gameplay
 
         private CharacterController _controller;
         private InputAction _move;
+        private Stations.PlayerInteractor _interactor;
         private PlanarMover _mover;
         private float _verticalSpeed;
 
@@ -32,13 +33,15 @@ namespace Game.Gameplay
         {
             _controller = GetComponent<CharacterController>();
             _move = GetComponent<PlayerInput>().actions[MoveActionName];
+            _interactor = GetComponent<Stations.PlayerInteractor>();
             _mover = new PlanarMover(_tuning.Movement, transform.eulerAngles.y);
         }
 
         private void Update()
         {
             var deltaTime = Time.deltaTime;
-            var stick = _move.ReadValue<Vector2>();
+            // A station can take over the chef, and the stick with it (washing by hand).
+            var stick = _interactor != null && _interactor.IsBusy ? Vector2.zero : _move.ReadValue<Vector2>();
 
             // Read tuning every frame so Inspector edits apply live while playing.
             _mover.Settings = _tuning.Movement;

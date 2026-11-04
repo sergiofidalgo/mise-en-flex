@@ -14,18 +14,16 @@ namespace Game.Tests.EditMode
             new Candidate(name, StaffRole.Dishwasher, "steady", skill, speed, wage);
 
         // A pass counter with a dirty plate waiting (or not).
-        private sealed class FakePass : IItemContainer
+        private sealed class FakePass : IDirtyPlateSource
         {
             public Plate Plate;
-            public bool CanTake => Plate != null;
-            public bool CanAccept(Item item) => false;
-            public Item Take()
+            public bool HasDirtyPlate => Plate != null;
+            public Plate TakeDirtyPlate()
             {
                 var plate = Plate;
                 Plate = null;
                 return plate;
             }
-            public void Put(Item item) { }
         }
 
         private static Plate Dirty()
@@ -40,7 +38,7 @@ namespace Game.Tests.EditMode
             var sink = new Sink();
             var stack = new PlateStack(0, 3);
             var pass = new FakePass();
-            var job = new Dishwasher(new StaffMember(person ?? Person()), sink, stack, new IItemContainer[] { pass }, settings ?? new StaffSettings(), seed);
+            var job = new Dishwasher(new StaffMember(person ?? Person()), sink, stack, new IDirtyPlateSource[] { pass }, settings ?? new StaffSettings(), seed);
             return (job, sink, stack, pass);
         }
 
@@ -56,7 +54,7 @@ namespace Game.Tests.EditMode
             Assert.That(job.Task, Is.EqualTo(DishwasherTask.ToPass));
 
             job.Arrived();
-            Assert.That(pass.CanTake, Is.False);
+            Assert.That(pass.HasDirtyPlate, Is.False);
             Assert.That(job.Carried, Is.Not.Null);
             Assert.That(job.Task, Is.EqualTo(DishwasherTask.ToSink));
 
@@ -85,12 +83,31 @@ namespace Game.Tests.EditMode
         }
 
         [Test]
+        public void TheyLeaveAPlateOfFoodAlone()
+        {
+            var sink = new Sink();
+            var counter = new PassCounter();
+            var plate = new Plate(3);
+            plate.Put(new Item("Steak"));
+            counter.Put(plate);
+            var job = new Dishwasher(new StaffMember(Person()), sink, new PlateStack(0, 3), new IDirtyPlateSource[] { counter }, new StaffSettings(), 1);
+
+            job.Tick(1f);
+            Assert.That(job.Task, Is.EqualTo(DishwasherTask.Idle));
+
+            counter.StartEating();
+            counter.FinishEating();
+            job.Tick(1f);
+            Assert.That(job.Task, Is.EqualTo(DishwasherTask.ToPass));
+        }
+
+        [Test]
         public void IfAPlayerGetsThereFirstTheyDoSomethingElse()
         {
             var (job, _, _, pass) = Kitchen();
             pass.Plate = Dirty();
             job.Tick(1f);
-            pass.Take();
+            pass.TakeDirtyPlate();
             job.Arrived();
             Assert.That(job.Task, Is.EqualTo(DishwasherTask.Idle));
             Assert.That(job.Carried, Is.Null);

@@ -24,11 +24,11 @@ namespace Game.Simulation.Staff
     {
         private readonly Sink _sink;
         private readonly PlateStack _stack;
-        private readonly IReadOnlyList<IItemContainer> _passes;
+        private readonly IReadOnlyList<IDirtyPlateSource> _passes;
         private readonly StaffSettings _settings;
         private readonly Random _random;
 
-        public Dishwasher(StaffMember member, Sink sink, PlateStack stack, IReadOnlyList<IItemContainer> passes, StaffSettings settings, int seed)
+        public Dishwasher(StaffMember member, Sink sink, PlateStack stack, IReadOnlyList<IDirtyPlateSource> passes, StaffSettings settings, int seed)
         {
             Member = member;
             _sink = sink;
@@ -63,9 +63,9 @@ namespace Game.Simulation.Staff
                 case DishwasherTask.ToPass:
                     var pass = _passes[TargetPass];
                     // Someone may have got there first.
-                    if (pass.CanTake)
+                    if (pass.HasDirtyPlate)
                     {
-                        Carried = (Plate)pass.Take();
+                        Carried = pass.TakeDirtyPlate();
                         Task = DishwasherTask.ToSink;
                     }
                     else
@@ -123,7 +123,7 @@ namespace Game.Simulation.Staff
 
             for (var i = 0; i < _passes.Count; i++)
             {
-                if (_passes[i].CanTake)
+                if (_passes[i].HasDirtyPlate)
                 {
                     TargetPass = i;
                     Task = DishwasherTask.ToPass;

@@ -100,6 +100,12 @@ namespace Game.Editor
             flips.FindProperty("_root").objectReferenceValue = root;
             flips.ApplyModifiedPropertiesWithoutUndo();
 
+            var wash = new SerializedObject(hud.AddComponent<WashGameHud>());
+            wash.FindProperty("_canvas").objectReferenceValue = hud.GetComponent<RectTransform>();
+            wash.FindProperty("_style").objectReferenceValue = style;
+            wash.FindProperty("_sink").objectReferenceValue = Object.FindFirstObjectByType<SinkStation>();
+            wash.ApplyModifiedPropertiesWithoutUndo();
+
             var status = new SerializedObject(hud.AddComponent<ServiceStatusHud>());
             status.FindProperty("_canvas").objectReferenceValue = hud.GetComponent<RectTransform>();
             status.FindProperty("_style").objectReferenceValue = style;

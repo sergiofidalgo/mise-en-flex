@@ -4,6 +4,20 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-04 — Plates can wait on the pass; washing by hand is a balancing game
+
+**User's direction:** a blocked stool feels good. A plate on a free stool can be taken back, and goes to whoever sits down next, fitting their order or not. Washing becomes a stick game: keep a point in the centre of a circle, small movements shift it a lot, and not reacting never cleans a plate.
+
+**Details (proposed while building; flagged for review, tunable in `TuningConfig`):**
+- **Plates wait indefinitely** on a free counter, cooling, including overnight. This replaces clearing them after a delay. They can also be set out during Prep.
+- **The point behaves like balancing a stick on your palm:** it accelerates away from the centre the further off it is, with small random nudges. A plate takes 2.5 s at full speed; full speed inside 25% of the circle, fading to nothing at 55%. Each plate starts with the point off-centre at 70%.
+- **The nudge is kept below what the instability can overcome,** so a point left alone can't drift back into range. A test guards this.
+- **One chef at the sink at a time,** with empty hands. Use starts and stops, and the chef stays put. The dishwasher can wash alongside, sharing progress, and isn't subject to the game.
+
+**Measured with simulated players, not real ones:** doing nothing cleans 0 plates; a steady hand with a 0.15 s reaction takes under 4 s per plate; over-correcting is several times slower.
+
+---
+
 ## 2026-11-04 — Hiring and the dishwasher (Phase 3)
 
 **Decisions (proposed while building; flagged for review, all tunable in `StaffConfig`):**

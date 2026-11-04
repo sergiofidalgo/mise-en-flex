@@ -1,5 +1,6 @@
 using Game.Simulation.Cooking;
 using Game.Simulation.Interaction;
+using Game.Simulation.Items;
 using Game.Simulation.Movement;
 using Game.Simulation.Prep;
 using Game.Simulation.Quality;
@@ -62,8 +63,6 @@ namespace Game.Data
         [SerializeField, Min(0f)] private float _freshnessWeight = 0.1f;
         [SerializeField, Min(0f)] private float _cutWeight = 0.15f;
         [SerializeField, Min(0f)] private float _restWeight = 0.15f;
-        [Tooltip("Seconds a served plate stays on the pass (with its quality card) before it's collected.")]
-        [SerializeField, Min(0f)] private float _passCollectDelay = 4f;
 
         [Header("Crust scoring")]
         [Tooltip("Average browning of both sides at or below which the crust scores nothing.")]
@@ -71,9 +70,21 @@ namespace Game.Data
         [Tooltip("Average browning from which the crust scores full marks.")]
         [SerializeField, Min(0f)] private float _crustGoodMin = 0.6f;
 
-        [Header("Washing up")]
-        [Tooltip("Presses of Use to wash one plate.")]
-        [SerializeField, Min(1)] private int _scrubsPerPlate = 4;
+        [Header("Washing by hand")]
+        [Tooltip("Acceleration at full stick: high, so small movements shift the point a lot.")]
+        [SerializeField, Min(0f)] private float _washStick = 10f;
+        [Tooltip("How hard the point runs away from the centre, per unit of distance.")]
+        [SerializeField, Min(0f)] private float _washInstability = 5f;
+        [Tooltip("How fast the point's speed dies away, per second.")]
+        [SerializeField, Min(0f)] private float _washDamping = 2.5f;
+        [Tooltip("Size of the random nudge. Keep below instability × ok radius, or doing nothing could clean a plate.")]
+        [SerializeField, Min(0f)] private float _washNudge = 1.8f;
+        [Tooltip("Fraction of the circle within which washing goes at full speed.")]
+        [SerializeField, Range(0f, 1f)] private float _washGoodRadius = 0.25f;
+        [Tooltip("Fraction of the circle beyond which nothing gets clean.")]
+        [SerializeField, Range(0f, 1f)] private float _washOkRadius = 0.55f;
+        [Tooltip("Real seconds of full-speed washing per plate.")]
+        [SerializeField, Min(0.1f)] private float _washSecondsPerPlate = 2.5f;
 
         [Header("Flip gauge")]
         [Tooltip("Browning of the side facing down where the gauge's green band starts (around 1 is a good crust).")]
@@ -81,9 +92,16 @@ namespace Game.Data
         [Tooltip("Browning where the green band ends.")]
         [SerializeField, Min(0f)] private float _flipGoodTo = 1.1f;
 
-        public float PassCollectDelay => _passCollectDelay;
-
-        public int ScrubsPerPlate => _scrubsPerPlate;
+        public WashGameSettings WashGame => new WashGameSettings
+        {
+            StickAcceleration = _washStick,
+            Instability = _washInstability,
+            Damping = _washDamping,
+            Nudge = _washNudge,
+            GoodRadius = _washGoodRadius,
+            OkRadius = _washOkRadius,
+            SecondsPerPlate = _washSecondsPerPlate,
+        };
 
         public FlipGaugeSettings FlipGauge => new FlipGaugeSettings { GoodFrom = _flipGoodFrom, GoodTo = _flipGoodTo };
 
