@@ -5,6 +5,7 @@ namespace Game.Simulation.Staff
     public enum StaffRole
     {
         Dishwasher,
+        PrepAssistant,
     }
 
     /// <summary>Tuning for how staff work. Filled from the StaffConfig asset.</summary>
@@ -21,6 +22,18 @@ namespace Game.Simulation.Staff
 
         /// <summary>Added to the chance of a mistake when fully fatigued.</summary>
         public float FatigueMistakes { get; set; } = 0.1f;
+
+        /// <summary>In-game seconds a prep assistant takes to cut one item at speed 1.</summary>
+        public float CutSeconds { get; set; } = 240f;
+
+        /// <summary>Fatigue gained per portion a prep assistant moves or cuts.</summary>
+        public float FatiguePerJob { get; set; } = 0.02f;
+
+        /// <summary>A container below this share of full gets refilled.</summary>
+        public float RefillBelow { get; set; } = 0.5f;
+
+        /// <summary>In-game seconds a prep assistant waits for a busy board before giving up.</summary>
+        public float BoardPatienceSeconds { get; set; } = 300f;
     }
 
     /// <summary>Someone who could be hired. Players read the description; the numbers show in how they work.</summary>

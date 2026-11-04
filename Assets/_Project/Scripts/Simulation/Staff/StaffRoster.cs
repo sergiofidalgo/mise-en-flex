@@ -38,8 +38,8 @@ namespace Game.Simulation.Staff
     }
 
     /// <summary>
-    /// Who's looking for work each day: a few people drawn from the templates, the same ones for
-    /// the same day number.
+    /// Who's looking for work each day: drawn from the templates, the same people for the same day
+    /// number, with at least one person per role so no job is ever unfillable for a day.
     /// </summary>
     public static class StaffMarket
     {
@@ -47,9 +47,11 @@ namespace Game.Simulation.Staff
         {
             var random = new Random(unchecked(seed * 31 + day));
             var shuffledNames = names.OrderBy(_ => random.Next()).ToList();
-            return templates
-                .OrderBy(_ => random.Next())
-                .Take(count)
+            var shuffled = templates.OrderBy(_ => random.Next()).ToList();
+
+            var firstOfEachRole = shuffled.GroupBy(t => t.Role).Select(g => g.First()).ToList();
+            var picked = firstOfEachRole.Concat(shuffled.Except(firstOfEachRole)).Take(count);
+            return picked
                 .Select((t, i) => new Candidate(shuffledNames.Count > 0 ? shuffledNames[i % shuffledNames.Count] : t.Name, t.Role, t.Description, t.Skill, t.Speed, t.DailyWage))
                 .ToList();
         }

@@ -70,6 +70,22 @@ namespace Game.Simulation.Prep
             return grade;
         }
 
+        /// <summary>
+        /// Finishes the cut without the dial, for staff, who work by skill rather than timing.
+        /// </summary>
+        /// <returns>The cut, now on the board.</returns>
+        public Ingredient CutWithoutDial(float evenness)
+        {
+            if (!CanChop)
+                throw new InvalidOperationException("Nothing to cut.");
+            var product = _cut((Ingredient)Current);
+            product.CutEvenness = evenness;
+            ClearBoard();
+            Current = product;
+            CutFinished?.Invoke(product);
+            return product;
+        }
+
         public bool CanTake => Current != null;
 
         /// <summary>Only whole ingredients to cut go on the board, and only when it's clear.</summary>

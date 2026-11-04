@@ -17,6 +17,8 @@ namespace Game.Gameplay.Stations
 
         private KitchenServices _services;
 
+        public RackKind Kind => _kind;
+
         public ItemRack Rack { get; private set; }
 
         public override IItemContainer Container => Rack;

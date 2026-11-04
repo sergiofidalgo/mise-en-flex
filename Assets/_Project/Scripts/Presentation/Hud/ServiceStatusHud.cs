@@ -145,7 +145,11 @@ namespace Game.Presentation.Hud
         private static string Button(PromptControl control) =>
             $"[{HudStyle.Glyph(control, true)} / {HudStyle.Glyph(control, false)}]";
 
-        private static string RoleName(StaffRole role) => role.ToString().ToLowerInvariant();
+        private static string RoleName(StaffRole role) => role == StaffRole.PrepAssistant ? "prep assistant" : "dishwasher";
+
+        private static string WorkDone(StaffMember member) => member.Role == StaffRole.PrepAssistant
+            ? $"{member.Name} prepared {member.JobsToday}, dropped {member.MistakesToday}"
+            : $"{member.Name} washed {member.JobsToday}, broke {member.MistakesToday}";
 
         // The button prompt, plus who's ready when there's more than one player. (With one player,
         // being ready moves the day on at once, so there's nothing to show.)
@@ -213,7 +217,7 @@ namespace Game.Presentation.Hud
                 _text.AppendLine();
             }
             foreach (var member in _root.Services.Staff.Hired)
-                _text.AppendLine($"{member.Name} washed {member.JobsToday}, broke {member.MistakesToday}");
+                _text.AppendLine(WorkDone(member));
             if (days.LastWages > 0f)
                 _text.AppendLine($"Wages -{currency}{days.LastWages:0}");
             _text.Append($"Balance {FormatMoney(days.Balance, currency)}");

@@ -13,6 +13,9 @@ namespace Game.Gameplay.Stations
 
         public override IItemContainer Container => _slot;
 
+        /// <summary>What's on this counter, for staff who work from it.</summary>
+        public ItemSlot Slot => _slot;
+
         public bool PromptAsDiamond(PlayerInteractor player) => false;
 
         public void DescribeActions(PlayerInteractor player, List<PromptLine> lines)

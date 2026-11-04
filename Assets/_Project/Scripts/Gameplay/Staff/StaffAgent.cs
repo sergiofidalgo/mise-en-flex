@@ -13,9 +13,9 @@ namespace Game.Gameplay.Staff
 
         public StaffMember Member { get; private set; }
 
-        public Dishwasher Job { get; private set; }
+        public IStaffJob Job { get; private set; }
 
-        public void Initialize(StaffMember member, Dishwasher job)
+        public void Initialize(StaffMember member, IStaffJob job)
         {
             Member = member;
             Job = job;

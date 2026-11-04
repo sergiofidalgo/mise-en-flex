@@ -20,7 +20,7 @@ namespace Game.Simulation.Staff
     /// can be beaten to a plate or help mid-pile. Gameplay walks them and calls <see cref="Arrived"/>.
     /// Order of work: finished plates first (service may be waiting), then clearing stools, then washing.
     /// </summary>
-    public sealed class Dishwasher
+    public sealed class Dishwasher : IStaffJob
     {
         private readonly Sink _sink;
         private readonly PlateStack _stack;
@@ -46,6 +46,34 @@ namespace Game.Simulation.Staff
 
         /// <summary>The plate in their hands, or null.</summary>
         public Plate Carried { get; private set; }
+
+        Item IStaffJob.Carried => Carried;
+
+        public object Target
+        {
+            get
+            {
+                switch (Task)
+                {
+                    case DishwasherTask.ToPass:
+                        return _passes[TargetPass];
+                    case DishwasherTask.ToSink:
+                    case DishwasherTask.Washing:
+                        return _sink;
+                    case DishwasherTask.ToStack:
+                        return _stack;
+                    default:
+                        return null;
+                }
+            }
+        }
+
+        // Plates going on the stack or in the sink have their views handled there.
+        public event Action<Item> ItemGone { add { } remove { } }
+
+        public event Action FoodChanged { add { } remove { } }
+
+        public void Release() => PutDownCarried();
 
         public void Tick(float seconds)
         {

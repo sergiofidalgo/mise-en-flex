@@ -4,6 +4,21 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-04 — The prep assistant (Phase 3)
+
+**Agreed:** the assistant keeps the containers players set out stocked. A container with some food in it says what it's for; when it runs low, they bring more from storage by tray, cutting at the board if what's stored is still whole. Empty containers are left alone: only players decide what a container is for. They never touch the hob or the steak.
+
+**Details (proposed while building; flagged for review, tunable in `StaffConfig`):**
+- **Refills below half full,** emptiest first, up to 4 portions a trip and never past full.
+- **Takes a tray from the rack and keeps it for the shift,** so one of the 4 trays is theirs. With none free, they can't work.
+- **Cuts one item in 4 real seconds** at average speed, without the dial. Skill and tiredness set how even the cut is. A mistake drops a portion, which is lost.
+- **A busy board:** they don't fetch food to cut while it's in use, and if a chef gets there first they wait 5 real seconds, then put the food back. A chef can take food off the board mid-cut.
+- **Candidates:** every day offers at least one person per role. Four assistant types, €40–80 a day.
+- **Leftovers on their tray** go to a matching container, otherwise back to storage; with no room anywhere, they're lost.
+- **Staff walk in straight lines, through counters,** since there's no pathfinding yet. They pick the free side of a station nearest the middle of the room to stand on.
+
+---
+
 ## 2026-11-04 — Any ingredient can go in any storage
 
 **Decision (user's call):** food isn't tied to a fridge or shelf. Refrigerated food can go on the shelf and anything can go in the fridge, and the cost is freshness: meat on a shelf spoils much faster. Replaces the fixed slot for each ingredient.

@@ -53,6 +53,10 @@ namespace Game.Data
             new Template(StaffRole.Dishwasher, "steady, nothing fancy", 0.96f, 1f, 40f),
             new Template(StaffRole.Dishwasher, "slow, very reliable", 0.995f, 0.7f, 30f),
             new Template(StaffRole.Dishwasher, "fast and careful, and knows it", 0.98f, 1.4f, 70f),
+            new Template(StaffRole.PrepAssistant, "neat but slow", 0.98f, 0.7f, 40f),
+            new Template(StaffRole.PrepAssistant, "quick, a bit sloppy", 0.85f, 1.3f, 45f),
+            new Template(StaffRole.PrepAssistant, "steady hands", 0.94f, 1f, 50f),
+            new Template(StaffRole.PrepAssistant, "trained, and expensive", 0.99f, 1.3f, 80f),
         };
 
         [Header("Work")]
@@ -60,6 +64,14 @@ namespace Game.Data
         [SerializeField, Min(0.1f)] private float _walkSpeed = 2f;
         [Tooltip("In-game seconds to wash a plate at speed 1.")]
         [SerializeField, Min(1f)] private float _washSecondsPerPlate = 150f;
+        [Tooltip("In-game seconds to cut one item at speed 1.")]
+        [SerializeField, Min(1f)] private float _cutSeconds = 240f;
+        [Tooltip("Fatigue (0..1) gained per portion a prep assistant moves or cuts.")]
+        [SerializeField, Range(0f, 1f)] private float _fatiguePerJob = 0.02f;
+        [Tooltip("A container below this share of full gets refilled.")]
+        [SerializeField, Range(0f, 1f)] private float _refillBelow = 0.5f;
+        [Tooltip("In-game seconds a prep assistant waits for a busy board before giving up.")]
+        [SerializeField, Min(0f)] private float _boardPatienceSeconds = 300f;
         [Tooltip("Fatigue (0..1) gained per plate washed.")]
         [SerializeField, Range(0f, 1f)] private float _fatiguePerPlate = 0.05f;
         [Tooltip("Share of speed lost when fully fatigued.")]
@@ -77,6 +89,10 @@ namespace Game.Data
             FatiguePerPlate = _fatiguePerPlate,
             FatigueSlowdown = _fatigueSlowdown,
             FatigueMistakes = _fatigueMistakes,
+            CutSeconds = _cutSeconds,
+            FatiguePerJob = _fatiguePerJob,
+            RefillBelow = _refillBelow,
+            BoardPatienceSeconds = _boardPatienceSeconds,
         };
 
         public System.Collections.Generic.IReadOnlyList<Candidate> CandidatesFor(int day) =>
