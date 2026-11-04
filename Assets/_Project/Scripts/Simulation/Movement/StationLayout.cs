@@ -15,9 +15,9 @@ namespace Game.Simulation.Movement
         private const float CellSize = 0.2f;
 
         private readonly List<Footprint> _stations;
+        private readonly FloorPlan _plan;
         private readonly Vector2 _roomMin;
         private readonly Vector2 _roomMax;
-        private readonly IReadOnlyList<(Vector2 Min, Vector2 Max)> _walls;
         private readonly float _stationHalfSize;
         private readonly float _radius;
         private readonly float _standDistance;
@@ -40,7 +40,7 @@ namespace Game.Simulation.Movement
             _stations = new List<Footprint>(stations);
             _roomMin = plan.RoomMin;
             _roomMax = plan.RoomMax;
-            _walls = plan.Walls;
+            _plan = plan;
             _stationHalfSize = plan.StationHalfSize;
             _radius = plan.WalkerRadius;
             _standDistance = plan.StandDistance;
@@ -51,15 +51,8 @@ namespace Game.Simulation.Movement
         /// <summary>True if someone could stand here without touching furniture or leaving the room.</summary>
         public bool IsFree(Vector2 point)
         {
-            if (point.X < _roomMin.X || point.X > _roomMax.X || point.Y < _roomMin.Y || point.Y > _roomMax.Y)
+            if (!_plan.CanStand(point))
                 return false;
-            foreach (var wall in _walls)
-            {
-                var gapX = Math.Max(0f, Math.Max(wall.Min.X - point.X, point.X - wall.Max.X));
-                var gapY = Math.Max(0f, Math.Max(wall.Min.Y - point.Y, point.Y - wall.Max.Y));
-                if (gapX * gapX + gapY * gapY < _radius * _radius)
-                    return false;
-            }
             foreach (var station in _stations)
             {
                 if (station.Contains(point, _stationHalfSize, _radius))

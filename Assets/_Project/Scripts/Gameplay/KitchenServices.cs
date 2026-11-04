@@ -45,6 +45,7 @@ namespace Game.Gameplay
             StaffConfig = staffConfig;
             Stations = stations;
             FloorPlan = floorPlan;
+            Building = floorPlan.ToPlan();
         }
 
         public CookingSimulation Cooking { get; }
@@ -72,13 +73,16 @@ namespace Game.Gameplay
         /// <summary>The building: its rooms, walls and doors.</summary>
         public FloorPlanConfig FloorPlan { get; }
 
+        /// <summary>The same, for the rules: where people can stand and reach.</summary>
+        public FloorPlan Building { get; }
+
         /// <summary>Where people can walk with the furniture as it stands now.</summary>
         public StationLayout NewLayout()
         {
             var footprints = new List<Footprint>();
             foreach (var station in Stations.All)
                 footprints.Add(station.Footprint);
-            return new StationLayout(footprints, FloorPlan.ToPlan());
+            return new StationLayout(footprints, Building);
         }
 
         /// <summary>Raised when a new day's service replaces the last, so listeners can move over to it.</summary>

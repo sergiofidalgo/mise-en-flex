@@ -34,7 +34,7 @@ namespace Game.Data
 
         [Tooltip("Where dining furniture's centres can go when square to the room.")]
         [SerializeField] private Vector2 _diningAreaMin = new Vector2(-4.4f, -7.4f);
-        [SerializeField] private Vector2 _diningAreaMax = new Vector2(4.4f, -4.2f);
+        [SerializeField] private Vector2 _diningAreaMax = new Vector2(4.4f, -3.6f);
 
         [Tooltip("Where the street door stands on the dining room's outer walls: the south-west corner of that line.")]
         [SerializeField] private Vector2 _doorLineMin = new Vector2(-4.55f, -7.55f);

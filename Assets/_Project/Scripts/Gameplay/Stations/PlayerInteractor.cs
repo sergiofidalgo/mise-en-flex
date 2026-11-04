@@ -149,16 +149,19 @@ namespace Game.Gameplay.Stations
         private Interactable FindTarget()
         {
             _candidatePositions.Clear();
+            var origin = new SimVector2(transform.position.x, transform.position.z);
             var currentIndex = -1;
             for (var i = 0; i < _interactables.Count; i++)
             {
+                // Walls stop reaching, unless the station's against them: out of range is out of reach.
                 var position = _interactables[i].transform.position;
-                _candidatePositions.Add(new SimVector2(position.x, position.z));
+                _candidatePositions.Add(_services.Building.CanReach(origin, _interactables[i].Footprint)
+                    ? new SimVector2(position.x, position.z)
+                    : origin + new SimVector2(float.MaxValue / 2f, 0f));
                 if (_interactables[i] == _target)
                     currentIndex = i;
             }
 
-            var origin = new SimVector2(transform.position.x, transform.position.z);
             var best = InteractionTargeting.SelectBest(
                 origin, transform.eulerAngles.y, _candidatePositions, _services.Tuning.Targeting, currentIndex);
             return best >= 0 ? _interactables[best] : null;

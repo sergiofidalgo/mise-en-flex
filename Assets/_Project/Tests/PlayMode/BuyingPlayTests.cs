@@ -26,6 +26,7 @@ namespace Game.Tests.PlayMode
         private KitchenCompositionRoot _root;
         private LayoutEditor _editor;
         private LayoutEditor.Cursor _cursor;
+        private PlayerInput _player;
 
         private DayCycle Days => _root.Services.Days;
 
@@ -38,10 +39,10 @@ namespace Game.Tests.PlayMode
 
             var keyboard = InputSystem.GetDevice<Keyboard>() ?? InputSystem.AddDevice<Keyboard>();
             var mouse = InputSystem.GetDevice<Mouse>() ?? InputSystem.AddDevice<Mouse>();
-            var player = Object.FindFirstObjectByType<PlayerInputManager>().JoinPlayer(controlScheme: "Keyboard&Mouse", pairWithDevices: new InputDevice[] { keyboard, mouse });
+            _player = Object.FindFirstObjectByType<PlayerInputManager>().JoinPlayer(controlScheme: "Keyboard&Mouse", pairWithDevices: new InputDevice[] { keyboard, mouse });
             yield return null;
             yield return null;
-            _cursor = _editor.Enter(player);
+            _cursor = _editor.Enter(_player);
             _cursor.Position = OpenFloor;
         }
 
@@ -233,6 +234,34 @@ namespace Game.Tests.PlayMode
             Assert.That(_editor.Place(_cursor), Is.False);
             Assert.That(_cursor.Result, Is.EqualTo(Placement.OnAnotherStation));
             _editor.Cancel(_cursor);
+        }
+
+        [UnityTest]
+        public IEnumerator FurnitureAgainstTheWallCanBeReachedFromTheOtherRoom()
+        {
+            yield return OpenKitchenWithCursor();
+            Days.Receive(500f);
+            var against = Buy<CounterStation>("counter", new Vector2(-2f, -2.4f));
+            var away = Buy<CounterStation>("counter", new Vector2(-4.2f, -2.1f));
+            _editor.Leave(_player);
+
+            // A chef faces north unless they've turned, so they look from the dining room.
+            var interactor = _player.GetComponent<PlayerInteractor>();
+            yield return StandAt(new Vector3(-2f, 0f, -3.45f));
+            Assert.That(interactor.Target, Is.SameAs(against), "over the wall");
+
+            yield return StandAt(new Vector3(-4.2f, 0f, -3.45f));
+            Assert.That(interactor.Target, Is.Not.SameAs(away), "in reach, but through the wall");
+        }
+
+        private IEnumerator StandAt(Vector3 position)
+        {
+            var controller = _player.GetComponent<CharacterController>();
+            controller.enabled = false;
+            _player.transform.position = new Vector3(position.x, _player.transform.position.y, position.z);
+            controller.enabled = true;
+            yield return null;
+            yield return null;
         }
     }
 }

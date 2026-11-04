@@ -203,5 +203,45 @@ namespace Game.Tests.EditMode
             Assert.That(sides.Any(p => (p - new Vector2(0f, 0.6f)).Length() < 0.001f), Is.True, "0.35 m from its long edge");
             Assert.That(sides.Any(p => (p - new Vector2(0.85f, 0f)).Length() < 0.001f), Is.True, "0.35 m from its end");
         }
+
+        // The same two rooms as above, for what can be reached through the wall.
+        private static FloorPlan Rooms() => new FloorPlan(
+            new Vector2(-4.6f, -7.6f), new Vector2(4.6f, 3.6f),
+            new[] { (new Vector2(-5f, -3.1f), new Vector2(-0.6f, -2.9f)), (new Vector2(0.6f, -3.1f), new Vector2(5f, -2.9f)) },
+            0.5f, 0.3f, 0.85f);
+
+        [Test]
+        public void AStationAgainstTheWallWorksFromBothSides()
+        {
+            var plan = Rooms();
+            var kitchenCounter = new Footprint(new Vector2(-2f, -2.4f));
+            var diningTable = new Footprint(new Vector2(-2f, -3.6f));
+
+            Assert.That(plan.CanReach(new Vector2(-2f, -3.45f), kitchenCounter), Is.True, "from the dining room");
+            Assert.That(plan.CanReach(new Vector2(-2f, -2.55f), diningTable), Is.True, "from the kitchen");
+        }
+
+        [Test]
+        public void AStationAwayFromTheWallCantBeReachedThroughIt()
+        {
+            var plan = Rooms();
+            Assert.That(plan.CanReach(new Vector2(-2f, -2.55f), new Footprint(new Vector2(-2f, -3.8f))), Is.False);
+            Assert.That(plan.CanReach(new Vector2(-2f, -3.45f), new Footprint(new Vector2(-2f, -2f))), Is.False);
+        }
+
+        [Test]
+        public void NoWallInBetweenNoProblem()
+        {
+            var plan = Rooms();
+            Assert.That(plan.CanReach(new Vector2(-2f, -1f), new Footprint(new Vector2(-2f, 0f))), Is.True, "same room");
+            Assert.That(plan.CanReach(new Vector2(0f, -3.5f), new Footprint(new Vector2(0f, -2f))), Is.True, "through the door");
+        }
+
+        [Test]
+        public void ANarrowTableAgainstTheWallCounts()
+        {
+            var bar = new Footprint(new Vector2(-2f, -3.35f), 0f, new Vector2(0.5f, 0.25f));
+            Assert.That(Rooms().CanReach(new Vector2(-2f, -2.55f), bar), Is.True);
+        }
     }
 }
