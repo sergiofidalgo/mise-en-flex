@@ -76,22 +76,22 @@ namespace Game.Editor
         private const float CounterSize = 1f;
 
         // Storage on the west wall: a fridge for meat and a shelf for vegetables. Purchases arrive
-        // straight here (free each morning until shopping, Phase 5). Slots in FaceButton order: A, B, X, Y.
+        // straight here (free each morning until shopping, Phase 5). Anything can go in either.
         private static readonly GreyboxStorage.Unit[] StorageUnits =
         {
             new GreyboxStorage.Unit
             {
                 Name = "Fridge", Position = new Vector3(-4.4f, 0f, 1.0f), Refrigerated = true,
                 Color = new Color(0.86f, 0.92f, 0.96f),
-                Slots = new (string, int, int)?[] { ("Steak", 20, 0), ("Steak", 20, 0), ("DicedOnion", 10, 0), null },
-                Deliveries = new[] { 9, 9, 0, 0 },
+                SlotCapacity = 20,
+                Deliveries = new[] { ("Steak", 18) },
             },
             new GreyboxStorage.Unit
             {
                 Name = "Shelf", Position = new Vector3(-4.4f, 0f, -0.6f), Refrigerated = false,
                 Color = new Color(0.58f, 0.43f, 0.28f),
-                Slots = new (string, int, int)?[] { ("Tomato", 6, 0), ("Onion", 12, 0), null, null },
-                Deliveries = new[] { 0, 8, 0, 0 },
+                SlotCapacity = 12,
+                Deliveries = new[] { ("Onion", 8) },
             },
         };
 

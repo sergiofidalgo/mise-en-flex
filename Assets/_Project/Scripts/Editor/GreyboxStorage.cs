@@ -10,8 +10,8 @@ namespace Game.Editor
 {
     /// <summary>
     /// Builds storage units: a counter-height body with four bins on top laid out like the face
-    /// buttons (Y north, A south, X west, B east, as seen from the camera), a sample of each
-    /// slot's ingredient, and the slot setup (ingredient, capacity, starting stock).
+    /// buttons (Y north, A south, X west, B east, as seen from the camera), a sample of every
+    /// ingredient on each bin (the view shows the one in the slot), and the slot setup.
     /// </summary>
     public static class GreyboxStorage
     {
@@ -20,13 +20,13 @@ namespace Game.Editor
             public string Name;
             public Vector3 Position;
             public bool Refrigerated;
-
-            // Portions delivered each morning, per slot.
-            public int[] Deliveries = new int[4];
             public Color Color;
 
-            // In FaceButton order: South (A), East (B), West (X), North (Y). Null = unused slot.
-            public (string TypeId, int Capacity, int StartStock)?[] Slots = new (string, int, int)?[4];
+            // Portions each of the four slots holds. Any ingredient can go in any slot.
+            public int SlotCapacity;
+
+            // What arrives each morning, until shopping (Phase 5).
+            public (string TypeId, int Count)[] Deliveries = System.Array.Empty<(string, int)>();
         }
 
         private const float BinOffset = 0.25f;
@@ -51,7 +51,12 @@ namespace Game.Editor
             var binMaterial = GreyboxAssets.EnsureMaterial("StorageBin", BinColor);
 
             var bins = new Transform[BinOffsets.Length];
-            var samples = new GameObject[BinOffsets.Length];
+            var viewSo = new SerializedObject(station.gameObject.AddComponent<StorageView>());
+            viewSo.FindProperty("_storage").objectReferenceValue = station;
+            var samples = viewSo.FindProperty("_samples");
+            samples.arraySize = BinOffsets.Length * GreyboxIngredients.Types.Length;
+            var sampleIndex = 0;
+
             for (var i = 0; i < BinOffsets.Length; i++)
             {
                 var bin = GreyboxAssets.CreatePrimitive(PrimitiveType.Cube, $"Bin_{(FaceButton)i}", station.transform, binMaterial, keepCollider: false);
@@ -59,23 +64,20 @@ namespace Game.Editor
                 bin.transform.localPosition = BinOffsets[i] + Vector3.up * (height + BinScale.y / 2f);
                 bins[i] = bin.transform;
 
-                // Every bin gets a sample object so references are never empty; unused bins' stay empty.
-                var slot = unit.Slots[i];
-                var type = slot.HasValue ? GreyboxIngredients.Types.FirstOrDefault(t => t.Id == slot.Value.TypeId) : null;
-                GameObject sample;
-                if (type != null)
+                foreach (var type in GreyboxIngredients.Types)
                 {
-                    sample = GreyboxIngredients.CreateShape(type, $"Sample_{type.Id}", station.transform);
-                    sample.transform.localScale = type.Scale * SampleScale;
-                    sample.transform.localPosition = BinOffsets[i] + Vector3.up * (height + BinScale.y + type.CentreHeight * SampleScale);
+                    var shape = GreyboxIngredients.CreateShape(type, $"Sample_{(FaceButton)i}_{type.Id}", station.transform);
+                    shape.transform.localScale = type.Scale * SampleScale;
+                    shape.transform.localPosition = BinOffsets[i] + Vector3.up * (height + BinScale.y + type.CentreHeight * SampleScale);
+                    shape.SetActive(false);
+
+                    var sample = samples.GetArrayElementAtIndex(sampleIndex++);
+                    sample.FindPropertyRelative("_slot").intValue = i;
+                    sample.FindPropertyRelative("_typeId").stringValue = type.Id;
+                    sample.FindPropertyRelative("_shape").objectReferenceValue = shape;
                 }
-                else
-                {
-                    sample = new GameObject("Sample_None");
-                    sample.transform.SetParent(station.transform, false);
-                }
-                samples[i] = sample;
             }
+            viewSo.ApplyModifiedPropertiesWithoutUndo();
 
             var so = new SerializedObject(station);
             so.FindProperty("_refrigerated").boolValue = unit.Refrigerated;
@@ -84,23 +86,18 @@ namespace Game.Editor
             for (var i = 0; i < BinOffsets.Length; i++)
             {
                 var element = slots.GetArrayElementAtIndex(i);
-                var slot = unit.Slots[i];
-                element.FindPropertyRelative("_typeId").stringValue = slot?.TypeId ?? string.Empty;
-                element.FindPropertyRelative("_capacity").intValue = slot?.Capacity ?? 0;
-                element.FindPropertyRelative("_startStock").intValue = slot?.StartStock ?? 0;
-                element.FindPropertyRelative("_dailyDelivery").intValue = unit.Deliveries[i];
+                element.FindPropertyRelative("_capacity").intValue = unit.SlotCapacity;
                 element.FindPropertyRelative("_bin").objectReferenceValue = bins[i];
             }
+            var deliveries = so.FindProperty("_deliveries");
+            deliveries.arraySize = unit.Deliveries.Length;
+            for (var i = 0; i < unit.Deliveries.Length; i++)
+            {
+                var element = deliveries.GetArrayElementAtIndex(i);
+                element.FindPropertyRelative("_typeId").stringValue = unit.Deliveries[i].TypeId;
+                element.FindPropertyRelative("_count").intValue = unit.Deliveries[i].Count;
+            }
             so.ApplyModifiedPropertiesWithoutUndo();
-
-            var view = station.gameObject.AddComponent<StorageView>();
-            var viewSo = new SerializedObject(view);
-            viewSo.FindProperty("_storage").objectReferenceValue = station;
-            var list = viewSo.FindProperty("_samples");
-            list.arraySize = samples.Length;
-            for (var i = 0; i < samples.Length; i++)
-                list.GetArrayElementAtIndex(i).objectReferenceValue = samples[i];
-            viewSo.ApplyModifiedPropertiesWithoutUndo();
         }
     }
 }

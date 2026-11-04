@@ -4,6 +4,16 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-04 — Any ingredient can go in any storage
+
+**Decision (user's call):** food isn't tied to a fridge or shelf. Refrigerated food can go on the shelf and anything can go in the fridge, and the cost is freshness: meat on a shelf spoils much faster. Replaces the fixed slot for each ingredient.
+
+**Details (proposed while building):** each unit still has four slots, one ingredient per slot at a time, free again when empty. A portion goes with the same ingredient if there's room, or else into a free slot. The fridge's slots hold 20 and the shelf's 12. Deliveries fill the same way (18 steaks to the fridge, 8 onions to the shelf), and tomatoes and diced onion no longer get a reserved place.
+
+**Measured by the existing model:** a night on the shelf costs a steak about 86% freshness, against about 25% in the fridge. Stored food below 10% gets thrown out, so a steak left on the shelf won't survive much more than a night.
+
+---
+
 ## 2026-11-04 — Containers, trays and restocking through shopping
 
 **The user's design:**
@@ -21,7 +31,7 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 - **Daily delivery:** 18 steaks and 8 onions, in fridge slots of 20 + 20 and a shelf slot of 12 onions. Food stored starts at 0, then the first delivery arrives on day 1.
 - **Food in a container doesn't count as "left out" overnight.**
 
-**Returning things:** clean plates, empty trays and containers go back to their piles, and ingredients back to storage. A tray returns everything on it that fits, wherever it is on the tray. Diced onion has a fridge slot (10), so cut food can be put away too.
+**Returning things:** clean plates, empty trays and containers go back to their piles, and ingredients back to storage. A tray returns everything on it that fits, wherever it is on the tray. Cut food can be put away too.
 
 **More counters for testing:** 8 free counters instead of 3 (a longer island and three along the walls). The final number is a design question, since counters are meant to be precious.
 

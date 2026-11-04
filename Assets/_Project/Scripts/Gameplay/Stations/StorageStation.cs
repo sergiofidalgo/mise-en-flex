@@ -11,7 +11,7 @@ namespace Game.Gameplay.Stations
     /// <summary>
     /// A fridge or shelf with four slots, one per face button. Holding RT opens its radial menu;
     /// while it's open, a face button takes one portion from that slot (empty hands). With food in
-    /// hand, Interact puts it back into the slot for that ingredient, no menu needed. With a tray,
+    /// hand, Interact puts it in a slot with that ingredient or a free one, no menu needed: anything can go anywhere, though meat on a shelf spoils fast. With a tray,
     /// the menu loads onto the tray. Purchases arrive straight here (decision 2026-11-04): free
     /// each morning until shopping arrives in Phase 5.
     /// </summary>
@@ -20,21 +20,22 @@ namespace Game.Gameplay.Stations
         [Serializable]
         public sealed class SlotSetup
         {
-            [Tooltip("Ingredient type id, or empty for an unused slot.")]
-            [SerializeField] private string _typeId;
             [SerializeField, Min(0)] private int _capacity;
-            [Tooltip("Portions in the slot when the scene starts.")]
-            [SerializeField, Min(0)] private int _startStock;
-            [Tooltip("Portions delivered each morning, up to the capacity.")]
-            [SerializeField, Min(0)] private int _dailyDelivery;
             [Tooltip("Where this slot's bin is; food appears here when taken.")]
             [SerializeField] private Transform _bin;
 
-            public string TypeId => _typeId;
             public int Capacity => _capacity;
-            public int StartStock => _startStock;
-            public int DailyDelivery => _dailyDelivery;
             public Transform Bin => _bin;
+        }
+
+        [Serializable]
+        public sealed class Delivery
+        {
+            [SerializeField] private string _typeId;
+            [SerializeField, Min(0)] private int _count;
+
+            public string TypeId => _typeId;
+            public int Count => _count;
         }
 
         [Tooltip("Fridges keep stock at the fridge temperature; shelves at kitchen temperature.")]
@@ -42,6 +43,9 @@ namespace Game.Gameplay.Stations
 
         [Tooltip("One per face button, in FaceButton order: South (A), East (B), West (X), North (Y).")]
         [SerializeField] private SlotSetup[] _slots = new SlotSetup[4];
+
+        [Tooltip("What arrives here each morning, while there's room. Until shopping (Phase 5).")]
+        [SerializeField] private Delivery[] _deliveries = Array.Empty<Delivery>();
 
         private StorageUnit _unit;
         private StoreBack _container;
@@ -61,17 +65,9 @@ namespace Game.Gameplay.Stations
             var temperature = _refrigerated ? services.Tuning.FridgeTemperature : services.Tuning.AmbientTemperature;
             var slots = new StorageUnit.Slot[_slots.Length];
             for (var i = 0; i < _slots.Length; i++)
-                slots[i] = new StorageUnit.Slot(_slots[i]?.TypeId, _slots[i]?.Capacity ?? 0);
+                slots[i] = new StorageUnit.Slot(_slots[i]?.Capacity ?? 0);
 
             _unit = new StorageUnit(temperature, slots);
-            for (var i = 0; i < _slots.Length; i++)
-            {
-                var setup = _slots[i];
-                if (setup == null || string.IsNullOrEmpty(setup.TypeId))
-                    continue;
-                _unit.Stock(i, () => (Ingredient)services.CreateItem(setup.TypeId, temperature), setup.StartStock);
-            }
-
             _container = new StoreBack(_unit, services);
         }
 
@@ -80,14 +76,11 @@ namespace Game.Gameplay.Stations
         public List<(string TypeId, int Count)> TakeDelivery()
         {
             var delivered = new List<(string, int)>();
-            for (var i = 0; i < _slots.Length; i++)
+            foreach (var delivery in _deliveries)
             {
-                var setup = _slots[i];
-                if (setup == null || string.IsNullOrEmpty(setup.TypeId) || setup.DailyDelivery <= 0)
-                    continue;
-                var count = _unit.Stock(i, () => (Ingredient)_services.CreateItem(setup.TypeId, _unit.Temperature), setup.DailyDelivery);
+                var count = _unit.Stock(delivery.TypeId, () => (Ingredient)_services.CreateItem(delivery.TypeId, _unit.Temperature), delivery.Count);
                 if (count > 0)
-                    delivered.Add((setup.TypeId, count));
+                    delivered.Add((delivery.TypeId, count));
             }
             return delivered;
         }
@@ -140,8 +133,8 @@ namespace Game.Gameplay.Stations
             {
                 var slot = _unit.Slots[i];
                 var control = (PromptControl)i;
-                lines.Add(slot.IsUsed
-                    ? new PromptLine(control, $"{slot.TypeId} ×{slot.Count}", slot.Count > 0 && (player.Hands.IsEmpty || (player.Hands.Current is Tray room && room.HasRoom)))
+                lines.Add(slot.Count > 0
+                    ? new PromptLine(control, $"{slot.TypeId} ×{slot.Count}", player.Hands.IsEmpty || (player.Hands.Current is Tray room && room.HasRoom))
                     : new PromptLine(control, "—", available: false));
             }
         }

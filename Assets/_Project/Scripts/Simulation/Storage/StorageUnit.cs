@@ -6,10 +6,11 @@ using Game.Simulation.Items;
 namespace Game.Simulation.Storage
 {
     /// <summary>
-    /// A fridge or shelf with a few slots, each dedicated to one ingredient type with a limited
-    /// capacity (decision 2026-11-02: storage with capacity is the game's main differentiator).
-    /// Stock is real, simulated food kept at the unit's temperature, so a fridge keeps it cold and
-    /// fresh and a shelf doesn't; leftovers put back keep their state.
+    /// A fridge or shelf with a few slots of limited capacity (decision 2026-11-02: storage with
+    /// capacity is the game's main differentiator). A slot holds one ingredient at a time and is
+    /// free again when empty, and any ingredient can go in any unit (decision 2026-11-04). Stock
+    /// is real, simulated food kept at the unit's temperature, so meat on a shelf simply spoils
+    /// faster; leftovers put back keep their state.
     /// </summary>
     public sealed class StorageUnit : IItemContainer
     {
@@ -17,20 +18,19 @@ namespace Game.Simulation.Storage
         {
             private readonly List<Ingredient> _items = new List<Ingredient>();
 
-            public Slot(string typeId, int capacity)
+            public Slot(int capacity)
             {
-                TypeId = typeId;
                 Capacity = capacity;
             }
 
-            /// <summary>The ingredient this slot holds, or null/empty for an unused slot.</summary>
-            public string TypeId { get; }
+            /// <summary>The ingredient this slot holds right now, or null when empty and free.</summary>
+            public string TypeId => _items.Count > 0 ? _items[0].TypeId : null;
 
             public int Capacity { get; }
 
             public int Count => _items.Count;
 
-            public bool IsUsed => !string.IsNullOrEmpty(TypeId) && Capacity > 0;
+            public bool IsUsed => Capacity > 0;
 
             /// <summary>The portions in the slot, oldest first.</summary>
             public IReadOnlyList<Ingredient> Stock => _items;
@@ -51,13 +51,15 @@ namespace Game.Simulation.Storage
 
         public IReadOnlyList<Slot> Slots => _slots;
 
-        /// <summary>Puts newly created stock into a slot, up to its capacity. Returns how many fitted.</summary>
-        public int Stock(int slotIndex, Func<Ingredient> create, int count)
+        /// <summary>Puts newly created stock away, while there's room. Returns how many fitted.</summary>
+        public int Stock(string typeId, Func<Ingredient> create, int count)
         {
-            var slot = _slots[slotIndex];
             var added = 0;
-            while (added < count && slot.IsUsed && slot.Count < slot.Capacity)
+            while (added < count)
             {
+                var slot = FindSlotWithRoom(typeId);
+                if (slot == null)
+                    break;
                 Store(slot, create());
                 added++;
             }
@@ -84,14 +86,14 @@ namespace Game.Simulation.Storage
         // Taking is done per slot with the face buttons (TryTake), not through Interact.
         public bool CanTake => false;
 
-        public bool CanAccept(Item item) => item is Ingredient ingredient && FindSlotWithRoom(ingredient) != null;
+        public bool CanAccept(Item item) => item is Ingredient ingredient && FindSlotWithRoom(ingredient.TypeId) != null;
 
         public Item Take() => throw new InvalidOperationException("Take from a specific slot with TryTake.");
 
         public void Put(Item item)
         {
             var ingredient = item as Ingredient;
-            var slot = ingredient != null ? FindSlotWithRoom(ingredient) : null;
+            var slot = ingredient != null ? FindSlotWithRoom(ingredient.TypeId) : null;
             if (slot == null)
                 throw new InvalidOperationException("No slot for this item.");
             Store(slot, ingredient);
@@ -115,11 +117,17 @@ namespace Game.Simulation.Storage
             return spoiled;
         }
 
-        private Slot FindSlotWithRoom(Ingredient ingredient)
+        // A slot already holding this ingredient with room, or else the first free one.
+        private Slot FindSlotWithRoom(string typeId)
         {
             foreach (var slot in _slots)
             {
-                if (slot.IsUsed && slot.TypeId == ingredient.TypeId && slot.Count < slot.Capacity)
+                if (slot.IsUsed && slot.TypeId == typeId && slot.Count < slot.Capacity)
+                    return slot;
+            }
+            foreach (var slot in _slots)
+            {
+                if (slot.IsUsed && slot.Count == 0)
                     return slot;
             }
             return null;

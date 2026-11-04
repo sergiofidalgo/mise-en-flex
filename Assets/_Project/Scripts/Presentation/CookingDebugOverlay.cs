@@ -312,7 +312,7 @@ namespace Game.Presentation
                     continue;
                 var parts = storage.Unit.Slots
                     .Where(s => s.IsUsed)
-                    .Select(s => s.Count > 0 ? $"{s.TypeId} ×{s.Count}" : Coloured($"{s.TypeId} ×0", Bad));
+                    .Select(s => s.Count > 0 ? $"{s.TypeId} ×{s.Count}" : Coloured("free", Dim));
                 var fresh = AverageFreshness(storage.Unit.Slots.SelectMany(SlotItems));
                 GUILayout.Label($"<b>{storage.name}</b> {storage.Unit.Temperature:0} °C:  {string.Join(",  ", parts)}   {Coloured($"fresh {fresh:P0}", FreshColour(fresh))}", _text);
             }

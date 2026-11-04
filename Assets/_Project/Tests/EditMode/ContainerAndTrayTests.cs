@@ -192,7 +192,7 @@ namespace Game.Tests.EditMode
         [Test]
         public void ATrayRestocksAFridge()
         {
-            var fridge = new StorageUnit(4f, new StorageUnit.Slot("Steak", 5));
+            var fridge = new StorageUnit(4f, new StorageUnit.Slot(5));
             var tray = NewTray();
             tray.Put(Food());
             tray.Put(Food());
@@ -323,7 +323,7 @@ namespace Game.Tests.EditMode
         [Test]
         public void AnIngredientGoesBackInStorage()
         {
-            var fridge = new StorageUnit(4f, new StorageUnit.Slot("Steak", 5));
+            var fridge = new StorageUnit(4f, new StorageUnit.Slot(5));
             var hands = Hands(Food());
             Assert.That(ItemTransfer.Interact(hands, fridge), Is.EqualTo(InteractionOutcome.Placed));
             Assert.That(hands.IsEmpty);
@@ -333,7 +333,7 @@ namespace Game.Tests.EditMode
         [Test]
         public void ATrayReturnsWhatFitsWhereverItIsOnTheTray()
         {
-            var fridge = new StorageUnit(4f, new StorageUnit.Slot("Steak", 5));
+            var fridge = new StorageUnit(4f, new StorageUnit.Slot(5));
             var tray = NewTray();
             var plate = new Plate(3);
             tray.Put(Food());
@@ -360,14 +360,6 @@ namespace Game.Tests.EditMode
 
             Assert.That(ItemTransfer.Interact(hands, stack), Is.EqualTo(InteractionOutcome.PickedUp), "nothing left to return");
             Assert.That(tray.Items, Has.Count.EqualTo(2));
-        }
-
-        [Test]
-        public void EveryIngredientHasSomewhereToGoBack()
-        {
-            var scene = System.IO.File.ReadAllText("Assets/_Project/Scenes/Kitchen_Greybox.unity");
-            foreach (var type in new[] { "Steak", "Onion", "Tomato", "DicedOnion" })
-                Assert.That(scene, Does.Contain($"_typeId: {type}"), $"{type} needs a storage slot");
         }
 
         [Test]

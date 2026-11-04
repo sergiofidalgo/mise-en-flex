@@ -24,15 +24,15 @@ namespace Game.Tests.EditMode
         public void StockFitsOnlyUpToCapacity()
         {
             var sim = Sim();
-            var fridge = new StorageUnit(4f, new StorageUnit.Slot("Steak", 3));
-            Assert.That(fridge.Stock(0, () => sim.AddIngredient(Food()), 18), Is.EqualTo(3));
+            var fridge = new StorageUnit(4f, new StorageUnit.Slot(3));
+            Assert.That(fridge.Stock("Steak", () => sim.AddIngredient(Food()), 18), Is.EqualTo(3));
         }
 
         [Test]
         public void TheOldestComesOutFirst()
         {
             var sim = Sim();
-            var fridge = new StorageUnit(4f, new StorageUnit.Slot("Steak", 3));
+            var fridge = new StorageUnit(4f, new StorageUnit.Slot(3));
             var old = sim.AddIngredient(Food());
             fridge.Put(old);
             sim.Tick(Hour);
@@ -104,7 +104,7 @@ namespace Game.Tests.EditMode
         public void SpoiledStockGetsThrownOut()
         {
             var sim = Sim();
-            var fridge = new StorageUnit(4f, new StorageUnit.Slot("Steak", 3));
+            var fridge = new StorageUnit(4f, new StorageUnit.Slot(3));
             var old = sim.AddIngredient(Food());
             fridge.Put(old);
             sim.SkipClosedTime(200f * Hour);
