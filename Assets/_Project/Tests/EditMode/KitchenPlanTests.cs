@@ -252,6 +252,55 @@ namespace Game.Tests.EditMode
             Assert.That(plan.Check(other, new Vector2(1f, 1f), 0f, Nobody), Is.EqualTo(Placement.Ok));
         }
 
+        // A narrow piece: a metre wide, half a metre deep.
+        private static readonly Vector2 Narrow = new Vector2(0.5f, 0.25f);
+
+        [Test]
+        public void ANarrowPieceTakesUpLessRoom()
+        {
+            var plan = Plan();
+            var narrow = new object();
+            plan.Add(narrow, new Vector2(0f, 0f), 0f, Narrow);
+            plan.Add(new object(), new Vector2(0f, 1f));
+
+            Assert.That(plan.Check(narrow, new Vector2(0f, 0.2f), 0f, Nobody), Is.EqualTo(Placement.Ok), "a square would touch");
+            Assert.That(plan.Check(narrow, new Vector2(0f, 0.3f), 0f, Nobody), Is.EqualTo(Placement.OnAnotherStation));
+            Assert.That(plan.PieceAt(new Vector2(0f, -0.4f)), Is.Null, "behind it");
+        }
+
+        [Test]
+        public void ANarrowPieceTurnsLikeARectangle()
+        {
+            var plan = Plan();
+            var narrow = new object();
+            plan.Add(narrow, new Vector2(0f, 0f), 0f, Narrow);
+            plan.Add(new object(), new Vector2(0f, 1f));
+
+            Assert.That(plan.Check(narrow, new Vector2(0f, 0.2f), 90f, Nobody), Is.EqualTo(Placement.OnAnotherStation), "now it's long that way");
+        }
+
+        [Test]
+        public void ANarrowPieceSnapsEdgeToEdge()
+        {
+            var plan = Plan();
+            var narrow = new object();
+            plan.Add(narrow, new Vector2(-3f, -1f), 0f, Narrow);
+            plan.Add(new object(), new Vector2(1f, 2f));
+
+            AssertNear(plan.Snap(narrow, new Vector2(1.05f, 1.2f), 0f), new Vector2(1f, 1.25f));
+        }
+
+        [Test]
+        public void ANarrowPieceSitsWithItsEdgeAgainstTheWall()
+        {
+            var plan = Plan();
+            var narrow = new object();
+            plan.Add(narrow, new Vector2(0f, 0f), 0f, Narrow);
+
+            // A standard piece's centre stops at 3.4, half a metre from the wall.
+            AssertNear(plan.Snap(narrow, new Vector2(0f, 3.6f), 0f), new Vector2(0f, 3.65f));
+        }
+
         [Test]
         public void MovingTakesEffect()
         {

@@ -97,7 +97,7 @@ namespace Game.Gameplay
             var floor = _root.Services.FloorPlan;
             _plan = new KitchenPlan(floor.KitchenAreaMin, floor.KitchenAreaMax, _snapRange, floor.StationHalfSize, floor.WalkerRadius);
             foreach (var station in _root.Services.Stations.All)
-                _plan.Add(station, Floor(station.transform.position), station.transform.eulerAngles.y);
+                _plan.Add(station, Floor(station.transform.position), station.transform.eulerAngles.y, station.HalfSize);
         }
 
         private void Update()
@@ -284,7 +284,7 @@ namespace Game.Gameplay
             {
                 // Now it's furniture: it works, and everyone knows about it.
                 station.Bind(_root.Services);
-                _plan.Add(station, cursor.Landing, cursor.Degrees);
+                _plan.Add(station, cursor.Landing, cursor.Degrees, station.HalfSize);
                 _root.Services.Stations.Add(station);
                 cursor.Buying = null;
             }
@@ -358,6 +358,7 @@ namespace Game.Gameplay
             cursor.ShopOpen = false;
             cursor.Buying = entry;
             cursor.Held = instance.GetComponent<Interactable>();
+            _plan.GiveSize(cursor.Held, cursor.Held.HalfSize);
             if (cursor.Held.BelongsInDiningRoom)
                 _plan.GiveArea(cursor.Held, _root.Services.FloorPlan.DiningAreaMin, _root.Services.FloorPlan.DiningAreaMax);
             cursor.HeldFrom = position;

@@ -77,10 +77,7 @@ namespace Game.Gameplay
         {
             var footprints = new List<Footprint>();
             foreach (var station in Stations.All)
-            {
-                var position = station.transform.position;
-                footprints.Add(new Footprint(new System.Numerics.Vector2(position.x, position.z), station.transform.eulerAngles.y));
-            }
+                footprints.Add(station.Footprint);
             return new StationLayout(footprints, FloorPlan.ToPlan());
         }
 

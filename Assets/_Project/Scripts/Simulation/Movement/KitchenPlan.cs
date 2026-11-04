@@ -22,6 +22,7 @@ namespace Game.Simulation.Movement
     public sealed class KitchenPlan
     {
         private readonly Dictionary<object, Footprint> _pieces = new Dictionary<object, Footprint>();
+        private readonly Dictionary<object, Vector2> _sizes = new Dictionary<object, Vector2>();
         private readonly Dictionary<object, (Vector2 Min, Vector2 Max)> _otherAreas = new Dictionary<object, (Vector2, Vector2)>();
         private readonly Vector2 _areaMin;
         private readonly Vector2 _areaMax;
@@ -42,7 +43,18 @@ namespace Game.Simulation.Movement
 
         public IEnumerable<object> Pieces => _pieces.Keys;
 
-        public void Add(object piece, Vector2 position, float degrees = 0f) => _pieces[piece] = new Footprint(position, degrees);
+        /// <param name="halfSize">Half its width and depth, if it isn't the standard square.</param>
+        public void Add(object piece, Vector2 position, float degrees = 0f, Vector2 halfSize = default)
+        {
+            GiveSize(piece, halfSize);
+            _pieces[piece] = FootprintOf(piece, position, degrees);
+        }
+
+        /// <summary>Half this piece's width and depth, for one not yet placed, if it isn't the standard square.</summary>
+        public void GiveSize(object piece, Vector2 halfSize) => _sizes[piece] = halfSize;
+
+        private Footprint FootprintOf(object piece, Vector2 position, float degrees) =>
+            new Footprint(position, degrees, _sizes.TryGetValue(piece, out var size) ? size : default);
 
         /// <summary>This piece belongs in another room: its centre stays between these corners instead.</summary>
         public void GiveArea(object piece, Vector2 min, Vector2 max) => _otherAreas[piece] = (min, max);
@@ -65,26 +77,28 @@ namespace Game.Simulation.Movement
             if (home.HasValue && (home.Value - point).Length() <= _snapRange)
                 return home.Value;
 
-            var frame = new Footprint(point, degrees);
-            var alongRight = BestCorrection(piece, point, frame.Right, frame.Forward);
-            var alongForward = BestCorrection(piece, point, frame.Forward, frame.Right);
+            var frame = FootprintOf(piece, point, degrees);
+            var alongRight = BestCorrection(piece, frame, frame.Right, frame.Forward);
+            var alongForward = BestCorrection(piece, frame, frame.Forward, frame.Right);
             var snapped = point + frame.Right * alongRight + frame.Forward * alongForward;
 
             // Against the walls, when it's square to the room.
             if (IsSquare(degrees))
             {
                 var area = AreaOf(piece);
-                snapped.X = ToEdge(snapped.X, area.Min.X, area.Max.X);
-                snapped.Y = ToEdge(snapped.Y, area.Min.Y, area.Max.Y);
+                snapped.X = ToEdge(snapped.X, area.Min.X, area.Max.X, frame.Extent(Vector2.UnitX, _stationHalfSize));
+                snapped.Y = ToEdge(snapped.Y, area.Min.Y, area.Max.Y, frame.Extent(Vector2.UnitY, _stationHalfSize));
             }
             return snapped;
         }
 
         // The smallest nudge along one direction that lines it up with a neighbour turned the same
         // way: centres level, or edges touching. Only neighbours close on the other direction count.
-        private float BestCorrection(object piece, Vector2 point, Vector2 axis, Vector2 otherAxis)
+        private float BestCorrection(object piece, Footprint moving, Vector2 axis, Vector2 otherAxis)
         {
-            var size = _stationHalfSize * 2f;
+            var point = moving.Centre;
+            var ownAlong = moving.Extent(axis, _stationHalfSize);
+            var ownAcross = moving.Extent(otherAxis, _stationHalfSize);
             var best = 0f;
             var bestSize = _snapRange;
             foreach (var pair in _pieces)
@@ -93,11 +107,12 @@ namespace Game.Simulation.Movement
                     continue;
 
                 var offset = point - pair.Value.Centre;
-                if (Math.Abs(Vector2.Dot(offset, otherAxis)) > size + _snapRange)
+                if (Math.Abs(Vector2.Dot(offset, otherAxis)) > ownAcross + pair.Value.Extent(otherAxis, _stationHalfSize) + _snapRange)
                     continue;
 
                 var along = Vector2.Dot(offset, axis);
-                foreach (var target in new[] { 0f, size, -size })
+                var touching = ownAlong + pair.Value.Extent(axis, _stationHalfSize);
+                foreach (var target in new[] { 0f, touching, -touching })
                 {
                     var correction = target - along;
                     if (Math.Abs(correction) < bestSize)
@@ -123,12 +138,16 @@ namespace Game.Simulation.Movement
             return remainder < 0.01f || remainder > 89.99f;
         }
 
-        private float ToEdge(float value, float min, float max)
+        // The area is where a standard piece's centre can go: a smaller one sits with its edge at
+        // the same wall, so its centre is closer in.
+        private float ToEdge(float value, float min, float max, float extent)
         {
-            if (Math.Abs(value - min) < _snapRange)
-                return min;
-            if (Math.Abs(value - max) < _snapRange)
-                return max;
+            var low = min - _stationHalfSize + extent;
+            var high = max + _stationHalfSize - extent;
+            if (Math.Abs(value - low) < _snapRange)
+                return low;
+            if (Math.Abs(value - high) < _snapRange)
+                return high;
             return value;
         }
 
@@ -154,7 +173,7 @@ namespace Game.Simulation.Movement
         /// <param name="people">Where everyone is standing.</param>
         public Placement Check(object piece, Vector2 position, float degrees, IEnumerable<Vector2> people)
         {
-            var moved = new Footprint(position, degrees);
+            var moved = FootprintOf(piece, position, degrees);
 
             // All of it has to fit, so a turned station can't poke through a wall.
             var area = AreaOf(piece);
@@ -185,8 +204,9 @@ namespace Game.Simulation.Movement
         {
             _pieces.Remove(piece);
             _otherAreas.Remove(piece);
+            _sizes.Remove(piece);
         }
 
-        public void Move(object piece, Vector2 position, float degrees) => _pieces[piece] = new Footprint(position, degrees);
+        public void Move(object piece, Vector2 position, float degrees) => _pieces[piece] = FootprintOf(piece, position, degrees);
     }
 }

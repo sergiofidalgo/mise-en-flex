@@ -3,19 +3,37 @@ using System.Numerics;
 
 namespace Game.Simulation.Movement
 {
-    /// <summary>The square a station takes up on the floor, at any rotation.</summary>
+    /// <summary>
+    /// The rectangle a station takes up on the floor, at any rotation. Most furniture is the standard
+    /// square, whose size the methods are given; anything else carries its own size.
+    /// </summary>
     public readonly struct Footprint
     {
-        public Footprint(Vector2 centre, float degrees = 0f)
+        /// <param name="halfSize">Half its width and depth, along its own right and forward. Zero: the standard square.</param>
+        public Footprint(Vector2 centre, float degrees = 0f, Vector2 halfSize = default)
         {
             Centre = centre;
             Degrees = degrees;
+            OwnHalfSize = halfSize;
         }
 
         public Vector2 Centre { get; }
 
         /// <summary>Clockwise from above, as Unity's yaw.</summary>
         public float Degrees { get; }
+
+        /// <summary>Its own half width and depth, or zero if it's the standard square.</summary>
+        public Vector2 OwnHalfSize { get; }
+
+        /// <summary>Half its width and depth, given how big the standard square is.</summary>
+        public Vector2 HalfSize(float standard) => OwnHalfSize != Vector2.Zero ? OwnHalfSize : new Vector2(standard, standard);
+
+        /// <summary>How far it reaches from its centre along a direction on the floor.</summary>
+        public float Extent(Vector2 axis, float standard)
+        {
+            var half = HalfSize(standard);
+            return Math.Abs(Vector2.Dot(Right, axis)) * half.X + Math.Abs(Vector2.Dot(Forward, axis)) * half.Y;
+        }
 
         // The station's own right and forward directions, on the floor.
         public Vector2 Right
@@ -47,8 +65,9 @@ namespace Game.Simulation.Movement
         public bool Contains(Vector2 point, float halfSize, float margin = 0f)
         {
             var offset = point - Centre;
-            var outsideRight = Math.Abs(Vector2.Dot(offset, Right)) - halfSize;
-            var outsideForward = Math.Abs(Vector2.Dot(offset, Forward)) - halfSize;
+            var half = HalfSize(halfSize);
+            var outsideRight = Math.Abs(Vector2.Dot(offset, Right)) - half.X;
+            var outsideForward = Math.Abs(Vector2.Dot(offset, Forward)) - half.Y;
             if (outsideRight >= margin || outsideForward >= margin)
                 return false;
             var pastACorner = outsideRight > 0f && outsideForward > 0f;
@@ -65,7 +84,7 @@ namespace Game.Simulation.Movement
             foreach (var axis in new[] { Right, Forward, other.Right, other.Forward })
             {
                 var gap = Math.Abs(Vector2.Dot(other.Centre - Centre, axis));
-                var reach = Reach(axis, halfSize) + other.Reach(axis, halfSize);
+                var reach = Extent(axis, halfSize) + other.Extent(axis, halfSize);
                 if (gap >= reach - touching)
                     return false;
             }
@@ -75,12 +94,10 @@ namespace Game.Simulation.Movement
         /// <summary>The corners, for checking it fits in the room.</summary>
         public Vector2[] Corners(float halfSize)
         {
-            var right = Right * halfSize;
-            var forward = Forward * halfSize;
+            var half = HalfSize(halfSize);
+            var right = Right * half.X;
+            var forward = Forward * half.Y;
             return new[] { Centre + right + forward, Centre + right - forward, Centre - right + forward, Centre - right - forward };
         }
-
-        private float Reach(Vector2 axis, float halfSize) =>
-            (Math.Abs(Vector2.Dot(Right, axis)) + Math.Abs(Vector2.Dot(Forward, axis))) * halfSize;
     }
 }

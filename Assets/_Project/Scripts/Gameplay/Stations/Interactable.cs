@@ -17,6 +17,9 @@ namespace Game.Gameplay.Stations
         [Tooltip("Its entry in the furniture catalogue. Empty: it isn't for sale.")]
         [SerializeField] private string _furnitureId;
 
+        [Tooltip("Half its width and depth on the floor, if it isn't the standard square. Zero: standard.")]
+        [SerializeField] private Vector2 _halfSize;
+
         private readonly List<PlayerInteractor> _targeters = new List<PlayerInteractor>();
         private bool _cantGoHere;
 
@@ -26,6 +29,13 @@ namespace Game.Gameplay.Stations
         public Transform ItemAnchor => _itemAnchor;
 
         public string FurnitureId => _furnitureId;
+
+        /// <summary>Half its width and depth, or zero if it's the standard square.</summary>
+        public System.Numerics.Vector2 HalfSize => new System.Numerics.Vector2(_halfSize.x, _halfSize.y);
+
+        /// <summary>What it takes up on the floor, where it stands now.</summary>
+        public Simulation.Movement.Footprint Footprint => new Simulation.Movement.Footprint(
+            new System.Numerics.Vector2(transform.position.x, transform.position.z), transform.eulerAngles.y, HalfSize);
 
         /// <summary>It goes in the dining room rather than the kitchen.</summary>
         public virtual bool BelongsInDiningRoom => false;

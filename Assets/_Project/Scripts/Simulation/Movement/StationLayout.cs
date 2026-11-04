@@ -109,9 +109,11 @@ namespace Game.Simulation.Movement
         public List<Vector2> FreeSides(Footprint station)
         {
             var sides = new List<Vector2>();
+            // The same gap from its edge whatever its size.
+            var gap = _standDistance - _stationHalfSize;
             foreach (var side in new[] { station.Forward, -station.Forward, -station.Right, station.Right })
             {
-                var point = station.Centre + side * _standDistance;
+                var point = station.Centre + side * (station.Extent(side, _stationHalfSize) + gap);
                 if (IsFree(point))
                     sides.Add(point);
             }

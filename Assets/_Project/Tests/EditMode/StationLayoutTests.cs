@@ -192,5 +192,15 @@ namespace Game.Tests.EditMode
             var layout = TwoRooms(new Footprint(new Vector2(0f, -2.4f)));
             Assert.That(layout.FindPath(new Vector2(-3f, -5f), new Vector2(-3f, 0f)), Is.Null);
         }
+
+        [Test]
+        public void SomeoneStandsTheSameGapFromANarrowStation()
+        {
+            var narrow = new Footprint(new Vector2(0f, 0f), 0f, new Vector2(0.5f, 0.25f));
+            var sides = new StationLayout(new[] { narrow }, Room, 0.5f, 0.3f, 0.85f).FreeSides(narrow);
+
+            Assert.That(sides.Any(p => (p - new Vector2(0f, 0.6f)).Length() < 0.001f), Is.True, "0.35 m from its long edge");
+            Assert.That(sides.Any(p => (p - new Vector2(0.85f, 0f)).Length() < 0.001f), Is.True, "0.35 m from its end");
+        }
     }
 }

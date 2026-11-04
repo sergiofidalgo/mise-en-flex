@@ -380,7 +380,7 @@ namespace Game.Gameplay.Staff
         private List<System.Numerics.Vector2> PlanRoute(StaffAgent agent, Interactable station)
         {
             var here = Floor(agent.transform.position);
-            return _layout.FindPathTo(here, new Footprint(Floor(station.transform.position), station.transform.eulerAngles.y));
+            return _layout.FindPathTo(here, station.Footprint);
         }
 
         private static System.Numerics.Vector2 Floor(Vector3 position) => new System.Numerics.Vector2(position.x, position.z);
