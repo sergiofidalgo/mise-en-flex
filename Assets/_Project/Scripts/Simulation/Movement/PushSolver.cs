@@ -15,8 +15,8 @@ namespace Game.Simulation.Movement
         /// <param name="minDistance">How close their centres can be.</param>
         /// <param name="moveA">How far A walked or wants to walk this frame; the same for B.</param>
         /// <param name="resistance">
-        /// How much of a push an idle body soaks up: 0 moves them at the pusher's full pace, and 0.5
-        /// at half, because the pusher gives back half of each step.
+        /// How much of a push an idle body soaks up: 0 moves them at the pusher's full pace, 0.8 at a
+        /// fifth of it, because the pusher gives back that share of each step, and 1 not at all.
         /// </param>
         public static (Vector2 ShiftA, Vector2 ShiftB) Separate(Vector2 a, Vector2 moveA, Vector2 b, Vector2 moveB, float minDistance, float resistance = 0f)
         {

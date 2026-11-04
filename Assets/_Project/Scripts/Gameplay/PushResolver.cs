@@ -34,8 +34,8 @@ namespace Game.Gameplay
 
         [SerializeField] private StaffDirector _director;
 
-        [Tooltip("How much a body resists being pushed: 0 goes along at the pusher's full pace, 0.5 at half.")]
-        [SerializeField, Range(0f, 0.5f)] private float _resistance = 0.4f;
+        [Tooltip("How heavy an idle body is to push: 0 goes along at the pusher's full pace, 0.8 at a fifth of it, 1 not at all.")]
+        [SerializeField, Range(0f, 1f)] private float _resistance = 0.8f;
 
         private readonly List<IPushable> _bodies = new List<IPushable>();
 

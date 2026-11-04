@@ -8,7 +8,7 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 **Pushing (user's call):** chefs and staff can push each other. Someone idle gets moved along by whoever walks into them, and two walking into each other with equal force don't move. A helper pushed away from their work stops, walks back when there's space, and carries on.
 
-**After play:** bodies have weight: an idle body soaks up 40% of a push (`_resistance` on `PushResolver`), so it moves at 60% of walking pace. A pushed helper doesn't fight back while pressed, so you can keep pushing them as far as you like; they head back 0.8 s after nobody's touching them. Helpers slide along furniture when pushed into it, as chefs do.
+**After play:** bodies have weight: an idle body soaks up 80% of a push (`_resistance` on `PushResolver`), so it moves at a fifth of walking pace (first 40%, too light in play). A pushed helper doesn't fight back while pressed, so you can keep pushing them as far as you like; they head back 0.8 s after nobody's touching them. Helpers slide along furniture when pushed into it, as chefs do.
 
 **Details (proposed while building):** the stronger push wins by the difference. Someone pinned against furniture can't give way, so the pusher stops. The food stays on the board while a helper is pushed off it, and a chef can take it in the meantime. A chef pushed while washing keeps washing for now.
 

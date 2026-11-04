@@ -127,6 +127,15 @@ namespace Game.Tests.EditMode
         }
 
         [Test]
+        public void AHeavyBodyMovesSlowlyAndHoldsThePusherBack()
+        {
+            var (a, b) = Walk(Vector2.Zero, new Vector2(0.03f, 0f), new Vector2(0.7f, 0f), Vector2.Zero, 60, resistance: 0.8f);
+
+            Assert.That(b.X, Is.EqualTo(0.7f + 60f * 0.03f * 0.2f).Within(0.02f), "a fifth of walking pace");
+            Assert.That(a.X, Is.EqualTo(b.X - 0.7f).Within(0.02f), "the pusher is held back to the same pace");
+        }
+
+        [Test]
         public void KeepingOnPushingKeepsThemMoving()
         {
             var (_, soon) = Walk(Vector2.Zero, new Vector2(0.03f, 0f), new Vector2(0.7f, 0f), Vector2.Zero, 60, resistance: 0.4f);
