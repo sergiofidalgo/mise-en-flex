@@ -26,6 +26,8 @@ namespace Game.Presentation.Hud
         [Header("Layout")]
         [Tooltip("Canvas pixels below the top of the screen for the clock.")]
         [SerializeField, Min(0f)] private float _clockTopMargin = 16f;
+        [Tooltip("Canvas pixels from the centre of the screen: the money is on the other side.")]
+        [SerializeField, Min(0f)] private float _besideMoney = 6f;
         [Tooltip("Canvas pixels above the bottom of the screen for the small Prep strip.")]
         [SerializeField, Min(0f)] private float _stripBottomMargin = 14f;
         [SerializeField, Min(8f)] private float _stripFontSize = 18f;
@@ -65,7 +67,7 @@ namespace Game.Presentation.Hud
 
         private void Start()
         {
-            _clock = WorldLabel.Create(_style, _canvas, "ServiceClock", _clockPadding, new Vector2(0.5f, 1f));
+            _clock = WorldLabel.Create(_style, _canvas, "ServiceClock", _clockPadding, new Vector2(1f, 1f));
             _clock.FontSize = _clockFontSize;
             _card = WorldLabel.Create(_style, _canvas, "ServiceCard", _cardPadding, new Vector2(0.5f, 0.5f));
             _card.FontSize = _cardFontSize;
@@ -83,7 +85,7 @@ namespace Game.Presentation.Hud
             var top = _canvas.rect.height / 2f;
 
             if (days.Phase == DayPhase.Prep || days.Phase == DayPhase.Service)
-                _clock.ShowAt(ClockText(service), new Vector2(0f, top - _clockTopMargin));
+                _clock.ShowAt(ClockText(service), new Vector2(-_besideMoney, top - _clockTopMargin));
             else
                 _clock.Hide();
 

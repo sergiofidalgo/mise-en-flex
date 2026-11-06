@@ -6,7 +6,7 @@ using UnityEngine;
 namespace Game.Presentation.Hud
 {
     /// <summary>
-    /// The money made this service, top centre of the screen under the clock. Each payment shows briefly next to
+    /// The money made this service, at the top of the screen beside the clock. Each payment shows briefly next to
     /// it in green and each walk-out in red, so rewards and losses land where they add up.
     /// </summary>
     public sealed class MoneyHud : MonoBehaviour
@@ -15,9 +15,11 @@ namespace Game.Presentation.Hud
         [SerializeField] private HudStyle _style;
         [SerializeField] private KitchenCompositionRoot _root;
 
-        [Tooltip("Canvas pixels below the top of the screen, under the clock.")]
-        [SerializeField, Min(0f)] private float _topMargin = 62f;
-        [SerializeField, Min(8f)] private float _fontSize = 30f;
+        [Tooltip("Canvas pixels below the top of the screen, level with the clock.")]
+        [SerializeField, Min(0f)] private float _topMargin = 16f;
+        [Tooltip("Canvas pixels from the centre of the screen: the clock is on the other side.")]
+        [SerializeField, Min(0f)] private float _besideClock = 6f;
+        [SerializeField, Min(8f)] private float _fontSize = 26f;
         [Tooltip("Real seconds the last payment stays next to the total.")]
         [SerializeField, Min(0f)] private float _gainSeconds = 2f;
         [SerializeField] private Vector2 _padding = new Vector2(18f, 8f);
@@ -37,7 +39,7 @@ namespace Game.Presentation.Hud
             _service.Paid += HandlePaid;
             _service.WalkedOut += HandleWalkedOut;
             _root.Services.ServiceReplaced += HandleServiceReplaced;
-            _label = WorldLabel.Create(_style, _canvas, "Money", _padding, new Vector2(0.5f, 1f));
+            _label = WorldLabel.Create(_style, _canvas, "Money", _padding, new Vector2(0f, 1f));
             _label.FontSize = _fontSize;
         }
 
@@ -87,7 +89,7 @@ namespace Game.Presentation.Hud
                 text += "  " + (_lastGain < 0f
                     ? HudStyle.Colored($"-{_currency}{-_lastGain:0}", _lossColor)
                     : HudStyle.Colored($"+{_currency}{_lastGain:0}", _gainColor));
-            _label.ShowAt(text, new Vector2(0f, _canvas.rect.height / 2f - _topMargin));
+            _label.ShowAt(text, new Vector2(_besideClock, _canvas.rect.height / 2f - _topMargin));
         }
     }
 }

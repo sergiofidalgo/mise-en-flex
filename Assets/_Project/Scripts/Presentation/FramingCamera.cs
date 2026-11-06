@@ -34,11 +34,11 @@ namespace Game.Presentation
         [Tooltip("Metres of floor to keep before the nearest. Little: nothing stands below them on screen.")]
         [SerializeField, Min(0f)] private float _nearMargin = 0.55f;
         [Tooltip("Share of the screen to leave clear at the top, for heads, furniture and the prompts above them.")]
-        [SerializeField, Range(0f, 0.45f)] private float _screenTop = 0.2f;
+        [SerializeField, Range(0f, 0.45f)] private float _screenTop = 0.12f;
         [Tooltip("Share of the screen to leave clear at the bottom.")]
         [SerializeField, Range(0f, 0.45f)] private float _screenBottom = 0.015f;
         [Tooltip("The closest it gets, in metres above the floor.")]
-        [SerializeField, Min(1f)] private float _minHeight = 10f;
+        [SerializeField, Min(1f)] private float _minHeight = 8.7f;
         [Tooltip("The furthest it gets, in metres above the floor.")]
         [SerializeField, Min(1f)] private float _maxHeight = 40f;
         [Tooltip("How far the building's outer walls are from where people can stand, in metres.")]

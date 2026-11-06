@@ -24,7 +24,7 @@ namespace Game.Presentation.Hud
         [Tooltip("Canvas pixels between two players' cards on the same station.")]
         [SerializeField, Min(0f)] private float _sideBySideGap = 12f;
         [Tooltip("Canvas pixels kept clear at the top of the screen, for the clock and the money.")]
-        [SerializeField, Min(0f)] private float _clearAtTheTop = 115f;
+        [SerializeField, Min(0f)] private float _clearAtTheTop = 70f;
         [Tooltip("Canvas pixels kept clear at the other edges of the screen.")]
         [SerializeField, Min(0f)] private float _clearAtTheEdges = 12f;
         [Tooltip("Canvas pixels from a station's centre to a card beside it, when there's no room above.")]

@@ -20,7 +20,7 @@ namespace Game.Data
         [SerializeField, Min(0f)] private float _timeScale = 60f;
 
         [Tooltip("How fast food and pans change, against the clock. The clock runs at its own pace; a steak has to be judgeable by eye.")]
-        [SerializeField, Min(0.01f)] private float _cookingSpeed = 0.5f;
+        [SerializeField, Min(0.01f)] private float _cookingSpeed = 0.7f;
 
         [Header("Kitchen")]
         [Tooltip("Kitchen air temperature, °C.")]
