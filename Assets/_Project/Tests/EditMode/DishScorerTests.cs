@@ -149,5 +149,43 @@ namespace Game.Tests.EditMode
             Assert.That(new DishScore(System.Array.Empty<ItemScore>(), 0.83f).Stars, Is.EqualTo(4f));
             Assert.That(new DishScore(System.Array.Empty<ItemScore>(), 0.86f).Stars, Is.EqualTo(4.5f));
         }
+
+        private Ingredient SearOneSide()
+        {
+            var steak = _sim.AddIngredient(Steak());
+            _pan.Put(steak);
+            while (steak.Browning(steak.DownSide) < 0.9f)
+                _sim.Tick(1f);
+            steak.Flip();
+            return steak;
+        }
+
+        private float CrustOf(Ingredient steak)
+        {
+            _pan.Take();
+            var plate = new Plate(3);
+            plate.Put(steak);
+            return DishScorer.Score(plate, _settings).Items[0].Crust.Value;
+        }
+
+        [Test]
+        public void SearingOneSideAndFinishingGentlyGetsFullCrust()
+        {
+            var steak = SearOneSide();
+            _hob.Dial = 0.3f;
+            _sim.Tick(2f * Minute);
+            Assert.That(steak.Browning(steak.DownSide), Is.LessThan(0.5f), "the second side stayed pale");
+            Assert.That(CrustOf(steak), Is.EqualTo(1f));
+        }
+
+        [Test]
+        public void ASideCloseToBurntLosesPointsHoweverGoodTheOther()
+        {
+            var steak = SearOneSide();
+            while (steak.Browning(steak.DownSide) < 1.85f)
+                _sim.Tick(1f);
+            Assert.That(steak.IsBurnt, Is.False);
+            Assert.That(CrustOf(steak), Is.LessThan(0.4f));
+        }
     }
 }

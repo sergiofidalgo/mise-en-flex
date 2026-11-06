@@ -169,8 +169,8 @@ namespace Game.Simulation.Quality
             }
 
             if (p.ScoresBrowning)
-                score.Crust = ingredient.IsBurnt ? 0f : CrustScore(
-                    (ingredient.Browning(IngredientSide.A) + ingredient.Browning(IngredientSide.B)) / 2f, p.BurntBrowning, settings);
+                score.Crust = ingredient.IsBurnt ? 0f : CrustOfBothSides(
+                    ingredient.Browning(IngredientSide.A), ingredient.Browning(IngredientSide.B), p.BurntBrowning, settings);
 
             if (p.ServedHot)
                 score.Temperature = Ramp(ingredient.AverageTemperature, p.ServingColdTemperature, p.ServingIdealTemperature);
@@ -217,6 +217,15 @@ namespace Game.Simulation.Quality
         {
             var off = Math.Abs(peakCore - target) - settings.DonenessTolerance;
             return off <= 0f ? 1f : Math.Max(0f, 1f - off / settings.DonenessFalloff);
+        }
+
+        // Judged by the better side, the one that's presented, so searing one side and finishing gently
+        // is as good as it gets. But any side close to burnt loses points, however good the other is.
+        private static float CrustOfBothSides(float a, float b, float burnt, ScoringSettings settings)
+        {
+            var best = Math.Max(CrustScore(a, burnt, settings), CrustScore(b, burnt, settings));
+            var nearlyBurnt = 1f - Ramp(Math.Max(a, b), settings.CrustGoodMax, burnt);
+            return Math.Min(best, nearlyBurnt);
         }
 
         // Pale scores 0, rising to full marks over the good range, then dropping towards burnt.
