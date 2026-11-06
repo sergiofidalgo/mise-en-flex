@@ -1,10 +1,12 @@
 using System;
 using System.Collections.Generic;
+using Game.Simulation.Cooking;
 
 namespace Game.Simulation.Items
 {
     /// <summary>
-    /// A plate: carried whole, holds a few food items, never another container.
+    /// A plate: carried whole, holds a few food items, never another container. Food on a plate has
+    /// stopped cooking: plating is how a chef says it's done.
     /// </summary>
     public sealed class Plate : Item, IItemCollection
     {
@@ -46,6 +48,8 @@ namespace Game.Simulation.Items
 
             var item = _items[_items.Count - 1];
             _items.RemoveAt(_items.Count - 1);
+            if (item is Ingredient food)
+                food.IsPlated = false;
             return item;
         }
 
@@ -54,6 +58,8 @@ namespace Game.Simulation.Items
             if (!CanAccept(item))
                 throw new InvalidOperationException("Plate can't accept this item.");
             _items.Add(item);
+            if (item is Ingredient food)
+                food.IsPlated = true;
         }
     }
 }

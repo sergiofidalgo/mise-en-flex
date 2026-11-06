@@ -52,6 +52,12 @@ namespace Game.Simulation.Cooking
         public Pan Pan { get; internal set; }
 
         /// <summary>
+        /// On a plate: it cools, but its doneness stops here, whatever heat is still in its outer
+        /// layers (decision 2026-11-07). Left in a pan off the heat, it goes on cooking.
+        /// </summary>
+        public bool IsPlated { get; internal set; }
+
+        /// <summary>
         /// °C of the air around it when that isn't the kitchen's (e.g. inside a fridge); null means
         /// the kitchen ambient temperature.
         /// </summary>
@@ -139,6 +145,8 @@ namespace Game.Simulation.Cooking
             Temperatures[SurfaceB] += PendingHeat[SurfaceB] * deltaTime / surfaceCapacity;
             Array.Clear(PendingHeat, 0, PendingHeat.Length);
 
+            if (IsPlated)
+                return;
             for (var i = 0; i < Temperatures.Length; i++)
             {
                 if (Temperatures[i] > _peakTemperatures[i])

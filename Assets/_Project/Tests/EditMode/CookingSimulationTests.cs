@@ -275,5 +275,55 @@ namespace Game.Tests.EditMode
             steak.Flip();
             Assert.That(steak.DownSide, Is.EqualTo(IngredientSide.B));
         }
+
+        private Ingredient HalfCookedFromAHotPan()
+        {
+            _hob.Dial = 1f;
+            _sim.Tick(2.5f * Minute);
+            var steak = _sim.AddIngredient(Steak());
+            _pan.Put(steak);
+            _sim.Tick(3f * Minute);
+            return steak;
+        }
+
+        [Test]
+        public void InAPanOffTheHeatFoodGoesOnCooking()
+        {
+            var steak = HalfCookedFromAHotPan();
+            _hob.RemovePan();
+            var before = steak.PeakCoreTemperature;
+            _sim.Tick(1f * Minute);
+            Assert.That(steak.PeakCoreTemperature, Is.GreaterThan(before + 1f));
+        }
+
+        [Test]
+        public void OnAPlateFoodStopsCookingAndCools()
+        {
+            var steak = HalfCookedFromAHotPan();
+            var pan = _hob.RemovePan();
+            pan.Take();
+            var plate = new Game.Simulation.Items.Plate(3);
+            plate.Put(steak);
+            var before = steak.PeakCoreTemperature;
+            var average = steak.AverageTemperature;
+            _sim.Tick(5f * Minute);
+
+            Assert.That(steak.PeakCoreTemperature, Is.EqualTo(before));
+            Assert.That(steak.AverageTemperature, Is.LessThan(average));
+        }
+
+        [Test]
+        public void TakenOffThePlateItCanCookAgain()
+        {
+            var steak = HalfCookedFromAHotPan();
+            _pan.Take();
+            var plate = new Game.Simulation.Items.Plate(3);
+            plate.Put(steak);
+            plate.Take();
+            _pan.Put(steak);
+            var before = steak.PeakCoreTemperature;
+            _sim.Tick(1f * Minute);
+            Assert.That(steak.PeakCoreTemperature, Is.GreaterThan(before));
+        }
     }
 }
