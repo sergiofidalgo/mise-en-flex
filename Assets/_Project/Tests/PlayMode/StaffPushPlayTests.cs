@@ -105,11 +105,11 @@ namespace Game.Tests.PlayMode
             Assert.That(editor.PickUp(cursor), Is.True);
 
             // Somewhere empty in the open floor.
-            editor.MoveCursor(cursor, new System.Numerics.Vector2(-start.x, -0.5f - start.z));
+            editor.MoveCursor(cursor, new System.Numerics.Vector2(2.4f - start.x, 0.95f - start.z));
             Assert.That(editor.Place(cursor), Is.True, cursor.Result.ToString());
             yield return null;
 
-            Assert.That(counter.transform.position.x, Is.EqualTo(0f).Within(0.01f));
+            Assert.That(counter.transform.position.x, Is.EqualTo(2.4f).Within(0.01f));
             Assert.That(counter.transform.position.y, Is.EqualTo(start.y).Within(0.01f), "back on the floor");
 
             editor.Leave(_player);
@@ -127,8 +127,8 @@ namespace Game.Tests.PlayMode
             var cursor = editor.Enter(_player);
             cursor.Position = new System.Numerics.Vector2(start.x, start.z);
             editor.PickUp(cursor);
-            // Open floor south-east of the island.
-            var away = new System.Numerics.Vector2(2.5f - start.x, -0.4f - start.z);
+            // Open floor north-east of the island, with room to turn.
+            var away = new System.Numerics.Vector2(2.1f - start.x, 0.95f - start.z);
             editor.MoveCursor(cursor, away);
             Assert.That(editor.Place(cursor), Is.True, cursor.Result.ToString());
 

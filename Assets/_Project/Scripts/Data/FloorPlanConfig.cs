@@ -13,33 +13,33 @@ namespace Game.Data
     public sealed class FloorPlanConfig : ScriptableObject
     {
         [Tooltip("The corner of where someone's centre can be, clear of the outer walls (x, z).")]
-        [SerializeField] private Vector2 _roomMin = new Vector2(-4.6f, -7.6f);
-        [SerializeField] private Vector2 _roomMax = new Vector2(4.6f, 3.6f);
+        [SerializeField] private Vector2 _roomMin = new Vector2(-3.6f, -6.6f);
+        [SerializeField] private Vector2 _roomMax = new Vector2(3.6f, 1.6f);
 
         [Tooltip("Walls inside the building, as x, z, width, depth. A door is a gap between two.")]
         [SerializeField] private Rect[] _walls =
         {
-            new Rect(-5f, -3.1f, 1.4f, 0.2f),   // west wall to the kitchen door
-            new Rect(-2.4f, -3.1f, 0.9f, 0.2f), // kitchen door to the hatch
-            new Rect(1.5f, -3.1f, 3.5f, 0.2f),  // hatch to the east wall
+            new Rect(-4f, -3.1f, 0.5f, 0.2f),   // west wall to the kitchen door
+            new Rect(-2.3f, -3.1f, 0.2f, 0.2f), // kitchen door to the hatch
+            new Rect(0.9f, -3.1f, 3.1f, 0.2f),  // hatch to the east wall
         };
 
         [Tooltip("Where the kitchen door's hinge is, and how wide it is, along the wall.")]
-        [SerializeField] private Vector2 _kitchenDoorHinge = new Vector2(-3.6f, -3f);
+        [SerializeField] private Vector2 _kitchenDoorHinge = new Vector2(-3.5f, -3f);
         [SerializeField, Min(0.1f)] private float _kitchenDoorWidth = 1.2f;
 
         [Tooltip("Where kitchen furniture's centres can go when square to the room.")]
-        [SerializeField] private Vector2 _kitchenAreaMin = new Vector2(-4.4f, -2.4f);
-        [SerializeField] private Vector2 _kitchenAreaMax = new Vector2(4.4f, 3.4f);
+        [SerializeField] private Vector2 _kitchenAreaMin = new Vector2(-3.4f, -2.4f);
+        [SerializeField] private Vector2 _kitchenAreaMax = new Vector2(3.4f, 1.4f);
 
         [Tooltip("Where dining furniture's centres can go when square to the room.")]
-        [SerializeField] private Vector2 _diningAreaMin = new Vector2(-4.4f, -7.4f);
-        [SerializeField] private Vector2 _diningAreaMax = new Vector2(4.4f, -3.6f);
+        [SerializeField] private Vector2 _diningAreaMin = new Vector2(-3.4f, -6.4f);
+        [SerializeField] private Vector2 _diningAreaMax = new Vector2(3.4f, -3.6f);
 
         [Tooltip("Where the street door stands on the dining room's outer walls: the south-west corner of that line.")]
-        [SerializeField] private Vector2 _doorLineMin = new Vector2(-4.55f, -7.55f);
+        [SerializeField] private Vector2 _doorLineMin = new Vector2(-3.55f, -6.55f);
         [Tooltip("The other end of it: x is the east wall, y how far north the side walls go.")]
-        [SerializeField] private Vector2 _doorLineMax = new Vector2(4.55f, -3.7f);
+        [SerializeField] private Vector2 _doorLineMax = new Vector2(3.55f, -3.7f);
         [Tooltip("How close to a wall the door has to be, in metres, to snap onto it.")]
         [SerializeField, Min(0f)] private float _doorSnapRange = 1f;
         [Tooltip("How far the door stays from a corner, in metres.")]

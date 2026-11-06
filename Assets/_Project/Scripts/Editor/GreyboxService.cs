@@ -17,7 +17,7 @@ namespace Game.Editor
         // Stools stand in front of the pass (pass front edge at z = -2.9).
         private const float SeatZ = -3.35f;
         // The street door is in the south wall; customers wait along the east wall until a seat's free.
-        private static readonly Vector3 DoorPosition = new Vector3(3f, 0f, -7.55f);
+        private static readonly Vector3 DoorPosition = new Vector3(2f, 0f, -6.55f);
         private const float DoorPanelBehind = -0.32f;
         private const float DoorMatAhead = 0.1f;
 

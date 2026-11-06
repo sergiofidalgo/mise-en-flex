@@ -11,7 +11,7 @@ namespace Game.Editor
     {
         private const string AgentPrefabPath = "Assets/_Project/Prefabs/PF_Staff.prefab";
 
-        private static readonly Vector3 SpawnPosition = new Vector3(2.8f, 0f, -0.5f);
+        private static readonly Vector3 SpawnPosition = new Vector3(2.45f, 0f, -1.4f);
         private static readonly Vector3 BodyScale = new Vector3(0.62f, 0.82f, 0.62f);
         private static readonly Color BodyColor = new Color(0.30f, 0.62f, 0.55f);
         private static readonly Vector3 CarryPosition = new Vector3(0f, 1.0f, 0.42f);

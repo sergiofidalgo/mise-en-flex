@@ -21,7 +21,7 @@ namespace Game.Tests.PlayMode
         private const string SceneName = "Kitchen_Greybox";
 
         // Open floor, clear of the starting layout and the chef's spawn.
-        private static readonly Vector2 OpenFloor = new Vector2(0f, -0.5f);
+        private static readonly Vector2 OpenFloor = new Vector2(2.4f, 0.95f);
 
         private KitchenCompositionRoot _root;
         private LayoutEditor _editor;
@@ -217,7 +217,7 @@ namespace Game.Tests.PlayMode
             _editor.MoveCursor(_cursor, new Vector2(-4f, 0f)); // near the west wall
             Assert.That(_editor.Place(_cursor), Is.True, _cursor.Result.ToString());
             yield return null;
-            Assert.That(door.transform.position.x, Is.EqualTo(-4.55f).Within(0.01f));
+            Assert.That(door.transform.position.x, Is.EqualTo(-3.55f).Within(0.01f));
             Assert.That(Mathf.DeltaAngle(door.transform.eulerAngles.y, 90f), Is.EqualTo(0f).Within(0.01f), "faces into the room");
         }
 
@@ -241,16 +241,16 @@ namespace Game.Tests.PlayMode
         {
             yield return OpenKitchenWithCursor();
             Days.Receive(500f);
-            var against = Buy<CounterStation>("counter", new Vector2(-2f, -2.4f));
-            var away = Buy<CounterStation>("counter", new Vector2(-4.2f, -2.1f));
+            var against = Buy<CounterStation>("counter", new Vector2(3.4f, -2.4f));
+            var away = Buy<CounterStation>("counter", new Vector2(2.4f, -2.1f));
             _editor.Leave(_player);
 
             // A chef faces north unless they've turned, so they look from the dining room.
             var interactor = _player.GetComponent<PlayerInteractor>();
-            yield return StandAt(new Vector3(-2f, 0f, -3.45f));
+            yield return StandAt(new Vector3(3.4f, 0f, -3.45f));
             Assert.That(interactor.Target, Is.SameAs(against), "over the wall");
 
-            yield return StandAt(new Vector3(-4.2f, 0f, -3.45f));
+            yield return StandAt(new Vector3(2.4f, 0f, -3.45f));
             Assert.That(interactor.Target, Is.Not.SameAs(away), "in reach, but through the wall");
         }
 

@@ -65,13 +65,13 @@ namespace Game.Editor
         private const string JoinActionPath = "Gameplay/Join";
 
         // Greybox layout, in metres. The kitchen is 10 x 8 with the camera looking north (+Z).
-        private const float FloorWidth = 10f;
-        private const float FloorNorth = 4f;
-        private const float FloorSouth = -8f;
+        private const float FloorWidth = 8f;
+        private const float FloorNorth = 2f;
+        private const float FloorSouth = -7f;
         private const float DividingWallZ = -3f;
         private const float KitchenDoorThickness = 0.08f;
         private static readonly Color KitchenDoorColor = new Color(0.45f, 0.33f, 0.22f);
-        private static readonly Vector3[] SpawnPositions = { new Vector3(-2.5f, 0f, -0.8f), new Vector3(2.5f, 0f, -0.8f) };
+        private static readonly Vector3[] SpawnPositions = { new Vector3(-2.45f, 0f, -0.8f), new Vector3(2.45f, 0f, -0.8f) };
         private const float WallHeight = 1f;
         private const float WallThickness = 0.2f;
 
@@ -102,8 +102,8 @@ namespace Game.Editor
 
         // Prep zone on the back wall, left: knife rack, mise en place counter, a plain counter.
         private static readonly Color PrepColor = new Color(0.78f, 0.64f, 0.45f);
-        private static readonly Vector3 KnifeRackPosition = new Vector3(-3f, 0f, 3.4f);
-        private static readonly Vector3 PrepCounterPosition = new Vector3(-2f, 0f, 3.4f);
+        private static readonly Vector3 KnifeRackPosition = new Vector3(-2.4f, 0f, 1.4f);
+        private static readonly Vector3 PrepCounterPosition = new Vector3(-1.4f, 0f, 1.4f);
         private static readonly Vector3 CuttingBoardScale = new Vector3(0.34f, 0.025f, 0.28f);
         private static readonly Color CuttingBoardColor = new Color(0.92f, 0.82f, 0.62f);
 
@@ -117,14 +117,14 @@ namespace Game.Editor
         {
             new GreyboxStorage.Unit
             {
-                Name = "Fridge", FurnitureId = FridgeFurniture, Position = new Vector3(-4.4f, 0f, 1.0f), Refrigerated = true,
+                Name = "Fridge", FurnitureId = FridgeFurniture, Position = new Vector3(-3.4f, 0f, 0.4f), Refrigerated = true,
                 Color = new Color(0.86f, 0.92f, 0.96f),
                 SlotCapacity = 6,
                 Deliveries = new[] { ("Steak", 18) },
             },
             new GreyboxStorage.Unit
             {
-                Name = "Shelf", FurnitureId = ShelfFurniture, Position = new Vector3(-4.4f, 0f, -0.6f), Refrigerated = false,
+                Name = "Shelf", FurnitureId = ShelfFurniture, Position = new Vector3(-3.4f, 0f, -0.6f), Refrigerated = false,
                 Color = new Color(0.58f, 0.43f, 0.28f),
                 SlotCapacity = 6,
                 Deliveries = new[] { ("Onion", 8) },
@@ -138,19 +138,19 @@ namespace Game.Editor
         private static readonly (string Name, Color Color, float Size, float Height, Vector3[] Positions)[] CounterZones =
         {
             ("Island", new Color(0.70f, 0.58f, 0.42f), CounterSize, CounterHeight,
-                new[] { new Vector3(-1.5f, 0f, 0.8f), new Vector3(-0.5f, 0f, 0.8f), new Vector3(0.5f, 0f, 0.8f), new Vector3(1.5f, 0f, 0.8f) }),
+                new[] { new Vector3(-1.5f, 0f, -0.5f), new Vector3(-0.5f, 0f, -0.5f), new Vector3(0.5f, 0f, -0.5f), new Vector3(1.5f, 0f, -0.5f) }),
             // Extra counters along the walls, for testing containers and trays (2026-11-04).
         };
 
         // The pass along the front, facing the dining side: plates put here are served and scored.
-        private static readonly Vector3[] PassPositions = { new Vector3(-1f, 0f, -2.4f), new Vector3(0f, 0f, -2.4f), new Vector3(1f, 0f, -2.4f) };
+        private static readonly Vector3[] PassPositions = { new Vector3(-1.6f, 0f, -2.4f), new Vector3(-0.6f, 0f, -2.4f), new Vector3(0.4f, 0f, -2.4f) };
         private static readonly Color PassColor = new Color(0.88f, 0.88f, 0.85f);
 
         // Strip in front of the pass marking where the dining room will be.
         private static readonly Color DiningColor = new Color(0.55f, 0.45f, 0.40f);
 
         // One hob on the back wall, right of prep, with its burner ring and its own pan. More are bought.
-        private static readonly Vector3[] HobPositions = { new Vector3(1f, 0f, 3.4f) };
+        private static readonly Vector3[] HobPositions = { new Vector3(0.6f, 0f, 1.4f) };
         private static readonly Color HobColor = new Color(0.22f, 0.22f, 0.25f);
         // Wider than the pan (0.44 m), so the glowing ring stays visible around it.
         private const float BurnerDiameter = 0.62f;
@@ -166,20 +166,20 @@ namespace Game.Editor
         private const float ChipHeightAbovePan = 0.4f;
 
         // Plate stack next to the pass, and the bin on the east wall.
-        private static readonly Vector3 PlateStackPosition = new Vector3(2.2f, 0f, -2.4f);
+        private static readonly Vector3 PlateStackPosition = new Vector3(1.4f, 0f, -2.4f);
         private static readonly Color PlateStackColor = new Color(0.80f, 0.80f, 0.78f);
         private const int PlateStackVisualCount = 6;
-        private static readonly Vector3 TrayRackPosition = new Vector3(-4.4f, 0f, 2.6f);
-        private static readonly Vector3 ContainerRackPosition = new Vector3(0f, 0f, 3.4f);
+        private static readonly Vector3 TrayRackPosition = new Vector3(-3.4f, 0f, 1.4f);
+        private static readonly Vector3 ContainerRackPosition = new Vector3(-0.4f, 0f, 1.4f);
         private static readonly Color RackColor = new Color(0.46f, 0.48f, 0.52f);
-        private static readonly Vector3 SinkPosition = new Vector3(3.2f, 0f, -2.4f);
+        private static readonly Vector3 SinkPosition = new Vector3(3.4f, 0f, 0.4f);
         private static readonly Color SinkColor = new Color(0.55f, 0.62f, 0.68f);
         private static readonly Color DirtyPlateColor = new Color(0.45f, 0.36f, 0.25f);
         private const float SinkPileOffset = 0.2f;
         private const int SinkVisualCount = 2;
-        private static readonly Vector3 DirtyPilePosition = new Vector3(4.2f, 0f, -2.4f);
+        private static readonly Vector3 DirtyPilePosition = new Vector3(3.4f, 0f, -0.6f);
         private static readonly Color DirtyPileColor = new Color(0.50f, 0.46f, 0.42f);
-        private static readonly Vector3 BinPosition = new Vector3(4.5f, 0f, 1f);
+        private static readonly Vector3 BinPosition = new Vector3(3.4f, 0f, 1.4f);
         private static readonly Color BinColor = new Color(0.25f, 0.55f, 0.30f);
         private const float BinSize = 0.7f;
         private const float BinHeight = 0.8f;

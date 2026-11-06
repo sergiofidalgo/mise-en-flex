@@ -38,7 +38,7 @@ namespace Game.Presentation
         [Tooltip("Share of the screen to leave clear at the bottom.")]
         [SerializeField, Range(0f, 0.45f)] private float _screenBottom = 0.04f;
         [Tooltip("The closest it gets, in metres above the floor.")]
-        [SerializeField, Min(1f)] private float _minHeight = 11f;
+        [SerializeField, Min(1f)] private float _minHeight = 9.5f;
         [Tooltip("The furthest it gets, in metres above the floor.")]
         [SerializeField, Min(1f)] private float _maxHeight = 40f;
         [Tooltip("Roughly how many seconds it trails behind someone walking. Quicker than zooming: a chef walks fast, and the longer this is the closer they get to the edge.")]

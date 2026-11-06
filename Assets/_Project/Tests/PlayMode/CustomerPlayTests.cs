@@ -236,7 +236,7 @@ namespace Game.Tests.PlayMode
             var editor = Object.FindFirstObjectByType<LayoutEditor>();
             var cursor = editor.Enter(_player);
             _root.Services.Days.Receive(500f);
-            foreach (var spot in new[] { new System.Numerics.Vector2(2f, -7.4f), new System.Numerics.Vector2(4f, -7.4f), new System.Numerics.Vector2(3f, -6.4f) })
+            foreach (var spot in new[] { new System.Numerics.Vector2(1f, -6.4f), new System.Numerics.Vector2(3f, -6.4f), new System.Numerics.Vector2(2f, -5.4f) })
             {
                 cursor.Position = spot;
                 Assert.That(editor.Buy(cursor, editor.Shop.First(e => e.Id == "table")), Is.True);
@@ -355,7 +355,7 @@ namespace Game.Tests.PlayMode
             var cursor = editor.Enter(_player);
             _root.Services.Days.Receive(500f);
 
-            cursor.Position = new System.Numerics.Vector2(-2f, -3.35f);
+            cursor.Position = new System.Numerics.Vector2(2.4f, -3.35f);
             Assert.That(editor.Buy(cursor, editor.Shop.First(e => e.Id == "bar")), Is.True);
             var bar = (TableStation)cursor.Held;
             editor.MoveCursor(cursor, System.Numerics.Vector2.Zero);
@@ -378,7 +378,7 @@ namespace Game.Tests.PlayMode
             var cursor = editor.Enter(_player);
             _root.Services.Days.Receive(500f);
 
-            cursor.Position = new System.Numerics.Vector2(-2f, -3.6f);
+            cursor.Position = new System.Numerics.Vector2(2.4f, -3.6f);
             Assert.That(editor.Buy(cursor, editor.Shop.First(e => e.Id == "table")), Is.True);
             var table = (TableStation)cursor.Held;
             editor.MoveCursor(cursor, System.Numerics.Vector2.Zero);
