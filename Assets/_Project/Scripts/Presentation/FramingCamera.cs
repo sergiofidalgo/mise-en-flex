@@ -13,8 +13,9 @@ namespace Game.Presentation
     /// <summary>
     /// Follows the action: keeps every player and customer in view, zooming out as they spread apart
     /// and in as they gather. During service the street door counts too, so someone walking in is
-    /// already on screen and doesn't make it jump. It backs away faster than it closes in, so nobody
-    /// leaves the screen.
+    /// already on screen and doesn't make it jump. Its moves ease in and out, and it ignores small
+    /// changes, so it doesn't chase every step someone takes. It backs away sooner than it closes in,
+    /// so nobody leaves the screen.
     /// </summary>
     [RequireComponent(typeof(Camera))]
     public sealed class FramingCamera : MonoBehaviour
@@ -29,19 +30,28 @@ namespace Game.Presentation
         [Tooltip("Metres of floor to keep around everyone.")]
         [SerializeField, Min(0f)] private float _margin = 2f;
         [Tooltip("More metres at the top of the screen, where furniture and heads stand up into the view.")]
-        [SerializeField, Min(0f)] private float _extraAtTheTop = 2f;
+        [SerializeField, Min(0f)] private float _extraAtTheTop = 3f;
         [Tooltip("The closest it gets, in metres above the floor.")]
-        [SerializeField, Min(1f)] private float _minHeight = 8f;
+        [SerializeField, Min(1f)] private float _minHeight = 11f;
         [Tooltip("The furthest it gets, in metres above the floor.")]
         [SerializeField, Min(1f)] private float _maxHeight = 40f;
-        [Tooltip("How quickly it backs away to fit someone in, per second.")]
-        [SerializeField, Min(0.01f)] private float _zoomOutRate = 3f;
-        [Tooltip("How quickly it closes in again, per second. Slower, so it doesn't pump.")]
-        [SerializeField, Min(0.01f)] private float _zoomInRate = 1f;
+        [Tooltip("Roughly how many seconds it trails behind someone walking. Quicker than zooming: a chef walks fast, and the longer this is the closer they get to the edge.")]
+        [SerializeField, Min(0.01f)] private float _followSeconds = 0.7f;
+        [Tooltip("Roughly how many seconds it takes to back away to fit someone in.")]
+        [SerializeField, Min(0.01f)] private float _zoomOutSeconds = 1f;
+        [Tooltip("Roughly how many seconds it takes to close in again. Slower, so it doesn't pump.")]
+        [SerializeField, Min(0.01f)] private float _zoomInSeconds = 2f;
+        [Tooltip("The fastest it ever moves, in metres per second.")]
+        [SerializeField, Min(0.1f)] private float _maxSpeed = 8f;
+        [Tooltip("How far where it should be has to drift, in metres, before it bothers moving.")]
+        [SerializeField, Min(0f)] private float _settleDistance = 1f;
 
         private readonly List<SimVector2> _points = new List<SimVector2>();
         private Camera _camera;
         private bool _placed;
+        private Vector3 _goal;
+        private Vector2 _panVelocity;
+        private float _zoomVelocity;
 
         private void Awake()
         {
@@ -58,13 +68,23 @@ namespace Game.Presentation
             if (!_placed)
             {
                 transform.position = target;
+                _goal = target;
                 _placed = true;
                 return;
             }
 
-            // Eases the same whatever the frame rate.
-            var rate = target.y > transform.position.y ? _zoomOutRate : _zoomInRate;
-            transform.position = Vector3.Lerp(transform.position, target, 1f - Mathf.Exp(-rate * Time.unscaledDeltaTime));
+            // Small changes don't count, or it would follow a chef's every step. Needing to fit
+            // someone in always counts, though, so nobody drifts off the edge waiting.
+            if ((target - _goal).magnitude > _settleDistance || target.y > _goal.y)
+                _goal = target;
+
+            // SmoothDamp starts and stops gently, where easing towards a target starts at full speed.
+            // Across the floor it follows closely; up and down it takes its time, as that's what's noticed.
+            var at = transform.position;
+            var delta = Time.unscaledDeltaTime;
+            var floor = Vector2.SmoothDamp(new Vector2(at.x, at.z), new Vector2(_goal.x, _goal.z), ref _panVelocity, _followSeconds, _maxSpeed, delta);
+            var height = Mathf.SmoothDamp(at.y, _goal.y, ref _zoomVelocity, _goal.y > at.y ? _zoomOutSeconds : _zoomInSeconds, _maxSpeed, delta);
+            transform.position = new Vector3(floor.x, height, floor.y);
         }
 
         private void CollectPoints()
