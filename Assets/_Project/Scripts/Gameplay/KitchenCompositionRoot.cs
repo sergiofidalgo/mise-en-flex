@@ -69,7 +69,7 @@ namespace Game.Gameplay
             // The kitchen is live while players work in it; Plan and Review happen between shifts.
             var phase = Services.Days.Phase;
             if (phase == DayPhase.Prep || phase == DayPhase.Service)
-                cooking.Tick(gameSeconds);
+                cooking.Tick(gameSeconds * _tuning.CookingSpeed);
             if (phase == DayPhase.Service)
                 Services.Service.Tick(gameSeconds);
         }

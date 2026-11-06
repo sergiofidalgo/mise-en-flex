@@ -172,5 +172,61 @@ namespace Game.Tests.EditMode
 
             Assert.That(worstOfBand, Is.GreaterThanOrEqualTo(0.95f), $"{doneness} anywhere in the green band");
         }
+
+        [Test]
+        public void AfterTheFlipTheBarShowsTheStages()
+        {
+            var (sim, _, pan) = Kitchen();
+            var steak = sim.AddIngredient(SteakDefinition.ToProperties());
+            pan.Put(steak);
+            Assert.That(FlipGauge.ShowsStages(steak), Is.False);
+            SecondsUntilBrowning(sim, steak, 0.9f);
+            steak.Flip();
+            Assert.That(FlipGauge.ShowsStages(steak), Is.True);
+            Assert.That(FlipGauge.StageCount(steak.Properties), Is.EqualTo(4), "raw, rare, medium, well done");
+        }
+
+        [Test]
+        public void TheNeedleIsInTheStageTheFoodIsAt()
+        {
+            var (sim, hob, pan) = Kitchen();
+            var steak = sim.AddIngredient(SteakDefinition.ToProperties());
+            pan.Put(steak);
+            steak.Flip();
+            hob.Dial = 0.4f;
+
+            var last = 0f;
+            for (var i = 0; i < 40 * 60; i++)
+            {
+                sim.Tick(1f);
+                var position = FlipGauge.StagePosition(steak);
+                Assert.That(position, Is.GreaterThanOrEqualTo(last), "it never goes back");
+                last = position;
+
+                var stage = steak.Doneness == null ? 0 : steak.Doneness.Value.Name == "Rare" ? 1 : steak.Doneness.Value.Name == "Medium" ? 2 : 3;
+                Assert.That(position, Is.InRange(stage / 4f - 0.001f, (stage + 1) / 4f + 0.001f), $"{steak.PeakCoreTemperature} °C");
+            }
+            Assert.That(last, Is.EqualTo(1f).Within(0.001f), "it stops at the end");
+        }
+
+        [Test]
+        public void ItWarnsBeforeASideBurnsAndFlippingClearsIt()
+        {
+            var settings = Tuning.FlipGauge;
+            var (sim, _, pan) = Kitchen();
+            var steak = sim.AddIngredient(SteakDefinition.ToProperties());
+            pan.Put(steak);
+            Assert.That(FlipGauge.IsAboutToBurn(steak, settings), Is.False);
+
+            SecondsUntilBrowning(sim, steak, settings.WarnFrom);
+            Assert.That(steak.IsBurnt, Is.False, "there's still time");
+            Assert.That(FlipGauge.IsAboutToBurn(steak, settings), Is.True);
+
+            steak.Flip();
+            Assert.That(FlipGauge.IsAboutToBurn(steak, settings), Is.False, "that side's out of danger");
+        }
+
+        [Test]
+        public void CookingRunsSlowerThanTheClock() => Assert.That(Tuning.CookingSpeed, Is.LessThan(1f));
     }
 }

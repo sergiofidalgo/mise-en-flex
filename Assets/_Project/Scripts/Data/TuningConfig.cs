@@ -19,6 +19,9 @@ namespace Game.Data
         [Tooltip("In-game seconds per real second. 60 = one in-game minute per real second (decision 2026-11-02).")]
         [SerializeField, Min(0f)] private float _timeScale = 60f;
 
+        [Tooltip("How fast food and pans change, against the clock. The clock runs at its own pace; a steak has to be judgeable by eye.")]
+        [SerializeField, Min(0.01f)] private float _cookingSpeed = 0.5f;
+
         [Header("Kitchen")]
         [Tooltip("Kitchen air temperature, °C.")]
         [SerializeField] private float _ambientTemperature = 22f;
@@ -97,6 +100,8 @@ namespace Game.Data
         [SerializeField, Min(0f)] private float _flipGoodFrom = 0.7f;
         [Tooltip("Browning where the green band ends.")]
         [SerializeField, Min(0f)] private float _flipGoodTo = 1.1f;
+        [Tooltip("Browning of the side in the pan at which the bar warns it's about to burn.")]
+        [SerializeField, Min(0f)] private float _burnWarningFrom = 1.5f;
 
         public float OvernightSeconds => _overnightHours * 3600f;
 
@@ -113,7 +118,7 @@ namespace Game.Data
             SecondsPerPlate = _washSecondsPerPlate,
         };
 
-        public FlipGaugeSettings FlipGauge => new FlipGaugeSettings { GoodFrom = _flipGoodFrom, GoodTo = _flipGoodTo };
+        public FlipGaugeSettings FlipGauge => new FlipGaugeSettings { GoodFrom = _flipGoodFrom, GoodTo = _flipGoodTo, WarnFrom = _burnWarningFrom };
 
         /// <summary>Scoring settings; <paramref name="cookingPrecision"/> (realism dial, 0..1) narrows the doneness window.</summary>
         public ScoringSettings Quality(float cookingPrecision) => new ScoringSettings
@@ -167,6 +172,8 @@ namespace Game.Data
         public float HeatDialSpeed => _heatDialSpeed;
 
         public float TimeScale => _timeScale;
+
+        public float CookingSpeed => _cookingSpeed;
 
         public float AmbientTemperature => _ambientTemperature;
 
