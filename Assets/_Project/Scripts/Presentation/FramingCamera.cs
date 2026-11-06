@@ -14,8 +14,8 @@ namespace Game.Presentation
     /// they spread apart and in as they gather. To see all of a big restaurant, players have to split up.
     /// As a player walks away from the kitchen it also eases back, so there's more to see out there.
     /// Customers don't count: those out of view get markers at the edge of the screen. Before anyone joins,
-    /// and during the Review, it shows the whole restaurant. Its moves ease in and out, and it ignores
-    /// small changes, so it doesn't chase every step someone takes.
+    /// and during the Review, it shows the whole restaurant. Its moves build up and settle gently, and it
+    /// looks slightly ahead of where the players are going, as a person operating it would.
     /// </summary>
     [RequireComponent(typeof(Camera))]
     public sealed class FramingCamera : MonoBehaviour
@@ -56,16 +56,25 @@ namespace Game.Presentation
         [SerializeField, Min(0.01f)] private float _zoomInSeconds = 2f;
         [Tooltip("The fastest it ever moves, in metres per second.")]
         [SerializeField, Min(0.1f)] private float _maxSpeed = 14f;
-        [Tooltip("How far where it should be has to drift, in metres, before it bothers moving.")]
-        [SerializeField, Min(0f)] private float _settleDistance = 0.25f;
+        [Tooltip("Seconds ahead of the players it looks while they walk.")]
+        [SerializeField, Min(0f)] private float _leadSeconds = 0.2f;
+        [Tooltip("The furthest ahead it looks, in metres.")]
+        [SerializeField, Min(0f)] private float _mostLead = 0.8f;
+        [Tooltip("How quickly that follows a change of direction, per second.")]
+        [SerializeField, Min(0.01f)] private float _leadRate = 3f;
 
         private readonly List<SimVector2> _points = new List<SimVector2>();
         private Camera _camera;
         private bool _placed;
         private bool _showingWhole;
-        private Vector3 _goal;
         private Vector2 _panVelocity;
         private float _zoomVelocity;
+        private Vector3 _eased;
+        private Vector2 _aimVelocity;
+        private float _aimZoomVelocity;
+        private Vector3 _lead;
+        private Vector3 _lastMiddle;
+        private int _lastCount;
 
         private void Awake()
         {
@@ -81,26 +90,53 @@ namespace Game.Presentation
             var fit = CameraFraming.Fit(_points, _tilt, _camera.fieldOfView, _camera.aspect, _margin, ClosestHeight(floor), _maxHeight, _farMargin - _margin, _nearMargin, _showingWhole ? _screenTopForWhole : _screenTop, _screenBottom, floor.RoomMin - walls, floor.RoomMax + walls);
             var target = new Vector3(fit.X, fit.Y, fit.Z);
 
+            // A little ahead of where they're heading, as someone operating a camera would.
+            var delta = Time.unscaledDeltaTime;
+            target += Lead(delta);
+
             if (!_placed)
             {
                 transform.position = target;
-                _goal = target;
+                _eased = target;
                 _placed = true;
                 return;
             }
 
-            // Small changes don't count, or it would follow a chef's every step. Needing to fit
-            // someone in always counts, though, so nobody drifts off the edge waiting.
-            if ((target - _goal).magnitude > _settleDistance || target.y > _goal.y)
-                _goal = target;
-
-            // SmoothDamp starts and stops gently, where easing towards a target starts at full speed.
-            // Across the floor it follows closely; up and down it takes its time, as that's what's noticed.
+            // Eased twice, each half as long: one easing starts moving the moment anything changes,
+            // while two build up and settle in a soft S-curve, with no visible start or stop. Across the
+            // floor it follows closely; up and down it takes its time, as that's what's noticed.
             var at = transform.position;
-            var delta = Time.unscaledDeltaTime;
-            var along = Vector2.SmoothDamp(new Vector2(at.x, at.z), new Vector2(_goal.x, _goal.z), ref _panVelocity, _followSeconds, _maxSpeed, delta);
-            var height = Mathf.SmoothDamp(at.y, _goal.y, ref _zoomVelocity, _goal.y > at.y ? _zoomOutSeconds : _zoomInSeconds, _maxSpeed, delta);
+            var aiming = Vector2.SmoothDamp(new Vector2(_eased.x, _eased.z), new Vector2(target.x, target.z), ref _aimVelocity, _followSeconds / 2f, _maxSpeed, delta);
+            var aimingHeight = Mathf.SmoothDamp(_eased.y, target.y, ref _aimZoomVelocity, ZoomSeconds(target.y, _eased.y) / 2f, _maxSpeed, delta);
+            _eased = new Vector3(aiming.x, aimingHeight, aiming.y);
+
+            var along = Vector2.SmoothDamp(new Vector2(at.x, at.z), aiming, ref _panVelocity, _followSeconds / 2f, _maxSpeed, delta);
+            var height = Mathf.SmoothDamp(at.y, aimingHeight, ref _zoomVelocity, ZoomSeconds(aimingHeight, at.y) / 2f, _maxSpeed, delta);
             transform.position = new Vector3(along.x, height, along.y);
+        }
+
+        private float ZoomSeconds(float to, float from) => to > from ? _zoomOutSeconds : _zoomInSeconds;
+
+        // Where the players are heading, eased so it doesn't jerk when they change direction, and small
+        // enough not to change the framing. Nothing while the whole restaurant's showing.
+        private Vector3 Lead(float delta)
+        {
+            var count = PlayerInput.all.Count;
+            if (count == 0 || delta <= 0f)
+                return Vector3.zero;
+
+            var sum = Vector3.zero;
+            foreach (var player in PlayerInput.all)
+                sum += player.transform.position;
+            var middle = sum / count;
+            var velocity = count == _lastCount ? (middle - _lastMiddle) / delta : Vector3.zero;
+            _lastMiddle = middle;
+            _lastCount = count;
+
+            velocity.y = 0f;
+            var wanted = _showingWhole ? Vector3.zero : Vector3.ClampMagnitude(velocity * _leadSeconds, _mostLead);
+            _lead = Vector3.Lerp(_lead, wanted, 1f - Mathf.Exp(-_leadRate * delta));
+            return _lead;
         }
 
         // Measured from the kitchen, whichever player is furthest from it.
