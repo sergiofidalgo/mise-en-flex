@@ -4,6 +4,16 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-07 — An art pilot ahead of Phase 9, with a hand-written food shader
+
+**Decision (user's call):** before Phase 9, a pilot replaces the hob, pan and steak with real Blender models, on its own `art-pilot` branch, without changing how the game plays. The look to try is chunky, soft-edged shapes with a few flat colours and little texture, with food slightly oversized so it reads from above. Food shaders are hand-written URP shaders rather than Shader Graph, which `CLAUDE.md` specified.
+
+**Reason:** it tests the Blender pipeline, the food-state shader, overhead readability and frame rate while they are still cheap to change, and it can run alongside gameplay work. Shader code can be written and reviewed outside the Editor, which Shader Graph files can't easily.
+
+**Given up:** tweaking food shaders visually in a graph. Colours and strengths remain material settings. The rest of the art stays in Phase 9, so these three models will look out of place next to the greybox until then.
+
+---
+
 ## 2026-11-07 — Size tiers dropped from Phase 4
 
 **Decision (user's call):** a restaurant's size comes from which one you buy on the city miniature (Phase 6), not from upgrading one. Phase 4 ends with the waiter and equipment tiers.

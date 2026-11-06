@@ -179,8 +179,18 @@ namespace Game.Editor
             var itemView = root.AddComponent<ItemView>();
 
             Renderer surface;
+            var layeredShader = false;
             var bands = Array.Empty<Renderer>();
-            if (type.Layered)
+            var modelName = $"SM_{type.Id}";
+            if (type.Layered && PilotArt.FindMesh(modelName, modelName) != null)
+            {
+                var model = GreyboxAssets.CreatePrimitive(PrimitiveType.Cube, "Body", root.transform,
+                    PilotArt.EnsureLayeredFoodMaterial(type.Id, type.Color), keepCollider: false);
+                PilotArt.TryUseMesh(model, modelName, modelName);
+                surface = model.GetComponent<Renderer>();
+                layeredShader = true;
+            }
+            else if (type.Layered)
                 (surface, bands) = BuildLayers(type, root.transform);
             else
             {
@@ -196,6 +206,7 @@ namespace Game.Editor
             var so = new SerializedObject(view);
             so.FindProperty("_itemView").objectReferenceValue = itemView;
             so.FindProperty("_surface").objectReferenceValue = surface;
+            so.FindProperty("_layeredShader").boolValue = layeredShader;
             var bandList = so.FindProperty("_bands");
             bandList.arraySize = bands.Length;
             for (var i = 0; i < bands.Length; i++)

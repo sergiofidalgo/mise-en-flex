@@ -13,6 +13,9 @@ namespace Game.Presentation
     public sealed class IngredientView : MonoBehaviour
     {
         private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
+        private static readonly int BandBottomId = Shader.PropertyToID("_BandBottom");
+        private static readonly int BandCoreId = Shader.PropertyToID("_BandCore");
+        private static readonly int BandTopId = Shader.PropertyToID("_BandTop");
 
         [SerializeField] private ItemView _itemView;
 
@@ -21,6 +24,9 @@ namespace Game.Presentation
 
         [Tooltip("Optional edge bands: bottom, middle (core), top. Coloured by each layer's peak temperature.")]
         [SerializeField] private Renderer[] _bands = System.Array.Empty<Renderer>();
+
+        [Tooltip("The surface is one mesh using the Game/Food/Layered shader, which draws the bands itself.")]
+        [SerializeField] private bool _layeredShader;
 
         [Tooltip("Browning as a fraction of 'burnt' (0..1) → colour. Starts from the raw colour.")]
         [SerializeField] private ColorStop[] _browning =
@@ -49,13 +55,18 @@ namespace Game.Presentation
         private Color[] _bandRaw;
 
         /// <summary>True for layered food (steak), whose middle band shows doneness.</summary>
-        public bool ShowsDoneness => _bands.Length >= 3;
+        public bool ShowsDoneness => _layeredShader || _bands.Length >= 3;
 
         /// <summary>The middle band's colour this frame: the food's doneness at a glance.</summary>
         public Color CoreColor { get; private set; }
 
-        private void Awake()
+        private void Awake() => EnsureReady();
+
+        private void EnsureReady()
         {
+            if (_block != null)
+                return;
+
             _block = new MaterialPropertyBlock();
             _surfaceRaw = _surface.sharedMaterial.GetColor(BaseColorId);
             _bandRaw = new Color[_bands.Length];
@@ -71,18 +82,43 @@ namespace Game.Presentation
             var burnt = Mathf.Max(ingredient.Properties.BurntBrowning, 0.0001f);
             // Layered food shows the side facing up, since it gets flipped. Loose food like diced
             // onion gets stirred, not flipped, so it shows its darkest side, or a burn would never show.
-            var browning = (_bands.Length >= 3
+            var browning = (ShowsDoneness
                 ? ingredient.Browning(ingredient.UpSide)
                 : Mathf.Max(ingredient.Browning(IngredientSide.A), ingredient.Browning(IngredientSide.B))) / burnt;
-            SetColor(_surface, ColorStop.Sample(_browning, browning, _surfaceRaw, 0f));
 
+            ShowState(browning, ingredient.PeakSurfaceTemperature(ingredient.DownSide),
+                ingredient.PeakCoreTemperature, ingredient.PeakSurfaceTemperature(ingredient.UpSide));
+        }
+
+        /// <summary>
+        /// Colours the food for a cooking state: browning as a fraction of burnt, and each layer's
+        /// peak temperature in °C. Public so it can also be previewed outside Play mode.
+        /// </summary>
+        public void ShowState(float browning, float bottomPeak, float corePeak, float topPeak)
+        {
+            EnsureReady();
+            var surface = ColorStop.Sample(_browning, browning, _surfaceRaw, 0f);
+
+            if (_layeredShader)
+            {
+                CoreColor = Cooked(corePeak, _surfaceRaw);
+                _surface.GetPropertyBlock(_block);
+                _block.SetColor(BaseColorId, surface);
+                _block.SetColor(BandBottomId, Cooked(bottomPeak, _surfaceRaw));
+                _block.SetColor(BandCoreId, CoreColor);
+                _block.SetColor(BandTopId, Cooked(topPeak, _surfaceRaw));
+                _surface.SetPropertyBlock(_block);
+                return;
+            }
+
+            SetColor(_surface, surface);
             if (_bands.Length < 3)
                 return;
 
-            SetColor(_bands[0], Cooked(ingredient.PeakSurfaceTemperature(ingredient.DownSide), _bandRaw[0]));
-            CoreColor = Cooked(ingredient.PeakCoreTemperature, _bandRaw[1]);
+            SetColor(_bands[0], Cooked(bottomPeak, _bandRaw[0]));
+            CoreColor = Cooked(corePeak, _bandRaw[1]);
             SetColor(_bands[1], CoreColor);
-            SetColor(_bands[2], Cooked(ingredient.PeakSurfaceTemperature(ingredient.UpSide), _bandRaw[2]));
+            SetColor(_bands[2], Cooked(topPeak, _bandRaw[2]));
         }
 
         private Color Cooked(float peakTemperature, Color raw) => ColorStop.Sample(_cooked, peakTemperature, raw, _cookedFrom);

@@ -546,6 +546,9 @@ namespace Game.Editor
             burner.transform.localPosition = new Vector3(0f, top + 0.005f, 0f);
             hob.ItemAnchor.localPosition = new Vector3(0f, top + 0.01f, 0f);
 
+            PilotArt.TryUseMesh(hob.transform.Find("Body").gameObject, "SM_Hob", "Body");
+            PilotArt.TryUseMesh(burner, "SM_Hob", "Burner");
+
             var pips = new Renderer[HeatPipCount];
             for (var i = 0; i < HeatPipCount; i++)
             {
