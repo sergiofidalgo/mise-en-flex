@@ -15,8 +15,10 @@ namespace Game.Simulation.Movement
         /// <param name="fieldOfViewDegrees">The camera's vertical field of view.</param>
         /// <param name="aspect">Screen width over height.</param>
         /// <param name="margin">Metres of floor to keep around the points.</param>
+        /// <param name="extraFar">More metres beyond the farthest point: what stands up from the floor
+        /// reaches towards the top of the screen, and that's where a chef's view runs out first.</param>
         /// <returns>The camera's position: X across, Y up, Z along the floor.</returns>
-        public static Vector3 Fit(IReadOnlyList<Vector2> points, float tiltDegrees, float fieldOfViewDegrees, float aspect, float margin, float minHeight, float maxHeight)
+        public static Vector3 Fit(IReadOnlyList<Vector2> points, float tiltDegrees, float fieldOfViewDegrees, float aspect, float margin, float minHeight, float maxHeight, float extraFar = 0f)
         {
             var minX = float.MaxValue;
             var maxX = float.MinValue;
@@ -27,7 +29,7 @@ namespace Game.Simulation.Movement
                 minX = Math.Min(minX, point.X - margin);
                 maxX = Math.Max(maxX, point.X + margin);
                 minZ = Math.Min(minZ, point.Y - margin);
-                maxZ = Math.Max(maxZ, point.Y + margin);
+                maxZ = Math.Max(maxZ, point.Y + margin + extraFar);
             }
 
             // The top and bottom edges of the view are rays leaving the camera at fixed angles below

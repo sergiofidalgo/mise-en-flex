@@ -79,5 +79,15 @@ namespace Game.Tests.EditMode
             var far = new[] { new Vector2(-500f, 0f), new Vector2(500f, 0f) };
             Assert.That(CameraFraming.Fit(far, Tilt, Fov, Aspect, 0f, 8f, 40f).Y, Is.EqualTo(40f));
         }
+
+        [Test]
+        public void ItCanKeepMoreRoomAtTheFarSide()
+        {
+            var points = new[] { new Vector2(-1f, 0f), new Vector2(1f, 0f) };
+            var camera = CameraFraming.Fit(points, Tilt, Fov, Aspect, 2f, 1f, 200f, 2f);
+            AssertInView(camera, new Vector2(0f, 4f)); // the margin and the extra
+            AssertInView(camera, new Vector2(0f, -2f));
+            Assert.That(camera.Y, Is.GreaterThan(Fit(2f, points).Y));
+        }
     }
 }

@@ -26,8 +26,12 @@ namespace Game.Presentation.Hud
         [Header("Layout")]
         [Tooltip("Canvas pixels below the top of the screen for the clock.")]
         [SerializeField, Min(0f)] private float _clockTopMargin = 16f;
-        [Tooltip("Canvas pixels from the top of the screen to the centre of the Prep card.")]
-        [SerializeField, Min(0f)] private float _prepCardTopMargin = 150f;
+        [Tooltip("Canvas pixels above the bottom of the screen for the small Prep strip.")]
+        [SerializeField, Min(0f)] private float _stripBottomMargin = 14f;
+        [SerializeField, Min(8f)] private float _stripFontSize = 18f;
+        [SerializeField] private Vector2 _stripPadding = new Vector2(14f, 6f);
+        [Tooltip("Real seconds the morning's delivery stays on the Prep strip.")]
+        [SerializeField, Min(0f)] private float _deliverySeconds = 6f;
         [SerializeField, Min(8f)] private float _clockFontSize = 26f;
         [SerializeField, Min(8f)] private float _cardFontSize = 26f;
         [SerializeField] private Vector2 _clockPadding = new Vector2(16f, 6f);
@@ -38,7 +42,7 @@ namespace Game.Presentation.Hud
         [SerializeField] private string _candidatesText = "Looking for work:";
         [SerializeField] private string _manageText = "Press Select to rearrange the kitchen";
         [SerializeField] private string _deliveryText = "Delivered to storage:";
-        [SerializeField] private string _openText = "Prep: preheat and get ready, then open up";
+        [SerializeField] private string _prepText = "Prep   [Select] rearrange   [Menu] open up";
         [SerializeField] private string _readyText = "Press Menu when ready";
         [SerializeField] private string _playerReadyText = "READY";
         [SerializeField] private string _playerWaitingText = "not ready";
@@ -54,6 +58,8 @@ namespace Game.Presentation.Hud
         private readonly StringBuilder _text = new StringBuilder();
         private WorldLabel _clock;
         private WorldLabel _card;
+        private WorldLabel _strip;
+        private float _prepStartedAt = -1f;
         private string _summary;
         private int _summaryDay;
 
@@ -63,6 +69,8 @@ namespace Game.Presentation.Hud
             _clock.FontSize = _clockFontSize;
             _card = WorldLabel.Create(_style, _canvas, "ServiceCard", _cardPadding, new Vector2(0.5f, 0.5f));
             _card.FontSize = _cardFontSize;
+            _strip = WorldLabel.Create(_style, _canvas, "PrepStrip", _stripPadding, new Vector2(0.5f, 0f));
+            _strip.FontSize = _stripFontSize;
         }
 
         private void LateUpdate()
@@ -79,6 +87,16 @@ namespace Game.Presentation.Hud
             else
                 _clock.Hide();
 
+            if (days.Phase != DayPhase.Prep)
+            {
+                _prepStartedAt = -1f;
+                _strip.Hide();
+            }
+            else if (_prepStartedAt < 0f)
+            {
+                _prepStartedAt = Time.unscaledTime;
+            }
+
             if (PlayerInput.all.Count == 0)
             {
                 _card.ShowAt(_joinText, Vector2.zero);
@@ -89,6 +107,7 @@ namespace Game.Presentation.Hud
             if (PlayerInput.all.Any(p => p.TryGetComponent(out PlayerInteractor interactor) && interactor.IsManaging))
             {
                 _card.Hide();
+                _strip.Hide();
                 return;
             }
 
@@ -98,8 +117,9 @@ namespace Game.Presentation.Hud
                     _card.ShowAt(WithReady(PlanText(days)), Vector2.zero);
                     break;
                 case DayPhase.Prep:
-                    // Up out of the way: this is a phase players work through.
-                    _card.ShowAt(WithReady(PrepText()), new Vector2(0f, top - _prepCardTopMargin));
+                    // Players work through this phase and need to see the kitchen: a strip, not a card.
+                    _card.Hide();
+                    _strip.ShowAt(PrepText(), new Vector2(0f, -_canvas.rect.height / 2f + _stripBottomMargin));
                     break;
                 case DayPhase.Review:
                     if (_summaryDay != days.Day)
@@ -118,11 +138,17 @@ namespace Game.Presentation.Hud
         private string PrepText()
         {
             var services = _root.Services;
-            var text = $"{_openText}\n{_manageText}";
-            if (services.LastDelivery.Count == 0)
-                return text;
-            var parts = services.LastDelivery.Select(d => $"{d.Count} {services.Catalog.DisplayName(d.TypeId)}");
-            return $"{text}\n{_deliveryText} {string.Join(", ", parts)}";
+            var text = _prepText;
+            if (PlayerInput.all.Count > 1)
+                text += $"\n{ReadyLine()}";
+
+            // Just long enough to read: the stock shows on the storage itself.
+            if (services.LastDelivery.Count > 0 && Time.unscaledTime - _prepStartedAt < _deliverySeconds)
+            {
+                var parts = services.LastDelivery.Select(d => $"{d.Count} {services.Catalog.DisplayName(d.TypeId)}");
+                text += $"\n{_deliveryText} {string.Join(", ", parts)}";
+            }
+            return text;
         }
 
         // Lists who works here and who could; the buttons are HiringMenu's.
@@ -178,13 +204,12 @@ namespace Game.Presentation.Hud
 
         // The button prompt, plus who's ready when there's more than one player. (With one player,
         // being ready moves the day on at once, so there's nothing to show.)
-        private string WithReady(string text)
-        {
-            if (PlayerInput.all.Count <= 1)
-                return $"{text}\n{_readyText}";
+        private string WithReady(string text) =>
+            PlayerInput.all.Count <= 1 ? $"{text}\n{_readyText}" : $"{text}\n{_readyText}\n{ReadyLine()}";
 
+        private string ReadyLine()
+        {
             _text.Clear();
-            _text.Append(text).Append('\n').Append(_readyText).Append('\n');
             foreach (var player in PlayerInput.all.OrderBy(p => p.playerIndex))
             {
                 var name = $"P{player.playerIndex + 1}";

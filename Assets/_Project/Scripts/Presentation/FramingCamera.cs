@@ -28,6 +28,8 @@ namespace Game.Presentation
         [SerializeField, Range(10f, 89f)] private float _tilt = 55f;
         [Tooltip("Metres of floor to keep around everyone.")]
         [SerializeField, Min(0f)] private float _margin = 2f;
+        [Tooltip("More metres at the top of the screen, where furniture and heads stand up into the view.")]
+        [SerializeField, Min(0f)] private float _extraAtTheTop = 2f;
         [Tooltip("The closest it gets, in metres above the floor.")]
         [SerializeField, Min(1f)] private float _minHeight = 8f;
         [Tooltip("The furthest it gets, in metres above the floor.")]
@@ -50,7 +52,7 @@ namespace Game.Presentation
         private void LateUpdate()
         {
             CollectPoints();
-            var fit = CameraFraming.Fit(_points, _tilt, _camera.fieldOfView, _camera.aspect, _margin, _minHeight, _maxHeight);
+            var fit = CameraFraming.Fit(_points, _tilt, _camera.fieldOfView, _camera.aspect, _margin, _minHeight, _maxHeight, _extraAtTheTop);
             var target = new Vector3(fit.X, fit.Y, fit.Z);
 
             if (!_placed)
