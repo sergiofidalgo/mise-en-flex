@@ -290,8 +290,8 @@ namespace Game.Tests.EditMode
             // Checks the saved asset, not just the defaults in code: the two can differ.
             for (var day = 1; day <= 30; day++)
             {
-                var offered = config.CandidatesFor(day);
-                Assert.That(offered.Select(c => c.Role).Distinct().Count(), Is.EqualTo(System.Enum.GetValues(typeof(StaffRole)).Length), $"day {day} offers every role");
+                var offered = config.CandidatesFor(day, 2);
+                Assert.That(offered.Select(c => c.Role).Distinct().Count(), Is.EqualTo(System.Enum.GetValues(typeof(StaffRole)).Length), $"day {day} offers every role at a later restaurant");
             }
         }
     }

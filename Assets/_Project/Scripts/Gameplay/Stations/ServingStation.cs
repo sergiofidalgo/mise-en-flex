@@ -19,8 +19,11 @@ namespace Game.Gameplay.Stations
     public abstract class ServingStation : Interactable, IStationPrompt
     {
         /// <summary>One customer's place at this station.</summary>
-        protected sealed class Place
+        protected sealed class Place : IServingPlace
         {
+            int IServingPlace.SeatIndex => SeatIndex;
+            PassCounter IServingPlace.Slot => Slot;
+
             public readonly PassCounter Slot = new PassCounter();
             public int SeatIndex;
             public Transform Seat;
@@ -36,6 +39,9 @@ namespace Game.Gameplay.Stations
         protected KitchenServices Services => _services;
 
         protected IReadOnlyList<Place> Places => _places;
+
+        /// <summary>Where a waiter can serve and clear.</summary>
+        public IEnumerable<IServingPlace> ServingPlaces => _places;
 
         public override IItemContainer Container => _top;
 
@@ -115,7 +121,11 @@ namespace Game.Gameplay.Stations
         protected Place AddPlace(Transform seat, Transform plateAnchor)
         {
             var place = new Place { Seat = seat, PlateAnchor = plateAnchor };
-            place.Slot.Placed += plate => TryServe(place);
+            place.Slot.Placed += plate =>
+            {
+                _lastPlaced = plate;
+                TryServe(place);
+            };
             _places.Add(place);
             return place;
         }
@@ -328,7 +338,6 @@ namespace Game.Gameplay.Stations
             {
                 var plate = (Plate)item;
                 var place = _station.BestPlaceFor(plate);
-                _station._lastPlaced = plate;
                 place.Slot.Put(plate);
             }
         }

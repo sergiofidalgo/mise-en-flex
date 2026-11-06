@@ -14,6 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Game.Data::Game.Data.StaffConfig
   _startingMoney: 100
   _candidatesPerDay: 3
+  _restaurantNumber: 1
   _seed: 1
   _names:
   - Ana
@@ -30,42 +31,75 @@ MonoBehaviour:
     _skill: 0.9
     _speed: 1.4
     _dailyWage: 50
+    _firstRestaurant: 2
   - _role: 0
     _description: steady, nothing fancy
     _skill: 0.96
     _speed: 1
     _dailyWage: 40
+    _firstRestaurant: 2
   - _role: 0
     _description: slow, very reliable
     _skill: 0.995
     _speed: 0.7
     _dailyWage: 30
+    _firstRestaurant: 2
   - _role: 0
     _description: fast and careful, and knows it
     _skill: 0.98
     _speed: 1.4
     _dailyWage: 70
+    _firstRestaurant: 2
   - _role: 1
     _description: neat but slow
     _skill: 0.98
     _speed: 0.7
     _dailyWage: 40
+    _firstRestaurant: 1
   - _role: 1
     _description: quick, a bit sloppy
     _skill: 0.85
     _speed: 1.3
     _dailyWage: 45
+    _firstRestaurant: 1
   - _role: 1
     _description: steady hands
     _skill: 0.94
     _speed: 1
     _dailyWage: 50
+    _firstRestaurant: 1
   - _role: 1
     _description: trained, and expensive
     _skill: 0.99
     _speed: 1.3
     _dailyWage: 80
+    _firstRestaurant: 1
+  - _role: 2
+    _description: quick, a bit clumsy
+    _skill: 0.9
+    _speed: 1.3
+    _dailyWage: 55
+    _firstRestaurant: 2
+  - _role: 2
+    _description: steady on their feet
+    _skill: 0.96
+    _speed: 1
+    _dailyWage: 45
+    _firstRestaurant: 2
+  - _role: 2
+    _description: calm, never spills
+    _skill: 0.995
+    _speed: 0.8
+    _dailyWage: 50
+    _firstRestaurant: 2
+  - _role: 2
+    _description: a natural, and knows it
+    _skill: 0.98
+    _speed: 1.3
+    _dailyWage: 70
+    _firstRestaurant: 2
   _walkSpeed: 2
+  _waiterWalkSpeed: 3
   _washSecondsPerPlate: 150
   _fatiguePerPlate: 0.05
   _fatigueSlowdown: 0.4

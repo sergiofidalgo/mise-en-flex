@@ -3,6 +3,7 @@ using System.Linq;
 using Game.Gameplay;
 using Game.Gameplay.Customers;
 using Game.Gameplay.Stations;
+using Game.Simulation.Cooking;
 using Game.Simulation.Days;
 using Game.Simulation.Items;
 using Game.Simulation.Movement;
@@ -410,7 +411,7 @@ namespace Game.Tests.PlayMode
             var services = _root.Services;
             var director = Object.FindFirstObjectByType<Game.Gameplay.Staff.StaffDirector>();
             services.Days.Receive(500f);
-            var candidate = services.Staff.Candidates.First(c => c.Role == Game.Simulation.Staff.StaffRole.Dishwasher);
+            var candidate = services.StaffConfig.CandidatesFor(1, 2).First(c => c.Role == Game.Simulation.Staff.StaffRole.Dishwasher);
             services.Staff.Hire(candidate, services.Days.Balance);
             ControlTheService();
             services.Days.Advance();
@@ -427,6 +428,118 @@ namespace Game.Tests.PlayMode
             var agent = director.Agents[0];
             yield return WaitFor(() => !bar.HasDirtyPlate, 30f);
             Assert.That(agent.transform.position.z, Is.GreaterThan(-2.9f), "from the kitchen");
+        }
+
+        // A steak on a plate, cooked in a real pan to what this customer ordered.
+        private Plate CookedFor(Customer customer)
+        {
+            var services = _root.Services;
+            var steak = (Ingredient)services.CreateItem("Steak");
+            var hob = services.Stations.All.OfType<HobStation>().First();
+            hob.Hob.Dial = 0.5f;
+            var pan = hob.Hob.Pan;
+            for (var i = 0; i < 300; i++)
+                services.Cooking.Tick(1f);
+            pan.Put(steak);
+            var seconds = 0;
+            while (steak.Doneness?.Name != customer.Order.Doneness.Name && seconds++ < 3600)
+                services.Cooking.Tick(1f);
+            pan.Take();
+            hob.Hob.Dial = 0f;
+            var plate = new Plate(3);
+            plate.Put(steak);
+            return plate;
+        }
+
+        private Game.Gameplay.Staff.StaffDirector HireForTheSecondRestaurant(Game.Simulation.Staff.StaffRole role)
+        {
+            var services = _root.Services;
+            services.Days.Receive(500f);
+            services.Staff.Hire(services.StaffConfig.CandidatesFor(1, 2).First(c => c.Role == role), services.Days.Balance);
+            return Object.FindFirstObjectByType<Game.Gameplay.Staff.StaffDirector>();
+        }
+
+        [UnityTest]
+        public IEnumerator AWaiterAnswersTheBellAndClearsUp()
+        {
+            yield return OpenForBuying();
+            var services = _root.Services;
+            var director = HireForTheSecondRestaurant(Game.Simulation.Staff.StaffRole.Waiter);
+            ControlTheService();
+            services.Days.Advance();
+            yield return null;
+            services.Days.Advance();
+            yield return null;
+
+            // A chef standing in a corridor stops a waiter, so this one's out of the way.
+            var controller = _player.GetComponent<CharacterController>();
+            controller.enabled = false;
+            _player.transform.position = new Vector3(2.45f, _player.transform.position.y, 1f);
+            controller.enabled = true;
+
+            var customer = NextCustomer();
+            yield return WaitFor(() => customer.State == CustomerState.Waiting, 20f);
+
+            var counter = services.Stations.All.OfType<CounterStation>().First();
+            counter.Slot.Put(CookedFor(customer));
+            yield return null;
+            Assert.That(customer.State, Is.EqualTo(CustomerState.Waiting), "not until the bell");
+
+            Assert.That(services.Bell.Ring(counter.Slot), Is.True);
+            var agent = director.Agents[0];
+            var until = Time.time + 30f;
+            while (customer.State == CustomerState.Waiting && Time.time < until)
+                yield return null;
+            var job = (Game.Simulation.Staff.Waiter)agent.Job;
+            Assert.That(customer.State, Is.Not.EqualTo(CustomerState.Waiting), $"{job.Task} at {agent.transform.position}, carrying {job.Carried != null}, counter empty {counter.Slot.IsEmpty}, rung {services.Bell.IsRung(counter.Slot)}, order {customer.Order.Doneness.Name}");
+            Assert.That(counter.Slot.IsEmpty, Is.True);
+
+            var pile = services.Stations.All.OfType<DirtyPileStation>().First();
+            until = Time.time + 40f;
+            while (pile.Pile.Count != 1 && Time.time < until)
+                yield return null;
+            Assert.That(pile.Pile.Count, Is.EqualTo(1), $"{job.Task} at {agent.transform.position}, carrying {job.Carried != null}, customer {customer.State}");
+            Assert.That(services.Staff.Hired[0].JobsToday, Is.EqualTo(2), "one served, one cleared");
+        }
+
+        [UnityTest]
+        public IEnumerator WithNothingToDoAWaiterGoesToTheDiningRoom()
+        {
+            yield return OpenForBuying();
+            var director = HireForTheSecondRestaurant(Game.Simulation.Staff.StaffRole.Waiter);
+            _root.Services.Days.Advance();
+            yield return null;
+            var agent = director.Agents[0];
+            Assert.That(agent.transform.position.z, Is.GreaterThan(-2.9f), "arrives in the kitchen");
+
+            yield return WaitFor(() => agent.transform.position.z < -3.2f, 20f);
+        }
+
+        [UnityTest]
+        public IEnumerator AHelperStaysInTheKitchen()
+        {
+            yield return OpenForBuying();
+            var services = _root.Services;
+            var director = HireForTheSecondRestaurant(Game.Simulation.Staff.StaffRole.PrepAssistant);
+            services.Days.Advance();
+            yield return null;
+            var agent = director.Agents[0];
+            for (var seconds = 0f; seconds < 5f; seconds += Time.deltaTime)
+            {
+                Assert.That(agent.transform.position.z, Is.GreaterThan(-2.9f));
+                yield return null;
+            }
+        }
+
+        [Test]
+        public void TheFirstRestaurantOnlyHasHelpersForHire()
+        {
+            var config = UnityEditor.AssetDatabase.LoadAssetAtPath<Game.Data.StaffConfig>("Assets/_Project/Data/Settings/StaffConfig.asset");
+            for (var day = 1; day <= 30; day++)
+                Assert.That(config.CandidatesFor(day).All(c => c.Role == Game.Simulation.Staff.StaffRole.PrepAssistant), Is.True);
+            var later = Enumerable.Range(1, 30).SelectMany(day => config.CandidatesFor(day, 2)).Select(c => c.Role).Distinct().ToArray();
+            Assert.That(later, Does.Contain(Game.Simulation.Staff.StaffRole.Waiter));
+            Assert.That(later, Does.Contain(Game.Simulation.Staff.StaffRole.Dishwasher));
         }
     }
 }

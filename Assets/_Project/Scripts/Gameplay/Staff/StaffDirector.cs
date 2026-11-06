@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using Game.Gameplay.Customers;
 using Game.Gameplay.Stations;
 using Game.Simulation.Days;
 using Game.Simulation.Items;
@@ -46,11 +47,21 @@ namespace Game.Gameplay.Staff
         private readonly List<System.Numerics.Vector2> _others = new List<System.Numerics.Vector2>();
         private StationLayout _layout;
 
+        [SerializeField] private CustomerDirector _customers;
+        [Tooltip("Real seconds a waiter or cleaner with nothing to do stands around, at most, between strolls.")]
+        [SerializeField, Min(0f)] private float _roamPauseSeconds = 4f;
+
         /// <summary>Everyone currently working in the kitchen.</summary>
         public IReadOnlyList<StaffAgent> Agents => _agents;
 
-        // Dirty plates a dishwasher can collect from the kitchen: at tables against the wall.
+        // Dirty plates a cleaner can collect from the kitchen: at tables against the wall. With a waiter
+        // to do that they stick to the pile and the sink, so this is empty.
         private readonly List<IDirtyPlateSource> _clearable = new List<IDirtyPlateSource>();
+
+        // Every place a waiter can serve and clear.
+        private readonly List<IServingPlace> _places = new List<IServingPlace>();
+
+        private readonly Dictionary<StaffAgent, Roaming> _roaming = new Dictionary<StaffAgent, Roaming>();
         private SinkStation _sink;
         private PlateStackStation _stack;
         private DirtyPileStation _dirtyPile;
@@ -85,6 +96,25 @@ namespace Game.Gameplay.Staff
             _root.Services.Days.PhaseChanged += HandlePhaseChanged;
             if (_editor != null)
                 _editor.LayoutChanged += RebuildLayout;
+        }
+
+        // The tables as they stand now, and who clears them.
+        private void RefreshPlaces()
+        {
+            _clearable.Clear();
+            _places.Clear();
+            var hasWaiter = _root.Services.Staff.HasRole(StaffRole.Waiter);
+            foreach (var table in _root.Services.Stations.All.OfType<ServingStation>())
+            {
+                foreach (var place in table.ServingPlaces)
+                {
+                    _places.Add(place);
+                    _stations[place.Slot] = table;
+                }
+                if (hasWaiter || !_root.Services.Building.TouchesAWall(table.Footprint))
+                    continue;
+                _clearable.AddRange(table.DirtySources);
+            }
         }
 
         // Bought furniture joins the places they can work from, and sold furniture leaves them.
@@ -133,17 +163,7 @@ namespace Game.Gameplay.Staff
         {
             _layout = _root.Services.NewLayout();
 
-            _clearable.Clear();
-            foreach (var table in _root.Services.Stations.All.OfType<ServingStation>())
-            {
-                if (!_root.Services.Building.TouchesAWall(table.Footprint))
-                    continue;
-                foreach (var source in table.DirtySources)
-                {
-                    _clearable.Add(source);
-                    _stations[source] = table;
-                }
-            }
+            RefreshPlaces();
             _routes.Clear();
             foreach (var agent in _agents)
                 agent.Slide = _layout.Slide;
@@ -178,10 +198,12 @@ namespace Game.Gameplay.Staff
                 _agents[i].Job.Release();
                 services.ItemViews.ReleaseMissing(services.Cooking);
                 _routes.Remove(_agents[i]);
+                _roaming.Remove(_agents[i]);
                 Destroy(_agents[i].gameObject);
                 _agents.RemoveAt(i);
             }
 
+            RefreshPlaces();
             foreach (var member in services.Staff.Hired)
             {
                 member.StartDay();
@@ -219,6 +241,10 @@ namespace Game.Gameplay.Staff
             var services = _root.Services;
             var settings = services.StaffConfig.ToSettings();
             var seed = services.StaffConfig.Seed + _nextSeed++;
+            if (member.Role == StaffRole.Waiter)
+            {
+                return new Waiter(member, services.Bell, _places, _counters, _dirtyPile.Pile, _sink.Sink, () => _root.Services.Service, services.Cooking, settings, seed);
+            }
             if (member.Role == StaffRole.PrepAssistant)
             {
                 return new PrepAssistant(
@@ -253,11 +279,12 @@ namespace Game.Gameplay.Staff
                 return;
 
             var gameSeconds = Time.deltaTime * services.Tuning.TimeScale;
-            var step = services.StaffConfig.WalkSpeed * Time.deltaTime;
             foreach (var agent in _agents)
             {
                 var job = agent.Job;
                 agent.Intent = System.Numerics.Vector2.Zero;
+                var speed = agent.Member.Role == StaffRole.Waiter ? services.StaffConfig.WaiterWalkSpeed : services.StaffConfig.WalkSpeed;
+                var step = speed * Time.deltaTime;
 
                 // Pushed away from the board, the sink...: the work waits until they're back.
                 if (!IsInterrupted(agent, job))
@@ -271,6 +298,7 @@ namespace Game.Gameplay.Staff
                         _routes[agent] = route;
                     }
 
+                    _roaming.Remove(agent);
                     if (WalkRoute(agent, route, station, step))
                     {
                         agent.Face(station.transform.position - agent.transform.position);
@@ -281,6 +309,12 @@ namespace Game.Gameplay.Staff
                         if (onStation != null)
                             services.ItemViews.Place(onStation, station.AnchorFor(onStation), services.Tuning.ItemMove, agent.CarryAnchor.position);
                     }
+                }
+
+                else if (job.Target == null && RoamsWhenIdle(agent))
+                {
+                    _routes.Remove(agent);
+                    Roam(agent, step);
                 }
 
                 if (job.Carried != null)
@@ -375,6 +409,11 @@ namespace Game.Gameplay.Staff
             }
             foreach (var player in PlayerInput.all)
                 _others.Add(Floor(player.transform.position));
+            if (_customers != null)
+            {
+                foreach (var customer in _customers.Agents.Values)
+                    _others.Add(Floor(customer.transform.position));
+            }
         }
 
         private bool SomeoneAt(System.Numerics.Vector2 point, float within)
@@ -394,6 +433,76 @@ namespace Game.Gameplay.Staff
         }
 
         private static System.Numerics.Vector2 Floor(Vector3 position) => new System.Numerics.Vector2(position.x, position.z);
+
+        // Waiters and cleaners wait in the dining room, not the kitchen, strolling around it.
+        private static bool RoamsWhenIdle(StaffAgent agent) =>
+            agent.Member.Role == StaffRole.Waiter || agent.Member.Role == StaffRole.Dishwasher;
+
+        private void Roam(StaffAgent agent, float step)
+        {
+            if (!_roaming.TryGetValue(agent, out var roaming))
+            {
+                roaming = new Roaming();
+                _roaming[agent] = roaming;
+            }
+            if (Time.time < roaming.PauseUntil)
+                return;
+
+            var here = Floor(agent.transform.position);
+            if (roaming.Points == null)
+            {
+                roaming.Points = _layout.FindPath(here, SomewhereInTheDiningRoom());
+                roaming.Next = 0;
+                if (roaming.Points == null)
+                {
+                    roaming.PauseUntil = Time.time + _roamPauseSeconds;
+                    return;
+                }
+            }
+
+            var point = roaming.Points[roaming.Next];
+            CollectOthers(agent);
+            var next = Steering.Step(here, point, step, _others, _layout.IsFree);
+            agent.Intent = next - here;
+            agent.Face(new Vector3(next.X - here.X, 0f, next.Y - here.Y));
+            agent.transform.position = new Vector3(next.X, agent.transform.position.y, next.Y);
+
+            if ((point - next).Length() <= ArriveDistance)
+            {
+                roaming.Next++;
+                if (roaming.Next >= roaming.Points.Count)
+                {
+                    roaming.Points = null;
+                    roaming.PauseUntil = Time.time + Random.Range(_roamPauseSeconds / 2f, _roamPauseSeconds);
+                }
+            }
+            else if (!_layout.IsClear(next, point))
+            {
+                roaming.Points = null; // pushed off course
+            }
+        }
+
+        private System.Numerics.Vector2 SomewhereInTheDiningRoom()
+        {
+            var plan = _root.Services.FloorPlan;
+            var spot = plan.DiningAreaMin;
+            for (var tries = 0; tries < 8; tries++)
+            {
+                spot = new System.Numerics.Vector2(
+                    Random.Range(plan.DiningAreaMin.X, plan.DiningAreaMax.X),
+                    Random.Range(plan.DiningAreaMin.Y, plan.DiningAreaMax.Y));
+                if (_layout.IsFree(spot))
+                    break;
+            }
+            return spot;
+        }
+
+        private sealed class Roaming
+        {
+            public List<System.Numerics.Vector2> Points;
+            public int Next;
+            public float PauseUntil;
+        }
 
         private sealed class Route
         {

@@ -38,7 +38,7 @@ namespace Game.Tests.PlayMode
         private IEnumerator HireAndOpen(StaffRole role)
         {
             var services = _root.Services;
-            var candidate = services.Staff.Candidates.First(c => c.Role == role);
+            var candidate = services.StaffConfig.CandidatesFor(1, 2).First(c => c.Role == role);
             services.Staff.Hire(candidate, services.Days.Balance);
             services.Days.Advance(); // to Prep: they arrive
             yield return null;
@@ -46,7 +46,7 @@ namespace Game.Tests.PlayMode
         }
 
         [UnityTest]
-        public IEnumerator AnIdleDishwasherCanBePushedLikeAnIdleChef()
+        public IEnumerator AnIdleCleanerCanBePushedLikeAnIdleChef()
         {
             yield return OpenKitchenWithChef();
             yield return HireAndOpen(StaffRole.Dishwasher);
@@ -69,14 +69,14 @@ namespace Game.Tests.PlayMode
             var apart = (agent.transform.position - _player.transform.position).magnitude;
             Debug.Log($"[PushPlay] idle dishwasher moved {moved:0.000}, now {apart:0.000} from the chef");
             Assert.That(apart, Is.GreaterThan(0.6f), "they're not overlapping any more");
-            Assert.That(moved, Is.GreaterThan(0.05f), "the dishwasher gave way too");
+            Assert.That(moved, Is.GreaterThan(0.05f), "the cleaner gave way too");
         }
 
         [UnityTest]
         public IEnumerator AHelperArrivesWithRoomToBePushedEveryWay()
         {
             yield return OpenKitchenWithChef();
-            yield return HireAndOpen(StaffRole.Dishwasher);
+            yield return HireAndOpen(StaffRole.PrepAssistant);
 
             var agent = _director.Agents.Single();
             foreach (var push in new[]
@@ -170,7 +170,7 @@ namespace Game.Tests.PlayMode
         public IEnumerator ShovedStaffStayWhereTheyWerePushed()
         {
             yield return OpenKitchenWithChef();
-            yield return HireAndOpen(StaffRole.Dishwasher);
+            yield return HireAndOpen(StaffRole.PrepAssistant);
 
             var agent = _director.Agents.Single();
             var shoved = agent.Shove(new System.Numerics.Vector2(-0.5f, 0f));

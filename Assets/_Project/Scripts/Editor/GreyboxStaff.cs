@@ -44,6 +44,7 @@ namespace Game.Editor
 
             var directorLink = new SerializedObject(zone.GetComponent<StaffDirector>());
             directorLink.FindProperty("_editor").objectReferenceValue = zone.GetComponent<LayoutEditor>();
+            directorLink.FindProperty("_customers").objectReferenceValue = Object.FindFirstObjectByType<CustomerDirector>();
             directorLink.ApplyModifiedPropertiesWithoutUndo();
 
             var customers = new SerializedObject(Object.FindFirstObjectByType<CustomerDirector>());

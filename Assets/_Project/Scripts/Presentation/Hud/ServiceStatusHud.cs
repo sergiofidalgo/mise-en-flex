@@ -198,11 +198,19 @@ namespace Game.Presentation.Hud
             return HudStyle.Colored("fed up", new Color(0.95f, 0.30f, 0.26f));
         }
 
-        private static string RoleName(StaffRole role) => role == StaffRole.PrepAssistant ? "prep assistant" : "dishwasher";
+        private static string RoleName(StaffRole role) => role switch
+        {
+            StaffRole.PrepAssistant => "helper",
+            StaffRole.Waiter => "waiter",
+            _ => "cleaner",
+        };
 
-        private static string WorkDone(StaffMember member) => member.Role == StaffRole.PrepAssistant
-            ? $"{member.Name} prepared {member.JobsToday}, dropped {member.MistakesToday}"
-            : $"{member.Name} washed {member.JobsToday}, broke {member.MistakesToday}";
+        private static string WorkDone(StaffMember member) => member.Role switch
+        {
+            StaffRole.PrepAssistant => $"{member.Name} prepared {member.JobsToday}, dropped {member.MistakesToday}",
+            StaffRole.Waiter => $"{member.Name} carried {member.JobsToday} plates, dropped {member.MistakesToday}",
+            _ => $"{member.Name} washed {member.JobsToday}, broke {member.MistakesToday}",
+        };
 
         // The button prompt, plus who's ready when there's more than one player. (With one player,
         // being ready moves the day on at once, so there's nothing to show.)

@@ -6,6 +6,7 @@ namespace Game.Simulation.Staff
     {
         Dishwasher,
         PrepAssistant,
+        Waiter,
     }
 
     /// <summary>Tuning for how staff work. Filled from the StaffConfig asset.</summary>

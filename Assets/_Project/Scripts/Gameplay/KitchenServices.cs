@@ -65,6 +65,9 @@ namespace Game.Gameplay
         public List<(string TypeId, int Count)> LastDelivery { get; set; } = new List<(string, int)>();
 
         public StaffRoster Staff { get; }
+
+        /// <summary>What says a plate on a counter is ready to go out.</summary>
+        public ReadyBell Bell { get; } = new ReadyBell();
         public StaffConfig StaffConfig { get; }
 
         /// <summary>The stations in the kitchen right now.</summary>

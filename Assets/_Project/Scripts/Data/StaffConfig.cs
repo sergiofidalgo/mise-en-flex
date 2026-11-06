@@ -23,11 +23,16 @@ namespace Game.Data
             [Tooltip("1 is an average pace.")]
             [SerializeField, Min(0.1f)] private float _speed = 1f;
             [SerializeField, Min(0f)] private float _dailyWage = 40f;
+            [Tooltip("The first restaurant they're looking for work at.")]
+            [SerializeField, Min(1)] private int _firstRestaurant = 1;
+
+            public int FirstRestaurant => _firstRestaurant;
 
             public Template() { }
 
-            public Template(StaffRole role, string description, float skill, float speed, float wage)
+            public Template(StaffRole role, string description, float skill, float speed, float wage, int firstRestaurant = 1)
             {
+                _firstRestaurant = firstRestaurant;
                 _role = role;
                 _description = description;
                 _skill = skill;
@@ -45,14 +50,20 @@ namespace Game.Data
         [Header("Candidates")]
         [Tooltip("How many people are looking for work each day.")]
         [SerializeField, Min(1)] private int _candidatesPerDay = 3;
+        [Tooltip("Which restaurant this is. The first only has helpers for hire; set 2 to try cleaners and waiters. TODO(Phase 5): comes from the campaign.")]
+        [SerializeField, Min(1)] private int _restaurantNumber = 1;
         [SerializeField] private int _seed = 1;
         [SerializeField] private string[] _names = { "Ana", "Tomás", "Marta", "Ben", "Lucía", "Omar", "Nina", "Pau" };
         [SerializeField] private Template[] _templates =
         {
-            new Template(StaffRole.Dishwasher, "quick but careless", 0.90f, 1.4f, 50f),
-            new Template(StaffRole.Dishwasher, "steady, nothing fancy", 0.96f, 1f, 40f),
-            new Template(StaffRole.Dishwasher, "slow, very reliable", 0.995f, 0.7f, 30f),
-            new Template(StaffRole.Dishwasher, "fast and careful, and knows it", 0.98f, 1.4f, 70f),
+            new Template(StaffRole.Dishwasher, "quick but careless", 0.90f, 1.4f, 50f, 2),
+            new Template(StaffRole.Dishwasher, "steady, nothing fancy", 0.96f, 1f, 40f, 2),
+            new Template(StaffRole.Dishwasher, "slow, very reliable", 0.995f, 0.7f, 30f, 2),
+            new Template(StaffRole.Dishwasher, "fast and careful, and knows it", 0.98f, 1.4f, 70f, 2),
+            new Template(StaffRole.Waiter, "quick, a bit clumsy", 0.90f, 1.3f, 55f, 2),
+            new Template(StaffRole.Waiter, "steady on their feet", 0.96f, 1f, 45f, 2),
+            new Template(StaffRole.Waiter, "calm, never spills", 0.995f, 0.8f, 50f, 2),
+            new Template(StaffRole.Waiter, "a natural, and knows it", 0.98f, 1.3f, 70f, 2),
             new Template(StaffRole.PrepAssistant, "neat but slow", 0.98f, 0.7f, 40f),
             new Template(StaffRole.PrepAssistant, "quick, a bit sloppy", 0.85f, 1.3f, 45f),
             new Template(StaffRole.PrepAssistant, "steady hands", 0.94f, 1f, 50f),
@@ -62,6 +73,8 @@ namespace Game.Data
         [Header("Work")]
         [Tooltip("Real metres per second staff walk.")]
         [SerializeField, Min(0.1f)] private float _walkSpeed = 2f;
+        [Tooltip("Real metres per second a waiter walks: slower and the food's cold when it gets there.")]
+        [SerializeField, Min(0.1f)] private float _waiterWalkSpeed = 3f;
         [Tooltip("In-game seconds to wash a plate at speed 1.")]
         [SerializeField, Min(1f)] private float _washSecondsPerPlate = 150f;
         [Tooltip("In-game seconds to cut one item at speed 1.")]
@@ -99,6 +112,7 @@ namespace Game.Data
 
         public float StartingMoney => _startingMoney;
         public float WalkSpeed => _walkSpeed;
+        public float WaiterWalkSpeed => _waiterWalkSpeed;
         public int Seed => _seed;
 
         public StaffSettings ToSettings() => new StaffSettings
@@ -121,7 +135,11 @@ namespace Game.Data
             QuitBelow = _quitBelow,
         };
 
-        public System.Collections.Generic.IReadOnlyList<Candidate> CandidatesFor(int day) =>
-            StaffMarket.CandidatesFor(day, _seed, _candidatesPerDay, _names, _templates.Select(t => t.ToCandidate()).ToArray());
+        public System.Collections.Generic.IReadOnlyList<Candidate> CandidatesFor(int day) => CandidatesFor(day, _restaurantNumber);
+
+        /// <summary>Who's looking for work that day at a given restaurant.</summary>
+        public System.Collections.Generic.IReadOnlyList<Candidate> CandidatesFor(int day, int restaurant) =>
+            StaffMarket.CandidatesFor(day, _seed, _candidatesPerDay, _names,
+                _templates.Where(t => t.FirstRestaurant <= restaurant).Select(t => t.ToCandidate()).ToArray());
     }
 }

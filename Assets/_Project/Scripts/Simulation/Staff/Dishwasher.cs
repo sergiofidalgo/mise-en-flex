@@ -49,7 +49,8 @@ namespace Game.Simulation.Staff
 
         public DishwasherTask Task { get; private set; }
 
-        public int TargetPass { get; private set; } = -1;
+        // What they're walking to clear. The list can change on the way, as furniture moves.
+        private IDirtyPlateSource _targetSource;
 
         /// <summary>The plate in their hands, or null.</summary>
         public Plate Carried { get; private set; }
@@ -63,7 +64,7 @@ namespace Game.Simulation.Staff
                 switch (Task)
                 {
                     case DishwasherTask.ToPass:
-                        return _passes[TargetPass];
+                        return _targetSource;
                     case DishwasherTask.ToPile:
                         return _pile;
                     case DishwasherTask.ToSink:
@@ -98,7 +99,7 @@ namespace Game.Simulation.Staff
             switch (Task)
             {
                 case DishwasherTask.ToPass:
-                    var pass = _passes[TargetPass];
+                    var pass = _targetSource;
                     // Someone may have got there first.
                     if (pass.HasDirtyPlate)
                     {
@@ -227,7 +228,7 @@ namespace Game.Simulation.Staff
                 {
                     if (_passes[i].HasDirtyPlate)
                     {
-                        TargetPass = i;
+                        _targetSource = _passes[i];
                         Task = DishwasherTask.ToPass;
                         return;
                     }

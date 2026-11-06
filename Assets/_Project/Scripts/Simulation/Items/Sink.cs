@@ -83,6 +83,9 @@ namespace Game.Simulation.Items
         }
 
         /// <summary>A clean plate gets dropped: the kitchen has one plate fewer for good.</summary>
+        /// <summary>A plate broken somewhere else: it's replaced with the others in the morning.</summary>
+        public void CountBroken() => Broken++;
+
         public void BreakClean()
         {
             if (_clean.Count == 0)

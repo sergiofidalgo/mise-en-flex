@@ -5,11 +5,13 @@ namespace Game.Gameplay.Stations
 {
     /// <summary>
     /// A plain counter top that holds one item: a plate, a tray, a container. Counters are precious:
-    /// each thing kept here is one less place to work (decision 2026-11-04).
+    /// each thing kept here is one less place to work (decision 2026-11-04). With a finished plate on
+    /// it, Use rings the bell for it to go out.
     /// </summary>
-    public sealed class CounterStation : Interactable, IStationPrompt
+    public sealed class CounterStation : Interactable, IStationPrompt, IUsable
     {
         private readonly ItemSlot _slot = new ItemSlot();
+        private KitchenServices _services;
 
         public override IItemContainer Container => _slot;
 
@@ -20,8 +22,17 @@ namespace Game.Gameplay.Stations
 
         public bool PromptAsDiamond(PlayerInteractor player) => false;
 
+        public override void Bind(KitchenServices services) => _services = services;
+
+        public bool TryUse(PlayerInteractor player) => _services.Bell.Ring(_slot);
+
         public void DescribeActions(PlayerInteractor player, List<PromptLine> lines)
         {
+            if (ReadyBell.CanRing(_slot))
+                lines.Add(_services.Bell.IsRung(_slot)
+                    ? new PromptLine(PromptControl.West, "order up", available: false)
+                    : new PromptLine(PromptControl.West, "ring the bell"));
+
             var held = player.Hands.Current;
             if (_slot.Current is FoodContainer container)
             {
