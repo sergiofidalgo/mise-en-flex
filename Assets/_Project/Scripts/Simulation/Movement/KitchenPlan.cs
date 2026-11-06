@@ -12,6 +12,7 @@ namespace Game.Simulation.Movement
         SomeoneInTheWay,
         CantAfford,
         NotOnAWall,
+        NoRoomForChairs,
     }
 
     /// <summary>

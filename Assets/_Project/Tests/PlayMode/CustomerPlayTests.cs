@@ -182,11 +182,11 @@ namespace Game.Tests.PlayMode
             Customer customer = null;
             for (var i = 0; i < 4; i++)
                 customer = NextCustomer();
-            Assert.That(customer.Seat, Is.EqualTo(_table.SeatIndex), "once the stools are full");
+            Assert.That(_table.SeatIndexes.Contains(customer.Seat), Is.True, "once the stools are full");
 
             yield return WaitFor(() => customer.State == CustomerState.Waiting, 20f);
             var agent = _customers.Agents[customer];
-            Assert.That((agent.transform.position - _table.Seat.position).magnitude, Is.LessThan(0.2f), "in its chair");
+            Assert.That((agent.transform.position - _table.SeatPosition(customer.Seat)).magnitude, Is.LessThan(0.2f), "in its chair");
 
             _table.Container.Put(Meal(_root));
             Assert.That(customer.State, Is.EqualTo(CustomerState.Eating));
@@ -204,10 +204,10 @@ namespace Game.Tests.PlayMode
 
             // Eaten: the dirty plate stays.
             _table.Container.Put(Meal(_root));
-            yield return WaitFor(() => _table.DirtyPlates.HasDirtyPlate, 5f);
+            yield return WaitFor(() => _table.HasDirtyPlate, 5f);
 
             var next = NextCustomer();
-            Assert.That(next.Seat, Is.EqualTo(_table.SeatIndex));
+            Assert.That(_table.SeatIndexes.Contains(next.Seat), Is.True);
             yield return WaitFor(() => next.State == CustomerState.Waiting, 20f);
             Assert.That(next.Order, Is.Not.Null, "ordering");
 
@@ -255,6 +255,152 @@ namespace Game.Tests.PlayMode
             yield return WaitFor(() => customer.State == CustomerState.Gone, 15f);
             Assert.That(customer.WalkedOut, Is.True);
             Assert.That(_root.Services.Service.LostCovers, Is.EqualTo(1));
+        }
+
+        // A seed whose first arrival is a group of at least two, at these tables.
+        private int SeedForAGroup(params int[] tables)
+        {
+            var settings = _root.Services.ServiceConfig.ToSettings(1);
+            settings.ArrivalIntervalSeconds = 2000f;
+            settings.ArrivalJitter = 0f;
+            settings.DurationSeconds = 100000f;
+            settings.LastOrdersSeconds = 0f;
+            settings.RushMultiplier = 1f;
+            for (var seed = 1; ; seed++)
+            {
+                settings.Seed = seed;
+                var probe = new ServiceSimulation(settings, 1);
+                probe.OpenSeats(tables);
+                while (probe.Customers.Count == 0)
+                    probe.Tick(10f);
+                if (probe.Customers[0].Party.Count >= 2)
+                    return seed;
+            }
+        }
+
+        [UnityTest]
+        public IEnumerator AGroupSitsAtATableForFourEatsAndLeavesItsPlates()
+        {
+            yield return SceneManager.LoadSceneAsync(SceneName);
+            yield return null;
+            _root = Object.FindFirstObjectByType<KitchenCompositionRoot>();
+            _customers = Object.FindFirstObjectByType<CustomerDirector>();
+            var keyboard = InputSystem.GetDevice<Keyboard>() ?? InputSystem.AddDevice<Keyboard>();
+            var mouse = InputSystem.GetDevice<Mouse>() ?? InputSystem.AddDevice<Mouse>();
+            _player = Object.FindFirstObjectByType<PlayerInputManager>().JoinPlayer(controlScheme: "Keyboard&Mouse", pairWithDevices: new InputDevice[] { keyboard, mouse });
+            yield return null;
+            yield return null;
+
+            var editor = Object.FindFirstObjectByType<LayoutEditor>();
+            var cursor = editor.Enter(_player);
+            _root.Services.Days.Receive(500f);
+            var money = _root.Services.Days.Balance;
+
+            cursor.Position = new System.Numerics.Vector2(-1f, -5.5f);
+            Assert.That(editor.Buy(cursor, editor.Shop.First(e => e.Id == "table")), Is.True);
+            _table = (TableStation)cursor.Held;
+            editor.MoveCursor(cursor, System.Numerics.Vector2.Zero);
+            Assert.That(editor.Place(cursor), Is.True, cursor.Result.ToString());
+            Assert.That(_table.ChairCount, Is.EqualTo(1), "it comes with one");
+
+            for (var i = 0; i < 3; i++)
+                Assert.That(editor.AddChair(cursor), Is.True);
+            Assert.That(editor.AddChair(cursor), Is.False, "one per side");
+            Assert.That(_table.ChairCount, Is.EqualTo(4));
+            Assert.That(money - _root.Services.Days.Balance, Is.EqualTo(50f + 3f * editor.ChairPrice).Within(0.01f));
+            editor.Leave(_player);
+
+            var settings = _root.Services.ServiceConfig.ToSettings(1);
+            settings.ArrivalIntervalSeconds = 2000f;
+            settings.ArrivalJitter = 0f;
+            settings.DurationSeconds = 100000f;
+            settings.LastOrdersSeconds = 0f;
+            settings.RushMultiplier = 1f;
+            settings.PatienceSeconds = 100000f;
+            settings.EatSeconds = 10f;
+            settings.Seed = SeedForAGroup(1, 1, 1, 4);
+            _root.Services.ReplaceService(new ServiceSimulation(settings, 3));
+            var days = _root.Services.Days;
+            days.Advance();
+            days.Advance();
+            yield return null;
+            Assert.That(_root.Services.Service.SeatCount, Is.EqualTo(7));
+
+            var party = NextCustomer().Party;
+            Assert.That(party.Count, Is.GreaterThanOrEqualTo(2));
+            var until = Time.time + 20f;
+            while (!party.All(c => c.State == CustomerState.Waiting) && Time.time < until)
+                yield return null;
+            Assert.That(party.All(c => c.State == CustomerState.Waiting), Is.True,
+                string.Join("; ", party.Select(c => $"{c.State} seat {c.Seat} at {_customers.Agents[c].transform.position} for {_table.SeatPosition(c.Seat)}")));
+            Assert.That(party.All(c => _table.SeatIndexes.Contains(c.Seat)), Is.True, "at the table for four");
+            Assert.That(party.Select(c => _customers.Agents[c].transform.position).Distinct().Count(), Is.EqualTo(party.Count), "a chair each");
+
+            foreach (var member in party)
+                _table.Container.Put(Meal(_root));
+            Assert.That(party.All(c => c.State == CustomerState.Eating), Is.True, "a plate each");
+
+            yield return WaitFor(() => party.All(c => c.State == CustomerState.Leaving || c.State == CustomerState.Gone), 5f);
+            yield return null;
+            for (var i = 0; i < party.Count; i++)
+                Assert.That(((Plate)_table.Container.Take()).IsDirty, Is.True, "a dirty plate each");
+            Assert.That(_table.IsClear, Is.True);
+        }
+
+        [UnityTest]
+        public IEnumerator ABarTableAgainstTheWallHasItsChairOnTheFreeSide()
+        {
+            yield return OpenForBuying();
+            var editor = Object.FindFirstObjectByType<LayoutEditor>();
+            var cursor = editor.Enter(_player);
+            _root.Services.Days.Receive(500f);
+
+            cursor.Position = new System.Numerics.Vector2(-2f, -3.35f);
+            Assert.That(editor.Buy(cursor, editor.Shop.First(e => e.Id == "bar")), Is.True);
+            var bar = (TableStation)cursor.Held;
+            editor.MoveCursor(cursor, System.Numerics.Vector2.Zero);
+            Assert.That(editor.Place(cursor), Is.True, cursor.Result.ToString());
+            Assert.That(bar.HasChoiceOfChairs, Is.False);
+
+            // Turned round, its chair would be in the wall.
+            Assert.That(editor.PickUp(cursor), Is.True);
+            editor.Rotate(cursor, 180f);
+            Assert.That(editor.Place(cursor), Is.False);
+            Assert.That(cursor.Result, Is.EqualTo(Placement.NoRoomForChairs));
+            editor.Cancel(cursor);
+        }
+
+        [UnityTest]
+        public IEnumerator ATableAgainstTheWallHasOneSideLess()
+        {
+            yield return OpenForBuying();
+            var editor = Object.FindFirstObjectByType<LayoutEditor>();
+            var cursor = editor.Enter(_player);
+            _root.Services.Days.Receive(500f);
+
+            cursor.Position = new System.Numerics.Vector2(-2f, -3.6f);
+            Assert.That(editor.Buy(cursor, editor.Shop.First(e => e.Id == "table")), Is.True);
+            var table = (TableStation)cursor.Held;
+            editor.MoveCursor(cursor, System.Numerics.Vector2.Zero);
+            Assert.That(editor.Place(cursor), Is.True, cursor.Result.ToString());
+
+            Assert.That(editor.AddChair(cursor), Is.True);
+            Assert.That(editor.AddChair(cursor), Is.True);
+            Assert.That(editor.AddChair(cursor), Is.False, "the wall side has no room");
+            Assert.That(table.ChairCount, Is.EqualTo(3));
+        }
+
+        private IEnumerator OpenForBuying()
+        {
+            yield return SceneManager.LoadSceneAsync(SceneName);
+            yield return null;
+            _root = Object.FindFirstObjectByType<KitchenCompositionRoot>();
+            _customers = Object.FindFirstObjectByType<CustomerDirector>();
+            var keyboard = InputSystem.GetDevice<Keyboard>() ?? InputSystem.AddDevice<Keyboard>();
+            var mouse = InputSystem.GetDevice<Mouse>() ?? InputSystem.AddDevice<Mouse>();
+            _player = Object.FindFirstObjectByType<PlayerInputManager>().JoinPlayer(controlScheme: "Keyboard&Mouse", pairWithDevices: new InputDevice[] { keyboard, mouse });
+            yield return null;
+            yield return null;
         }
     }
 }

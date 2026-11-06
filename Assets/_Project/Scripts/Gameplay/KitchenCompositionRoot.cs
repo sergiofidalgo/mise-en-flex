@@ -134,10 +134,14 @@ namespace Game.Gameplay
         // Doors open: tables bought since this morning join the stools, which come first.
         private void OpenSeats()
         {
-            var seats = _seats;
+            var tables = Enumerable.Repeat(1, _seats).ToList();
+            var next = _seats;
             foreach (var table in Services.Stations.All.OfType<TableStation>())
-                table.AssignSeat(seats++);
-            Services.Service.OpenSeats(Enumerable.Repeat(1, seats).ToArray());
+            {
+                next = table.AssignSeats(next);
+                tables.Add(table.SeatCount);
+            }
+            Services.Service.OpenSeats(tables);
         }
 
         private void BindPlayer(PlayerInput player)

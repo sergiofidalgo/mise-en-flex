@@ -21,13 +21,13 @@ Every feature must serve at least one.
 ### Hard rules
 
 - **No automated pipelines.** No conveyors, auto-cookers or grabbers. Help comes from hired staff, who are people with skill, speed, fatigue and mistakes. Staff never perform signature techniques.
-- **No roguelite resets.** Each restaurant is a persistent save slot. Failure costs money, reputation or staff morale, or forces debt or downsizing, but never all progress.
+- **No roguelite runs.** There is one campaign at a time, saved continuously. Failure costs money, reputation, staff morale, appliances or restaurants. A campaign ends only after the boss's full escalation (§15.3), and the recipe book survives it.
 
 ### What we're reacting against
 
 - In PlateUp and Overcooked, cooking is mostly "put item on station, wait for bar." We want the bar replaced by food you read and judge.
 - Carrying is dead time: items are tokens, one per trip, with no skill involved (see §6).
-- PlateUp's runs reset. Ours don't: the restaurant is yours.
+- PlateUp's runs reset as routine. Ours don't: the restaurant is yours, and losing it takes a long, visible slide.
 
 ---
 
@@ -180,7 +180,7 @@ Quality drives payment, tips and reviews. **Open:** the scoring formula and weig
 
 ### 7.3 Reputation
 
-- An **in-game review app** shows what customers say, line by line.
+- A **listing, like a Google listing,** shows what customers say, line by line. It opens on a shared screen from a station players buy (§15.6).
 - **Incognito critics** visit unannounced and weigh heavily.
 - **Influencers** amplify a visit, for better or worse.
 
@@ -239,13 +239,13 @@ Hireable staff (Phase 3): **dishwasher, waiter, runner, prep assistant**.
 
 ## 11. Economy and progression
 
-- **Suppliers:** cheap vs. premium. Ingredient quality affects dish quality and freshness.
+- **Suppliers:** street vendors near the restaurant, cheap vs. premium. Ingredient quality affects dish quality and freshness. Style decides what they sell, and a new ingredient unlocks recipes (§15.5).
 - **Menu pricing:** set by the players; affects demand and expectations.
 - **Costs:** rent (scales with size tier), wages, equipment.
-- **Debt:** failure can force borrowing or downsizing, never a reset.
-- **Chef profile:** shared across all restaurants. Keeps learned recipes and techniques, so starting a new restaurant isn't starting from zero.
+- **Debt:** players can sell, fire, downsize or borrow more from the boss. Falling behind on what he's owed starts the escalation in §15.3.
+- **Recipe book** (replaces the chef profile): lasts across campaigns and stays in the boss's office for the next chef.
 
-**Open:** what exactly carries over in the chef profile (recipes, technique unlocks, cosmetics?), and whether the two players share one profile or have their own.
+**Open:** what the recipe book gives a new chef (see `ideas.md`).
 
 ---
 
@@ -284,9 +284,74 @@ Collected from above, for discussion:
 4. Signature mechanic for each cuisine (§8.1)
 5. Service style per restaurant or per day (§8.2)
 6. How staff are directed (§10)
-7. What the chef profile keeps; shared or per player (§11)
+7. What the recipe book gives a new chef (§11)
 8. Realism presets (§12)
 
 Also still open: whether a second player can join mid-service (§2). The close-up transition (§3.2) and the three ways to carry (§6.3) are proposals waiting for a decision.
 
 Settled 2026-11-02 (see `decisions.md`): kitchen camera, close-up dimming, one player per station, technique forgiveness, board rail slots, mixing and overflow.
+
+---
+
+## 15. Campaign, story and the first day
+
+Decided 2026-11-06 (see `decisions.md`). Questions still open are in `ideas.md`.
+
+### 15.1 The premise
+
+The boss, a Texas oil oligarch who always has two bodyguards with him, is convinced restaurants are more profitable than ever: young people photograph their food, review it and post it, content creators compete to feature places, and word of mouth has never been stronger. He wants a gastro-empire in town. He lends the player money to buy old restaurants and turn them around, and takes a cut.
+
+### 15.2 The boss's office
+
+The game opens in the office, a lobby where players join, walk around and change their character. A city miniature there is used to buy restaurants and move between them. Each business on transfer shows its price, size, previous vibe (which players can change), old customer reviews and inherited appliances. At first players can only afford the smallest, a grill. Vendors and scenery around each restaurant should suit its location.
+
+### 15.3 Money trouble
+
+Players can sell things, fire staff, downsize, or go back to the office and borrow more. If they can't pay what the boss is owed, it escalates:
+
+1. The boss visits and warns them.
+2. His bodyguards repossess appliances, on screen.
+3. He takes a restaurant.
+4. They're erased. Money and restaurants go, and the recipe book stays in his office for the next chef.
+
+### 15.4 Time, saves and the ending
+
+- **One campaign at a time.** Everything saves continuously, with no save slots.
+- **A restaurant only runs while players are in it.** The others sit idle.
+- **Fees come due every 7 days played in that restaurant,** and that collection day also sets the week's goal.
+- **The ending:** once every restaurant on the miniature is unlocked, players take over the empire. The bodyguards follow player 1 and guard the door from outside in restaurants. This is when players really make money, and can hire and decorate more heavily.
+
+### 15.5 Recipes and stock
+
+Style decides which ingredients vendors sell. Buying a new ingredient for the first time introduces its mechanics and unlocks one or more recipes, and customers can order them from then on. Harder recipes pay more. Players must keep every unlocked ingredient in stock. They can leave during service to buy more, at the cost of time, so Prep is where they plan around the approximate number of customers expected.
+
+### 15.6 Two devices
+
+- **The personal mobile** is how the boss calls, shown in the bottom right corner.
+- **The restaurant station** (laptop, phone or tablet) is a bought appliance, introduced around day 2. It opens the listing on a shared screen, explains reviews in more depth, offers quick-restock delivery of a limited range, and switches restaurants without a trip to the office. It may gain other perks.
+
+### 15.7 The first day
+
+Every step should be fun from the start and very light. Tasks appear one at a time in the top right corner, each with its own control hints, and any player can complete them. Returning players can skip this.
+
+| Step | What happens | What it teaches |
+| --- | --- | --- |
+| **Office** | Join, change character, meet the boss, buy the grill on the miniature | The goal and the debt |
+| **Clean up** | Look round the inherited restaurant and clean dirt on floors, tables and counters | Moving, Use, what's in the restaurant |
+| **The call** | The boss phones: he's coming with friends, so have enough plates and onion steaks ready | The goal for the day |
+| **First appliance** | There are no plates at all, so players open management mode (Select) and buy a plate pile | Management mode and buying |
+| **Vendors** | Leave the restaurant and buy food from the street vendors | Shopping and budget |
+| **Getting ready** | Stock the fridge and shelf, and prep the onions | Storage and prep |
+| **The boss arrives** | He's alone, as his friends made a cheap excuse. He sits and eats while the bodyguards stand behind him | Cooking, orders, serving |
+| **The bodyguards** | He invites them to sit, and two more dishes are ordered. Both leave a review | Parallel orders on one hob, reviews |
+| **Review, then day 1** | The day closes and a new one starts, with players on their own | The daily loop |
+
+**Starting kit:** a couple of regular 4-seat tables, a hob, cutting board, shelf and fridge, plus basics such as the sink, bin, counters and pass. No plates.
+
+### 15.8 Cleaning
+
+Dirt can be on floors, tables and counters, and is cleaned the same way everywhere: approach it, hold X and move the stick to match a pattern. The chef uses a mop or a cloth depending on the surface. It should be fun, light, and different from the sink's balancing game.
+
+### 15.9 Decoration
+
+Decoration affects reviews and the profile of customers who come. The food can be delicious while the place doesn't feel original, clean, or in keeping with its style.

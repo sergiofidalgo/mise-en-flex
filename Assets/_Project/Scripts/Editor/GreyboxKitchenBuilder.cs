@@ -38,11 +38,21 @@ namespace Game.Editor
         private const string FridgeFurniture = "fridge";
         private const string ShelfFurniture = "shelf";
         private const string TableFurniture = "table";
+        private const string BarFurniture = "bar";
         private const float CounterPrice = 30f;
         private const float HobPrice = 80f;
         private const float ShelfPrice = 60f;
         private const float FridgePrice = 120f;
         private const float TablePrice = 50f;
+        private const float BarPrice = 30f;
+        private const float TablePlateOffset = 0.22f;
+
+        // A bar table: higher, and half as deep, so it takes little room against a wall.
+        private const float BarHeight = 1f;
+        private const float BarDepth = 0.5f;
+        private const float BarChairGap = 0.35f;
+        private const float BarPlateOffset = 0.08f;
+        private static readonly Color BarColor = new Color(0.62f, 0.44f, 0.26f);
 
         // A table: a little lower than a counter, with a chair at its south side where its customer sits.
         private const float TableHeight = 0.75f;
@@ -597,7 +607,7 @@ namespace Game.Editor
         }
 
         private static T CreateStation<T>(
-            string name, Vector3 position, float size, float height, Material material, Transform parent, string furnitureId = "")
+            string name, Vector3 position, float size, float height, Material material, Transform parent, string furnitureId = "", float depth = 0f)
             where T : Interactable
         {
             var root = new GameObject(name).transform;
@@ -605,11 +615,12 @@ namespace Game.Editor
             root.localPosition = position;
 
             var body = GreyboxAssets.CreatePrimitive(PrimitiveType.Cube, "Body", root, material, keepCollider: false);
-            body.transform.localScale = new Vector3(size, height, size);
+            var deep = depth > 0f ? depth : size;
+            body.transform.localScale = new Vector3(size, height, deep);
             body.transform.localPosition = new Vector3(0f, height / 2f, 0f);
 
             var blocker = root.gameObject.AddComponent<BoxCollider>();
-            blocker.size = new Vector3(size, StationBlockerHeight, size);
+            blocker.size = new Vector3(size, StationBlockerHeight, deep);
             blocker.center = new Vector3(0f, StationBlockerHeight / 2f, 0f);
 
             var anchor = new GameObject("ItemAnchor").transform;
@@ -620,6 +631,8 @@ namespace Game.Editor
             SetReference(station, "_itemAnchor", anchor);
             var stationSo = new SerializedObject(station);
             stationSo.FindProperty("_furnitureId").stringValue = furnitureId;
+            if (depth > 0f)
+                stationSo.FindProperty("_halfSize").vector2Value = new Vector2(size / 2f, depth / 2f);
             stationSo.ApplyModifiedPropertiesWithoutUndo();
 
             var highlight = root.gameObject.AddComponent<InteractableHighlightView>();
@@ -647,6 +660,7 @@ namespace Game.Editor
             var fridge = SaveFurniture(BuildStorageForSale("PF_Fridge", StorageUnits[0]));
             var shelf = SaveFurniture(BuildStorageForSale("PF_Shelf", StorageUnits[1]));
             var table = SaveFurniture(BuildTable());
+            var bar = SaveFurniture(BuildBarTable());
 
             var catalog = GreyboxAssets.EnsureAsset<FurnitureCatalog>(FurnitureCatalogPath);
             var so = new SerializedObject(catalog);
@@ -656,25 +670,56 @@ namespace Game.Editor
             SetFurniture(entries, ShelfFurniture, "Shelf", ShelfPrice, keepOne: true, shelf);
             SetFurniture(entries, FridgeFurniture, "Fridge", FridgePrice, keepOne: true, fridge);
             SetFurniture(entries, TableFurniture, "Table", TablePrice, keepOne: false, table);
+            SetFurniture(entries, BarFurniture, "Bar table", BarPrice, keepOne: false, bar);
             so.ApplyModifiedPropertiesWithoutUndo();
             AssetDatabase.SaveAssets();
             return catalog;
         }
 
+        // A regular table: a chair's place on each side, with a plate towards it. They start hidden;
+        // the table shows the ones it has.
         private static TableStation BuildTable()
         {
             var table = CreateStation<TableStation>(
                 "PF_Table", Vector3.zero, CounterSize, TableHeight, GreyboxAssets.EnsureMaterial("Table", TableColor), null, TableFurniture);
-
-            var seat = new GameObject("Seat").transform;
-            seat.SetParent(table.transform, false);
-            seat.localPosition = new Vector3(0f, 0f, -ChairDistance);
-            var chair = GreyboxAssets.CreatePrimitive(PrimitiveType.Cylinder, "Chair", seat, GreyboxAssets.EnsureMaterial("Stool", ChairColor), keepCollider: false);
-            chair.transform.localScale = ChairScale;
-            chair.transform.localPosition = new Vector3(0f, ChairScale.y, 0f);
-
-            SetReference(table, "_seat", seat);
+            var directions = new[] { Vector3.back, Vector3.left, Vector3.right, Vector3.forward };
+            AddChairs(table, TableHeight, directions, ChairDistance, TablePlateOffset);
             return table;
+        }
+
+        // A bar table: narrow, with one chair along its long side.
+        private static TableStation BuildBarTable()
+        {
+            var table = CreateStation<TableStation>(
+                "PF_BarTable", Vector3.zero, CounterSize, BarHeight, GreyboxAssets.EnsureMaterial("BarTable", BarColor), null, BarFurniture, BarDepth);
+            AddChairs(table, BarHeight, new[] { Vector3.back }, BarDepth / 2f + BarChairGap, BarPlateOffset);
+            return table;
+        }
+
+        private static void AddChairs(TableStation table, float height, Vector3[] directions, float seatDistance, float plateOffset)
+        {
+            var so = new SerializedObject(table);
+            var chairs = so.FindProperty("_chairs");
+            chairs.arraySize = directions.Length;
+            for (var i = 0; i < directions.Length; i++)
+            {
+                var seat = new GameObject($"Seat_{i + 1}").transform;
+                seat.SetParent(table.transform, false);
+                seat.localPosition = directions[i] * seatDistance;
+                var chair = GreyboxAssets.CreatePrimitive(PrimitiveType.Cylinder, "Chair", seat, GreyboxAssets.EnsureMaterial("Stool", ChairColor), keepCollider: false);
+                chair.transform.localScale = ChairScale;
+                chair.transform.localPosition = new Vector3(0f, ChairScale.y, 0f);
+                seat.gameObject.SetActive(i == 0);
+
+                var plate = new GameObject($"Plate_{i + 1}").transform;
+                plate.SetParent(table.transform, false);
+                plate.localPosition = directions[i] * plateOffset + Vector3.up * height;
+
+                var element = chairs.GetArrayElementAtIndex(i);
+                element.FindPropertyRelative("_seat").objectReferenceValue = seat;
+                element.FindPropertyRelative("_plateAnchor").objectReferenceValue = plate;
+            }
+            so.ApplyModifiedPropertiesWithoutUndo();
         }
 
         // The same as the starting unit, without its morning delivery.

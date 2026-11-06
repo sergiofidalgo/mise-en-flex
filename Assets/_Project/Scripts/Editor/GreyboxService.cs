@@ -25,7 +25,7 @@ namespace Game.Editor
         private static readonly Vector2 DoorClearance = new Vector2(0.6f, 0.6f);
 
         // Relative to the door, whichever wall it's on.
-        private static readonly Vector3[] QueueOffsets = { new Vector3(1.2f, 0f, 0.35f), new Vector3(1.2f, 0f, 1.15f), new Vector3(1.2f, 0f, 1.95f) };
+        private static readonly Vector3[] QueueOffsets = { new Vector3(1.2f, 0f, 0.35f), new Vector3(1.2f, 0f, 1.15f), new Vector3(1.2f, 0f, 1.95f), new Vector3(2f, 0f, 0.35f), new Vector3(2f, 0f, 1.15f), new Vector3(2f, 0f, 1.95f) };
 
         private static readonly Vector3 StoolScale = new Vector3(0.36f, 0.22f, 0.36f); // cylinder: 0.44 m tall
         private static readonly Color StoolColor = new Color(0.35f, 0.25f, 0.18f);

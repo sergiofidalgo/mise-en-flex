@@ -141,10 +141,21 @@ namespace Game.Gameplay
                 var stick = player.actions[MoveAction].ReadValue<Vector2>();
                 MoveCursor(cursor, new SimVector2(stick.x, stick.y) * (_cursorSpeed * Time.unscaledDeltaTime));
 
+                // RB and LB turn what's carried; over a table, they add and remove its chairs.
                 if (player.actions[RotateRightAction].WasPressedThisFrame())
-                    Rotate(cursor, _rotationStep);
+                {
+                    if (cursor.Held != null)
+                        Rotate(cursor, _rotationStep);
+                    else if (StationUnder(cursor) is TableStation table && !AddChair(cursor))
+                        table.NotifyDenied();
+                }
                 else if (player.actions[RotateLeftAction].WasPressedThisFrame())
-                    Rotate(cursor, -_rotationStep);
+                {
+                    if (cursor.Held != null)
+                        Rotate(cursor, -_rotationStep);
+                    else if (StationUnder(cursor) is TableStation table && !RemoveChair(cursor))
+                        table.NotifyDenied();
+                }
 
                 TurnHeld(cursor);
                 Light(cursor);
@@ -315,6 +326,8 @@ namespace Game.Gameplay
             else
             {
                 _plan.Move(station, cursor.Landing, cursor.Degrees);
+                if (station is TableStation moved)
+                    moved.ArrangeChairs();
             }
             cursor.Held = null;
             Physics.SyncTransforms();
@@ -402,11 +415,37 @@ namespace Game.Gameplay
             return FurnitureRules.CheckSale(entry != null, station.IsClear, carried || _staff.IsHeadedTo(station), entry != null && entry.KeepOne, howMany);
         }
 
-        /// <summary>What selling this would pay.</summary>
+        /// <summary>What selling this would pay, chairs included.</summary>
         public float SellPriceOf(Interactable station)
         {
             var entry = _catalog.Find(station.FurnitureId);
-            return entry != null ? FurnitureRules.SellPrice(entry.Price, _catalog.SellFraction) : 0f;
+            if (entry == null)
+                return 0f;
+            var chairs = station is TableStation table && table.HasChoiceOfChairs ? table.ChairCount - 1 : 0;
+            return FurnitureRules.SellPrice(entry.Price + chairs * _catalog.ChairPrice, _catalog.SellFraction);
+        }
+
+        public float ChairPrice => _catalog.ChairPrice;
+
+        public float ChairRefund => FurnitureRules.SellPrice(_catalog.ChairPrice, _catalog.SellFraction);
+
+        /// <summary>Adds a chair to the table under the cursor, if there's room and the money.</summary>
+        public bool AddChair(Cursor cursor)
+        {
+            if (!(StationUnder(cursor) is TableStation table) || !table.CanAddChair || !_root.Services.Days.TrySpend(ChairPrice))
+                return false;
+            table.AddChair();
+            return true;
+        }
+
+        /// <summary>Takes a chair from the table under the cursor, which has to be clear.</summary>
+        public bool RemoveChair(Cursor cursor)
+        {
+            if (!(StationUnder(cursor) is TableStation table) || !table.HasChoiceOfChairs || table.ChairCount <= 1 || !table.IsClear)
+                return false;
+            table.RemoveChair();
+            _root.Services.Days.Receive(ChairRefund);
+            return true;
         }
 
         /// <summary>Sells what's under the cursor, if it can be sold.</summary>
@@ -436,6 +475,12 @@ namespace Game.Gameplay
         private Placement Check(Cursor cursor)
         {
             var result = _plan.Check(cursor.Held, cursor.Landing, cursor.Degrees, People());
+            if (result == Placement.Ok && cursor.Held is TableStation table)
+            {
+                var at = new Game.Simulation.Movement.Footprint(cursor.Landing, cursor.Degrees, table.HalfSize);
+                if (table.RoomForChairs(at, _root.Services.Building) < table.ChairCount)
+                    return Placement.NoRoomForChairs;
+            }
             if (result == Placement.Ok && cursor.Held == _streetDoor)
             {
                 var floor = _root.Services.FloorPlan;

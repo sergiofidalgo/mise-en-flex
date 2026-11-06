@@ -9,42 +9,88 @@ using UnityEngine;
 namespace Game.Gameplay.Stations
 {
     /// <summary>
-    /// Somewhere a customer sits and is served: a pass counter or a table. A plate with food put
-    /// here is served to the customer waiting at its seat, scored on the spot (serving temperature
-    /// included, so getting there quickly matters). With nobody waiting, the plate stays, can be
-    /// taken back, and goes to whoever sits down next, wanted or not. When they've finished, the
-    /// food goes and the dirty plate stays until someone clears it. The next customer can still
-    /// sit and order, but can't be served until it's cleared (decisions 2026-11-04).
+    /// Somewhere customers sit and are served: a pass counter or a table, with one plate's room per
+    /// seat. A plate with food put here goes to the customer whose order it matches, or else the first
+    /// waiting, and is scored on the spot (serving temperature included, so getting there quickly
+    /// matters). With nobody waiting, the plate stays, can be taken back, and goes to whoever sits
+    /// there next, wanted or not. When they've finished, the food goes and the dirty plate stays until
+    /// someone clears it. The next customer can still sit and order, but that place can't be served
+    /// until it's cleared (decisions 2026-11-04).
     /// </summary>
     public abstract class ServingStation : Interactable, IStationPrompt
     {
-        [Tooltip("Which of the service's seats this is (0 = leftmost stool). Tables get theirs when service opens.")]
-        [SerializeField, Min(0)] private int _seatIndex;
+        /// <summary>One customer's place at this station.</summary>
+        protected sealed class Place
+        {
+            public readonly PassCounter Slot = new PassCounter();
+            public int SeatIndex;
+            public Transform Seat;
+            public Transform PlateAnchor;
+            public Customer Eating;
+        }
 
-        [Tooltip("Where the customer sits.")]
-        [SerializeField] private Transform _seat;
-
-        private readonly PassCounter _slot = new PassCounter();
+        private readonly List<Place> _places = new List<Place>();
         private KitchenServices _services;
-        private Customer _eating;
+        private ServingTop _top;
+        private Plate _lastPlaced;
 
-        public int SeatIndex => _seatIndex;
+        protected KitchenServices Services => _services;
 
-        public Transform Seat => _seat;
+        protected IReadOnlyList<Place> Places => _places;
 
-        /// <summary>Nothing on it. Nobody's eating here between services, when furniture is sold.</summary>
-        public override bool IsClear => _slot.Current == null;
+        public override IItemContainer Container => _top;
 
-        public void AssignSeat(int index) => _seatIndex = index;
+        /// <summary>How many customers can sit here.</summary>
+        public int SeatCount => _places.Count;
 
-        public override IItemContainer Container => _slot;
+        public bool HasDirtyPlate
+        {
+            get
+            {
+                foreach (var place in _places)
+                {
+                    if (place.Slot.HasDirtyPlate)
+                        return true;
+                }
+                return false;
+            }
+        }
 
-        /// <summary>For whoever clears up.</summary>
-        public IDirtyPlateSource DirtyPlates => _slot;
+        // Nobody's eating here between services, when furniture is sold.
+        public override bool IsClear
+        {
+            get
+            {
+                foreach (var place in _places)
+                {
+                    if (place.Slot.Current != null)
+                        return false;
+                }
+                return true;
+            }
+        }
 
-        // Shown on the pass for the view, but not offered to the Interact rules (it isn't an
-        // IItemHolder), so nothing can be poured onto or scooped off a served plate.
-        public override Item HeldItem => _slot.Current;
+        /// <summary>The plate just put here, so it can be shown; otherwise any that's here.</summary>
+        public override Item HeldItem
+        {
+            get
+            {
+                if (_lastPlaced != null && PlaceOf(_lastPlaced) != null)
+                    return _lastPlaced;
+                foreach (var place in _places)
+                {
+                    if (place.Slot.Current != null)
+                        return place.Slot.Current;
+                }
+                return null;
+            }
+        }
+
+        public override Transform AnchorFor(Item item)
+        {
+            var place = PlaceOf(item);
+            return place?.PlateAnchor != null ? place.PlateAnchor : ItemAnchor;
+        }
 
         public bool PromptAsDiamond(PlayerInteractor player) => false;
 
@@ -54,24 +100,80 @@ namespace Game.Gameplay.Stations
         public override void Bind(KitchenServices services)
         {
             _services = services;
-            _slot.Placed += HandlePlaced;
+            _top = new ServingTop(this);
+        }
+
+        protected Place AddPlace(Transform seat, Transform plateAnchor)
+        {
+            var place = new Place { Seat = seat, PlateAnchor = plateAnchor };
+            place.Slot.Placed += plate => TryServe(place);
+            _places.Add(place);
+            return place;
+        }
+
+        protected void RemoveLastPlace() => _places.RemoveAt(_places.Count - 1);
+
+        /// <summary>Numbers this station's seats for today's service, from <paramref name="first"/>.</summary>
+        /// <returns>The next free number.</returns>
+        public int AssignSeats(int first)
+        {
+            foreach (var place in _places)
+                place.SeatIndex = first++;
+            return first;
+        }
+
+        public IEnumerable<int> SeatIndexes
+        {
+            get
+            {
+                foreach (var place in _places)
+                    yield return place.SeatIndex;
+            }
+        }
+
+        /// <summary>Where the customer in this seat sits.</summary>
+        public Vector3 SeatPosition(int seatIndex)
+        {
+            foreach (var place in _places)
+            {
+                if (place.SeatIndex == seatIndex)
+                    return place.Seat.position;
+            }
+            return transform.position;
         }
 
         public void DescribeActions(PlayerInteractor player, List<PromptLine> lines)
         {
-            if (_slot.Current == null)
-                lines.Add(new PromptLine(PromptControl.South, ServeVerb(player.Hands.Current as Plate), _slot.CanAccept(player.Hands.Current)));
-            else if (_slot.CanTake)
-                lines.Add(new PromptLine(PromptControl.South, _slot.HasDirtyPlate ? "clear plate" : "take plate back", player.Hands.IsEmpty));
+            var held = player.Hands.Current;
+            if (held == null && _top.CanTake)
+                lines.Add(new PromptLine(PromptControl.South, HasDirtyPlate ? "clear plate" : "take plate back"));
+            else if (HasFreePlace)
+                lines.Add(new PromptLine(PromptControl.South, ServeVerb(held as Plate), _top.CanAccept(held)));
+            else if (_top.CanTake)
+                lines.Add(new PromptLine(PromptControl.South, HasDirtyPlate ? "clear plate" : "take plate back", false));
         }
 
-        // Says whether the plate in hand is what the customer at this stool ordered, so a wrong
+        private bool HasFreePlace
+        {
+            get
+            {
+                foreach (var place in _places)
+                {
+                    if (place.Slot.Current == null)
+                        return true;
+                }
+                return false;
+            }
+        }
+
+        // Says whether the plate in hand is what the customer it would go to ordered, so a wrong
         // dish is a choice, not an accident (wrong dishes are still eaten, unhappily).
         private string ServeVerb(Plate plate)
         {
-            var customer = _services?.Service.AtSeat(_seatIndex);
             if (plate == null || plate.Items.Count == 0)
                 return "serve";
+            var place = BestPlaceFor(plate);
+            var customer = place != null ? _services?.Service.AtSeat(place.SeatIndex) : null;
             if (customer?.Order == null || customer.State != CustomerState.Waiting)
                 return "leave plate";
 
@@ -85,52 +187,141 @@ namespace Game.Gameplay.Stations
             };
         }
 
-        private void OnDestroy()
+        // Nobody has to aim at a chair: the diner it matches, or the first waiting, or the first free.
+        // A place with a dirty plate can't take it, even if that's who's waiting.
+        private Place BestPlaceFor(Plate plate)
         {
-            _slot.Placed -= HandlePlaced;
+            Place waiting = null;
+            Place free = null;
+            foreach (var place in _places)
+            {
+                if (place.Slot.Current != null)
+                    continue;
+                free ??= place;
+
+                var customer = _services.Service.AtSeat(place.SeatIndex);
+                if (customer == null || customer.State != CustomerState.Waiting)
+                    continue;
+                waiting ??= place;
+                if (customer.Order != null && OrderCheck.Check(customer.Order, plate, out _) == OrderMatch.Matches)
+                    return place;
+            }
+            return waiting ?? free;
         }
 
-        private void HandlePlaced(Plate plate) => TryServe();
+        private Place PlaceOf(Item item)
+        {
+            foreach (var place in _places)
+            {
+                if (place.Slot.Current == item)
+                    return place;
+            }
+            return null;
+        }
 
         private void Update()
         {
-            if (_slot.IsWaitingForCustomer)
+            foreach (var place in _places)
+                UpdatePlace(place);
+        }
+
+        private void UpdatePlace(Place place)
+        {
+            if (place.Slot.IsWaitingForCustomer)
             {
-                TryServe();
+                TryServe(place);
                 return;
             }
 
-            if (_eating == null || _eating.State == CustomerState.Eating)
+            if (place.Eating == null || place.Eating.State == CustomerState.Eating)
                 return;
 
             // Eaten: the food leaves the kitchen, and the dirty plate waits to be cleared.
-            var plate = _slot.Current;
+            var plate = place.Slot.Current;
             foreach (var item in plate.Items)
             {
                 if (item is Ingredient ingredient)
                     _services.Cooking.Remove(ingredient);
                 _services.ItemViews.Release(item);
             }
-            _slot.FinishEating();
-            _eating = null;
+            place.Slot.FinishEating();
+            place.Eating = null;
         }
 
-        // A customer at the stool takes the plate as it is now, whether or not it's what they
+        // A customer at this seat takes the plate as it is now, whether or not it's what they
         // ordered, and however long it's been waiting. Scored against their order, on the spot.
-        private void TryServe()
+        private void TryServe(Place place)
         {
-            var customer = _services.Service.AtSeat(_seatIndex);
+            var customer = _services.Service.AtSeat(place.SeatIndex);
             if (customer == null || customer.State != CustomerState.Waiting)
                 return;
 
-            var plate = _slot.Current;
+            var plate = place.Slot.Current;
             var score = DishScorer.Score(plate, _services.Tuning.Quality(_services.Realism.CookingPrecision), customer.Order);
-            if (!_services.Service.Serve(_seatIndex, plate, score))
+            if (!_services.Service.Serve(place.SeatIndex, plate, score))
                 return;
 
-            _slot.StartEating();
-            _eating = customer;
+            place.Slot.StartEating();
+            place.Eating = customer;
             Served?.Invoke(this, score);
+        }
+
+        // What Interact sees: one surface with room for a plate per seat.
+        private sealed class ServingTop : IPlateSource
+        {
+            private readonly ServingStation _station;
+
+            public ServingTop(ServingStation station)
+            {
+                _station = station;
+            }
+
+            public bool CanTake
+            {
+                get
+                {
+                    foreach (var place in _station._places)
+                    {
+                        if (place.Slot.CanTake)
+                            return true;
+                    }
+                    return false;
+                }
+            }
+
+            public bool CanAccept(Item item)
+            {
+                foreach (var place in _station._places)
+                {
+                    if (place.Slot.CanAccept(item))
+                        return true;
+                }
+                return false;
+            }
+
+            // Dirty plates first: clearing up is what empty hands are usually there for.
+            public Item Take()
+            {
+                foreach (var place in _station._places)
+                {
+                    if (place.Slot.HasDirtyPlate)
+                        return place.Slot.Take();
+                }
+                foreach (var place in _station._places)
+                {
+                    if (place.Slot.CanTake)
+                        return place.Slot.Take();
+                }
+                throw new InvalidOperationException("Nothing to take here.");
+            }
+
+            public void Put(Item item)
+            {
+                var plate = (Plate)item;
+                var place = _station.BestPlaceFor(plate);
+                _station._lastPlaced = plate;
+                place.Slot.Put(plate);
+            }
         }
     }
 }

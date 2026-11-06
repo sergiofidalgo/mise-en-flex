@@ -13,7 +13,7 @@ Design pillars (every feature must serve one):
 
 Hard rules:
 - **No automated pipelines** (no conveyors, auto-cookers). Help comes from hired staff, who are people with skill, speed, fatigue and mistakes. Staff never perform signature techniques.
-- **No roguelite resets.** Each restaurant is a persistent save slot. Failure costs money, reputation, staff morale, or forces debt/downsizing, never all progress.
+- **No roguelite runs.** One campaign at a time, saved continuously. Failure costs money, reputation, staff morale, appliances or restaurants. A campaign ends only after the boss's full escalation, and the recipe book survives it (see design doc §15).
 
 Key systems (see the design doc for detail):
 - **Daily loop:** Plan → Prep → Service → Close → Review, then the next day.
@@ -22,8 +22,9 @@ Key systems (see the design doc for detail):
 - **Quality score** per dish (doneness, serving temperature, seasoning, freshness, plating) drives payment, tips and reviews.
 - **Cuisines** each have a signature mechanic (steakhouse, sushi, French bistro, pizzeria, Spanish home cooking, wok). Service styles: fast casual, bistro, fine dining.
 - **Restaurant building:** size tiers (counter to full dining room) as a tradeoff, kitchen zones, equipment tiers, health inspections.
-- **Customers and reputation:** custom orders, allergies and cross-contamination, patience, an in-game review app, incognito critics, influencers.
-- **Economy:** suppliers (cheap vs. premium), menu pricing, rent, wages, debt. A **chef profile** shared across restaurants keeps learned recipes and techniques.
+- **Customers and reputation:** custom orders, allergies and cross-contamination, patience, an in-game review listing, incognito critics, influencers.
+- **Economy:** street vendors (cheap vs. premium), menu pricing, rent, wages, debt to the boss. A **recipe book** lasts across campaigns.
+- **Campaign:** the boss funds an empire of restaurants, bought from a city miniature in his office. A restaurant only runs while players are in it, and fees fall due every 7 days played there.
 - **Realism dials** (separate settings): cooking precision, spoilage, customer patience, minigame complexity, hygiene.
 - **Co-op:** 1–2 local players (3–4 is a stretch goal, see `docs/decisions.md`). Xbox controllers over Bluetooth on macOS are the main input; the keyboard (arrows to move, W/A/D/X as the Y/X/B/A face buttons) is mainly for testing. Controls are rebindable in the in-game settings. Shared overhead camera; in planning, each player has their own cursor in a shared view.
 
@@ -47,7 +48,7 @@ Supporting pieces:
 - **Data** (`Game.Data` assembly): ScriptableObjects for everything designers tune, converted to plain C# settings for the simulation: `IngredientDefinition`, `RecipeDefinition`, `StationDefinition`, `TechniqueDefinition`, `CuisineDefinition`, `EquipmentTier`, `RealismSettings`, `TuningConfig`. No magic numbers in code.
 - **Events:** C# events on simulation objects; ScriptableObject event channels only for cross-scene messages (e.g. `DishServed`, `ServiceEnded`).
 - **Realism dials** are read by the simulation through `RealismSettings`, never by scattered `if` checks in gameplay code.
-- **Saves:** JSON in `Application.persistentDataPath`: one file per restaurant slot plus one chef profile. Every save has a version number and a migration path.
+- **Saves:** JSON in `Application.persistentDataPath`: one campaign file (all its restaurants) plus one recipe book that outlives campaigns. Saved continuously, no slots. Every save has a version number and a migration path.
 - **Services:** avoid singletons. Use a small composition root per scene that creates and passes dependencies.
 
 ## Project layout
@@ -100,7 +101,7 @@ Work one phase at a time. Each phase ends with something playable.
 | 2. First service | Customers, orders, patience, quality scoring, payment, review lines, end-of-service summary → **first vertical slice** |
 | 3. Daily loop and staff | Plan/Prep/Service/Close/Review phases; hireable dishwasher, waiter, runner, prep assistant |
 | 4. Building | Layout editing with per-player cursors, size tiers, kitchen zones, equipment tiers |
-| 5. Persistence and economy | Save slots, chef profile, suppliers, pricing, rent, wages, debt, realism settings menu |
+| 5. Persistence and economy | Campaign save, recipe book, vendors, pricing, rent, wages, debt, realism settings menu |
 | 6. Content | Cuisines one at a time, allergies, health inspections, critics, influencers |
 | 7. Art and polish | Blender assets, food-state shaders, audio, VFX, UI polish |
 

@@ -4,6 +4,57 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-06 — The campaign, the boss and the first day
+
+**User's calls (full picture in `game-design.md` §15):**
+
+*Story and failure*
+- **The boss** funds the player's restaurants to build a gastro-empire, believing reviews, social media and word of mouth make restaurants more profitable than ever. He takes a cut. His physical description isn't part of the joke.
+- **Failing to pay escalates visibly:** the boss visits and warns you, his bodyguards repossess appliances on screen, he takes a restaurant, and finally you're erased. Money and restaurants go, and the recipe book stays in his office for the next chef. This replaces the "never all progress" half of the no-resets rule.
+- **The ending:** with every restaurant on the city miniature unlocked, you take over the empire. The bodyguards follow player 1 and stand guard outside the door in restaurants. This is when players really make money and can hire and decorate more heavily.
+
+*Saves and time*
+- **One campaign at a time, with no save slots.** Progress on all restaurants saves continuously. The recipe book lasts across campaigns. Replaces "each restaurant is a persistent save slot".
+- **A restaurant only runs while you're in it.** Others sit idle, and players choose between focusing on one and jumping around.
+- **Fees are due every 7 days played in that restaurant.** Leave on day 3 and nothing is due until players return and play 4 more days there.
+- **Collection day also sets the week's goal.**
+
+*Food and recipes*
+- **The first restaurant is a grill**, serving onion steaks.
+- **No test kitchen in the office.** A new ingredient and its mechanics are introduced when it's first bought.
+- **Style decides what vendors sell. Buying a new ingredient unlocks one or more recipes,** and customers can order them from then on. Harder recipes pay more.
+- **Vendors are outside and stay reachable during service,** so running out means leaving the kitchen to restock. Prep is where players plan around the approximate number of customers expected.
+
+*The first day*
+- **Dry start:** players look round the restaurant and clean up, with very light mechanics.
+- **The boss phones** and asks them to get ready for him and his friends: enough plates and onion steaks.
+- **The restaurant has no plates at all.** The plate pile is an appliance, bought in management mode (Select), and it's the first purchase.
+- **Street vendors near the restaurant** sell the food.
+- **The boss arrives alone,** because his friends made a cheap excuse. Only he sits and eats while the bodyguards stand behind him. When he's done he invites them to sit, which brings two more orders, and both bodyguards leave a review.
+- **Tasks appear one by one in the top right corner,** each with its own control hints.
+
+*Cleaning, devices and decoration*
+- **Dirt is on floors, tables and counters,** cleaned the same way: approach it, hold X and move the stick to match a pattern. The chef uses a mop or a cloth depending on the surface.
+- **Boss calls come through a personal mobile,** shown in the bottom right corner.
+- **A restaurant laptop, phone or tablet station is a separate, bought appliance,** introduced around day 2. It opens a shared-screen listing, like a Google listing, and that's where reviews are explained in more depth. It also offers quick-restock delivery and switching restaurants without visiting the office, and may gain other perks.
+- **Appliances are bought from management mode,** with no need to go anywhere.
+- **Decoration affects reviews and customer profile:** the food can be delicious while the place doesn't feel original, clean, or in keeping with its style.
+- **Vendors and scenery should suit the location** chosen in the office. The camera zooms out when players split up, and vendors stay close.
+- **Co-op and repeat play:** any player can complete any task, and returning players can skip the tutorial.
+
+**Details (proposed while writing this up; flagged for review):**
+- **An idle restaurant is frozen:** food doesn't age, and nobody is paid or changes morale. Nothing in it moves until players return.
+- **The bought plate pile comes with its plates,** 6 as now.
+- **Washing up first appears after the boss's meal,** since no dirty plates exist before then.
+
+**Replaces:** starting with plates, and with no tables (two 4-seat tables are now inherited); the plate pile not being for sale; the free daily delivery, once vendors exist; the review app as a phone app (§7.3).
+
+**Still open:** see "Questions from the campaign design" in `ideas.md`.
+
+**Reason:** Gives the game a reason to exist beyond each service, and teaches its systems through a story, one light step at a time.
+
+---
+
 ## 2026-11-04 — Hints only ever show Xbox buttons
 
 **Decision (user's call):** nothing players see names keyboard controls, whatever they're playing with. Hints are always Xbox buttons. The keyboard still works, mainly for testing.
@@ -20,14 +71,34 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 **Details (proposed while building; flagged for review):**
 - **The building is 10 × 12 m:** the kitchen as it was, and a 5 m deep dining room to its south. A low wall runs between them, so the camera sees over it. The door is 1.2 m wide, west of the hatch, and swings open for whoever's near. It never blocks anyone.
-- **Tables are bought (€50) with none at the start,** and only go in the dining room; kitchen furniture stays in the kitchen. Within a room, layouts are still free.
-- **One seat per table,** with no order-taking step. Stools fill first, then tables. Tables bought in Plan or Prep count from that day's service.
+- **Tables are bought with none at the start,** and only go in the dining room; kitchen furniture stays in the kitchen. Within a room, layouts are still free. Tables bought in Plan or Prep count from that day's service.
 - **Only players clear tables.** The dishwasher still clears the pass, leaving the tables as the waiter's job.
 - **A customer with no way to their seat gives up:** a lost cover, no penalty, and the seat goes to the next. Someone leaving always gets out, and someone blocked by people for 2 seconds walks through, so a bad layout costs money but can't freeze a service.
 - **Pushing a seated customer moves them,** and they walk straight back.
 - **The camera** keeps its 55 degree tilt, keeps 2 m of floor around everyone, and backs away faster than it closes in. Staff don't count towards the framing, as they stay in the kitchen. Tunable on `FramingCamera`.
 
-**Known limits:** chairs and queue spots aren't protected, so a table can be placed over one; the customer then walks through after 2 seconds and sits inside it. Walking speed may make distance matter too little (see the milestone's playtest).
+**Later the same milestone (2026-11-05 and 06).**
+
+*User's calls:*
+- **The street door moves like furniture** and counts towards the camera's framing, so someone walking in doesn't make it zoom out. It only goes on the dining room's outer walls; anywhere else it turns red. It's framed during Service only, so a chef working alone in Plan or Prep still gets a close view.
+- **Furniture against the wall between the rooms works from both sides,** like a hatch, whether it's a table or an appliance.
+- **Two table types for now:** a bar table seats 1 and is narrower, and its chair costs nothing. A regular table seats up to 4, and players choose how many chairs it has.
+- **Customers come in groups of 1 to 4,** following the tables. With at least one table for 4, expect groups of up to 4.
+
+*Details (proposed and accepted as a plan; tunable in `FurnitureCatalog`):*
+- **Prices:** bar table €30, regular table €50 with one chair, each further chair €10, refunded at half. RB and LB add and remove chairs while hovering over a table.
+- **One chair per side,** and only where there's room in the building, so a table against a wall seats at most 3. Your biggest groups always need the long walk.
+- **Each table votes on group size:** a stool or bar table votes for one person; a table for four splits its vote across 1, 2, 3 and 4.
+- **A group takes the smallest free table that fits,** never shares, and stools are for people alone. The longest-waiting group that fits gets the next free table.
+- **A plate goes to the diner it matches,** else the first waiting. Each starts eating when served and pays for their own dish, and they all leave together after the last has finished.
+- **A group shares one patience meter.** If it runs out, everyone unserved walks out, and anyone eating pays for what they've had.
+
+*Details (proposed while building; flagged for review):*
+- **A pushed customer goes along with it** and returns 0.8 s after contact ends, as hires do. Seated customers can be pushed off their seat.
+- **Routes keep clear of chairs** where there's room, so a diner doesn't walk through a friend already sitting. Someone who makes no real progress for a second squeezes through people for a moment, and walks through furniture only if pinned, so a crowded corner can't freeze a service.
+- **Staff don't yet work across the wall;** only chefs do.
+
+**Known limits:** chairs and queue spots aren't protected, so a table can be placed over one; the customer then walks through it and sits inside it. Walking speed may make distance matter too little (see the milestone's playtest).
 
 ---
 

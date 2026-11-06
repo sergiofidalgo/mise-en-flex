@@ -26,10 +26,15 @@ namespace Game.Data
 
         [SerializeField] private Entry[] _entries = Array.Empty<Entry>();
 
+        [Tooltip("What each chair after the first costs on a regular table.")]
+        [SerializeField, Min(0f)] private float _chairPrice = 10f;
+
         [Tooltip("The share of the price that selling pays back.")]
         [SerializeField, Range(0f, 1f)] private float _sellFraction = 0.5f;
 
         public Entry[] Entries => _entries;
+
+        public float ChairPrice => _chairPrice;
 
         public float SellFraction => _sellFraction;
 

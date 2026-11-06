@@ -1,3 +1,6 @@
+using Game.Simulation.Items;
+using UnityEngine;
+
 namespace Game.Gameplay.Stations
 {
     /// <summary>
@@ -6,5 +9,21 @@ namespace Game.Gameplay.Stations
     /// </summary>
     public sealed class PassStation : ServingStation
     {
+        [Tooltip("Which stool this is (0 = leftmost).")]
+        [SerializeField, Min(0)] private int _seatIndex;
+
+        [Tooltip("Where the customer sits.")]
+        [SerializeField] private Transform _seat;
+
+        public int SeatIndex => _seatIndex;
+
+        /// <summary>For whoever clears up.</summary>
+        public IDirtyPlateSource DirtyPlates => Places[0].Slot;
+
+        public override void Bind(KitchenServices services)
+        {
+            base.Bind(services);
+            AddPlace(_seat, ItemAnchor).SeatIndex = _seatIndex;
+        }
     }
 }

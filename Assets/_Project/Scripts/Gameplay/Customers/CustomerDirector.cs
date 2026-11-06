@@ -31,12 +31,19 @@ namespace Game.Gameplay.Customers
             NoWay,
         }
 
+        private sealed class Progress
+        {
+            public SimVector2 From;
+            public float Since;
+            public float SqueezingUntil;
+            public float WalkingThroughUntil;
+        }
+
         private sealed class CustomerWalk
         {
             public SimVector2 Goal;
             public List<SimVector2> Points;
             public int Next;
-            public float StuckFor;
         }
 
         [SerializeField] private KitchenCompositionRoot _root;
@@ -47,15 +54,32 @@ namespace Game.Gameplay.Customers
         [Tooltip("Spots by the door where customers wait for a stool, nearest the door first.")]
         [SerializeField] private Transform[] _queueSpots = System.Array.Empty<Transform>();
 
-        [Tooltip("Real seconds someone can't get past before they walk through.")]
-        [SerializeField, Min(0f)] private float _stuckSeconds = 2f;
+        [Tooltip("How wide a berth routes give a chair, in metres from its centre, on top of a walker's own width.")]
+        [SerializeField, Min(0f)] private float _seatedBodyHalfWidth = 0.3f;
+        [Tooltip("Real seconds over which someone's progress is measured.")]
+        [SerializeField, Min(0.1f)] private float _stuckSeconds = 1f;
+        [Tooltip("Metres they have to cover in that time, or they start squeezing through people.")]
+        [SerializeField, Min(0f)] private float _stuckDistance = 0.5f;
+        [Tooltip("Metres they have to cover while squeezing, or they're pinned by furniture and walk through.")]
+        [SerializeField, Min(0f)] private float _pinnedDistance = 0.05f;
+        [Tooltip("How close, in metres beyond touching, counts as someone pressing against them.")]
+        [SerializeField, Min(0f)] private float _contactMargin = 0.05f;
+        [Tooltip("Real seconds after being pushed before a seated customer goes back to their seat.")]
+        [SerializeField, Min(0f)] private float _returnDelay = 0.8f;
+        [Tooltip("Real seconds they keep squeezing through once they've started.")]
+        [SerializeField, Min(0f)] private float _squeezeSeconds = 1.5f;
 
         private readonly Dictionary<Customer, CustomerAgent> _agents = new Dictionary<Customer, CustomerAgent>();
         private readonly Dictionary<CustomerAgent, CustomerWalk> _walks = new Dictionary<CustomerAgent, CustomerWalk>();
+        private readonly Dictionary<CustomerAgent, Progress> _progress = new Dictionary<CustomerAgent, Progress>();
+        private readonly Dictionary<CustomerAgent, float> _backToSeatAt = new Dictionary<CustomerAgent, float>();
         private readonly List<SimVector2> _others = new List<SimVector2>();
         private readonly List<Customer> _gone = new List<Customer>();
         private ServiceSimulation _service;
         private StationLayout _layout;
+
+        // The same, keeping clear of every chair: for planning a way, not for where they can step.
+        private StationLayout _routes;
         private readonly Dictionary<int, ServingStation> _serving = new Dictionary<int, ServingStation>();
 
         /// <summary>Every customer in the scene and their body, for HUD labels.</summary>
@@ -76,11 +100,19 @@ namespace Game.Gameplay.Customers
                 return;
             _layout = _root.Services.NewLayout();
             _serving.Clear();
+            var chairs = new List<Footprint>();
             foreach (var station in _root.Services.Stations.All)
             {
-                if (station is ServingStation serving)
-                    _serving[serving.SeatIndex] = serving;
+                if (!(station is ServingStation serving))
+                    continue;
+                foreach (var seat in serving.SeatIndexes)
+                {
+                    _serving[seat] = serving;
+                    var position = serving.SeatPosition(seat);
+                    chairs.Add(new Footprint(Floor(position), 0f, new SimVector2(_seatedBodyHalfWidth, _seatedBodyHalfWidth)));
+                }
             }
+            _routes = _root.Services.NewLayout(chairs);
         }
 
         private void OnDestroy()
@@ -136,7 +168,11 @@ namespace Game.Gameplay.Customers
                     case CustomerState.Waiting:
                     case CustomerState.Eating:
                     case CustomerState.DoneEating:
-                        // Sitting; pushed off their seat, they go back to it.
+                        // Sitting; pushed off their seat, they go along with it like a hire does, and
+                        // go back a moment after nobody's pressing against them. Walking back while
+                        // pressed would be an equal push against whoever's squeezing by: neither moves.
+                        if (IsPressed(agent))
+                            break;
                         if (Walk(agent, SeatSpot(customer.Seat), step) != WalkResult.Walking && StationAt(customer.Seat) != null)
                             agent.Face(StationAt(customer.Seat).transform.position - agent.transform.position);
                         break;
@@ -156,6 +192,8 @@ namespace Game.Gameplay.Customers
             foreach (var customer in _gone)
             {
                 _walks.Remove(_agents[customer]);
+                _backToSeatAt.Remove(_agents[customer]);
+                _progress.Remove(_agents[customer]);
                 Destroy(_agents[customer].gameObject);
                 _agents.Remove(customer);
             }
@@ -172,7 +210,10 @@ namespace Game.Gameplay.Customers
 
             if (!_walks.TryGetValue(agent, out var walk) || (walk.Goal - goal).Length() > ArriveDistance)
             {
-                walk = new CustomerWalk { Goal = goal, Points = _layout.FindPath(here, goal) };
+                // The furniture decides whether there's a way at all. Given one, it goes around the
+                // chairs if there's room, so nobody walks into a friend already sitting.
+                var way = _layout.FindPath(here, goal);
+                walk = new CustomerWalk { Goal = goal, Points = way != null ? _routes.FindPath(here, goal) ?? way : null };
                 _walks[agent] = walk;
             }
             if (walk.Points == null)
@@ -180,11 +221,15 @@ namespace Game.Gameplay.Customers
 
             var point = walk.Points[walk.Next];
             CollectOthers(agent);
-            var next = Steering.Step(here, point, step, _others, _layout.IsFree);
 
-            walk.StuckFor = (next - here).Length() < step * 0.1f ? walk.StuckFor + Time.deltaTime : 0f;
-            if (walk.StuckFor > _stuckSeconds)
-                next = here + SimVector2.Normalize(point - here) * Mathf.Min(step, (point - here).Length());
+            // Blocked by people, they stop giving way and squeeze past for a moment, with the push
+            // rules moving whoever's in the way. Pinned by furniture as well, they walk through, so a
+            // crowded corner can't freeze a service.
+            var progress = ProgressOf(agent, here);
+            var squeezing = Time.time < progress.SqueezingUntil;
+            var next = Time.time < progress.WalkingThroughUntil
+                ? here + SimVector2.Normalize(point - here) * Mathf.Min(step, (point - here).Length())
+                : Steering.Step(here, point, step, squeezing ? (IReadOnlyList<SimVector2>)System.Array.Empty<SimVector2>() : _others, _layout.IsFree);
 
             agent.Intent = next - here;
             agent.Face(new Vector3(next.X - here.X, 0f, next.Y - here.Y));
@@ -202,9 +247,55 @@ namespace Game.Gameplay.Customers
             }
 
             // Off course, round someone or pushed: find the way again, next step.
-            if (walk.StuckFor <= _stuckSeconds && !_layout.IsClear(next, point))
+            if (!squeezing && !_layout.IsClear(next, point))
                 _walks.Remove(agent);
             return WalkResult.Walking;
+        }
+
+        // Whether they're getting anywhere, measured over a stretch of time rather than frame by frame:
+        // someone blocked still shuffles sideways, and the route gets rebuilt as they do, so neither
+        // moving a little nor having a route says they're making progress.
+        private Progress ProgressOf(CustomerAgent agent, SimVector2 here)
+        {
+            if (!_progress.TryGetValue(agent, out var progress))
+            {
+                progress = new Progress { From = here, Since = Time.time };
+                _progress[agent] = progress;
+                return progress;
+            }
+
+            if (Time.time - progress.Since < _stuckSeconds)
+                return progress;
+
+            var covered = (here - progress.From).Length();
+            if (Time.time < progress.SqueezingUntil)
+            {
+                // Pushing someone along is slow, so only not moving at all counts: that's furniture.
+                if (covered < _pinnedDistance)
+                    progress.WalkingThroughUntil = Time.time + _squeezeSeconds;
+            }
+            else if (covered < _stuckDistance)
+            {
+                progress.SqueezingUntil = Time.time + _squeezeSeconds;
+            }
+            progress.From = here;
+            progress.Since = Time.time;
+            return progress;
+        }
+
+        private bool IsPressed(CustomerAgent agent)
+        {
+            CollectOthers(agent);
+            var here = Floor(agent.transform.position);
+            foreach (var other in _others)
+            {
+                if ((other - here).Length() < Steering.BodyDistance + _contactMargin)
+                {
+                    _backToSeatAt[agent] = Time.time + _returnDelay;
+                    return true;
+                }
+            }
+            return _backToSeatAt.TryGetValue(agent, out var at) && Time.time < at;
         }
 
         private void CollectOthers(CustomerAgent agent)
@@ -229,7 +320,7 @@ namespace Game.Gameplay.Customers
         private Vector3 SeatSpot(int seat)
         {
             var station = StationAt(seat);
-            return station != null ? station.Seat.position : _door.position;
+            return station != null ? station.SeatPosition(seat) : _door.position;
         }
 
         private Vector3 QueueSpot(Customer customer)

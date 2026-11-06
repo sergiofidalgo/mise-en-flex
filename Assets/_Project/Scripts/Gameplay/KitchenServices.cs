@@ -77,9 +77,12 @@ namespace Game.Gameplay
         public FloorPlan Building { get; }
 
         /// <summary>Where people can walk with the furniture as it stands now.</summary>
-        public StationLayout NewLayout()
+        /// <param name="alsoAvoid">Anything else to keep clear of, besides the furniture.</param>
+        public StationLayout NewLayout(IEnumerable<Footprint> alsoAvoid = null)
         {
             var footprints = new List<Footprint>();
+            if (alsoAvoid != null)
+                footprints.AddRange(alsoAvoid);
             foreach (var station in Stations.All)
                 footprints.Add(station.Footprint);
             return new StationLayout(footprints, Building);

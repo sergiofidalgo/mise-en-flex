@@ -92,6 +92,7 @@ namespace Game.Presentation.Hud
                     Placement.SomeoneInTheWay => "someone's in the way",
                     Placement.CantAfford => "not enough money",
                     Placement.NotOnAWall => "it goes on an outside wall",
+                    Placement.NoRoomForChairs => "no room for its chairs",
                     _ => null,
                 };
                 return problem != null
@@ -107,7 +108,10 @@ namespace Game.Presentation.Hud
                 return always;
             var sale = SaleText(cursor, under);
             var move = _editor.CanMove(under) ? $"{Glyph(PromptControl.South)} move {under.name}" : under.name;
-            return $"{move}{(sale != null ? "   " + sale : "")}\n{always}";
+            var chairs = under is TableStation table && table.HasChoiceOfChairs
+                ? $"[RB] add chair {Money(_editor.ChairPrice)}   [LB] remove   {table.ChairCount} now\n"
+                : "";
+            return $"{move}{(sale != null ? "   " + sale : "")}\n{chairs}{always}";
         }
 
         private string SaleText(LayoutEditor.Cursor cursor, Interactable station)

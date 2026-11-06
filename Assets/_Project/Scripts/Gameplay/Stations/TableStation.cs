@@ -1,11 +1,97 @@
+using System;
+using Game.Simulation.Movement;
+using UnityEngine;
+
 namespace Game.Gameplay.Stations
 {
     /// <summary>
-    /// A table in the dining room: one customer, served by carrying the plate out and cleared by
-    /// carrying it back. Bought like any furniture, and adds a seat to the service.
+    /// A table in the dining room, served by carrying plates to it, or across the wall if it's against
+    /// it. A bar table has one chair, included. A regular table has up to one on each side, which the
+    /// player chooses: its biggest table sets the biggest group that comes in. Chairs stay clear of
+    /// walls, so a table against one has a side less.
     /// </summary>
     public sealed class TableStation : ServingStation
     {
+        [Serializable]
+        public sealed class Chair
+        {
+            [SerializeField] private Transform _seat;
+            [SerializeField] private Transform _plateAnchor;
+
+            public Transform Seat => _seat;
+            public Transform PlateAnchor => _plateAnchor;
+        }
+
+        [Tooltip("Its chairs, in the order they're added. One: it isn't up to the player.")]
+        [SerializeField] private Chair[] _chairs = Array.Empty<Chair>();
+
+        private int _chairCount = 1;
+
         public override bool BelongsInDiningRoom => true;
+
+        public int ChairCount => _chairCount;
+
+        /// <summary>True if the player can choose how many chairs it has.</summary>
+        public bool HasChoiceOfChairs => _chairs.Length > 1;
+
+        public override void Bind(KitchenServices services)
+        {
+            base.Bind(services);
+            ArrangeChairs();
+        }
+
+        /// <summary>How many of its chairs would have room, at this position and angle.</summary>
+        public int RoomForChairs(Footprint at, FloorPlan building)
+        {
+            var room = 0;
+            foreach (var chair in _chairs)
+            {
+                if (building.CanStand(SeatAt(chair, at)))
+                    room++;
+            }
+            return room;
+        }
+
+        public bool CanAddChair =>
+            HasChoiceOfChairs && _chairCount < RoomForChairs(Footprint, Services.Building);
+
+        public void AddChair()
+        {
+            _chairCount++;
+            ArrangeChairs();
+        }
+
+        public void RemoveChair()
+        {
+            _chairCount--;
+            ArrangeChairs();
+        }
+
+        /// <summary>Puts its chairs on the sides with room: as it's placed, and as chairs change.</summary>
+        public void ArrangeChairs()
+        {
+            while (Places.Count < _chairCount)
+                AddPlace(null, null);
+            while (Places.Count > _chairCount)
+                RemoveLastPlace();
+
+            var used = 0;
+            foreach (var chair in _chairs)
+            {
+                var use = used < _chairCount && Services.Building.CanStand(SeatAt(chair, Footprint));
+                chair.Seat.gameObject.SetActive(use);
+                if (!use)
+                    continue;
+                Places[used].Seat = chair.Seat;
+                Places[used].PlateAnchor = chair.PlateAnchor;
+                used++;
+            }
+        }
+
+        private static System.Numerics.Vector2 SeatAt(Chair chair, Footprint at)
+        {
+            var local = chair.Seat.localPosition;
+            return at.Centre + at.Direction(new System.Numerics.Vector2(local.x, local.z));
+        }
     }
 }

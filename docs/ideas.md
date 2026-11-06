@@ -4,6 +4,34 @@ Ideas worth keeping that aren't decided or scheduled yet. When one is accepted, 
 
 ---
 
+## Questions from the campaign design
+
+*Added 2026-11-06 · Relevant phases: 5 (saves, economy), 6 (content), then the guided first day once mechanics settle · Pillars: all · See `game-design.md` §15*
+
+**What does the recipe book give a new chef?** Recipes unlock by buying ingredients, so remembering them gives no advantage by itself. Recommendation: recipes in the book can be bought in any restaurant, ignoring its style's limits, which gives a new chef a real head start. The alternative is only skipping the introductions.
+
+**Can a recipe be taken off the menu?** Customers can order anything unlocked, so one curious purchase would otherwise commit players to stocking that ingredient for good. Recommendation: unlocks are permanent, but players choose what's on the menu in Plan, as §4 already suggests. A customer who orders something out of stock simply waits, giving players the chance to run to the vendors.
+
+**What does "style" mean?** The design doc has two separate things: cuisine (grill, pizzeria) and service style (fast casual, bistro, fine dining), and the old "vibe" is a third word. Recommendation: cuisine decides ingredients, while service style and decoration decide who comes and what they expect. Reviews then judge decoration against both.
+
+**Does the ending allow sticking to one cuisine?** Unlocking every restaurant must not force players to run every cuisine. Recommendation: any restaurant can be converted once bought, as the vibe-changing idea already implies.
+
+**What's at stake after the takeover?** With the boss gone, debt and erasure stop mattering. Could be enough as a victory lap with bigger goals, or could need a new pressure such as a rival.
+
+**How is the customer forecast shown?** Prep needs an approximate number. Recommendation: a range based on reputation, seats and day, shown in words or as a range and never exact, and a good review should visibly raise it the next day.
+
+**Where do loan repayments fall?** Each restaurant has its own collection day, but a loan belongs to the campaign. Recommendation: a collection covers that restaurant's cut plus an instalment of the loan. Leaving before day 7 only delays a fee, by at most 6 days per restaurant, so it isn't an exploit, and it's a fair breather for a failing place.
+
+**What exactly does "continuous" saving mean?** Saving the full state of a live service (every pan, customer and helper) is a lot of work. Recommendation: save at every phase change and purchase, so quitting mid-service restarts that service. Erasure must be saved immediately.
+
+**The cleaning pattern.** Recommendation to try first: rotate the stick in circles, with tougher stains asking for back-and-forth or a change of direction. It should take a second or two per stain, any motion should count, and it should be impossible to fail. The chef stays put while doing it, as at the sink.
+
+**How many restaurants, and how bespoke?** Scenery that suits each location and a full miniature get expensive quickly. Recommendation: about 5–6 to start, with streets built from a modular kit.
+
+**Decoration model.** Could work as one "ambience" part of each review, kept apart from the dish score, with review lines using the existing "about the worst thing" rule: "delicious, but the place felt generic". Which customers it attracts needs its own design pass.
+
+---
+
 ## HUD and signifiers pass
 
 *Added 2026-11-02 after the milestone 5′ playtest · Relevant phase: a focused pass before Phase 2's playtests, polish in Phase 7 · Pillars: all (readability is what makes the craft and the chaos legible)*
