@@ -243,5 +243,21 @@ namespace Game.Tests.EditMode
             var bar = new Footprint(new Vector2(-2f, -3.35f), 0f, new Vector2(0.5f, 0.25f));
             Assert.That(Rooms().CanReach(new Vector2(-2f, -2.55f), bar), Is.True);
         }
+
+        [Test]
+        public void SomeoneCanWorkAStationAgainstTheWallFromTheFarSide()
+        {
+            var bar = new Footprint(new Vector2(-2f, -3.35f), 0f, new Vector2(0.5f, 0.25f));
+            var sides = new StationLayout(new[] { bar }, Rooms()).FreeSides(bar);
+            Assert.That(sides.Any(p => p.Y > -2.9f), Is.True, "from the kitchen");
+        }
+
+        [Test]
+        public void NotWhenItIsntAgainstTheWall()
+        {
+            var away = new Footprint(new Vector2(-2f, -4.5f));
+            var sides = new StationLayout(new[] { away }, Rooms()).FreeSides(away);
+            Assert.That(sides.Any(p => p.Y > -2.9f), Is.False);
+        }
     }
 }

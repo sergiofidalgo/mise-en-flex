@@ -73,7 +73,7 @@ namespace Game.Tests.PlayMode
             Assert.That(agent.transform.position.z, Is.LessThan(-6f), "at the street door");
 
             yield return WaitFor(() => customer.State == CustomerState.Waiting, 15f);
-            Assert.That(agent.transform.position.z, Is.GreaterThan(-3.6f), "on a stool, at the hatch");
+            Assert.That(agent.transform.position.z, Is.GreaterThan(-4.2f), "at a bar table, by the wall");
         }
 
         [UnityTest]
@@ -115,7 +115,7 @@ namespace Game.Tests.PlayMode
             yield return WaitFor(() => customer.State == CustomerState.Gone, 15f);
         }
 
-        // Buys a table during Plan and opens up. Everyone sits on the stools first.
+        // Buys a table during Plan and opens up. The bar tables fill first.
         private IEnumerator OpenWithATable()
         {
             yield return SceneManager.LoadSceneAsync(SceneName);
@@ -177,12 +177,12 @@ namespace Game.Tests.PlayMode
         {
             yield return OpenWithATable();
             var service = _root.Services.Service;
-            Assert.That(service.SeatCount, Is.EqualTo(4));
+            Assert.That(service.SeatCount, Is.EqualTo(4), "the three bar tables and this one");
 
             Customer customer = null;
             for (var i = 0; i < 4; i++)
                 customer = NextCustomer();
-            Assert.That(_table.SeatIndexes.Contains(customer.Seat), Is.True, "once the stools are full");
+            Assert.That(_table.SeatIndexes.Contains(customer.Seat), Is.True, "once the bar tables are full");
 
             yield return WaitFor(() => customer.State == CustomerState.Waiting, 20f);
             var agent = _customers.Agents[customer];
@@ -401,6 +401,32 @@ namespace Game.Tests.PlayMode
             _player = Object.FindFirstObjectByType<PlayerInputManager>().JoinPlayer(controlScheme: "Keyboard&Mouse", pairWithDevices: new InputDevice[] { keyboard, mouse });
             yield return null;
             yield return null;
+        }
+
+        [UnityTest]
+        public IEnumerator ADishwasherClearsABarTableFromTheKitchenSide()
+        {
+            yield return OpenForBuying();
+            var services = _root.Services;
+            var director = Object.FindFirstObjectByType<Game.Gameplay.Staff.StaffDirector>();
+            services.Days.Receive(500f);
+            var candidate = services.Staff.Candidates.First(c => c.Role == Game.Simulation.Staff.StaffRole.Dishwasher);
+            services.Staff.Hire(candidate, services.Days.Balance);
+            ControlTheService();
+            services.Days.Advance();
+            yield return null;
+            services.Days.Advance();
+            yield return null;
+
+            var customer = NextCustomer();
+            yield return WaitFor(() => customer.State == CustomerState.Waiting, 20f);
+            var bar = services.Stations.All.OfType<TableStation>().First(t => t.SeatIndexes.Contains(customer.Seat));
+            bar.Container.Put(Meal(_root));
+            yield return WaitFor(() => bar.HasDirtyPlate, 5f);
+
+            var agent = director.Agents[0];
+            yield return WaitFor(() => !bar.HasDirtyPlate, 30f);
+            Assert.That(agent.transform.position.z, Is.GreaterThan(-2.9f), "from the kitchen");
         }
     }
 }

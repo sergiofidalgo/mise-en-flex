@@ -9,8 +9,7 @@ using UnityEngine;
 namespace Game.Gameplay.Stations
 {
     /// <summary>
-    /// Somewhere customers sit and are served: a pass counter or a table, with one plate's room per
-    /// seat. A plate with food put here goes to the customer whose order it matches, or else the first
+    /// Somewhere customers sit and are served: a table, with one plate's room per seat. A plate with food put here goes to the customer whose order it matches, or else the first
     /// waiting, and is scored on the spot (serving temperature included, so getting there quickly
     /// matters). With nobody waiting, the plate stays, can be taken back, and goes to whoever sits
     /// there next, wanted or not. When they've finished, the food goes and the dirty plate stays until
@@ -42,6 +41,16 @@ namespace Game.Gameplay.Stations
 
         /// <summary>How many customers can sit here.</summary>
         public int SeatCount => _places.Count;
+
+        /// <summary>Where a helper can collect dirty plates from.</summary>
+        public IEnumerable<IDirtyPlateSource> DirtySources
+        {
+            get
+            {
+                foreach (var place in _places)
+                    yield return place.Slot;
+            }
+        }
 
         public bool HasDirtyPlate
         {

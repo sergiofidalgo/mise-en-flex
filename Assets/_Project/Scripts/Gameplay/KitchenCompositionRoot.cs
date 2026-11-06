@@ -32,16 +32,11 @@ namespace Game.Gameplay
         /// <summary>True once today's service has opened.</summary>
         public bool ServiceStarted => Services.Days.Phase == DayPhase.Service || Services.Days.Phase == DayPhase.Review;
 
-        private int _seats;
-
         private void Awake()
         {
             var stations = new StationRegistry(FindObjectsByType<Interactable>(FindObjectsSortMode.None).Where(station => !(station is StreetDoor)));
 
-            // One stool per pass counter (counter service, decision 2026-11-02).
-            var seats = stations.All.OfType<PassStation>().Count();
             var cooking = new CookingSimulation(_tuning.AmbientTemperature, _realism.SpoilageMultiplier);
-            _seats = seats;
             var days = new DayCycle(_staffConfig.StartingMoney);
             days.PhaseChanged += HandlePhaseChanged;
             var service = NewService(days.Day);
@@ -80,7 +75,7 @@ namespace Game.Gameplay
         }
 
         private ServiceSimulation NewService(int day) =>
-            new ServiceSimulation(_serviceConfig.ToSettings(day), _seats, _realism.CustomerPatience);
+            new ServiceSimulation(_serviceConfig.ToSettings(day), 0, _realism.CustomerPatience); // seats open with the doors
 
         /// <summary>
         /// Closes up after a service: the night passes, stored food too old to keep gets thrown out,
@@ -131,11 +126,11 @@ namespace Game.Gameplay
                 stack.Stack.AddNew(sink.Sink.TakeBrokenCount(), _equipment.PlateCapacity);
         }
 
-        // Doors open: tables bought since this morning join the stools, which come first.
+        // Doors open: the seating is whatever tables there are by now.
         private void OpenSeats()
         {
-            var tables = Enumerable.Repeat(1, _seats).ToList();
-            var next = _seats;
+            var tables = new System.Collections.Generic.List<int>();
+            var next = 0;
             foreach (var table in Services.Stations.All.OfType<TableStation>())
             {
                 next = table.AssignSeats(next);

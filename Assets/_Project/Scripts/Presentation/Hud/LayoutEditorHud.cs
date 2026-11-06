@@ -107,7 +107,7 @@ namespace Game.Presentation.Hud
             if (under == null)
                 return always;
             var sale = SaleText(cursor, under);
-            var move = _editor.CanMove(under) ? $"{Glyph(PromptControl.South)} move {under.name}" : under.name;
+            var move = $"{Glyph(PromptControl.South)} move {under.name}";
             var chairs = under is TableStation table && table.HasChoiceOfChairs
                 ? $"[RB] add chair {Money(_editor.ChairPrice)}   [LB] remove   {table.ChairCount} now\n"
                 : "";

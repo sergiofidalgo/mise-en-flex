@@ -64,6 +64,17 @@ namespace Game.Simulation.Movement
             return true;
         }
 
+        /// <summary>True if this station is right up against a wall inside the building.</summary>
+        public bool TouchesAWall(Footprint station)
+        {
+            foreach (var wall in Walls)
+            {
+                if (station.Contains(Closest(wall, station.Centre), StationHalfSize, TouchingDistance))
+                    return true;
+            }
+            return false;
+        }
+
         private static Vector2 Closest((Vector2 Min, Vector2 Max) wall, Vector2 point) =>
             new Vector2(Math.Max(wall.Min.X, Math.Min(wall.Max.X, point.X)), Math.Max(wall.Min.Y, Math.Min(wall.Max.Y, point.Y)));
 

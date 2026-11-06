@@ -143,8 +143,7 @@ namespace Game.Editor
         };
 
         // The pass along the front, facing the dining side: plates put here are served and scored.
-        private static readonly Vector3[] PassPositions = { new Vector3(-1.6f, 0f, -2.4f), new Vector3(-0.6f, 0f, -2.4f), new Vector3(0.4f, 0f, -2.4f) };
-        private static readonly Color PassColor = new Color(0.88f, 0.88f, 0.85f);
+        private static readonly Vector3[] BarTablePositions = { new Vector3(-1.6f, 0f, -3.35f), new Vector3(-0.6f, 0f, -3.35f), new Vector3(0.4f, 0f, -3.35f) };
 
         // Strip in front of the pass marking where the dining room will be.
         private static readonly Color DiningColor = new Color(0.55f, 0.45f, 0.40f);
@@ -368,7 +367,7 @@ namespace Game.Editor
             SetReference(overlay, "_root", root);
             root.gameObject.AddComponent<QualityCardOverlay>();
             SetReference(root.gameObject.AddComponent<DayLoop>(), "_root", root);
-            GreyboxService.Build(PassPositions, root);
+            GreyboxService.Build(root);
             GreyboxStaff.Build(root, assets.Furniture);
 
             GreyboxHud.BuildCanvas(GreyboxHud.EnsureStyle(), settings, root, assets.Catalog);
@@ -463,16 +462,11 @@ namespace Game.Editor
             for (var i = 0; i < HobPositions.Length; i++)
                 CreateHob($"Hob_{i + 1:00}", HobPositions[i], hobMaterial, hobs);
 
-            var passes = new GameObject("Zone_Pass").transform;
-            passes.SetParent(stations, false);
-            var passMaterial = GreyboxAssets.EnsureMaterial("Pass", PassColor);
-            for (var i = 0; i < PassPositions.Length; i++)
-            {
-                var pass = CreateStation<PassStation>($"Pass_{i + 1:00}", PassPositions[i], CounterSize, CounterHeight, passMaterial, passes);
-                var passSo = new SerializedObject(pass);
-                passSo.FindProperty("_seatIndex").intValue = i; // the stool in front of it
-                passSo.ApplyModifiedPropertiesWithoutUndo();
-            }
+            // The first seats: bar tables along the dining side of the wall, served across it.
+            var bars = new GameObject("Zone_BarTables").transform;
+            bars.SetParent(stations, false);
+            for (var i = 0; i < BarTablePositions.Length; i++)
+                BuildBarTable($"BarTable_{i + 1:00}", BarTablePositions[i], bars);
 
             var plateStack = CreateStation<PlateStackStation>(
                 "PlateStack", PlateStackPosition, CounterSize, CounterHeight,
@@ -660,7 +654,7 @@ namespace Game.Editor
             var fridge = SaveFurniture(BuildStorageForSale("PF_Fridge", StorageUnits[0]));
             var shelf = SaveFurniture(BuildStorageForSale("PF_Shelf", StorageUnits[1]));
             var table = SaveFurniture(BuildTable());
-            var bar = SaveFurniture(BuildBarTable());
+            var bar = SaveFurniture(BuildBarTable("PF_BarTable", Vector3.zero, null));
 
             var catalog = GreyboxAssets.EnsureAsset<FurnitureCatalog>(FurnitureCatalogPath);
             var so = new SerializedObject(catalog);
@@ -688,10 +682,10 @@ namespace Game.Editor
         }
 
         // A bar table: narrow, with one chair along its long side.
-        private static TableStation BuildBarTable()
+        private static TableStation BuildBarTable(string name, Vector3 position, Transform parent)
         {
             var table = CreateStation<TableStation>(
-                "PF_BarTable", Vector3.zero, CounterSize, BarHeight, GreyboxAssets.EnsureMaterial("BarTable", BarColor), null, BarFurniture, BarDepth);
+                name, position, CounterSize, BarHeight, GreyboxAssets.EnsureMaterial("BarTable", BarColor), parent, BarFurniture, BarDepth);
             AddChairs(table, BarHeight, new[] { Vector3.back }, BarDepth / 2f + BarChairGap, BarPlateOffset);
             return table;
         }

@@ -79,9 +79,6 @@ namespace Game.Gameplay
 
         public IReadOnlyList<FurnitureCatalog.Entry> Shop => _catalog.Entries;
 
-        /// <summary>The pass is built into the wall between the rooms; anything else can move.</summary>
-        public bool CanMove(Interactable station) => !(station is PassStation);
-
         public bool CanAfford(FurnitureCatalog.Entry entry) => _root.Services.Days.Balance >= entry.Price;
 
         /// <summary>The station under a cursor, or null.</summary>
@@ -102,7 +99,11 @@ namespace Game.Gameplay
             _plan.Add(_streetDoor, Floor(_streetDoor.transform.position), _streetDoor.transform.eulerAngles.y, _streetDoor.HalfSize);
             _plan.GiveArea(_streetDoor, floor.RoomMin - SimVector2.One, floor.RoomMax + SimVector2.One);
             foreach (var station in _root.Services.Stations.All)
+            {
                 _plan.Add(station, Floor(station.transform.position), station.transform.eulerAngles.y, station.HalfSize);
+                if (station.BelongsInDiningRoom)
+                    _plan.GiveArea(station, floor.DiningAreaMin, floor.DiningAreaMax);
+            }
         }
 
         private void Update()
@@ -285,7 +286,7 @@ namespace Game.Gameplay
         public bool PickUp(Cursor cursor)
         {
             var station = StationUnder(cursor);
-            if (station == null || !CanMove(station) || _cursors.Values.Any(other => other.Held == station))
+            if (station == null || _cursors.Values.Any(other => other.Held == station))
                 return false;
 
             cursor.Held = station;
@@ -435,6 +436,7 @@ namespace Game.Gameplay
             if (!(StationUnder(cursor) is TableStation table) || !table.CanAddChair || !_root.Services.Days.TrySpend(ChairPrice))
                 return false;
             table.AddChair();
+            LayoutChanged?.Invoke();
             return true;
         }
 
@@ -445,6 +447,7 @@ namespace Game.Gameplay
                 return false;
             table.RemoveChair();
             _root.Services.Days.Receive(ChairRefund);
+            LayoutChanged?.Invoke();
             return true;
         }
 

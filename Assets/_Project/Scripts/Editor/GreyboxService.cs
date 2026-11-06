@@ -6,16 +6,14 @@ using UnityEngine;
 namespace Game.Editor
 {
     /// <summary>
-    /// Builds counter service (decision 2026-11-02): a stool in front of each pass counter, a street
-    /// door into the dining room, queue spots by the door, the greybox customer prefab
+    /// Builds what customers need: a street door into the dining room, queue spots by the door, the
+    /// greybox customer prefab
     /// and the customer director that runs them.
     /// </summary>
     public static class GreyboxService
     {
         private const string CustomerPrefabPath = "Assets/_Project/Prefabs/PF_Customer.prefab";
 
-        // Stools stand in front of the pass (pass front edge at z = -2.9).
-        private const float SeatZ = -3.35f;
         // The street door is in the south wall; customers wait along the east wall until a seat's free.
         private static readonly Vector3 DoorPosition = new Vector3(2f, 0f, -6.55f);
         private const float DoorPanelBehind = -0.32f;
@@ -27,8 +25,6 @@ namespace Game.Editor
         // Relative to the door, whichever wall it's on.
         private static readonly Vector3[] QueueOffsets = { new Vector3(1.2f, 0f, 0.35f), new Vector3(1.2f, 0f, 1.15f), new Vector3(1.2f, 0f, 1.95f), new Vector3(2f, 0f, 0.35f), new Vector3(2f, 0f, 1.15f), new Vector3(2f, 0f, 1.95f) };
 
-        private static readonly Vector3 StoolScale = new Vector3(0.36f, 0.22f, 0.36f); // cylinder: 0.44 m tall
-        private static readonly Color StoolColor = new Color(0.35f, 0.25f, 0.18f);
         private static readonly Vector3 DoorScale = new Vector3(0.9f, 1.2f, 0.06f);
         private static readonly Color DoorColor = new Color(0.20f, 0.14f, 0.10f);
         private static readonly Vector3 DoorMatScale = new Vector3(1.2f, 0.012f, 0.7f);
@@ -39,23 +35,9 @@ namespace Game.Editor
         private static readonly Color CustomerColor = new Color(0.55f, 0.60f, 0.70f);
         private const float CustomerBodyRadius = 0.3f;
 
-        /// <param name="passPositions">Pass counter positions in seat order.</param>
-        public static void Build(Vector3[] passPositions, KitchenCompositionRoot root)
+        public static void Build(KitchenCompositionRoot root)
         {
             var zone = new GameObject("Zone_Dining").transform;
-
-            var seats = new Transform[passPositions.Length];
-            var stoolMaterial = GreyboxAssets.EnsureMaterial("Stool", StoolColor);
-            for (var i = 0; i < passPositions.Length; i++)
-            {
-                seats[i] = new GameObject($"Seat_{i + 1}").transform;
-                seats[i].SetParent(zone, false);
-                seats[i].localPosition = new Vector3(passPositions[i].x, 0f, SeatZ);
-
-                var stool = GreyboxAssets.CreatePrimitive(PrimitiveType.Cylinder, "Stool", seats[i], stoolMaterial, keepCollider: false);
-                stool.transform.localScale = StoolScale;
-                stool.transform.localPosition = new Vector3(0f, StoolScale.y, 0f);
-            }
 
             // The street door: its root is the doorway people step through, facing into the room.
             var door = new GameObject("Street door").transform;
@@ -100,12 +82,6 @@ namespace Game.Editor
             SetArray(so.FindProperty("_queueSpots"), queue);
             so.ApplyModifiedPropertiesWithoutUndo();
 
-            foreach (var pass in Object.FindObjectsByType<Game.Gameplay.Stations.PassStation>(FindObjectsSortMode.None))
-            {
-                var passSo = new SerializedObject(pass);
-                passSo.FindProperty("_seat").objectReferenceValue = seats[pass.SeatIndex];
-                passSo.ApplyModifiedPropertiesWithoutUndo();
-            }
         }
 
         private static GameObject BuildCustomerPrefab()

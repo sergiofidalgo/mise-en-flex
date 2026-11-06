@@ -14,6 +14,10 @@ namespace Game.Simulation.Movement
     {
         private const float CellSize = 0.2f;
 
+        // Against a wall, someone on its far side stands this much further off: the wall's thickness
+        // and a little.
+        private const float AcrossAWall = 0.25f;
+
         private readonly List<Footprint> _stations;
         private readonly FloorPlan _plan;
         private readonly Vector2 _roomMin;
@@ -108,7 +112,15 @@ namespace Game.Simulation.Movement
             {
                 var point = station.Centre + side * (station.Extent(side, _stationHalfSize) + gap);
                 if (IsFree(point))
+                {
                     sides.Add(point);
+                    continue;
+                }
+
+                // The wall's in the way: it can still be worked from the far side, like a hatch.
+                var across = point + side * AcrossAWall;
+                if (IsFree(across) && _plan.CanReach(across, station))
+                    sides.Add(across);
             }
             return sides;
         }

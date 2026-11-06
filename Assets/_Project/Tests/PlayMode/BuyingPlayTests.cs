@@ -175,11 +175,11 @@ namespace Game.Tests.PlayMode
         }
 
         [UnityTest]
-        public IEnumerator ThePassIsNotForSale()
+        public IEnumerator TheSinkIsNotForSale()
         {
             yield return OpenKitchenWithCursor();
-            var pass = _root.Services.Stations.All.OfType<PassStation>().First();
-            Assert.That(_editor.SaleProblemOf(_cursor, pass), Is.EqualTo(SaleProblem.NotForSale));
+            var sink = _root.Services.Stations.All.OfType<SinkStation>().First();
+            Assert.That(_editor.SaleProblemOf(_cursor, sink), Is.EqualTo(SaleProblem.NotForSale));
         }
 
         [UnityTest]

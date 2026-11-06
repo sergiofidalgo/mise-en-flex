@@ -49,7 +49,8 @@ namespace Game.Gameplay.Staff
         /// <summary>Everyone currently working in the kitchen.</summary>
         public IReadOnlyList<StaffAgent> Agents => _agents;
 
-        private PassStation[] _passes;
+        // Dirty plates a dishwasher can collect from the kitchen: at tables against the wall.
+        private readonly List<IDirtyPlateSource> _clearable = new List<IDirtyPlateSource>();
         private SinkStation _sink;
         private PlateStackStation _stack;
         private DirtyPileStation _dirtyPile;
@@ -62,7 +63,6 @@ namespace Game.Gameplay.Staff
         private void Start()
         {
             var all = _root.Services.Stations.All;
-            _passes = all.OfType<PassStation>().OrderBy(p => p.SeatIndex).ToArray();
             _sink = all.OfType<SinkStation>().First();
             _stack = all.OfType<PlateStackStation>().First();
             _dirtyPile = all.OfType<DirtyPileStation>().First();
@@ -70,8 +70,6 @@ namespace Game.Gameplay.Staff
             _trayRack = all.OfType<RackStation>().First(r => r.Kind == RackStation.RackKind.Trays);
             RebuildLayout();
 
-            foreach (var pass in _passes)
-                _stations[pass.DirtyPlates] = pass;
             _stations[_sink.Sink] = _sink;
             _stations[_stack.Stack] = _stack;
             _stations[_dirtyPile.Pile] = _dirtyPile;
@@ -134,6 +132,18 @@ namespace Game.Gameplay.Staff
         private void RebuildLayout()
         {
             _layout = _root.Services.NewLayout();
+
+            _clearable.Clear();
+            foreach (var table in _root.Services.Stations.All.OfType<ServingStation>())
+            {
+                if (!_root.Services.Building.TouchesAWall(table.Footprint))
+                    continue;
+                foreach (var source in table.DirtySources)
+                {
+                    _clearable.Add(source);
+                    _stations[source] = table;
+                }
+            }
             _routes.Clear();
             foreach (var agent in _agents)
                 agent.Slide = _layout.Slide;
@@ -222,7 +232,7 @@ namespace Game.Gameplay.Staff
                     settings,
                     seed);
             }
-            return new Dishwasher(member, _sink.Sink, _dirtyPile.Pile, _stack.Stack, _passes.Select(p => p.DirtyPlates).ToArray(), settings, seed);
+            return new Dishwasher(member, _sink.Sink, _dirtyPile.Pile, _stack.Stack, _clearable, settings, seed);
         }
 
         private void HandleItemGone(Item item) => _root.Services.ItemViews.Release(item);

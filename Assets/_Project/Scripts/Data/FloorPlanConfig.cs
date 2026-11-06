@@ -6,8 +6,8 @@ using SimVector2 = System.Numerics.Vector2;
 namespace Game.Data
 {
     /// <summary>
-    /// The building: a kitchen and a dining room side by side, with a low wall between them. The
-    /// pass is the hatch through it, and a door lets people walk between the two.
+    /// The building: a kitchen and a dining room side by side, with a low wall between them. Anything
+    /// against the wall works from both sides, and a door lets people walk between the two.
     /// </summary>
     [CreateAssetMenu(menuName = "Game/Floor Plan", fileName = "FloorPlanConfig")]
     public sealed class FloorPlanConfig : ScriptableObject
@@ -20,8 +20,7 @@ namespace Game.Data
         [SerializeField] private Rect[] _walls =
         {
             new Rect(-4f, -3.1f, 0.5f, 0.2f),   // west wall to the kitchen door
-            new Rect(-2.3f, -3.1f, 0.2f, 0.2f), // kitchen door to the hatch
-            new Rect(0.9f, -3.1f, 3.1f, 0.2f),  // hatch to the east wall
+            new Rect(-2.3f, -3.1f, 6.3f, 0.2f), // kitchen door to the east wall
         };
 
         [Tooltip("Where the kitchen door's hinge is, and how wide it is, along the wall.")]
