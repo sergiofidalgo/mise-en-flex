@@ -22,10 +22,13 @@ namespace Game.Simulation.Movement
         /// <param name="nearMargin">Metres of floor to keep before the nearest point, if not <paramref name="margin"/>.</param>
         /// <param name="screenTop">Share of the screen's height to leave clear at the top, for what stands up from the floor and the prompts above it.</param>
         /// <param name="screenBottom">The same at the bottom.</param>
+        /// <param name="buildingMin">The building's corner, if the view should stay on it: once all of it fits it's
+        /// centred on the building rather than on people, and otherwise it doesn't show beyond its walls.</param>
+        /// <param name="buildingMax">The opposite corner.</param>
         /// <returns>The camera's position: X across, Y up, Z along the floor.</returns>
         public static Vector3 Fit(
             IReadOnlyList<Vector2> points, float tiltDegrees, float fieldOfViewDegrees, float aspect, float margin, float minHeight, float maxHeight,
-            float extraFar = 0f, float? nearMargin = null, float screenTop = 0f, float screenBottom = 0f)
+            float extraFar = 0f, float? nearMargin = null, float screenTop = 0f, float screenBottom = 0f, Vector2? buildingMin = null, Vector2? buildingMax = null)
         {
             var near = nearMargin ?? margin;
             var minX = float.MaxValue;
@@ -56,11 +59,33 @@ namespace Game.Simulation.Movement
             // Across: perspective makes the bottom of that band the narrowest, nearest part of the
             // floor. Fit the width there, so it fits everywhere.
             var depthPerHeight = (float)(Math.Cos(bottomAngle - tilt) / Math.Sin(bottomAngle));
-            var heightForWidth = (maxX - minX) / 2f / (depthPerHeight * tanHalfView * aspect);
+            var widthPerHeight = depthPerHeight * tanHalfView * aspect;
+            var heightForWidth = (maxX - minX) / 2f / widthPerHeight;
 
             var height = Math.Min(maxHeight, Math.Max(minHeight, Math.Max(heightForDepth, heightForWidth)));
+            var cameraX = (minX + maxX) / 2f;
             var cameraZ = CentredAlongTheFloor(minZ, maxZ, height, tilt, tanHalfView, top, bottom);
-            return new Vector3((minX + maxX) / 2f, height, cameraZ);
+            if (buildingMin.HasValue && buildingMax.HasValue)
+            {
+                var low = buildingMin.Value;
+                var high = buildingMax.Value;
+                cameraX = KeepOnBuilding(cameraX, height * widthPerHeight, low.X, high.X);
+
+                var depth = height * (Cot(topAngle) - Cot(bottomAngle));
+                if (depth >= high.Y - low.Y)
+                    cameraZ = CentredAlongTheFloor(low.Y, high.Y, height, tilt, tanHalfView, top, bottom);
+                else
+                    cameraZ = Math.Max(low.Y - height * Cot(bottomAngle), Math.Min(high.Y - height * Cot(topAngle), cameraZ));
+            }
+            return new Vector3(cameraX, height, cameraZ);
+        }
+
+        // Centred if all of it fits across; otherwise as near the wanted place as stays on the building.
+        private static float KeepOnBuilding(float wanted, float halfWidth, float low, float high)
+        {
+            if (halfWidth >= (high - low) / 2f)
+                return (low + high) / 2f;
+            return Math.Max(low + halfWidth, Math.Min(high - halfWidth, wanted));
         }
 
         // With height to spare, the spare room is shared equally on screen. It can't be shared in

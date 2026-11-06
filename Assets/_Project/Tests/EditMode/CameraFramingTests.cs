@@ -119,5 +119,37 @@ namespace Game.Tests.EditMode
 
             Assert.That(ScreenHeight(camera, points[0]), Is.EqualTo(-ScreenHeight(camera, points[1])).Within(0.01f));
         }
+
+        private static readonly Vector2 BuildingMin = new Vector2(-4f, -7f);
+        private static readonly Vector2 BuildingMax = new Vector2(4f, 2f);
+
+        private static Vector3 OnBuilding(float minHeight, params Vector2[] points) =>
+            CameraFraming.Fit(points, Tilt, Fov, Aspect, 2f, minHeight, 200f, 0f, 0.5f, 0.2f, 0.02f, BuildingMin, BuildingMax);
+
+        [Test]
+        public void WhenAllOfTheBuildingFitsItStaysCentredOnIt()
+        {
+            var inACorner = OnBuilding(15f, new Vector2(3f, 1f));
+            var inTheOther = OnBuilding(15f, new Vector2(-3f, -6f));
+
+            Assert.That(inACorner.X, Is.EqualTo(0f).Within(0.001f));
+            Assert.That(inTheOther.Z, Is.EqualTo(inACorner.Z).Within(0.001f), "it doesn't follow anyone");
+            Assert.That(ScreenHeight(inACorner, new Vector2(0f, 2f)), Is.LessThanOrEqualTo(0.6f + 0.01f));
+        }
+
+        [Test]
+        public void WhenItDoesntFitItStaysOnTheBuilding()
+        {
+            var camera = OnBuilding(6f, new Vector2(3.5f, 1f));
+            AssertInView(camera, new Vector2(3.5f, 1f));
+            Assert.That(ScreenHeight(camera, new Vector2(0f, 2f)), Is.GreaterThanOrEqualTo(0.59f), "no further than the north wall");
+        }
+
+        [Test]
+        public void SomeoneOutsideTheBuildingsWidthDoesntPullItOffCentre()
+        {
+            var camera = OnBuilding(15f, new Vector2(3.9f, 0f), new Vector2(2f, -6f));
+            Assert.That(camera.X, Is.EqualTo(0f).Within(0.001f));
+        }
     }
 }

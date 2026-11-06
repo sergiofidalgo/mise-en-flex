@@ -23,6 +23,12 @@ namespace Game.Presentation.Hud
         [SerializeField, Min(0f)] private float _anchorHeight = 1.25f;
         [Tooltip("Canvas pixels between two players' cards on the same station.")]
         [SerializeField, Min(0f)] private float _sideBySideGap = 12f;
+        [Tooltip("Canvas pixels kept clear at the top of the screen, for the clock and the money.")]
+        [SerializeField, Min(0f)] private float _clearAtTheTop = 115f;
+        [Tooltip("Canvas pixels kept clear at the other edges of the screen.")]
+        [SerializeField, Min(0f)] private float _clearAtTheEdges = 12f;
+        [Tooltip("Canvas pixels from a station's centre to a card beside it, when there's no room above.")]
+        [SerializeField, Min(0f)] private float _besideStation = 90f;
 
         private readonly Dictionary<PlayerInput, PromptCard> _cards = new Dictionary<PlayerInput, PromptCard>();
         private readonly List<PromptLine> _lines = new List<PromptLine>();
@@ -82,7 +88,23 @@ namespace Game.Presentation.Hud
 
             var width = card.Rect.rect.width;
             var offset = already == 0 ? 0f : (width + _sideBySideGap) * already;
-            card.Rect.anchoredPosition = local + new Vector2(offset - width / 2f, 0f);
+            var height = card.Rect.rect.height;
+            var position = local + new Vector2(offset - width / 2f, 0f);
+
+            // No room above the station: beside it, so the card doesn't sit over the food.
+            var highest = _canvas.rect.height / 2f - _clearAtTheTop - height;
+            if (position.y > highest)
+            {
+                position.y = highest;
+                position.x = local.x + offset + _besideStation;
+            }
+
+            var right = _canvas.rect.width / 2f - _clearAtTheEdges - width;
+            if (position.x > right)
+                position.x = local.x - _besideStation - width; // the other side
+            position.x = Mathf.Clamp(position.x, -_canvas.rect.width / 2f + _clearAtTheEdges, right);
+            position.y = Mathf.Max(position.y, -_canvas.rect.height / 2f + _clearAtTheEdges);
+            card.Rect.anchoredPosition = position;
         }
 
         private PromptCard CardFor(PlayerInput player)
