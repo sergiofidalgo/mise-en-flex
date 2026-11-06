@@ -4,6 +4,16 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-07 — Size tiers dropped from Phase 4
+
+**Decision (user's call):** a restaurant's size comes from which one you buy on the city miniature (Phase 6), not from upgrading one. Phase 4 ends with the waiter and equipment tiers.
+
+**Reason:** Upgrade tiers would be replaced by the campaign as soon as it's built.
+
+**Given up:** expanding a restaurant you already own. It could return in Phase 6 as knocking through a wall (see `ideas.md`).
+
+---
+
 ## 2026-11-06 — Roadmap: a Campaign phase and a guided first day
 
 **Decision (user's call):** two new phases. **Phase 6, Campaign,** covers the office, buying restaurants, the boss, the tablet station, service styles and decoration. **Phase 8, Guided first day,** comes after Content, once mechanics have settled. Content moves to Phase 7, and Art and polish to Phase 9. Phase 5 gains the read-only Review dashboard, vendors, the cookbook and cleaning.
@@ -24,6 +34,8 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 - **A customer out of view gets a marker on the edge of the screen:** a round timer while waiting for food, no timer while eating, and a face showing how it went for a couple of seconds as they leave.
 
 **After play (user's calls):** the camera comes in closer and follows chefs more tightly, because it cut them off. It comes no closer than 6.5 m up, so two players together get a comfortable view, and from the kitchen a customer's walk from the door shows a marker for a while.
+
+**After more play (user's calls):** chefs walk a little slower, 4.2 m/s down from 5, and the camera follows closer behind. As a player walks away from the kitchen, the camera moves with them and gently zooms out.
 
 **Details (proposed; flagged for review, tunable on `CustomerIndicatorHud`):**
 - **A plain dot for anyone else out of view,** walking in or queueing.
@@ -57,7 +69,7 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ## 2026-11-06 — Slower cooking, one bar under the pan, and how crust is judged
 
-**User's calls:** a bar guides players through the cooking stages, teaching that more heat means more crust and faster cooking, and less heat a blander, slower steak. The ideal is high heat for crust, flip once, then low until done. A warning comes before burning. Cooking runs slower than the clock, at 70% of its pace: full speed burnt too fast, and half felt too long (user's call). Crust is judged by the better side, and any side close to burnt loses points. Replaces averaging the two sides.
+**User's calls:** a bar guides players through the cooking stages, teaching that more heat means more crust and faster cooking, and less heat a blander, slower steak. The ideal is high heat for crust, flip once, then low until done. A warning comes before burning. Cooking runs a little slower than the clock, at 90% of its pace: full speed burnt too fast, and half and 70% felt too long (user's call). Crust is judged by the better side, and any side close to burnt loses points. Replaces averaging the two sides.
 
 **Details (proposed; tunable in `TuningConfig`):**
 - **One bar at a time,** as two gauges were too much: the crust gauge until the first flip, then the stages of doneness, with a needle following the steak's middle. It reads the hottest the middle has been, as doneness does.
@@ -210,7 +222,7 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 - **The dishwasher clears any table against the wall,** from the kitchen side. Tables away from it are for players, and later the waiter.
 - **A customer with no way to their seat gives up:** a lost cover, no penalty, and the seat goes to the next. Someone leaving always gets out, and someone blocked by people for 2 seconds walks through, so a bad layout costs money but can't freeze a service.
 - **Pushing a seated customer moves them,** and they walk straight back.
-- **The camera** keeps its 55 degree tilt and leaves 18% of the screen clear at the top. It doesn't show much beyond the building's walls, and centres on it once it all fits. It pans quickly and zooms slowly (user's call: subtle and effortless). Staff don't count towards the framing, as they stay in the kitchen. Tunable on `FramingCamera`.
+- **The camera** keeps its 55 degree tilt and leaves 27% of the screen clear above the floor at the top, as the back wall stands up into that (user's call: more room above the wall). It doesn't show much beyond the building's walls, and centres on it once it all fits. It pans quickly and zooms slowly (user's call: subtle and effortless). Staff don't count towards the framing, as they stay in the kitchen. Tunable on `FramingCamera`.
 
 **Later the same milestone (2026-11-05 and 06).**
 

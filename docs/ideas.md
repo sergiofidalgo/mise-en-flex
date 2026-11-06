@@ -62,6 +62,8 @@ Ideas worth keeping that aren't decided or scheduled yet. When one is accepted, 
 
 **How many restaurants, and how bespoke?** Scenery that suits each location and a full miniature get expensive quickly. Recommendation: about 5–6 to start, with streets built from a modular kit.
 
+**Expanding a restaurant you own.** Size tiers were dropped from Phase 4, so a bigger place means buying one. Could return in Phase 6 as knocking through a wall, for players who love the place they have.
+
 **Decoration model.** Could work as one "ambience" part of each review, kept apart from the dish score, with review lines using the existing "about the worst thing" rule: "delicious, but the place felt generic". Which customers it attracts needs its own design pass.
 
 ---

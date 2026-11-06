@@ -215,7 +215,7 @@ Service style is chosen per restaurant, separately from cuisine, and any combina
 
 ## 9. Restaurant building
 
-- **Size tiers**, from a counter up to a full dining room. Bigger isn't strictly better: more covers, but more rent, more trips and more need for staff.
+- **Size comes from which restaurant you buy**, from a counter up to a full dining room, not from upgrading one. Bigger isn't strictly better: more covers, but more rent, more trips and more need for staff.
 - **Kitchen zones:** layout matters. Stations, storage and the pass can be placed to cut trips.
 - **Equipment tiers:** better hobs, bigger rails, more storage.
 - **Health inspections:** hygiene, storage and cross-contamination practices (scaled by the hygiene dial).
@@ -241,7 +241,7 @@ Hireable staff (Phase 3): **dishwasher, waiter, runner, prep assistant**.
 
 - **Suppliers:** street vendors near the restaurant, cheap vs. premium. Ingredient quality affects dish quality and freshness. Style decides what they sell (§15.5).
 - **Menu pricing:** set by the players; affects demand and expectations.
-- **Costs:** rent (scales with size tier), wages, equipment.
+- **Costs:** rent (scales with the restaurant's size), wages, equipment.
 - **Debt:** players can sell, fire, downsize or borrow more from the boss. Falling behind on what he's owed starts the escalation in §15.3.
 - **Cookbook** (replaces the chef profile): sets the menu (§15.5), lasts across campaigns and stays in the boss's office for the next chef, whose carried-over recipes work at any restaurant.
 

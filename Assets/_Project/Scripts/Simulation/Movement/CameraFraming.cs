@@ -115,6 +115,21 @@ namespace Game.Simulation.Movement
             return (float)Math.Tan(tilt - below) / tanHalfView;
         }
 
+        /// <summary>
+        /// How close the camera may come, going by how far someone has wandered from where the cooking
+        /// is: it eases back as they go, however little it needs to fit them, up to a limit.
+        /// </summary>
+        public static float ClosestHeight(float metresAway, float nearHeight, float extraPerMetre, float mostExtra) =>
+            nearHeight + Math.Min(mostExtra, Math.Max(0f, metresAway) * extraPerMetre);
+
+        /// <summary>How far a point is outside a rectangle; zero inside it.</summary>
+        public static float DistanceOutside(Vector2 point, Vector2 min, Vector2 max)
+        {
+            var dx = Math.Max(0f, Math.Max(min.X - point.X, point.X - max.X));
+            var dy = Math.Max(0f, Math.Max(min.Y - point.Y, point.Y - max.Y));
+            return (float)Math.Sqrt(dx * dx + dy * dy);
+        }
+
         private static float Cot(float radians) => 1f / (float)Math.Tan(radians);
 
         private static float Radians(float degrees) => degrees * (float)Math.PI / 180f;

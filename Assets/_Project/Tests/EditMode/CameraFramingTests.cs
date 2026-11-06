@@ -151,5 +151,22 @@ namespace Game.Tests.EditMode
             var camera = OnBuilding(15f, new Vector2(3.9f, 0f), new Vector2(2f, -6f));
             Assert.That(camera.X, Is.EqualTo(0f).Within(0.001f));
         }
+
+        [Test]
+        public void ItEasesBackAsSomeoneWalksAwayFromTheKitchenUpToALimit()
+        {
+            Assert.That(CameraFraming.ClosestHeight(0f, 6.5f, 0.5f, 2f), Is.EqualTo(6.5f));
+            Assert.That(CameraFraming.ClosestHeight(2f, 6.5f, 0.5f, 2f), Is.EqualTo(7.5f));
+            Assert.That(CameraFraming.ClosestHeight(20f, 6.5f, 0.5f, 2f), Is.EqualTo(8.5f));
+        }
+
+        [Test]
+        public void DistanceOutsideARectangle()
+        {
+            var min = new Vector2(-1f, -1f);
+            var max = new Vector2(1f, 1f);
+            Assert.That(CameraFraming.DistanceOutside(Vector2.Zero, min, max), Is.EqualTo(0f));
+            Assert.That(CameraFraming.DistanceOutside(new Vector2(0f, -4f), min, max), Is.EqualTo(3f));
+        }
     }
 }

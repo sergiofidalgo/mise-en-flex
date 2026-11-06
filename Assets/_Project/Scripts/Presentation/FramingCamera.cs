@@ -12,6 +12,7 @@ namespace Game.Presentation
     /// <summary>
     /// Follows the people doing the work: keeps every player and staff member in view, zooming out as
     /// they spread apart and in as they gather. To see all of a big restaurant, players have to split up.
+    /// As a player walks away from the kitchen it also eases back, so there's more to see out there.
     /// Customers don't count: those out of view get markers at the edge of the screen. Before anyone joins,
     /// and during the Review, it shows the whole restaurant. Its moves ease in and out, and it ignores
     /// small changes, so it doesn't chase every step someone takes.
@@ -32,29 +33,36 @@ namespace Game.Presentation
         [Tooltip("Metres of floor to keep before the nearest. Little: nothing stands below them on screen.")]
         [SerializeField, Min(0f)] private float _nearMargin = 0.6f;
         [Tooltip("Share of the screen to leave clear at the top, for heads, furniture and the prompts above them.")]
-        [SerializeField, Range(0f, 0.45f)] private float _screenTop = 0.18f;
+        [SerializeField, Range(0f, 0.45f)] private float _screenTop = 0.27f;
+        [Tooltip("The same when showing the whole restaurant: nobody's cooking, so no prompts need the room.")]
+        [SerializeField, Range(0f, 0.45f)] private float _screenTopForWhole = 0.14f;
         [Tooltip("Share of the screen to leave clear at the bottom.")]
         [SerializeField, Range(0f, 0.45f)] private float _screenBottom = 0.06f;
         [Tooltip("The closest it gets, in metres above the floor.")]
         [SerializeField, Min(1f)] private float _minHeight = 6.5f;
+        [Tooltip("Metres further back for each metre a player is from the kitchen.")]
+        [SerializeField, Min(0f)] private float _backPerMetreAway = 0.45f;
+        [Tooltip("The most it backs away for that, in metres.")]
+        [SerializeField, Min(0f)] private float _mostBack = 2f;
         [Tooltip("The furthest it gets, in metres above the floor.")]
         [SerializeField, Min(1f)] private float _maxHeight = 40f;
         [Tooltip("How far the building's outer walls are from where people can stand, in metres.")]
         [SerializeField, Min(0f)] private float _wallsBeyondRoom = 0.5f;
         [Tooltip("Roughly how many seconds it trails behind someone walking. Quicker than zooming: a chef walks fast, and the longer this is the closer they get to the edge.")]
-        [SerializeField, Min(0.01f)] private float _followSeconds = 0.4f;
+        [SerializeField, Min(0.01f)] private float _followSeconds = 0.3f;
         [Tooltip("Roughly how many seconds it takes to back away to fit someone in.")]
-        [SerializeField, Min(0.01f)] private float _zoomOutSeconds = 1f;
+        [SerializeField, Min(0.01f)] private float _zoomOutSeconds = 1.2f;
         [Tooltip("Roughly how many seconds it takes to close in again. Slower, so it doesn't pump.")]
         [SerializeField, Min(0.01f)] private float _zoomInSeconds = 2f;
         [Tooltip("The fastest it ever moves, in metres per second.")]
         [SerializeField, Min(0.1f)] private float _maxSpeed = 14f;
         [Tooltip("How far where it should be has to drift, in metres, before it bothers moving.")]
-        [SerializeField, Min(0f)] private float _settleDistance = 0.4f;
+        [SerializeField, Min(0f)] private float _settleDistance = 0.25f;
 
         private readonly List<SimVector2> _points = new List<SimVector2>();
         private Camera _camera;
         private bool _placed;
+        private bool _showingWhole;
         private Vector3 _goal;
         private Vector2 _panVelocity;
         private float _zoomVelocity;
@@ -70,7 +78,7 @@ namespace Game.Presentation
             CollectPoints();
             var floor = _root.Services.FloorPlan;
             var walls = new SimVector2(_wallsBeyondRoom, _wallsBeyondRoom);
-            var fit = CameraFraming.Fit(_points, _tilt, _camera.fieldOfView, _camera.aspect, _margin, _minHeight, _maxHeight, _farMargin - _margin, _nearMargin, _screenTop, _screenBottom, floor.RoomMin - walls, floor.RoomMax + walls);
+            var fit = CameraFraming.Fit(_points, _tilt, _camera.fieldOfView, _camera.aspect, _margin, ClosestHeight(floor), _maxHeight, _farMargin - _margin, _nearMargin, _showingWhole ? _screenTopForWhole : _screenTop, _screenBottom, floor.RoomMin - walls, floor.RoomMax + walls);
             var target = new Vector3(fit.X, fit.Y, fit.Z);
 
             if (!_placed)
@@ -95,13 +103,23 @@ namespace Game.Presentation
             transform.position = new Vector3(along.x, height, along.y);
         }
 
+        // Measured from the kitchen, whichever player is furthest from it.
+        private float ClosestHeight(Game.Data.FloorPlanConfig floor)
+        {
+            var furthest = 0f;
+            foreach (var player in PlayerInput.all)
+                furthest = Mathf.Max(furthest, CameraFraming.DistanceOutside(Floor(player.transform.position), floor.KitchenAreaMin, floor.KitchenAreaMax));
+            return CameraFraming.ClosestHeight(furthest, _minHeight, _backPerMetreAway, _mostBack);
+        }
+
         private void CollectPoints()
         {
             _points.Clear();
             var plan = _root.Services.FloorPlan;
 
             // Nobody's in yet, or the day's done: the whole restaurant.
-            if (PlayerInput.all.Count == 0 || _root.Services.Days.Phase == DayPhase.Review)
+            _showingWhole = PlayerInput.all.Count == 0 || _root.Services.Days.Phase == DayPhase.Review;
+            if (_showingWhole)
             {
                 _points.Add(plan.RoomMin);
                 _points.Add(plan.RoomMax);

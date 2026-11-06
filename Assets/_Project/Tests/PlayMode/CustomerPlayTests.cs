@@ -652,5 +652,21 @@ namespace Game.Tests.PlayMode
             Assert.That(Camera.main.transform.position.y, Is.EqualTo(alone).Within(0.1f));
             InputSystem.RemoveDevice(pad);
         }
+
+        [UnityTest]
+        public IEnumerator TheCameraEasesBackAsAChefWalksAwayFromTheKitchen()
+        {
+            yield return OpenForBuying();
+            yield return new WaitForSeconds(8f);
+            var inTheKitchen = Camera.main.transform.position.y;
+
+            var controller = _player.GetComponent<CharacterController>();
+            controller.enabled = false;
+            _player.transform.position = new Vector3(-2f, _player.transform.position.y, -6f);
+            controller.enabled = true;
+            yield return new WaitForSeconds(6f);
+
+            Assert.That(Camera.main.transform.position.y, Is.GreaterThan(inTheKitchen + 1f));
+        }
     }
 }
