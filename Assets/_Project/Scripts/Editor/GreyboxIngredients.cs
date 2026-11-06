@@ -68,8 +68,14 @@ namespace Game.Editor
                 TargetCore = 54.5f, RestTargetSeconds = 180f,
                 // Order targets sit inside each band, so an ordered level scores perfect without
                 // tipping into the next one.
-                InitialTuning = so => SetDoneness(so,
-                    ("Rare", 45f, 50f), ("Medium", 55f, 60f), ("Well done", 65f, 70f)),
+                InitialTuning = so =>
+                {
+                    // Heat reaches the middle soon enough that well done comes before burnt, even at full heat.
+                    so.FindProperty("_surfaceCoreConductance").floatValue = 1.2f;
+                    so.FindProperty("_browningRate").floatValue = 1f / 14824f;
+                    SetDoneness(so,
+                    ("Rare", 45f, 50f), ("Medium", 55f, 60f), ("Well done", 65f, 70f));
+                },
             },
             new IngredientType
             {

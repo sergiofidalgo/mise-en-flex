@@ -228,5 +228,30 @@ namespace Game.Tests.EditMode
 
         [Test]
         public void CookingRunsSlowerThanTheClock() => Assert.That(Tuning.CookingSpeed, Is.LessThan(1f));
+
+        // The stages come in order even at full heat: a steak left on reaches well done, and there's
+        // still time to take it off before it burns.
+        [Test]
+        public void AtFullHeatASteakReachesWellDoneBeforeItBurns()
+        {
+            var (sim, _, pan) = Kitchen();
+            var steak = sim.AddIngredient(SteakDefinition.ToProperties());
+            pan.Put(steak);
+            SecondsUntilBrowning(sim, steak, 0.9f);
+            steak.Flip();
+
+            var wellDoneAt = -1f;
+            var seconds = 0f;
+            while (!steak.IsBurnt && seconds < 30f * Minute)
+            {
+                sim.Tick(1f);
+                seconds += 1f;
+                if (wellDoneAt < 0f && steak.Doneness?.Name == "Well done")
+                    wellDoneAt = seconds;
+            }
+
+            Assert.That(wellDoneAt, Is.GreaterThan(0f), "it reached well done");
+            Assert.That(seconds - wellDoneAt, Is.GreaterThan(1f * Minute), "with a game minute or more to spare");
+        }
     }
 }
