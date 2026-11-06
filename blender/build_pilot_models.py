@@ -6,6 +6,7 @@ Add `-- --preview <folder>` to also render a PNG of each model.
 
 Shapes are generated rather than saved as .blend files, so changes can be reviewed as text.
 Each model's coordinates are the object's own: 1 unit = 1 metre, origin at the base, centred.
+Mesh names must be unique across all models: Blender renames duplicates, and Unity finds meshes by name.
 
 Exporting maps Blender (x, y, z) to Unity (-x, z, -y), so Blender's +Y is the side facing the
 camera in the game (Unity's south, -Z). Unity's `ArtPilotAssetTests` checks these assumptions
@@ -114,7 +115,7 @@ def build_hob():
     for x in (-0.28, 0.0, 0.28):
         add_lathe(bm, [(0.05, 0.0), (0.05, 0.03), (0.04, 0.05), (0.0, 0.05)], segments=16,
                   centre=(x, 0.44, 0.73), axis_matrix=knob_axis)
-    body = finish("Body", bm)
+    body = finish("HobBody", bm)
 
     # The burner glows as one piece (HobView tints it). Its surface stays below the pan's
     # resting height of 0.91, so the pan never sinks into it.
@@ -123,7 +124,7 @@ def build_hob():
         (0.31, HOB_HEIGHT), (0.31, HOB_HEIGHT + 0.004), (0.30, HOB_HEIGHT + 0.008),
         (0.215, HOB_HEIGHT + 0.008), (0.20, HOB_HEIGHT + 0.004), (0.0, HOB_HEIGHT + 0.004),
     ])
-    burner = finish("Burner", bm)
+    burner = finish("HobBurner", bm)
     return [body, burner]
 
 
@@ -134,7 +135,7 @@ def build_pan():
         (0.0, 0.0), (0.20, 0.0), (0.212, 0.008), (0.218, 0.035), (0.22, 0.07),
         (0.214, 0.076), (0.205, 0.07), (0.196, PAN_FLOOR + 0.004), (0.185, PAN_FLOOR), (0.0, PAN_FLOOR),
     ])
-    body = finish("Body", bm)
+    body = finish("PanBody", bm)
 
     bm = bmesh.new()
     length = 0.24
@@ -146,7 +147,7 @@ def build_pan():
         vert.co = Vector((vert.co.x * width, start + along * length, 0.052 + vert.co.z * 0.03 + along * 0.016))
     bmesh.ops.bevel(bm, geom=list(bm.edges), offset=0.009, segments=BEVEL_SEGMENTS, profile=0.5,
                     affect='EDGES', clamp_overlap=True)
-    handle = finish("Handle", bm)
+    handle = finish("PanHandle", bm)
     return [body, handle]
 
 

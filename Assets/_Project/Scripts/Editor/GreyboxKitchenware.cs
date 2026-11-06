@@ -55,8 +55,8 @@ namespace Game.Editor
             handle.transform.localPosition = new Vector3(0f, PanDepth * 0.75f, -(PanDiameter + PanHandleScale.z) / 2f);
 
             // PanView tints the body with heat, so the handle gets its own colour with the model.
-            PilotArt.TryUseMesh(body, "SM_Pan", "Body");
-            if (PilotArt.TryUseMesh(handle, "SM_Pan", "Handle"))
+            PilotArt.TryUseMesh(body, "SM_Pan", "PanBody");
+            if (PilotArt.TryUseMesh(handle, "SM_Pan", "PanHandle"))
                 handle.GetComponent<Renderer>().sharedMaterial = GreyboxAssets.EnsureMaterial("PanHandle", PanHandleColor);
 
             var view = AddSlots(root, PanSlots, PanDepth);

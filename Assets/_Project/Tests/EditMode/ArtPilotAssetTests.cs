@@ -91,15 +91,15 @@ namespace Game.Tests.EditMode
         public void SteakFitsInThePan()
         {
             var steak = Model("SM_Steak", "SM_Steak").bounds;
-            var pan = Model("SM_Pan", "Body").bounds;
+            var pan = Model("SM_Pan", "PanBody").bounds;
             Assert.That(Mathf.Max(steak.size.x, steak.size.z), Is.LessThan(pan.size.x));
         }
 
         [Test]
         public void PanFitsTheGreyboxSizeWithTheHandleTowardsTheCamera()
         {
-            var body = Model("SM_Pan", "Body").bounds;
-            var handle = Model("SM_Pan", "Handle").bounds;
+            var body = Model("SM_Pan", "PanBody").bounds;
+            var handle = Model("SM_Pan", "PanHandle").bounds;
             Assert.That(body.size.x, Is.EqualTo(0.44f).Within(Tolerance));
             Assert.That(body.min.y, Is.EqualTo(0f).Within(Tolerance));
             Assert.That(handle.center.z, Is.LessThan(0f), "The handle should point south, towards the camera.");
@@ -108,8 +108,8 @@ namespace Game.Tests.EditMode
         [Test]
         public void HobFillsItsStationAndTheBurnerStaysBelowThePan()
         {
-            var body = Model("SM_Hob", "Body").bounds;
-            var burner = Model("SM_Hob", "Burner").bounds;
+            var body = Model("SM_Hob", "HobBody").bounds;
+            var burner = Model("SM_Hob", "HobBurner").bounds;
             Assert.That(body.size.x, Is.EqualTo(1f).Within(Tolerance));
             Assert.That(body.size.y, Is.EqualTo(0.9f).Within(Tolerance));
             Assert.That(body.size.z, Is.EqualTo(1f).Within(Tolerance));
