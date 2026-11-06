@@ -569,5 +569,33 @@ namespace Game.Tests.PlayMode
             controller.enabled = true;
             yield return WaitFor(() => agent.transform.position.z < -3.2f, 15f);
         }
+
+        [UnityTest]
+        public IEnumerator BeforeAnyoneJoinsItShowsTheWholeRestaurantThenZoomsIn()
+        {
+            yield return SceneManager.LoadSceneAsync(SceneName);
+            yield return null;
+            yield return null;
+            var camera = Camera.main;
+            var whole = camera.transform.position.y;
+
+            var keyboard = InputSystem.GetDevice<Keyboard>() ?? InputSystem.AddDevice<Keyboard>();
+            var mouse = InputSystem.GetDevice<Mouse>() ?? InputSystem.AddDevice<Mouse>();
+            Object.FindFirstObjectByType<PlayerInputManager>().JoinPlayer(controlScheme: "Keyboard&Mouse", pairWithDevices: new InputDevice[] { keyboard, mouse });
+            yield return WaitFor(() => camera.transform.position.y < whole - 0.5f, 10f);
+        }
+
+        [UnityTest]
+        public IEnumerator ACustomerOutOfViewDoesntMoveTheCamera()
+        {
+            yield return OpenForService();
+            var camera = Camera.main;
+            yield return new WaitForSeconds(15f); // settled, after zooming in from the whole restaurant
+            var before = camera.transform.position;
+
+            var customer = NextCustomer();
+            yield return new WaitForSeconds(2f);
+            Assert.That((camera.transform.position - before).magnitude, Is.LessThan(0.05f));
+        }
     }
 }

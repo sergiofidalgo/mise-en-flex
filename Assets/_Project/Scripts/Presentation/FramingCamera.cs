@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using Game.Gameplay;
-using Game.Gameplay.Customers;
-using Game.Gameplay.Stations;
+using Game.Gameplay.Staff;
 using Game.Simulation.Days;
 using Game.Simulation.Movement;
 using UnityEngine;
@@ -11,19 +10,18 @@ using SimVector2 = System.Numerics.Vector2;
 namespace Game.Presentation
 {
     /// <summary>
-    /// Follows the action: keeps every player and customer in view, zooming out as they spread apart
-    /// and in as they gather. During service the street door counts too, so someone walking in is
-    /// already on screen and doesn't make it jump. Its moves ease in and out, and it ignores small
-    /// changes, so it doesn't chase every step someone takes. It backs away sooner than it closes in,
-    /// so nobody leaves the screen.
+    /// Follows the people doing the work: keeps every player and staff member in view, zooming out as
+    /// they spread apart and in as they gather. To see all of a big restaurant, players have to split up.
+    /// Customers don't count: those out of view get markers at the edge of the screen. Before anyone joins,
+    /// and during the Review, it shows the whole restaurant. Its moves ease in and out, and it ignores
+    /// small changes, so it doesn't chase every step someone takes.
     /// </summary>
     [RequireComponent(typeof(Camera))]
     public sealed class FramingCamera : MonoBehaviour
     {
         [SerializeField] private KitchenCompositionRoot _root;
-        [SerializeField] private CustomerDirector _customers;
+        [SerializeField] private StaffDirector _staff;
         [SerializeField] private LayoutEditor _editor;
-        [SerializeField] private StreetDoor _door;
 
         [Tooltip("How far the camera looks down from the horizon, in degrees.")]
         [SerializeField, Range(10f, 89f)] private float _tilt = 55f;
@@ -32,19 +30,17 @@ namespace Game.Presentation
         [Tooltip("Metres of floor to keep beyond the farthest. Little: the share of the screen below gives the room.")]
         [SerializeField, Min(0f)] private float _farMargin = 0.7f;
         [Tooltip("Metres of floor to keep before the nearest. Little: nothing stands below them on screen.")]
-        [SerializeField, Min(0f)] private float _nearMargin = 0.15f;
+        [SerializeField, Min(0f)] private float _nearMargin = 0.6f;
         [Tooltip("Share of the screen to leave clear at the top, for heads, furniture and the prompts above them.")]
         [SerializeField, Range(0f, 0.45f)] private float _screenTop = 0.18f;
         [Tooltip("Share of the screen to leave clear at the bottom.")]
-        [SerializeField, Range(0f, 0.45f)] private float _screenBottom = 0f;
+        [SerializeField, Range(0f, 0.45f)] private float _screenBottom = 0.02f;
         [Tooltip("The closest it gets, in metres above the floor.")]
-        [SerializeField, Min(1f)] private float _minHeight = 9.2f;
+        [SerializeField, Min(1f)] private float _minHeight = 8.7f;
         [Tooltip("The furthest it gets, in metres above the floor.")]
         [SerializeField, Min(1f)] private float _maxHeight = 40f;
         [Tooltip("How far the building's outer walls are from where people can stand, in metres.")]
         [SerializeField, Min(0f)] private float _wallsBeyondRoom = 0.5f;
-        [Tooltip("How much floor beyond where people can stand counts at the bottom of the screen: the wall nearest the camera can drop off the edge, with the door just inside it, leaving more room at the top.")]
-        [SerializeField, Min(0f)] private float _floorAtTheBottom = 0.15f;
         [Tooltip("Roughly how many seconds it trails behind someone walking. Quicker than zooming: a chef walks fast, and the longer this is the closer they get to the edge.")]
         [SerializeField, Min(0.01f)] private float _followSeconds = 0.7f;
         [Tooltip("Roughly how many seconds it takes to back away to fit someone in.")]
@@ -74,7 +70,7 @@ namespace Game.Presentation
             CollectPoints();
             var floor = _root.Services.FloorPlan;
             var walls = new SimVector2(_wallsBeyondRoom, _wallsBeyondRoom);
-            var fit = CameraFraming.Fit(_points, _tilt, _camera.fieldOfView, _camera.aspect, _margin, _minHeight, _maxHeight, _farMargin - _margin, _nearMargin, _screenTop, _screenBottom, new SimVector2(floor.RoomMin.X - _wallsBeyondRoom, floor.RoomMin.Y - _floorAtTheBottom), floor.RoomMax + walls);
+            var fit = CameraFraming.Fit(_points, _tilt, _camera.fieldOfView, _camera.aspect, _margin, _minHeight, _maxHeight, _farMargin - _margin, _nearMargin, _screenTop, _screenBottom, floor.RoomMin - walls, floor.RoomMax + walls);
             var target = new Vector3(fit.X, fit.Y, fit.Z);
 
             if (!_placed)
@@ -102,22 +98,22 @@ namespace Game.Presentation
         private void CollectPoints()
         {
             _points.Clear();
+            var plan = _root.Services.FloorPlan;
+
+            // Nobody's in yet, or the day's done: the whole restaurant.
+            if (PlayerInput.all.Count == 0 || _root.Services.Days.Phase == DayPhase.Review)
+            {
+                _points.Add(plan.RoomMin);
+                _points.Add(plan.RoomMax);
+                return;
+            }
+
             foreach (var player in PlayerInput.all)
                 _points.Add(Floor(player.transform.position));
             foreach (var cursor in _editor.Cursors)
                 _points.Add(cursor.Held != null ? cursor.Landing : cursor.Position);
-            foreach (var agent in _customers.Agents.Values)
+            foreach (var agent in _staff.Agents)
                 _points.Add(Floor(agent.transform.position));
-            if (_points.Count > 0 && _root.Services.Days.Phase == DayPhase.Service)
-                _points.Add(Floor(_door.transform.position));
-
-            // Nobody in yet: the kitchen they're about to join.
-            if (_points.Count == 0)
-            {
-                var plan = _root.Services.FloorPlan;
-                _points.Add(plan.KitchenAreaMin);
-                _points.Add(plan.KitchenAreaMax);
-            }
         }
 
         private static SimVector2 Floor(Vector3 position) => new SimVector2(position.x, position.z);

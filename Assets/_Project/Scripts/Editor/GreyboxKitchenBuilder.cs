@@ -374,9 +374,8 @@ namespace Game.Editor
 
             var framing = new SerializedObject(camera.gameObject.AddComponent<FramingCamera>());
             framing.FindProperty("_root").objectReferenceValue = root;
-            framing.FindProperty("_customers").objectReferenceValue = Object.FindFirstObjectByType<Game.Gameplay.Customers.CustomerDirector>();
+            framing.FindProperty("_staff").objectReferenceValue = Object.FindFirstObjectByType<Game.Gameplay.Staff.StaffDirector>();
             framing.FindProperty("_editor").objectReferenceValue = Object.FindFirstObjectByType<LayoutEditor>();
-            framing.FindProperty("_door").objectReferenceValue = Object.FindFirstObjectByType<StreetDoor>();
             framing.FindProperty("_tilt").floatValue = CameraEuler.x;
             framing.ApplyModifiedPropertiesWithoutUndo();
 

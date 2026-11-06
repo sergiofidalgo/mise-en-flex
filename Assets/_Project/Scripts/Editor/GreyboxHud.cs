@@ -104,6 +104,13 @@ namespace Game.Editor
             layoutHud.FindProperty("_framePrefab").objectReferenceValue = GreyboxStaff.BuildCursorFrame();
             layoutHud.ApplyModifiedPropertiesWithoutUndo();
 
+            var markers = new SerializedObject(hud.AddComponent<CustomerIndicatorHud>());
+            markers.FindProperty("_canvas").objectReferenceValue = hud.GetComponent<RectTransform>();
+            markers.FindProperty("_style").objectReferenceValue = style;
+            markers.FindProperty("_root").objectReferenceValue = root;
+            markers.FindProperty("_customers").objectReferenceValue = Object.FindFirstObjectByType<Game.Gameplay.Customers.CustomerDirector>();
+            markers.ApplyModifiedPropertiesWithoutUndo();
+
             var bell = new SerializedObject(hud.AddComponent<BellHud>());
             bell.FindProperty("_canvas").objectReferenceValue = hud.GetComponent<RectTransform>();
             bell.FindProperty("_style").objectReferenceValue = style;
