@@ -89,5 +89,35 @@ namespace Game.Tests.EditMode
             AssertInView(camera, new Vector2(0f, -2f));
             Assert.That(camera.Y, Is.GreaterThan(Fit(2f, points).Y));
         }
+
+        // Where a floor point lands on screen: -1 at the bottom, 1 at the top.
+        private static float ScreenHeight(Vector3 camera, Vector2 point)
+        {
+            var radians = Tilt * (float)Math.PI / 180f;
+            var forward = new Vector3(0f, -(float)Math.Sin(radians), (float)Math.Cos(radians));
+            var up = new Vector3(0f, (float)Math.Cos(radians), (float)Math.Sin(radians));
+            var relative = new Vector3(point.X, 0f, point.Y) - camera;
+            return Vector3.Dot(relative, up) / (Vector3.Dot(relative, forward) * (float)Math.Tan(Fov * Math.PI / 360f));
+        }
+
+        [Test]
+        public void ItLeavesTheShareOfTheScreenItsAskedTo()
+        {
+            var points = new[] { new Vector2(0f, 3f), new Vector2(3f, -7.5f) };
+            var camera = CameraFraming.Fit(points, Tilt, Fov, Aspect, 0f, 1f, 200f, 0f, 0f, 0.2f, 0.05f);
+
+            Assert.That(ScreenHeight(camera, points[0]), Is.EqualTo(0.6f).Within(0.01f), "a fifth of the screen clear at the top");
+            Assert.That(ScreenHeight(camera, points[1]), Is.EqualTo(-0.9f).Within(0.01f), "a twentieth at the bottom");
+        }
+
+        [Test]
+        public void SpareRoomIsSharedEquallyOnScreen()
+        {
+            // Well above what they need: near floor mustn't get all the empty space.
+            var points = new[] { new Vector2(0f, 1f), new Vector2(0f, -1f) };
+            var camera = CameraFraming.Fit(points, Tilt, Fov, Aspect, 0f, 20f, 200f);
+
+            Assert.That(ScreenHeight(camera, points[0]), Is.EqualTo(-ScreenHeight(camera, points[1])).Within(0.01f));
+        }
     }
 }

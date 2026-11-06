@@ -27,10 +27,16 @@ namespace Game.Presentation
 
         [Tooltip("How far the camera looks down from the horizon, in degrees.")]
         [SerializeField, Range(10f, 89f)] private float _tilt = 55f;
-        [Tooltip("Metres of floor to keep around everyone.")]
+        [Tooltip("Metres of floor to keep at the sides of everyone.")]
         [SerializeField, Min(0f)] private float _margin = 2f;
-        [Tooltip("More metres at the top of the screen, where furniture and heads stand up into the view.")]
-        [SerializeField, Min(0f)] private float _extraAtTheTop = 3f;
+        [Tooltip("Metres of floor to keep beyond the farthest. Little: the share of the screen below gives the room.")]
+        [SerializeField, Min(0f)] private float _farMargin = 0.7f;
+        [Tooltip("Metres of floor to keep before the nearest. Little: nothing stands below them on screen.")]
+        [SerializeField, Min(0f)] private float _nearMargin = 0.7f;
+        [Tooltip("Share of the screen to leave clear at the top, for heads, furniture and the prompts above them.")]
+        [SerializeField, Range(0f, 0.45f)] private float _screenTop = 0.2f;
+        [Tooltip("Share of the screen to leave clear at the bottom.")]
+        [SerializeField, Range(0f, 0.45f)] private float _screenBottom = 0.04f;
         [Tooltip("The closest it gets, in metres above the floor.")]
         [SerializeField, Min(1f)] private float _minHeight = 11f;
         [Tooltip("The furthest it gets, in metres above the floor.")]
@@ -62,7 +68,7 @@ namespace Game.Presentation
         private void LateUpdate()
         {
             CollectPoints();
-            var fit = CameraFraming.Fit(_points, _tilt, _camera.fieldOfView, _camera.aspect, _margin, _minHeight, _maxHeight, _extraAtTheTop);
+            var fit = CameraFraming.Fit(_points, _tilt, _camera.fieldOfView, _camera.aspect, _margin, _minHeight, _maxHeight, _farMargin - _margin, _nearMargin, _screenTop, _screenBottom);
             var target = new Vector3(fit.X, fit.Y, fit.Z);
 
             if (!_placed)
