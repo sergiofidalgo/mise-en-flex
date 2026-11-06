@@ -1,7 +1,5 @@
 using System.Collections.Generic;
-using System.Linq;
 using Game.Gameplay;
-using Game.Gameplay.Stations;
 using Game.Simulation.Cooking;
 using UnityEngine;
 using UnityEngine.UI;
@@ -9,7 +7,8 @@ using UnityEngine.UI;
 namespace Game.Presentation.Hud
 {
     /// <summary>
-    /// One bar under each pan with food that needs flipping. Until the first flip a needle moves with
+    /// One bar under each pan with food that needs flipping, on the hob or off it: off the heat, the needle
+    /// slows as the pan cools, because it reads the food. Until the first flip a needle moves with
     /// the browning of the side facing down, through a green band towards burnt. After it, the bar shows
     /// the stages of doneness, with the needle following the middle of the food. Either way it pulses
     /// red when the side in the pan is about to burn (decisions 2026-11-03 and 06). Built in code:
@@ -46,7 +45,7 @@ namespace Game.Presentation.Hud
         [Tooltip("Bar size at the top of a pulse.")]
         [SerializeField, Min(1f)] private float _warningScale = 1.25f;
 
-        private readonly Dictionary<HobStation, Gauge> _gauges = new Dictionary<HobStation, Gauge>();
+        private readonly Dictionary<Pan, Gauge> _gauges = new Dictionary<Pan, Gauge>();
 
         private void LateUpdate()
         {
@@ -55,11 +54,10 @@ namespace Game.Presentation.Hud
                 return;
 
             var settings = _root.Services.Tuning.FlipGauge;
-            foreach (var hob in _root.Services.Stations.All.OfType<HobStation>())
+            foreach (var pan in _root.Services.Cooking.Pans)
             {
-                var gauge = GaugeFor(hob);
-                var pan = hob.Hob?.Pan;
-                var food = pan != null && pan.Contents.Count > 0 ? pan.Contents[0] : null;
+                var gauge = GaugeFor(pan);
+                var food = pan.Contents.Count > 0 ? pan.Contents[0] : null;
                 var stages = food != null && FlipGauge.ShowsStages(food);
                 if (food == null || !(stages || FlipGauge.Shows(food)) || !_root.Services.ItemViews.TryGetView(food, out var view))
                 {
@@ -112,9 +110,9 @@ namespace Game.Presentation.Hud
             bar.anchorMax = new Vector2(to, 1f);
         }
 
-        private Gauge GaugeFor(HobStation hob)
+        private Gauge GaugeFor(Pan pan)
         {
-            if (_gauges.TryGetValue(hob, out var gauge))
+            if (_gauges.TryGetValue(pan, out var gauge))
                 return gauge;
 
             var root = Bar("FlipGauge", _canvas, _track);
@@ -136,7 +134,7 @@ namespace Game.Presentation.Hud
             gauge.WarningImage = gauge.Warning.GetComponent<Image>();
             gauge.Needle.sizeDelta = new Vector2(_needleWidth, 0f);
             root.gameObject.SetActive(false);
-            _gauges[hob] = gauge;
+            _gauges[pan] = gauge;
             return gauge;
         }
 

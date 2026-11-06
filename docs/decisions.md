@@ -26,6 +26,16 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-07 — Food stops cooking on a plate
+
+**User's call:** a pan taken off the hob keeps cooking its food with its leftover heat, but food on a plate stops cooking. Plating is how a chef decides it's done. Replaces carryover cooking on the plate. The stronger carryover I proposed was not built.
+
+**User's call:** the bar shows on pans off the hob too, and the needle slows as the pan cools.
+
+**Details:** food on a plate still cools, so serving temperature still matters. Resting on a plate still counts towards the rest score.
+
+---
+
 ## 2026-11-07 — The camera follows the people working; markers for customers out of view
 
 **User's calls:**
