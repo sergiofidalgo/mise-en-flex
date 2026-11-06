@@ -55,9 +55,7 @@ namespace Game.Presentation
         {
             { "Raw", Cold },
             { "Rare", new Color(0.92f, 0.38f, 0.40f) },
-            { "Medium-rare", new Color(0.96f, 0.58f, 0.65f) },
             { "Medium", new Color(0.88f, 0.66f, 0.52f) },
-            { "Medium-well", new Color(0.75f, 0.62f, 0.50f) },
             { "Well done", new Color(0.65f, 0.62f, 0.60f) },
             { "Softened", new Color(0.92f, 0.85f, 0.55f) },
             { "Cooked", new Color(0.85f, 0.72f, 0.40f) },

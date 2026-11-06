@@ -56,7 +56,7 @@ namespace Game.Tests.EditMode
         }
 
         [Test]
-        public void SteakAssetIsMediumRareAtThreeMinutesPerSideInPreheatedPan()
+        public void SteakAssetIsRareAtThreeMinutesPerSideInPreheatedPan()
         {
             var steakDefinition = AssetDatabase.LoadAssetAtPath<IngredientDefinition>(SteakPath);
             var equipment = AssetDatabase.LoadAssetAtPath<EquipmentTier>(EquipmentPath);
@@ -79,7 +79,7 @@ namespace Game.Tests.EditMode
             pan.Take();
             sim.Tick(5f * Minute);
 
-            Assert.That(steak.Doneness?.Name, Is.EqualTo("Medium-rare"));
+            Assert.That(steak.Doneness?.Name, Is.EqualTo("Rare"));
             Assert.That(steak.IsBurnt, Is.False);
         }
 

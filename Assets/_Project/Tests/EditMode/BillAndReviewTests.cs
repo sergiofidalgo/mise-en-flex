@@ -238,10 +238,9 @@ namespace Game.Tests.EditMode
 
         // Real assets, best play: a top tip has to be reachable for each doneness on the menu, or the
         // top of the curve is a lie. Searches heat, time per side and rest like a skilled cook would.
-        [TestCase("Rare", 48f)]
-        [TestCase("Medium-rare", 54.5f)]
+        [TestCase("Rare", 50f)]
         [TestCase("Medium", 60f)]
-        [TestCase("Well done", 71f)]
+        [TestCase("Well done", 70f)]
         public void AWellPlayedSteakCanReachTheTopOfTheTipCurve(string doneness, float target)
         {
             var steakDefinition = AssetDatabase.LoadAssetAtPath<IngredientDefinition>("Assets/_Project/Data/Ingredients/ING_Steak.asset");

@@ -52,7 +52,7 @@ namespace Game.Data
         [Serializable]
         public sealed class DonenessWeight
         {
-            [Tooltip("A doneness level name of the main, e.g. \"Medium-rare\".")]
+            [Tooltip("A doneness level name of the main, e.g. \"Medium\".")]
             [SerializeField] private string _doneness;
             [Tooltip("How often it's ordered, relative to the others.")]
             [SerializeField, Min(0f)] private float _weight = 1f;
@@ -112,8 +112,7 @@ namespace Game.Data
         [Tooltip("Donenesses on the menu and how often each is ordered. Names must match the main's levels.")]
         [SerializeField] private DonenessWeight[] _donenessWeights =
         {
-            new DonenessWeight("Rare", 2f), new DonenessWeight("Medium-rare", 4f),
-            new DonenessWeight("Medium", 3f), new DonenessWeight("Well done", 1f),
+            new DonenessWeight("Rare", 3f), new DonenessWeight("Medium", 5f), new DonenessWeight("Well done", 2f),
         };
         [Tooltip("Optional side some customers add, e.g. sautéed onions.")]
         [SerializeField] private IngredientDefinition _side;

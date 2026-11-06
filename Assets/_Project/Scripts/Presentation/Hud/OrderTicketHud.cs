@@ -7,7 +7,7 @@ using UnityEngine;
 namespace Game.Presentation.Hud
 {
     /// <summary>
-    /// A ticket above each seated customer saying what they ordered, e.g. "Steak · Medium-rare
+    /// A ticket above each seated customer saying what they ordered, e.g. "Steak · Medium
     /// + Onions", with the doneness in its HUD colour so it can be matched against the food tags,
     /// and a patience meter under it. Shown from when they sit down until they're served
     /// (decision 2026-11-02). Customers queueing by the door show only the meter.

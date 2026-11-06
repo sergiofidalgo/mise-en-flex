@@ -128,7 +128,6 @@ namespace Game.Tests.EditMode
         // The promise of the gauge: flip on green and every order can still come out well, with
         // the second side and the heat deciding the doneness.
         [TestCase("Rare")]
-        [TestCase("Medium-rare")]
         [TestCase("Medium")]
         [TestCase("Well done")]
         public void FlippingOnGreenWorksForEveryOrder(string doneness)

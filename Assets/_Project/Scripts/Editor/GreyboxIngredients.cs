@@ -69,8 +69,7 @@ namespace Game.Editor
                 // Order targets sit inside each band, so an ordered level scores perfect without
                 // tipping into the next one.
                 InitialTuning = so => SetDoneness(so,
-                    ("Rare", 45f, 48f), ("Medium-rare", 52f, 54.5f), ("Medium", 57f, 60f),
-                    ("Medium-well", 63f, 65.5f), ("Well done", 68f, 71f)),
+                    ("Rare", 45f, 50f), ("Medium", 55f, 60f), ("Well done", 65f, 70f)),
             },
             new IngredientType
             {

@@ -179,7 +179,7 @@ namespace Game.Tests.EditMode
             Assert.That(menu.MainTypeId, Is.EqualTo("Steak"));
             Assert.That(menu.SideTypeId, Is.EqualTo("DicedOnion"));
             Assert.That(config.UnknownDonenesses(), Is.Empty);
-            Assert.That(menu.Choices.Count, Is.EqualTo(4));
+            Assert.That(menu.Choices.Count, Is.EqualTo(3));
         }
     }
 }
