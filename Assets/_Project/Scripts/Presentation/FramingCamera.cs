@@ -28,29 +28,29 @@ namespace Game.Presentation
         [Tooltip("Metres of floor to keep at the sides of everyone.")]
         [SerializeField, Min(0f)] private float _margin = 2f;
         [Tooltip("Metres of floor to keep beyond the farthest. Little: the share of the screen below gives the room.")]
-        [SerializeField, Min(0f)] private float _farMargin = 0.7f;
+        [SerializeField, Min(0f)] private float _farMargin = 1.5f;
         [Tooltip("Metres of floor to keep before the nearest. Little: nothing stands below them on screen.")]
         [SerializeField, Min(0f)] private float _nearMargin = 0.6f;
         [Tooltip("Share of the screen to leave clear at the top, for heads, furniture and the prompts above them.")]
         [SerializeField, Range(0f, 0.45f)] private float _screenTop = 0.18f;
         [Tooltip("Share of the screen to leave clear at the bottom.")]
-        [SerializeField, Range(0f, 0.45f)] private float _screenBottom = 0.02f;
+        [SerializeField, Range(0f, 0.45f)] private float _screenBottom = 0.06f;
         [Tooltip("The closest it gets, in metres above the floor.")]
-        [SerializeField, Min(1f)] private float _minHeight = 8.7f;
+        [SerializeField, Min(1f)] private float _minHeight = 6.5f;
         [Tooltip("The furthest it gets, in metres above the floor.")]
         [SerializeField, Min(1f)] private float _maxHeight = 40f;
         [Tooltip("How far the building's outer walls are from where people can stand, in metres.")]
         [SerializeField, Min(0f)] private float _wallsBeyondRoom = 0.5f;
         [Tooltip("Roughly how many seconds it trails behind someone walking. Quicker than zooming: a chef walks fast, and the longer this is the closer they get to the edge.")]
-        [SerializeField, Min(0.01f)] private float _followSeconds = 0.7f;
+        [SerializeField, Min(0.01f)] private float _followSeconds = 0.4f;
         [Tooltip("Roughly how many seconds it takes to back away to fit someone in.")]
         [SerializeField, Min(0.01f)] private float _zoomOutSeconds = 1f;
         [Tooltip("Roughly how many seconds it takes to close in again. Slower, so it doesn't pump.")]
         [SerializeField, Min(0.01f)] private float _zoomInSeconds = 2f;
         [Tooltip("The fastest it ever moves, in metres per second.")]
-        [SerializeField, Min(0.1f)] private float _maxSpeed = 8f;
+        [SerializeField, Min(0.1f)] private float _maxSpeed = 14f;
         [Tooltip("How far where it should be has to drift, in metres, before it bothers moving.")]
-        [SerializeField, Min(0f)] private float _settleDistance = 1f;
+        [SerializeField, Min(0f)] private float _settleDistance = 0.4f;
 
         private readonly List<SimVector2> _points = new List<SimVector2>();
         private Camera _camera;

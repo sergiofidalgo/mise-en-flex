@@ -597,5 +597,60 @@ namespace Game.Tests.PlayMode
             yield return new WaitForSeconds(2f);
             Assert.That((camera.transform.position - before).magnitude, Is.LessThan(0.05f));
         }
+
+        // Anywhere a chef can stand, all of them is on screen, once the camera's caught up.
+        [TestCase(2.4f, 1.5f, ExpectedResult = null)]
+        [TestCase(-3.3f, -6.4f, ExpectedResult = null)]
+        [TestCase(3.3f, -6.4f, ExpectedResult = null)]
+        [TestCase(-3f, -1.5f, ExpectedResult = null)]
+        [UnityTest]
+        public IEnumerator TheCameraKeepsTheChefOnScreen(float x, float z)
+        {
+            yield return OpenForBuying();
+            var controller = _player.GetComponent<CharacterController>();
+            var y = _player.transform.position.y;
+            controller.enabled = false;
+            _player.transform.position = new Vector3(x, y, z);
+            controller.enabled = true;
+            yield return new WaitForSeconds(5f);
+
+            var camera = Camera.main;
+            var feet = camera.WorldToViewportPoint(_player.transform.position);
+            var head = camera.WorldToViewportPoint(_player.transform.position + Vector3.up * 1.7f);
+            Assert.That(feet.y, Is.GreaterThan(0f), "feet");
+            Assert.That(head.y, Is.LessThan(1f), "head");
+            Assert.That(feet.x, Is.InRange(0f, 1f));
+        }
+
+        [UnityTest]
+        public IEnumerator FromTheKitchenTheStreetDoorIsOutOfViewSoMarkersShow()
+        {
+            yield return OpenForBuying();
+            yield return new WaitForSeconds(10f); // settled, on the chef in the kitchen
+
+            var door = Object.FindFirstObjectByType<StreetDoor>();
+            var viewport = Camera.main.WorldToViewportPoint(door.transform.position);
+            Assert.That(viewport.y, Is.LessThan(0f));
+        }
+
+        [UnityTest]
+        public IEnumerator TwoPlayersTogetherGetTheCloseView()
+        {
+            yield return OpenForBuying();
+            yield return new WaitForSeconds(10f);
+            var alone = Camera.main.transform.position.y;
+
+            var pad = InputSystem.AddDevice<Gamepad>();
+            var second = Object.FindFirstObjectByType<PlayerInputManager>().JoinPlayer(pairWithDevice: pad);
+            yield return null;
+            var controller = second.GetComponent<CharacterController>();
+            controller.enabled = false;
+            second.transform.position = _player.transform.position + new Vector3(1f, 0f, 0f);
+            controller.enabled = true;
+            yield return new WaitForSeconds(5f);
+
+            Assert.That(Camera.main.transform.position.y, Is.EqualTo(alone).Within(0.1f));
+            InputSystem.RemoveDevice(pad);
+        }
     }
 }
