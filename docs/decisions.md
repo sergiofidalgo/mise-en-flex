@@ -4,6 +4,140 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-06 — Roadmap: a Campaign phase and a guided first day
+
+**Decision (user's call):** two new phases. **Phase 6, Campaign,** covers the office, buying restaurants, the boss, the tablet station, service styles and decoration. **Phase 8, Guided first day,** comes after Content, once mechanics have settled. Content moves to Phase 7, and Art and polish to Phase 9. Phase 5 gains the read-only Review dashboard, vendors, the cookbook and cleaning.
+
+**Reason:** The campaign design adds a lot that no phase covered, and the guided first day depends on nearly everything else.
+
+**Trade-off:** no new player can try the full first-day flow until Phase 8, though its parts can be tested as they're built. Phase 6 is large and may need splitting when it's planned.
+
+**Older entries** use the previous phase numbers.
+
+---
+
+## 2026-11-07 — The camera follows the people working; markers for customers out of view
+
+**User's calls:**
+- **The door and customers no longer count for the framing.** In a big restaurant the door may be far from the kitchen by design, and players see all of it by splitting up. Staff count like players. Replaces framing the door during service.
+- **In the Review, and before anyone joins, the whole restaurant shows.** Once a player joins, the camera zooms in.
+- **A customer out of view gets a marker on the edge of the screen:** a round timer while waiting for food, no timer while eating, and a face showing how it went for a couple of seconds as they leave.
+
+**After play (user's calls):** the camera comes in closer and follows chefs more tightly, because it cut them off. It comes no closer than 6.5 m up, so two players together get a comfortable view, and from the kitchen a customer's walk from the door shows a marker for a while.
+
+**Details (proposed; flagged for review, tunable on `CustomerIndicatorHud`):**
+- **A plain dot for anyone else out of view,** walking in or queueing.
+- **Faces:** 4 stars and up is happy, 2.5 and up neutral, anything else or walking out unhappy.
+- **Icons are drawn in code** until the art phase, rather than real emoji.
+- **A group's markers spread out along the edge,** one each.
+
+---
+
+## 2026-11-06 — The waiter, the bell, and who's for hire where
+
+**User's calls:**
+- **Plates wait on any counter, and players ring a bell (X) to send one out.** It works before a waiter is hired too. Replaces my proposed dedicated pass counter.
+- **A waiter serves only the diner whose order matches,** one plate at a time, serving before clearing. Wages are €45-70 a day for now.
+- **The pile of dirty plates unlocks the waiter.** The cleaner looks after surfaces and plates; with a pile and a waiter, the cleaner focuses on washing.
+- **Waiters and cleaners are only for hire from restaurant two.** Restaurant one only has helpers.
+- **Waiters and cleaners wait and roam in the dining room,** not the kitchen.
+
+**Details (proposed; flagged for review, tunable in `StaffConfig`):**
+- **`_restaurantNumber` says which restaurant this is,** set to 1, until the campaign provides it in Phase 5. Set it to 2 to try cleaners and waiters.
+- **The dishwasher is now called the cleaner** on screen. They don't clean surfaces yet: that comes with cleaning (design doc §15.8).
+- **A waiter who slips drops the plate at the counter,** breaking it and losing the dish. The plate is replaced in the morning, like others.
+- **If a diner leaves while the plate's on its way,** it goes back on a free counter and rings again.
+- **Waiters walk at 3 m/s,** other staff at 2.
+- **Staff blocked by someone standing still go another way round, or wait until there's space (user's call).** They never push through a player.
+- **With a waiter, the cleaner no longer clears tables,** even against the wall.
+
+**Not built:** the bell's sound, shown only as an "Order up!" label for now. The pile as an unlock is recorded but has nothing to check yet, because the pile can't be bought or sold; it matters once it can (Phase 5). A rung plate that can't go to anyone just stays rung.
+
+---
+
+## 2026-11-06 — Slower cooking, one bar under the pan, and how crust is judged
+
+**User's calls:** a bar guides players through the cooking stages, teaching that more heat means more crust and faster cooking, and less heat a blander, slower steak. The ideal is high heat for crust, flip once, then low until done. A warning comes before burning. Cooking runs slower than the clock, at 70% of its pace: full speed burnt too fast, and half felt too long (user's call). Crust is judged by the better side, and any side close to burnt loses points. Replaces averaging the two sides.
+
+**Details (proposed; tunable in `TuningConfig`):**
+- **One bar at a time,** as two gauges were too much: the crust gauge until the first flip, then the stages of doneness, with a needle following the steak's middle. It reads the hottest the middle has been, as doneness does.
+- **The warning:** the bar pulses red from browning 1.5 (burnt is 2) on the side in the pan. Flipping clears it.
+- **The slower speed is for food and pans only:** the clock, customers and staff run as before. Resting and cooling take longer in real time too.
+
+**Measured for a medium order at half speed, scale by 5/7 for 70%:** full heat to the flip (about 4 s), then 40%, takes about 18 s with full crust marks. Full heat throughout takes 15 s, but crust falls to 0.20. A steady 70% scores as well as searing and takes about as long, so searing isn't the only good way; it's worth watching in play.
+
+**After play (user's call: too slow, and medium went straight to burnt, so well done was impossible):** heat moves through a steak faster (surface to core conductance 0.9 to 1.2) and it browns 15% slower. Medium comes about 3 s sooner, and at full heat well done now comes before burnt.
+
+**Not built:** smoke as a burn warning.
+
+---
+
+## 2026-11-06 — Steak has five stages
+
+**User's call:** a steak goes raw, rare, medium, well done, burnt. Replaces the seven stages, which also had medium-rare and medium-well.
+
+**Details (proposed; tunable on `ING_Steak`):** rare from 45 °C, medium from 55 °C, well done from 65 °C, with orders aiming for 50, 60 and 70 °C. Orders come 30% rare, 50% medium, 20% well done, in the same spirit as the old mix.
+
+---
+
+## 2026-11-06 — Confirmed: mornings, office saves, the first style, keeping a name
+
+**User's calls (the first four were flagged as proposals in the entry below):**
+- **Yesterday's mess is cleaned during Prep,** and how messy it is depends on how the service went.
+- **The boss's collection is worked out as Review starts and shown on the dashboard.** Warnings and repossessions happen in person the next morning.
+- **Everything done in the office saves immediately,** including changing a player's appearance.
+- **Only finished days count towards a restaurant's 7-day fee.**
+- **The first restaurant is a grill with a fixed service style.** Players choose only its name, and can change the style later from the tablet. The first real style choice comes with the second restaurant.
+- **Keeping a restaurant's name keeps its old reviews; a new name starts with none.**
+- **Combinations are judged preliminarily like this:** service style sets most expectations, each cuisine adds a few of its own, and only combinations that earn it get custom review lines.
+- **Customer photos, if built, stay inside the game,** with no export. The photo system itself is still a proposal in `ideas.md`.
+- **Unusual combinations are worth trying in play:** they attract fewer regular customers but more influencers, so an odd pairing is a gamble and not simply harder. To judge once influencers exist.
+
+---
+
+## 2026-11-06 — Review is a read-only scene; saving, style at purchase, decoration choices
+
+**User's calls:**
+- **Review is a read-only scene,** a dashboard players browse: the service, customers, dishes, money lost and earned, overall progress, and more. It starts as soon as the day ends and the last customer leaves. Replaces the Review card over a walkable kitchen.
+- **The game saves as Review starts, and the moment a restaurant is bought in the office.** Leaving a restaurant at any other point in the day loses that day's progress, and players must be clearly told so. Replaces the two saves proposed earlier today.
+- **Review and the tablet station give the decoration hints:** "great steak, but I expected candles" appears in Review, and on the tablet's history during Prep.
+- **Decoration includes floor patterns, wall colours and windows.**
+- **Cuisine and service style are two choices, and any combination is allowed.** Reviews and tips judge how well it works, so fine-dining pizza is possible.
+- **Style and name are chosen when buying a restaurant.** Players pick a new name or keep the previous owner's.
+- **Recipes cost money to unlock.** Players browse them freely and decide which to buy.
+- **A customer who orders something out of stock** loses patience as usual.
+
+**Details (proposed while writing this up; flagged for review):**
+- **Anything else done in the office also saves immediately,** such as borrowing from the boss, so it can't be undone by quitting.
+- **Only finished days count towards the 7 days before fees fall due.**
+- **Because Review is read-only, the boss's collection is worked out as it starts and shown on the dashboard. Anything he does in person, such as a warning or repossession, happens the next morning.**
+- **Service mess is cleaned the next morning,** because Review starts as soon as the last customer leaves. Dirt is saved with the restaurant.
+
+**Reason:** A read-only Review makes one clear save point, right after the day is decided, so no result can be undone by quitting during it.
+
+---
+
+## 2026-11-06 — The cookbook, hidden decoration taste, changing style, saving at Review
+
+**User's calls:**
+- **The cookbook sets the menu.** It opens from the management menu. A restaurant's style decides which ingredients the market sells and which recipes the cookbook offers. Players choose which recipes to unlock, which configures the menu, and that tells them which ingredients to keep in stock. Replaces "buying a new ingredient unlocks recipes".
+- **Each recipe shows** its complexity, the appliances and ingredients it depends on, its approximate cost and the value it generates.
+- **Recipes carried over from an earlier campaign can be used at any restaurant,** ignoring the style's limits, which gives a new chef a real head start. The cookbook is the same thing as the recipe book.
+- **Players discover the cookbook on the first day:** after buying the plate pile, the boss asks for the dish he wants, so players see why they next need steaks and onions.
+- **Decoration should match the style, and players aren't told what that means.** Fine dining expects bigger tables, lamps, plants, art, solemn colours and more staff; a burger place values functionality such as bar tables, bins and game stations, and more eclectic decoration.
+- **Style can be changed at any time from the tablet station,** at a real cost, such as selling furniture that doesn't suit the new style.
+- **The game saves at the Review phase and only then,** before the next day starts. Replaces continuous saving.
+- **"Vibe" isn't a separate system:** a restaurant simply starts with its previous owner's style and decoration.
+
+**Details (proposed while writing this up; flagged for review):**
+- **Two saves within Review:** one on entering it, so a bad service can't be undone by quitting during the Review, and one on leaving it, so a purchase made in the office between days counts. Trips to the office happen at this point.
+- **Collection and the boss's escalation happen in Review,** so they're saved straight away.
+- **Quitting at any other time replays that day from the morning.** This means players can quit mid-service to retry a bad one. That seems an acceptable price on a couch game.
+- **Changing style has no fee of its own.** The cost is half-price furniture sales, new decoration, and reviews suffering until the place matches.
+- **The boss's dish is free to unlock.** Later recipes may cost money (open, see `ideas.md`).
+
+---
+
 ## 2026-11-06 — The campaign, the boss and the first day
 
 **User's calls (full picture in `game-design.md` §15):**
@@ -70,12 +204,13 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 - **The camera follows the action,** zooming out as players or customers spread apart and in as they gather. The restaurant can grow as much as players want, so a fixed camera won't do. Replaces the fixed camera decided for Phases 0–3 and moves this up from size tiers.
 
 **Details (proposed while building; flagged for review):**
-- **The building is 10 × 12 m:** the kitchen as it was, and a 5 m deep dining room to its south. A low wall runs between them, so the camera sees over it. The door is 1.2 m wide, west of the hatch, and swings open for whoever's near. It never blocks anyone.
+- **The building is the first restaurant, a small steakhouse, 8 × 9 m (user's call):** a kitchen 5 m deep and a dining room 4 m deep to its south. A low wall runs between them, so the camera sees over it. The door is 1.2 m wide, west of the hatch, and swings open for whoever's near. It never blocks anyone. The sink and dirty pile start on the east wall, to leave about 2 m of the dividing wall free for tables.
 - **Tables are bought with none at the start,** and only go in the dining room; kitchen furniture stays in the kitchen. Within a room, layouts are still free. Tables bought in Plan or Prep count from that day's service.
-- **Only players clear tables.** The dishwasher still clears the pass, leaving the tables as the waiter's job.
+- **No pass and no stools (user's call):** the wall between the rooms closes up, and the restaurant starts with three bar tables against its dining side, served across it. This frees that row of the kitchen. It replaces the counter service of 2026-11-02.
+- **The dishwasher clears any table against the wall,** from the kitchen side. Tables away from it are for players, and later the waiter.
 - **A customer with no way to their seat gives up:** a lost cover, no penalty, and the seat goes to the next. Someone leaving always gets out, and someone blocked by people for 2 seconds walks through, so a bad layout costs money but can't freeze a service.
 - **Pushing a seated customer moves them,** and they walk straight back.
-- **The camera** keeps its 55 degree tilt, keeps 2 m of floor around everyone, and backs away faster than it closes in. Staff don't count towards the framing, as they stay in the kitchen. Tunable on `FramingCamera`.
+- **The camera** keeps its 55 degree tilt and leaves 18% of the screen clear at the top. It doesn't show much beyond the building's walls, and centres on it once it all fits. It pans quickly and zooms slowly (user's call: subtle and effortless). Staff don't count towards the framing, as they stay in the kitchen. Tunable on `FramingCamera`.
 
 **Later the same milestone (2026-11-05 and 06).**
 
@@ -130,7 +265,6 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 - **Anything can be moved,** and what's on a station moves with it. Two players can't hold the same station.
 - **Placements are refused** outside the piece's own room, on another station, or on a person. The reason shows at the cursor.
 - **A layout is never refused for being bad (user's call):** a blocked hob, a cut-off counter or a walled-in chef are all allowed, and players find out by walking it. This replaces the earlier rules that work stations keep a clear front and that nothing gets cut off. Learning by playing beats being prevented. A helper with no way to a station stands and waits rather than working from a distance.
-- **The pass doesn't move:** it's the hatch in the wall between the rooms, so it's part of the building (replaces sliding along its row).
 - **What's carried turns red where it can't go (user's call),** and the floor frame only shows while choosing what to pick up.
 - **What's carried stays on the floor (user's call):** lifted, the angled camera drew it away from where it would land. Being carried shows through brightness, or red.
 - **Service stops rearranging:** management mode isn't available during Service or Review.

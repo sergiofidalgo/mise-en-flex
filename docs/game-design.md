@@ -21,7 +21,7 @@ Every feature must serve at least one.
 ### Hard rules
 
 - **No automated pipelines.** No conveyors, auto-cookers or grabbers. Help comes from hired staff, who are people with skill, speed, fatigue and mistakes. Staff never perform signature techniques.
-- **No roguelite runs.** There is one campaign at a time, saved continuously. Failure costs money, reputation, staff morale, appliances or restaurants. A campaign ends only after the boss's full escalation (§15.3), and the recipe book survives it.
+- **No roguelite runs.** There is one campaign at a time, saved as each Review starts. Failure costs money, reputation, staff morale, appliances or restaurants. A campaign ends only after the boss's full escalation (§15.3), and the cookbook survives it.
 
 ### What we're reacting against
 
@@ -79,10 +79,10 @@ Each in-game day runs **Plan → Prep → Service → Close → Review**, then t
 | Phase | What happens | Time pressure |
 | --- | --- | --- |
 | **Plan** | Set the menu and prices, order from suppliers, hire/fire staff, edit layout (each player has their own cursor in a shared view) | None |
-| **Prep** | Mise en place: stock station storage and board rails, pre-cut, make stocks and sauces, preheat | Soft (a clock, but no customers) |
+| **Prep** | Clean up yesterday's mess. Mise en place: stock station storage and board rails, pre-cut, make stocks and sauces, preheat | Soft (a clock, but no customers) |
 | **Service** | Customers arrive, order, wait, eat, pay and review | High |
-| **Close** | Clean, store leftovers, deal with waste and spoilage | Low |
-| **Review** | Money, reputation, reviews, staff morale, what went wrong | None |
+| **Close** | Store leftovers, deal with waste and spoilage | Low |
+| **Review** | A read-only dashboard scene, starting as soon as the last customer leaves: the service, customers, dishes, money lost and earned, overall progress | None |
 
 **Open:** length of a service in real minutes (recommendation: start around 6–8 minutes and tune); whether Prep has a hard time limit or ends when players ready up; whether Close is played or summarised.
 
@@ -201,7 +201,7 @@ Each cuisine has a **signature mechanic** that staff never perform:
 | Spanish home cooking | **Open** |
 | Wok | **Open** |
 
-Cuisines arrive one at a time in Phase 6. The first cuisine should come out of the Phase 1 steak and onion work.
+Cuisines arrive one at a time in Phase 7. The first cuisine should come out of the Phase 1 steak and onion work.
 
 ### 8.2 Service styles
 
@@ -209,7 +209,7 @@ Cuisines arrive one at a time in Phase 6. The first cuisine should come out of t
 - **Bistro:** the middle ground.
 - **Fine dining:** few covers, high prices, demanding quality and plating.
 
-**Open:** whether service style is chosen per restaurant or per day.
+Service style is chosen per restaurant, separately from cuisine, and any combination is allowed. Reviews and tips judge how well it works, so fine-dining pizza is possible. Service style sets most expectations, and each cuisine adds a few of its own. Unusual combinations attract fewer regular customers but more influencers (to try in play).
 
 ---
 
@@ -239,13 +239,11 @@ Hireable staff (Phase 3): **dishwasher, waiter, runner, prep assistant**.
 
 ## 11. Economy and progression
 
-- **Suppliers:** street vendors near the restaurant, cheap vs. premium. Ingredient quality affects dish quality and freshness. Style decides what they sell, and a new ingredient unlocks recipes (§15.5).
+- **Suppliers:** street vendors near the restaurant, cheap vs. premium. Ingredient quality affects dish quality and freshness. Style decides what they sell (§15.5).
 - **Menu pricing:** set by the players; affects demand and expectations.
 - **Costs:** rent (scales with size tier), wages, equipment.
 - **Debt:** players can sell, fire, downsize or borrow more from the boss. Falling behind on what he's owed starts the escalation in §15.3.
-- **Recipe book** (replaces the chef profile): lasts across campaigns and stays in the boss's office for the next chef.
-
-**Open:** what the recipe book gives a new chef (see `ideas.md`).
+- **Cookbook** (replaces the chef profile): sets the menu (§15.5), lasts across campaigns and stays in the boss's office for the next chef, whose carried-over recipes work at any restaurant.
 
 ---
 
@@ -282,9 +280,9 @@ Collected from above, for discussion:
 2. Service length; Prep time limit; is Close played? (§4)
 3. Quality formula, weights and in-service visibility (§7.1)
 4. Signature mechanic for each cuisine (§8.1)
-5. Service style per restaurant or per day (§8.2)
+5. How reviews and tips judge cuisine and service style combinations (§8.2, `ideas.md`)
 6. How staff are directed (§10)
-7. What the recipe book gives a new chef (§11)
+7. How customer forecasts are shown in Prep (§15.5, `ideas.md`)
 8. Realism presets (§12)
 
 Also still open: whether a second player can join mid-service (§2). The close-up transition (§3.2) and the three ways to carry (§6.3) are proposals waiting for a decision.
@@ -303,27 +301,31 @@ The boss, a Texas oil oligarch who always has two bodyguards with him, is convin
 
 ### 15.2 The boss's office
 
-The game opens in the office, a lobby where players join, walk around and change their character. A city miniature there is used to buy restaurants and move between them. Each business on transfer shows its price, size, previous vibe (which players can change), old customer reviews and inherited appliances. At first players can only afford the smallest, a grill. Vendors and scenery around each restaurant should suit its location.
+The game opens in the office, a lobby where players join, walk around and change their character. A city miniature there is used to buy restaurants and move between them. Each business on transfer shows its price, size, previous style and decoration (which players can change), old customer reviews and inherited appliances. At first players can only afford the smallest, a grill. When buying, players choose its style and either a new name or the previous owner's. Keeping the name keeps the old reviews, and a new name starts with none. The first restaurant is the exception: it's a grill with a fixed service style, and players choose only its name. Vendors and scenery around each restaurant should suit its location.
 
 ### 15.3 Money trouble
 
-Players can sell things, fire staff, downsize, or go back to the office and borrow more. If they can't pay what the boss is owed, it escalates:
+Players can sell things, fire staff, downsize, or go back to the office and borrow more. His collection is worked out as Review starts and shown on the dashboard, and anything he does in person happens the next morning. If they can't pay what he's owed, it escalates:
 
 1. The boss visits and warns them.
 2. His bodyguards repossess appliances, on screen.
 3. He takes a restaurant.
-4. They're erased. Money and restaurants go, and the recipe book stays in his office for the next chef.
+4. They're erased. Money and restaurants go, and the cookbook stays in his office for the next chef.
 
 ### 15.4 Time, saves and the ending
 
-- **One campaign at a time.** Everything saves continuously, with no save slots.
+- **One campaign at a time,** with no save slots. The game saves as Review starts and whenever anything is done in the office, such as buying a restaurant, borrowing or changing a player's appearance. Leaving a restaurant at any other point in the day loses that day's progress, and players are clearly told so first.
 - **A restaurant only runs while players are in it.** The others sit idle.
-- **Fees come due every 7 days played in that restaurant,** and that collection day also sets the week's goal.
+- **Fees come due every 7 finished days played in that restaurant,** and that collection day also sets the week's goal.
 - **The ending:** once every restaurant on the miniature is unlocked, players take over the empire. The bodyguards follow player 1 and guard the door from outside in restaurants. This is when players really make money, and can hire and decorate more heavily.
 
 ### 15.5 Recipes and stock
 
-Style decides which ingredients vendors sell. Buying a new ingredient for the first time introduces its mechanics and unlocks one or more recipes, and customers can order them from then on. Harder recipes pay more. Players must keep every unlocked ingredient in stock. They can leave during service to buy more, at the cost of time, so Prep is where they plan around the approximate number of customers expected.
+The **cookbook** opens from the management menu. A restaurant's style decides which ingredients the market sells and which recipes the cookbook offers. Players browse recipes freely and pay to unlock the ones they choose. That configures the menu, and customers can order those recipes from then on. Each recipe shows its complexity, the appliances and ingredients it depends on, its approximate cost and the value it generates. Harder recipes pay more. New mechanics are introduced progressively as new recipes and ingredients arrive.
+
+Players must keep what their menu needs in stock. A customer who orders something out of stock loses patience as usual. Players can leave during service to buy more, at the cost of time, so Prep is where they plan around the approximate number of customers expected.
+
+Recipes carried over from an earlier campaign work at any restaurant, ignoring its style's limits.
 
 ### 15.6 Two devices
 
@@ -338,8 +340,9 @@ Every step should be fun from the start and very light. Tasks appear one at a ti
 | --- | --- | --- |
 | **Office** | Join, change character, meet the boss, buy the grill on the miniature | The goal and the debt |
 | **Clean up** | Look round the inherited restaurant and clean dirt on floors, tables and counters | Moving, Use, what's in the restaurant |
-| **The call** | The boss phones: he's coming with friends, so have enough plates and onion steaks ready | The goal for the day |
+| **The call** | The boss phones: he's coming with friends, so they'll need enough plates | The goal for the day |
 | **First appliance** | There are no plates at all, so players open management mode (Select) and buy a plate pile | Management mode and buying |
+| **The cookbook** | The boss asks for the dish he wants, onion steak. Players find it in the cookbook and see it needs steaks and onions | The cookbook and the menu |
 | **Vendors** | Leave the restaurant and buy food from the street vendors | Shopping and budget |
 | **Getting ready** | Stock the fridge and shelf, and prep the onions | Storage and prep |
 | **The boss arrives** | He's alone, as his friends made a cheap excuse. He sits and eats while the bodyguards stand behind him | Cooking, orders, serving |
@@ -350,8 +353,16 @@ Every step should be fun from the start and very light. Tasks appear one at a ti
 
 ### 15.8 Cleaning
 
-Dirt can be on floors, tables and counters, and is cleaned the same way everywhere: approach it, hold X and move the stick to match a pattern. The chef uses a mop or a cloth depending on the surface. It should be fun, light, and different from the sink's balancing game.
+Dirt can be on floors, tables and counters, and is cleaned the same way everywhere: approach it, hold X and move the stick to match a pattern. The chef uses a mop or a cloth depending on the surface. It should be fun, light, and different from the sink's balancing game. Review starts as soon as the last customer leaves, so a service's mess waits until the next morning's Prep, and how much there is depends on how the service went.
 
 ### 15.9 Decoration
 
 Decoration affects reviews and the profile of customers who come. The food can be delicious while the place doesn't feel original, clean, or in keeping with its style.
+
+It covers furniture and objects as well as floor patterns, wall colours and windows.
+
+Decoration should match the style, and players aren't told what that means. They work it out from reviews such as "great steak, but I expected candles", shown in Review and in the tablet's history during Prep. Fine dining expects bigger tables, lamps, plants, art, solemn colours and more staff. A burger place values functionality such as bar tables, bins and game stations, and more eclectic decoration.
+
+### 15.10 Changing style
+
+Players can change a restaurant's style at any time from the tablet station. It's a real investment: furniture that doesn't suit the new style has to be sold, new decoration bought, and reviews suffer until the place matches.

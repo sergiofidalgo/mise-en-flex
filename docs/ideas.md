@@ -4,25 +4,59 @@ Ideas worth keeping that aren't decided or scheduled yet. When one is accepted, 
 
 ---
 
+## Test scenarios: start at any restaurant on any day
+
+*Added 2026-11-06 · Relevant phase: 5 (built with the campaign save) · Supports: verification, tuning*
+
+**The idea (user's question):** to test the experience of "restaurant C on day 7" without playing the campaign up to that point.
+
+**How it could work (proposal):**
+- **A scenario is a campaign save file:** layout, staff, stock, money, reputation and day number, plus a random seed.
+- **Launcher:** a small Editor tool lists the scenarios. Pick one, press Play, and the game starts at that day's Plan phase.
+- **Two ways to create them:** a debug key captures the current moment from play, or a file is written by hand for situations not reached yet ("broke, with a tired crew and a critic due").
+- **Automated checks:** EditMode tests load a scenario to check the simulation, and a PlayMode smoke test checks the scene runs without errors. Fast-forwarding through days to check the money curve needs a simple stand-in for how well players cook. Whether a day is fun can only be judged by playing it.
+
+**Risks:**
+- **Stale scenarios:** save migration keeps old files loading, but a day 7 tuned for today's balance may stop representing a real day 7 after retuning. Keep only a few named scenarios, and regenerate them instead of patching them.
+- **Repeatable days:** a scenario needs the same customers and orders each run, or before and after can't be compared. All randomness must come from the stored seed. Not yet checked for the current customer and group spawning.
+
+**Suggested phasing:** build the launcher together with the save system, as it adds little work then and tests saving from day one. Until then, a config asset could set the starting day, money and tables when pressing Play in the greybox.
+
+---
+
+## Customers take real photos that appear on the listing
+
+*Added 2026-11-06 · Relevant phases: 6 (listing, first test with dish photos), 7 (influencers), 9 (looks good once there's art) · Pillars: identity, plannable chaos*
+
+**The idea (user's):** customers raise their phones when things go very well or very bad, which is a signal during service. The restaurant's listing then shows those photos beside the reviews, taken from what really happened: plates, decoration, even a player cutting fish in a focused state.
+
+**How it could work (proposal):**
+- **Real moments:** a one-frame render from a second camera near the customer, with the HUD hidden. Food already gets its look from the simulation, so a burnt steak photographs as burnt.
+- **Triggers:** a very high or low dish score, decoration far from what the style expects, a player on a streak of perfect cuts, or a fire. The customer's reaction shows which kind it is, as a raised phone alone could mean either.
+- **Photos back up reviews:** "Perfect pizza, but €40 on a plastic stool?" comes with a photo of the stool.
+- **Limits:** a few photos a day at about 512 px, saved with the restaurant, keeping the best and worst over time. An asynchronous readback should keep it from causing a hitch at 60 fps.
+
+**Risks:** the overhead game view hides things a close-up won't, so photos will look rough until Phase 9's art, and chefs need a focused pose or animation. Automatic framing can also clip through walls or furniture, so each subject needs a set of safe camera angles, with no photo if none is clear.
+
+**Not exported (user's call, 2026-11-06):** photos stay inside the game.
+
+**Possible later:** an album of the campaign could be kept after an erasure.
+
+---
+
 ## Questions from the campaign design
 
-*Added 2026-11-06 · Relevant phases: 5 (saves, economy), 6 (content), then the guided first day once mechanics settle · Pillars: all · See `game-design.md` §15*
+*Added 2026-11-06 · Relevant phases: 5 (saves, economy), 6 (campaign), 7 (content), 8 (guided first day) · Pillars: all · See `game-design.md` §15*
 
-**What does the recipe book give a new chef?** Recipes unlock by buying ingredients, so remembering them gives no advantage by itself. Recommendation: recipes in the book can be bought in any restaurant, ignoring its style's limits, which gives a new chef a real head start. The alternative is only skipping the introductions.
+**Entering a name on a controller.** Needs a letter grid, plus a few suggested names so nobody has to use it.
 
-**Can a recipe be taken off the menu?** Customers can order anything unlocked, so one curious purchase would otherwise commit players to stocking that ingredient for good. Recommendation: unlocks are permanent, but players choose what's on the menu in Plan, as §4 already suggests. A customer who orders something out of stock simply waits, giving players the chance to run to the vendors.
-
-**What does "style" mean?** The design doc has two separate things: cuisine (grill, pizzeria) and service style (fast casual, bistro, fine dining), and the old "vibe" is a third word. Recommendation: cuisine decides ingredients, while service style and decoration decide who comes and what they expect. Reviews then judge decoration against both.
-
-**Does the ending allow sticking to one cuisine?** Unlocking every restaurant must not force players to run every cuisine. Recommendation: any restaurant can be converted once bought, as the vibe-changing idea already implies.
+**How are cuisine and service style combinations judged?** Agreed in outline (`decisions.md`): rules for all 18 combinations would be too much, so service style sets most expectations, each cuisine adds a few, and only combinations that earn it get custom lines. Still to settle: the actual expectations and their weights, how much an unusual combination changes who comes, and which combinations count as unusual. Examples discussed: decoration pieces carry tags such as formal, functional, eclectic or warm; reviews keep commenting on the worst thing, so each fix surfaces the next problem ("Perfect pizza, but €40 on a plastic stool?"); about 10–20 custom lines, added late ("I came to laugh at fine-dining pizza. I've booked again.").
 
 **What's at stake after the takeover?** With the boss gone, debt and erasure stop mattering. Could be enough as a victory lap with bigger goals, or could need a new pressure such as a rival.
 
 **How is the customer forecast shown?** Prep needs an approximate number. Recommendation: a range based on reputation, seats and day, shown in words or as a range and never exact, and a good review should visibly raise it the next day.
 
 **Where do loan repayments fall?** Each restaurant has its own collection day, but a loan belongs to the campaign. Recommendation: a collection covers that restaurant's cut plus an instalment of the loan. Leaving before day 7 only delays a fee, by at most 6 days per restaurant, so it isn't an exploit, and it's a fair breather for a failing place.
-
-**What exactly does "continuous" saving mean?** Saving the full state of a live service (every pan, customer and helper) is a lot of work. Recommendation: save at every phase change and purchase, so quitting mid-service restarts that service. Erasure must be saved immediately.
 
 **The cleaning pattern.** Recommendation to try first: rotate the stick in circles, with tougher stains asking for back-and-forth or a change of direction. It should take a second or two per stain, any motion should count, and it should be impossible to fail. The chef stays put while doing it, as at the sink.
 
