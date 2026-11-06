@@ -471,12 +471,7 @@ namespace Game.Tests.PlayMode
             services.Days.Advance();
             yield return null;
 
-            // A chef standing in a corridor stops a waiter, so this one's out of the way.
-            var controller = _player.GetComponent<CharacterController>();
-            controller.enabled = false;
-            _player.transform.position = new Vector3(2.45f, _player.transform.position.y, 1f);
-            controller.enabled = true;
-
+            // The chef stays where they are, standing in a corridor: the waiter goes another way round.
             var customer = NextCustomer();
             yield return WaitFor(() => customer.State == CustomerState.Waiting, 20f);
 
@@ -540,6 +535,39 @@ namespace Game.Tests.PlayMode
             var later = Enumerable.Range(1, 30).SelectMany(day => config.CandidatesFor(day, 2)).Select(c => c.Role).Distinct().ToArray();
             Assert.That(later, Does.Contain(Game.Simulation.Staff.StaffRole.Waiter));
             Assert.That(later, Does.Contain(Game.Simulation.Staff.StaffRole.Dishwasher));
+        }
+
+        [UnityTest]
+        public IEnumerator WithNoWayRoundAWaiterWaitsForTheChefToMove()
+        {
+            yield return OpenForBuying();
+            var services = _root.Services;
+            var director = HireForTheSecondRestaurant(Game.Simulation.Staff.StaffRole.Waiter);
+            ControlTheService();
+            services.Days.Advance();
+            yield return null;
+            services.Days.Advance();
+            yield return null;
+
+            // The kitchen door is the only way between the rooms, and the chef's standing in it.
+            var controller = _player.GetComponent<CharacterController>();
+            var y = _player.transform.position.y;
+            controller.enabled = false;
+            _player.transform.position = new Vector3(-2.9f, y, -3f);
+            controller.enabled = true;
+
+            var agent = director.Agents[0];
+            yield return WaitFor(() => agent.transform.position.x < -1.5f && agent.transform.position.z > -2.9f, 15f);
+            for (var seconds = 0f; seconds < 2f; seconds += Time.deltaTime)
+            {
+                Assert.That(agent.transform.position.z, Is.GreaterThan(-2.9f), "they don't push through");
+                yield return null;
+            }
+
+            controller.enabled = false;
+            _player.transform.position = new Vector3(2.45f, y, 1f);
+            controller.enabled = true;
+            yield return WaitFor(() => agent.transform.position.z < -3.2f, 15f);
         }
     }
 }

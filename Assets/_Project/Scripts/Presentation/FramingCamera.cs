@@ -32,17 +32,19 @@ namespace Game.Presentation
         [Tooltip("Metres of floor to keep beyond the farthest. Little: the share of the screen below gives the room.")]
         [SerializeField, Min(0f)] private float _farMargin = 0.7f;
         [Tooltip("Metres of floor to keep before the nearest. Little: nothing stands below them on screen.")]
-        [SerializeField, Min(0f)] private float _nearMargin = 0.55f;
+        [SerializeField, Min(0f)] private float _nearMargin = 0.15f;
         [Tooltip("Share of the screen to leave clear at the top, for heads, furniture and the prompts above them.")]
-        [SerializeField, Range(0f, 0.45f)] private float _screenTop = 0.12f;
+        [SerializeField, Range(0f, 0.45f)] private float _screenTop = 0.18f;
         [Tooltip("Share of the screen to leave clear at the bottom.")]
-        [SerializeField, Range(0f, 0.45f)] private float _screenBottom = 0.015f;
+        [SerializeField, Range(0f, 0.45f)] private float _screenBottom = 0f;
         [Tooltip("The closest it gets, in metres above the floor.")]
-        [SerializeField, Min(1f)] private float _minHeight = 8.7f;
+        [SerializeField, Min(1f)] private float _minHeight = 9.2f;
         [Tooltip("The furthest it gets, in metres above the floor.")]
         [SerializeField, Min(1f)] private float _maxHeight = 40f;
         [Tooltip("How far the building's outer walls are from where people can stand, in metres.")]
         [SerializeField, Min(0f)] private float _wallsBeyondRoom = 0.5f;
+        [Tooltip("How much floor beyond where people can stand counts at the bottom of the screen: the wall nearest the camera can drop off the edge, with the door just inside it, leaving more room at the top.")]
+        [SerializeField, Min(0f)] private float _floorAtTheBottom = 0.15f;
         [Tooltip("Roughly how many seconds it trails behind someone walking. Quicker than zooming: a chef walks fast, and the longer this is the closer they get to the edge.")]
         [SerializeField, Min(0.01f)] private float _followSeconds = 0.7f;
         [Tooltip("Roughly how many seconds it takes to back away to fit someone in.")]
@@ -72,7 +74,7 @@ namespace Game.Presentation
             CollectPoints();
             var floor = _root.Services.FloorPlan;
             var walls = new SimVector2(_wallsBeyondRoom, _wallsBeyondRoom);
-            var fit = CameraFraming.Fit(_points, _tilt, _camera.fieldOfView, _camera.aspect, _margin, _minHeight, _maxHeight, _farMargin - _margin, _nearMargin, _screenTop, _screenBottom, floor.RoomMin - walls, floor.RoomMax + walls);
+            var fit = CameraFraming.Fit(_points, _tilt, _camera.fieldOfView, _camera.aspect, _margin, _minHeight, _maxHeight, _farMargin - _margin, _nearMargin, _screenTop, _screenBottom, new SimVector2(floor.RoomMin.X - _wallsBeyondRoom, floor.RoomMin.Y - _floorAtTheBottom), floor.RoomMax + walls);
             var target = new Vector3(fit.X, fit.Y, fit.Z);
 
             if (!_placed)

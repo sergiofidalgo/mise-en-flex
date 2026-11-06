@@ -48,6 +48,12 @@ namespace Game.Gameplay.Staff
         private StationLayout _layout;
 
         [SerializeField] private CustomerDirector _customers;
+        [Tooltip("Real seconds over which a helper's progress is measured.")]
+        [SerializeField, Min(0.1f)] private float _blockedSeconds = 1f;
+        [Tooltip("Metres they have to cover in that time, or they look for another way round whoever's in the way.")]
+        [SerializeField, Min(0f)] private float _blockedDistance = 0.4f;
+        [Tooltip("Half a person's width for planning around them, on top of the walker's own.")]
+        [SerializeField, Min(0f)] private float _personHalfWidth = 0.3f;
         [Tooltip("Real seconds a waiter or cleaner with nothing to do stands around, at most, between strolls.")]
         [SerializeField, Min(0f)] private float _roamPauseSeconds = 4f;
 
@@ -376,6 +382,9 @@ namespace Game.Gameplay.Staff
                 return true;
             }
 
+            FindAWayAroundIfBlocked(route, station, here);
+            point = route.Points[route.Next];
+
             var next = Steering.Step(here, point, step, _others, _layout.IsFree);
             agent.Intent = next - here;
             agent.Face(new Vector3(next.X - here.X, 0f, next.Y - here.Y));
@@ -433,6 +442,38 @@ namespace Game.Gameplay.Staff
         }
 
         private static System.Numerics.Vector2 Floor(Vector3 position) => new System.Numerics.Vector2(position.x, position.z);
+
+        // Someone standing in the way: staff go another way round if there is one, and otherwise wait for
+        // them to move. They never push through a player. Measured over a stretch of time, because
+        // someone blocked still shuffles from side to side.
+        private void FindAWayAroundIfBlocked(Route route, Interactable station, System.Numerics.Vector2 here)
+        {
+            if (route.CheckedAt <= 0f)
+            {
+                route.CheckedAt = Time.time;
+                route.CheckedFrom = here;
+                return;
+            }
+            if (Time.time - route.CheckedAt < _blockedSeconds)
+                return;
+
+            var covered = (here - route.CheckedFrom).Length();
+            route.CheckedAt = Time.time;
+            route.CheckedFrom = here;
+            if (covered >= _blockedDistance)
+                return;
+
+            var people = new List<Footprint>();
+            var size = new System.Numerics.Vector2(_personHalfWidth, _personHalfWidth);
+            foreach (var person in _others)
+                people.Add(new Footprint(person, 0f, size));
+            var around = _root.Services.NewLayout(people).FindPathTo(here, station.Footprint);
+            if (around != null)
+            {
+                route.Points = around;
+                route.Next = 0;
+            }
+        }
 
         // Waiters and cleaners wait in the dining room, not the kitchen, strolling around it.
         private static bool RoamsWhenIdle(StaffAgent agent) =>
@@ -515,6 +556,10 @@ namespace Game.Gameplay.Staff
 
             // When they may start back, once nobody's pressing against them.
             public float ReturnAt;
+
+            // Where they were when their progress was last checked, and when.
+            public float CheckedAt;
+            public System.Numerics.Vector2 CheckedFrom;
 
             // With no way there, when to look for one again.
             public float RetryAt;
