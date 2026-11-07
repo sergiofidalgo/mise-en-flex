@@ -4,6 +4,20 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-07 — Fridge and shelf models; the fridge opens and chefs bend while using them
+
+**Decision (user's call):** the fridge and shelf get Blender models like the hob. While a chef holds RT at a fridge (its menu open), the door swings open with a puff of cold air and closes when they let go. At a shelf, the chef bends forward at the waist instead. The fridge door raises events for a door sound, which the sound session adds.
+
+**Details (proposed and accepted):**
+- The fridge is a refrigerated prep counter: pans in the top, laid out like the face buttons, and a door on the side facing the camera. Its hinge is on the left, so the open door swings out beside the chef instead of into them.
+- The shelf is a low two-tier open unit, with baskets on top and crates and sacks below.
+- The chef is now two placeholder parts, legs and a torso hinged at the waist, so it can bend. It's still not character art: the same height, colours and nose as the capsule.
+- Two players at one fridge keep it open until both let go.
+
+**Not verified:** the mist doesn't show in still captures, so it needs checking in play.
+
+---
+
 ## 2026-11-07 — Kinds of heat and kitchenware replace equipment tiers
 
 **Decision (user's calls):**

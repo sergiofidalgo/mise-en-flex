@@ -97,6 +97,8 @@ namespace Game.Editor
 
         // Carried items sit in front of the chest, clear of the body so they read from above.
         private static readonly Vector3 CarryAnchorPosition = new Vector3(0f, 1.05f, 0.5f);
+        // Where the chef bends; must match CHEF_WAIST in blender/build_pilot_models.py.
+        private const float ChefWaistHeight = 0.85f;
         // The knife sits at the chef's right side, so it reads separately from what's carried.
         private static readonly Vector3 ToolAnchorPosition = new Vector3(0.4f, 0.95f, 0.15f);
 
@@ -280,15 +282,32 @@ namespace Game.Editor
             var visuals = new GameObject("Visuals").transform;
             visuals.SetParent(root.transform, false);
 
-            var body = GreyboxAssets.CreatePrimitive(PrimitiveType.Capsule, "Body", visuals, null, keepCollider: false);
-            body.transform.localScale = BodyScale;
-            body.transform.localPosition = new Vector3(0f, BodyScale.y, 0f); // capsule is 2 units tall
+            // Two parts, so the chef can bend at the waist (reaching into a shelf). Placeholder
+            // capsule halves unless the chef model exists; the torso hangs from the waist.
+            var halfScale = new Vector3(BodyScale.x, BodyScale.y / 2f, BodyScale.z);
+            var legs = GreyboxAssets.CreatePrimitive(PrimitiveType.Capsule, "Legs", visuals, null, keepCollider: false);
+            legs.transform.localScale = halfScale;
+            legs.transform.localPosition = new Vector3(0f, halfScale.y, 0f); // capsule is 2 units tall
+            PilotArt.TryUseMesh(legs, "SM_Chef", "ChefLegs");
 
-            // A nose shows facing direction from the overhead camera.
+            var waist = new GameObject("Waist").transform;
+            waist.SetParent(visuals, false);
+            waist.localPosition = new Vector3(0f, ChefWaistHeight, 0f);
+            var torso = GreyboxAssets.CreatePrimitive(PrimitiveType.Capsule, "Torso", waist, null, keepCollider: false);
+            torso.transform.localScale = halfScale;
+            torso.transform.localPosition = new Vector3(0f, halfScale.y, 0f);
+            PilotArt.TryUseMesh(torso, "SM_Chef", "ChefTorso");
+
+            // A nose shows facing direction from the overhead camera; it bends with the torso.
             var nose = GreyboxAssets.CreatePrimitive(
-                PrimitiveType.Cube, "Nose", visuals, GreyboxAssets.EnsureMaterial("Nose", NoseColor), keepCollider: false);
+                PrimitiveType.Cube, "Nose", waist, GreyboxAssets.EnsureMaterial("Nose", NoseColor), keepCollider: false);
             nose.transform.localScale = NoseScale;
-            nose.transform.localPosition = new Vector3(0f, BodyScale.y * 1.5f, BodyScale.z * 0.5f);
+            nose.transform.localPosition = new Vector3(0f, BodyScale.y * 1.5f - ChefWaistHeight, BodyScale.z * 0.5f);
+
+            var use = new SerializedObject(root.AddComponent<StorageUseView>());
+            use.FindProperty("_interactor").objectReferenceValue = interactor;
+            use.FindProperty("_waist").objectReferenceValue = waist;
+            use.ApplyModifiedPropertiesWithoutUndo();
 
             var visual = root.AddComponent<PlayerVisual>();
             var so = new SerializedObject(visual);
@@ -296,8 +315,9 @@ namespace Game.Editor
             so.FindProperty("_playerInput").objectReferenceValue = playerInput;
             so.FindProperty("_popTarget").objectReferenceValue = visuals;
             var renderers = so.FindProperty("_tintedRenderers");
-            renderers.arraySize = 1;
-            renderers.GetArrayElementAtIndex(0).objectReferenceValue = body.GetComponent<Renderer>();
+            renderers.arraySize = 2;
+            renderers.GetArrayElementAtIndex(0).objectReferenceValue = legs.GetComponent<Renderer>();
+            renderers.GetArrayElementAtIndex(1).objectReferenceValue = torso.GetComponent<Renderer>();
             so.ApplyModifiedPropertiesWithoutUndo();
 
             var prefab = PrefabUtility.SaveAsPrefabAsset(root, PlayerPrefabPath);

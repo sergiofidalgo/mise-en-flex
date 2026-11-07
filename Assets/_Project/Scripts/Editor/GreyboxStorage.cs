@@ -63,6 +63,9 @@ namespace Game.Editor
                 var bin = GreyboxAssets.CreatePrimitive(PrimitiveType.Cube, $"Bin_{(FaceButton)i}", station.transform, binMaterial, keepCollider: false);
                 bin.transform.localScale = BinScale;
                 bin.transform.localPosition = BinOffsets[i] + Vector3.up * (height + BinScale.y / 2f);
+                // A modelled pan or basket has its origin at its base, sitting on the top.
+                if (PilotArt.TryUseMesh(bin, StorageArt.ModelFor(unit.Refrigerated), StorageArt.BinMesh(unit.Refrigerated)))
+                    bin.transform.localPosition = BinOffsets[i] + Vector3.up * height;
                 bins[i] = bin.transform;
 
                 foreach (var type in GreyboxIngredients.Types)
@@ -79,6 +82,7 @@ namespace Game.Editor
                 }
             }
             viewSo.ApplyModifiedPropertiesWithoutUndo();
+            StorageArt.Dress(station, unit.Refrigerated);
 
             var so = new SerializedObject(station);
             so.FindProperty("_refrigerated").boolValue = unit.Refrigerated;

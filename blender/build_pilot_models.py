@@ -197,6 +197,87 @@ def build_steak():
     return [finish("SM_Steak", bm)]
 
 
+# Storage units are counter height with the same 1 m footprint as the hob. Their four bins sit on
+# top, at the positions GreyboxStorage gives them, so the models only provide the bins' shape.
+STORAGE_HEIGHT = 0.9
+# Where the fridge door's hinge is, in Blender coordinates: the game's (-0.42, 0.1, -0.435).
+# Must match StorageArt.DoorHinge. The door's mesh is built around its hinge, so it swings there.
+FRIDGE_HINGE = (0.42, 0.435, 0.1)
+# The chef bends at the waist: the torso's origin is there. Must match the player builder.
+CHEF_WAIST = 0.85
+
+
+def build_fridge():
+    """A refrigerated prep counter: pans in the top, a door on the side facing the camera."""
+    bm = bmesh.new()
+    add_box(bm, (1.0, 1.0, 0.06), (0.0, 0.0, STORAGE_HEIGHT - 0.03), bevel=0.015)
+    add_box(bm, (0.96, 0.92, 0.77), (0.0, -0.02, 0.455), bevel=0.015)
+    add_box(bm, (0.88, 0.84, 0.07), (0.0, -0.02, 0.035))
+    body = finish("FridgeBody", bm)
+
+    # Seen when the door opens: a dark, cold-looking opening just in front of the carcass.
+    bm = bmesh.new()
+    add_box(bm, (0.8, 0.006, 0.66), (0.0, 0.443, 0.44))
+    interior = finish("FridgeInterior", bm)
+
+    # Built around its hinge on the left (as seen in the game), opening out towards the camera.
+    bm = bmesh.new()
+    add_box(bm, (0.84, 0.035, 0.7), (-0.42, 0.0175, 0.35), bevel=0.01)
+    # The handle stays within the 1 m footprint: the door's front is at 0.47, the handle's at 0.495.
+    add_box(bm, (0.03, 0.025, 0.34), (-0.76, 0.0475, 0.4), bevel=0.008)
+    door = finish("FridgeDoor", bm)
+    door.location = FRIDGE_HINGE
+
+    # One gastronorm pan; the game places four.
+    bm = bmesh.new()
+    add_box(bm, (0.24, 0.24, 0.03), (0.0, 0.0, 0.015), bevel=0.006)
+    pan = finish("FridgePan", bm)
+    pan.location = (0.0, 0.0, STORAGE_HEIGHT)
+    return [body, interior, door, pan]
+
+
+def build_shelf():
+    """A low two-tier open shelf, with crates and sacks below and baskets on top."""
+    bm = bmesh.new()
+    add_box(bm, (1.0, 1.0, 0.05), (0.0, 0.0, STORAGE_HEIGHT - 0.025), bevel=0.01)
+    for x in (-0.47, 0.47):
+        for y in (-0.47, 0.47):
+            add_box(bm, (0.06, 0.06, 0.85), (x, y, 0.425), bevel=0.008)
+    add_box(bm, (0.94, 0.94, 0.03), (0.0, 0.0, 0.45), bevel=0.006)
+    add_box(bm, (0.94, 0.94, 0.03), (0.0, 0.0, 0.08), bevel=0.006)
+    body = finish("ShelfBody", bm)
+
+    # Something on each lower tier, so it reads as a working shelf rather than a table.
+    bm = bmesh.new()
+    add_box(bm, (0.3, 0.3, 0.2), (-0.25, 0.0, 0.565), bevel=0.012)
+    add_box(bm, (0.28, 0.26, 0.18), (0.2, 0.1, 0.555), bevel=0.012)
+    add_box(bm, (0.32, 0.28, 0.24), (-0.05, -0.1, 0.215), bevel=0.06)
+    add_box(bm, (0.26, 0.26, 0.2), (0.28, 0.15, 0.195), bevel=0.05)
+    goods = finish("ShelfGoods", bm)
+
+    bm = bmesh.new()
+    add_box(bm, (0.24, 0.24, 0.03), (0.0, 0.0, 0.015), bevel=0.008)
+    basket = finish("ShelfBasket", bm)
+    basket.location = (0.0, 0.0, STORAGE_HEIGHT)
+    return [body, goods, basket]
+
+
+def build_chef():
+    """A placeholder chef in two parts, so it can bend at the waist. Not final character art."""
+    bm = bmesh.new()
+    add_lathe(bm, [(0.0, 0.0), (0.28, 0.0), (0.33, 0.03), (0.35, 0.1), (0.35, 0.75),
+                   (0.3, 0.88), (0.18, 0.94), (0.0, 0.95)], segments=32)
+    legs = finish("ChefLegs", bm)
+
+    # Its origin is the waist; it starts a little below, so no gap opens when it bends.
+    bm = bmesh.new()
+    add_lathe(bm, [(0.0, -0.05), (0.25, -0.05), (0.33, 0.0), (0.35, 0.08), (0.35, 0.55),
+                   (0.33, 0.68), (0.26, 0.78), (0.14, 0.84), (0.0, 0.85)], segments=32)
+    torso = finish("ChefTorso", bm)
+    torso.location = (0.0, 0.0, CHEF_WAIST)
+    return [legs, torso]
+
+
 def export_fbx(objects, filename):
     bpy.ops.object.select_all(action='DESELECT')
     for obj in objects:
@@ -258,6 +339,9 @@ def main():
         "SM_Hob.fbx": build_hob(),
         "SM_Pan.fbx": build_pan(),
         "SM_Steak.fbx": build_steak(),
+        "SM_Fridge.fbx": build_fridge(),
+        "SM_Shelf.fbx": build_shelf(),
+        "SM_Chef.fbx": build_chef(),
     }
     for filename, objects in models.items():
         export_fbx(objects, filename)

@@ -32,6 +32,9 @@ namespace Game.Editor
 
         private const float DetailHeight = 2f;
         private const float PlayHeight = 6.5f;
+        private const float StorageRowX = -20f;
+        private const float StorageSpacing = 1.2f;
+        private const float StorageDetailHeight = 3f;
         private const float VarietyRowX = 15f;
         private const float VarietySpacing = 0.34f;
         private const float VarietyCameraHeight = 1.5f;
@@ -120,6 +123,22 @@ namespace Game.Editor
                 hob.transform.Find("DonenessChip").gameObject.SetActive(false);
             }
 
+            // Storage, away from the hobs: a fridge shut, one open with its chef and cold air, a shelf
+            // with a chef bent over it, and an empty shelf.
+            var fridgePrefab = Load<GameObject>("Assets/_Project/Prefabs/Furniture/PF_Fridge.prefab");
+            var shelfPrefab = Load<GameObject>("Assets/_Project/Prefabs/Furniture/PF_Shelf.prefab");
+            UnityEngine.Object.Instantiate(fridgePrefab, StoragePosition(0), Quaternion.identity);
+            var openFridge = UnityEngine.Object.Instantiate(fridgePrefab, StoragePosition(1), Quaternion.identity);
+            openFridge.GetComponent<FridgeDoorView>().Show(1f);
+            var mist = openFridge.transform.Find("ColdMist").GetComponent<ParticleSystem>();
+            mist.Emit(14);
+            mist.Simulate(0.35f, true, false);
+            UnityEngine.Object.Instantiate(chefPrefab, StoragePosition(1) + Vector3.back * ChefDistanceInFront, Quaternion.identity);
+            UnityEngine.Object.Instantiate(shelfPrefab, StoragePosition(2), Quaternion.identity);
+            var bentChef = UnityEngine.Object.Instantiate(chefPrefab, StoragePosition(2) + Vector3.back * ChefDistanceInFront, Quaternion.identity);
+            bentChef.GetComponent<StorageUseView>().Show(1f);
+            UnityEngine.Object.Instantiate(shelfPrefab, StoragePosition(3), Quaternion.identity);
+
             var camera = new GameObject("Capture Camera").AddComponent<Camera>();
             camera.fieldOfView = CameraFieldOfView;
             camera.clearFlags = CameraClearFlags.SolidColor;
@@ -129,6 +148,9 @@ namespace Game.Editor
             foreach (var view in Views)
                 Render(camera, target, new Vector3(0f, HobTop, view.LookAtZ), view.Height, Path.Combine(folder, $"pilot_{view.Name}.png"));
             Render(camera, target, new Vector3(VarietyRowX, 0f, 0f), VarietyCameraHeight, Path.Combine(folder, "pilot_variety.png"));
+            var storageCentre = (StoragePosition(0) + StoragePosition(3)) / 2f + Vector3.up * HobTop;
+            Render(camera, target, storageCentre, StorageDetailHeight, Path.Combine(folder, "storage_detail.png"));
+            Render(camera, target, storageCentre, PlayHeight, Path.Combine(folder, "storage_play.png"));
 
             // Before the first flip: only the underside has cooked, and the top is still raw.
             foreach (var (steakView, stage) in steakViews)
@@ -138,6 +160,8 @@ namespace Game.Editor
             target.Release();
             Debug.Log($"[ArtPilotCapture] Saved to {folder}");
         }
+
+        private static Vector3 StoragePosition(int index) => new Vector3(StorageRowX + index * StorageSpacing, 0f, 0f);
 
         private const float PanFloorHeight = 0.04f; // PanDepth in GreyboxKitchenware
         private const float HobTop = 0.9f;
