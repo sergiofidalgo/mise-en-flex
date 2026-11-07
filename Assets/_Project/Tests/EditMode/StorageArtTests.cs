@@ -92,6 +92,86 @@ namespace Game.Tests.EditMode
             Assert.That(Prefab(ShelfPath).GetComponent<FridgeDoorView>(), Is.Null);
         }
 
+        [Test]
+        public void FreeAngleStopsAtTheFirstBlockedStep()
+        {
+            Assert.That(Swing.FreeAngle(105f, 5f, angle => false), Is.EqualTo(105f));
+            Assert.That(Swing.FreeAngle(105f, 5f, angle => angle >= 88f), Is.EqualTo(85f));
+            Assert.That(Swing.FreeAngle(105f, 5f, angle => true), Is.EqualTo(0f));
+        }
+
+        // A fridge with boxes standing in for walls or furniture on either side of it.
+        private static (FridgeDoorView Door, GameObject[] Scenery) FridgeBetween(bool wallLeft, bool wallRight)
+        {
+            var fridge = (GameObject)PrefabUtility.InstantiatePrefab(Prefab(FridgePath));
+            fridge.transform.position = new Vector3(100f, 0f, 100f); // clear of anything open in the editor
+            var scenery = new System.Collections.Generic.List<GameObject> { fridge };
+            void Wall(float x)
+            {
+                var wall = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                wall.transform.position = new Vector3(100f + x, 1f, 100f - 0.5f);
+                wall.transform.localScale = new Vector3(0.2f, 2f, 3f);
+                scenery.Add(wall);
+            }
+            if (wallLeft)
+                Wall(-0.62f);
+            if (wallRight)
+                Wall(0.62f);
+            Physics.SyncTransforms();
+            return (fridge.GetComponent<FridgeDoorView>(), scenery.ToArray());
+        }
+
+        [Test]
+        public void FridgeDoorOpensFullyWithRoomOnItsHingeSide()
+        {
+            var (door, scenery) = FridgeBetween(wallLeft: false, wallRight: false);
+            try
+            {
+                door.FindRoomToOpen();
+                Assert.That(door.HingedRight, Is.False);
+                Assert.That(door.OpenLimit, Is.GreaterThan(100f));
+            }
+            finally
+            {
+                foreach (var thing in scenery)
+                    Object.DestroyImmediate(thing);
+            }
+        }
+
+        [Test]
+        public void FridgeDoorHingesOnTheOtherSideOfAWall()
+        {
+            var (door, scenery) = FridgeBetween(wallLeft: true, wallRight: false);
+            try
+            {
+                door.FindRoomToOpen();
+                Assert.That(door.HingedRight, Is.True, "The wall on the left would stop it short of a right angle.");
+                Assert.That(door.OpenLimit, Is.GreaterThan(100f));
+            }
+            finally
+            {
+                foreach (var thing in scenery)
+                    Object.DestroyImmediate(thing);
+            }
+        }
+
+        [Test]
+        public void FridgeDoorBoxedInStopsShortOfTheWall()
+        {
+            var (door, scenery) = FridgeBetween(wallLeft: true, wallRight: true);
+            try
+            {
+                door.FindRoomToOpen();
+                Assert.That(door.OpenLimit, Is.LessThan(95f), "It can't swing past the walls beside it.");
+                Assert.That(door.OpenLimit, Is.GreaterThan(45f), "It still opens enough to reach in.");
+            }
+            finally
+            {
+                foreach (var thing in scenery)
+                    Object.DestroyImmediate(thing);
+            }
+        }
+
         [TestCase(FridgePath)]
         [TestCase(ShelfPath)]
         public void SlotsSitInTwoTiersWithYAndBOnTop(string path)

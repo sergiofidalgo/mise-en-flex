@@ -17,6 +17,25 @@ namespace Game.Presentation
         }
 
         /// <summary>
+        /// How far something can turn, up to <paramref name="max"/> degrees, before it's
+        /// <paramref name="blocked"/>, checked every <paramref name="step"/> degrees on the way, since
+        /// it sweeps through every angle short of where it stops. 0 if the first step is blocked.
+        /// </summary>
+        public static float FreeAngle(float max, float step, System.Func<float, bool> blocked)
+        {
+            step = Mathf.Max(step, 0.1f);
+            var free = 0f;
+            while (free < max)
+            {
+                var next = Mathf.Min(free + step, max);
+                if (blocked(next))
+                    return free;
+                free = next;
+            }
+            return max;
+        }
+
+        /// <summary>
         /// Ease-out with a small overshoot: fast at first, swinging slightly past 1 before settling,
         /// like a door thrown open. 0 and 1 map exactly to themselves.
         /// </summary>
