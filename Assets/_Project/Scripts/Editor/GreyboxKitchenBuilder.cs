@@ -61,7 +61,7 @@ namespace Game.Editor
         private static readonly Color ChairColor = new Color(0.35f, 0.25f, 0.18f);
         private static readonly Vector3 ChairScale = new Vector3(0.36f, 0.22f, 0.36f); // cylinder: 0.44 m tall
         private const string PlayerPrefabPath = "Assets/_Project/Prefabs/PF_Player.prefab";
-        private const string ScenePath = "Assets/_Project/Scenes/Kitchen_Greybox.unity";
+        public const string ScenePath = "Assets/_Project/Scenes/Kitchen_Greybox.unity";
         private const string JoinActionPath = "Gameplay/Join";
 
         // Greybox layout, in metres. The kitchen is 10 x 8 with the camera looking north (+Z).
@@ -378,6 +378,8 @@ namespace Game.Editor
             framing.FindProperty("_editor").objectReferenceValue = Object.FindFirstObjectByType<LayoutEditor>();
             framing.FindProperty("_tilt").floatValue = CameraEuler.x;
             framing.ApplyModifiedPropertiesWithoutUndo();
+
+            GreyboxAudio.AddTo(root, camera);
 
             GreyboxAssets.EnsureFolder(System.IO.Path.GetDirectoryName(ScenePath));
             EditorSceneManager.SaveScene(scene, ScenePath);
