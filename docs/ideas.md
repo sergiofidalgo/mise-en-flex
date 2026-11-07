@@ -103,7 +103,7 @@ Ideas worth keeping that aren't decided or scheduled yet. When one is accepted, 
 - World-space UI that sits on the station (e.g. a dial ring around the burner instead of pips; a doneness ring around the steak instead of a floating ball).
 - Juice for actions: sizzle on placing food in a hot pan, a punchier serve moment at the pass, stars that animate in.
 - Sound as a signifier (sizzle tracks pan temperature, alarm before burning): probably the biggest readability win once there's audio.
-- Sound still to do (the first set is in, decision 2026-11-07): smoke alarm before burning, a chime when customers arrive, the prep assistant's chopping (only players' cuts make a sound so far), music, a volume setting, and real recordings to replace the synthesized clips, the door creak first.
+- Sound still to do (two sets are in, decisions 2026-11-07): the prep assistant's chopping (only players' cuts make a sound so far), footsteps for staff and customers, different footsteps per floor, a clack that suits what's being set down, customers reacting to the fire detector (perhaps with health inspections, Phase 7), music, a volume setting, and real recordings to replace the synthesized clips, the door creak and footsteps first.
 - Accessibility: colour-blind-safe doneness and player colours; text size.
 
 **Suggestion:** a short dedicated UX pass at the end of Phase 1 or before Phase 2's first service playtests, because readability decides whether playtests give useful feedback; full polish stays in Phase 7.

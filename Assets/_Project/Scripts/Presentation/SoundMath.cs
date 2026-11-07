@@ -26,6 +26,21 @@ namespace Game.Presentation
         public static float StereoPan(float viewportX, float width) =>
             Mathf.Clamp((viewportX - 0.5f) * 2f, -1f, 1f) * width;
 
+        /// <summary>How close food is to burnt: 1 is burnt. Food that can't burn is always 0.</summary>
+        public static float BurnCloseness(float browning, float burntAt) =>
+            burntAt > 0f ? browning / burntAt : 0f;
+
+        /// <summary>
+        /// The fire detector sounds for food close to burnt in a pan that's still hot. Browning never
+        /// goes back down, so without the heat check it could only be silenced by moving the food.
+        /// </summary>
+        public static bool AlarmSounds(float closeness, float from, float panTemperature, float hotEnough) =>
+            closeness >= from && panTemperature >= hotEnough;
+
+        /// <summary>Each chef's footsteps sit at their own pitch, so two together can be told apart.</summary>
+        public static float ChefPitch(int playerIndex, float perChef) =>
+            1f + (playerIndex - 0.5f) * perChef;
+
         /// <summary>True if a cue last played at <paramref name="lastPlayed"/> may play again now.</summary>
         public static bool CanPlay(float now, float? lastPlayed, float minInterval) =>
             lastPlayed == null || now - lastPlayed.Value >= minInterval;

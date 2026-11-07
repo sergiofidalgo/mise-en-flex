@@ -5,13 +5,14 @@ using Game.Gameplay;
 using Game.Gameplay.Stations;
 using Game.Simulation.Items;
 using Game.Simulation.Prep;
+using Game.Simulation.Service;
 using UnityEngine;
 
 namespace Game.Presentation
 {
     /// <summary>
-    /// Plays the kitchen's one-off sounds. Listens to the bell and the cutting boards itself; other
-    /// views call <see cref="Play"/>. Nothing in the simulation or gameplay knows sound exists.
+    /// Plays the kitchen's one-off sounds. Listens to the bell, the cutting boards and the customers
+    /// itself; other views call <see cref="Play"/>. Nothing in the simulation or gameplay knows sound exists.
     /// </summary>
     public sealed class KitchenAudio : MonoBehaviour
     {
@@ -31,6 +32,7 @@ namespace Game.Presentation
         private AudioSource[] _pool;
         private int _nextToSteal;
         private KitchenServices _services;
+        private StreetDoor _streetDoor;
 
         public SoundBank Sounds => _sounds;
 
@@ -58,6 +60,10 @@ namespace Game.Presentation
                 HandleStationAdded(station);
             _services.Stations.Added += HandleStationAdded;
             _services.Stations.Removed += HandleStationRemoved;
+
+            _streetDoor = FindFirstObjectByType<StreetDoor>();
+            _services.ServiceReplaced += HandleServiceReplaced;
+            HandleServiceReplaced(null, _services.Service);
         }
 
         private void OnDestroy()
@@ -65,6 +71,8 @@ namespace Game.Presentation
             if (_services == null)
                 return;
 
+            HandleServiceReplaced(_services.Service, null);
+            _services.ServiceReplaced -= HandleServiceReplaced;
             _services.Bell.Rang -= HandleBell;
             _services.Stations.Added -= HandleStationAdded;
             _services.Stations.Removed -= HandleStationRemoved;
@@ -74,7 +82,13 @@ namespace Game.Presentation
 
         /// <summary>Plays one take of the cue, unless it played too recently.</summary>
         /// <param name="position">Where in the world it comes from, for stereo.</param>
-        public void Play(SoundCue cue, Vector3 position)
+        /// <param name="pitchScale">Multiplies its pitch, on top of the cue's own variation.</param>
+        public void Play(SoundCue cue, Vector3 position, float pitchScale = 1f) => PlayPanned(cue, StereoAt(position), pitchScale);
+
+        // For what has no place in the kitchen, like a table's bill being settled.
+        private void PlayCentred(SoundCue cue) => PlayPanned(cue, 0f, 1f);
+
+        private void PlayPanned(SoundCue cue, float stereo, float pitchScale)
         {
             if (cue == null || cue.Clips.Length == 0)
                 return;
@@ -95,8 +109,8 @@ namespace Game.Presentation
             var source = FreeSource();
             source.clip = clip;
             source.volume = cue.Volume;
-            source.pitch = 1f + Random.Range(-cue.PitchVariation, cue.PitchVariation);
-            source.panStereo = StereoAt(position);
+            source.pitch = pitchScale * (1f + Random.Range(-cue.PitchVariation, cue.PitchVariation));
+            source.panStereo = stereo;
             source.Play();
         }
 
@@ -119,6 +133,26 @@ namespace Game.Presentation
             _nextToSteal = (_nextToSteal + 1) % _pool.Length;
             return stolen;
         }
+
+        // Each day has its own service, so the sounds move over to the new one.
+        private void HandleServiceReplaced(ServiceSimulation old, ServiceSimulation next)
+        {
+            if (old != null)
+            {
+                old.Arrived -= HandleCustomerArrived;
+                old.Paid -= HandleCustomerPaid;
+            }
+            if (next != null)
+            {
+                next.Arrived += HandleCustomerArrived;
+                next.Paid += HandleCustomerPaid;
+            }
+        }
+
+        private void HandleCustomerArrived(Customer customer) =>
+            Play(_sounds.Chime, _streetDoor != null ? _streetDoor.transform.position : transform.position);
+
+        private void HandleCustomerPaid(Customer customer) => PlayCentred(_sounds.Till);
 
         private void HandleBell(ItemSlot slot)
         {

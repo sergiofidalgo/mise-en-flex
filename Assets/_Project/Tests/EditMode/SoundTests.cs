@@ -90,12 +90,84 @@ namespace Game.Tests.EditMode
         }
 
         [Test]
+        public void TheAlarmSoundsForFoodCloseToBurntInAHotPan()
+        {
+            Assert.That(SoundMath.AlarmSounds(0.8f, 0.75f, 200f, 140f), Is.True);
+        }
+
+        [Test]
+        public void TheAlarmStaysQuietBeforeFoodIsCloseToBurnt()
+        {
+            Assert.That(SoundMath.AlarmSounds(0.5f, 0.75f, 200f, 140f), Is.False);
+        }
+
+        [Test]
+        public void TheAlarmStopsOnceThePanHasCooledEvenWithBurntFoodInIt()
+        {
+            Assert.That(SoundMath.AlarmSounds(1.5f, 0.75f, 100f, 140f), Is.False);
+        }
+
+        [Test]
+        public void BurnClosenessIsOneAtBurnt()
+        {
+            Assert.That(SoundMath.BurnCloseness(3f, 3f), Is.EqualTo(1f));
+        }
+
+        [Test]
+        public void FoodThatCantBurnNeverSetsOffTheAlarm()
+        {
+            Assert.That(SoundMath.BurnCloseness(5f, 0f), Is.EqualTo(0f));
+        }
+
+        [Test]
+        public void TwoChefsSoundDifferent()
+        {
+            Assert.That(SoundMath.ChefPitch(0, 0.08f), Is.LessThan(SoundMath.ChefPitch(1, 0.08f)));
+        }
+
+        [Test]
+        public void AFootLandsEachStride()
+        {
+            var clock = new StepClock();
+            Assert.That(clock.Walk(0.7f, 1.2f), Is.False);
+            Assert.That(clock.Walk(0.7f, 1.2f), Is.True);
+            Assert.That(clock.Walk(0.7f, 1.2f), Is.False);
+            Assert.That(clock.Walk(0.7f, 1.2f), Is.True);
+        }
+
+        [Test]
+        public void StepsKeepTheirRhythmWhateverTheFrameRate()
+        {
+            var clock = new StepClock();
+            var steps = 0;
+            for (var i = 0; i < 1000; i++)
+            {
+                if (clock.Walk(0.012f, 1.2f))
+                    steps++;
+            }
+            // 12 metres at 1.2 m a stride; rounding can only shift the last one.
+            Assert.That(steps, Is.InRange(9, 10));
+        }
+
+        [Test]
+        public void TheFirstStepComesSoonAfterSettingOff()
+        {
+            var clock = new StepClock();
+            clock.Stop(1.2f * 0.75f);
+            Assert.That(clock.Walk(0.35f, 1.2f), Is.True);
+        }
+
+        [Test]
         public void TheBankHasAClipForEverySound()
         {
             var bank = AssetDatabase.LoadAssetAtPath<SoundBank>(BankPath);
             Assert.That(bank, Is.Not.Null, "Run Tools/Game/Update Sound Bank.");
 
-            foreach (var cue in new[] { bank.Bell, bank.ChopClean, bank.ChopOff, bank.ChopMiss, bank.DoorOpen, bank.DoorClose, bank.SizzleHit })
+            foreach (var cue in new[]
+            {
+                bank.Bell, bank.ChopClean, bank.ChopOff, bank.ChopMiss, bank.DoorOpen, bank.DoorClose, bank.SizzleHit,
+                bank.AlarmBeep, bank.Step, bank.Clack, bank.Till, bank.Chime,
+            })
             {
                 Assert.That(cue.Clips, Is.Not.Empty);
                 Assert.That(cue.Clips, Has.None.Null);

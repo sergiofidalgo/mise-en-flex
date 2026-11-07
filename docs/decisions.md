@@ -34,6 +34,20 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-07 — More kitchen sounds: fire detector, footsteps and small cues
+
+**Decision (user's call):** add a fire detector, footsteps, a clack for setting things down, a till on payment and a chime on the street door. All synthesized placeholders, like the first set.
+
+**Reason:** the detector and chime tell players something without them having to look; the rest give actions feedback and make the kitchen feel alive.
+
+**How it behaves (proposed and accepted):**
+- **Fire detector:** one double beep a second, starting with the thick smoke at 75% of the way to burnt. One alarm however many pans are burning, panned towards the worst. It stops when the food leaves the pan, the pan cools below 140 °C, or a flip puts a paler side down. It's a warning only: no cost, and customers don't react.
+- **Footsteps:** players only, very quiet, timed by distance actually walked, so walking into a wall is silent. Each chef has a slightly different pitch.
+- **Clack:** whenever a chef puts something down or combines items, the same sound whatever it is, for now.
+- **Till and chime:** one sound per table paying or party arriving, not one per person.
+
+---
+
 ## 2026-11-07 — First kitchen sounds, ahead of Phase 9
 
 **Decision (user's call):** bring a small set of sound effects forward from Phase 9: pan sizzle, bell, chopping and the kitchen door. The first clips are synthesized placeholders from `tools/synth_sfx.py`; a real recording replaces one by overwriting its file, with no code changes.
