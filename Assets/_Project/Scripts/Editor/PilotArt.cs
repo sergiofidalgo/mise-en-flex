@@ -13,7 +13,6 @@ namespace Game.Editor
     {
         public const string ModelsFolder = "Assets/_Project/Art/Models";
         public const string FoodShaderName = "Game/Food/Layered";
-        public const string OverlayShaderName = "Game/AlwaysVisible";
 
         private const string MaterialsFolder = "Assets/_Project/Art/Materials";
         private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
@@ -41,20 +40,6 @@ namespace Game.Editor
             primitive.transform.localRotation = Quaternion.identity;
             primitive.transform.localScale = Vector3.one;
             return true;
-        }
-
-        /// <summary>A material that shows through anything in front of it (MAT_Overlay_<paramref name="name"/>). Created once.</summary>
-        public static Material EnsureOverlayMaterial(string name, Color color)
-        {
-            var path = $"{MaterialsFolder}/MAT_Overlay_{name}.mat";
-            var material = AssetDatabase.LoadAssetAtPath<Material>(path);
-            if (material != null)
-                return material;
-
-            material = new Material(Shader.Find(OverlayShaderName));
-            material.SetColor(BaseColorId, color);
-            AssetDatabase.CreateAsset(material, path);
-            return material;
         }
 
         /// <summary>The layered food material (MAT_Food_<paramref name="name"/>). Created once.</summary>

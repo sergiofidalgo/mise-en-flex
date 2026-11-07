@@ -35,8 +35,6 @@ namespace Game.Editor
         private const float VarietyCameraHeight = 1.5f;
         private const int VarietyCount = 6;
         private const float ChefDistanceInFront = 0.95f;
-        private const float BlockerZ = -0.25f;
-        private const int BlockedStage = 2;
 
         // Browning as a fraction of burnt, then peak temperatures: sides, core. Hob dial: 0..1.
         private static readonly (string Name, float Browning, float SidePeak, float CorePeak, float Dial)[] Stages =
@@ -117,11 +115,6 @@ namespace Game.Editor
                 // Hide the chip: the question is whether the food reads without it.
                 hob.transform.Find("DonenessChip").gameObject.SetActive(false);
             }
-
-            // A worst case that can't happen in play, to prove the heat pips show through a chef:
-            // one stood on the third hob, directly between its pips and the camera.
-            var blockedHobX = (BlockedStage - (Stages.Length - 1) / 2f) * StationSpacing;
-            UnityEngine.Object.Instantiate(chefPrefab, new Vector3(blockedHobX, HobTop, BlockerZ), Quaternion.identity);
 
             var camera = new GameObject("Capture Camera").AddComponent<Camera>();
             camera.fieldOfView = CameraFieldOfView;

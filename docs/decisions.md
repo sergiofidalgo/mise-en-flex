@@ -4,16 +4,23 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
-## 2026-11-07 — Steak fat, per-steak variety, and heat pips that are never hidden
+## 2026-11-07 — Steak fat and per-steak variety
 
 **Decision (user's calls):**
 - **Steaks have fat and no two are alike.** Each has fat round its edge, a seam and marbling, with its own pattern, size and angle. Fat stays a small share of the top: big white patches looked like candy.
 - **Fat covers the edge and holds its colour.** It runs down the side of the steak round most of the outline, with gaps where the lean reaches the edge. Fat goes from white to a creamy yellow and stays that way while the lean browns, colouring only when the steak is nearly burnt. Only thin marbling melts away.
-- **A hob's heat pips always show,** drawn over anything in front of them, including a chef.
 
-**Reason:** real cuts look like this, and the variety stops every steak looking the same. Heat is read at a glance from across the kitchen, so a chef standing at the hob mustn't hide it. Play later showed the prompt card is what really hides the pips, not the chef; that waits for the HUD pass (see `ideas.md`).
+**Reason:** real cuts look like this, and the variety stops every steak looking the same.
 
-**Trade-off:** fat hides the doneness bands wherever it covers the side, so the core mostly shows only in the gaps. The doneness chip stays. Pips also show through walls and anything else in front of them.
+**Trade-off:** fat hides the doneness bands wherever it covers the side, so the core mostly shows only in the gaps. The doneness chip stays.
+
+---
+
+## 2026-11-07 — Heat pips stay ordinary objects
+
+**Decision (user's call):** remove the pilot's change that drew a hob's heat pips over anything in front of them. Fix what hides them in the HUD pass instead (see `ideas.md`).
+
+**Reason:** play showed the prompt card hides the pips, not the chef, so the change didn't fix the problem. It also added a shader and let pips show through walls.
 
 ---
 

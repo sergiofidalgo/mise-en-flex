@@ -553,9 +553,7 @@ namespace Game.Editor
             for (var i = 0; i < HeatPipCount; i++)
             {
                 var pip = GreyboxAssets.CreatePrimitive(
-                    PrimitiveType.Cube, $"HeatPip_{i + 1}", hob.transform, PilotArt.EnsureOverlayMaterial("HeatPip", Color.black), keepCollider: false);
-                // Drawn through a chef in front of the hob, so heat can always be read at a glance.
-                pip.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                    PrimitiveType.Cube, $"HeatPip_{i + 1}", hob.transform, GreyboxAssets.EnsureMaterial("HeatPip", Color.black), keepCollider: false);
                 pip.transform.localScale = HeatPipScale;
                 pip.transform.localPosition = new Vector3(
                     (i - (HeatPipCount - 1) / 2f) * HeatPipSpacing, top + HeatPipScale.y / 2f, HeatPipBackOffset);

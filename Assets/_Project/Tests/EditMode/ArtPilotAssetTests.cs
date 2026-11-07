@@ -28,9 +28,9 @@ namespace Game.Tests.EditMode
         }
 
         [Test]
-        public void CustomShadersCompileWithoutErrors([Values("Game/Food/Layered", "Game/AlwaysVisible")] string name)
+        public void FoodShaderCompilesWithoutErrors()
         {
-            var shader = Shader.Find(name);
+            var shader = Shader.Find("Game/Food/Layered");
             Assert.That(shader, Is.Not.Null);
             Assert.That(ShaderUtil.ShaderHasError(shader), Is.False,
                 string.Join("\n", ShaderUtil.GetShaderMessages(shader).Select(m => m.message)));
@@ -138,19 +138,6 @@ namespace Game.Tests.EditMode
             Assert.That(uvs, Is.Not.Empty);
             Assert.That(uvs.Min(uv => uv.x), Is.EqualTo(0f).Within(Tolerance));
             Assert.That(uvs.Max(uv => uv.x), Is.EqualTo(1f).Within(Tolerance));
-        }
-
-        [Test]
-        public void HobHeatPipsDrawOverAnythingInFrontOfThem()
-        {
-            var hob = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/_Project/Prefabs/Furniture/PF_Hob.prefab");
-            var pips = hob.GetComponentsInChildren<Renderer>(true).Where(r => r.name.StartsWith("HeatPip")).ToArray();
-            Assert.That(pips, Is.Not.Empty);
-            foreach (var pip in pips)
-            {
-                Assert.That(pip.sharedMaterial.shader.name, Is.EqualTo("Game/AlwaysVisible"));
-                Assert.That(pip.sharedMaterial.renderQueue, Is.GreaterThan(3000), "They must draw after the rest of the scene.");
-            }
         }
 
         [Test]
