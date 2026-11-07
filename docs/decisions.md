@@ -11,6 +11,7 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 - **Gas hob:** works as today. A dial, and the pan takes time to heat and cool, so players have to be precise.
 - **Induction hob:** three heat steps. The pan gets hot or cold as soon as the step changes.
 - **Charcoal grill:** customers ask for one when the restaurant specialises in meat (for example, a review asking how a steak place has no flames). No appliance changes the quality score: what differs is how they cook, not how good the result is.
+- **The charcoal grill takes two floor slots:** a hot zone and a cool zone, each with room for two steaks, one per side. In the open, two players can cook from opposite sides at once. Against a wall, one chef reaches both places and can cook two steaks together, searing on the hot zone and moving them to the cool one. Food goes on the grate directly or in a pan.
 - **Cutting boards and knife racks sit on counters,** and each uses up the counter it's on. They're moved only in management mode, and bought in the shop as many as wanted.
 - **Knives are items.** The kitchen starts with one knife lying on a counter and no knife rack; picking it up frees the counter. Chopping needs a knife, so nobody can chop until it's put down somewhere. A bought knife appears on the first free counter.
 
