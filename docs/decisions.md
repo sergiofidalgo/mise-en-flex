@@ -18,6 +18,7 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
   - **No room:** if the other zone already holds two pieces, the food can't be flipped until there's space.
   - **A** takes the food off.
   - **Two pieces in a zone:** A and X act on the hotter one.
+- **The grill is always lit,** with nothing to light or keep going. Its glow is part of the room's look, so it's decoration as well as an appliance.
 - **Cutting boards and knife racks sit on counters,** and each uses up the counter it's on. They're moved only in management mode, and bought in the shop as many as wanted.
 - **Knives are items.** The kitchen starts with one knife lying on a counter and no knife rack; picking it up frees the counter. Chopping needs a knife, so nobody can chop until it's put down somewhere. A bought knife appears on the first free counter.
 
