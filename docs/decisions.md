@@ -4,6 +4,24 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-07 — Kinds of heat and kitchenware replace equipment tiers
+
+**Decision (user's calls):**
+- **Appliances differ in kind, not tier.** Instead of basic and better versions of the same hob, there are different ways to cook: a gas hob, an induction hob and a charcoal grill now, ovens later. Any of them takes a pan. Fridges and shelves stay as they are for now.
+- **Gas hob:** works as today. A dial, and the pan takes time to heat and cool, so players have to be precise.
+- **Induction hob:** three heat steps. The pan gets hot or cold as soon as the step changes.
+- **Charcoal grill:** customers ask for one when the restaurant specialises in meat (for example, a review asking how a steak place has no flames). No appliance changes the quality score: what differs is how they cook, not how good the result is.
+- **Cutting boards and knife racks sit on counters,** and each uses up the counter it's on. They're moved only in management mode, and bought in the shop as many as wanted.
+- **Knives are items.** The kitchen starts with one knife lying on a counter and no knife rack; picking it up frees the counter. Chopping needs a knife, so nobody can chop until it's put down somewhere. A bought knife appears on the first free counter.
+
+**Reason:** different kinds of heat change how you cook and what the restaurant is, which serves "cooking is a craft" and "your restaurant, your identity" better than numbered upgrades. Boards and knife racks on counters extend the rule that counters are precious (2026-11-04).
+
+**Given up:** equipment tiers (better hobs, bigger storage) and the board rail they were meant to grow. The board already only cuts.
+
+**Later (see `ideas.md`):** ovens, pots, skewers and oven trays arrive with the cuisines that need them. Customers asking for a grill arrives with cuisine and service expectations.
+
+---
+
 ## 2026-11-07 — Steak fat and per-steak variety
 
 **Decision (user's calls):**

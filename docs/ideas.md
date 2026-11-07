@@ -4,6 +4,20 @@ Ideas worth keeping that aren't decided or scheduled yet. When one is accepted, 
 
 ---
 
+## Appliances and kitchenware that wait for their dishes
+
+*Added 2026-11-07 · Relevant phase: 7 (cuisines), with grill demand in 6–7 (expectations) · Pillars: cooking is a craft; your restaurant, your identity*
+
+Kinds of heat replaced equipment tiers (`decisions.md`, 2026-11-07). These need dishes or systems that don't exist yet, so each arrives with the content that uses it:
+- **Electric oven:** cakes and bread. Mostly passive cooking, which the simulation doesn't model yet.
+- **Wood oven:** pizza and bread. Likely the pizzeria's signature mechanic.
+- **Pots:** pasta and sauces. They need water and liquids in the cooking simulation.
+- **Skewers:** kebab-style dishes, on the charcoal grill.
+- **Oven trays:** with the ovens.
+- **Customers asking for a grill:** reviews in a restaurant that specialises in meat mention the missing flames. Needs cuisine and service expectations.
+
+---
+
 ## The prompt card hides a hob's heat pips
 
 *Added 2026-11-07 · Relevant phase: 9 (HUD polish), or sooner if it gets in the way · Pillar: cooking is a craft*
