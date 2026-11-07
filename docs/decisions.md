@@ -47,6 +47,8 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 **After more play (user's calls):** chefs walk a little slower, 4.2 m/s down from 5, and the camera follows closer behind. As a player walks away from the kitchen, the camera moves with them and gently zooms out.
 
+**Camera motion, after play (from user feedback; values proposed, tunable on `FramingCamera`):** it felt artificial, and then dizzying. Its moves are eased twice, so they build up and settle softly, and the threshold that made it move in steps is gone. A look-ahead was tried and removed: it nearly tripled the camera's travel in the kitchen. Height is now eased on its own and the floor position framed for the height it has actually reached, so zooming doesn't slide the view. It backs away at once but waits 0.75 s before closing in, which then takes about 5 s in all from the dining room. Top speeds are 6 m/s across the floor (down from 14) and 2 m/s up and down. With people far apart it leaves 20% of the screen clear at the top instead of 27%, as that room was going unused.
+
 **Details (proposed; flagged for review, tunable on `CustomerIndicatorHud`):**
 - **A plain dot for anyone else out of view,** walking in or queueing.
 - **Faces:** 4 stars and up is happy, 2.5 and up neutral, anything else or walking out unhappy.

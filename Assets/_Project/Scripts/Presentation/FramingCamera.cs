@@ -15,7 +15,7 @@ namespace Game.Presentation
     /// As a player walks away from the kitchen it also eases back, so there's more to see out there.
     /// Customers don't count: those out of view get markers at the edge of the screen. Before anyone joins,
     /// and during the Review, it shows the whole restaurant. Its moves build up and settle gently, and it
-    /// looks slightly ahead of where the players are going, as a person operating it would.
+    /// waits for people to settle before closing in.
     /// </summary>
     [RequireComponent(typeof(Camera))]
     public sealed class FramingCamera : MonoBehaviour
@@ -34,6 +34,10 @@ namespace Game.Presentation
         [SerializeField, Min(0f)] private float _nearMargin = 0.6f;
         [Tooltip("Share of the screen to leave clear at the top, for heads, furniture and the prompts above them.")]
         [SerializeField, Range(0f, 0.45f)] private float _screenTop = 0.27f;
+        [Tooltip("The same with people as far apart as they get. Everything's smaller out there, so the floor needs the screen more, and a prompt still fits.")]
+        [SerializeField, Range(0f, 0.45f)] private float _screenTopFarApart = 0.2f;
+        [Tooltip("How high it would have to go, at the usual room at the top, to count as far apart.")]
+        [SerializeField, Min(1f)] private float _farApartHeight = 12f;
         [Tooltip("The same when showing the whole restaurant: nobody's cooking, so no prompts need the room.")]
         [SerializeField, Range(0f, 0.45f)] private float _screenTopForWhole = 0.14f;
         [Tooltip("Share of the screen to leave clear at the bottom.")]
@@ -52,29 +56,27 @@ namespace Game.Presentation
         [SerializeField, Min(0.01f)] private float _followSeconds = 0.3f;
         [Tooltip("Roughly how many seconds it takes to back away to fit someone in.")]
         [SerializeField, Min(0.01f)] private float _zoomOutSeconds = 1.2f;
-        [Tooltip("Roughly how many seconds it takes to close in again. Slower, so it doesn't pump.")]
+        [Tooltip("Roughly how many seconds it takes to close in again.")]
         [SerializeField, Min(0.01f)] private float _zoomInSeconds = 2f;
-        [Tooltip("The fastest it ever moves, in metres per second.")]
-        [SerializeField, Min(0.1f)] private float _maxSpeed = 14f;
-        [Tooltip("Seconds ahead of the players it looks while they walk.")]
-        [SerializeField, Min(0f)] private float _leadSeconds = 0.2f;
-        [Tooltip("The furthest ahead it looks, in metres.")]
-        [SerializeField, Min(0f)] private float _mostLead = 0.8f;
-        [Tooltip("How quickly that follows a change of direction, per second.")]
-        [SerializeField, Min(0.01f)] private float _leadRate = 3f;
+        [Tooltip("Seconds everyone has to stay put before it starts closing in.")]
+        [SerializeField, Min(0f)] private float _holdBeforeClosingIn = 0.75f;
+        [Tooltip("The fastest it moves across the floor, in metres per second. Above a chef's walking speed, or they'd outrun it.")]
+        [SerializeField, Min(0.1f)] private float _maxSpeed = 6f;
+        [Tooltip("The fastest it moves up and down, in metres per second.")]
+        [SerializeField, Min(0.1f)] private float _maxZoomSpeed = 2f;
 
         private readonly List<SimVector2> _points = new List<SimVector2>();
         private Camera _camera;
         private bool _placed;
         private bool _showingWhole;
-        private Vector2 _panVelocity;
-        private float _zoomVelocity;
-        private Vector3 _eased;
-        private Vector2 _aimVelocity;
-        private float _aimZoomVelocity;
-        private Vector3 _lead;
-        private Vector3 _lastMiddle;
-        private int _lastCount;
+        private float _heightGoal;
+        private float _holdLeft;
+        private float _easedHeight;
+        private float _easedHeightVelocity;
+        private float _heightVelocity;
+        private Vector2 _easedAlong;
+        private Vector2 _easedAlongVelocity;
+        private Vector2 _alongVelocity;
 
         private void Awake()
         {
@@ -87,57 +89,58 @@ namespace Game.Presentation
             CollectPoints();
             var floor = _root.Services.FloorPlan;
             var walls = new SimVector2(_wallsBeyondRoom, _wallsBeyondRoom);
-            var fit = CameraFraming.Fit(_points, _tilt, _camera.fieldOfView, _camera.aspect, _margin, ClosestHeight(floor), _maxHeight, _farMargin - _margin, _nearMargin, _showingWhole ? _screenTopForWhole : _screenTop, _screenBottom, floor.RoomMin - walls, floor.RoomMax + walls);
-            var target = new Vector3(fit.X, fit.Y, fit.Z);
-
-            // A little ahead of where they're heading, as someone operating a camera would.
             var delta = Time.unscaledDeltaTime;
-            target += Lead(delta);
+            var closest = ClosestHeight(floor);
+
+            // The further out it has to go, the less room it leaves at the top. Judged by the height
+            // needed at the usual room, so the answer doesn't change the question.
+            var top = _showingWhole ? _screenTopForWhole : Mathf.Lerp(_screenTop, _screenTopFarApart, Mathf.InverseLerp(_minHeight, _farApartHeight, Fit(floor, walls, closest, _maxHeight, _screenTop).Y));
+
+            var wanted = Fit(floor, walls, closest, _maxHeight, top);
 
             if (!_placed)
             {
-                transform.position = target;
-                _eased = target;
+                transform.position = new Vector3(wanted.X, wanted.Y, wanted.Z);
+                _easedAlong = new Vector2(wanted.X, wanted.Z);
+                _easedHeight = wanted.Y;
+                _heightGoal = wanted.Y;
                 _placed = true;
                 return;
             }
 
-            // Eased twice, each half as long: one easing starts moving the moment anything changes,
-            // while two build up and settle in a soft S-curve, with no visible start or stop. Across the
-            // floor it follows closely; up and down it takes its time, as that's what's noticed.
-            var at = transform.position;
-            var aiming = Vector2.SmoothDamp(new Vector2(_eased.x, _eased.z), new Vector2(target.x, target.z), ref _aimVelocity, _followSeconds / 2f, _maxSpeed, delta);
-            var aimingHeight = Mathf.SmoothDamp(_eased.y, target.y, ref _aimZoomVelocity, ZoomSeconds(target.y, _eased.y) / 2f, _maxSpeed, delta);
-            _eased = new Vector3(aiming.x, aimingHeight, aiming.y);
+            // Backs away at once, but only closes in once they've settled, so it isn't seen to react
+            // to someone coming back, and walking in and out doesn't make it pump.
+            if (wanted.Y >= _heightGoal)
+            {
+                _heightGoal = wanted.Y;
+                _holdLeft = _holdBeforeClosingIn;
+            }
+            else
+            {
+                _holdLeft -= delta;
+                if (_holdLeft <= 0f)
+                    _heightGoal = wanted.Y;
+            }
 
-            var along = Vector2.SmoothDamp(new Vector2(at.x, at.z), aiming, ref _panVelocity, _followSeconds / 2f, _maxSpeed, delta);
-            var height = Mathf.SmoothDamp(at.y, aimingHeight, ref _zoomVelocity, ZoomSeconds(aimingHeight, at.y) / 2f, _maxSpeed, delta);
+            // Everything is eased twice, each half as long: one easing starts moving the moment anything
+            // changes, while two build up and settle in a soft S-curve, with no visible start or stop.
+            var at = transform.position;
+            _easedHeight = Mathf.SmoothDamp(_easedHeight, _heightGoal, ref _easedHeightVelocity, ZoomSeconds(_heightGoal, _easedHeight) / 2f, _maxZoomSpeed, delta);
+            var height = Mathf.SmoothDamp(at.y, _easedHeight, ref _heightVelocity, ZoomSeconds(_easedHeight, at.y) / 2f, _maxZoomSpeed, delta);
+
+            // Where to be on the floor at the height it's actually at. The floor position follows
+            // quickly and the height slowly, so aiming for the final height's position would slide the
+            // view across the floor long before the zoom got there.
+            var framed = Fit(floor, walls, height, height, top);
+            _easedAlong = Vector2.SmoothDamp(_easedAlong, new Vector2(framed.X, framed.Z), ref _easedAlongVelocity, _followSeconds / 2f, _maxSpeed, delta);
+            var along = Vector2.SmoothDamp(new Vector2(at.x, at.z), _easedAlong, ref _alongVelocity, _followSeconds / 2f, _maxSpeed, delta);
             transform.position = new Vector3(along.x, height, along.y);
         }
 
+        private System.Numerics.Vector3 Fit(Game.Data.FloorPlanConfig floor, SimVector2 walls, float lowest, float highest, float top) =>
+            CameraFraming.Fit(_points, _tilt, _camera.fieldOfView, _camera.aspect, _margin, lowest, highest, _farMargin - _margin, _nearMargin, top, _screenBottom, floor.RoomMin - walls, floor.RoomMax + walls);
+
         private float ZoomSeconds(float to, float from) => to > from ? _zoomOutSeconds : _zoomInSeconds;
-
-        // Where the players are heading, eased so it doesn't jerk when they change direction, and small
-        // enough not to change the framing. Nothing while the whole restaurant's showing.
-        private Vector3 Lead(float delta)
-        {
-            var count = PlayerInput.all.Count;
-            if (count == 0 || delta <= 0f)
-                return Vector3.zero;
-
-            var sum = Vector3.zero;
-            foreach (var player in PlayerInput.all)
-                sum += player.transform.position;
-            var middle = sum / count;
-            var velocity = count == _lastCount ? (middle - _lastMiddle) / delta : Vector3.zero;
-            _lastMiddle = middle;
-            _lastCount = count;
-
-            velocity.y = 0f;
-            var wanted = _showingWhole ? Vector3.zero : Vector3.ClampMagnitude(velocity * _leadSeconds, _mostLead);
-            _lead = Vector3.Lerp(_lead, wanted, 1f - Mathf.Exp(-_leadRate * delta));
-            return _lead;
-        }
 
         // Measured from the kitchen, whichever player is furthest from it.
         private float ClosestHeight(Game.Data.FloorPlanConfig floor)

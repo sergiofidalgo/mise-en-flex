@@ -647,7 +647,7 @@ namespace Game.Tests.PlayMode
             controller.enabled = false;
             second.transform.position = _player.transform.position + new Vector3(1f, 0f, 0f);
             controller.enabled = true;
-            yield return new WaitForSeconds(5f);
+            yield return new WaitForSeconds(10f); // it pauses, then closes in gradually
 
             Assert.That(Camera.main.transform.position.y, Is.EqualTo(alone).Within(0.1f));
             InputSystem.RemoveDevice(pad);

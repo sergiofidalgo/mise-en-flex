@@ -669,6 +669,8 @@ MonoBehaviour:
   _farMargin: 1.5
   _nearMargin: 0.6
   _screenTop: 0.27
+  _screenTopFarApart: 0.2
+  _farApartHeight: 12
   _screenTopForWhole: 0.14
   _screenBottom: 0.06
   _minHeight: 6.5
@@ -679,10 +681,9 @@ MonoBehaviour:
   _followSeconds: 0.3
   _zoomOutSeconds: 1.2
   _zoomInSeconds: 2
-  _maxSpeed: 14
-  _leadSeconds: 0.2
-  _mostLead: 0.8
-  _leadRate: 3
+  _holdBeforeClosingIn: 0.75
+  _maxSpeed: 6
+  _maxZoomSpeed: 2
 --- !u!20 &98653320
 Camera:
   m_ObjectHideFlags: 0
