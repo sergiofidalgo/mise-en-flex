@@ -35,7 +35,8 @@ namespace Game.Presentation
 
             foreach (var sample in _samples)
             {
-                var show = sample.Slot < unit.Slots.Count && unit.Slots[sample.Slot].TypeId == sample.TypeId;
+                // Cooked food shows itself (its own view stays in the bin), not the raw sample.
+                var show = sample.Slot < unit.Slots.Count && unit.Slots[sample.Slot].TypeId == sample.TypeId && !unit.Slots[sample.Slot].HoldsCooked;
                 if (sample.Shape.activeSelf != show)
                     sample.Shape.SetActive(show);
             }

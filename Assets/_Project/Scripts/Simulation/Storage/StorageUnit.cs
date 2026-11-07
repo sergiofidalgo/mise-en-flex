@@ -26,6 +26,13 @@ namespace Game.Simulation.Storage
             /// <summary>The ingredient this slot holds right now, or null when empty and free.</summary>
             public string TypeId => _items.Count > 0 ? _items[0].TypeId : null;
 
+            /// <summary>
+            /// True if what's here has been cooked. Cooked food never shares a slot with raw stock
+            /// of the same ingredient: taking is oldest first, so a cooked steak put behind raw
+            /// ones would otherwise be unreachable, and the bin would only show raw steak.
+            /// </summary>
+            public bool HoldsCooked => _items.Count > 0 && _items[0].HasBeenCooked;
+
             public int Capacity { get; }
 
             public int Count => _items.Count;
@@ -57,7 +64,8 @@ namespace Game.Simulation.Storage
             var added = 0;
             while (added < count)
             {
-                var slot = FindSlotWithRoom(typeId);
+                // New stock is raw; checked before it's created, so nothing is made that won't fit.
+                var slot = FindSlotWithRoom(typeId, cooked: false);
                 if (slot == null)
                     break;
                 Store(slot, create());
@@ -86,17 +94,28 @@ namespace Game.Simulation.Storage
         // Taking is done per slot with the face buttons (TryTake), not through Interact.
         public bool CanTake => false;
 
-        public bool CanAccept(Item item) => item is Ingredient ingredient && FindSlotWithRoom(ingredient.TypeId) != null;
+        public bool CanAccept(Item item) => item is Ingredient ingredient && FindSlotWithRoom(ingredient.TypeId, ingredient.HasBeenCooked) != null;
 
         public Item Take() => throw new InvalidOperationException("Take from a specific slot with TryTake.");
 
         public void Put(Item item)
         {
             var ingredient = item as Ingredient;
-            var slot = ingredient != null ? FindSlotWithRoom(ingredient.TypeId) : null;
+            var slot = ingredient != null ? FindSlotWithRoom(ingredient.TypeId, ingredient.HasBeenCooked) : null;
             if (slot == null)
                 throw new InvalidOperationException("No slot for this item.");
             Store(slot, ingredient);
+        }
+
+        /// <summary>The slot holding <paramref name="ingredient"/>, or -1.</summary>
+        public int SlotOf(Ingredient ingredient)
+        {
+            for (var i = 0; i < _slots.Length; i++)
+            {
+                if (_slots[i].Items.Contains(ingredient))
+                    return i;
+            }
+            return -1;
         }
 
         /// <summary>Throws out everything below <paramref name="freshness"/>.</summary>
@@ -117,12 +136,13 @@ namespace Game.Simulation.Storage
             return spoiled;
         }
 
-        // A slot already holding this ingredient with room, or else the first free one.
-        private Slot FindSlotWithRoom(string typeId)
+        // A slot already holding this ingredient, cooked or raw alike, with room, or else the first free one.
+        private Slot FindSlotWithRoom(string typeId, bool cooked)
         {
             foreach (var slot in _slots)
             {
-                if (slot.IsUsed && slot.TypeId == typeId && slot.Count < slot.Capacity)
+                if (slot.IsUsed && slot.Count > 0 && slot.Count < slot.Capacity
+                    && slot.TypeId == typeId && slot.HoldsCooked == cooked)
                     return slot;
             }
             foreach (var slot in _slots)

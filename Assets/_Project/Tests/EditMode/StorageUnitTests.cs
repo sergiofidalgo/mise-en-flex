@@ -178,5 +178,57 @@ namespace Game.Tests.EditMode
             unit.TryTake(0, out var steak);
             Assert.That(steak.EnvironmentTemperature, Is.Null);
         }
+
+        // Cooked here means a doneness level reached: it starts above the level's peak core temperature.
+        private Ingredient Cooked(string typeId) =>
+            _sim.AddIngredient(new IngredientProperties
+            {
+                TypeId = typeId,
+                HeatCapacity = 1050f,
+                SurfaceFraction = 0.15f,
+                SurfaceCoreConductance = 0.9f,
+                AirConductance = 0.25f,
+                StartTemperature = 55f,
+                FreshnessLossPerHourAt20C = 1f / 24f,
+                DonenessLevels = new[] { new DonenessLevel("Rare", 45f) },
+            });
+
+        [Test]
+        public void CookedFoodGetsItsOwnSlotInsteadOfHidingBehindRawStock()
+        {
+            var unit = NewUnit(Fridge);
+            unit.Stock("Steak", () => New("Steak", Fridge), 3);
+            var cooked = Cooked("Steak");
+
+            Assert.That(cooked.HasBeenCooked, Is.True);
+            Assert.That(unit.CanAccept(cooked), Is.True);
+            unit.Put(cooked);
+
+            Assert.That(unit.SlotOf(cooked), Is.EqualTo(1));
+            Assert.That(unit.Slots[0].HoldsCooked, Is.False);
+            Assert.That(unit.Slots[1].HoldsCooked, Is.True);
+            Assert.That(unit.TryTake(1, out var back), Is.True);
+            Assert.That(back, Is.SameAs(cooked));
+        }
+
+        [Test]
+        public void CookedFoodIsRefusedWhenOnlyRawSlotsHaveRoom()
+        {
+            var unit = new StorageUnit(Fridge, new StorageUnit.Slot(6));
+            unit.Stock("Steak", () => New("Steak", Fridge), 2);
+
+            Assert.That(unit.CanAccept(Cooked("Steak")), Is.False);
+        }
+
+        [Test]
+        public void DeliveriesNeverJoinACookedSlot()
+        {
+            var unit = new StorageUnit(Fridge, new StorageUnit.Slot(6), new StorageUnit.Slot(6));
+            unit.Put(Cooked("Steak"));
+
+            Assert.That(unit.Stock("Steak", () => New("Steak", Fridge), 3), Is.EqualTo(3));
+            Assert.That(unit.Slots[0].Count, Is.EqualTo(1));
+            Assert.That(unit.Slots[1].Count, Is.EqualTo(3));
+        }
     }
 }

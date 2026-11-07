@@ -77,7 +77,7 @@ namespace Game.Gameplay.Stations
                 slots[i] = new StorageUnit.Slot(_slots[i]?.Capacity ?? 0);
 
             _unit = new StorageUnit(temperature, slots);
-            _container = new StoreBack(_unit, services);
+            _container = new StoreBack(this);
         }
 
         /// <summary>The morning delivery, up to each slot's capacity.</summary>
@@ -143,34 +143,40 @@ namespace Game.Gameplay.Stations
                 var slot = _unit.Slots[i];
                 var control = (PromptControl)i;
                 lines.Add(slot.Count > 0
-                    ? new PromptLine(control, $"{slot.TypeId} ×{slot.Count}", player.Hands.IsEmpty || (player.Hands.Current is Tray room && room.HasRoom),
+                    ? new PromptLine(control, $"{(slot.HoldsCooked ? "cooked " : "")}{slot.TypeId} ×{slot.Count}", player.Hands.IsEmpty || (player.Hands.Current is Tray room && room.HasRoom),
                         iconId: slot.TypeId, iconLabel: $"×{slot.Count}")
                     : new PromptLine(control, "—", available: false));
             }
         }
 
-        // Putting food back: the unit decides which slot; the item's view goes away while stored.
+        // Putting food back: the unit decides which slot. Raw stock is shown by the bin's sample
+        // shape, so its own view goes away; cooked food has no sample, so its real view stays in
+        // the bin, showing exactly what was put there.
         private sealed class StoreBack : IItemContainer
         {
-            private readonly StorageUnit _unit;
-            private readonly KitchenServices _services;
+            private readonly StorageStation _station;
 
-            public StoreBack(StorageUnit unit, KitchenServices services)
+            public StoreBack(StorageStation station)
             {
-                _unit = unit;
-                _services = services;
+                _station = station;
             }
 
             public bool CanTake => false;
 
-            public bool CanAccept(Item item) => _unit.CanAccept(item);
+            public bool CanAccept(Item item) => _station._unit.CanAccept(item);
 
-            public Item Take() => _unit.Take();
+            public Item Take() => _station._unit.Take();
 
             public void Put(Item item)
             {
-                _unit.Put(item);
-                _services.ItemViews.Release(item);
+                var unit = _station._unit;
+                var services = _station._services;
+                unit.Put(item);
+                var ingredient = (Ingredient)item;
+                if (ingredient.HasBeenCooked)
+                    services.ItemViews.Place(item, _station.BinAnchor(unit.SlotOf(ingredient)), services.Tuning.ItemMove, _station.ItemAnchor.position);
+                else
+                    services.ItemViews.Release(item);
             }
         }
     }

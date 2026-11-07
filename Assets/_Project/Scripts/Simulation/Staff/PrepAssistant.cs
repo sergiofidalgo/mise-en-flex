@@ -267,7 +267,7 @@ namespace Game.Simulation.Staff
                 for (var s = 0; s < TargetUnit.Slots.Count; s++)
                 {
                     var slot = TargetUnit.Slots[s];
-                    if (slot.Count > 0 && slot.Stock[0].Properties.CutIntoTypeId == _wanted && TargetUnit.TryTake(s, out var whole))
+                    if (slot.Count > 0 && !slot.HoldsCooked && slot.Stock[0].Properties.CutIntoTypeId == _wanted && TargetUnit.TryTake(s, out var whole))
                     {
                         InHand = whole;
                         _cutting = whole;
@@ -282,7 +282,7 @@ namespace Game.Simulation.Staff
             var room = TargetCounter.Current is FoodContainer container ? container.Capacity - container.Items.Count : 0;
             for (var s = 0; s < TargetUnit.Slots.Count; s++)
             {
-                while (room > 0 && CanCarryMore && TargetUnit.Slots[s].TypeId == _wanted && TargetUnit.TryTake(s, out var portion))
+                while (room > 0 && CanCarryMore && TargetUnit.Slots[s].TypeId == _wanted && !TargetUnit.Slots[s].HoldsCooked && TargetUnit.TryTake(s, out var portion))
                 {
                     if (Tray != null)
                         Tray.Put(portion);
@@ -441,7 +441,7 @@ namespace Game.Simulation.Staff
             {
                 foreach (var slot in unit.Slots)
                 {
-                    if (slot.TypeId == typeId)
+                    if (slot.TypeId == typeId && !slot.HoldsCooked)
                         return unit;
                 }
             }
@@ -454,7 +454,7 @@ namespace Game.Simulation.Staff
             {
                 foreach (var slot in unit.Slots)
                 {
-                    if (slot.Count > 0 && slot.Stock[0].Properties.CutIntoTypeId == cutTypeId)
+                    if (slot.Count > 0 && !slot.HoldsCooked && slot.Stock[0].Properties.CutIntoTypeId == cutTypeId)
                         return unit;
                 }
             }

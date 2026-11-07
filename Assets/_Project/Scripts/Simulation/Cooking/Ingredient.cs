@@ -104,6 +104,12 @@ namespace Game.Simulation.Cooking
         /// <summary>0 = pale; around 1 = a good crust; at <see cref="IngredientProperties.BurntBrowning"/> it's burnt.</summary>
         public float Browning(IngredientSide side) => _browning[(int)side];
 
+        /// <summary>
+        /// True once it has seen real heat: a doneness level, or any browning (a sear on a still-raw
+        /// core counts). Storage keeps cooked food apart from raw stock of the same ingredient.
+        /// </summary>
+        public bool HasBeenCooked => Doneness != null || _browning[0] > 0f || _browning[1] > 0f;
+
         public bool IsBurnt =>
             _browning[0] >= Properties.BurntBrowning || _browning[1] >= Properties.BurntBrowning;
 
