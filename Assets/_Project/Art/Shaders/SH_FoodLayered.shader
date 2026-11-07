@@ -28,6 +28,9 @@ Shader "Game/Food/Layered"
         _MarbleScale("Marbling scale (per metre)", Float) = 85
         _Seed("Variation (runtime)", Float) = 0.37
         _Browning("Browning as a fraction of burnt (runtime)", Float) = 0
+        _CrustBottom("Underside crust (runtime)", Color) = (0.62, 0.12, 0.14, 1)
+        _BrowningBottom("Underside browning as a fraction of burnt (runtime)", Float) = 0
+        _SearLine("Seared line along the edge, as a share of its height", Range(0, 0.5)) = 0.22
     }
 
     SubShader
@@ -57,6 +60,9 @@ Shader "Game/Food/Layered"
             float _MarbleScale;
             float _Seed;
             float _Browning;
+            half4 _CrustBottom;
+            float _BrowningBottom;
+            float _SearLine;
         CBUFFER_END
         ENDHLSL
 
@@ -182,6 +188,15 @@ Shader "Game/Food/Layered"
                 return float2(seam, marbling);
             }
 
+            // Fat browns far more slowly than lean: it goes from white to a creamy yellow and holds
+            // that while the lean around it sears, only colouring once the crust is nearly burnt.
+            // It stays a little lighter even then, but still reads as burnt.
+            half3 FatColor(float browning, half3 crust)
+            {
+                half3 fat = lerp(_FatRaw.rgb, _FatCooked.rgb, smoothstep(0.0, 0.5, browning));
+                return lerp(fat, crust, smoothstep(0.7, 1.0, browning) * 0.85);
+            }
+
             half3 FoodColor(Varyings input)
             {
                 // Edge: the three bands by height, blended so no hard lines show from a distance.
@@ -191,20 +206,27 @@ Shader "Game/Food/Layered"
                 edge = lerp(edge, _BandTop.rgb,
                     smoothstep(2.0 / 3.0 - _BandSoftness, 2.0 / 3.0 + _BandSoftness, height));
 
+                // Each side's crust shows as a seared line along that edge, so searing the underside
+                // shows before the first flip.
+                float bottomLine = 1.0 - smoothstep(_SearLine * 0.5, _SearLine, height);
+                float topLine = smoothstep(1.0 - _SearLine, 1.0 - _SearLine * 0.5, height);
+                edge = lerp(edge, _CrustBottom.rgb, bottomLine);
+                edge = lerp(edge, _BaseColor.rgb, topLine);
+
                 // Two octaves of noise, centred on 1, so mottling doesn't shift the overall colour:
                 // the crust still reads as the simulation's browning.
                 float mottle = 0.65 * ValueNoise(input.positionOS.xz * _MottleScale)
                     + 0.35 * ValueNoise(input.positionOS.xz * _MottleScale * 2.7);
                 half3 crust = _BaseColor.rgb * (1.0 + (mottle - 0.5) * 2.0 * _MottleStrength);
 
-                // Fat browns far more slowly than lean: it goes from white to a creamy yellow and
-                // holds that while the lean around it sears, only colouring once the crust is
-                // nearly burnt. It stays a little lighter even then, but still reads as burnt.
-                half3 fat = lerp(_FatRaw.rgb, _FatCooked.rgb, smoothstep(0.0, 0.5, _Browning));
-                fat = lerp(fat, _BaseColor.rgb, smoothstep(0.7, 1.0, _Browning) * 0.85);
-
                 // A little colour variation, so the fat doesn't look like smooth icing.
-                fat *= 1.0 + (mottle - 0.5) * 0.25;
+                float fatShade = 1.0 + (mottle - 0.5) * 0.25;
+                half3 fat = FatColor(_Browning, _BaseColor.rgb) * fatShade;
+
+                // Fat on the side renders from the pan up: the underside's browning at the bottom,
+                // the top's at the top.
+                half3 sideFat = lerp(FatColor(_BrowningBottom, _CrustBottom.rgb), FatColor(_Browning, _BaseColor.rgb),
+                    smoothstep(0.15, 0.6, height)) * fatShade;
 
                 float edgeFat = EdgeFat(input.positionOS.xz, input.edge);
                 float2 topFat = TopFat(input.positionOS.xz);
@@ -212,7 +234,7 @@ Shader "Game/Food/Layered"
                 crust = lerp(crust, fat, saturate(max(max(edgeFat, topFat.x), marbling)));
 
                 // Fat covers the side too, hiding the doneness bands wherever it reaches.
-                edge = lerp(edge, fat, edgeFat);
+                edge = lerp(edge, sideFat, edgeFat);
 
                 // Faces looking up show the crust; the bevel blends into the edge.
                 return lerp(edge, crust, smoothstep(0.55, 0.9, normalize(input.normalOS).y));

@@ -19,6 +19,8 @@ namespace Game.Presentation
         private static readonly int BandTopId = Shader.PropertyToID("_BandTop");
         private static readonly int SeedId = Shader.PropertyToID("_Seed");
         private static readonly int BrowningId = Shader.PropertyToID("_Browning");
+        private static readonly int CrustBottomId = Shader.PropertyToID("_CrustBottom");
+        private static readonly int BrowningBottomId = Shader.PropertyToID("_BrowningBottom");
 
         [SerializeField] private ItemView _itemView;
 
@@ -101,7 +103,8 @@ namespace Game.Presentation
                 ? ingredient.Browning(ingredient.UpSide)
                 : Mathf.Max(ingredient.Browning(IngredientSide.A), ingredient.Browning(IngredientSide.B))) / burnt;
 
-            ShowState(browning, ingredient.PeakSurfaceTemperature(ingredient.DownSide),
+            ShowState(browning, ingredient.Browning(ingredient.DownSide) / burnt,
+                ingredient.PeakSurfaceTemperature(ingredient.DownSide),
                 ingredient.PeakCoreTemperature, ingredient.PeakSurfaceTemperature(ingredient.UpSide));
         }
 
@@ -137,20 +140,31 @@ namespace Game.Presentation
         }
 
         /// <summary>
-        /// Colours the food for a cooking state: browning as a fraction of burnt, and each layer's
-        /// peak temperature in °C. Public so it can also be previewed outside Play mode.
+        /// Colours the food for a cooking state, with both sides browned alike: browning as a
+        /// fraction of burnt, and each layer's peak temperature in °C. Public so it can also be
+        /// previewed outside Play mode.
         /// </summary>
-        public void ShowState(float browning, float bottomPeak, float corePeak, float topPeak)
+        public void ShowState(float browning, float bottomPeak, float corePeak, float topPeak) =>
+            ShowState(browning, browning, bottomPeak, corePeak, topPeak);
+
+        /// <summary>As above, with the top and the underside browned separately.</summary>
+        public void ShowState(float browning, float bottomBrowning, float bottomPeak, float corePeak, float topPeak)
         {
             EnsureReady();
             var surface = ColorStop.Sample(_browning, browning, _surfaceRaw, 0f);
 
             if (_layeredShader)
             {
+                // Before it browns, the top dulls from red as heat rises through the meat, as a
+                // real steak's does, so cooking shows even before the first flip.
+                surface = ColorStop.Sample(_browning, browning, Cooked(topPeak, _surfaceRaw), 0f);
                 CoreColor = Cooked(corePeak, _surfaceRaw);
                 _surface.GetPropertyBlock(_block);
                 _block.SetColor(BaseColorId, surface);
                 _block.SetFloat(BrowningId, browning);
+                // The underside's crust shows as a seared line along the bottom of the edge.
+                _block.SetColor(CrustBottomId, ColorStop.Sample(_browning, bottomBrowning, Cooked(bottomPeak, _surfaceRaw), 0f));
+                _block.SetFloat(BrowningBottomId, bottomBrowning);
                 _block.SetColor(BandBottomId, Cooked(bottomPeak, _surfaceRaw));
                 _block.SetColor(BandCoreId, CoreColor);
                 _block.SetColor(BandTopId, Cooked(topPeak, _surfaceRaw));

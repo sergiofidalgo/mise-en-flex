@@ -30,6 +30,8 @@ namespace Game.Editor
             ("detail_2m", 2f, 0f), ("play_6.5m", 6.5f, 0f), ("wide_11m", 11f, 0f), ("behind_chef", 6.5f, -3f),
         };
 
+        private const float DetailHeight = 2f;
+        private const float PlayHeight = 6.5f;
         private const float VarietyRowX = 15f;
         private const float VarietySpacing = 0.34f;
         private const float VarietyCameraHeight = 1.5f;
@@ -95,6 +97,7 @@ namespace Game.Editor
                 raw.ShowState(0f, 4f, 4f, 4f);
             }
 
+            var steakViews = new System.Collections.Generic.List<(IngredientView View, (string Name, float Browning, float SidePeak, float CorePeak, float Dial) Stage)>();
             for (var i = 0; i < Stages.Length; i++)
             {
                 var stage = Stages[i];
@@ -111,6 +114,7 @@ namespace Game.Editor
                 var steakView = steak.GetComponent<IngredientView>();
                 steakView.ApplyVariation(i * 31 + 7);
                 steakView.ShowState(stage.Browning, stage.SidePeak, stage.CorePeak, stage.SidePeak);
+                steakViews.Add((steakView, stage));
 
                 // Hide the chip: the question is whether the food reads without it.
                 hob.transform.Find("DonenessChip").gameObject.SetActive(false);
@@ -125,6 +129,12 @@ namespace Game.Editor
             foreach (var view in Views)
                 Render(camera, target, new Vector3(0f, HobTop, view.LookAtZ), view.Height, Path.Combine(folder, $"pilot_{view.Name}.png"));
             Render(camera, target, new Vector3(VarietyRowX, 0f, 0f), VarietyCameraHeight, Path.Combine(folder, "pilot_variety.png"));
+
+            // Before the first flip: only the underside has cooked, and the top is still raw.
+            foreach (var (steakView, stage) in steakViews)
+                steakView.ShowState(0f, stage.Browning, stage.SidePeak, stage.CorePeak, 4f);
+            Render(camera, target, new Vector3(0f, HobTop, 0f), DetailHeight, Path.Combine(folder, "pilot_before_flip_detail.png"));
+            Render(camera, target, new Vector3(0f, HobTop, 0f), PlayHeight, Path.Combine(folder, "pilot_before_flip_play.png"));
             target.Release();
             Debug.Log($"[ArtPilotCapture] Saved to {folder}");
         }
