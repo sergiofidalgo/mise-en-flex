@@ -1,6 +1,8 @@
 // Layered food such as steak, as one mesh. The face looking up shows the crust; the edge shows
 // three bands by height (bottom, core, top), so a cooked layer creeps in from the seared sides,
 // as when a cook looks at a steak's side. IngredientView drives the colours from the simulation.
+// The top also has fat, generated from _Seed so that no two pieces look the same. The mesh's UV x
+// is how far a point is from the centre to the outline (0..1), which places fat round the edge.
 Shader "Game/Food/Layered"
 {
     Properties
@@ -13,7 +15,19 @@ Shader "Game/Food/Layered"
         _BandSoftness("Softness between bands", Range(0.01, 0.3)) = 0.08
         _MottleScale("Crust mottling scale (per metre)", Float) = 70
         _MottleStrength("Crust mottling strength", Range(0, 1)) = 0.3
-        _Smoothness("Smoothness", Range(0, 1)) = 0.35
+        _Smoothness("Smoothness", Range(0, 1)) = 0.2
+
+        [Header(Fat)]
+        _FatRaw("Fat: raw", Color) = (0.89, 0.72, 0.65, 1)
+        _FatCooked("Fat: cooked, holds this while the lean browns", Color) = (0.86, 0.72, 0.46, 1)
+        _MarbleCookedStrength("Marbling: how much shows once cooked", Range(0, 1)) = 0.35
+        _EdgeSwell("Edge fat: how far it swells onto the top", Range(0, 1)) = 0.4
+        _EdgeCoverage("Edge fat: how much of the outline it covers", Range(0, 1)) = 0.75
+        _SeamAmount("Seam: curve of fat through the meat", Range(0, 1)) = 0.9
+        _MarbleAmount("Marbling strength", Range(0, 1)) = 0.6
+        _MarbleScale("Marbling scale (per metre)", Float) = 85
+        _Seed("Variation (runtime)", Float) = 0.37
+        _Browning("Browning as a fraction of burnt (runtime)", Float) = 0
     }
 
     SubShader
@@ -33,6 +47,16 @@ Shader "Game/Food/Layered"
             float _MottleScale;
             float _MottleStrength;
             float _Smoothness;
+            half4 _FatRaw;
+            half4 _FatCooked;
+            float _MarbleCookedStrength;
+            float _EdgeSwell;
+            float _EdgeCoverage;
+            float _SeamAmount;
+            float _MarbleAmount;
+            float _MarbleScale;
+            float _Seed;
+            float _Browning;
         CBUFFER_END
         ENDHLSL
 
@@ -58,6 +82,7 @@ Shader "Game/Food/Layered"
             {
                 float4 positionOS : POSITION;
                 float3 normalOS : NORMAL;
+                float2 uv : TEXCOORD0;
             };
 
             struct Varyings
@@ -68,6 +93,7 @@ Shader "Game/Food/Layered"
                 float3 positionOS : TEXCOORD2;
                 float3 normalOS : TEXCOORD3;
                 float fogFactor : TEXCOORD4;
+                float edge : TEXCOORD5;
             };
 
             Varyings Vertex(Attributes input)
@@ -79,6 +105,7 @@ Shader "Game/Food/Layered"
                 output.positionOS = input.positionOS.xyz;
                 output.normalOS = input.normalOS;
                 output.fogFactor = ComputeFogFactor(output.positionCS.z);
+                output.edge = input.uv.x;
                 return output;
             }
 
@@ -99,6 +126,62 @@ Shader "Game/Food/Layered"
                     f.y);
             }
 
+            // Fat round the outline: it covers the side of the steak and shows as a thin line on
+            // top, swelling in places. Gaps let the lean reach the edge, as on a real cut, and show
+            // the doneness bands there. An edge value of 1 is the wall. Noise is sampled by
+            // direction from the centre, so it varies along the outline, not across the steak.
+            float EdgeFat(float2 p, float edge)
+            {
+                float offset = _Seed * 37.0;
+                float wobble = ValueNoise(p * 18.0 + offset) - 0.5;
+                float2 direction = normalize(p + 0.00001);
+
+                float gaps = ValueNoise(direction * 2.4 + offset + 21.0) + wobble * 0.25;
+                // Noise rarely reaches its extremes, so this scale makes coverage roughly as set.
+                float threshold = (1.0 - _EdgeCoverage) * 1.4;
+                float covered = smoothstep(threshold, threshold + 0.09, gaps);
+
+                float swell = ValueNoise(direction * 1.7 + offset + 31.0);
+                float start = 0.93 - lerp(0.02, 0.3, _EdgeSwell * swell * swell);
+                return covered * smoothstep(start, start + 0.03, edge + wobble * 0.05);
+            }
+
+            // The rest of the fat on the top face: x is what holds its colour (the seam), y is thin
+            // marbling, which melts away as it cooks.
+            float2 TopFat(float2 p)
+            {
+                float offset = _Seed * 37.0;
+                float wobble = ValueNoise(p * 18.0 + offset) - 0.5;
+
+                // A seam: a wavy line of fat running across the meat towards its edges, with its
+                // position and direction from the seed. Its width changes along its length and it
+                // breaks in places, so it reads as fat rather than a drawn line. Distances in metres.
+                float2 centre = (float2(frac(_Seed * 7.3), frac(_Seed * 3.1)) - 0.5) * float2(0.09, 0.07);
+                float seamAngle = frac(_Seed * 13.7) * 3.1415927;
+                float2 seamDirection = float2(cos(seamAngle), sin(seamAngle));
+                float2 fromCentre = p - centre;
+                float run = dot(fromCentre, seamDirection);
+                float bend = ValueNoise(p * 9.0 + offset + 2.0) - 0.5;
+                float away = dot(fromCentre, float2(-seamDirection.y, seamDirection.x))
+                    + sin(run * 16.0 + offset) * 0.018 + bend * 0.03 + wobble * 0.006;
+                float seamWidth = lerp(0.0, 0.009, ValueNoise(p * 11.0 + offset + 11.0));
+                float seam = (1.0 - smoothstep(seamWidth, seamWidth + 0.003, abs(away)))
+                    * smoothstep(0.25, 0.45, ValueNoise(p * 12.0 + offset + 5.0)) * _SeamAmount;
+
+                // Marbling, gathered in patches as in real meat: short veins where bent noise
+                // crosses its midpoint, plus flecks at its peaks. Both fade once smaller than a
+                // pixel, or they would shimmer from the game camera.
+                float2 q = p * _MarbleScale + offset;
+                float patches = smoothstep(0.42, 0.68, ValueNoise(p * 24.0 + offset + 9.0));
+                float veins = (1.0 - smoothstep(0.0, 0.05, abs(ValueNoise(q + wobble * 3.0) - 0.5))) * patches;
+                // The flecks' noise is bent by a coarser noise, which hides its square grid.
+                float fleckBend = ValueNoise(q * 0.6 + 7.0) * 2.5;
+                float flecks = smoothstep(0.76, 0.9, ValueNoise(q * 1.7 + fleckBend)) * patches;
+                float marbling = max(veins, flecks) * saturate(1.0 - length(fwidth(q)) * 1.2) * _MarbleAmount;
+
+                return float2(seam, marbling);
+            }
+
             half3 FoodColor(Varyings input)
             {
                 // Edge: the three bands by height, blended so no hard lines show from a distance.
@@ -113,6 +196,23 @@ Shader "Game/Food/Layered"
                 float mottle = 0.65 * ValueNoise(input.positionOS.xz * _MottleScale)
                     + 0.35 * ValueNoise(input.positionOS.xz * _MottleScale * 2.7);
                 half3 crust = _BaseColor.rgb * (1.0 + (mottle - 0.5) * 2.0 * _MottleStrength);
+
+                // Fat browns far more slowly than lean: it goes from white to a creamy yellow and
+                // holds that while the lean around it sears, only colouring once the crust is
+                // nearly burnt. It stays a little lighter even then, but still reads as burnt.
+                half3 fat = lerp(_FatRaw.rgb, _FatCooked.rgb, smoothstep(0.0, 0.5, _Browning));
+                fat = lerp(fat, _BaseColor.rgb, smoothstep(0.7, 1.0, _Browning) * 0.85);
+
+                // A little colour variation, so the fat doesn't look like smooth icing.
+                fat *= 1.0 + (mottle - 0.5) * 0.25;
+
+                float edgeFat = EdgeFat(input.positionOS.xz, input.edge);
+                float2 topFat = TopFat(input.positionOS.xz);
+                float marbling = topFat.y * lerp(1.0, _MarbleCookedStrength, smoothstep(0.0, 0.5, _Browning));
+                crust = lerp(crust, fat, saturate(max(max(edgeFat, topFat.x), marbling)));
+
+                // Fat covers the side too, hiding the doneness bands wherever it reaches.
+                edge = lerp(edge, fat, edgeFat);
 
                 // Faces looking up show the crust; the bevel blends into the edge.
                 return lerp(edge, crust, smoothstep(0.55, 0.9, normalize(input.normalOS).y));

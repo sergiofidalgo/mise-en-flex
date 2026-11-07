@@ -28,9 +28,9 @@ namespace Game.Tests.EditMode
         }
 
         [Test]
-        public void FoodShaderCompilesWithoutErrors()
+        public void CustomShadersCompileWithoutErrors([Values("Game/Food/Layered", "Game/AlwaysVisible")] string name)
         {
-            var shader = Shader.Find("Game/Food/Layered");
+            var shader = Shader.Find(name);
             Assert.That(shader, Is.Not.Null);
             Assert.That(ShaderUtil.ShaderHasError(shader), Is.False,
                 string.Join("\n", ShaderUtil.GetShaderMessages(shader).Select(m => m.message)));
@@ -74,6 +74,82 @@ namespace Game.Tests.EditMode
             {
                 Object.DestroyImmediate(go);
                 Object.DestroyImmediate(material);
+            }
+        }
+
+        [Test]
+        public void EachPieceOfLayeredFoodKeepsItsOwnLook()
+        {
+            var material = new Material(Shader.Find("Game/Food/Layered"));
+            var go = new GameObject("Steak");
+            try
+            {
+                var renderer = go.AddComponent<MeshRenderer>();
+                renderer.sharedMaterial = material;
+                var view = go.AddComponent<IngredientView>();
+                var so = new SerializedObject(view);
+                so.FindProperty("_itemView").objectReferenceValue = go.AddComponent<ItemView>();
+                so.FindProperty("_surface").objectReferenceValue = renderer;
+                so.FindProperty("_layeredShader").boolValue = true;
+                so.ApplyModifiedPropertiesWithoutUndo();
+
+                var block = new MaterialPropertyBlock();
+                float Seed()
+                {
+                    renderer.GetPropertyBlock(block);
+                    return block.GetFloat("_Seed");
+                }
+
+                view.ApplyVariation(12345);
+                var first = Seed();
+                var scale = go.transform.localScale;
+                var rotation = go.transform.localRotation;
+
+                view.ApplyVariation(12346);
+                Assert.That(Seed(), Is.Not.EqualTo(first), "Neighbouring seeds should give different fat.");
+                Assert.That(go.transform.localRotation, Is.Not.EqualTo(rotation));
+
+                view.ApplyVariation(12345);
+                Assert.That(Seed(), Is.EqualTo(first), "The same piece should keep its look.");
+                Assert.That(go.transform.localScale, Is.EqualTo(scale));
+                Assert.That(first, Is.InRange(0f, 1f));
+            }
+            finally
+            {
+                Object.DestroyImmediate(go);
+                Object.DestroyImmediate(material);
+            }
+        }
+
+        [Test]
+        public void SteakStaysInThePanAtItsLargestAtAnyAngle()
+        {
+            const float panFloorRadius = 0.185f;
+            const float largestVariation = 1.06f;
+            var steak = Model("SM_Steak", "SM_Steak");
+            var furthest = steak.vertices.Max(v => new Vector2(v.x, v.z).magnitude);
+            Assert.That(furthest * largestVariation, Is.LessThan(panFloorRadius));
+        }
+
+        [Test]
+        public void SteakUvsMeasureDistanceToItsEdgeForTheFat()
+        {
+            var uvs = Model("SM_Steak", "SM_Steak").uv;
+            Assert.That(uvs, Is.Not.Empty);
+            Assert.That(uvs.Min(uv => uv.x), Is.EqualTo(0f).Within(Tolerance));
+            Assert.That(uvs.Max(uv => uv.x), Is.EqualTo(1f).Within(Tolerance));
+        }
+
+        [Test]
+        public void HobHeatPipsDrawOverAnythingInFrontOfThem()
+        {
+            var hob = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/_Project/Prefabs/Furniture/PF_Hob.prefab");
+            var pips = hob.GetComponentsInChildren<Renderer>(true).Where(r => r.name.StartsWith("HeatPip")).ToArray();
+            Assert.That(pips, Is.Not.Empty);
+            foreach (var pip in pips)
+            {
+                Assert.That(pip.sharedMaterial.shader.name, Is.EqualTo("Game/AlwaysVisible"));
+                Assert.That(pip.sharedMaterial.renderQueue, Is.GreaterThan(3000), "They must draw after the rest of the scene.");
             }
         }
 

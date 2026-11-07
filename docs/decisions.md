@@ -4,6 +4,19 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-07 — Steak fat, per-steak variety, and heat pips that are never hidden
+
+**Decision (user's calls):**
+- **Steaks have fat and no two are alike.** Each has fat round its edge, a seam and marbling, with its own pattern, size and angle. Fat stays a small share of the top: big white patches looked like candy.
+- **Fat covers the edge and holds its colour.** It runs down the side of the steak round most of the outline, with gaps where the lean reaches the edge. Fat goes from white to a creamy yellow and stays that way while the lean browns, colouring only when the steak is nearly burnt. Only thin marbling melts away.
+- **A hob's heat pips always show,** drawn over anything in front of them, including a chef.
+
+**Reason:** real cuts look like this, and the variety stops every steak looking the same. Heat is read at a glance from across the kitchen, so a chef standing at the hob mustn't hide it.
+
+**Trade-off:** fat hides the doneness bands wherever it covers the side, so the core mostly shows only in the gaps. The doneness chip stays. Pips also show through walls and anything else in front of them.
+
+---
+
 ## 2026-11-07 — An art pilot ahead of Phase 9, with a hand-written food shader
 
 **Decision (user's call):** before Phase 9, a pilot replaces the hob, pan and steak with real Blender models, on its own `art-pilot` branch, without changing how the game plays. The look to try is chunky, soft-edged shapes with a few flat colours and little texture, with food slightly oversized so it reads from above. Food shaders are hand-written URP shaders rather than Shader Graph, which `CLAUDE.md` specified.

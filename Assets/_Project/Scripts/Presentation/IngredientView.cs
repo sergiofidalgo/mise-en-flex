@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using Game.Gameplay.Items;
 using Game.Simulation.Cooking;
 using UnityEngine;
@@ -16,6 +17,8 @@ namespace Game.Presentation
         private static readonly int BandBottomId = Shader.PropertyToID("_BandBottom");
         private static readonly int BandCoreId = Shader.PropertyToID("_BandCore");
         private static readonly int BandTopId = Shader.PropertyToID("_BandTop");
+        private static readonly int SeedId = Shader.PropertyToID("_Seed");
+        private static readonly int BrowningId = Shader.PropertyToID("_Browning");
 
         [SerializeField] private ItemView _itemView;
 
@@ -27,6 +30,9 @@ namespace Game.Presentation
 
         [Tooltip("The surface is one mesh using the Game/Food/Layered shader, which draws the bands itself.")]
         [SerializeField] private bool _layeredShader;
+
+        [Tooltip("Each piece of layered food gets a random size within this range, so no two look the same.")]
+        [SerializeField] private Vector2 _sizeVariation = new Vector2(0.92f, 1.06f);
 
         [Tooltip("Browning as a fraction of 'burnt' (0..1) → colour. Starts from the raw colour.")]
         [SerializeField] private ColorStop[] _browning =
@@ -53,6 +59,7 @@ namespace Game.Presentation
         private MaterialPropertyBlock _block;
         private Color _surfaceRaw;
         private Color[] _bandRaw;
+        private Ingredient _variedFor;
 
         /// <summary>True for layered food (steak), whose middle band shows doneness.</summary>
         public bool ShowsDoneness => _layeredShader || _bands.Length >= 3;
@@ -79,6 +86,14 @@ namespace Game.Presentation
             if (!(_itemView.Item is Ingredient ingredient))
                 return;
 
+            // Seeded from the ingredient rather than this view, so a piece keeps its look however
+            // it moves between views. It's purely visual, so it doesn't touch the simulation.
+            if (!ReferenceEquals(ingredient, _variedFor))
+            {
+                _variedFor = ingredient;
+                ApplyVariation(RuntimeHelpers.GetHashCode(ingredient));
+            }
+
             var burnt = Mathf.Max(ingredient.Properties.BurntBrowning, 0.0001f);
             // Layered food shows the side facing up, since it gets flipped. Loose food like diced
             // onion gets stirred, not flipped, so it shows its darkest side, or a burn would never show.
@@ -88,6 +103,37 @@ namespace Game.Presentation
 
             ShowState(browning, ingredient.PeakSurfaceTemperature(ingredient.DownSide),
                 ingredient.PeakCoreTemperature, ingredient.PeakSurfaceTemperature(ingredient.UpSide));
+        }
+
+        /// <summary>
+        /// Gives layered food its own fat pattern, size and angle. The same seed always gives the
+        /// same look. Does nothing for other food.
+        /// </summary>
+        public void ApplyVariation(int seed)
+        {
+            if (!_layeredShader)
+                return;
+
+            EnsureReady();
+            _surface.GetPropertyBlock(_block);
+            _block.SetFloat(SeedId, Hash01(seed, 1));
+            _surface.SetPropertyBlock(_block);
+
+            _surface.transform.localRotation = Quaternion.Euler(0f, Hash01(seed, 2) * 360f, 0f);
+            _surface.transform.localScale = Vector3.one * Mathf.Lerp(_sizeVariation.x, _sizeVariation.y, Hash01(seed, 3));
+        }
+
+        // Knuth's multiplicative hash, spreading similar seeds across 0..1; each channel gives an
+        // independent value, so size doesn't follow pattern.
+        private static float Hash01(int seed, uint channel)
+        {
+            unchecked
+            {
+                var hash = ((uint)seed + channel * 40503u) * 2654435761u;
+                hash ^= hash >> 15;
+                hash *= 2654435761u;
+                return (hash >> 8) / 16777216f;
+            }
         }
 
         /// <summary>
@@ -104,6 +150,7 @@ namespace Game.Presentation
                 CoreColor = Cooked(corePeak, _surfaceRaw);
                 _surface.GetPropertyBlock(_block);
                 _block.SetColor(BaseColorId, surface);
+                _block.SetFloat(BrowningId, browning);
                 _block.SetColor(BandBottomId, Cooked(bottomPeak, _surfaceRaw));
                 _block.SetColor(BandCoreId, CoreColor);
                 _block.SetColor(BandTopId, Cooked(topPeak, _surfaceRaw));

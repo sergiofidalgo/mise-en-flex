@@ -174,16 +174,26 @@ def build_steak():
     ]
     bm = bmesh.new()
     rings = []
+    edge_distance = {}
     for scale, height in profile:
         if scale <= 0.0:
-            rings.append([bm.verts.new((0.0, 0.0, height))])
-            continue
-        ring = []
-        for i in range(segments):
-            x, y = steak_outline(2.0 * math.pi * i / segments)
-            ring.append(bm.verts.new((x * scale, y * scale, height)))
+            ring = [bm.verts.new((0.0, 0.0, height))]
+        else:
+            ring = []
+            for i in range(segments):
+                x, y = steak_outline(2.0 * math.pi * i / segments)
+                ring.append(bm.verts.new((x * scale, y * scale, height)))
+        for vert in ring:
+            edge_distance[vert] = scale
         rings.append(ring)
     connect_rings(bm, rings)
+
+    # UV x is how far a point is from the centre to the outline. The shader uses it to place fat
+    # round the edge, which it can't work out from position alone on an irregular shape.
+    uv_layer = bm.loops.layers.uv.new("UVMap")
+    for face in bm.faces:
+        for loop in face.loops:
+            loop[uv_layer].uv = (edge_distance[loop.vert], 0.5)
     return [finish("SM_Steak", bm)]
 
 

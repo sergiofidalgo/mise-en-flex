@@ -23,10 +23,20 @@ namespace Game.Editor
 
         // Camera heights: close enough to check the models, the closest the game goes, and the
         // whole-restaurant height.
-        private static readonly (string Name, float Height)[] Views =
+        // "behind_chef" shifts the hobs to the top of the screen, where the view is shallowest and
+        // a chef in front hides the most.
+        private static readonly (string Name, float Height, float LookAtZ)[] Views =
         {
-            ("detail_2m", 2f), ("play_6.5m", 6.5f), ("wide_11m", 11f),
+            ("detail_2m", 2f, 0f), ("play_6.5m", 6.5f, 0f), ("wide_11m", 11f, 0f), ("behind_chef", 6.5f, -3f),
         };
+
+        private const float VarietyRowX = 15f;
+        private const float VarietySpacing = 0.34f;
+        private const float VarietyCameraHeight = 1.5f;
+        private const int VarietyCount = 6;
+        private const float ChefDistanceInFront = 0.95f;
+        private const float BlockerZ = -0.25f;
+        private const int BlockedStage = 2;
 
         // Browning as a fraction of burnt, then peak temperatures: sides, core. Hob dial: 0..1.
         private static readonly (string Name, float Browning, float SidePeak, float CorePeak, float Dial)[] Stages =
@@ -76,6 +86,16 @@ namespace Game.Editor
             var hobPrefab = Load<GameObject>("Assets/_Project/Prefabs/Furniture/PF_Hob.prefab");
             var panPrefab = Load<GameObject>("Assets/_Project/Prefabs/Items/PF_Item_Pan.prefab");
             var steakPrefab = Load<GameObject>("Assets/_Project/Prefabs/Items/PF_Item_Steak.prefab");
+            var chefPrefab = Load<GameObject>("Assets/_Project/Prefabs/PF_Player.prefab");
+
+            // A separate row of raw steaks, away from the hobs, to compare their variety.
+            for (var i = 0; i < VarietyCount; i++)
+            {
+                var position = new Vector3(VarietyRowX + (i - (VarietyCount - 1) / 2f) * VarietySpacing, 0f, 0f);
+                var raw = UnityEngine.Object.Instantiate(steakPrefab, position, Quaternion.identity).GetComponent<IngredientView>();
+                raw.ApplyVariation(i * 101 + 3);
+                raw.ShowState(0f, 4f, 4f, 4f);
+            }
 
             for (var i = 0; i < Stages.Length; i++)
             {
@@ -83,16 +103,25 @@ namespace Game.Editor
                 var x = (i - (Stages.Length - 1) / 2f) * StationSpacing;
                 var hob = UnityEngine.Object.Instantiate(hobPrefab, new Vector3(x, 0f, 0f), Quaternion.identity);
                 SetHeat(hob, stage.Dial);
+                if (i % 2 == 0)
+                    UnityEngine.Object.Instantiate(chefPrefab, new Vector3(x, 0f, -ChefDistanceInFront), Quaternion.identity);
 
                 var anchor = hob.transform.Find("ItemAnchor").position;
                 var pan = UnityEngine.Object.Instantiate(panPrefab, anchor, Quaternion.identity);
                 var panFloor = pan.transform.Find("Body").GetComponent<Renderer>().bounds.min.y + PanFloorHeight;
                 var steak = UnityEngine.Object.Instantiate(steakPrefab, new Vector3(x, panFloor, 0f), Quaternion.identity);
-                steak.GetComponent<IngredientView>().ShowState(stage.Browning, stage.SidePeak, stage.CorePeak, stage.SidePeak);
+                var steakView = steak.GetComponent<IngredientView>();
+                steakView.ApplyVariation(i * 31 + 7);
+                steakView.ShowState(stage.Browning, stage.SidePeak, stage.CorePeak, stage.SidePeak);
 
                 // Hide the chip: the question is whether the food reads without it.
                 hob.transform.Find("DonenessChip").gameObject.SetActive(false);
             }
+
+            // A worst case that can't happen in play, to prove the heat pips show through a chef:
+            // one stood on the third hob, directly between its pips and the camera.
+            var blockedHobX = (BlockedStage - (Stages.Length - 1) / 2f) * StationSpacing;
+            UnityEngine.Object.Instantiate(chefPrefab, new Vector3(blockedHobX, HobTop, BlockerZ), Quaternion.identity);
 
             var camera = new GameObject("Capture Camera").AddComponent<Camera>();
             camera.fieldOfView = CameraFieldOfView;
@@ -101,20 +130,21 @@ namespace Game.Editor
 
             var target = new RenderTexture(Width, Height, 24, RenderTextureFormat.ARGB32, RenderTextureReadWrite.sRGB);
             foreach (var view in Views)
-                Render(camera, target, view.Height, Path.Combine(folder, $"pilot_{view.Name}.png"));
+                Render(camera, target, new Vector3(0f, HobTop, view.LookAtZ), view.Height, Path.Combine(folder, $"pilot_{view.Name}.png"));
+            Render(camera, target, new Vector3(VarietyRowX, 0f, 0f), VarietyCameraHeight, Path.Combine(folder, "pilot_variety.png"));
             target.Release();
             Debug.Log($"[ArtPilotCapture] Saved to {folder}");
         }
 
         private const float PanFloorHeight = 0.04f; // PanDepth in GreyboxKitchenware
+        private const float HobTop = 0.9f;
 
-        private static void Render(Camera camera, RenderTexture target, float height, string path)
+        private static void Render(Camera camera, RenderTexture target, Vector3 lookAt, float height, string path)
         {
-            // Pitched like the game camera, aimed at the top of the row of hobs.
-            var lookAt = new Vector3(0f, 0.9f, 0f);
+            // Pitched like the game camera.
             var back = (height - lookAt.y) / Mathf.Tan(CameraPitch * Mathf.Deg2Rad);
             camera.transform.SetPositionAndRotation(
-                new Vector3(0f, height, lookAt.z - back), Quaternion.Euler(CameraPitch, 0f, 0f));
+                new Vector3(lookAt.x, height, lookAt.z - back), Quaternion.Euler(CameraPitch, 0f, 0f));
 
             camera.targetTexture = target;
             var request = new RenderPipeline.StandardRequest { destination = target };
@@ -142,6 +172,17 @@ namespace Game.Editor
             var block = new MaterialPropertyBlock();
             block.SetColor("_BaseColor", color);
             renderer.SetPropertyBlock(block);
+
+            var pips = so.FindProperty("_pips");
+            var lit = Mathf.CeilToInt(dial * pips.arraySize - 0.001f);
+            for (var i = 0; i < pips.arraySize; i++)
+            {
+                var pipColor = so.FindProperty(i < lit ? "_pipOn" : "_pipOff").colorValue;
+                var pipName = ((Renderer)pips.GetArrayElementAtIndex(i).objectReferenceValue).name;
+                var pipBlock = new MaterialPropertyBlock();
+                pipBlock.SetColor("_BaseColor", pipColor);
+                hob.transform.Find(pipName).GetComponent<Renderer>().SetPropertyBlock(pipBlock);
+            }
         }
 
         private static Material LoadMaterial(string name) => Load<Material>($"Assets/_Project/Art/Materials/{name}.mat");
