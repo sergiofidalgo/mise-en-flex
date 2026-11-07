@@ -13274,6 +13274,8 @@ GameObject:
   - component: {fileID: 1979155928}
   - component: {fileID: 1979155927}
   - component: {fileID: 1979155926}
+  - component: {fileID: 1979155930}
+  - component: {fileID: 1979155929}
   m_Layer: 0
   m_Name: KitchenAudio
   m_TagString: Untagged
@@ -13325,6 +13327,33 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1979155929
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1979155925}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ff1323279ab7047d6b7c0aa5684d598c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.Presentation::Game.Presentation.PlayerSounds
+  _audio: {fileID: 1979155927}
+--- !u!114 &1979155930
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1979155925}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 71d013db9f63f4962bb30c95f558e5ec, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.Presentation::Game.Presentation.SmokeAlarm
+  _root: {fileID: 1714189889}
+  _audio: {fileID: 1979155927}
 --- !u!1 &1983656874
 GameObject:
   m_ObjectHideFlags: 0

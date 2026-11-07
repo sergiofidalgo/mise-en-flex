@@ -58,6 +58,11 @@ namespace Game.Editor
             SetClips(so, "_doorOpen", "SFX_Door_Open_");
             SetClips(so, "_doorClose", "SFX_Door_Close_");
             SetClips(so, "_sizzleHit", "SFX_Sizzle_Hit_");
+            SetClips(so, "_alarmBeep", "SFX_Alarm_");
+            SetClips(so, "_step", "SFX_Step_");
+            SetClips(so, "_clack", "SFX_Clack_");
+            SetClips(so, "_till", "SFX_Till_");
+            SetClips(so, "_chime", "SFX_Chime_");
 
             MakeSeamless(SizzleLoopName);
             so.FindProperty("_sizzleLoop").objectReferenceValue = AssetDatabase.LoadAssetAtPath<AudioClip>($"{ClipFolder}/{SizzleLoopName}.wav");
@@ -88,6 +93,21 @@ namespace Game.Editor
             sizzleSo.FindProperty("_root").objectReferenceValue = root;
             sizzleSo.FindProperty("_audio").objectReferenceValue = audio;
             sizzleSo.ApplyModifiedPropertiesWithoutUndo();
+
+            var alarm = audio.GetComponent<SmokeAlarm>();
+            if (alarm == null)
+                alarm = audio.gameObject.AddComponent<SmokeAlarm>();
+            var alarmSo = new SerializedObject(alarm);
+            alarmSo.FindProperty("_root").objectReferenceValue = root;
+            alarmSo.FindProperty("_audio").objectReferenceValue = audio;
+            alarmSo.ApplyModifiedPropertiesWithoutUndo();
+
+            var chefs = audio.GetComponent<PlayerSounds>();
+            if (chefs == null)
+                chefs = audio.gameObject.AddComponent<PlayerSounds>();
+            var chefsSo = new SerializedObject(chefs);
+            chefsSo.FindProperty("_audio").objectReferenceValue = audio;
+            chefsSo.ApplyModifiedPropertiesWithoutUndo();
 
             foreach (var door in Object.FindObjectsByType<SwingDoorView>(FindObjectsSortMode.None))
             {

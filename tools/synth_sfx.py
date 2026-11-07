@@ -211,6 +211,61 @@ def door_close(rng):
     return finish(mix(low, wood, air, rattle), 0.6, fade_out=0.02)
 
 
+def alarm_beep():
+    """A detector's double beep. Round-edged and slightly soft: urgent, without being painful."""
+    freq = 3100
+    beep_seconds, gap_seconds = 0.11, 0.07
+    n = int(beep_seconds * RATE)
+    edge = int(0.006 * RATE)
+    beep = []
+    for i in range(n):
+        t = i / RATE
+        rise = min(1.0, i / edge, (n - i) / edge)
+        # An odd harmonic gives it a piezo buzzer's edge; a pure sine would read as a test tone.
+        beep.append(rise * (math.sin(2 * math.pi * freq * t) + 0.18 * math.sin(2 * math.pi * freq * 3 * t)))
+    return finish(beep + silence(gap_seconds) + beep, 0.5)
+
+
+def door_chime(rng, base):
+    """The little bell on a shop door: two quick, small strikes as the door moves it."""
+    length = 0.7
+    # Higher and shorter than the order bell, so the two can't be confused.
+    partials = [(1.0, 0.45, 1.0), (1.48, 0.3, 0.4), (2.31, 0.18, 0.3)]
+    def strike(gain, shift):
+        return [x * gain for x in mix(*(mode(base * shift * r, ring, length, g, rng.uniform(0, 6.28)) for r, ring, g in partials))]
+    second = [0.0] * int(0.085 * RATE) + strike(0.65, 1.012)
+    return finish(mix(strike(1.0, 1.0), second), 0.55, fade_out=0.02)
+
+
+def till(rng, wobble):
+    """A till: a key's clunk, the drawer's rattle, then a small ding, like the old mechanical ones."""
+    length = 0.55
+    key = mix(mode(300 * wobble, 0.04, length, 1.0), scaled(decay(biquad(noise(rng, 0.01), "high", 1500), 0.008), 0.7))
+    drawer = [0.0] * int(0.07 * RATE) + scaled(decay(biquad(noise(rng, 0.09), "band", 700, 1.0), 0.09, attack=0.005), 0.5)
+    ring_at = [0.0] * int(0.1 * RATE)
+    ding = ring_at + mix(mode(1760 * wobble, 0.42, length - 0.1, 0.8), mode(1760 * 2.38 * wobble, 0.25, length - 0.1, 0.3))
+    return finish(mix(scaled(key, 0.6), drawer, ding), 0.55, fade_out=0.02)
+
+
+def clack(rng):
+    """Something set down on a counter: a soft, short knock with a little ceramic ring."""
+    length = 0.12
+    wobble = rng.uniform(0.88, 1.12)
+    body = mix(mode(620 * wobble, 0.04, length, 1.0), mode(1450 * wobble, 0.03, length, 0.5), mode(2900 * wobble, 0.02, length, 0.18))
+    tick = scaled(decay(biquad(noise(rng, 0.006), "band", 2500, 0.8), 0.004), 0.35)
+    return finish(mix(body, tick), 0.55)
+
+
+def step(rng):
+    """A soft shoe on a hard floor: mostly a low, dull pat, with the sole's little scuff on top."""
+    length = 0.13
+    wobble = rng.uniform(0.9, 1.1)
+    pat = mode(115 * wobble, 0.06, length, 1.0)
+    heel = scaled(decay(biquad(noise(rng, 0.05), "low", 500 * wobble), 0.035, attack=0.002), 0.9)
+    scuff = [0.0] * int(0.012 * RATE) + scaled(decay(biquad(noise(rng, 0.05), "band", 1800, 0.7), 0.04, attack=0.004), 0.12)
+    return finish(biquad(mix(pat, heel, scuff), "high", 60), 0.5, fade_out=0.01)
+
+
 def main():
     rng = random.Random(20261107)
     write("SFX_Bell_01", bell(rng, 2350))
@@ -228,6 +283,16 @@ def main():
     write("SFX_Door_Open_02", door_creak(rng, 0.26))
     write("SFX_Door_Close_01", door_close(rng))
     write("SFX_Door_Close_02", door_close(rng))
+    # New clips go last, so the random numbers behind the ones above never change.
+    write("SFX_Alarm_01", alarm_beep())
+    write("SFX_Chime_01", door_chime(rng, 3350))
+    write("SFX_Chime_02", door_chime(rng, 3180))
+    write("SFX_Till_01", till(rng, 1.0))
+    write("SFX_Till_02", till(rng, 0.97))
+    for i in range(1, 5):
+        write(f"SFX_Clack_{i:02}", clack(rng))
+    for i in range(1, 6):
+        write(f"SFX_Step_{i:02}", step(rng))
 
 
 if __name__ == "__main__":
