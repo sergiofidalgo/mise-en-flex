@@ -4,6 +4,20 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-07 — Playtest fixes: cooked food in storage, furniture landing on chefs, HUD on screen, fridge door
+
+**Decision (from playtest feedback; details proposed):**
+- **Cooked food gets its own storage slot.** A slot holds one ingredient in one state: cooked (any doneness level or any browning) never shares a slot with raw stock. Before, a cooked steak joined the raw steaks' slot and, taken oldest first, could never be reached, while the bin only showed raw steak, so it seemed to vanish. Its own view stays in its bin, and the RT menu says "cooked steak". With no free slot, the fridge refuses it, as when full. Staff never fetch cooked food as stock.
+- **Furniture never lands on anyone.** A piece being carried in management mode is a preview without collision, so it can't shove anyone. It can't be put down within a body's own radius plus 0.1 m (`_personalSpace` on `LayoutEditor`); before, the check used 0.3 m against a 0.35 m chef. A piece sent back home by Cancel may land on someone who walked into its spot: they step out to the nearest free floor. As a safety net, a chef who ends up 1 m below the floor is put back on the nearest free spot.
+- **HUD cards always stay on screen.** Every world-anchored card (shop list, tickets, food tags, review popups, the chop dial and flip gauge) slides back inside the screen, 12 px from the edges (`ScreenMargin` on the HUD style). Prompt cards already did.
+- **The fridge door knows its surroundings.** Each time it opens from shut, it checks how far it can swing before touching walls or furniture (people don't count), hinges on whichever side has more room (left unless the right has 10° more), and eases to a stop 4° short of anything in the way, without overshooting into it. This replaces "the door hinges on the left" in the fridge entry below.
+
+**Reason:** these all broke the game's readability or let a player lose a chef for good. Animations have to look right wherever players put furniture, since layouts are theirs.
+
+**Not verified:** all of it needs checking in play; a fridge hinged on the right is the door model mirrored.
+
+---
+
 ## 2026-11-07 — Tall glass fridge and shelf, ingredient pictures, chefs bend at shelves
 
 **Decision (user's calls):**
