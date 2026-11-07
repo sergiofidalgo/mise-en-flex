@@ -28,6 +28,21 @@ namespace Game.Tests.EditMode
             Assert.That(Math.Abs(relative.X), Is.LessThanOrEqualTo(halfHeight * Aspect + 0.001f), $"{point} across");
         }
 
+        // The camera eases its height on its own, then asks where to be at the height it has reached.
+        [Test]
+        public void AGivenHeightIsKeptAndTheFloorPositionSuitsIt()
+        {
+            var chef = new[] { new Vector2(1f, -2f) };
+            var low = CameraFraming.Fit(chef, Tilt, Fov, Aspect, 1f, 7f, 7f);
+            var high = CameraFraming.Fit(chef, Tilt, Fov, Aspect, 1f, 9f, 9f);
+
+            Assert.That(low.Y, Is.EqualTo(7f));
+            Assert.That(high.Y, Is.EqualTo(9f));
+            Assert.That(high.Z, Is.LessThan(low.Z), "further up, it stands further back to keep looking at them");
+            AssertInView(low, chef[0]);
+            AssertInView(high, chef[0]);
+        }
+
         [Test]
         public void EveryoneStaysInView()
         {

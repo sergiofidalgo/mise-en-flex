@@ -253,5 +253,31 @@ namespace Game.Tests.EditMode
             Assert.That(wellDoneAt, Is.GreaterThan(0f), "it reached well done");
             Assert.That(seconds - wellDoneAt, Is.GreaterThan(1f * Minute), "with a game minute or more to spare");
         }
+
+        [Test]
+        public void OffTheHobTheNeedleSlowsAsThePanCools()
+        {
+            var (sim, hob, pan) = Kitchen();
+            var steak = sim.AddIngredient(SteakDefinition.ToProperties());
+            pan.Put(steak);
+            SecondsUntilBrowning(sim, steak, 0.9f);
+            steak.Flip();
+            sim.Tick(1f * Minute);
+            hob.RemovePan();
+
+            float Moved(float seconds)
+            {
+                var from = steak.CoreTemperature;
+                sim.Tick(seconds);
+                return steak.CoreTemperature - from;
+            }
+
+            // Compared by how fast its middle heats, as the peak the needle follows only rises.
+            var early = Moved(30f);
+            sim.Tick(1f * Minute);
+            var late = Moved(30f);
+            Assert.That(early, Is.GreaterThan(0f), "it goes on cooking");
+            Assert.That(late, Is.LessThan(early), "more and more slowly");
+        }
     }
 }

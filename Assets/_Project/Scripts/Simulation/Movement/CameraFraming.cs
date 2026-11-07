@@ -120,7 +120,14 @@ namespace Game.Simulation.Movement
         /// is: it eases back as they go, however little it needs to fit them, up to a limit.
         /// </summary>
         public static float ClosestHeight(float metresAway, float nearHeight, float extraPerMetre, float mostExtra) =>
-            nearHeight + Math.Min(mostExtra, Math.Max(0f, metresAway) * extraPerMetre);
+            nearHeight + mostExtra * SmoothStep(extraPerMetre > 0f && mostExtra > 0f ? Math.Max(0f, metresAway) * extraPerMetre / mostExtra : 0f);
+
+        // An S-curve from 0 to 1: it starts and ends gently, so there's no moment you can see it begin.
+        private static float SmoothStep(float t)
+        {
+            t = Math.Min(1f, t);
+            return t * t * (3f - 2f * t);
+        }
 
         /// <summary>How far a point is outside a rectangle; zero inside it.</summary>
         public static float DistanceOutside(Vector2 point, Vector2 min, Vector2 max)

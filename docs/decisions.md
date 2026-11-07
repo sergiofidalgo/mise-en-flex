@@ -34,6 +34,24 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-07 — First kitchen sounds, ahead of Phase 9
+
+**Decision (user's call):** bring a small set of sound effects forward from Phase 9: pan sizzle, bell, chopping and the kitchen door. The first clips are synthesized placeholders from `tools/synth_sfx.py`; a real recording replaces one by overwriting its file, with no code changes.
+
+**Reason:** sound carries information (design doc §13), so it's worth having while the mechanics are being tuned, not only at the polish stage.
+
+**How it behaves (proposed and accepted):**
+- The sizzle needs food in the pan and follows the pan's temperature: louder and higher as it heats, silent below 110 °C and between shifts. Food landing or being flipped adds a rush of hiss.
+- Chopping sounds by grade: a clean knock on the beat, duller when early or late, a skid on a miss.
+- The door's creak is short and quiet, because it gets used constantly during service.
+- Sounds are 2D and pan left and right with their place on screen. There's no distance fade, so a burning pan stays audible wherever the camera's attention is.
+
+Tuning lives in `Data/Settings/SoundBank.asset`. This replaces the "Not built: the bell's sound" note under 2026-11-06.
+
+**Not built:** see "Sound still to do" in `ideas.md`.
+
+---
+
 ## 2026-11-07 — Size tiers dropped from Phase 4
 
 **Decision (user's call):** a restaurant's size comes from which one you buy on the city miniature (Phase 6), not from upgrading one. Phase 4 ends with the waiter and equipment tiers.
@@ -56,6 +74,16 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-07 — Food stops cooking on a plate
+
+**User's call:** a pan taken off the hob keeps cooking its food with its leftover heat, but food on a plate stops cooking. Plating is how a chef decides it's done. Replaces carryover cooking on the plate. The stronger carryover I proposed was not built.
+
+**User's call:** the bar shows on pans off the hob too, and the needle slows as the pan cools.
+
+**Details:** food on a plate still cools, so serving temperature still matters. Resting on a plate still counts towards the rest score.
+
+---
+
 ## 2026-11-07 — The camera follows the people working; markers for customers out of view
 
 **User's calls:**
@@ -66,6 +94,8 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 **After play (user's calls):** the camera comes in closer and follows chefs more tightly, because it cut them off. It comes no closer than 6.5 m up, so two players together get a comfortable view, and from the kitchen a customer's walk from the door shows a marker for a while.
 
 **After more play (user's calls):** chefs walk a little slower, 4.2 m/s down from 5, and the camera follows closer behind. As a player walks away from the kitchen, the camera moves with them and gently zooms out.
+
+**Camera motion, after play (from user feedback; values proposed, tunable on `FramingCamera`):** it felt artificial, and then dizzying. Its moves are eased twice, so they build up and settle softly, and the threshold that made it move in steps is gone. A look-ahead was tried and removed: it nearly tripled the camera's travel in the kitchen. Height is now eased on its own and the floor position framed for the height it has actually reached, so zooming doesn't slide the view. It backs away at once but waits 0.75 s before closing in, which then takes about 5 s in all from the dining room. Top speeds are 6 m/s across the floor (down from 14) and 2 m/s up and down. With people far apart it leaves 20% of the screen clear at the top instead of 27%, as that room was going unused.
 
 **Details (proposed; flagged for review, tunable on `CustomerIndicatorHud`):**
 - **A plain dot for anyone else out of view,** walking in or queueing.

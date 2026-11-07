@@ -6,7 +6,7 @@ using UnityEngine;
 
 namespace Game.Presentation.Hud
 {
-    /// <summary>A label over each counter where the bell has been rung for a plate. TODO(Phase 7): the bell's sound.</summary>
+    /// <summary>A label over each counter where the bell has been rung for a plate. The bell's sound is in <see cref="KitchenAudio"/>.</summary>
     public sealed class BellHud : MonoBehaviour
     {
         [SerializeField] private RectTransform _canvas;
