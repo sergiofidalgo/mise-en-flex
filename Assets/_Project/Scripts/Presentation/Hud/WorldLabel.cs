@@ -14,6 +14,7 @@ namespace Game.Presentation.Hud
     {
         private HudStyle _style;
         private RectTransform _rect;
+        private RectTransform _canvas;
         private CanvasGroup _group;
         private TextMeshProUGUI _text;
         private GameObject _bar;
@@ -30,6 +31,7 @@ namespace Game.Presentation.Hud
             label._style = style;
             label._rect = (RectTransform)go.transform;
             label._rect.pivot = pivot;
+            label._canvas = canvas;
             label._group = go.AddComponent<CanvasGroup>();
             label._group.alpha = 0f;
             label._group.blocksRaycasts = false;
@@ -95,10 +97,11 @@ namespace Game.Presentation.Hud
         /// <summary>Shows <paramref name="text"/> at a fixed canvas position (a counter, not following anything).</summary>
         public void ShowAt(string text, Vector2 canvasPosition)
         {
-            if (_text.text != text)
-                _text.text = text;
+            if (SetText(text))
+                LayoutRebuilder.ForceRebuildLayoutImmediate(_rect);
             _rect.anchoredPosition = canvasPosition;
             _targetAlpha = 1f;
+            KeepOnScreen();
         }
 
         /// <summary>Shows <paramref name="text"/> with its pivot at <paramref name="world"/>, if it's on screen.</summary>
@@ -112,13 +115,20 @@ namespace Game.Presentation.Hud
                 return;
             }
 
-            if (_text.text != text)
-                _text.text = text;
+            var changed = SetText(text);
             var hasText = !string.IsNullOrEmpty(text);
             if (_text.gameObject.activeSelf != hasText)
+            {
                 _text.gameObject.SetActive(hasText);
+                changed = true;
+            }
             if (_bar.activeSelf != meter.HasValue)
+            {
                 _bar.SetActive(meter.HasValue);
+                changed = true;
+            }
+            if (changed)
+                LayoutRebuilder.ForceRebuildLayoutImmediate(_rect); // its new size, before it's kept on screen
             if (meter.HasValue)
             {
                 _barFill.anchorMax = new Vector2(Mathf.Clamp01(meter.Value), 1f);
@@ -127,9 +137,25 @@ namespace Game.Presentation.Hud
             RectTransformUtility.ScreenPointToLocalPointInRectangle(canvas, screen, null, out var local);
             _rect.anchoredPosition = local;
             _targetAlpha = 1f;
+            KeepOnScreen();
         }
 
         public void Hide() => _targetAlpha = 0f;
+
+        // True if the text changed (and with it, maybe the card's size).
+        private bool SetText(string text)
+        {
+            if (_text.text == text)
+                return false;
+            _text.text = text;
+            return true;
+        }
+
+        private void KeepOnScreen()
+        {
+            if (_canvas != null)
+                HudBounds.KeepInside(_rect, _canvas, _style.ScreenMargin);
+        }
 
         private void Update()
         {

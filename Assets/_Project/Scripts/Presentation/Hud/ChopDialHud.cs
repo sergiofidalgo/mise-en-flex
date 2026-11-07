@@ -17,6 +17,8 @@ namespace Game.Presentation.Hud
 
         [Tooltip("Metres above the station's base the dial is anchored to (the counter top).")]
         [SerializeField, Min(0f)] private float _anchorHeight = 0.9f;
+        [Tooltip("Canvas pixels the dial keeps from the screen's edges.")]
+        [SerializeField, Min(0f)] private float _screenMargin = 12f;
         [Tooltip("Canvas pixels below that point, so the dial sits in front of the counter, under the prompt.")]
         [SerializeField] private float _drop = 80f;
 
@@ -84,6 +86,7 @@ namespace Game.Presentation.Hud
 
                 RectTransformUtility.ScreenPointToLocalPointInRectangle(_canvas, screen, null, out var local);
                 view.Rect.anchoredPosition = local + Vector2.down * _drop;
+                HudBounds.KeepInside(view.Rect, _canvas, _screenMargin);
                 var since = _lastChop.TryGetValue(station, out var at) ? Time.unscaledTime - at : float.MaxValue;
                 view.Show(counter.Dial, counter.Cuts, counter.CutsNeeded, Time.unscaledTimeAsDouble, since);
             }

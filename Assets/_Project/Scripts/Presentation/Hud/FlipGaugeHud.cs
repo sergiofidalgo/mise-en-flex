@@ -23,6 +23,8 @@ namespace Game.Presentation.Hud
         [SerializeField] private Vector2 _size = new Vector2(170f, 16f);
         [Tooltip("Canvas pixels from the food to the gauge's centre; negative is down, under the doneness tag.")]
         [SerializeField] private float _offsetY = -66f;
+        [Tooltip("Canvas pixels the gauge keeps from the screen's edges.")]
+        [SerializeField, Min(0f)] private float _screenMargin = 12f;
         [SerializeField, Min(1f)] private float _needleWidth = 5f;
         [Tooltip("Gauge size while the needle is in the green band, so it catches the eye.")]
         [SerializeField, Min(1f)] private float _goodScale = 1.15f;
@@ -74,6 +76,7 @@ namespace Game.Presentation.Hud
                 RectTransformUtility.ScreenPointToLocalPointInRectangle(_canvas, screen, null, out var local);
                 gauge.Root.gameObject.SetActive(screen.z > 0f);
                 gauge.Root.anchoredPosition = local + new Vector2(0f, _offsetY);
+                HudBounds.KeepInside(gauge.Root, _canvas, _screenMargin);
 
                 var properties = food.Properties;
                 gauge.Good.gameObject.SetActive(!stages);

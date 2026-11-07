@@ -56,6 +56,8 @@ namespace Game.Presentation.Hud
         [SerializeField, Range(0f, 1f)] private float _unavailableOpacity = 0.35f;
         [Tooltip("Seconds for prompts to fade in or out.")]
         [SerializeField, Min(0f)] private float _fade = 0.12f;
+        [Tooltip("Canvas pixels every card keeps from the screen's edges: cards that follow something near an edge slide back in.")]
+        [SerializeField, Min(0f)] private float _screenMargin = 12f;
 
         [Header("Doneness (tickets, food tags)")]
         [Tooltip("One colour per doneness level name, shared by order tickets and food tags so they can be matched at a glance. Close to the steak's own band colours, brightened to read on dark cards.")]
@@ -98,6 +100,7 @@ namespace Game.Presentation.Hud
         public float BadgeSize => _badgeSize;
         public float UnavailableOpacity => _unavailableOpacity;
         public float Fade => _fade;
+        public float ScreenMargin => _screenMargin;
         public Sprite Circle => _circle;
         public Sprite Rounded => _rounded;
         public Color KeycapText => _keycapText;
