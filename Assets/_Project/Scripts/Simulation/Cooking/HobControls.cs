@@ -1,3 +1,5 @@
+using System;
+
 namespace Game.Simulation.Cooking
 {
     /// <summary>
@@ -14,6 +16,17 @@ namespace Game.Simulation.Cooking
         public static void AdjustHeat(Hob hob, float heatDown, float heatUp, float dialSpeed, float realDeltaTime)
         {
             hob.Dial += (heatUp - heatDown) * dialSpeed * realDeltaTime;
+        }
+
+        /// <summary>Induction: one step up (+1) or down (−1) per press. Gas and fixed sources ignore it.</summary>
+        /// <returns>Whether the step changed.</returns>
+        public static bool ChangeStep(Hob hob, int direction)
+        {
+            if (hob.Kind != HeatKind.Induction)
+                return false;
+            var before = hob.Step;
+            hob.Step += Math.Sign(direction);
+            return hob.Step != before;
         }
 
         /// <returns>False if there's nothing in the pan to flip (or no pan).</returns>

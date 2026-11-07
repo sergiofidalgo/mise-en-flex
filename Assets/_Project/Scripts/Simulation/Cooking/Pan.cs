@@ -16,6 +16,12 @@ namespace Game.Simulation.Cooking
 
         /// <summary>How many ingredients fit in the pan at once.</summary>
         public int Capacity { get; set; }
+
+        /// <summary>
+        /// For a grill's grate: always this temperature, °C, however much the food draws. The coals
+        /// behind it hold far more heat than a steak can take. Null for an ordinary pan.
+        /// </summary>
+        public float? FixedTemperature { get; set; }
     }
 
     /// <summary>

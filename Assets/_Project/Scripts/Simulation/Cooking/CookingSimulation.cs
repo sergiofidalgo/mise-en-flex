@@ -65,7 +65,7 @@ namespace Game.Simulation.Cooking
 
         public Pan AddPan(PanProperties properties)
         {
-            var pan = new Pan(properties, AmbientTemperature);
+            var pan = new Pan(properties, properties.FixedTemperature ?? AmbientTemperature);
             _pans.Add(pan);
             return pan;
         }
@@ -123,7 +123,7 @@ namespace Game.Simulation.Cooking
             foreach (var hob in _hobs)
                 hob.Dial = 0f;
             foreach (var pan in _pans)
-                pan.Temperature = AmbientTemperature;
+                pan.Temperature = pan.Properties.FixedTemperature ?? AmbientTemperature;
 
             foreach (var ingredient in _ingredients)
             {
@@ -145,8 +145,11 @@ namespace Game.Simulation.Cooking
 
             foreach (var hob in _hobs)
             {
-                if (hob.Pan != null)
-                    hob.Pan.PendingHeat += hob.Power;
+                if (hob.Pan == null)
+                    continue;
+                var heat = hob.HeatInto(hob.Pan, AmbientTemperature);
+                hob.Pan.PendingHeat += heat;
+                hob.Meter(heat, dt);
             }
 
             foreach (var ingredient in _ingredients)
@@ -189,7 +192,10 @@ namespace Game.Simulation.Cooking
             }
 
             foreach (var pan in _pans)
-                pan.Temperature += pan.PendingHeat * dt / pan.Properties.HeatCapacity;
+            {
+                if (pan.Properties.FixedTemperature == null)
+                    pan.Temperature += pan.PendingHeat * dt / pan.Properties.HeatCapacity;
+            }
 
             foreach (var ingredient in _ingredients)
             {
