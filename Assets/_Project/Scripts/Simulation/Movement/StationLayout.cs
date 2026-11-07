@@ -278,6 +278,18 @@ namespace Game.Simulation.Movement
             return path;
         }
 
+        /// <summary>
+        /// The free spot nearest <paramref name="point"/>, for putting someone back on their feet
+        /// when furniture ends up where they stand. Null only if the whole room is full.
+        /// </summary>
+        public Vector2? NearestFree(Vector2 point)
+        {
+            if (IsFree(point))
+                return point;
+            var cell = NearestFreeCell(point);
+            return cell < 0 ? (Vector2?)null : Centre(cell);
+        }
+
         private Vector2 Centre(int cell) =>
             new Vector2(_roomMin.X + (cell % _width) * CellSize, _roomMin.Y + (cell / _width) * CellSize);
 

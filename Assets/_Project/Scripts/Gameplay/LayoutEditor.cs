@@ -55,6 +55,9 @@ namespace Game.Gameplay
             public bool ShopOpen;
             public int ShopIndex;
             public bool ShopStickHeld;
+
+            /// <summary>The colliders turned off while it's carried, to turn back on when it lands.</summary>
+            public readonly List<Collider> Ghosted = new List<Collider>();
         }
 
         [SerializeField] private KitchenCompositionRoot _root;
@@ -73,6 +76,8 @@ namespace Game.Gameplay
         [SerializeField, Min(0.001f)] private float _turnSmoothing = 0.05f;
         [Tooltip("How far the stick has to go to move down the shop's list.")]
         [SerializeField, Range(0.1f, 1f)] private float _shopStickThreshold = 0.5f;
+        [Tooltip("Metres kept clear around a body when placing furniture, on top of its own radius, so a piece never lands touching a chef's capsule.")]
+        [SerializeField, Min(0f)] private float _personalSpace = 0.1f;
 
         private readonly Dictionary<PlayerInput, Cursor> _cursors = new Dictionary<PlayerInput, Cursor>();
         private readonly Dictionary<object, Interactable> _stations = new Dictionary<object, Interactable>();
@@ -333,6 +338,7 @@ namespace Game.Gameplay
             cursor.Landing = station is CounterTopStation fixture ? Floor(fixture.transform.position) : _plan.PositionOf(station);
             cursor.Onto = (station as CounterTopStation)?.OnCounter;
             cursor.Result = Placement.Ok;
+            Ghost(cursor);
             return true;
         }
 
@@ -360,6 +366,7 @@ namespace Game.Gameplay
                     cursor.Buying = null;
                 }
                 fixture.PutOn(cursor.Onto);
+                Land(cursor);
                 cursor.Held = null;
                 cursor.Onto = null;
                 LayoutChanged?.Invoke();
@@ -383,8 +390,10 @@ namespace Game.Gameplay
                 if (station is TableStation moved)
                     moved.ArrangeChairs();
             }
+            Land(cursor);
             cursor.Held = null;
             Physics.SyncTransforms();
+            ClearBodiesFrom(station);
 
             LayoutChanged?.Invoke();
             return true;
@@ -401,14 +410,20 @@ namespace Game.Gameplay
                 _plan.Remove(cursor.Held);
                 Destroy(cursor.Held.gameObject);
                 cursor.Buying = null;
+                cursor.Ghosted.Clear();
             }
             else if (cursor.Held is CounterTopStation fixture)
             {
                 fixture.PutOn(fixture.OnCounter);
+                Land(cursor);
             }
             else
             {
+                // Its old spot was open while it was away, so someone may be standing there now.
                 cursor.Held.transform.SetPositionAndRotation(cursor.HeldFrom, Quaternion.Euler(0f, cursor.HeldFromDegrees, 0f));
+                Land(cursor);
+                Physics.SyncTransforms();
+                ClearBodiesFrom(cursor.Held);
             }
             cursor.Held = null;
             cursor.Result = Placement.Ok;
@@ -490,6 +505,7 @@ namespace Game.Gameplay
             cursor.HeldFromDegrees = 0f;
             cursor.Degrees = 0f;
             cursor.TurnVelocity = 0f;
+            Ghost(cursor);
             UpdateHeld(cursor);
             return true;
         }
@@ -590,12 +606,68 @@ namespace Game.Gameplay
             return result == Placement.Ok && cursor.Buying != null && !CanAfford(cursor.Buying) ? Placement.CantAfford : result;
         }
 
-        private IEnumerable<SimVector2> People()
+        // Everyone, with how far their body reaches plus a little room, so a piece can only land
+        // clear of them: one dropped onto a chef's capsule shoves them out through the floor.
+        private IEnumerable<(SimVector2, float)> People()
         {
             foreach (var player in PlayerInput.all)
-                yield return Floor(player.transform.position);
+            {
+                var radius = player.TryGetComponent(out PlayerMovement movement) && movement.IsReady
+                    ? movement.BodyRadius
+                    : _root.Services.FloorPlan.WalkerRadius;
+                yield return (Floor(player.transform.position), radius + _personalSpace);
+            }
             foreach (var agent in _staff.Agents)
-                yield return Floor(agent.transform.position);
+                yield return (Floor(agent.transform.position), agent.BodyRadius + _personalSpace);
+        }
+
+        // While carried, a piece is only a preview: its colliders would otherwise sweep through
+        // anyone it's carried over and push them about (or out of the kitchen altogether).
+        private static void Ghost(Cursor cursor)
+        {
+            cursor.Ghosted.Clear();
+            foreach (var collider in cursor.Held.GetComponentsInChildren<Collider>())
+            {
+                if (!collider.enabled)
+                    continue;
+                collider.enabled = false;
+                cursor.Ghosted.Add(collider);
+            }
+        }
+
+        private static void Land(Cursor cursor)
+        {
+            foreach (var collider in cursor.Ghosted)
+            {
+                if (collider != null)
+                    collider.enabled = true;
+            }
+            cursor.Ghosted.Clear();
+        }
+
+        // Anyone standing where a piece has just landed steps out to the nearest free spot. Placing
+        // is refused when someone's in the way, but a piece sent back home on Cancel can't be.
+        private void ClearBodiesFrom(Interactable station)
+        {
+            var halfSize = _root.Services.FloorPlan.StationHalfSize;
+            var footprint = station.Footprint;
+            StationLayout layout = null;
+            foreach (var player in PlayerInput.all)
+            {
+                if (!player.TryGetComponent(out PlayerMovement movement) || !movement.IsReady)
+                    continue;
+                if (footprint.Contains(Floor(player.transform.position), halfSize, movement.BodyRadius))
+                    movement.StepClear();
+            }
+            foreach (var agent in _staff.Agents)
+            {
+                if (!footprint.Contains(Floor(agent.transform.position), halfSize, agent.BodyRadius))
+                    continue;
+                layout ??= _root.Services.NewLayout();
+                var spot = layout.NearestFree(Floor(agent.transform.position));
+                if (spot.HasValue)
+                    agent.transform.position = new Vector3(spot.Value.X, agent.transform.position.y, spot.Value.Y);
+            }
         }
 
         private static SimVector2 Floor(Vector3 position) => new SimVector2(position.x, position.z);

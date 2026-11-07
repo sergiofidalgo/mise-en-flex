@@ -174,8 +174,12 @@ namespace Game.Simulation.Movement
             return best;
         }
 
-        /// <param name="people">Where everyone is standing.</param>
-        public Placement Check(object piece, Vector2 position, float degrees, IEnumerable<Vector2> people)
+        /// <param name="people">Where everyone is standing, each taken to be the plan's walker radius wide.</param>
+        public Placement Check(object piece, Vector2 position, float degrees, IEnumerable<Vector2> people) =>
+            Check(piece, position, degrees, WithWalkerRadius(people));
+
+        /// <param name="people">Where everyone is standing, and how far their body reaches from there.</param>
+        public Placement Check(object piece, Vector2 position, float degrees, IEnumerable<(Vector2 Position, float Radius)> people)
         {
             var moved = FootprintOf(piece, position, degrees);
 
@@ -197,11 +201,17 @@ namespace Game.Simulation.Movement
 
             foreach (var person in people)
             {
-                if (moved.Contains(person, _stationHalfSize, _walkerRadius))
+                if (moved.Contains(person.Position, _stationHalfSize, person.Radius))
                     return Placement.SomeoneInTheWay;
             }
 
             return Placement.Ok;
+        }
+
+        private IEnumerable<(Vector2, float)> WithWalkerRadius(IEnumerable<Vector2> people)
+        {
+            foreach (var person in people)
+                yield return (person, _walkerRadius);
         }
 
         public void Remove(object piece)

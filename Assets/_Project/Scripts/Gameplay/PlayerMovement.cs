@@ -17,6 +17,10 @@ namespace Game.Gameplay
         // A small constant downward speed while grounded keeps isGrounded stable on flat floors.
         private const float GroundedDownwardSpeed = -1f;
 
+        // There's no falling gameplay: anyone this far below the floor they started on has been
+        // knocked through it (e.g. by furniture placed on them) and is put back on their feet.
+        private const float FellThroughDepth = 1f;
+
         [SerializeField] private TuningConfig _tuning;
 
         private CharacterController _controller;
@@ -24,8 +28,44 @@ namespace Game.Gameplay
         private Stations.PlayerInteractor _interactor;
         private PlanarMover _mover;
         private float _verticalSpeed;
+        private float _floorHeight;
+        private Vector3 _spawnPosition;
 
         public PlanarMover Mover => _mover;
+
+        /// <summary>
+        /// Set by the composition root: the free spot on the floor nearest a point, given the
+        /// furniture as it stands now, or null if there's none.
+        /// </summary>
+        public System.Func<System.Numerics.Vector2, System.Numerics.Vector2?> FindFreeSpot { get; set; }
+
+        /// <summary>
+        /// Puts the chef straight onto a floor point: a CharacterController can't be moved by
+        /// setting its position while enabled, and gravity from before mustn't carry over.
+        /// </summary>
+        public void Teleport(System.Numerics.Vector2 floorPoint)
+        {
+            var at = new Vector3(floorPoint.X, _floorHeight, floorPoint.Y);
+            if (_controller == null)
+            {
+                transform.position = at;
+                return;
+            }
+            _controller.enabled = false;
+            transform.position = at;
+            _controller.enabled = true;
+            _verticalSpeed = GroundedDownwardSpeed;
+            Physics.SyncTransforms();
+        }
+
+        /// <summary>Moves the chef out from under anything just put where they stand, to the nearest free spot.</summary>
+        public void StepClear()
+        {
+            var here = new System.Numerics.Vector2(transform.position.x, transform.position.z);
+            var spot = FindFreeSpot?.Invoke(here);
+            if (spot.HasValue && spot.Value != here)
+                Teleport(spot.Value);
+        }
 
         public bool IsReady => _controller != null;
 
@@ -51,6 +91,8 @@ namespace Game.Gameplay
             _move = GetComponent<PlayerInput>().actions[MoveActionName];
             _interactor = GetComponent<Stations.PlayerInteractor>();
             _mover = new PlanarMover(_tuning.Movement, transform.eulerAngles.y);
+            _floorHeight = transform.position.y;
+            _spawnPosition = transform.position;
 
             // Chefs don't block each other through physics: PushResolver lets them push instead.
             foreach (var other in FindObjectsByType<PlayerMovement>(FindObjectsSortMode.None))
@@ -62,6 +104,9 @@ namespace Game.Gameplay
 
         private void Update()
         {
+            if (transform.position.y < _floorHeight - FellThroughDepth)
+                Rescue();
+
             var deltaTime = Time.deltaTime;
             // A station can take over the chef, and the stick with it (washing by hand).
             var stick = _interactor != null && (_interactor.IsBusy || _interactor.IsManaging) ? Vector2.zero : _move.ReadValue<Vector2>();
@@ -82,6 +127,15 @@ namespace Game.Gameplay
             Intent = new System.Numerics.Vector2(velocity.X, velocity.Y) * deltaTime;
             _controller.Move(new Vector3(velocity.X, _verticalSpeed, velocity.Y) * deltaTime);
             transform.rotation = Quaternion.Euler(0f, _mover.FacingDegrees, 0f);
+        }
+
+        // Back to the nearest free floor above where they fell, or to where they joined.
+        private void Rescue()
+        {
+            var here = new System.Numerics.Vector2(transform.position.x, transform.position.z);
+            var spot = FindFreeSpot?.Invoke(here) ?? new System.Numerics.Vector2(_spawnPosition.x, _spawnPosition.z);
+            Teleport(spot);
+            Debug.LogWarning($"{name} fell through the floor and was put back at {spot}.", this);
         }
     }
 }

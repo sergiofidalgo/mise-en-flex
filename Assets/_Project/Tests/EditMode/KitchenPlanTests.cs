@@ -132,6 +132,18 @@ namespace Game.Tests.EditMode
         }
 
         [Test]
+        public void ItKeepsClearOfABodysOwnRadius()
+        {
+            var plan = Plan();
+            var piece = new object();
+            plan.Add(piece, Vector2.Zero);
+            // 0.35 m from the piece's edge: clear of a 0.3 m walker, but not of a 0.45 m chef.
+            var chef = new Vector2(2.85f, 2f);
+            Assert.That(plan.Check(piece, new Vector2(2f, 2f), 0f, new[] { chef }), Is.EqualTo(Placement.Ok));
+            Assert.That(plan.Check(piece, new Vector2(2f, 2f), 0f, new[] { (chef, 0.45f) }), Is.EqualTo(Placement.SomeoneInTheWay));
+        }
+
+        [Test]
         public void ItCantLandOnSomeone()
         {
             var plan = Plan();

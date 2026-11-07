@@ -31,6 +31,27 @@ namespace Game.Tests.EditMode
         }
 
         [Test]
+        public void SomeoneUnderFurnitureIsSentToTheNearestFreeSpot()
+        {
+            var layout = Layout(new Vector2(0f, 0f));
+            var under = new Vector2(0.3f, 0.1f);
+
+            var spot = layout.NearestFree(under);
+
+            Assert.That(spot.HasValue, Is.True);
+            Assert.That(layout.IsFree(spot.Value), Is.True);
+            Assert.That(Vector2.Distance(spot.Value, under), Is.LessThan(0.75f), "out of the nearest side, not across the room");
+        }
+
+        [Test]
+        public void SomeoneAlreadyFreeStaysPut()
+        {
+            var layout = Layout(new Vector2(0f, 0f));
+            var free = new Vector2(-2f, -1.5f);
+            Assert.That(layout.NearestFree(free), Is.EqualTo(free));
+        }
+
+        [Test]
         public void PushedIntoFurnitureTheySlideAlongIt()
         {
             var layout = Layout(new Vector2(0f, 0f));
