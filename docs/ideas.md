@@ -4,6 +4,21 @@ Ideas worth keeping that aren't decided or scheduled yet. When one is accepted, 
 
 ---
 
+## The prompt card hides a hob's heat pips
+
+*Added 2026-11-07 · Relevant phase: 9 (HUD polish), or sooner if it gets in the way · Pillar: cooking is a craft*
+
+**The problem (user's finding, from play):** while a chef faces a hob, the prompt card (heat, flip, take pan) and the flip gauge cover the hob. The card sits right over the pips along its back, so heat can't be read just when the player is adjusting it. The chef's body isn't what hides them.
+
+**Options to weigh when the HUD is reworked:**
+- **Move the card** clear of the station, for example to the side, or shrink it once the controls are familiar.
+- **Show heat on the card or gauge** while facing a hob, so the reading is where the player is already looking.
+- **Move the pips** to the hob's front edge, which the card doesn't cover.
+
+**To check at the same time:** whether the card also hides the pan and steak on stations further up the screen, and what happens with two players' cards at neighbouring hobs.
+
+---
+
 ## Test scenarios: start at any restaurant on any day
 
 *Added 2026-11-06 · Relevant phase: 5 (built with the campaign save) · Supports: verification, tuning*

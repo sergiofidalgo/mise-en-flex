@@ -11,7 +11,7 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 - **Fat covers the edge and holds its colour.** It runs down the side of the steak round most of the outline, with gaps where the lean reaches the edge. Fat goes from white to a creamy yellow and stays that way while the lean browns, colouring only when the steak is nearly burnt. Only thin marbling melts away.
 - **A hob's heat pips always show,** drawn over anything in front of them, including a chef.
 
-**Reason:** real cuts look like this, and the variety stops every steak looking the same. Heat is read at a glance from across the kitchen, so a chef standing at the hob mustn't hide it.
+**Reason:** real cuts look like this, and the variety stops every steak looking the same. Heat is read at a glance from across the kitchen, so a chef standing at the hob mustn't hide it. Play later showed the prompt card is what really hides the pips, not the chef; that waits for the HUD pass (see `ideas.md`).
 
 **Trade-off:** fat hides the doneness bands wherever it covers the side, so the core mostly shows only in the gaps. The doneness chip stays. Pips also show through walls and anything else in front of them.
 
