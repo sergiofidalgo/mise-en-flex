@@ -24,6 +24,9 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 - **Cutting boards and knife racks sit on counters,** and each uses up the counter it's on. They're moved only in management mode, and bought in the shop as many as wanted.
 - **Knives are items.** The kitchen starts with one knife lying on a counter and no knife rack; picking it up frees the counter. Chopping needs a knife, so nobody can chop until it's put down somewhere. A bought knife appears on the first free counter.
 
+- **Only the gas hob catches fire;** induction and the grill don't. Putting a fire out works like cleaning (§15.8): hold X and the chef pulls out an extinguisher, as they would a mop or a cloth, then a short stick game.
+  - *Proposed, to confirm:* a pan left on a lit flame after its food has burnt catches fire a few seconds later, so the smoke alarm is the warning. While it burns, the hob and pan can't be used and the food is lost. Left too long, the hob is ruined and has to be replaced. It doesn't spread for now. The extinguisher is always to hand, with nothing to buy. Built with cleaning in Phase 5, as it shares the stick game.
+
 **Details proposed while building (flagged for review; tunable in `EquipmentTier` and `FurnitureCatalog`):**
 - **Induction steps:** low 130 °C, medium 190 °C, high 250 °C; the pan gets there in about half a real second. Off lets the pan cool on its own, like a pan lifted off. Each pull of a trigger is one step.
 - **Grill zones:** hot 260 °C, cool 150 °C (below where browning starts, so food finishes there without more crust).
