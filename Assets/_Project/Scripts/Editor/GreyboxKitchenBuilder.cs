@@ -35,6 +35,7 @@ namespace Game.Editor
         // asset is what's tuned.
         private const string CounterFurniture = "counter";
         private const string HobFurniture = "hob";
+        private const string InductionFurniture = "induction hob";
         private const string BoardFurniture = "board";
         private const string KnifeRackFurniture = "knife rack";
         private const string FridgeFurniture = "fridge";
@@ -43,6 +44,7 @@ namespace Game.Editor
         private const string BarFurniture = "bar";
         private const float CounterPrice = 30f;
         private const float HobPrice = 80f;
+        private const float InductionPrice = 150f;
         private const float ShelfPrice = 60f;
         private const float FridgePrice = 120f;
         private const float TablePrice = 50f;
@@ -160,6 +162,12 @@ namespace Game.Editor
         // One hob on the back wall, right of prep, with its burner ring and its own pan. More are bought.
         private static readonly Vector3[] HobPositions = { new Vector3(0.6f, 0f, 1.4f) };
         private static readonly Color HobColor = new Color(0.22f, 0.22f, 0.25f);
+
+        // An induction hob: a black glass top with a flat cooking zone that glows deep red with the
+        // step, where gas has a burner ring glowing orange. Told apart at a glance from above.
+        private static readonly Color InductionColor = new Color(0.06f, 0.06f, 0.07f);
+        private static readonly Color InductionZoneOff = new Color(0.14f, 0.14f, 0.16f);
+        private static readonly Color InductionZoneOn = new Color(0.85f, 0.08f, 0.06f);
         // Wider than the pan (0.44 m), so the glowing ring stays visible around it.
         private const float BurnerDiameter = 0.62f;
         // Heat pips on the hob top along the back edge: one per step above off. On top rather
@@ -617,19 +625,27 @@ namespace Game.Editor
         // A hob: counter body, a burner ring that glows with the dial around the pan, and heat
         // pips along the back of the top.
         // Its pan is a separate, carryable item created at runtime.
-        private static HobStation CreateHob(string name, Vector3 position, Material material, Transform parent)
+        private static HobStation CreateHob(string name, Vector3 position, Material material, Transform parent, Game.Simulation.Cooking.HeatKind kind = Game.Simulation.Cooking.HeatKind.Gas)
         {
-            var hob = CreateStation<HobStation>(name, position, CounterSize, CounterHeight, material, parent, HobFurniture);
+            var induction = kind == Game.Simulation.Cooking.HeatKind.Induction;
+            var hob = CreateStation<HobStation>(name, position, CounterSize, CounterHeight, material, parent, induction ? InductionFurniture : HobFurniture);
             var top = CounterHeight;
+            var kindSo = new SerializedObject(hob);
+            kindSo.FindProperty("_kind").enumValueIndex = (int)kind;
+            kindSo.ApplyModifiedPropertiesWithoutUndo();
 
             var burner = GreyboxAssets.CreatePrimitive(
-                PrimitiveType.Cylinder, "Burner", hob.transform, GreyboxAssets.EnsureMaterial("Burner", Color.black), keepCollider: false);
+                PrimitiveType.Cylinder, induction ? "CookingZone" : "Burner", hob.transform, GreyboxAssets.EnsureMaterial("Burner", Color.black), keepCollider: false);
             burner.transform.localScale = new Vector3(BurnerDiameter, 0.005f, BurnerDiameter); // cylinder is 2 units tall
             burner.transform.localPosition = new Vector3(0f, top + 0.005f, 0f);
             hob.ItemAnchor.localPosition = new Vector3(0f, top + 0.01f, 0f);
 
-            PilotArt.TryUseMesh(hob.transform.Find("Body").gameObject, "SM_Hob", "HobBody");
-            PilotArt.TryUseMesh(burner, "SM_Hob", "HobBurner");
+            // The art pilot's model is a gas hob; induction stays greybox until it gets its own.
+            if (!induction)
+            {
+                PilotArt.TryUseMesh(hob.transform.Find("Body").gameObject, "SM_Hob", "HobBody");
+                PilotArt.TryUseMesh(burner, "SM_Hob", "HobBurner");
+            }
 
             var pips = new Renderer[HeatPipCount];
             for (var i = 0; i < HeatPipCount; i++)
@@ -656,6 +672,11 @@ namespace Game.Editor
             var viewSo = new SerializedObject(view);
             viewSo.FindProperty("_hob").objectReferenceValue = hob;
             viewSo.FindProperty("_burner").objectReferenceValue = burner.GetComponent<Renderer>();
+            if (induction)
+            {
+                viewSo.FindProperty("_burnerOff").colorValue = InductionZoneOff;
+                viewSo.FindProperty("_burnerFull").colorValue = InductionZoneOn;
+            }
             var pipList = viewSo.FindProperty("_pips");
             pipList.arraySize = pips.Length;
             for (var i = 0; i < pips.Length; i++)
@@ -735,6 +756,7 @@ namespace Game.Editor
             var counter = SaveFurniture(CreateStation<CounterStation>(
                 "PF_Counter", Vector3.zero, CounterSize, CounterHeight, GreyboxAssets.EnsureMaterial(island.Name, island.Color), null, CounterFurniture));
             var hob = SaveFurniture(CreateHob("PF_Hob", Vector3.zero, GreyboxAssets.EnsureMaterial("Hob", HobColor), null));
+            var inductionHob = SaveFurniture(CreateHob("PF_InductionHob", Vector3.zero, GreyboxAssets.EnsureMaterial("InductionHob", InductionColor), null, Game.Simulation.Cooking.HeatKind.Induction));
             var fridge = SaveFurniture(BuildStorageForSale("PF_Fridge", StorageUnits[0]));
             var shelf = SaveFurniture(BuildStorageForSale("PF_Shelf", StorageUnits[1]));
             var table = SaveFurniture(BuildTable());
@@ -744,7 +766,8 @@ namespace Game.Editor
             var so = new SerializedObject(catalog);
             var entries = so.FindProperty("_entries");
             SetFurniture(entries, CounterFurniture, "Counter", CounterPrice, keepOne: false, counter);
-            SetFurniture(entries, HobFurniture, "Hob", HobPrice, keepOne: true, hob);
+            SetFurniture(entries, HobFurniture, "Gas hob", HobPrice, keepOne: true, hob);
+            SetFurniture(entries, InductionFurniture, "Induction hob", InductionPrice, keepOne: true, inductionHob);
             SetFurniture(entries, ShelfFurniture, "Shelf", ShelfPrice, keepOne: true, shelf);
             SetFurniture(entries, FridgeFurniture, "Fridge", FridgePrice, keepOne: true, fridge);
             SetFurniture(entries, TableFurniture, "Table", TablePrice, keepOne: false, table);

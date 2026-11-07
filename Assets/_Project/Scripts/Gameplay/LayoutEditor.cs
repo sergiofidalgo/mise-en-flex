@@ -470,7 +470,10 @@ namespace Game.Gameplay
         {
             var entry = _catalog.Find(station.FurnitureId);
             var carried = _cursors.Values.Any(other => other.Held == station);
-            var howMany = _root.Services.Stations.All.Count(other => other.FurnitureId == station.FurnitureId);
+            // Any kind of hob keeps the kitchen cooking, so the last of them is what can't go.
+            var howMany = station is HobStation
+                ? _root.Services.Stations.All.Count(other => other is HobStation)
+                : _root.Services.Stations.All.Count(other => other.FurnitureId == station.FurnitureId);
             return FurnitureRules.CheckSale(entry != null, station.IsClear, carried || _staff.IsHeadedTo(station), entry != null && entry.KeepOne, howMany);
         }
 

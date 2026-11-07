@@ -475,7 +475,7 @@ namespace Game.Tests.PlayMode
             var customer = NextCustomer();
             yield return WaitFor(() => customer.State == CustomerState.Waiting, 20f);
 
-            var counter = services.Stations.All.OfType<CounterStation>().First();
+            var counter = services.Stations.All.OfType<CounterStation>().First(c => c.IsClear); // not the knife's or the board's
             counter.Slot.Put(CookedFor(customer));
             yield return null;
             Assert.That(customer.State, Is.EqualTo(CustomerState.Waiting), "not until the bell");

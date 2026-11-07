@@ -143,6 +143,40 @@ namespace Game.Tests.PlayMode
         }
 
         [UnityTest]
+        public IEnumerator AnInductionHobStepsOnePullAtATime()
+        {
+            yield return OpenKitchenWithCursor();
+            Days.Receive(500f); // it costs more than the first day's money
+            var hob = Buy<HobStation>("induction hob", OpenFloor);
+
+            Assert.That(hob.Hob.Kind, Is.EqualTo(Game.Simulation.Cooking.HeatKind.Induction));
+            hob.AdjustHeat(0f, 1f, 0.02f);
+            Assert.That(hob.Hob.Step, Is.EqualTo(1));
+            hob.AdjustHeat(0f, 1f, 0.02f);
+            Assert.That(hob.Hob.Step, Is.EqualTo(1), "held, not pressed again");
+            hob.AdjustHeat(0f, 0f, 0.02f);
+            hob.AdjustHeat(0f, 1f, 0.02f);
+            Assert.That(hob.Hob.Step, Is.EqualTo(2));
+            hob.AdjustHeat(0f, 0f, 0.02f);
+            hob.AdjustHeat(1f, 0f, 0.02f);
+            Assert.That(hob.Hob.Step, Is.EqualTo(1));
+            Assert.That(hob.Hob.Pan, Is.Not.Null, "it comes with a pan");
+        }
+
+        [UnityTest]
+        public IEnumerator TheGasHobCanGoOnceThereIsAnInductionHob()
+        {
+            yield return OpenKitchenWithCursor();
+            var gas = _root.Services.Stations.All.OfType<HobStation>().Single();
+            Assert.That(_editor.SaleProblemOf(_cursor, gas), Is.EqualTo(SaleProblem.LastOne));
+
+            Days.Receive(500f);
+            Buy<HobStation>("induction hob", OpenFloor);
+
+            Assert.That(_editor.SaleProblemOf(_cursor, gas), Is.EqualTo(SaleProblem.None));
+        }
+
+        [UnityTest]
         public IEnumerator TheLastHobCantBeSold()
         {
             yield return OpenKitchenWithCursor();
@@ -166,7 +200,7 @@ namespace Game.Tests.PlayMode
         public IEnumerator ACounterWithSomethingOnItCantBeSold()
         {
             yield return OpenKitchenWithCursor();
-            var counter = _root.Services.Stations.All.OfType<CounterStation>().First();
+            var counter = _root.Services.Stations.All.OfType<CounterStation>().First(c => c.IsClear);
             counter.Slot.Put(new Item("Spare"));
 
             _cursor.Position = new Vector2(counter.transform.position.x, counter.transform.position.z);
