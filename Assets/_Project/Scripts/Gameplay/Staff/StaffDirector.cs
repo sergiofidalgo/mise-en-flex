@@ -128,8 +128,12 @@ namespace Game.Gameplay.Staff
         {
             if (station is CounterStation counter)
             {
-                _counters.Add(counter.Slot);
                 _stations[counter.Slot] = counter;
+                RefreshCounters();
+            }
+            else if (station is CounterTopStation)
+            {
+                RefreshCounters();
             }
             else if (station is StorageStation storage)
             {
@@ -142,8 +146,12 @@ namespace Game.Gameplay.Staff
         {
             if (station is CounterStation counter)
             {
-                _counters.Remove(counter.Slot);
                 _stations.Remove(counter.Slot);
+                RefreshCounters();
+            }
+            else if (station is CounterTopStation)
+            {
+                RefreshCounters();
             }
             else if (station is StorageStation storage)
             {
@@ -165,9 +173,22 @@ namespace Game.Gameplay.Staff
         }
 
         // The kitchen changed: everyone works out their way again.
+        // The counters staff can work from: not those with a board or rack on them. The jobs share
+        // this list, so it's refilled rather than replaced.
+        private void RefreshCounters()
+        {
+            _counters.Clear();
+            foreach (var counter in _root.Services.Stations.All.OfType<CounterStation>())
+            {
+                if (!counter.IsCovered)
+                    _counters.Add(counter.Slot);
+            }
+        }
+
         private void RebuildLayout()
         {
             _layout = _root.Services.NewLayout();
+            RefreshCounters();
 
             RefreshPlaces();
             _routes.Clear();

@@ -10,9 +10,10 @@ namespace Game.Gameplay.Stations
     /// <summary>
     /// The cutting board. A puts a whole ingredient on it, or with empty hands takes what's there;
     /// holding the knife, X cuts when the dial's needle is in the sweet spot. The cut stays here
-    /// and blocks the next one until someone moves it (decision 2026-11-04).
+    /// and blocks the next one until someone moves it (decision 2026-11-04). It sits on a counter and
+    /// is moved only in management mode (decision 2026-11-07).
     /// </summary>
-    public sealed class PrepStation : Interactable, IFaceButtonTarget, IUsable, IStationPrompt
+    public sealed class PrepStation : CounterTopStation, IFaceButtonTarget, IUsable, IStationPrompt
     {
         [Tooltip("Where the item on the cutting board sits.")]
         [SerializeField] private Transform _boardAnchor;
@@ -29,6 +30,8 @@ namespace Game.Gameplay.Stations
 
         public override Transform AnchorFor(Item item) => _boardAnchor;
 
+        public override bool IsClear => _counter == null || _counter.Current == null;
+
         public bool PromptAsDiamond(PlayerInteractor player) => false;
 
         /// <summary>Raised on every chop, for rhythm feedback.</summary>
@@ -36,6 +39,7 @@ namespace Game.Gameplay.Stations
 
         public override void Bind(KitchenServices services)
         {
+            base.Bind(services);
             _services = services;
             _counter = new PrepCounter(
                 whole => services.Cooking.Transform(whole, services.Catalog.Find(whole.Properties.CutIntoTypeId).ToProperties()),

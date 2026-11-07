@@ -19,7 +19,9 @@ namespace Game.Gameplay
     /// rotate, B puts what's held back where it was, and Select returns to the chef. Furniture goes exactly where they put it, snapping
     /// to what's around it when close. What's on a station moves with it. Each player has their own
     /// cursor, and two can't hold the same thing. Y opens the shop, whose furniture is carried like any
-    /// other and paid for when it goes down, and X sells what's under the cursor.
+    /// other and paid for when it goes down, and X sells what's under the cursor. A cutting board or
+    /// knife rack on a counter is what's under the cursor there, and goes from one free counter to
+    /// another (decision 2026-11-07); the counter can only be moved once it's off.
     /// </summary>
     public sealed class LayoutEditor : MonoBehaviour
     {
@@ -41,6 +43,9 @@ namespace Game.Gameplay
             public float HeldFromDegrees;
             public SimVector2 Landing;
             public float Degrees;
+
+            // Where a board or rack being carried would go: a free counter, or null.
+            public CounterStation Onto;
             public Placement Result;
             public float TurnVelocity;
 
@@ -85,6 +90,8 @@ namespace Game.Gameplay
         public Interactable StationUnder(Cursor cursor)
         {
             var piece = _plan.PieceAt(cursor.Position);
+            if (piece is CounterStation counter && counter.Fixture != null)
+                return counter.Fixture;
             return piece != null ? (Interactable)piece : null;
         }
 
@@ -100,6 +107,8 @@ namespace Game.Gameplay
             _plan.GiveArea(_streetDoor, floor.RoomMin - SimVector2.One, floor.RoomMax + SimVector2.One);
             foreach (var station in _root.Services.Stations.All)
             {
+                if (station is CounterTopStation)
+                    continue; // it has no floor of its own
                 _plan.Add(station, Floor(station.transform.position), station.transform.eulerAngles.y, station.HalfSize);
                 if (station.BelongsInDiningRoom)
                     _plan.GiveArea(station, floor.DiningAreaMin, floor.DiningAreaMax);
@@ -225,7 +234,7 @@ namespace Game.Gameplay
 
         public void Rotate(Cursor cursor, float degrees)
         {
-            if (cursor.Held == null || cursor.Held == _streetDoor)
+            if (cursor.Held == null || cursor.Held == _streetDoor || cursor.Held is CounterTopStation)
                 return;
             cursor.Degrees = Mathf.Repeat(cursor.Degrees + degrees, 360f);
             UpdateHeld(cursor);
@@ -238,6 +247,11 @@ namespace Game.Gameplay
             if (cursor.Held == _streetDoor)
             {
                 UpdateHeldDoor(cursor);
+                return;
+            }
+            if (cursor.Held is CounterTopStation fixture)
+            {
+                UpdateHeldFixture(cursor, fixture);
                 return;
             }
 
@@ -261,6 +275,27 @@ namespace Game.Gameplay
             cursor.Result = Check(cursor);
             cursor.Held.CantGoHere = cursor.Result != Placement.Ok;
             cursor.Held.transform.position = new Vector3(cursor.Landing.X, cursor.HeldFrom.y, cursor.Landing.Y);
+        }
+
+        // A board or rack lands on the counter under the cursor, turned the way it is, if nothing's on
+        // it. Its own counter counts as free, so it can always go back.
+        private void UpdateHeldFixture(Cursor cursor, CounterTopStation fixture)
+        {
+            var counter = _plan.PieceAt(cursor.Position) as CounterStation;
+            var free = counter != null && (counter == fixture.OnCounter || CounterTopStation.CanGoOn(counter));
+            cursor.Onto = free ? counter : null;
+            if (counter != null)
+            {
+                cursor.Landing = _plan.PositionOf(counter);
+                cursor.Degrees = _plan.DegreesOf(counter);
+            }
+            else
+            {
+                cursor.Landing = cursor.Position;
+            }
+            cursor.Result = Check(cursor);
+            fixture.CantGoHere = cursor.Result != Placement.Ok;
+            fixture.transform.position = new Vector3(cursor.Landing.X, counter != null ? counter.transform.position.y : 0f, cursor.Landing.Y);
         }
 
         // Only the look eases round: the new angle already counts for snapping and placing, so a
@@ -291,10 +326,11 @@ namespace Game.Gameplay
 
             cursor.Held = station;
             cursor.HeldFrom = station.transform.position;
-            cursor.HeldFromDegrees = _plan.DegreesOf(station);
+            cursor.HeldFromDegrees = station is CounterTopStation ? station.transform.eulerAngles.y : _plan.DegreesOf(station);
             cursor.Degrees = cursor.HeldFromDegrees;
             cursor.TurnVelocity = 0f;
-            cursor.Landing = _plan.PositionOf(station);
+            cursor.Landing = station is CounterTopStation fixture ? Floor(fixture.transform.position) : _plan.PositionOf(station);
+            cursor.Onto = (station as CounterTopStation)?.OnCounter;
             cursor.Result = Placement.Ok;
             return true;
         }
@@ -313,6 +349,22 @@ namespace Game.Gameplay
             if (buying != null && !_root.Services.Days.TrySpend(buying.Price))
                 return false;
             station.CantGoHere = false;
+
+            if (station is CounterTopStation fixture)
+            {
+                if (buying != null)
+                {
+                    fixture.Bind(_root.Services);
+                    _root.Services.Stations.Add(fixture);
+                    cursor.Buying = null;
+                }
+                fixture.PutOn(cursor.Onto);
+                cursor.Held = null;
+                cursor.Onto = null;
+                LayoutChanged?.Invoke();
+                return true;
+            }
+
             station.transform.SetPositionAndRotation(
                 new Vector3(cursor.Landing.X, cursor.HeldFrom.y, cursor.Landing.Y),
                 Quaternion.Euler(0f, cursor.Degrees, 0f));
@@ -342,11 +394,16 @@ namespace Game.Gameplay
             if (cursor.Held == null)
                 return;
             cursor.Held.CantGoHere = false;
+            cursor.Onto = null;
             if (cursor.Buying != null)
             {
                 _plan.Remove(cursor.Held);
                 Destroy(cursor.Held.gameObject);
                 cursor.Buying = null;
+            }
+            else if (cursor.Held is CounterTopStation fixture)
+            {
+                fixture.PutOn(fixture.OnCounter);
             }
             else
             {
@@ -396,7 +453,8 @@ namespace Game.Gameplay
             cursor.ShopOpen = false;
             cursor.Buying = entry;
             cursor.Held = instance.GetComponent<Interactable>();
-            _plan.GiveSize(cursor.Held, cursor.Held.HalfSize);
+            if (!(cursor.Held is CounterTopStation))
+                _plan.GiveSize(cursor.Held, cursor.Held.HalfSize);
             if (cursor.Held.BelongsInDiningRoom)
                 _plan.GiveArea(cursor.Held, _root.Services.FloorPlan.DiningAreaMin, _root.Services.FloorPlan.DiningAreaMax);
             cursor.HeldFrom = position;
@@ -477,6 +535,13 @@ namespace Game.Gameplay
 
         private Placement Check(Cursor cursor)
         {
+            if (cursor.Held is CounterTopStation)
+            {
+                if (cursor.Onto == null)
+                    return Placement.NotOnAFreeCounter;
+                return cursor.Buying != null && !CanAfford(cursor.Buying) ? Placement.CantAfford : Placement.Ok;
+            }
+
             var result = _plan.Check(cursor.Held, cursor.Landing, cursor.Degrees, People());
             if (result == Placement.Ok && cursor.Held is TableStation table)
             {

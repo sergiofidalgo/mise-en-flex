@@ -96,7 +96,8 @@ namespace Game.Tests.PlayMode
         {
             yield return OpenKitchenWithChef();
             var editor = Object.FindFirstObjectByType<LayoutEditor>();
-            var counter = Object.FindObjectsByType<Game.Gameplay.Stations.CounterStation>(FindObjectsSortMode.None).First();
+            // A counter with nothing on it: one under a board moves only once the board is off.
+            var counter = Object.FindObjectsByType<Game.Gameplay.Stations.CounterStation>(FindObjectsSortMode.None).First(c => c.IsClear);
             var start = counter.transform.position;
 
             var cursor = editor.Enter(_player);
