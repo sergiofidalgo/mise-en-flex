@@ -68,6 +68,14 @@ namespace Game.Simulation.Cooking
             return ingredient;
         }
 
+        /// <summary>Takes out a particular piece, such as the hotter of two on a grill.</summary>
+        public void TakeOut(Ingredient ingredient)
+        {
+            if (!_contents.Remove(ingredient))
+                throw new InvalidOperationException("That isn't in this pan.");
+            ingredient.Pan = null;
+        }
+
         public void Put(Item item)
         {
             if (!CanAccept(item))

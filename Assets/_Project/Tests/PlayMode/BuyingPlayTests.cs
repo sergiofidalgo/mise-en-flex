@@ -177,6 +177,47 @@ namespace Game.Tests.PlayMode
         }
 
         [UnityTest]
+        public IEnumerator ABoughtGrillIsLitWithAHotAndACoolSide()
+        {
+            yield return OpenKitchenWithCursor();
+            Days.Receive(500f);
+            var grill = Buy<GrillStation>("grill", new Vector2(-1.5f, -1.7f));
+            yield return null;
+
+            Assert.That(grill.Grill.Hot.Grate.Temperature, Is.GreaterThan(grill.Grill.Cool.Grate.Temperature + 50f));
+            var glow = grill.GetComponentInChildren<Light>();
+            Assert.That(glow, Is.Not.Null);
+            Assert.That(glow.enabled && glow.intensity > 0f, Is.True, "always lit");
+        }
+
+        [UnityTest]
+        public IEnumerator AChefWorksTheZoneTheyFace()
+        {
+            yield return OpenKitchenWithCursor();
+            Days.Receive(500f);
+            var grill = Buy<GrillStation>("grill", new Vector2(-1.5f, -1.7f));
+            _editor.Leave(_player);
+            var chef = _player.GetComponent<PlayerInteractor>();
+            var controller = _player.GetComponent<CharacterController>();
+            var middle = grill.transform.position;
+
+            void StandAt(float x, float z, float facing)
+            {
+                controller.enabled = false;
+                _player.transform.SetPositionAndRotation(new Vector3(middle.x + x, _player.transform.position.y, middle.z + z), Quaternion.Euler(0f, facing, 0f));
+                controller.enabled = true;
+            }
+
+            StandAt(-0.5f, -0.9f, 0f); // in front, facing the left half
+            Assert.That(grill.ZoneFacing(chef), Is.SameAs(grill.Grill.Hot));
+            StandAt(0.5f, -0.9f, 0f);
+            Assert.That(grill.ZoneFacing(chef), Is.SameAs(grill.Grill.Cool));
+            StandAt(-0.5f, 0.9f, 180f); // from the other long side
+            Assert.That(grill.ZoneFacing(chef), Is.SameAs(grill.Grill.Hot));
+            yield return null;
+        }
+
+        [UnityTest]
         public IEnumerator TheLastHobCantBeSold()
         {
             yield return OpenKitchenWithCursor();

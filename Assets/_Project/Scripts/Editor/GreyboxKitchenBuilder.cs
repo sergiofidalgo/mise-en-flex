@@ -36,6 +36,7 @@ namespace Game.Editor
         private const string CounterFurniture = "counter";
         private const string HobFurniture = "hob";
         private const string InductionFurniture = "induction hob";
+        private const string GrillFurniture = "grill";
         private const string BoardFurniture = "board";
         private const string KnifeRackFurniture = "knife rack";
         private const string FridgeFurniture = "fridge";
@@ -45,6 +46,7 @@ namespace Game.Editor
         private const float CounterPrice = 30f;
         private const float HobPrice = 80f;
         private const float InductionPrice = 150f;
+        private const float GrillPrice = 250f;
         private const float ShelfPrice = 60f;
         private const float FridgePrice = 120f;
         private const float TablePrice = 50f;
@@ -168,6 +170,19 @@ namespace Game.Editor
         private static readonly Color InductionColor = new Color(0.06f, 0.06f, 0.07f);
         private static readonly Color InductionZoneOff = new Color(0.14f, 0.14f, 0.16f);
         private static readonly Color InductionZoneOn = new Color(0.85f, 0.08f, 0.06f);
+
+        // A charcoal grill: two counters wide, coals in a firebox under bars, the hot zone on its
+        // left as built. Places for two pieces on each zone, one towards each long side.
+        private static readonly Color GrillColor = new Color(0.16f, 0.15f, 0.15f);
+        private static readonly Color CoalColor = new Color(0.8f, 0.25f, 0.05f);
+        private static readonly Color GrillBarColor = new Color(0.1f, 0.1f, 0.1f);
+        private static readonly Vector3 CoalBedScale = new Vector3(0.82f, 0.02f, 0.78f);
+        private const int GrillBars = 7;
+        private static readonly Vector3 GrillBarScale = new Vector3(1.8f, 0.012f, 0.025f);
+        private const float GrillPlaceOffset = 0.2f;
+        private static readonly Color GrillLightColor = new Color(1f, 0.55f, 0.25f);
+        private const float GrillLightRange = 3.5f;
+        private const float GrillLightHeight = 0.5f;
         // Wider than the pan (0.44 m), so the glowing ring stays visible around it.
         private const float BurnerDiameter = 0.62f;
         // Heat pips on the hob top along the back edge: one per step above off. On top rather
@@ -544,6 +559,75 @@ namespace Game.Editor
             BuildCuttingBoard("CuttingBoard", boardCounter.transform);
         }
 
+        private static GrillStation BuildGrill(string name, Vector3 position, Transform parent)
+        {
+            var grill = CreateStation<GrillStation>(
+                name, position, 2f * CounterSize, CounterHeight, GreyboxAssets.EnsureMaterial("Grill", GrillColor), parent, GrillFurniture, depth: CounterSize);
+            var top = CounterHeight;
+            var coalMaterial = GreyboxAssets.EnsureMaterial("Coals", CoalColor);
+
+            Transform Point(string pointName, float x, float y, float z)
+            {
+                var point = new GameObject(pointName).transform;
+                point.SetParent(grill.transform, false);
+                point.localPosition = new Vector3(x, y, z);
+                return point;
+            }
+
+            Renderer Coals(string coalsName, float x)
+            {
+                var bed = GreyboxAssets.CreatePrimitive(PrimitiveType.Cube, coalsName, grill.transform, coalMaterial, keepCollider: false);
+                bed.transform.localScale = CoalBedScale;
+                bed.transform.localPosition = new Vector3(x, top + CoalBedScale.y / 2f, 0f);
+                return bed.GetComponent<Renderer>();
+            }
+
+            var half = CounterSize / 2f;
+            var hotCoals = Coals("HotCoals", -half);
+            var coolCoals = Coals("CoolCoals", half);
+            var barMaterial = GreyboxAssets.EnsureMaterial("GrillBar", GrillBarColor);
+            for (var i = 0; i < GrillBars; i++)
+            {
+                var bar = GreyboxAssets.CreatePrimitive(PrimitiveType.Cube, $"Bar_{i + 1}", grill.transform, barMaterial, keepCollider: false);
+                bar.transform.localScale = GrillBarScale;
+                var z = (i - (GrillBars - 1) / 2f) * (CoalBedScale.z / GrillBars);
+                bar.transform.localPosition = new Vector3(0f, top + CoalBedScale.y + GrillBarScale.y / 2f, z);
+            }
+
+            var surface = top + CoalBedScale.y + GrillBarScale.y;
+            var so = new SerializedObject(grill);
+            so.FindProperty("_hotCentre").objectReferenceValue = Point("HotCentre", -half, surface, 0f);
+            so.FindProperty("_coolCentre").objectReferenceValue = Point("CoolCentre", half, surface, 0f);
+            void Places(string field, string prefix, float x)
+            {
+                var list = so.FindProperty(field);
+                list.arraySize = 2;
+                list.GetArrayElementAtIndex(0).objectReferenceValue = Point($"{prefix}_Front", x, surface, -GrillPlaceOffset);
+                list.GetArrayElementAtIndex(1).objectReferenceValue = Point($"{prefix}_Back", x, surface, GrillPlaceOffset);
+            }
+            Places("_hotPlaces", "HotPlace", -half);
+            Places("_coolPlaces", "CoolPlace", half);
+            so.ApplyModifiedPropertiesWithoutUndo();
+            grill.ItemAnchor.localPosition = new Vector3(0f, surface, 0f);
+
+            var lightObject = new GameObject("Glow");
+            lightObject.transform.SetParent(grill.transform, false);
+            lightObject.transform.localPosition = new Vector3(-half / 2f, top + GrillLightHeight, 0f);
+            var light = lightObject.AddComponent<Light>();
+            light.type = LightType.Point;
+            light.color = GrillLightColor;
+            light.range = GrillLightRange;
+            light.shadows = LightShadows.None; // cheap: no shadow map for a glow
+
+            var view = grill.gameObject.AddComponent<GrillView>();
+            var viewSo = new SerializedObject(view);
+            viewSo.FindProperty("_hotCoals").objectReferenceValue = hotCoals;
+            viewSo.FindProperty("_coolCoals").objectReferenceValue = coolCoals;
+            viewSo.FindProperty("_glow").objectReferenceValue = light;
+            viewSo.ApplyModifiedPropertiesWithoutUndo();
+            return grill;
+        }
+
         // Things that sit on a counter: built at the counter's base, with their parts at counter height,
         // so they line up with whatever counter they're put on.
         private static T CreateCounterTop<T>(string name, Transform counter, string furnitureId) where T : CounterTopStation
@@ -756,6 +840,7 @@ namespace Game.Editor
             var counter = SaveFurniture(CreateStation<CounterStation>(
                 "PF_Counter", Vector3.zero, CounterSize, CounterHeight, GreyboxAssets.EnsureMaterial(island.Name, island.Color), null, CounterFurniture));
             var hob = SaveFurniture(CreateHob("PF_Hob", Vector3.zero, GreyboxAssets.EnsureMaterial("Hob", HobColor), null));
+            var grill = SaveFurniture(BuildGrill("PF_Grill", Vector3.zero, null));
             var inductionHob = SaveFurniture(CreateHob("PF_InductionHob", Vector3.zero, GreyboxAssets.EnsureMaterial("InductionHob", InductionColor), null, Game.Simulation.Cooking.HeatKind.Induction));
             var fridge = SaveFurniture(BuildStorageForSale("PF_Fridge", StorageUnits[0]));
             var shelf = SaveFurniture(BuildStorageForSale("PF_Shelf", StorageUnits[1]));
@@ -768,6 +853,7 @@ namespace Game.Editor
             SetFurniture(entries, CounterFurniture, "Counter", CounterPrice, keepOne: false, counter);
             SetFurniture(entries, HobFurniture, "Gas hob", HobPrice, keepOne: true, hob);
             SetFurniture(entries, InductionFurniture, "Induction hob", InductionPrice, keepOne: true, inductionHob);
+            SetFurniture(entries, GrillFurniture, "Charcoal grill", GrillPrice, keepOne: false, grill);
             SetFurniture(entries, ShelfFurniture, "Shelf", ShelfPrice, keepOne: true, shelf);
             SetFurniture(entries, FridgeFurniture, "Fridge", FridgePrice, keepOne: true, fridge);
             SetFurniture(entries, TableFurniture, "Table", TablePrice, keepOne: false, table);

@@ -103,6 +103,16 @@ namespace Game.Data
 
         public float GrillTemperature(bool hot) => hot ? _grillHotTemperature : _grillCoolTemperature;
 
+        /// <summary>A grill zone's grate: two pieces of food, always at the zone's temperature.</summary>
+        public PanProperties GrillGrate(bool hot) => new PanProperties
+        {
+            TypeId = "Grate",
+            HeatCapacity = _panHeatCapacity,
+            AirLossConductance = _panAirLoss,
+            Capacity = Grill.PiecesPerZone,
+            FixedTemperature = GrillTemperature(hot),
+        };
+
         /// <summary>The heat source a hob of this kind gets.</summary>
         public HobProperties HobFor(HeatKind kind) => kind == HeatKind.Induction ? InductionHob : Hob;
 
