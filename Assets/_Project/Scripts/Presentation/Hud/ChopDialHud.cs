@@ -22,33 +22,54 @@ namespace Game.Presentation.Hud
 
         private readonly Dictionary<PrepStation, ChopDialView> _views = new Dictionary<PrepStation, ChopDialView>();
         private readonly Dictionary<PrepStation, float> _lastChop = new Dictionary<PrepStation, float>();
-        private PrepStation[] _stations;
+        private readonly List<PrepStation> _faced = new List<PrepStation>();
+        private readonly List<PrepStation> _gone = new List<PrepStation>();
 
-        private void Start()
+        // Boards come and go (bought, sold), so a dial is made for one the first time it's needed.
+        private ChopDialView ViewFor(PrepStation station)
         {
-            _stations = FindObjectsByType<PrepStation>(FindObjectsSortMode.None);
-            foreach (var station in _stations)
-            {
-                var captured = station;
-                station.Chopped += _ => _lastChop[captured] = Time.unscaledTime;
-                var view = Instantiate(_dialPrefab, _canvas);
-                view.name = $"ChopDial_{station.name}";
-                view.Hide();
-                _views[station] = view;
-            }
+            if (_views.TryGetValue(station, out var view))
+                return view;
+            station.Chopped += _ => _lastChop[station] = Time.unscaledTime;
+            view = Instantiate(_dialPrefab, _canvas);
+            view.name = $"ChopDial_{station.name}";
+            _views[station] = view;
+            return view;
         }
 
         private void LateUpdate()
         {
             var camera = Camera.main;
-            if (camera == null || _stations == null)
+            if (camera == null)
                 return;
 
-            foreach (var station in _stations)
+            _faced.Clear();
+            foreach (var player in PlayerInput.all)
             {
-                var view = _views[station];
+                if (player.TryGetComponent(out PlayerInteractor interactor) && interactor.Target is PrepStation board && interactor.Tool is Knife && !_faced.Contains(board))
+                    _faced.Add(board);
+            }
+
+            _gone.Clear();
+            foreach (var pair in _views)
+            {
+                if (pair.Key == null)
+                    _gone.Add(pair.Key);
+                else if (!_faced.Contains(pair.Key))
+                    pair.Value.Hide();
+            }
+            foreach (var station in _gone)
+            {
+                Destroy(_views[station].gameObject);
+                _views.Remove(station);
+                _lastChop.Remove(station);
+            }
+
+            foreach (var station in _faced)
+            {
+                var view = ViewFor(station);
                 var counter = station.Counter;
-                if (counter?.Dial == null || !KnifeChefFacing(station))
+                if (counter?.Dial == null)
                 {
                     view.Hide();
                     continue;
@@ -66,16 +87,6 @@ namespace Game.Presentation.Hud
                 var since = _lastChop.TryGetValue(station, out var at) ? Time.unscaledTime - at : float.MaxValue;
                 view.Show(counter.Dial, counter.Cuts, counter.CutsNeeded, Time.unscaledTimeAsDouble, since);
             }
-        }
-
-        private static bool KnifeChefFacing(PrepStation station)
-        {
-            foreach (var player in PlayerInput.all)
-            {
-                if (player.TryGetComponent(out PlayerInteractor interactor) && interactor.Target == station && interactor.Tool is Knife)
-                    return true;
-            }
-            return false;
         }
     }
 }

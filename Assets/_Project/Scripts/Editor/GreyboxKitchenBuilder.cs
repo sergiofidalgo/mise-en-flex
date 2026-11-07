@@ -35,6 +35,8 @@ namespace Game.Editor
         // asset is what's tuned.
         private const string CounterFurniture = "counter";
         private const string HobFurniture = "hob";
+        private const string BoardFurniture = "board";
+        private const string KnifeRackFurniture = "knife rack";
         private const string FridgeFurniture = "fridge";
         private const string ShelfFurniture = "shelf";
         private const string TableFurniture = "table";
@@ -102,12 +104,19 @@ namespace Game.Editor
         // The knife sits at the chef's right side, so it reads separately from what's carried.
         private static readonly Vector3 ToolAnchorPosition = new Vector3(0.4f, 0.95f, 0.15f);
 
-        // Prep zone on the back wall, left: knife rack, mise en place counter, a plain counter.
+        // Prep zone on the back wall, left: a counter with the kitchen's one knife lying on it, and a
+        // counter with the cutting board (decision 2026-11-07). Both are ordinary counters underneath.
         private static readonly Color PrepColor = new Color(0.78f, 0.64f, 0.45f);
-        private static readonly Vector3 KnifeRackPosition = new Vector3(-2.4f, 0f, 1.4f);
+        private static readonly Vector3 KnifeCounterPosition = new Vector3(-2.4f, 0f, 1.4f);
         private static readonly Vector3 PrepCounterPosition = new Vector3(-1.4f, 0f, 1.4f);
         private static readonly Vector3 CuttingBoardScale = new Vector3(0.34f, 0.025f, 0.28f);
         private static readonly Color CuttingBoardColor = new Color(0.92f, 0.82f, 0.62f);
+
+        // A knife rack: a block along the counter's back with knives standing in it, one per place.
+        private const int KnifeRackPlaces = 3;
+        private static readonly Vector3 KnifeRackBlockScale = new Vector3(0.6f, 0.12f, 0.1f);
+        private const float KnifeRackBack = 0.32f;
+        private static readonly Color KnifeRackColor = new Color(0.36f, 0.26f, 0.18f);
 
         // Stations: standard 0.9 m counter height, 1 m footprint.
         private const float CounterHeight = 0.9f;
@@ -538,11 +547,52 @@ namespace Game.Editor
             zone.SetParent(stations, false);
             var material = GreyboxAssets.EnsureMaterial("Prep", PrepColor);
 
-            CreateStation<KnifeRackStation>("KnifeRack", KnifeRackPosition, CounterSize, CounterHeight, material, zone);
+            var knifeCounter = CreateStation<CounterStation>("KnifeCounter", KnifeCounterPosition, CounterSize, CounterHeight, material, zone, CounterFurniture);
+            var knifeSo = new SerializedObject(knifeCounter);
+            knifeSo.FindProperty("_startsWithKnife").boolValue = true;
+            knifeSo.ApplyModifiedPropertiesWithoutUndo();
 
-            var prep = CreateStation<PrepStation>("MiseEnPlace", PrepCounterPosition, CounterSize, CounterHeight, material, zone);
+            var boardCounter = CreateStation<CounterStation>("BoardCounter", PrepCounterPosition, CounterSize, CounterHeight, material, zone, CounterFurniture);
+            BuildCuttingBoard("CuttingBoard", boardCounter.transform);
+        }
+
+        // Things that sit on a counter: built at the counter's base, with their parts at counter height,
+        // so they line up with whatever counter they're put on.
+        private static T CreateCounterTop<T>(string name, Transform counter, string furnitureId) where T : CounterTopStation
+        {
+            var root = new GameObject(name).transform;
+            root.SetParent(counter, false);
+
+            var anchor = new GameObject("ItemAnchor").transform;
+            anchor.SetParent(root, false);
+            anchor.localPosition = new Vector3(0f, CounterHeight, 0f);
+
+            var station = root.gameObject.AddComponent<T>();
+            SetReference(station, "_itemAnchor", anchor);
+            var so = new SerializedObject(station);
+            so.FindProperty("_furnitureId").stringValue = furnitureId;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            return station;
+        }
+
+        private static void AddHighlight(Interactable station, params Renderer[] renderers)
+        {
+            var highlight = station.gameObject.AddComponent<InteractableHighlightView>();
+            var so = new SerializedObject(highlight);
+            so.FindProperty("_interactable").objectReferenceValue = station;
+            so.FindProperty("_shakeTarget").objectReferenceValue = renderers[0].transform;
+            var list = so.FindProperty("_renderers");
+            list.arraySize = renderers.Length;
+            for (var i = 0; i < renderers.Length; i++)
+                list.GetArrayElementAtIndex(i).objectReferenceValue = renderers[i];
+            so.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        private static PrepStation BuildCuttingBoard(string name, Transform counter)
+        {
+            var prep = CreateCounterTop<PrepStation>(name, counter, BoardFurniture);
             var board = GreyboxAssets.CreatePrimitive(
-                PrimitiveType.Cube, "CuttingBoard", prep.transform, GreyboxAssets.EnsureMaterial("CuttingBoard", CuttingBoardColor), keepCollider: false);
+                PrimitiveType.Cube, "Board", prep.transform, GreyboxAssets.EnsureMaterial("CuttingBoard", CuttingBoardColor), keepCollider: false);
             board.transform.localScale = CuttingBoardScale;
             board.transform.localPosition = new Vector3(0f, CounterHeight + CuttingBoardScale.y / 2f, 0f);
             var boardAnchor = new GameObject("BoardAnchor").transform;
@@ -552,6 +602,36 @@ namespace Game.Editor
             var so = new SerializedObject(prep);
             so.FindProperty("_boardAnchor").objectReferenceValue = boardAnchor;
             so.ApplyModifiedPropertiesWithoutUndo();
+            AddHighlight(prep, board.GetComponent<Renderer>());
+            return prep;
+        }
+
+        private static KnifeRackStation BuildKnifeRack(string name, Transform counter)
+        {
+            var rack = CreateCounterTop<KnifeRackStation>(name, counter, KnifeRackFurniture);
+            var block = GreyboxAssets.CreatePrimitive(
+                PrimitiveType.Cube, "Block", rack.transform, GreyboxAssets.EnsureMaterial("KnifeRack", KnifeRackColor), keepCollider: false);
+            block.transform.localScale = KnifeRackBlockScale;
+            block.transform.localPosition = new Vector3(0f, CounterHeight + KnifeRackBlockScale.y / 2f, KnifeRackBack);
+
+            // Knives lie along the counter in front of the block, side by side, handles to the back.
+            var places = new Transform[KnifeRackPlaces];
+            var spacing = KnifeRackBlockScale.x / KnifeRackPlaces;
+            for (var i = 0; i < KnifeRackPlaces; i++)
+            {
+                var place = new GameObject($"Place_{i + 1}").transform;
+                place.SetParent(rack.transform, false);
+                place.localPosition = new Vector3((i - (KnifeRackPlaces - 1) / 2f) * spacing, CounterHeight, KnifeRackBack - 0.25f);
+                places[i] = place;
+            }
+            var so = new SerializedObject(rack);
+            var list = so.FindProperty("_places");
+            list.arraySize = places.Length;
+            for (var i = 0; i < places.Length; i++)
+                list.GetArrayElementAtIndex(i).objectReferenceValue = places[i];
+            so.ApplyModifiedPropertiesWithoutUndo();
+            AddHighlight(rack, block.GetComponent<Renderer>());
+            return rack;
         }
 
         // A hob: counter body, a burner ring that glows with the dial around the pan, and heat

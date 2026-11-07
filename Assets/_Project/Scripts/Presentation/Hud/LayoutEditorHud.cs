@@ -93,11 +93,14 @@ namespace Game.Presentation.Hud
                     Placement.CantAfford => "not enough money",
                     Placement.NotOnAWall => "it goes on an outside wall",
                     Placement.NoRoomForChairs => "no room for its chairs",
+                    Placement.NotOnAFreeCounter => "it goes on a free counter",
                     _ => null,
                 };
+                if (problem != null && cursor.Held is CounterTopStation)
+                    return $"{HudStyle.Colored(problem, _blocked)}\n{Glyph(PromptControl.East)} cancel";
                 return problem != null
                     ? $"{HudStyle.Colored(problem, _blocked)}\n[LB/RB] rotate   {Glyph(PromptControl.East)} cancel"
-                    : cursor.Held is StreetDoor
+                    : cursor.Held is StreetDoor || cursor.Held is CounterTopStation
                         ? $"{Glyph(PromptControl.South)} place   {Glyph(PromptControl.East)} cancel"
                         : $"{Glyph(PromptControl.South)} place   [LB/RB] rotate   {Glyph(PromptControl.East)} cancel";
             }
