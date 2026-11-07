@@ -4,18 +4,26 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
-## 2026-11-07 — Fridge and shelf models; the fridge opens and chefs bend while using them
+## 2026-11-07 — Tall glass fridge and shelf, ingredient pictures, chefs bend at shelves
 
-**Decision (user's call):** the fridge and shelf get Blender models like the hob. While a chef holds RT at a fridge (its menu open), the door swings open with a puff of cold air and closes when they let go. At a shelf, the chef bends forward at the waist instead. The fridge door raises events for a door sound, which the sound session adds.
+**Decision (user's calls):**
+- **Storage shows its stock.** The fridge is an upright unit, 1.8 m tall, with a white-framed glass door, and the shelf is a tall open unit, 1.5 m. Each holds two ingredients on each of two tiers, seen from the front, so players can read what's stored from the furniture itself.
+- **Slots follow the tiers:** Y and B on the top tier, X and A below, left to right. This replaces the diamond on the counter top.
+- **The RT menu shows pictures.** Each slot's line shows the ingredient's picture and count beside its button, rendered from the game's own food models, and falls back to its name if there's no picture.
+- **While a chef holds RT:** the fridge door swings open with a puff of cold air, and at a shelf the chef bends forward at the waist. The door raises events for a door sound, which the sound session adds.
+- **The fridge and shelf stand in the back-left corner** of the starting kitchen. The knife counter moves to the west wall by prep, and the tray rack to the back wall beside the hob. The rest stays put.
+
+**Reason:** tall furniture hides what stands behind it from the overhead camera. On the west wall, the shelf would have hidden the fridge's door. The back wall faces the camera, with open floor in front.
 
 **Details (proposed and accepted):**
-- The fridge is a refrigerated prep counter: pans in the top, laid out like the face buttons, and a door on the side facing the camera. Its hinge is on the left, so the open door swings out beside the chef instead of into them.
-- The shelf is a low two-tier open unit, with baskets on top and crates and sacks below.
-- The chef is now two placeholder parts, legs and a torso hinged at the waist, so it can bend. It's still not character art: the same height, colours and nose as the capsule.
-- Two players at one fridge keep it open until both let go.
+- The door hinges on the left, so the open door swings out beside a chef standing in front, not into them. Two players at one fridge keep it open until both let go.
+- The chef is now two placeholder parts, legs and a torso hinged at the waist. It isn't character art: it keeps the same height, colours and nose.
+- A prompt card sits above a tall station rather than over it, so it doesn't cover what's inside.
+- Stored steak shows as the steak model, and pictures are rendered by Tools/Game/Art/Render Ingredient Icons. A kitchen build renders only missing ones.
+
+**Trade-off:** a chef standing at a unit covers part of it from the camera; the pictures in the RT menu make up for that. Tests that used the back-right gap as open floor now use the floor between the island and the pass.
 
 **Not verified:** the mist doesn't show in still captures, so it needs checking in play.
-
 ---
 
 ## 2026-11-07 — Kinds of heat and kitchenware replace equipment tiers

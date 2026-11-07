@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using Game.Gameplay.Stations;
 using Game.Presentation;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -127,17 +128,17 @@ namespace Game.Editor
             // with a chef bent over it, and an empty shelf.
             var fridgePrefab = Load<GameObject>("Assets/_Project/Prefabs/Furniture/PF_Fridge.prefab");
             var shelfPrefab = Load<GameObject>("Assets/_Project/Prefabs/Furniture/PF_Shelf.prefab");
-            UnityEngine.Object.Instantiate(fridgePrefab, StoragePosition(0), Quaternion.identity);
-            var openFridge = UnityEngine.Object.Instantiate(fridgePrefab, StoragePosition(1), Quaternion.identity);
+            Stock(UnityEngine.Object.Instantiate(fridgePrefab, StoragePosition(0), Quaternion.identity), "Steak", "Steak", "Tomato", null);
+            var openFridge = Stock(UnityEngine.Object.Instantiate(fridgePrefab, StoragePosition(1), Quaternion.identity), "Steak", null, "Steak", "Tomato");
             openFridge.GetComponent<FridgeDoorView>().Show(1f);
             var mist = openFridge.transform.Find("ColdMist").GetComponent<ParticleSystem>();
             mist.Emit(14);
             mist.Simulate(0.35f, true, false);
             UnityEngine.Object.Instantiate(chefPrefab, StoragePosition(1) + Vector3.back * ChefDistanceInFront, Quaternion.identity);
-            UnityEngine.Object.Instantiate(shelfPrefab, StoragePosition(2), Quaternion.identity);
+            Stock(UnityEngine.Object.Instantiate(shelfPrefab, StoragePosition(2), Quaternion.identity), "Onion", "Onion", null, "Tomato");
             var bentChef = UnityEngine.Object.Instantiate(chefPrefab, StoragePosition(2) + Vector3.back * ChefDistanceInFront, Quaternion.identity);
             bentChef.GetComponent<StorageUseView>().Show(1f);
-            UnityEngine.Object.Instantiate(shelfPrefab, StoragePosition(3), Quaternion.identity);
+            Stock(UnityEngine.Object.Instantiate(shelfPrefab, StoragePosition(3), Quaternion.identity), "Onion", "Tomato", "Onion", "Onion");
 
             var camera = new GameObject("Capture Camera").AddComponent<Camera>();
             camera.fieldOfView = CameraFieldOfView;
@@ -159,6 +160,17 @@ namespace Game.Editor
             Render(camera, target, new Vector3(0f, HobTop, 0f), PlayHeight, Path.Combine(folder, "pilot_before_flip_play.png"));
             target.Release();
             Debug.Log($"[ArtPilotCapture] Saved to {folder}");
+        }
+
+        // Shows what each slot holds, in FaceButton order (A, B, X, Y); StorageView does this in play.
+        private static GameObject Stock(GameObject storage, params string[] slots)
+        {
+            for (var i = 0; i < slots.Length; i++)
+            {
+                if (slots[i] != null)
+                    storage.transform.Find($"Sample_{(FaceButton)i}_{slots[i]}").gameObject.SetActive(true);
+            }
+            return storage;
         }
 
         private static Vector3 StoragePosition(int index) => new Vector3(StorageRowX + index * StorageSpacing, 0f, 0f);

@@ -1,4 +1,6 @@
 using System.Linq;
+using Game.Data;
+using Game.Gameplay.Stations;
 using Game.Presentation;
 using NUnit.Framework;
 using UnityEditor;
@@ -7,12 +9,14 @@ using UnityEngine;
 namespace Game.Tests.EditMode
 {
     /// <summary>
-    /// The fridge, shelf and chef models fit their stations, and the motions that use them (the
-    /// fridge door, the chef bending) are wired and timed as intended.
+    /// The tall fridge and shelf, their slots and the pictures in their menu, and the chef that
+    /// bends at them: models fit their stations, and the motions are wired and timed as intended.
     /// </summary>
     public class StorageArtTests
     {
         private const string ModelsFolder = "Assets/_Project/Art/Models";
+        private const string FridgePath = "Assets/_Project/Prefabs/Furniture/PF_Fridge.prefab";
+        private const string ShelfPath = "Assets/_Project/Prefabs/Furniture/PF_Shelf.prefab";
         private const float Tolerance = 0.005f;
         private const float Frame = 1f / 60f;
 
@@ -25,6 +29,9 @@ namespace Game.Tests.EditMode
         }
 
         private static GameObject Prefab(string path) => AssetDatabase.LoadAssetAtPath<GameObject>(path);
+
+        private static Vector3 Slot(GameObject storage, FaceButton button) =>
+            storage.transform.Find($"Bin_{button}").localPosition;
 
         [Test]
         public void SwingReachesEachEndInItsOwnTime()
@@ -47,39 +54,87 @@ namespace Game.Tests.EditMode
             Assert.That(Swing.EaseOutBack(0.8f), Is.GreaterThan(1f));
         }
 
-        [Test]
-        public void StorageBodiesFillTheirStations([Values("SM_Fridge/FridgeBody", "SM_Shelf/ShelfBody")] string model)
+        [TestCase("SM_Fridge", "FridgeBody", 1.8f)]
+        [TestCase("SM_Shelf", "ShelfBody", 1.5f)]
+        public void StorageIsTallWithinItsFootprint(string model, string mesh, float height)
         {
-            var parts = model.Split('/');
-            var bounds = Model(parts[0], parts[1]).bounds;
+            var bounds = Model(model, mesh).bounds;
             Assert.That(bounds.size.x, Is.EqualTo(1f).Within(Tolerance));
-            Assert.That(bounds.size.y, Is.EqualTo(0.9f).Within(Tolerance));
-            Assert.That(bounds.size.z, Is.EqualTo(1f).Within(Tolerance));
+            Assert.That(bounds.size.y, Is.EqualTo(height).Within(Tolerance));
             Assert.That(bounds.min.y, Is.EqualTo(0f).Within(Tolerance));
+            Assert.That(bounds.min.z, Is.GreaterThanOrEqualTo(-0.5f - Tolerance));
+            Assert.That(bounds.max.z, Is.LessThanOrEqualTo(0.5f + Tolerance));
         }
 
         [Test]
-        public void FridgeDoorHangsFromItsHingeAndOpensTowardsTheCamera()
+        public void FridgeDoorIsAGlassPanelInAFrameThatOpensTowardsTheCamera()
         {
-            var bounds = Model("SM_Fridge", "FridgeDoor").bounds;
+            var bounds = Model("SM_Fridge", "FridgeDoorFrame").bounds;
             Assert.That(bounds.min.x, Is.EqualTo(0f).Within(Tolerance), "The hinge is at the door's origin, on its left.");
-            Assert.That(bounds.max.x, Is.EqualTo(0.84f).Within(Tolerance));
+            Assert.That(bounds.max.x, Is.EqualTo(0.96f).Within(Tolerance));
             Assert.That(bounds.max.z, Is.LessThanOrEqualTo(Tolerance), "The door sits in front of its hinge, towards the camera.");
 
-            var fridge = Prefab("Assets/_Project/Prefabs/Furniture/PF_Fridge.prefab");
+            var fridge = Prefab(FridgePath);
             var door = fridge.transform.Find("Door");
-            Assert.That(door.localPosition.x + bounds.max.x, Is.LessThanOrEqualTo(0.5f), "The closed door stays within the footprint.");
-            Assert.That(door.localPosition.z - bounds.size.z, Is.GreaterThanOrEqualTo(-0.5f));
+            Assert.That(door.localRotation, Is.EqualTo(Quaternion.identity), "Built shut.");
+            Assert.That(door.localPosition.x + bounds.max.x, Is.LessThanOrEqualTo(0.5f + Tolerance), "The shut door stays within the footprint.");
+            Assert.That(door.localPosition.z + bounds.min.z, Is.GreaterThanOrEqualTo(-0.5f - Tolerance));
+
+            var glass = door.Find("Glass").GetComponent<Renderer>().sharedMaterial;
+            Assert.That(glass.renderQueue, Is.GreaterThanOrEqualTo(3000), "The glass is see-through.");
+            Assert.That(glass.color.a, Is.LessThan(0.5f));
         }
 
         [Test]
         public void FridgeIsWiredToOpenAndShelfIsNot()
         {
-            var fridge = Prefab("Assets/_Project/Prefabs/Furniture/PF_Fridge.prefab");
-            var shelf = Prefab("Assets/_Project/Prefabs/Furniture/PF_Shelf.prefab");
-            Assert.That(fridge.GetComponent<FridgeDoorView>(), Is.Not.Null);
-            Assert.That(shelf.GetComponent<FridgeDoorView>(), Is.Null);
-            Assert.That(fridge.transform.Find("Door").localRotation, Is.EqualTo(Quaternion.identity), "Built shut.");
+            Assert.That(Prefab(FridgePath).GetComponent<FridgeDoorView>(), Is.Not.Null);
+            Assert.That(Prefab(ShelfPath).GetComponent<FridgeDoorView>(), Is.Null);
+        }
+
+        [TestCase(FridgePath)]
+        [TestCase(ShelfPath)]
+        public void SlotsSitInTwoTiersWithYAndBOnTop(string path)
+        {
+            var storage = Prefab(path);
+            var y = Slot(storage, FaceButton.North);
+            var b = Slot(storage, FaceButton.East);
+            var x = Slot(storage, FaceButton.West);
+            var a = Slot(storage, FaceButton.South);
+
+            Assert.That(y.y, Is.EqualTo(b.y).Within(Tolerance), "Y and B share the top tier.");
+            Assert.That(x.y, Is.EqualTo(a.y).Within(Tolerance), "X and A share the bottom tier.");
+            Assert.That(y.y, Is.GreaterThan(x.y));
+            Assert.That(y.x, Is.LessThan(b.x), "Y is on the left, B on the right.");
+            Assert.That(x.x, Is.LessThan(a.x), "X is on the left, A on the right.");
+        }
+
+        [Test]
+        public void StoredSteakLooksLikeTheSteakModel()
+        {
+            var sample = Prefab(FridgePath).transform.Find($"Sample_{FaceButton.North}_Steak");
+            Assert.That(sample.GetComponent<MeshFilter>().sharedMesh.name, Is.EqualTo("SM_Steak"));
+        }
+
+        [Test]
+        public void EveryIngredientHasAPictureOnAClearBackground()
+        {
+            var icons = AssetDatabase.LoadAssetAtPath<IngredientIcons>("Assets/_Project/Data/UI/IngredientIcons.asset");
+            Assert.That(icons, Is.Not.Null);
+
+            var typeIds = AssetDatabase.FindAssets("t:IngredientDefinition")
+                .Select(guid => AssetDatabase.LoadAssetAtPath<IngredientDefinition>(AssetDatabase.GUIDToAssetPath(guid)).TypeId)
+                .ToArray();
+            Assert.That(typeIds, Is.Not.Empty);
+            foreach (var typeId in typeIds)
+            {
+                var icon = icons.Find(typeId);
+                Assert.That(icon, Is.Not.Null, $"{typeId} has no picture.");
+
+                var texture = icon.texture;
+                Assert.That(texture.GetPixel(1, 1).a, Is.LessThan(0.1f), $"{typeId}'s picture should have a clear background.");
+                Assert.That(texture.GetPixel(texture.width / 2, texture.height / 2).a, Is.GreaterThan(0.5f), $"{typeId}'s picture should show the food.");
+            }
         }
 
         [Test]

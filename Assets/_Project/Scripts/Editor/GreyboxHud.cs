@@ -27,6 +27,8 @@ namespace Game.Editor
         private const int CardPadding = 10;
         private const float RowSpacing = 6f;
         private const float BadgeToLabel = 8f;
+        // An ingredient's picture is a little bigger than a button badge, so it reads at a glance.
+        private const float IconToBadge = 1.5f;
         private const float DiamondColumnGap = 28f;
         private const float RadialRingPadding = 18f;
 
@@ -404,6 +406,15 @@ namespace Game.Editor
 
             var badge = BuildBadge(row, style);
 
+            // An ingredient's picture, between the button and its count; hidden for plain verbs.
+            var iconRect = NewRect("Icon", row);
+            var icon = iconRect.gameObject.AddComponent<Image>();
+            icon.preserveAspect = true;
+            icon.raycastTarget = false;
+            var iconSize = iconRect.gameObject.AddComponent<LayoutElement>();
+            iconSize.preferredWidth = iconSize.preferredHeight = style.BadgeSize * IconToBadge;
+            iconRect.gameObject.SetActive(false);
+
             var labelRect = NewRect("Label", row);
             var label = labelRect.gameObject.AddComponent<TextMeshProUGUI>();
             label.font = style.Font;
@@ -420,6 +431,8 @@ namespace Game.Editor
             so.FindProperty("_badge").objectReferenceValue = badge;
             so.FindProperty("_label").objectReferenceValue = label;
             so.FindProperty("_group").objectReferenceValue = group;
+            so.FindProperty("_icon").objectReferenceValue = icon;
+            so.FindProperty("_icons").objectReferenceValue = IngredientIconRenderer.Catalog();
             so.ApplyModifiedPropertiesWithoutUndo();
             return prompt;
         }

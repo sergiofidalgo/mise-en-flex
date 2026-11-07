@@ -21,7 +21,8 @@ namespace Game.Tests.PlayMode
         private const string SceneName = "Kitchen_Greybox";
 
         // Open floor, clear of the starting layout and the chef's spawn.
-        private static readonly Vector2 OpenFloor = new Vector2(2.4f, 0.95f);
+        // Between the island and the pass: the back-right gap is the tray rack's since 2026-11-07.
+        private static readonly Vector2 OpenFloor = new Vector2(-0.4f, -2.0f);
 
         private KitchenCompositionRoot _root;
         private LayoutEditor _editor;

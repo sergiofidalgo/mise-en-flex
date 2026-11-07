@@ -197,68 +197,79 @@ def build_steak():
     return [finish("SM_Steak", bm)]
 
 
-# Storage units are counter height with the same 1 m footprint as the hob. Their four bins sit on
-# top, at the positions GreyboxStorage gives them, so the models only provide the bins' shape.
-STORAGE_HEIGHT = 0.9
-# Where the fridge door's hinge is, in Blender coordinates: the game's (-0.42, 0.1, -0.435).
-# Must match StorageArt.DoorHinge. The door's mesh is built around its hinge, so it swings there.
-FRIDGE_HINGE = (0.42, 0.435, 0.1)
+# Storage units are tall, with two tiers of two slots seen from the front, and the same 1 m
+# footprint as other stations. Slot positions live in StorageArt.SlotPosition; the models only
+# give the shelves those slots sit on, at heights 0.45 and 1.05.
+FRIDGE_HEIGHT = 1.8
+SHELF_HEIGHT = 1.5
+TIER_TOPS = (0.45, 1.05)
+# Where the fridge door's hinge is, in Blender coordinates: the game's (-0.48, 0.15, -0.45).
+# Must match StorageArt.DoorHinge. The door's meshes are built around their hinge.
+FRIDGE_HINGE = (0.48, 0.45, 0.15)
 # The chef bends at the waist: the torso's origin is there. Must match the player builder.
 CHEF_WAIST = 0.85
 
 
 def build_fridge():
-    """A refrigerated prep counter: pans in the top, a door on the side facing the camera."""
+    """An upright glass-door fridge: a white shell, a pale lined inside with two shelves, and a
+    door that's a white frame around glass, so what's inside shows from the camera."""
     bm = bmesh.new()
-    add_box(bm, (1.0, 1.0, 0.06), (0.0, 0.0, STORAGE_HEIGHT - 0.03), bevel=0.015)
-    add_box(bm, (0.96, 0.92, 0.77), (0.0, -0.02, 0.455), bevel=0.015)
-    add_box(bm, (0.88, 0.84, 0.07), (0.0, -0.02, 0.035))
+    for x in (-0.48, 0.48):
+        add_box(bm, (0.04, 0.95, FRIDGE_HEIGHT), (x, -0.025, FRIDGE_HEIGHT / 2.0), bevel=0.01)
+    add_box(bm, (1.0, 0.95, 0.1), (0.0, -0.025, FRIDGE_HEIGHT - 0.05), bevel=0.015)  # header
+    add_box(bm, (1.0, 0.95, 0.15), (0.0, -0.025, 0.075), bevel=0.01)  # plinth
+    add_box(bm, (0.92, 0.04, 1.55), (0.0, -0.48, 0.925))  # back
     body = finish("FridgeBody", bm)
 
-    # Seen when the door opens: a dark, cold-looking opening just in front of the carcass.
     bm = bmesh.new()
-    add_box(bm, (0.8, 0.006, 0.66), (0.0, 0.443, 0.44))
-    interior = finish("FridgeInterior", bm)
+    add_box(bm, (0.9, 0.01, 1.53), (0.0, -0.455, 0.925))  # lining at the back
+    for top in TIER_TOPS:
+        add_box(bm, (0.9, 0.8, 0.02), (0.0, 0.0, top - 0.01))
+    liner = finish("FridgeLiner", bm)
 
-    # Built around its hinge on the left (as seen in the game), opening out towards the camera.
+    # The door, around its hinge on the left as seen in the game: a frame and a glass panel.
+    # It's 0.035 thick and the handle adds 0.015, ending on the footprint's front edge.
+    width, height, bar = 0.96, 1.55, 0.07
     bm = bmesh.new()
-    add_box(bm, (0.84, 0.035, 0.7), (-0.42, 0.0175, 0.35), bevel=0.01)
-    # The handle stays within the 1 m footprint: the door's front is at 0.47, the handle's at 0.495.
-    add_box(bm, (0.03, 0.025, 0.34), (-0.76, 0.0475, 0.4), bevel=0.008)
-    door = finish("FridgeDoor", bm)
-    door.location = FRIDGE_HINGE
+    add_box(bm, (bar, 0.035, height), (-bar / 2.0, 0.0175, height / 2.0), bevel=0.008)
+    add_box(bm, (bar, 0.035, height), (-width + bar / 2.0, 0.0175, height / 2.0), bevel=0.008)
+    add_box(bm, (width - 2 * bar, 0.035, 0.1), (-width / 2.0, 0.0175, 0.05), bevel=0.008)
+    add_box(bm, (width - 2 * bar, 0.035, 0.1), (-width / 2.0, 0.0175, height - 0.05), bevel=0.008)
+    add_box(bm, (0.03, 0.015, 0.4), (-width + 0.1, 0.0425, height / 2.0), bevel=0.005)  # handle
+    frame = finish("FridgeDoorFrame", bm)
+    frame.location = FRIDGE_HINGE
 
-    # One gastronorm pan; the game places four.
     bm = bmesh.new()
-    add_box(bm, (0.24, 0.24, 0.03), (0.0, 0.0, 0.015), bevel=0.006)
-    pan = finish("FridgePan", bm)
-    pan.location = (0.0, 0.0, STORAGE_HEIGHT)
-    return [body, interior, door, pan]
+    add_box(bm, (width - 2 * bar, 0.01, height - 0.2), (-width / 2.0, 0.0175, height / 2.0))
+    glass = finish("FridgeDoorGlass", bm)
+    glass.location = FRIDGE_HINGE
+
+    bm = bmesh.new()
+    add_box(bm, (0.3, 0.24, 0.03), (0.0, 0.0, 0.015), bevel=0.006)
+    basket = finish("FridgeBasket", bm)
+    basket.location = (0.0, 0.28, TIER_TOPS[1])
+    return [body, liner, frame, glass, basket]
 
 
 def build_shelf():
-    """A low two-tier open shelf, with crates and sacks below and baskets on top."""
+    """A tall open shelf against the wall: two tiers of two slots, sacks on the bottom board."""
     bm = bmesh.new()
-    add_box(bm, (1.0, 1.0, 0.05), (0.0, 0.0, STORAGE_HEIGHT - 0.025), bevel=0.01)
-    for x in (-0.47, 0.47):
-        for y in (-0.47, 0.47):
-            add_box(bm, (0.06, 0.06, 0.85), (x, y, 0.425), bevel=0.008)
-    add_box(bm, (0.94, 0.94, 0.03), (0.0, 0.0, 0.45), bevel=0.006)
-    add_box(bm, (0.94, 0.94, 0.03), (0.0, 0.0, 0.08), bevel=0.006)
+    for x in (-0.475, 0.475):
+        for y in (0.275, -0.375):
+            add_box(bm, (0.05, 0.05, SHELF_HEIGHT), (x, y, SHELF_HEIGHT / 2.0), bevel=0.008)
+    for top in (0.06,) + TIER_TOPS + (SHELF_HEIGHT,):
+        add_box(bm, (1.0, 0.7, 0.04), (0.0, -0.05, top - 0.02), bevel=0.006)
     body = finish("ShelfBody", bm)
 
-    # Something on each lower tier, so it reads as a working shelf rather than a table.
     bm = bmesh.new()
-    add_box(bm, (0.3, 0.3, 0.2), (-0.25, 0.0, 0.565), bevel=0.012)
-    add_box(bm, (0.28, 0.26, 0.18), (0.2, 0.1, 0.555), bevel=0.012)
-    add_box(bm, (0.32, 0.28, 0.24), (-0.05, -0.1, 0.215), bevel=0.06)
-    add_box(bm, (0.26, 0.26, 0.2), (0.28, 0.15, 0.195), bevel=0.05)
+    add_box(bm, (0.34, 0.3, 0.26), (-0.22, -0.05, 0.19), bevel=0.06)
+    add_box(bm, (0.3, 0.28, 0.22), (0.2, -0.1, 0.17), bevel=0.05)
     goods = finish("ShelfGoods", bm)
 
     bm = bmesh.new()
-    add_box(bm, (0.24, 0.24, 0.03), (0.0, 0.0, 0.015), bevel=0.008)
+    add_box(bm, (0.3, 0.24, 0.03), (0.0, 0.0, 0.015), bevel=0.008)
     basket = finish("ShelfBasket", bm)
-    basket.location = (0.0, 0.0, STORAGE_HEIGHT)
+    basket.location = (0.0, 0.15, TIER_TOPS[1])
     return [body, goods, basket]
 
 

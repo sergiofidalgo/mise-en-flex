@@ -9,7 +9,7 @@ using UnityEngine;
 namespace Game.Gameplay.Stations
 {
     /// <summary>
-    /// A fridge or shelf with four slots, one per face button. Holding RT opens its radial menu;
+    /// A fridge or shelf with four slots, one per face button, in two tiers seen from the front. Holding RT opens its radial menu;
     /// while it's open, a face button takes one portion from that slot (empty hands). With food in
     /// hand, Interact puts it in a slot with that ingredient or a free one, no menu needed: anything can go anywhere, though meat on a shelf spoils fast. With a tray,
     /// the menu loads onto the tray. Purchases arrive straight here (decision 2026-11-04): free
@@ -143,7 +143,8 @@ namespace Game.Gameplay.Stations
                 var slot = _unit.Slots[i];
                 var control = (PromptControl)i;
                 lines.Add(slot.Count > 0
-                    ? new PromptLine(control, $"{slot.TypeId} ×{slot.Count}", player.Hands.IsEmpty || (player.Hands.Current is Tray room && room.HasRoom))
+                    ? new PromptLine(control, $"{slot.TypeId} ×{slot.Count}", player.Hands.IsEmpty || (player.Hands.Current is Tray room && room.HasRoom),
+                        iconId: slot.TypeId, iconLabel: $"×{slot.Count}")
                     : new PromptLine(control, "—", available: false));
             }
         }

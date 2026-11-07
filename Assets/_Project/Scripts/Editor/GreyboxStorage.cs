@@ -9,9 +9,9 @@ using Object = UnityEngine.Object;
 namespace Game.Editor
 {
     /// <summary>
-    /// Builds storage units: a counter-height body with four bins on top laid out like the face
-    /// buttons (Y north, A south, X west, B east, as seen from the camera), a sample of every
-    /// ingredient on each bin (the view shows the one in the slot), and the slot setup.
+    /// Builds storage units: a tall body with four baskets in two tiers of two seen from the front
+    /// (Y and B on top, X and A below), a sample of every ingredient on each basket (the view shows
+    /// the one in the slot), and the slot setup. Models and slot positions come from StorageArt.
     /// </summary>
     public static class GreyboxStorage
     {
@@ -30,49 +30,45 @@ namespace Game.Editor
             public (string TypeId, int Count)[] Deliveries = System.Array.Empty<(string, int)>();
         }
 
-        private const float BinOffset = 0.25f;
+        private const int SlotCount = 4; // one per face button
         private static readonly Vector3 BinScale = new Vector3(0.24f, 0.03f, 0.24f);
         private static readonly Color BinColor = new Color(0.55f, 0.57f, 0.60f);
         private const float SampleScale = 0.8f;
 
-        // Bin positions in FaceButton order, matching the controller's diamond from the camera.
-        private static readonly Vector3[] BinOffsets =
-        {
-            new Vector3(0f, 0f, -BinOffset), // South: A
-            new Vector3(BinOffset, 0f, 0f),  // East: B
-            new Vector3(-BinOffset, 0f, 0f), // West: X
-            new Vector3(0f, 0f, BinOffset),  // North: Y
-        };
-
         public delegate T StationFactory<T>(string name, Vector3 position, Material material) where T : Interactable;
 
-        public static StorageStation Build(Unit unit, float height, StationFactory<StorageStation> createStation)
+        public static StorageStation Build(Unit unit, StationFactory<StorageStation> createStation)
         {
             var station = createStation(unit.Name, unit.Position, GreyboxAssets.EnsureMaterial(unit.Name, unit.Color));
             var binMaterial = GreyboxAssets.EnsureMaterial("StorageBin", BinColor);
 
-            var bins = new Transform[BinOffsets.Length];
+            var bins = new Transform[SlotCount];
             var viewSo = new SerializedObject(station.gameObject.AddComponent<StorageView>());
             viewSo.FindProperty("_storage").objectReferenceValue = station;
             var samples = viewSo.FindProperty("_samples");
-            samples.arraySize = BinOffsets.Length * GreyboxIngredients.Types.Length;
+            samples.arraySize = SlotCount * GreyboxIngredients.Types.Length;
             var sampleIndex = 0;
 
-            for (var i = 0; i < BinOffsets.Length; i++)
+            for (var i = 0; i < SlotCount; i++)
             {
+                // Two tiers of two, seen from the front (StorageArt.SlotPosition).
+                var slot = StorageArt.SlotPosition(unit.Refrigerated, i);
                 var bin = GreyboxAssets.CreatePrimitive(PrimitiveType.Cube, $"Bin_{(FaceButton)i}", station.transform, binMaterial, keepCollider: false);
                 bin.transform.localScale = BinScale;
-                bin.transform.localPosition = BinOffsets[i] + Vector3.up * (height + BinScale.y / 2f);
-                // A modelled pan or basket has its origin at its base, sitting on the top.
-                if (PilotArt.TryUseMesh(bin, StorageArt.ModelFor(unit.Refrigerated), StorageArt.BinMesh(unit.Refrigerated)))
-                    bin.transform.localPosition = BinOffsets[i] + Vector3.up * height;
+                bin.transform.localPosition = slot + Vector3.up * (BinScale.y / 2f);
+                var binTop = BinScale.y;
+                // A modelled basket has its origin at its base, sitting on the shelf.
+                if (PilotArt.TryUseMesh(bin, StorageArt.ModelFor(unit.Refrigerated), StorageArt.BasketMesh(unit.Refrigerated)))
+                {
+                    bin.transform.localPosition = slot;
+                    binTop = StorageArt.BasketHeight;
+                }
                 bins[i] = bin.transform;
 
                 foreach (var type in GreyboxIngredients.Types)
                 {
-                    var shape = GreyboxIngredients.CreateShape(type, $"Sample_{(FaceButton)i}_{type.Id}", station.transform);
-                    shape.transform.localScale = type.Scale * SampleScale;
-                    shape.transform.localPosition = BinOffsets[i] + Vector3.up * (height + BinScale.y + type.CentreHeight * SampleScale);
+                    var shape = StorageArt.CreateSample(type, $"Sample_{(FaceButton)i}_{type.Id}", station.transform, SampleScale, out var baseOffset);
+                    shape.transform.localPosition = slot + Vector3.up * (binTop + baseOffset);
                     shape.SetActive(false);
 
                     var sample = samples.GetArrayElementAtIndex(sampleIndex++);
@@ -87,8 +83,8 @@ namespace Game.Editor
             var so = new SerializedObject(station);
             so.FindProperty("_refrigerated").boolValue = unit.Refrigerated;
             var slots = so.FindProperty("_slots");
-            slots.arraySize = BinOffsets.Length;
-            for (var i = 0; i < BinOffsets.Length; i++)
+            slots.arraySize = SlotCount;
+            for (var i = 0; i < SlotCount; i++)
             {
                 var element = slots.GetArrayElementAtIndex(i);
                 element.FindPropertyRelative("_capacity").intValue = unit.SlotCapacity;

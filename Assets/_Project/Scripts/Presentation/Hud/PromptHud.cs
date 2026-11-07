@@ -21,6 +21,8 @@ namespace Game.Presentation.Hud
 
         [Tooltip("Metres above a station's base where its card sits (just above the counter top).")]
         [SerializeField, Min(0f)] private float _anchorHeight = 1.25f;
+        [Tooltip("Metres above the top of a tall station (a fridge, a shelf) where its card sits, so it doesn't cover what's inside.")]
+        [SerializeField, Min(0f)] private float _aboveTallStation = 0.2f;
         [Tooltip("Canvas pixels between two players' cards on the same station.")]
         [SerializeField, Min(0f)] private float _sideBySideGap = 12f;
         [Tooltip("Canvas pixels kept clear at the top of the screen, for the clock and the money.")]
@@ -33,6 +35,7 @@ namespace Game.Presentation.Hud
         private readonly Dictionary<PlayerInput, PromptCard> _cards = new Dictionary<PlayerInput, PromptCard>();
         private readonly List<PromptLine> _lines = new List<PromptLine>();
         private readonly Dictionary<Interactable, int> _sharing = new Dictionary<Interactable, int>();
+        private readonly Dictionary<Interactable, float> _tops = new Dictionary<Interactable, float>();
 
         private void LateUpdate()
         {
@@ -65,7 +68,7 @@ namespace Game.Presentation.Hud
                         _lines.Add(new PromptLine(PromptControl.Triggers, "choose from tray"));
                 }
 
-                var screen = camera.WorldToScreenPoint(interactor.Target.transform.position + Vector3.up * _anchorHeight);
+                var screen = camera.WorldToScreenPoint(interactor.Target.transform.position + Vector3.up * AnchorHeight(interactor.Target));
                 if (_lines.Count == 0 || screen.z <= 0f)
                 {
                     card.Hide();
@@ -77,6 +80,19 @@ namespace Game.Presentation.Hud
                 LayoutRebuilder.ForceRebuildLayoutImmediate(card.Rect);
                 Place(card, interactor.Target, screen);
             }
+        }
+
+        // Just above a counter, or above the top of a tall station. Measured once per station.
+        private float AnchorHeight(Interactable station)
+        {
+            if (!_tops.TryGetValue(station, out var top))
+            {
+                top = 0f;
+                foreach (var renderer in station.GetComponentsInChildren<MeshRenderer>())
+                    top = Mathf.Max(top, renderer.bounds.max.y - station.transform.position.y);
+                _tops[station] = top;
+            }
+            return Mathf.Max(_anchorHeight, top + _aboveTallStation);
         }
 
         // Bottom-centre of the card at the station; a second player on the same station sits to the right.

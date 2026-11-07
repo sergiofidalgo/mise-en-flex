@@ -27,15 +27,23 @@ namespace Game.Gameplay.Stations
     /// <summary>One line of a station's button prompt, e.g. "A  Steak ×6".</summary>
     public readonly struct PromptLine
     {
-        public PromptLine(PromptControl control, string label, bool available = true)
+        public PromptLine(PromptControl control, string label, bool available = true, string iconId = null, string iconLabel = null)
         {
             Control = control;
             Label = label;
             Available = available;
+            IconId = iconId;
+            IconLabel = iconLabel;
         }
 
         public PromptControl Control { get; }
         public string Label { get; }
+
+        /// <summary>An ingredient whose picture to show, if the menu has one; else the label shows.</summary>
+        public string IconId { get; }
+
+        /// <summary>Text beside the picture when it shows, e.g. "×6"; the label otherwise.</summary>
+        public string IconLabel { get; }
 
         /// <summary>False greys the line out (e.g. an empty slot, nothing to flip).</summary>
         public bool Available { get; }

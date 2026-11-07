@@ -107,7 +107,8 @@ namespace Game.Editor
         // Prep zone on the back wall, left: a counter with the kitchen's one knife lying on it, and a
         // counter with the cutting board (decision 2026-11-07). Both are ordinary counters underneath.
         private static readonly Color PrepColor = new Color(0.78f, 0.64f, 0.45f);
-        private static readonly Vector3 KnifeCounterPosition = new Vector3(-2.4f, 0f, 1.4f);
+        // On the west wall, by prep: the back-left corner is the tall storage (decision 2026-11-07).
+        private static readonly Vector3 KnifeCounterPosition = new Vector3(-3.4f, 0f, -0.6f);
         private static readonly Vector3 PrepCounterPosition = new Vector3(-1.4f, 0f, 1.4f);
         private static readonly Vector3 CuttingBoardScale = new Vector3(0.34f, 0.025f, 0.28f);
         private static readonly Color CuttingBoardColor = new Color(0.92f, 0.82f, 0.62f);
@@ -128,14 +129,14 @@ namespace Game.Editor
         {
             new GreyboxStorage.Unit
             {
-                Name = "Fridge", FurnitureId = FridgeFurniture, Position = new Vector3(-3.4f, 0f, 0.4f), Refrigerated = true,
-                Color = new Color(0.86f, 0.92f, 0.96f),
+                Name = "Fridge", FurnitureId = FridgeFurniture, Position = new Vector3(-3.4f, 0f, 1.4f), Refrigerated = true,
+                Color = new Color(0.94f, 0.96f, 0.97f),
                 SlotCapacity = 6,
                 Deliveries = new[] { ("Steak", 18) },
             },
             new GreyboxStorage.Unit
             {
-                Name = "Shelf", FurnitureId = ShelfFurniture, Position = new Vector3(-3.4f, 0f, -0.6f), Refrigerated = false,
+                Name = "Shelf", FurnitureId = ShelfFurniture, Position = new Vector3(-2.4f, 0f, 1.4f), Refrigerated = false,
                 Color = new Color(0.58f, 0.43f, 0.28f),
                 SlotCapacity = 6,
                 Deliveries = new[] { ("Onion", 8) },
@@ -179,7 +180,7 @@ namespace Game.Editor
         private static readonly Vector3 PlateStackPosition = new Vector3(1.4f, 0f, -2.4f);
         private static readonly Color PlateStackColor = new Color(0.80f, 0.80f, 0.78f);
         private const int PlateStackVisualCount = 6;
-        private static readonly Vector3 TrayRackPosition = new Vector3(-3.4f, 0f, 1.4f);
+        private static readonly Vector3 TrayRackPosition = new Vector3(1.6f, 0f, 1.4f);
         private static readonly Vector3 ContainerRackPosition = new Vector3(-0.4f, 0f, 1.4f);
         private static readonly Color RackColor = new Color(0.46f, 0.48f, 0.52f);
         private static readonly Vector3 SinkPosition = new Vector3(3.4f, 0f, 0.4f);
@@ -224,6 +225,8 @@ namespace Game.Editor
                     (Game.Simulation.Items.FoodContainer.ContainerTypeId, GreyboxKitchenware.BuildContainer())),
             };
             SetMenu(assets.ServiceConfig, assets.Catalog);
+            // Pictures for menus, from the food prefabs just built; only missing ones are rendered.
+            IngredientIconRenderer.Render(force: false);
             assets.PlayerPrefab = BuildPlayerPrefab(assets.Settings, assets.Tuning);
             assets.Furniture = BuildFurniture();
             BuildScene(scene, assets);
@@ -536,8 +539,8 @@ namespace Game.Editor
             storage.SetParent(stations, false);
             foreach (var unit in StorageUnits)
             {
-                GreyboxStorage.Build(unit, CounterHeight, (name, position, material) =>
-                    CreateStation<StorageStation>(name, position, CounterSize, CounterHeight, material, storage, unit.FurnitureId));
+                GreyboxStorage.Build(unit, (name, position, material) =>
+                    CreateStation<StorageStation>(name, position, CounterSize, StorageArt.Height(unit.Refrigerated), material, storage, unit.FurnitureId));
             }
         }
 
@@ -828,8 +831,8 @@ namespace Game.Editor
                 Name = unit.Name, FurnitureId = unit.FurnitureId, Position = Vector3.zero,
                 Refrigerated = unit.Refrigerated, Color = unit.Color, SlotCapacity = unit.SlotCapacity,
             };
-            var station = GreyboxStorage.Build(forSale, CounterHeight, (stationName, position, material) =>
-                CreateStation<StorageStation>(stationName, position, CounterSize, CounterHeight, material, null, unit.FurnitureId));
+            var station = GreyboxStorage.Build(forSale, (stationName, position, material) =>
+                CreateStation<StorageStation>(stationName, position, CounterSize, StorageArt.Height(unit.Refrigerated), material, null, unit.FurnitureId));
             station.name = name;
             return station;
         }
