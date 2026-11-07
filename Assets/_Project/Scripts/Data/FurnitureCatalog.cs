@@ -3,7 +3,10 @@ using UnityEngine;
 
 namespace Game.Data
 {
-    /// <summary>What can be bought for the kitchen and sold back. Prices are tuned here.</summary>
+    /// <summary>
+    /// What can be bought for the kitchen: furniture, which is placed and can be sold back, and
+    /// kitchenware such as knives and pans, which appears on a free counter. Prices are tuned here.
+    /// </summary>
     [CreateAssetMenu(menuName = "Game/Furniture Catalog", fileName = "FurnitureCatalog")]
     public sealed class FurnitureCatalog : ScriptableObject
     {
@@ -16,12 +19,16 @@ namespace Game.Data
             [Tooltip("The kitchen can't work without one, so the last can't be sold.")]
             [SerializeField] private bool _keepOne;
             [SerializeField] private GameObject _prefab;
+            [Tooltip("Kitchenware rather than furniture (a knife, a pan): bought straight onto the first free counter. Empty for furniture.")]
+            [SerializeField] private string _itemTypeId;
 
             public string Id => _id;
             public string DisplayName => _displayName;
             public float Price => _price;
             public bool KeepOne => _keepOne;
             public GameObject Prefab => _prefab;
+            public string ItemTypeId => _itemTypeId;
+            public bool IsItem => !string.IsNullOrEmpty(_itemTypeId);
         }
 
         [SerializeField] private Entry[] _entries = Array.Empty<Entry>();

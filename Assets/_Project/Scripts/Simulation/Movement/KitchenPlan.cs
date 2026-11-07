@@ -14,6 +14,7 @@ namespace Game.Simulation.Movement
         NotOnAWall,
         NoRoomForChairs,
         NotOnAFreeCounter,
+        NoFreeCounter,
     }
 
     /// <summary>

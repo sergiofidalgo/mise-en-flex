@@ -97,7 +97,8 @@ namespace Game.Tests.PlayMode
         {
             yield return OpenKitchenWithCursor();
             var expensive = _editor.Shop.OrderByDescending(e => e.Price).First();
-            var cheap = _editor.Shop.OrderBy(e => e.Price).First();
+            // Furniture that stands on the floor: kitchenware isn't carried, and a board goes on a counter.
+            var cheap = _editor.Shop.Where(e => !e.IsItem && e.Prefab.GetComponent<CounterTopStation>() == null).OrderBy(e => e.Price).First();
             Days.TrySpend(Days.Balance);
 
             Assert.That(_editor.Buy(_cursor, expensive), Is.False);
@@ -215,6 +216,68 @@ namespace Game.Tests.PlayMode
             StandAt(-0.5f, 0.9f, 180f); // from the other long side
             Assert.That(grill.ZoneFacing(chef), Is.SameAs(grill.Grill.Hot));
             yield return null;
+        }
+
+        [UnityTest]
+        public IEnumerator ABoughtKnifeLiesOnAFreeCounterAtOnce()
+        {
+            yield return OpenKitchenWithCursor();
+            var before = Days.Balance;
+            int Knives() => _root.Services.Stations.All.OfType<CounterStation>().Count(c => c.Slot.Current is Knife);
+            var knives = Knives();
+
+            Assert.That(_editor.BuyItem(_editor.Shop.First(e => e.Id == "knife")), Is.EqualTo(Placement.Ok));
+
+            Assert.That(Knives(), Is.EqualTo(knives + 1));
+            Assert.That(Days.Balance, Is.LessThan(before), "paid for at once");
+        }
+
+        [UnityTest]
+        public IEnumerator ABoughtPanLiesOnAFreeCounter()
+        {
+            yield return OpenKitchenWithCursor();
+            var pans = _root.Services.Cooking.Pans.Count;
+
+            Assert.That(_editor.BuyItem(_editor.Shop.First(e => e.Id == "pan")), Is.EqualTo(Placement.Ok));
+
+            Assert.That(_root.Services.Cooking.Pans.Count, Is.EqualTo(pans + 1));
+            Assert.That(_root.Services.Stations.All.OfType<CounterStation>().Any(c => c.Slot.Current is Game.Simulation.Cooking.Pan));
+        }
+
+        [UnityTest]
+        public IEnumerator WithNoFreeCounterKitchenwareIsntBoughtOrPaidFor()
+        {
+            yield return OpenKitchenWithCursor();
+            foreach (var counter in _root.Services.Stations.All.OfType<CounterStation>().Where(c => c.IsClear).ToArray())
+                counter.Slot.Put(new Item("Spare"));
+            var before = Days.Balance;
+
+            Assert.That(_editor.BuyItem(_editor.Shop.First(e => e.Id == "knife")), Is.EqualTo(Placement.NoFreeCounter));
+            Assert.That(Days.Balance, Is.EqualTo(before));
+        }
+
+        [UnityTest]
+        public IEnumerator ABoughtBoardAndKnifeRackGoOnFreeCounters()
+        {
+            yield return OpenKitchenWithCursor();
+            Days.Receive(100f);
+            var free = _root.Services.Stations.All.OfType<CounterStation>().Where(c => c.IsClear).Take(2).ToArray();
+
+            var board = Buy<PrepStation>("board", new Vector2(free[0].transform.position.x, free[0].transform.position.z));
+            var rack = Buy<KnifeRackStation>("knife rack", new Vector2(free[1].transform.position.x, free[1].transform.position.z));
+
+            Assert.That(board.OnCounter, Is.SameAs(free[0]));
+            Assert.That(rack.OnCounter, Is.SameAs(free[1]));
+            Assert.That(_root.Services.Stations.All.OfType<PrepStation>().Count(), Is.EqualTo(2));
+
+            // The kitchen's knife goes from its counter onto the rack.
+            _editor.Leave(_player);
+            var chef = _player.GetComponent<PlayerInteractor>();
+            var knifeCounter = _root.Services.Stations.All.OfType<CounterStation>().Single(c => c.Slot.Current is Knife);
+            Assert.That(knifeCounter.TryExchangeTool(chef), Is.True);
+            Assert.That(rack.TryExchangeTool(chef), Is.True);
+            Assert.That(rack.KnifeCount, Is.EqualTo(1));
+            Assert.That(chef.Tool, Is.Null);
         }
 
         [UnityTest]

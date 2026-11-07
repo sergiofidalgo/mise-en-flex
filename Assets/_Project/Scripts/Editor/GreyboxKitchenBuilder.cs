@@ -47,6 +47,10 @@ namespace Game.Editor
         private const float HobPrice = 80f;
         private const float InductionPrice = 150f;
         private const float GrillPrice = 250f;
+        private const float BoardPrice = 20f;
+        private const float KnifeRackPrice = 25f;
+        private const float KnifePrice = 15f;
+        private const float PanPrice = 25f;
         private const float ShelfPrice = 60f;
         private const float FridgePrice = 120f;
         private const float TablePrice = 50f;
@@ -841,6 +845,8 @@ namespace Game.Editor
                 "PF_Counter", Vector3.zero, CounterSize, CounterHeight, GreyboxAssets.EnsureMaterial(island.Name, island.Color), null, CounterFurniture));
             var hob = SaveFurniture(CreateHob("PF_Hob", Vector3.zero, GreyboxAssets.EnsureMaterial("Hob", HobColor), null));
             var grill = SaveFurniture(BuildGrill("PF_Grill", Vector3.zero, null));
+            var board = SaveFurniture(BuildCuttingBoard("PF_CuttingBoard", null));
+            var knifeRack = SaveFurniture(BuildKnifeRack("PF_KnifeRack", null));
             var inductionHob = SaveFurniture(CreateHob("PF_InductionHob", Vector3.zero, GreyboxAssets.EnsureMaterial("InductionHob", InductionColor), null, Game.Simulation.Cooking.HeatKind.Induction));
             var fridge = SaveFurniture(BuildStorageForSale("PF_Fridge", StorageUnits[0]));
             var shelf = SaveFurniture(BuildStorageForSale("PF_Shelf", StorageUnits[1]));
@@ -854,6 +860,11 @@ namespace Game.Editor
             SetFurniture(entries, HobFurniture, "Gas hob", HobPrice, keepOne: true, hob);
             SetFurniture(entries, InductionFurniture, "Induction hob", InductionPrice, keepOne: true, inductionHob);
             SetFurniture(entries, GrillFurniture, "Charcoal grill", GrillPrice, keepOne: false, grill);
+            // The last board stays: a helper hired to prep needs one to cut on.
+            SetFurniture(entries, BoardFurniture, "Cutting board", BoardPrice, keepOne: true, board);
+            SetFurniture(entries, KnifeRackFurniture, "Knife rack", KnifeRackPrice, keepOne: false, knifeRack);
+            SetFurniture(entries, "knife", "Knife", KnifePrice, keepOne: false, null, Game.Simulation.Items.Knife.KnifeTypeId);
+            SetFurniture(entries, "pan", "Pan", PanPrice, keepOne: false, null, GreyboxKitchenware.PanTypeId);
             SetFurniture(entries, ShelfFurniture, "Shelf", ShelfPrice, keepOne: true, shelf);
             SetFurniture(entries, FridgeFurniture, "Fridge", FridgePrice, keepOne: true, fridge);
             SetFurniture(entries, TableFurniture, "Table", TablePrice, keepOne: false, table);
@@ -930,7 +941,7 @@ namespace Game.Editor
             return prefab;
         }
 
-        private static void SetFurniture(SerializedProperty entries, string id, string displayName, float price, bool keepOne, GameObject prefab)
+        private static void SetFurniture(SerializedProperty entries, string id, string displayName, float price, bool keepOne, GameObject prefab, string itemTypeId = "")
         {
             for (var i = 0; i < entries.arraySize; i++)
             {
@@ -938,6 +949,7 @@ namespace Game.Editor
                 if (existing.FindPropertyRelative("_id").stringValue == id)
                 {
                     existing.FindPropertyRelative("_prefab").objectReferenceValue = prefab;
+                    existing.FindPropertyRelative("_itemTypeId").stringValue = itemTypeId;
                     return;
                 }
             }
@@ -949,6 +961,7 @@ namespace Game.Editor
             entry.FindPropertyRelative("_price").floatValue = price;
             entry.FindPropertyRelative("_keepOne").boolValue = keepOne;
             entry.FindPropertyRelative("_prefab").objectReferenceValue = prefab;
+            entry.FindPropertyRelative("_itemTypeId").stringValue = itemTypeId;
         }
 
         private static void SetReference(Object target, string field, Object value)
