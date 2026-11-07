@@ -32,6 +32,14 @@ namespace Game.Data
         [Tooltip("Watts a zone can put into a pan.")]
         [SerializeField, Min(0f)] private float _grillMaxPower = 6000f;
 
+        [Header("Energy")]
+        [Tooltip("Money per kWh an induction hob uses. Cheapest (decision 2026-11-07).")]
+        [SerializeField, Min(0f)] private float _electricityPerKwh = 0.6f;
+        [Tooltip("Money per kWh a gas hob uses.")]
+        [SerializeField, Min(0f)] private float _gasPerKwh = 1f;
+        [Tooltip("Money per charcoal grill per day. Always lit, so it costs the most whether used or not.")]
+        [SerializeField, Min(0f)] private float _charcoalPerGrillDay = 15f;
+
         [Header("Pan")]
         [Tooltip("J/K. Heavier pans take longer to preheat but drop less when food goes in.")]
         [SerializeField, Min(1f)] private float _panHeatCapacity = 750f;
@@ -111,6 +119,13 @@ namespace Game.Data
             AirLossConductance = _panAirLoss,
             Capacity = Grill.PiecesPerZone,
             FixedTemperature = GrillTemperature(hot),
+        };
+
+        public EnergyPrices EnergyPrices => new EnergyPrices
+        {
+            Electricity = _electricityPerKwh,
+            Gas = _gasPerKwh,
+            CharcoalPerGrill = _charcoalPerGrillDay,
         };
 
         /// <summary>The heat source a hob of this kind gets.</summary>

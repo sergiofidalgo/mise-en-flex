@@ -282,6 +282,18 @@ namespace Game.Presentation.Hud
                 _text.AppendLine(HudStyle.Colored($"{WorkDone(member)}, and quit", _badColor));
             if (days.LastWages > 0f)
                 _text.AppendLine($"Wages -{currency}{days.LastWages:0}");
+            var energy = days.LastEnergy;
+            if (energy.Total > 0f)
+            {
+                var parts = new System.Collections.Generic.List<string>();
+                if (energy.Electricity > 0f)
+                    parts.Add($"electricity {currency}{energy.Electricity:0.00}");
+                if (energy.Gas > 0f)
+                    parts.Add($"gas {currency}{energy.Gas:0.00}");
+                if (energy.Charcoal > 0f)
+                    parts.Add($"charcoal {currency}{energy.Charcoal:0.00}");
+                _text.AppendLine($"Energy -{currency}{energy.Total:0.00} ({string.Join(", ", parts)})");
+            }
             _text.Append($"Balance {FormatMoney(days.Balance, currency)}");
             return _text.ToString();
         }
