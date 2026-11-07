@@ -1,18 +1,30 @@
 using System.Collections.Generic;
 using Game.Simulation.Cooking;
 using Game.Simulation.Items;
+using UnityEngine;
 
 namespace Game.Gameplay.Stations
 {
     /// <summary>
     /// A hob. It starts with a pan on it; the pan can be lifted off and carried, and any pan
     /// can be put back on an empty hob. While facing it, the triggers turn the heat and Use
-    /// flips the food in the pan.
+    /// flips the food in the pan. On gas the triggers turn the dial smoothly; on induction each
+    /// press is one step up or down (decision 2026-11-07).
     /// </summary>
     public sealed class HobStation : Interactable, IUsable, IHeatControl, IStationPrompt
     {
+        private static readonly string[] StepNames = { "off", "low", "medium", "high" };
+
+        [SerializeField] private HeatKind _kind = HeatKind.Gas;
+        [Tooltip("Induction: how far a trigger has to be pulled to count as a press.")]
+        [SerializeField, Range(0.1f, 1f)] private float _stepPress = 0.5f;
+
         private HobSlot _slot;
         private KitchenServices _services;
+        private bool _downHeld;
+        private bool _upHeld;
+
+        public HeatKind Kind => _kind;
 
         public Hob Hob => _slot?.Hob;
 
@@ -37,7 +49,7 @@ namespace Game.Gameplay.Stations
         public override void Bind(KitchenServices services)
         {
             _services = services;
-            var hob = services.Cooking.AddHob(services.Equipment.Hob);
+            var hob = services.Cooking.AddHob(services.Equipment.HobFor(_kind));
             _slot = new HobSlot(hob);
 
             var pan = services.Cooking.AddPan(services.Equipment.Pan);
@@ -49,7 +61,7 @@ namespace Game.Gameplay.Stations
 
         public void DescribeActions(PlayerInteractor player, List<PromptLine> lines)
         {
-            lines.Add(new PromptLine(PromptControl.Triggers, "heat"));
+            lines.Add(new PromptLine(PromptControl.Triggers, Hob != null && Hob.Kind == HeatKind.Induction ? $"heat: {StepName(Hob)}" : "heat"));
             var hasFood = Hob?.Pan != null && Hob.Pan.Contents.Count > 0;
             lines.Add(new PromptLine(PromptControl.West, "flip", hasFood));
             if (Hob?.Pan != null && player.Hands.IsEmpty)
@@ -60,8 +72,25 @@ namespace Game.Gameplay.Stations
 
         public void AdjustHeat(float heatDown, float heatUp, float realDeltaTime)
         {
-            if (Hob != null)
+            if (Hob == null)
+                return;
+            if (Hob.Kind != HeatKind.Induction)
+            {
                 HobControls.AdjustHeat(Hob, heatDown, heatUp, _services.Tuning.HeatDialSpeed, realDeltaTime);
+                return;
+            }
+
+            // One step per pull: a trigger has to be let go before it counts again.
+            var down = heatDown >= _stepPress;
+            var up = heatUp >= _stepPress;
+            if (down && !_downHeld)
+                HobControls.ChangeStep(Hob, -1);
+            if (up && !_upHeld)
+                HobControls.ChangeStep(Hob, +1);
+            _downHeld = down;
+            _upHeld = up;
         }
+
+        private static string StepName(Hob hob) => hob.Step < StepNames.Length ? StepNames[hob.Step] : $"step {hob.Step}";
     }
 }

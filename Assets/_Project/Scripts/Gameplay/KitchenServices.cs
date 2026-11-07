@@ -49,6 +49,9 @@ namespace Game.Gameplay
         }
 
         public CookingSimulation Cooking { get; }
+
+        /// <summary>Reads the hobs once a day for the energy bill.</summary>
+        public EnergyMeter Energy { get; } = new EnergyMeter();
         public ItemViewRegistry ItemViews { get; }
         public ItemCatalog Catalog { get; }
         public EquipmentTier Equipment { get; }

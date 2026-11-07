@@ -101,7 +101,7 @@ Every ingredient instance tracks, continuously:
 
 ### 5.2 Heat is a resource
 
-- Hobs are **dial-controlled**, not on/off.
+- Hobs are **dial-controlled**, not on/off. **Kinds of heat** differ in how they're controlled (decided 2026-11-07): a **gas hob** turns smoothly and the pan takes time to heat and cool; an **induction hob** has three steps the pan reaches almost at once; a **charcoal grill** has a hot and a cool zone, always lit, and food is moved between them rather than turned down. None of them changes the quality score: they change how you cook, not how good the result is.
 - **Preheating** matters: a cold pan doesn't sear.
 - **Pan crowding** drops the pan's temperature.
 - **Carryover cooking:** food keeps cooking after leaving the heat.
@@ -128,13 +128,15 @@ Each ingredient brings its own mechanic in the close-up view. First techniques (
 
 ### 6.1 Core stations (Phase 1)
 
-Hob, board, fridge, pass, bin. More stations arrive with cuisines and equipment tiers.
+Hob, board, fridge, pass, bin. More stations arrive with cuisines and as kinds of heat (§9).
+
+**Since 2026-11-07:** the cutting board and the knife rack sit on counters and take each one over; they're moved only in management mode. The kitchen starts with one knife lying on a counter and no rack, and chopping needs the knife.
 
 **Proposal — storage with capacity** (`ideas.md`): ingredients come from fridges and shelves with limited capacity rather than endless crates, so where and how things are stored is planned in Plan/Prep. The Phase 0 crates are placeholders for this.
 
 ### 6.2 Board station with mise en place rail (superseded 2026-11-02)
 
-> **Superseded** by the mise en place counter (four slots, knife held in a tool slot, chopping to a beat); see `decisions.md`.
+> **Superseded** by the mise en place counter (four slots, knife held in a tool slot, chopping to a beat), then by a board that only cuts (2026-11-04) and sits on a counter (2026-11-07); see `decisions.md`. The rail slots below, and equipment tiers growing them, no longer apply.
 
 The board station is the board plus a **rail of small containers** (ninth-pans). Cut product goes from the board into a container. From the overhead camera, each container shows its contents and cut by shape and colour. Containers are grabbable, so the partner can fetch diced onion without entering the close-up. The rail's state at the start of service shows directly how well the team prepped.
 
@@ -217,7 +219,8 @@ Service style is chosen per restaurant, separately from cuisine, and any combina
 
 - **Size comes from which restaurant you buy**, from a counter up to a full dining room, not from upgrading one. Bigger isn't strictly better: more covers, but more rent, more trips and more need for staff.
 - **Kitchen zones:** layout matters. Stations, storage and the pass can be placed to cut trips.
-- **Equipment tiers:** better hobs, bigger rails, more storage.
+- **Kinds of heat, not equipment tiers** (decided 2026-11-07): gas hob, induction hob and charcoal grill now; electric and wood ovens with the cuisines that need them. Each is bought in the shop and has its own energy cost, paid daily: electricity cheapest, then gas, then charcoal. The grill's glow is also part of the room's look.
+- **Kitchenware:** cutting boards, knife racks, knives and pans are bought too. Boards and racks use up a counter each; knives and pans appear on a free counter. Pots, skewers and oven trays arrive with their dishes.
 - **Health inspections:** hygiene, storage and cross-contamination practices (scaled by the hygiene dial).
 
 Layout editing happens in Plan, with a per-player cursor in a shared view. **Everything in the kitchen can be moved there**: stations, counters, storage units and the pass. The greybox layout is only a starting arrangement.

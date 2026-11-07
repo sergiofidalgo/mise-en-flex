@@ -45,7 +45,8 @@ namespace Game.Presentation.Hud
         [Tooltip("Bar size at the top of a pulse.")]
         [SerializeField, Min(1f)] private float _warningScale = 1.25f;
 
-        private readonly Dictionary<Pan, Gauge> _gauges = new Dictionary<Pan, Gauge>();
+        // One gauge per piece of food in a pan: a grill's grate holds two.
+        private readonly Dictionary<(Pan, int), Gauge> _gauges = new Dictionary<(Pan, int), Gauge>();
 
         private void LateUpdate()
         {
@@ -54,10 +55,14 @@ namespace Game.Presentation.Hud
                 return;
 
             var settings = _root.Services.Tuning.FlipGauge;
+            foreach (var gauge in _gauges.Values)
+                gauge.Root.gameObject.SetActive(false);
+
             foreach (var pan in _root.Services.Cooking.Pans)
+            for (var piece = 0; piece < pan.Contents.Count; piece++)
             {
-                var gauge = GaugeFor(pan);
-                var food = pan.Contents.Count > 0 ? pan.Contents[0] : null;
+                var gauge = GaugeFor(pan, piece);
+                var food = pan.Contents[piece];
                 var stages = food != null && FlipGauge.ShowsStages(food);
                 if (food == null || !(stages || FlipGauge.Shows(food)) || !_root.Services.ItemViews.TryGetView(food, out var view))
                 {
@@ -110,9 +115,9 @@ namespace Game.Presentation.Hud
             bar.anchorMax = new Vector2(to, 1f);
         }
 
-        private Gauge GaugeFor(Pan pan)
+        private Gauge GaugeFor(Pan pan, int piece)
         {
-            if (_gauges.TryGetValue(pan, out var gauge))
+            if (_gauges.TryGetValue((pan, piece), out var gauge))
                 return gauge;
 
             var root = Bar("FlipGauge", _canvas, _track);
@@ -134,7 +139,7 @@ namespace Game.Presentation.Hud
             gauge.WarningImage = gauge.Warning.GetComponent<Image>();
             gauge.Needle.sizeDelta = new Vector2(_needleWidth, 0f);
             root.gameObject.SetActive(false);
-            _gauges[pan] = gauge;
+            _gauges[(pan, piece)] = gauge;
             return gauge;
         }
 

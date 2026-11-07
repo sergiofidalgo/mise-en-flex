@@ -184,6 +184,7 @@ namespace Game.Gameplay
                 else if (cursor.Held == null && player.actions[ShopAction].WasPressedThisFrame())
                 {
                     cursor.ShopOpen = true;
+                    cursor.Result = Placement.Ok;
                     cursor.ShopStickHeld = true; // until it's let go, so opening doesn't also move the list
                 }
                 else if (cursor.Held == null && player.actions[SellAction].WasPressedThisFrame())
@@ -433,17 +434,45 @@ namespace Game.Gameplay
                 cursor.ShopStickHeld = true;
                 var count = _catalog.Entries.Length;
                 cursor.ShopIndex = (cursor.ShopIndex + (stick > 0f ? count - 1 : 1)) % count;
+                cursor.Result = Placement.Ok;
             }
 
-            if (actions[PickAction].WasPressedThisFrame() && !Buy(cursor, _catalog.Entries[cursor.ShopIndex]))
-                cursor.Result = Placement.CantAfford;
+            if (actions[PickAction].WasPressedThisFrame())
+            {
+                var entry = _catalog.Entries[cursor.ShopIndex];
+                if (entry.IsItem)
+                    cursor.Result = BuyItem(entry);
+                else if (!Buy(cursor, entry))
+                    cursor.Result = Placement.CantAfford;
+            }
+        }
+
+        /// <summary>
+        /// Kitchenware: paid for at once and put on the first free counter (decision 2026-11-07).
+        /// With no free counter it isn't bought, rather than paid for with nowhere to go.
+        /// </summary>
+        public Placement BuyItem(FurnitureCatalog.Entry entry)
+        {
+            var services = _root.Services;
+            var counter = services.Stations.All.OfType<CounterStation>().FirstOrDefault(c => c.IsClear);
+            if (counter == null)
+                return Placement.NoFreeCounter;
+            if (!services.Days.TrySpend(entry.Price))
+                return Placement.CantAfford;
+
+            Game.Simulation.Items.Item item = entry.ItemTypeId == Game.Simulation.Items.Knife.KnifeTypeId
+                ? new Game.Simulation.Items.Knife()
+                : services.Cooking.AddPan(services.Equipment.Pan);
+            counter.Slot.Put(item);
+            services.ItemViews.PlaceImmediately(item, counter.ItemAnchor);
+            return Placement.Ok;
         }
 
         /// <summary>Puts a new piece on the cursor, to be carried like any other. Nothing's paid yet.</summary>
         /// <returns>False if the money isn't there.</returns>
         public bool Buy(Cursor cursor, FurnitureCatalog.Entry entry)
         {
-            if (cursor.Held != null || !CanAfford(entry))
+            if (cursor.Held != null || entry.IsItem || !CanAfford(entry))
                 return false;
 
             var position = new Vector3(cursor.Position.X, 0f, cursor.Position.Y);
@@ -470,7 +499,10 @@ namespace Game.Gameplay
         {
             var entry = _catalog.Find(station.FurnitureId);
             var carried = _cursors.Values.Any(other => other.Held == station);
-            var howMany = _root.Services.Stations.All.Count(other => other.FurnitureId == station.FurnitureId);
+            // Any kind of hob keeps the kitchen cooking, so the last of them is what can't go.
+            var howMany = station is HobStation
+                ? _root.Services.Stations.All.Count(other => other is HobStation)
+                : _root.Services.Stations.All.Count(other => other.FurnitureId == station.FurnitureId);
             return FurnitureRules.CheckSale(entry != null, station.IsClear, carried || _staff.IsHeadedTo(station), entry != null && entry.KeepOne, howMany);
         }
 

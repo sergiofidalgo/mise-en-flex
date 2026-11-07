@@ -4,7 +4,8 @@ using UnityEngine;
 namespace Game.Data
 {
     /// <summary>
-    /// Kitchen equipment quality. Phase 1 has one tier; better hobs and pans come with Phase 4.
+    /// The kitchen's equipment settings: each kind of heat, the pan, plates, containers and trays.
+    /// The name is from when tiers were planned; kinds of heat replaced them (decision 2026-11-07).
     /// </summary>
     [CreateAssetMenu(menuName = "Game/Equipment Tier", fileName = "EquipmentTier")]
     public sealed class EquipmentTier : ScriptableObject
@@ -12,6 +13,32 @@ namespace Game.Data
         [Header("Hob")]
         [Tooltip("Watts at full dial. A domestic gas burner is around 2–3 kW.")]
         [SerializeField, Min(0f)] private float _hobMaxPower = 2000f;
+
+        [Header("Induction hob")]
+        [Tooltip("The pan's temperature on each step above off, °C, lowest first. Three steps (decision 2026-11-07).")]
+        [SerializeField] private float[] _inductionSteps = { 130f, 190f, 250f };
+        [Tooltip("W/K. How hard it pulls the pan to the step: the pan gets there in about 3 × pan heat capacity / this seconds of game time.")]
+        [SerializeField, Min(1f)] private float _inductionResponse = 75f;
+        [Tooltip("Watts it can put in or take out. High, so a change of step shows almost at once (the user's call).")]
+        [SerializeField, Min(0f)] private float _inductionMaxPower = 6000f;
+
+        [Header("Charcoal grill")]
+        [Tooltip("°C of the hot zone's grate. Always lit (decision 2026-11-07).")]
+        [SerializeField] private float _grillHotTemperature = 260f;
+        [Tooltip("°C of the cool zone's grate: below browning, so food finishes there without more crust.")]
+        [SerializeField] private float _grillCoolTemperature = 150f;
+        [Tooltip("W/K. How hard a zone pulls a pan on it to its temperature.")]
+        [SerializeField, Min(1f)] private float _grillResponse = 75f;
+        [Tooltip("Watts a zone can put into a pan.")]
+        [SerializeField, Min(0f)] private float _grillMaxPower = 6000f;
+
+        [Header("Energy")]
+        [Tooltip("Money per kWh an induction hob uses. Cheapest (decision 2026-11-07).")]
+        [SerializeField, Min(0f)] private float _electricityPerKwh = 0.6f;
+        [Tooltip("Money per kWh a gas hob uses.")]
+        [SerializeField, Min(0f)] private float _gasPerKwh = 1f;
+        [Tooltip("Money per charcoal grill per day. Always lit, so it costs the most whether used or not.")]
+        [SerializeField, Min(0f)] private float _charcoalPerGrillDay = 15f;
 
         [Header("Pan")]
         [Tooltip("J/K. Heavier pans take longer to preheat but drop less when food goes in.")]
@@ -64,6 +91,45 @@ namespace Game.Data
         public float TrayFreshnessFactor => _trayFreshnessFactor;
 
         public HobProperties Hob => new HobProperties { MaxPower = _hobMaxPower };
+
+        public HobProperties InductionHob => new HobProperties
+        {
+            Kind = HeatKind.Induction,
+            MaxPower = _inductionMaxPower,
+            StepTemperatures = (float[])_inductionSteps.Clone(),
+            Response = _inductionResponse,
+        };
+
+        /// <summary>A grill zone, as a heat source for a pan put on it.</summary>
+        public HobProperties GrillZone(bool hot) => new HobProperties
+        {
+            Kind = HeatKind.Fixed,
+            MaxPower = _grillMaxPower,
+            FixedTemperature = hot ? _grillHotTemperature : _grillCoolTemperature,
+            Response = _grillResponse,
+        };
+
+        public float GrillTemperature(bool hot) => hot ? _grillHotTemperature : _grillCoolTemperature;
+
+        /// <summary>A grill zone's grate: two pieces of food, always at the zone's temperature.</summary>
+        public PanProperties GrillGrate(bool hot) => new PanProperties
+        {
+            TypeId = "Grate",
+            HeatCapacity = _panHeatCapacity,
+            AirLossConductance = _panAirLoss,
+            Capacity = Grill.PiecesPerZone,
+            FixedTemperature = GrillTemperature(hot),
+        };
+
+        public EnergyPrices EnergyPrices => new EnergyPrices
+        {
+            Electricity = _electricityPerKwh,
+            Gas = _gasPerKwh,
+            CharcoalPerGrill = _charcoalPerGrillDay,
+        };
+
+        /// <summary>The heat source a hob of this kind gets.</summary>
+        public HobProperties HobFor(HeatKind kind) => kind == HeatKind.Induction ? InductionHob : Hob;
 
         public PanProperties Pan => new PanProperties
         {

@@ -1,3 +1,4 @@
+using Game.Simulation.Cooking;
 using System;
 using System.Collections.Generic;
 using Game.Simulation.Service;
@@ -53,6 +54,9 @@ namespace Game.Simulation.Days
         /// <summary>Wages paid for the latest day.</summary>
         public float LastWages { get; private set; }
 
+        /// <summary>Energy paid for the latest day.</summary>
+        public EnergyBill LastEnergy { get; private set; }
+
         /// <summary>What the latest closing up found.</summary>
         public CloseReport LastClose { get; private set; }
 
@@ -79,15 +83,16 @@ namespace Game.Simulation.Days
             }
         }
 
-        /// <summary>The service has finished: banks its money, pays the wages and moves on to the Review.</summary>
-        public void FinishService(ServiceSummary summary, float wages = 0f, CloseReport close = default)
+        /// <summary>The service has finished: banks its money, pays the wages and energy, and moves on to the Review.</summary>
+        public void FinishService(ServiceSummary summary, float wages = 0f, CloseReport close = default, EnergyBill energy = default)
         {
             if (Phase != DayPhase.Service)
                 throw new InvalidOperationException($"No service to finish during {Phase}.");
             LastService = summary;
             LastWages = wages;
+            LastEnergy = energy;
             LastClose = close;
-            Balance += summary.Money - wages;
+            Balance += summary.Money - wages - energy.Total;
             SetPhase(DayPhase.Review);
         }
 

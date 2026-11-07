@@ -94,6 +94,7 @@ namespace Game.Presentation.Hud
                     Placement.NotOnAWall => "it goes on an outside wall",
                     Placement.NoRoomForChairs => "no room for its chairs",
                     Placement.NotOnAFreeCounter => "it goes on a free counter",
+                    Placement.NoFreeCounter => "no free counter for it",
                     _ => null,
                 };
                 if (problem != null && cursor.Held is CounterTopStation)
@@ -142,6 +143,11 @@ namespace Game.Presentation.Hud
                 var line = $"{(i == cursor.ShopIndex ? "> " : "  ")}{entry.DisplayName}  {Money(entry.Price)}";
                 text.AppendLine(_editor.CanAfford(entry) ? line : HudStyle.Colored(line, _blocked));
             }
+            // Kitchenware is bought on the spot, so why it wasn't shows here.
+            if (cursor.Result == Placement.NoFreeCounter)
+                text.AppendLine(HudStyle.Colored("no free counter for it", _blocked));
+            else if (cursor.Result == Placement.CantAfford)
+                text.AppendLine(HudStyle.Colored("not enough money", _blocked));
             text.Append($"{Glyph(PromptControl.South)} buy   {Glyph(PromptControl.East)} close");
             return text.ToString();
         }

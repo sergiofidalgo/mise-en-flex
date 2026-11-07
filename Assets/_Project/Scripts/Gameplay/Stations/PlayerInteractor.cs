@@ -260,6 +260,7 @@ namespace Game.Gameplay.Stations
         // or with a tray when their menu is open. An open tray menu comes before everything.
         private bool TryFaceButton(FaceButton button)
         {
+            (_target as IPlayerFocused)?.FocusOn(this);
             if (IsTrayMenuOpen)
             {
                 if (!PlaceFromTray((int)button))
@@ -292,6 +293,7 @@ namespace Game.Gameplay.Stations
         {
             if (_target == null || !CanAct || IsBusy)
                 return;
+            (_target as IPlayerFocused)?.FocusOn(this);
             if (TryFaceButton(FaceButton.South))
                 return;
 

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using Game.Simulation.Days;
 using Game.Simulation.Service;
 using UnityEngine;
@@ -34,7 +35,10 @@ namespace Game.Gameplay
                 if (_root.Services.Service.Phase == ServicePhase.Finished)
                 {
                     var summary = ServiceSummary.From(_root.Services.Service);
-                    days.FinishService(summary, _root.Services.Staff.TotalWages, _root.CloseKitchen());
+                    var services = _root.Services;
+                    var energy = services.Energy.Read(
+                        services.Cooking.Hobs, services.Stations.All.Count(s => s is Game.Gameplay.Stations.GrillStation), services.Equipment.EnergyPrices);
+                    days.FinishService(summary, services.Staff.TotalWages, _root.CloseKitchen(), energy);
                     _root.Services.Staff.EndDay(summary, _root.Services.StaffConfig.ToSettings());
                 }
             }
