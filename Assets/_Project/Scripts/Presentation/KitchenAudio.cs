@@ -29,6 +29,8 @@ namespace Game.Presentation
 
         private readonly Dictionary<SoundCue, CueHistory> _history = new Dictionary<SoundCue, CueHistory>();
         private readonly Dictionary<PrepStation, System.Action<ChopGrade>> _boards = new Dictionary<PrepStation, System.Action<ChopGrade>>();
+        private readonly Dictionary<FridgeDoorView, (System.Action Opened, System.Action Closed)> _fridges =
+            new Dictionary<FridgeDoorView, (System.Action, System.Action)>();
         private AudioSource[] _pool;
         private int _nextToSteal;
         private KitchenServices _services;
@@ -78,6 +80,13 @@ namespace Game.Presentation
             _services.Stations.Removed -= HandleStationRemoved;
             foreach (var board in _boards)
                 board.Key.Chopped -= board.Value;
+            foreach (var fridge in _fridges)
+            {
+                if (fridge.Key == null)
+                    continue;
+                fridge.Key.Opened -= fridge.Value.Opened;
+                fridge.Key.Closed -= fridge.Value.Closed;
+            }
         }
 
         /// <summary>Plays one take of the cue, unless it played too recently.</summary>
@@ -162,6 +171,15 @@ namespace Game.Presentation
 
         private void HandleStationAdded(Interactable station)
         {
+            if (station.TryGetComponent(out FridgeDoorView fridge) && !_fridges.ContainsKey(fridge))
+            {
+                System.Action opened = () => Play(_sounds.FridgeOpen, fridge.transform.position);
+                System.Action closed = () => Play(_sounds.FridgeClose, fridge.transform.position);
+                _fridges[fridge] = (opened, closed);
+                fridge.Opened += opened;
+                fridge.Closed += closed;
+            }
+
             if (!(station is PrepStation board) || _boards.ContainsKey(board))
                 return;
 
@@ -172,6 +190,13 @@ namespace Game.Presentation
 
         private void HandleStationRemoved(Interactable station)
         {
+            if (station.TryGetComponent(out FridgeDoorView fridge) && _fridges.TryGetValue(fridge, out var handlers))
+            {
+                fridge.Opened -= handlers.Opened;
+                fridge.Closed -= handlers.Closed;
+                _fridges.Remove(fridge);
+            }
+
             if (station is PrepStation board && _boards.TryGetValue(board, out var handler))
             {
                 board.Chopped -= handler;

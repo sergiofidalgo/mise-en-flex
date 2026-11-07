@@ -266,6 +266,34 @@ def step(rng):
     return finish(biquad(mix(pat, heel, scuff), "high", 60), 0.5, fade_out=0.01)
 
 
+def fridge_open(rng, wobble):
+    """A fridge door unsticking: the seal's soft pop, a bottle clinking on the door, a breath of cold air."""
+    length = 0.5
+    seal = mix(mode(95 * wobble, 0.05, length, 1.0), scaled(decay(biquad(noise(rng, 0.03), "low", 700), 0.02, attack=0.002), 0.8))
+    clink = [0.0] * int(0.06 * RATE) + scaled(mix(mode(2650 * wobble, 0.12, 0.3, 1.0), mode(2650 * 2.7 * wobble, 0.07, 0.3, 0.4)), 0.12)
+    air = biquad(noise(rng, 0.42), "band", 1100 * wobble, 0.6)
+    n = len(air)
+    # Swells as the door swings wide, then thins out.
+    air = [x * math.sin(math.pi * i / n) ** 1.5 for i, x in enumerate(air)]
+    whoosh = [0.0] * int(0.03 * RATE) + scaled(air, 0.35)
+    return finish(mix(seal, clink, whoosh), 0.6, fade_out=0.03)
+
+
+def fridge_close(rng, wobble):
+    """A fridge door swinging shut. The thump sits 0.26 s in, as the door meets the frame:
+    FridgeDoorView raises Closed when the 0.3 s swing starts, not when it ends."""
+    hit = int(0.26 * RATE)
+    swing = biquad(noise(rng, 0.26), "band", 800 * wobble, 0.7)
+    n = len(swing)
+    swing = [x * (i / n) ** 2 * 0.12 for i, x in enumerate(swing)]
+    # A padded seal: deeper and duller than the kitchen door, with the shelves' glass answering.
+    thump = mix(mode(75 * wobble, 0.1, 0.3, 1.0), mode(150 * wobble, 0.06, 0.3, 0.4),
+                scaled(decay(biquad(noise(rng, 0.03), "low", 600), 0.025), 0.5))
+    rattle = [0.0] * int(0.02 * RATE) + scaled(mix(mode(2400 * wobble, 0.1, 0.25, 1.0), mode(3300 * wobble, 0.07, 0.25, 0.6)), 0.08)
+    body = [0.0] * hit + mix(thump, rattle)
+    return finish(mix(swing, body), 0.6, fade_out=0.02)
+
+
 def main():
     rng = random.Random(20261107)
     write("SFX_Bell_01", bell(rng, 2350))
@@ -293,6 +321,10 @@ def main():
         write(f"SFX_Clack_{i:02}", clack(rng))
     for i in range(1, 6):
         write(f"SFX_Step_{i:02}", step(rng))
+    write("SFX_Fridge_Open_01", fridge_open(rng, 1.0))
+    write("SFX_Fridge_Open_02", fridge_open(rng, 0.95))
+    write("SFX_Fridge_Close_01", fridge_close(rng, 1.0))
+    write("SFX_Fridge_Close_02", fridge_close(rng, 1.05))
 
 
 if __name__ == "__main__":

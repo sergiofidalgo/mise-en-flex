@@ -72,6 +72,11 @@ namespace Game.Data
         [Tooltip("The most pans heard at once: the loudest ones.")]
         [SerializeField, Min(1)] private int _maxSizzles = 3;
 
+        [Header("Fridge")]
+        [SerializeField] private SoundCue _fridgeOpen = new SoundCue(0.45f, 0.04f, 0.2f);
+        [Tooltip("Its thump sits 0.26 s into the clip, timed to the door's 0.3 s swing shut.")]
+        [SerializeField] private SoundCue _fridgeClose = new SoundCue(0.45f, 0.04f, 0.2f);
+
         [Header("Fire detector")]
         // Clearly audible but not painful: it may go off often in a chaotic service.
         [SerializeField] private SoundCue _alarmBeep = new SoundCue(0.4f, 0f, 0f);
@@ -122,6 +127,8 @@ namespace Game.Data
         public float SizzleHighPitch => _sizzleHighPitch;
         public float SizzleFadeRate => _sizzleFadeRate;
         public int MaxSizzles => _maxSizzles;
+        public SoundCue FridgeOpen => _fridgeOpen;
+        public SoundCue FridgeClose => _fridgeClose;
         public SoundCue AlarmBeep => _alarmBeep;
         public float AlarmInterval => _alarmInterval;
         public float AlarmFrom => _alarmFrom;

@@ -58,6 +58,8 @@ namespace Game.Editor
             SetClips(so, "_doorOpen", "SFX_Door_Open_");
             SetClips(so, "_doorClose", "SFX_Door_Close_");
             SetClips(so, "_sizzleHit", "SFX_Sizzle_Hit_");
+            SetClips(so, "_fridgeOpen", "SFX_Fridge_Open_");
+            SetClips(so, "_fridgeClose", "SFX_Fridge_Close_");
             SetClips(so, "_alarmBeep", "SFX_Alarm_");
             SetClips(so, "_step", "SFX_Step_");
             SetClips(so, "_clack", "SFX_Clack_");

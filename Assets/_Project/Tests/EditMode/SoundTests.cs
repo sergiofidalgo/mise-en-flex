@@ -166,7 +166,7 @@ namespace Game.Tests.EditMode
             foreach (var cue in new[]
             {
                 bank.Bell, bank.ChopClean, bank.ChopOff, bank.ChopMiss, bank.DoorOpen, bank.DoorClose, bank.SizzleHit,
-                bank.AlarmBeep, bank.Step, bank.Clack, bank.Till, bank.Chime,
+                bank.AlarmBeep, bank.Step, bank.Clack, bank.Till, bank.Chime, bank.FridgeOpen, bank.FridgeClose,
             })
             {
                 Assert.That(cue.Clips, Is.Not.Empty);
