@@ -4,6 +4,26 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-08 — Art overhaul toward the vision image
+
+**Decision:** The scene is restyled toward the user's vision image, one step at a time:
+1. Warm light, warm shadow sides and thin dark-brown outlines.
+2. The room: tiled kitchen floor, planked dining floor, panelled cream walls.
+3. One wooden counter family.
+4. Restyled range, sink, fridge, bin and racks.
+5. Dining furniture and wall details.
+6. Person-shaped chefs.
+
+Each step's palette and light settings live in `HouseStyle` (Editor), which the kitchen builder applies to the scene and to every toon material.
+
+- The fridge stays a chest with a glass lid, so stock shows from the camera, but gets a white enamel look. The image's tall upright fridge would hide its stock again.
+- The kitchen floor is a mid-tone warm grey tile, a step lighter than the image's dark slate, so dark pans and food stay visible on it.
+- Countertops stay light wood, so plates, food and the cutting board stand out.
+
+**Not in scope:** the HUD and build menu shown in the image, which belong to the UI work, and the camera angle, which belongs to the Camera session. The image's camera is higher and closer to isometric.
+
+---
+
 ## 2026-11-08 — Kitchen-real colours and counter-sized proportions
 
 **Decision:**

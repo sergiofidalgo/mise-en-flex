@@ -1,5 +1,5 @@
 // Shared cartoony shading (decision 2026-11-08): flat bands of light instead of smooth shading, a
-// cool tinted shadow side, a soft rim of light round the silhouette, and a dark outline drawn by a
+// warm tinted shadow side, a soft rim of light round the silhouette, and a thin outline drawn by a
 // second, inflated pass with its front faces culled ("inverted hull"). Every toon shader includes
 // this after its UnityPerMaterial buffer, which must declare the toon properties used below:
 // _ShadowTint, _ToonEdge, _ToonSoftness, _RimStrength, _OutlineColor and _OutlineWidth.

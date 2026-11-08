@@ -8,12 +8,12 @@ Shader "Game/Food/Layered"
     Properties
     {
         [Header(Toon)]
-        _ShadowTint("Shadow tint (multiplies the colour)", Color) = (0.62, 0.6, 0.78, 1)
+        _ShadowTint("Shadow tint (multiplies the colour)", Color) = (0.76, 0.66, 0.64, 1)
         _ToonEdge("Light edge", Range(-1, 1)) = 0.1
         _ToonSoftness("Light edge softness", Range(0.001, 0.5)) = 0.04
         _RimStrength("Rim light", Range(0, 1)) = 0.15
-        _OutlineColor("Outline", Color) = (0.12, 0.09, 0.1, 1)
-        _OutlineWidth("Outline width (m)", Range(0, 0.05)) = 0.005
+        _OutlineColor("Outline", Color) = (0.2, 0.13, 0.09, 1)
+        _OutlineWidth("Outline width (m)", Range(0, 0.05)) = 0.0035
         [MainColor] _BaseColor("Surface (driven at runtime; raw colour in the material)", Color) = (0.62, 0.12, 0.14, 1)
         _BandBottom("Band: bottom (runtime)", Color) = (0.62, 0.12, 0.14, 1)
         _BandCore("Band: core (runtime)", Color) = (0.62, 0.12, 0.14, 1)

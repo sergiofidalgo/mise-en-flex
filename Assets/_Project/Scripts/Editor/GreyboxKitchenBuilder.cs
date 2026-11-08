@@ -267,6 +267,7 @@ namespace Game.Editor
             assets.PlayerPrefab = BuildPlayerPrefab(assets.Settings, assets.Tuning);
             assets.Furniture = BuildFurniture();
             BuildScene(scene, assets);
+            HouseStyle.ApplyToMaterials();
             AssetDatabase.SaveAssets();
             Debug.Log($"[GreyboxKitchenBuilder] Built {PlayerPrefabPath}, ingredients and {ScenePath}.");
         }
@@ -386,6 +387,7 @@ namespace Game.Editor
             var light = new GameObject("Directional Light").AddComponent<Light>();
             light.type = LightType.Directional;
             light.transform.rotation = Quaternion.Euler(50f, -30f, 0f);
+            HouseStyle.LightScene(light);
 
             var camera = new GameObject("Main Camera").AddComponent<Camera>();
             camera.tag = "MainCamera";
