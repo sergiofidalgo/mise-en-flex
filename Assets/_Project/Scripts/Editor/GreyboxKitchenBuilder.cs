@@ -649,7 +649,7 @@ namespace Game.Editor
                 modelled ? KitchenwareArt.SinkBasinFloor : CounterHeight, 1, DirtyPlateColor, "DirtyPlate",
                 modelled ? new Vector3(KitchenwareArt.SinkBasinX, 0f, 0f) : Vector3.zero, KitchenwareArt.PlateLayout.Stack, dirty: true);
             if (modelled && sinkPlates.Length > 0 && KitchenwareArt.HasPlateModel)
-                KitchenwareArt.LeanInSink(sinkPlates[0]); // propped up out of the water, with scraps on it
+                KitchenwareArt.LeanInSink(sinkPlates[0]); // lying in the water, the dirty plate's own grime
             SetObjects(sinkPile.FindProperty("_dirty"), sinkPlates);
             sinkPile.ApplyModifiedPropertiesWithoutUndo();
 

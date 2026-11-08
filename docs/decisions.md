@@ -12,9 +12,9 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
-## 2026-11-08 — The dirty plate in the sink leans out of the water, with scraps
+## 2026-11-08 — The dirty plate in the sink looks like the dirty plate
 
-**Decision:** (the user's reference) The dirty plate in the sink is no longer flat under the water. It leans about 40° against the side by the tap, 1.2× its size, with its upper half out of the water. It carries leftover food: sauce smears, noodles, a green bit and a carrot. While it's washed, the scraps go first, shrinking away over the first 40% of the wash, and then the grime fades (`PlateGrime._scraps`).
+**Decision:** (the user's notes) The dirty plate in the sink wears the dirty plate's own grime, the same plate shader and dirt as a dirty plate carried in. Its material (`MAT_Plate_Dirty`) has the grime on, so it shows in the Editor too, and washing fades it as before. It lies nearly flat (tipped 12° towards the tap), 1.2× its size, just under the water with its far edge breaking the surface. A first try propped it up at 40° with separate food scraps on it; that read as a speaker cone and didn't match the dirty plate, so it was dropped.
 
 ---
 

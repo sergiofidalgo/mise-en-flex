@@ -318,50 +318,41 @@ namespace Game.Editor
             board.GetComponent<Renderer>().sharedMaterial = StyleTest.BoardMaterial(); // wood grain, toon shaded
         }
 
-        // The dirty plate in the sink leans against the back of the basin, a little big, its top half
-        // out of the water, with leftover food on it (the user's reference, 2026-11-08).
-        private const float SinkPlateLean = 40f;
+        // The dirty plate in the sink (the user's notes, 2026-11-08): it looks like the dirty plate that
+        // was carried in, the plate's own grime rather than separate scraps, and lies nearly flat just
+        // under the water, its far edge breaking the surface. Propped up with scraps on it, it read as a
+        // speaker cone.
+        private const float SinkPlateTip = 12f;
         private const float SinkPlateSize = 1.2f;
-        private static readonly Vector3 SinkPlateSpot = new Vector3(0f, 0.8f, 0.05f);
-        private const float ScrapSize = 1.4f; // chunky enough to read from the overhead camera
-        private static readonly (string Name, Color Color, Vector3 Size, Vector3 At, float Turn)[] Scraps =
-        {
-            ("Sauce", new Color(0.45f, 0.24f, 0.11f), new Vector3(0.11f, 0.008f, 0.07f), new Vector3(-0.03f, 0f, 0.02f), 20f),
-            ("Sauce", new Color(0.45f, 0.24f, 0.11f), new Vector3(0.05f, 0.008f, 0.04f), new Vector3(0.06f, 0f, -0.05f), 70f),
-            ("Noodle", new Color(0.95f, 0.85f, 0.55f), new Vector3(0.012f, 0.006f, 0.12f), new Vector3(0.02f, 0.006f, 0.04f), 35f),
-            ("Noodle", new Color(0.95f, 0.85f, 0.55f), new Vector3(0.012f, 0.006f, 0.1f), new Vector3(-0.05f, 0.006f, -0.02f), 110f),
-            ("Greens", new Color(0.4f, 0.62f, 0.26f), new Vector3(0.03f, 0.012f, 0.022f), new Vector3(0.07f, 0.006f, 0.05f), 0f),
-            ("Carrot", new Color(0.92f, 0.5f, 0.18f), new Vector3(0.025f, 0.014f, 0.025f), new Vector3(-0.07f, 0.008f, -0.07f), 45f),
-        };
+        private static readonly Vector3 SinkPlateSpot = new Vector3(0f, 0.765f, 0.03f);
 
         /// <summary>
-        /// Poses the sink's dirty plate leaning in the basin, out of the water, and puts leftover food
-        /// on it that washes off first (<see cref="Game.Presentation.PlateGrime"/>).
+        /// Lays the sink's dirty plate in the basin, tipped a little towards the tap, wearing the
+        /// dirty plate's grime even in the Editor (washing still fades it, via <see cref="Game.Presentation.PlateGrime"/>).
         /// </summary>
         public static void LeanInSink(GameObject plate)
         {
             plate.transform.localPosition = SinkPlateSpot;
-            plate.transform.localRotation = Quaternion.Euler(SinkPlateLean, 0f, 0f); // its top towards the back, by the tap
+            plate.transform.localRotation = Quaternion.Euler(SinkPlateTip, 0f, 0f);
             plate.transform.localScale *= SinkPlateSize;
+            if (plate.TryGetComponent<Renderer>(out var body))
+                body.sharedMaterial = EnsureDirtyPlateMaterial();
+        }
 
-            var scraps = new GameObject("Scraps").transform;
-            scraps.SetParent(plate.transform, false);
-            scraps.localPosition = Vector3.up * 0.014f; // on its surface
-            foreach (var (name, color, size, at, turn) in Scraps)
+        /// <summary>The plate material with its grime on (MAT_Plate_Dirty): a dirty plate shown by a station.</summary>
+        public static Material EnsureDirtyPlateMaterial()
+        {
+            const string path = "Assets/_Project/Art/Materials/MAT_Plate_Dirty.mat";
+            var material = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (material == null)
             {
-                var bit = GreyboxAssets.CreatePrimitive(PrimitiveType.Sphere, name, scraps,
-                    StyleTest.EnsureToonMaterial($"Scrap{name}", color), keepCollider: false);
-                bit.transform.localPosition = at;
-                bit.transform.localRotation = Quaternion.Euler(0f, turn, 0f);
-                bit.transform.localScale = new Vector3(size.x * ScrapSize, size.y, size.z * ScrapSize);
+                material = new Material(EnsurePlateMaterial());
+                AssetDatabase.CreateAsset(material, path);
             }
-
-            if (plate.TryGetComponent<Game.Presentation.PlateGrime>(out var grime))
-            {
-                var so = new SerializedObject(grime);
-                so.FindProperty("_scraps").objectReferenceValue = scraps;
-                so.ApplyModifiedPropertiesWithoutUndo();
-            }
+            material.SetFloat("_Dirt", 1f);
+            material.SetFloat("_Seed", 0.37f);
+            EditorUtility.SetDirty(material);
+            return material;
         }
 
         /// <summary>The plate shader's material (MAT_Plate): clean, until a view makes it dirty.</summary>

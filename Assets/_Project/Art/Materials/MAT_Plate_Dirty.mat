@@ -7,8 +7,8 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: MAT_Toon_ScrapSauce
-  m_Shader: {fileID: 4800000, guid: f48e3cbdb7081436b9c8345d4f17cfe2, type: 3}
+  m_Name: MAT_Plate_Dirty
+  m_Shader: {fileID: 4800000, guid: 7f7e82579cf8543a48b383f2fa73be0f, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords: []
@@ -25,16 +25,24 @@ Material:
     m_TexEnvs: []
     m_Ints: []
     m_Floats:
-    - _GrainScale: 30
-    - _OutlineWidth: 0.012
-    - _RimStrength: 0.2
+    - _CrumbAmount: 0.8
+    - _Dirt: 1
+    - _GreaseAmount: 0.5
+    - _OutlineWidth: 0.0025
+    - _Radius: 0.17
+    - _RimStrength: 0.15
+    - _SauceAmount: 1
+    - _Seed: 0.37
+    - _Smoothness: 0.65
     - _ToonEdge: 0.1
     - _ToonSoftness: 0.04
-    - _WoodGrain: 0
     m_Colors:
-    - _BaseColor: {r: 0.45, g: 0.24, b: 0.11, a: 1}
-    - _GrainColor: {r: 0.62, g: 0.39999998, b: 0.19999996, a: 1}
+    - _BaseColor: {r: 0.96999997, g: 0.96999997, b: 0.95, a: 1}
+    - _CrumbColor: {r: 0.29999998, g: 0.18999997, b: 0.09999997, a: 1}
+    - _GreaseColor: {r: 0.86, g: 0.72, b: 0.37999994, a: 1}
     - _OutlineColor: {r: 0.2, g: 0.13, b: 0.09, a: 1}
-    - _ShadowTint: {r: 0.76, g: 0.65999997, b: 0.6399999, a: 1}
+    - _SauceBrown: {r: 0.35999998, g: 0.19999996, b: 0.089999996, a: 1}
+    - _SauceRed: {r: 0.62, g: 0.11999995, b: 0.059999965, a: 1}
+    - _ShadowTint: {r: 0.72, g: 0.7, b: 0.75, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1
