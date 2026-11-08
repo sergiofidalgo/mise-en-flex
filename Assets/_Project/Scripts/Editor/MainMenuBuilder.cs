@@ -81,6 +81,7 @@ namespace Game.Editor
             BuildStreet(city, random);
             BuildBlocks(city, random);
             BuildForeground(city);
+            BuildPlaza(city);
             BuildSky(city, random);
 
             var menu = new GameObject("MainMenu").AddComponent<MainMenu>();
@@ -198,6 +199,70 @@ namespace Game.Editor
             {
                 Lamp(near, new Vector3(side * 7.8f, 0f, -27f), 10f, 3.5f);
                 Tree(new Vector3(side * 12f, 0f, -21f), 1.15f);
+            }
+        }
+
+        // The plaza's near strip, the ground the camera sees below the menu's panels (about z -27 to -19):
+        // flagstone paving, a bench between flower planters in the middle, and a cafe table under a
+        // striped parasol on each side, its candle lantern glowing (a nod to the restaurant game).
+        private static void BuildPlaza(Transform city)
+        {
+            if (!Modelled)
+                return;
+            var plaza = new GameObject("Plaza").transform;
+            plaza.SetParent(city, false);
+            var paving = Toon("CityPaving", new Color(0.36f, 0.31f, 0.33f));
+            for (var x = -24f; x <= 24f; x += 24f)
+                Model(plaza, "Paving", "CityPaving", paving, new Vector3(x, 0f, -25f));
+
+            var wood = Toon("CityBenchWood", new Color(0.55f, 0.36f, 0.22f));
+            var iron = Toon("CityLampIron", LampIron);
+            var planterWood = Toon("CityPlanterWood", new Color(0.42f, 0.27f, 0.18f));
+            var shrub = Toon("CityTreeCrown", new Color(0.2f, 0.36f, 0.26f));
+            var flowers = Toon("CityFlowers", new Color(0.92f, 0.45f, 0.5f));
+            void Planter(Vector3 at, float turn)
+            {
+                var planter = new GameObject("Planter").transform;
+                planter.SetParent(plaza, false);
+                planter.localPosition = at;
+                planter.localRotation = Quaternion.Euler(0f, turn, 0f);
+                Model(planter, "Box", "CityPlanterBox", planterWood, Vector3.zero);
+                Model(planter, "Shrub", "CityPlanterShrub", shrub, Vector3.zero);
+                Model(planter, "Flowers", "CityPlanterFlowers", flowers, Vector3.zero);
+            }
+            var bench = new GameObject("Bench").transform;
+            bench.SetParent(plaza, false);
+            bench.localPosition = new Vector3(0f, 0f, -23.5f);
+            Model(bench, "Wood", "CityBenchWood", wood, Vector3.zero);
+            Model(bench, "Iron", "CityBenchIron", iron, Vector3.zero);
+            Planter(new Vector3(-1.9f, 0f, -23.5f), 0f);
+            Planter(new Vector3(1.9f, 0f, -23.5f), 180f);
+            Planter(new Vector3(-9.8f, 0f, -24.5f), 90f);
+            Planter(new Vector3(9.8f, 0f, -24.5f), -90f);
+
+            var marble = Toon("CityCafeMarble", new Color(0.9f, 0.87f, 0.8f));
+            var candle = Unlit("NightLampGlow", WindowLit);
+            foreach (var (x, colour, turn) in new[] { (-4.8f, 0, 10f), (4.8f, 1, -14f) })
+            {
+                var cafe = new GameObject("CafeTable").transform;
+                cafe.SetParent(plaza, false);
+                cafe.localPosition = new Vector3(x, 0f, -25f);
+                cafe.localRotation = Quaternion.Euler(0f, turn, 0f);
+                Model(cafe, "Table", "CityCafeTable", iron, Vector3.zero);
+                Model(cafe, "Top", "CityCafeTop", marble, Vector3.zero);
+                Model(cafe, "Candle", "CityCafeCandle", candle, Vector3.zero);
+                Model(cafe, "ChairLeft", "CityCafeChair", iron, new Vector3(-0.68f, 0f, 0.05f), null, Quaternion.Euler(0f, -90f, 0f));
+                Model(cafe, "ChairRight", "CityCafeChair", iron, new Vector3(0.68f, 0f, -0.05f), null, Quaternion.Euler(0f, 90f, 0f));
+                Model(cafe, "Pole", "CityParasolPole", iron, Vector3.zero);
+                Model(cafe, "StripeA", "CityParasolA", Toon($"CityAwning{colour}", AwningColors[colour]), Vector3.zero);
+                Model(cafe, "StripeB", "CityParasolB", Toon("CityAwningCream", AwningCream), Vector3.zero);
+                var light = new GameObject("CandleLight").AddComponent<Light>();
+                light.transform.SetParent(cafe, false);
+                light.transform.localPosition = new Vector3(0f, 1f, 0f);
+                light.type = LightType.Point;
+                light.color = WindowLit;
+                light.range = 3f;
+                light.intensity = 2f;
             }
         }
 
