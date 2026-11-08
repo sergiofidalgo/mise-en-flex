@@ -522,8 +522,8 @@ namespace Game.Editor
                 var material = GreyboxAssets.EnsureMaterial(zone.Name, zone.Color);
                 for (var i = 0; i < zone.Positions.Length; i++)
                 {
-                    CreateStation<CounterStation>(
-                        $"{zone.Name}_{i + 1:00}", zone.Positions[i], zone.Size, zone.Height, material, zoneRoot, CounterFurniture);
+                    DressCabinet(CreateStation<CounterStation>(
+                        $"{zone.Name}_{i + 1:00}", zone.Positions[i], zone.Size, zone.Height, material, zoneRoot, CounterFurniture));
                 }
             }
 
@@ -541,9 +541,9 @@ namespace Game.Editor
             for (var i = 0; i < BarTablePositions.Length; i++)
                 BuildBarTable($"BarTable_{i + 1:00}", BarTablePositions[i], bars);
 
-            var plateStack = CreateStation<PlateStackStation>(
+            var plateStack = DressCabinet(CreateStation<PlateStackStation>(
                 "PlateStack", PlateStackPosition, CounterSize, CounterHeight,
-                GreyboxAssets.EnsureMaterial("PlateStack", PlateStackColor), stations);
+                GreyboxAssets.EnsureMaterial("PlateStack", PlateStackColor), stations));
             // Clean plates stand in a wire rack, like a real plate stack.
             var plateStackDiscs = KitchenwareArt.CreatePlates(plateStack.transform, CounterHeight, PlateStackVisualCount,
                 GreyboxKitchenware.PlateColor, "Plate", Vector3.zero, KitchenwareArt.PlateLayout.Rack);
@@ -587,7 +587,7 @@ namespace Game.Editor
             zone.SetParent(stations, false);
             var material = GreyboxAssets.EnsureMaterial("Prep", PrepColor);
 
-            var knifeCounter = CreateStation<CounterStation>("KnifeCounter", KnifeCounterPosition, CounterSize, CounterHeight, material, zone, CounterFurniture);
+            var knifeCounter = DressCabinet(CreateStation<CounterStation>("KnifeCounter", KnifeCounterPosition, CounterSize, CounterHeight, material, zone, CounterFurniture));
             var knifeSo = new SerializedObject(knifeCounter);
             knifeSo.FindProperty("_startsWithKnife").boolValue = true;
             knifeSo.ApplyModifiedPropertiesWithoutUndo();
@@ -667,7 +667,7 @@ namespace Game.Editor
         // A cutting board built into its own counter (decision 2026-11-08): one piece, placed like a counter.
         private static PrepStation BuildCuttingBoard(string name, Vector3 position, Material material, Transform parent)
         {
-            var prep = CreateStation<PrepStation>(name, position, CounterSize, CounterHeight, material, parent, BoardFurniture);
+            var prep = DressCabinet(CreateStation<PrepStation>(name, position, CounterSize, CounterHeight, material, parent, BoardFurniture));
             var board = GreyboxAssets.CreatePrimitive(
                 PrimitiveType.Cube, "Board", prep.transform, GreyboxAssets.EnsureMaterial("CuttingBoard", CuttingBoardColor), keepCollider: false);
             board.transform.localScale = CuttingBoardScale;
@@ -687,8 +687,8 @@ namespace Game.Editor
         // A knife rack built into its own counter (decision 2026-11-08): one piece, placed like a counter.
         private static KnifeRackStation BuildKnifeRack(string name, Transform parent)
         {
-            var rack = CreateStation<KnifeRackStation>(
-                name, Vector3.zero, CounterSize, CounterHeight, GreyboxAssets.EnsureMaterial(CounterZones[0].Name, CounterZones[0].Color), parent, KnifeRackFurniture);
+            var rack = DressCabinet(CreateStation<KnifeRackStation>(
+                name, Vector3.zero, CounterSize, CounterHeight, GreyboxAssets.EnsureMaterial(CounterZones[0].Name, CounterZones[0].Color), parent, KnifeRackFurniture));
             var block = GreyboxAssets.CreatePrimitive(
                 PrimitiveType.Cube, "Block", rack.transform, GreyboxAssets.EnsureMaterial("KnifeRack", KnifeRackColor), keepCollider: false);
             block.transform.localScale = KnifeRackBlockScale;
@@ -713,6 +713,14 @@ namespace Game.Editor
 
             AddToHighlight(rack, block.GetComponent<Renderer>());
             return rack;
+        }
+
+        // A plain counter's body becomes the shared wooden cabinet (decision 2026-11-08), lighting up as one piece.
+        private static T DressCabinet<T>(T station) where T : Interactable
+        {
+            foreach (var part in CabinetArt.Dress(station.transform))
+                AddToHighlight(station, part);
+            return station;
         }
 
         // What's built into a counter lights up with it, as one piece.
@@ -791,7 +799,7 @@ namespace Game.Editor
 
         private static void CreateRack(string name, RackStation.RackKind kind, Vector3 position, int discs, Color color, Transform parent)
         {
-            var rack = CreateStation<RackStation>(name, position, CounterSize, CounterHeight, GreyboxAssets.EnsureMaterial("Rack", RackColor), parent);
+            var rack = DressCabinet(CreateStation<RackStation>(name, position, CounterSize, CounterHeight, GreyboxAssets.EnsureMaterial("Rack", RackColor), parent));
             var rackSo = new SerializedObject(rack);
             rackSo.FindProperty("_kind").enumValueIndex = (int)kind;
             rackSo.ApplyModifiedPropertiesWithoutUndo();
@@ -857,8 +865,8 @@ namespace Game.Editor
             GreyboxAssets.EnsureFolder(FurniturePrefabFolder);
             var island = CounterZones[0];
 
-            var counter = SaveFurniture(CreateStation<CounterStation>(
-                "PF_Counter", Vector3.zero, CounterSize, CounterHeight, GreyboxAssets.EnsureMaterial(island.Name, island.Color), null, CounterFurniture));
+            var counter = SaveFurniture(DressCabinet(CreateStation<CounterStation>(
+                "PF_Counter", Vector3.zero, CounterSize, CounterHeight, GreyboxAssets.EnsureMaterial(island.Name, island.Color), null, CounterFurniture)));
             var hob = SaveFurniture(CreateHob("PF_Hob", Vector3.zero, GreyboxAssets.EnsureMaterial("Hob", HobColor), null));
             var grill = SaveFurniture(BuildGrill("PF_Grill", Vector3.zero, null));
             var board = SaveFurniture(BuildCuttingBoard("PF_CuttingBoard", Vector3.zero, GreyboxAssets.EnsureMaterial(island.Name, island.Color), null));

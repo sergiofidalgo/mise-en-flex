@@ -416,6 +416,53 @@ def build_sink():
     for y in (-0.3, -0.1, 0.1, 0.3):
         add_box(bm, (0.92, 0.07, 0.03), (0.0, y, 0.15), bevel=0.01)
     return [finish("SinkBody", bm)]
+def build_cabinet():
+    """The counter every plain station shares (decision 2026-11-08, the art overhaul): a wooden
+    cabinet with a light wood top, a recessed dark base, and a drawer over two doors on both working
+    sides (+Y towards the camera, and -Y), plain panelled ends. Parts are separate meshes so each
+    gets its own colour; all stay inside the 1 m footprint, the top at counter height."""
+    top_z, slab = COUNTER_HEIGHT, 0.05
+    kick = 0.09
+    body_top = top_z - slab
+
+    bm = bmesh.new()  # the carcass, set back a little from the fronts
+    add_box(bm, (0.98, 0.94, body_top - kick), (0.0, 0.0, kick + (body_top - kick) / 2.0), bevel=0.012)
+    body = finish("CabinetBody", bm)
+
+    bm = bmesh.new()  # the recessed base
+    add_box(bm, (0.92, 0.88, kick), (0.0, 0.0, kick / 2.0))
+    base = finish("CabinetKick", bm)
+
+    bm = bmesh.new()  # the top: a slab with rounded edges, flush with the footprint
+    add_box(bm, (1.0, 1.0, slab), (0.0, 0.0, top_z - slab / 2.0), bevel=0.014)
+    worktop = finish("CabinetTop", bm)
+
+    # Fronts: a drawer under the top and two doors below it, proud of the carcass, with gaps
+    # between them that read as seams from the camera.
+    drawer_h, gap = 0.15, 0.02
+    drawer_z = body_top - gap - drawer_h / 2.0
+    door_top = body_top - 2 * gap - drawer_h
+    door_bottom = kick + gap
+    door_h = door_top - door_bottom
+    bm = bmesh.new()
+    knobs = bmesh.new()
+    for side in (1.0, -1.0):
+        y = side * 0.48
+        add_box(bm, (0.92, 0.024, drawer_h), (0.0, y, drawer_z), bevel=0.008)
+        add_lathe(knobs, [(0.0, 0.0), (0.012, 0.0), (0.012, 0.012), (0.022, 0.022), (0.016, 0.03), (0.0, 0.032)],
+                  segments=12, centre=(0.0, side * 0.492, drawer_z),
+                  axis_matrix=Matrix.Rotation(math.radians(-90.0 * side), 4, 'X'))
+        for x in (-0.235, 0.235):
+            add_box(bm, (0.45, 0.024, door_h), (x, y, door_bottom + door_h / 2.0), bevel=0.008)
+            knob_x = x - math.copysign(0.18, x)  # by the doors' meeting edge
+            add_lathe(knobs, [(0.0, 0.0), (0.012, 0.0), (0.012, 0.012), (0.022, 0.022), (0.016, 0.03), (0.0, 0.032)],
+                      segments=12, centre=(knob_x, side * 0.492, door_top - 0.07),
+                      axis_matrix=Matrix.Rotation(math.radians(-90.0 * side), 4, 'X'))
+    fronts = finish("CabinetFronts", bm)
+    handles = finish("CabinetKnobs", knobs)
+    return [body, base, worktop, fronts, handles]
+
+
 def build_board():
     """A big, thick wooden cutting board using most of its counter, with fat rounded corners and a
     deep juice groove. The wood grain is drawn by its material (Game/Toon)."""
@@ -499,6 +546,7 @@ def main():
         "SM_PlateRack.fbx": build_plate_racks(),
         "SM_Sink.fbx": build_sink(),
         "SM_Board.fbx": build_board(),
+        "SM_Cabinet.fbx": build_cabinet(),
     }
     for filename, objects in models.items():
         export_fbx(objects, filename)
