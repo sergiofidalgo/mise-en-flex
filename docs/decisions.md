@@ -4,6 +4,23 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-08 — Chef arms that act out the work; a real chef's knife; the knife rides in the belt
+
+**Decision:**
+- **The chef has arms**: chunky sleeves with mitten hands, hanging from the shoulders and turning about them (`ChefArmsView`). They swing as the chef walks and blend between poses. Hands only reach to points just in front of the chef at counter height, so they don't reach into walls or furniture.
+- **A pan is carried by its handle**: both hands side by side on it and the pan out in front, after the user's reference. The pan's handle is longer so both hands fit. Other carried things are gripped with a hand on each side.
+- **The knife rides in the belt** at the right hip, handle out so it shows from above (the user's note). It only comes out facing the cutting board with empty hands. There it is held pointing away from the chef with its edge down, while the other hand steadies the food, after the user's reference. Each cut is a fast chop.
+- **A flip at a hob tosses the pan**: it lifts and tips, with one hand on its handle. The other hand keeps hold of anything carried, such as a plate (the user's references and note). At a grill there's no pan, so a flip is a flick of the hand.
+- **Washing** holds the plate in the left hand and scrubs it in circles with the right, after the user's reference.
+- **The knife is a chef's knife** at a cartoon but believable size: a 0.26 m blade whose spine runs straight to the tip, a steel bolster, and a black handle with silver rivets. The big 0.36 m blade read as a sword.
+- **Stations report what they did:** the chef's interactor raises `Acted` when a station accepts a press (a chop or a flip), which is what the arms act out.
+
+**Reason:** The user's notes: a carried pan was hard to understand, the knife looked like a sword, the knife should sit in the belt until the board, and cutting, washing and flipping should show on the chef.
+
+**Still to check by playing:** how the chop, toss and scrub feel in motion; that hands never pass through a counter in any layout or facing; the belt knife from every camera angle.
+
+---
+
 ## 2026-11-08 — A big cartoony knife, an angled knife block, an onion, and bigger held items
 
 **Decision:**

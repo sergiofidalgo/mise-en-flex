@@ -3,8 +3,8 @@ using UnityEngine;
 namespace Game.Editor
 {
     /// <summary>
-    /// The big cartoony knife and its angled knife block (the user's notes and references,
-    /// 2026-11-08): a wide steel blade and a chunky wooden handle that read in a chef's hand, and a
+    /// The chef's knife and its angled knife block (the user's notes and references, 2026-11-08):
+    /// a steel blade with a straight spine and a black, riveted handle that read in a chef's hand, and a
     /// block whose sloping face holds the knives standing up in slots, handles out towards the
     /// camera. Without the models, the greybox knife and block stay.
     /// </summary>
@@ -23,12 +23,13 @@ namespace Game.Editor
         // across the overhead camera's view and their handles show full length; facing the camera
         // they were foreshortened to stubs.
         private static readonly Quaternion BlockTurn = Quaternion.Euler(0f, -90f, 0f);
-        // How much of a knife's blade stands out of its slot (m); the knife is 0.36 m of blade.
-        private const float BladeShowing = 0.12f;
+        // How much of a knife's blade stands out of its slot (m); the knife is 0.26 m of blade.
+        private const float BladeShowing = 0.07f;
 
         private static readonly Color Steel = new Color(0.86f, 0.89f, 0.93f);
-        private static readonly Color HandleWood = new Color(0.32f, 0.2f, 0.13f);
-        private static readonly Color Brass = new Color(0.86f, 0.68f, 0.32f);
+        // A black handle with silver rivets and a steel bolster, like the user's reference.
+        private static readonly Color HandleBlack = new Color(0.11f, 0.11f, 0.12f);
+        private static readonly Color Silver = new Color(0.86f, 0.88f, 0.91f);
         private static readonly Color BlockWood = new Color(0.82f, 0.55f, 0.3f);
         private static readonly Color SlotDark = new Color(0.25f, 0.15f, 0.09f);
 
@@ -38,8 +39,9 @@ namespace Game.Editor
             if (PilotArt.FindMesh(KnifeModel, "KnifeBlade") == null)
                 return false;
             Part(knife, "Blade", KnifeModel, "KnifeBlade", StyleTest.EnsureToonMaterial("KnifeBlade", Steel));
-            Part(knife, "Handle", KnifeModel, "KnifeHandle", StyleTest.EnsureToonMaterial("KnifeHandle", HandleWood));
-            Part(knife, "Rivets", KnifeModel, "KnifeRivets", StyleTest.EnsureToonMaterial("KnifeRivets", Brass));
+            Part(knife, "Bolster", KnifeModel, "KnifeBolster", StyleTest.EnsureToonMaterial("KnifeBlade", Steel));
+            Part(knife, "Handle", KnifeModel, "KnifeHandle", StyleTest.EnsureToonMaterial("KnifeHandle", HandleBlack));
+            Part(knife, "Rivets", KnifeModel, "KnifeRivets", StyleTest.EnsureToonMaterial("KnifeRivets", Silver));
             return true;
         }
 

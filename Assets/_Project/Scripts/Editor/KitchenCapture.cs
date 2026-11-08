@@ -146,8 +146,25 @@ namespace Game.Editor
                 chef.transform.rotation = Quaternion.Euler(0f, 160f, 0f);
                 Spawn("Assets/_Project/Prefabs/Items/PF_Item_Pan.prefab", Vector3.zero, chef.transform.Find("CarryAnchor"));
                 Spawn("Assets/_Project/Prefabs/Items/PF_Item_Knife.prefab", Vector3.zero, chef.transform.Find("ToolAnchor"));
+                var arms = chef.GetComponent<Game.Presentation.ChefArmsView>();
+                if (arms != null)
+                    arms.PreviewHolding(pan: true);
             }
             Render(camera, target, props + new Vector3(0f, 0.9f, -0.2f), CloseHeight + 0.6f, Path.Combine(folder, "props.png"));
+
+            // A chef at the cutting board, knife out (the arms only move in play).
+            var board = props + new Vector3(0f, 0f, 5f);
+            Spawn("Assets/_Project/Prefabs/Furniture/PF_CuttingBoard.prefab", board + new Vector3(0.75f, 0f, 0f));
+            var cook = Spawn("Assets/_Project/Prefabs/PF_Player.prefab", board);
+            if (cook != null)
+            {
+                cook.transform.rotation = Quaternion.Euler(0f, 90f, 0f);
+                Spawn("Assets/_Project/Prefabs/Items/PF_Item_Knife.prefab", Vector3.zero, cook.transform.Find("ToolAnchor"));
+                var cookArms = cook.GetComponent<Game.Presentation.ChefArmsView>();
+                if (cookArms != null)
+                    cookArms.PreviewHolding(pan: false, cutting: true);
+            }
+            Render(camera, target, board + new Vector3(0.4f, 0.9f, -0.2f), CloseHeight, Path.Combine(folder, "cutting.png"));
 
             target.Release();
             UnityEngine.Object.DestroyImmediate(camera.gameObject);

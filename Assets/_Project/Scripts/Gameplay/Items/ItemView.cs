@@ -19,6 +19,9 @@ namespace Game.Gameplay.Items
         private ItemMoveSettings _move;
         private float _elapsed;
         private bool _moving;
+        private bool _posed;
+        private Vector3 _poseOffset;
+        private Quaternion _poseRotation = Quaternion.identity;
 
         public Item Item { get; private set; }
 
@@ -35,8 +38,28 @@ namespace Game.Gameplay.Items
         public Transform SlotAnchor(int index) =>
             index >= 0 && index < _slotAnchors.Length ? _slotAnchors[index] : transform;
 
+        /// <summary>
+        /// Holds the item at an offset and turn from its anchor, for how it looks in a chef's hands
+        /// (a pan held by its handle, decision 2026-11-08). Eased into; cleared by the next move.
+        /// Only presentation: where the item is held for play doesn't change.
+        /// </summary>
+        public void SetHeldPose(Vector3 localOffset, Quaternion localRotation, bool immediate = false)
+        {
+            _posed = true;
+            _poseOffset = localOffset;
+            _poseRotation = localRotation;
+            if (immediate && !_moving)
+            {
+                transform.localPosition = localOffset;
+                transform.localRotation = localRotation;
+            }
+        }
+
         public void MoveTo(Transform anchor, ItemMoveSettings move)
         {
+            _posed = false;
+            _poseOffset = Vector3.zero;
+            _poseRotation = Quaternion.identity;
             Anchor = anchor;
             transform.SetParent(anchor, worldPositionStays: true);
             transform.localRotation = Quaternion.identity;
@@ -52,7 +75,15 @@ namespace Game.Gameplay.Items
         private void Update()
         {
             if (!_moving)
+            {
+                if (_posed)
+                {
+                    var ease = 1f - Mathf.Exp(-14f * Time.deltaTime);
+                    transform.localPosition = Vector3.Lerp(transform.localPosition, _poseOffset, ease);
+                    transform.localRotation = Quaternion.Slerp(transform.localRotation, _poseRotation, ease);
+                }
                 return;
+            }
 
             _elapsed += Time.deltaTime;
             var t = Mathf.Clamp01(_elapsed / _move.Duration);

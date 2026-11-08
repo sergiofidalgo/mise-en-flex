@@ -113,6 +113,9 @@ namespace Game.Editor
         private const float HeldScale = 1.3f;
         // Where the chef bends; must match CHEF_WAIST in blender/build_pilot_models.py.
         private const float ChefWaistHeight = 0.85f;
+        // Where the arms hang from, above the waist and either side (the chef model's shoulders).
+        private const float ChefShoulderHeight = 0.38f;
+        private const float ChefShoulderWidth = 0.27f;
         private static readonly Color ChefHatColor = new Color(0.97f, 0.97f, 0.95f);
         private static readonly Color ChefTrousersColor = new Color(0.2f, 0.2f, 0.24f);
         private static readonly Color ChefSkinColor = new Color(0.96f, 0.78f, 0.63f);
@@ -369,6 +372,26 @@ namespace Game.Editor
                 tinted.Add(AddChefPart(waist, "Scarf", "ChefScarf", StyleTest.EnsureToonMaterial("ChefAccent", Color.white)));
                 AddChefPart(waist, "Hat", "ChefHat", StyleTest.EnsureToonMaterial("ChefHat", ChefHatColor));
                 tinted.RemoveAll(renderer => renderer == null);
+
+                // Arms (the user's note, 2026-11-08): a sleeve and mitten hand on each shoulder,
+                // which bend with the torso; ChefArmsView swings them and puts the hands on what's held.
+                var shoulders = new Transform[2];
+                for (var i = 0; i < 2; i++)
+                {
+                    var shoulder = new GameObject(i == 0 ? "Shoulder_L" : "Shoulder_R").transform;
+                    shoulder.SetParent(waist, false);
+                    shoulder.localPosition = new Vector3(i == 0 ? -ChefShoulderWidth : ChefShoulderWidth, ChefShoulderHeight, 0f);
+                    AddChefPart(shoulder, "Arm", "ChefArm", StyleTest.EnsureToonMaterial("ChefJacket", ChefHatColor));
+                    AddChefPart(shoulder, "Hand", "ChefHand", StyleTest.EnsureToonMaterial("ChefSkin", ChefSkinColor));
+                    shoulders[i] = shoulder;
+                }
+                var arms = new SerializedObject(root.AddComponent<ChefArmsView>());
+                arms.FindProperty("_interactor").objectReferenceValue = interactor;
+                arms.FindProperty("_leftShoulder").objectReferenceValue = shoulders[0];
+                arms.FindProperty("_rightShoulder").objectReferenceValue = shoulders[1];
+                arms.FindProperty("_carryAnchor").objectReferenceValue = carryAnchor;
+                arms.FindProperty("_toolAnchor").objectReferenceValue = toolAnchor;
+                arms.ApplyModifiedPropertiesWithoutUndo();
             }
             else
             {

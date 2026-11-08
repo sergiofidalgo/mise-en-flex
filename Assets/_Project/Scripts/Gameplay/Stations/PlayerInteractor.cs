@@ -89,6 +89,12 @@ namespace Game.Gameplay.Stations
         public bool CanAct => _services != null && !IsManaging &&
             (_services.Days.Phase == DayPhase.Prep || _services.Days.Phase == DayPhase.Service);
 
+        /// <summary>
+        /// Raised when a station took a press and did something (a chop at the board, a flip at the
+        /// hob), with that station: what the chef's arms act out.
+        /// </summary>
+        public event Action<Interactable> Acted;
+
         /// <summary>Raised after every Interact press that had a target.</summary>
         public event Action<InteractionOutcome> Interacted;
 
@@ -270,6 +276,8 @@ namespace Game.Gameplay.Stations
             {
                 if (!target.TryPress(button, this))
                     _target.NotifyDenied();
+                else
+                    Acted?.Invoke(_target);
                 return true;
             }
             return false;
@@ -321,6 +329,8 @@ namespace Game.Gameplay.Stations
 
             if (!(_target is IUsable usable) || !usable.TryUse(this))
                 _target.NotifyDenied();
+            else
+                Acted?.Invoke(_target);
         }
     }
 }

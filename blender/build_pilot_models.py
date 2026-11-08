@@ -206,8 +206,8 @@ def build_hob():
     handle = finish("HobHandle", bm)
     return [body, top, tray, dial, mark, burner, door, window, handle, grate, flame]
 def build_pan():
-    """Style test: mostly rim and handle. A shallow pan with a fat rolled rim and a short, stubby
-    handle with a big ball on the end, towards the camera (+Y here)."""
+    """Style test: mostly rim and handle. A shallow pan with a fat rolled rim and a long, chunky
+    handle with a ball on the end, towards the camera (+Y here)."""
     bm = bmesh.new()
     add_lathe(bm, [
         (0.0, 0.0), (0.18, 0.0), (0.2, 0.014), (0.206, 0.05), (0.22, 0.072), (0.214, 0.09),
@@ -216,9 +216,11 @@ def build_pan():
     body = finish("PanBody", bm)
 
     bm = bmesh.new()
-    add_pipe(bm, [(0.0, 0.215, 0.082), (0.0, 0.3, 0.088)], radius=0.032)  # from the rim, not inside the pan
-    add_lathe(bm, [(0.0, -0.055), (0.04, -0.045), (0.055, 0.0), (0.04, 0.045), (0.0, 0.055)], segments=20,
-              centre=(0.0, 0.34, 0.09))  # the ball
+    # Long enough for both of a chef's hands side by side (the user's reference, 2026-11-08), rising a
+    # little from the rim, not inside the pan, with a ball on the end.
+    add_pipe(bm, [(0.0, 0.215, 0.082), (0.0, 0.42, 0.1)], radius=0.032)
+    add_lathe(bm, [(0.0, -0.048), (0.035, -0.04), (0.048, 0.0), (0.035, 0.04), (0.0, 0.048)], segments=20,
+              centre=(0.0, 0.455, 0.102))  # the ball
     handle = finish("PanHandle", bm)
     return [body, handle]
 def steak_outline(angle):
@@ -286,6 +288,9 @@ SINK_CABINET_TOP = 0.66
 # The range's spill tray, recessed under the rim; the burner and grate stand on it.
 # Must match StyleTest.TrayTop.
 TRAY_TOP = 0.865
+# A chef's arm hangs from its shoulder: the hand's centre is this far below. Must match
+# ChefArmsView's arm length in the player builder.
+CHEF_ARM_LENGTH = 0.38
 # The chef bends at the waist: the torso's origin is there. Must match the player builder.
 CHEF_WAIST = 0.85
 
@@ -398,14 +403,10 @@ def build_chef():
     bm = bmesh.new()  # jacket and sleeves
     add_lathe(bm, [(0.0, -0.05), (0.27, -0.05), (0.29, 0.03), (0.29, 0.3), (0.26, 0.4), (0.16, 0.46),
                    (0.08, 0.48), (0.0, 0.48)], segments=28)
-    for side in (-1.0, 1.0):
-        add_pipe(bm, [(side * 0.25, 0.0, 0.38), (side * 0.31, -0.02, 0.2), (side * 0.31, -0.04, 0.05)], radius=0.075, segments=12)
     upper.append(finish("ChefTorso", bm))
     bm = bmesh.new()  # head, nose and hands
     add_ball(bm, (0.0, 0.0, 0.66), 0.19, segments=24)
     add_ball(bm, (0.0, -0.19, 0.63), 0.035)
-    for side in (-1.0, 1.0):
-        add_ball(bm, (side * 0.31, -0.05, 0.0), 0.07)
     upper.append(finish("ChefHead", bm))
     bm = bmesh.new()  # eyes and jacket buttons
     for side in (-1.0, 1.0):
@@ -424,7 +425,20 @@ def build_chef():
     upper.append(finish("ChefHat", bm))
     for obj in upper:
         obj.location = (0.0, 0.0, CHEF_WAIST)
-    return objects + upper
+
+    # An arm (the user's note, 2026-11-08): a chunky sleeve with a cuff, its origin at the shoulder
+    # it turns about and hanging straight down from it, and a mitten hand at its end. The game
+    # hangs one from each shoulder (CHEF_SHOULDER) and swings and raises them (ChefArmsView).
+    bm = bmesh.new()
+    add_lathe(bm, [(0.0, 0.05), (0.06, 0.04), (0.088, 0.0), (0.09, -0.08), (0.08, -0.26), (0.085, -0.28),
+                   (0.085, -0.31), (0.07, -0.32), (0.0, -0.32)], segments=16)
+    arm = finish("ChefArm", bm)
+    bm = bmesh.new()
+    add_ball(bm, (0.0, 0.0, -CHEF_ARM_LENGTH), 0.09, segments=16)  # the mitten, big enough to read
+    add_ball(bm, (0.0, -0.068, -CHEF_ARM_LENGTH + 0.035), 0.038, segments=10)  # thumb, to the front
+    hand = finish("ChefHand", bm)
+    arm.location, hand.location = (1.0, 0.0, 1.0), (1.0, 0.0, 1.0)  # apart, for previews only
+    return objects + upper + [arm, hand]
 
 
 # Kitchenware. A plate is 0.32 m across (GreyboxKitchenware.PlateDiameter); its origin is the
@@ -744,28 +758,31 @@ KNIFE_THICKNESS = 0.014
 
 
 def build_knife():
-    """A big cartoony chef's knife (the user's note and reference, 2026-11-08): a wide steel blade
-    with a straight spine and a curved edge sweeping up to the point, a bolster, and a chunky dark
-    wooden handle with two brass rivets, so a chef carrying it reads at a glance."""
+    """A chef's knife (the user's reference, 2026-11-08), a little chunky but not a sword: the
+    spine runs straight from the heel right to the tip and only the edge curves up to meet it, a
+    steel bolster, and a black handle with three silver rivets."""
     t = KNIFE_THICKNESS
-    # Outline in (across, along): spine on +across, edge curving to the tip. Blender x is the game's
-    # -x and y the game's -z, so "along" (towards the tip) is -y here.
-    outline = [(0.045, 0.0), (0.05, -0.04), (0.05, -0.24), (0.035, -0.31), (0.0, -0.36), (-0.03, -0.32),
-               (-0.05, -0.25), (-0.058, -0.14), (-0.055, -0.04), (-0.045, 0.0)]
+    # Outline in (across, along): the spine straight along +across, the edge curving up to the tip.
+    # Blender x is the game's -x and y the game's -z, so "along" (towards the tip) is -y here.
+    outline = [(0.03, 0.0), (0.03, -0.26), (0.012, -0.235), (-0.012, -0.19), (-0.03, -0.12),
+               (-0.036, -0.05), (-0.034, 0.0)]
     bm = bmesh.new()
     add_prism(bm, list(reversed(outline)), 0.0, t)
     blade = finish("KnifeBlade", bm)
 
     bm = bmesh.new()
-    add_box(bm, (0.11, 0.025, 0.03), (0.0, 0.012, t / 2.0), bevel=0.008)  # bolster
-    add_box(bm, (0.06, 0.16, 0.045), (0.0, 0.1, t / 2.0), bevel=0.018)   # handle
+    add_box(bm, (0.075, 0.02, 0.026), (-0.002, 0.01, t / 2.0), bevel=0.007)  # bolster (steel)
+    bolster = finish("KnifeBolster", bm)
+
+    bm = bmesh.new()
+    add_box(bm, (0.044, 0.13, 0.036), (0.0, 0.085, t / 2.0), bevel=0.014)  # handle
     handle = finish("KnifeHandle", bm)
 
     bm = bmesh.new()
-    for y in (0.06, 0.13):
-        add_ball(bm, (0.0, y, t / 2.0 + 0.022), 0.009, segments=10)
+    for y in (0.045, 0.085, 0.125):
+        add_ball(bm, (0.0, y, t / 2.0 + 0.018), 0.007, segments=10)
     rivets = finish("KnifeRivets", bm)
-    return [blade, handle, rivets]
+    return [blade, bolster, handle, rivets]
 
 
 def build_knife_block():
