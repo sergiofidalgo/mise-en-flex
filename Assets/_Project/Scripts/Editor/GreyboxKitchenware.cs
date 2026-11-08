@@ -219,7 +219,8 @@ namespace Game.Editor
             rest.FindProperty("_view").objectReferenceValue = itemView;
             rest.FindProperty("_scale").floatValue = PlateOnCounter;
             rest.FindProperty("_maxOffset").floatValue = 0.05f;
-            rest.FindProperty("_maxTilt").floatValue = 5f;
+            rest.FindProperty("_maxTilt").floatValue = 8f;
+            rest.FindProperty("_pileOffset").floatValue = 0.11f; // the rims underneath show (the user's note)
             rest.ApplyModifiedPropertiesWithoutUndo();
             return Save(root, Plate.PlateTypeId);
         }

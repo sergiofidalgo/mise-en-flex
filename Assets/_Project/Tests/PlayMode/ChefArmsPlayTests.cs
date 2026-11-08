@@ -160,8 +160,13 @@ namespace Game.Tests.PlayMode
             Assert.That(Vector3.Angle(views[0].transform.up, Vector3.up), Is.LessThan(0.5f), "the bottom one lies flat");
             Assert.That(Vector3.Angle(views[1].transform.up, Vector3.up) + Vector3.Angle(views[2].transform.up, Vector3.up),
                 Is.GreaterThan(1f), "the ones on top tip a little");
-            Assert.That(Vector3.Distance(views[1].transform.localPosition, views[2].transform.localPosition), Is.GreaterThan(0.002f),
-                "not stacked exactly on each other");
+            for (var i = 1; i < 3; i++)
+            {
+                var below = views[i - 1].transform.position;
+                var here = views[i].transform.position;
+                Assert.That(new Vector2(here.x - below.x, here.z - below.z).magnitude, Is.GreaterThan(0.05f),
+                    $"plate {i} sits off the one below, showing its rim");
+            }
         }
 
         [UnityTest]

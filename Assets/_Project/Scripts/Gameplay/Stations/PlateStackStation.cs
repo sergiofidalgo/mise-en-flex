@@ -47,7 +47,11 @@ namespace Game.Gameplay.Stations
 
             if (held != null)
             {
-                lines.Add(new PromptLine(PromptControl.South, "put plate back", Stack.CanAccept(held)));
+                // Food in hand goes straight onto a fresh plate (decision 2026-11-08).
+                if (ItemTransfer.CanPlate(Stack, held))
+                    lines.Add(new PromptLine(PromptControl.South, "plate it"));
+                else
+                    lines.Add(new PromptLine(PromptControl.South, "put plate back", Stack.CanAccept(held)));
                 return;
             }
             lines.Add(Stack.CanTake

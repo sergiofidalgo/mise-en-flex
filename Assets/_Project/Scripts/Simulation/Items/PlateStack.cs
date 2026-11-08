@@ -37,6 +37,9 @@ namespace Game.Simulation.Items
 
         public bool CanAccept(Item item) => item is Plate plate && !plate.IsDirty && plate.Items.Count == 0 && _plates.Count < Capacity;
 
+        /// <summary>True if the top plate would take <paramref name="item"/>, without taking the plate.</summary>
+        public bool PeekAccepts(Item item) => _plates.Count > 0 && _plates.Peek().CanAccept(item);
+
         public Item Take()
         {
             if (_plates.Count == 0)

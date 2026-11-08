@@ -24,6 +24,8 @@ namespace Game.Presentation
         [SerializeField, Min(0.1f)] private float _scale = 1f;
         [Tooltip("How far it can tip either way (degrees), as a plate does on an uneven pile.")]
         [SerializeField, Range(0f, 20f)] private float _maxTilt;
+        [Tooltip("How far a plate up a pile can sit off the one below (m, before the counter's 1.4x), so the rims underneath show.")]
+        [SerializeField, Min(0f)] private float _pileOffset;
 
         private Transform _anchor;
         private bool _resting;
@@ -62,11 +64,15 @@ namespace Game.Presentation
         {
             var seed = Hash(Mathf.RoundToInt(counterPosition.x * 10f), Mathf.RoundToInt(counterPosition.z * 10f) * 1000
                 + Mathf.RoundToInt(counterPosition.y * 100f), kind);
+            var upPile = _anchor != null && _anchor.name.StartsWith("PileAnchor_");
             var angle = Unit(seed, 1) * 2f * Mathf.PI;
-            var reach = Mathf.Sqrt(Unit(seed, 2)) * _maxOffset; // even over the disc
+            // Up a pile, at least half the way out, so each plate shows the rim of the one below.
+            var reach = upPile && _pileOffset > 0f
+                ? Mathf.Lerp(0.5f, 1f, Unit(seed, 2)) * _pileOffset
+                : Mathf.Sqrt(Unit(seed, 2)) * _maxOffset; // even over the disc
             _offset = new Vector3(Mathf.Cos(angle) * reach, 0f, Mathf.Sin(angle) * reach);
             // Only up the pile: the bottom one lies flat on the counter top.
-            var tilt = _anchor != null && _anchor.name.StartsWith("PileAnchor_") ? _maxTilt : 0f;
+            var tilt = upPile ? _maxTilt : 0f;
             _turn = Quaternion.Euler((Unit(seed, 4) * 2f - 1f) * tilt, (Unit(seed, 3) * 2f - 1f) * _maxTurn,
                 (Unit(seed, 5) * 2f - 1f) * tilt);
         }

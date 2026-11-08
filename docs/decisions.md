@@ -4,6 +4,14 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-08 — Plating at the plate stack; plate piles with their rims showing
+
+**Decision:** (the user's notes)
+- **Food in hand at the clean plate stack goes onto a fresh plate** in one press, and the chef then holds the plated food. The prompt reads "plate it". It needs a clean plate on the stack, and works for food only, not a pan, plate or container, which hold their own (`ItemTransfer`, rule 8).
+- **Plates up a dirty pile sit well off the one below:** half to all of 11 cm, before the counter's 1.4×, and tipped up to 8°. The rims of the plates underneath show, rather than only the top plate's coloured edge.
+
+---
+
 ## 2026-11-08 — A dropped-looking plate pile; the knife block faces front; no cutting dial for the layout cursor
 
 **Decision:** (the user's notes after playing)
