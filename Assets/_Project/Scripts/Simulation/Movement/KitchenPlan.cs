@@ -13,7 +13,6 @@ namespace Game.Simulation.Movement
         CantAfford,
         NotOnAWall,
         NoRoomForChairs,
-        NotOnAFreeCounter,
         NoFreeCounter,
     }
 

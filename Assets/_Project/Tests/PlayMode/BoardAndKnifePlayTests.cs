@@ -14,8 +14,8 @@ using Vector2 = System.Numerics.Vector2;
 namespace Game.Tests.PlayMode
 {
     /// <summary>
-    /// Boards and knives (decisions 2026-11-07 and 2026-11-08): the board sits on a counter and moves
-    /// only in management mode; the knife rack is a counter of its own; the kitchen starts with one knife lying loose.
+    /// Boards and knives (decisions 2026-11-07 and 2026-11-08): the cutting board and the knife rack are
+    /// each a counter of their own, moved only in management mode; the kitchen starts with one knife lying loose.
     /// </summary>
     public class BoardAndKnifePlayTests
     {
@@ -45,9 +45,6 @@ namespace Game.Tests.PlayMode
         private PrepStation Board => _root.Services.Stations.All.OfType<PrepStation>().Single();
 
         private CounterStation KnifeCounter => Counters.Single(c => c.Slot.Current is Knife);
-
-        private CounterStation FreeCounter(params CounterStation[] not) =>
-            Counters.First(c => c.IsClear && !not.Contains(c));
 
         private static Vector2 Floor(Component c) => new Vector2(c.transform.position.x, c.transform.position.z);
 
@@ -80,98 +77,47 @@ namespace Game.Tests.PlayMode
             Assert.That(_chef.Tool, Is.Null);
         }
 
-        [UnityTest]
-        public IEnumerator TheBoardTakesOverItsCounter()
-        {
-            yield return OpenKitchen();
-            var under = Board.OnCounter;
-
-            Assert.That(under, Is.Not.Null);
-            Assert.That(under.IsCovered, Is.True);
-            Assert.That(under.IsClear, Is.False, "a counter with a board on it can't be sold");
-
-            var cursor = _editor.Enter(_player);
-            cursor.Position = Floor(under);
-            Assert.That(_editor.StationUnder(cursor), Is.SameAs(Board), "the board, not the counter");
-        }
+        // The cutting board is a counter with the board built in (decision 2026-11-08).
 
         [UnityTest]
-        public IEnumerator TheBoardMovesToAFreeCounterAndLeavesItsOldOneFree()
+        public IEnumerator TheBoardIsACounterSizedPieceOfItsOwn()
         {
             yield return OpenKitchen();
             var board = Board;
-            var from = board.OnCounter;
-            var to = FreeCounter(from);
+
+            Assert.That(board.GetComponentInParent<CounterStation>(), Is.Null, "it isn't on a counter: it is one");
+            var cursor = _editor.Enter(_player);
+            cursor.Position = Floor(board);
+            Assert.That(_editor.StationUnder(cursor), Is.SameAs(board));
+        }
+
+        [UnityTest]
+        public IEnumerator TheBoardMovesAsOnePiece()
+        {
+            yield return OpenKitchen();
+            var board = Board;
             var cursor = _editor.Enter(_player);
 
-            cursor.Position = Floor(from);
+            cursor.Position = Floor(board);
             Assert.That(_editor.PickUp(cursor), Is.True);
-            cursor.Position = Floor(to);
+            Assert.That(cursor.Held, Is.SameAs(board));
+            cursor.Position = OpenFloor;
             _editor.MoveCursor(cursor, Vector2.Zero);
             Assert.That(_editor.Place(cursor), Is.True, cursor.Result.ToString());
             yield return null;
 
-            Assert.That(board.OnCounter, Is.SameAs(to));
-            Assert.That(to.IsCovered, Is.True);
-            Assert.That(from.IsCovered, Is.False);
-            Assert.That(from.Container.CanAccept(new Plate(3)), Is.True, "a plain counter again");
-            Assert.That((board.transform.position - to.transform.position).sqrMagnitude, Is.LessThan(1e-4f), "it sits on its new counter");
+            Assert.That(Vector2.Distance(Floor(board), OpenFloor), Is.LessThan(0.5f), "on the floor where it was put");
         }
 
         [UnityTest]
-        public IEnumerator TheBoardCantGoOnTheFloorOrOnACounterInUse()
+        public IEnumerator AChefFacingTheBoardWorksAtIt()
         {
             yield return OpenKitchen();
-            var from = Board.OnCounter;
-            var cursor = _editor.Enter(_player);
-            cursor.Position = Floor(from);
-            _editor.PickUp(cursor);
-
-            cursor.Position = new Vector2(2.4f, 0.95f); // open floor
-            _editor.MoveCursor(cursor, Vector2.Zero);
-            Assert.That(cursor.Result, Is.EqualTo(Placement.NotOnAFreeCounter), "the floor");
-
-            cursor.Position = Floor(KnifeCounter);
-            _editor.MoveCursor(cursor, Vector2.Zero);
-            Assert.That(cursor.Result, Is.EqualTo(Placement.NotOnAFreeCounter), "the knife's there");
-            Assert.That(_editor.Place(cursor), Is.False);
-
-            _editor.Cancel(cursor);
-            yield return null;
-            Assert.That(Board.OnCounter, Is.SameAs(from), "back where it was");
-        }
-
-        [UnityTest]
-        public IEnumerator ACounterMovesOnlyOnceItsBoardIsOff()
-        {
-            yield return OpenKitchen();
-            var board = Board;
-            var under = board.OnCounter;
-            var cursor = _editor.Enter(_player);
-
-            cursor.Position = Floor(under);
-            _editor.PickUp(cursor);
-            Assert.That(cursor.Held, Is.SameAs(board), "the board comes first");
-            cursor.Position = Floor(FreeCounter(under));
-            _editor.MoveCursor(cursor, Vector2.Zero);
-            _editor.Place(cursor);
-
-            cursor.Position = Floor(under);
-            _editor.PickUp(cursor);
-            Assert.That(cursor.Held, Is.SameAs(under), "now the counter");
-            _editor.Cancel(cursor);
-        }
-
-        [UnityTest]
-        public IEnumerator ChefsCantReachTheCounterUnderTheBoard()
-        {
-            yield return OpenKitchen();
-            var under = Board.OnCounter;
 
             // Stand in front of the board, facing it.
             var controller = _player.GetComponent<CharacterController>();
             controller.enabled = false;
-            _player.transform.SetPositionAndRotation(under.transform.position + new Vector3(0f, 0f, -0.9f), Quaternion.identity);
+            _player.transform.SetPositionAndRotation(Board.transform.position + new Vector3(0f, 0f, -0.9f), Quaternion.identity);
             controller.enabled = true;
             yield return null;
             yield return null;

@@ -4,6 +4,19 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-08 — The cutting board is a counter of its own
+
+**Decision (user's call):** the cutting board works like the knife rack. It comes built into its own counter, and the two can't be separated.
+- **One piece:** it's bought, carried, placed, rotated, moved and sold like any counter. The last board still can't be sold.
+- **Price 50:** a counter (30) plus the board (20).
+- **The starting kitchen's board** is now this piece, where its counter stood.
+- **Controls unchanged:** A puts food on the board or takes it off, and X cuts with the knife.
+- **Replaces** the 2026-11-07 rule that boards sit on counters and move from one free counter to another. Nothing sits on a counter any more, so the "it goes on a free counter" placement check is gone.
+
+**Reason:** the same as the knife rack. Every piece is placed the same way, so the board is a clear layout choice with nothing extra to learn.
+
+---
+
 ## 2026-11-08 — The fridge has sliding glass panes
 
 **Decision (user's call, after play; details proposed):** the fridge's hinged door becomes two half-width glass panes on two tracks across its front, like a drinks fridge.

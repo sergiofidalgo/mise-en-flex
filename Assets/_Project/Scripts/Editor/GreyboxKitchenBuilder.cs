@@ -47,7 +47,7 @@ namespace Game.Editor
         private const float HobPrice = 80f;
         private const float InductionPrice = 150f;
         private const float GrillPrice = 250f;
-        private const float BoardPrice = 20f;
+        private const float BoardPrice = CounterPrice + 20f; // a counter with the board built in
         private const float KnifeRackPrice = CounterPrice + 25f; // a counter with the rack built in
         private const float KnifePrice = 15f;
         private const float PanPrice = 25f;
@@ -112,8 +112,8 @@ namespace Game.Editor
         // The knife sits at the chef's right side, so it reads separately from what's carried.
         private static readonly Vector3 ToolAnchorPosition = new Vector3(0.4f, 0.95f, 0.15f);
 
-        // Prep zone on the back wall, left: a counter with the kitchen's one knife lying on it, and a
-        // counter with the cutting board (decision 2026-11-07). Both are ordinary counters underneath.
+        // Prep zone on the back wall, left: a counter with the kitchen's one knife lying on it, and the
+        // cutting board, a counter-sized piece of its own (decision 2026-11-08).
         private static readonly Color PrepColor = new Color(0.78f, 0.64f, 0.45f);
         // On the west wall, by prep: the back-left corner is the tall storage (decision 2026-11-07).
         private static readonly Vector3 KnifeCounterPosition = new Vector3(-3.4f, 0f, -0.6f);
@@ -591,8 +591,7 @@ namespace Game.Editor
             knifeSo.FindProperty("_startsWithKnife").boolValue = true;
             knifeSo.ApplyModifiedPropertiesWithoutUndo();
 
-            var boardCounter = CreateStation<CounterStation>("BoardCounter", PrepCounterPosition, CounterSize, CounterHeight, material, zone, CounterFurniture);
-            BuildCuttingBoard("CuttingBoard", boardCounter.transform);
+            BuildCuttingBoard("CuttingBoard", PrepCounterPosition, material, zone);
         }
 
         private static GrillStation BuildGrill(string name, Vector3 position, Transform parent)
@@ -664,41 +663,10 @@ namespace Game.Editor
             return grill;
         }
 
-        // Things that sit on a counter: built at the counter's base, with their parts at counter height,
-        // so they line up with whatever counter they're put on.
-        private static T CreateCounterTop<T>(string name, Transform counter, string furnitureId) where T : CounterTopStation
+        // A cutting board built into its own counter (decision 2026-11-08): one piece, placed like a counter.
+        private static PrepStation BuildCuttingBoard(string name, Vector3 position, Material material, Transform parent)
         {
-            var root = new GameObject(name).transform;
-            root.SetParent(counter, false);
-
-            var anchor = new GameObject("ItemAnchor").transform;
-            anchor.SetParent(root, false);
-            anchor.localPosition = new Vector3(0f, CounterHeight, 0f);
-
-            var station = root.gameObject.AddComponent<T>();
-            SetReference(station, "_itemAnchor", anchor);
-            var so = new SerializedObject(station);
-            so.FindProperty("_furnitureId").stringValue = furnitureId;
-            so.ApplyModifiedPropertiesWithoutUndo();
-            return station;
-        }
-
-        private static void AddHighlight(Interactable station, params Renderer[] renderers)
-        {
-            var highlight = station.gameObject.AddComponent<InteractableHighlightView>();
-            var so = new SerializedObject(highlight);
-            so.FindProperty("_interactable").objectReferenceValue = station;
-            so.FindProperty("_shakeTarget").objectReferenceValue = renderers[0].transform;
-            var list = so.FindProperty("_renderers");
-            list.arraySize = renderers.Length;
-            for (var i = 0; i < renderers.Length; i++)
-                list.GetArrayElementAtIndex(i).objectReferenceValue = renderers[i];
-            so.ApplyModifiedPropertiesWithoutUndo();
-        }
-
-        private static PrepStation BuildCuttingBoard(string name, Transform counter)
-        {
-            var prep = CreateCounterTop<PrepStation>(name, counter, BoardFurniture);
+            var prep = CreateStation<PrepStation>(name, position, CounterSize, CounterHeight, material, parent, BoardFurniture);
             var board = GreyboxAssets.CreatePrimitive(
                 PrimitiveType.Cube, "Board", prep.transform, GreyboxAssets.EnsureMaterial("CuttingBoard", CuttingBoardColor), keepCollider: false);
             board.transform.localScale = CuttingBoardScale;
@@ -710,7 +678,7 @@ namespace Game.Editor
             var so = new SerializedObject(prep);
             so.FindProperty("_boardAnchor").objectReferenceValue = boardAnchor;
             so.ApplyModifiedPropertiesWithoutUndo();
-            AddHighlight(prep, board.GetComponent<Renderer>());
+            AddToHighlight(prep, board.GetComponent<Renderer>());
             return prep;
         }
 
@@ -741,13 +709,18 @@ namespace Game.Editor
                 list.GetArrayElementAtIndex(i).objectReferenceValue = places[i];
             so.ApplyModifiedPropertiesWithoutUndo();
 
-            // The rack lights up with its counter, as one piece.
-            var highlight = new SerializedObject(rack.GetComponent<InteractableHighlightView>());
+            AddToHighlight(rack, block.GetComponent<Renderer>());
+            return rack;
+        }
+
+        // What's built into a counter lights up with it, as one piece.
+        private static void AddToHighlight(Interactable station, Renderer renderer)
+        {
+            var highlight = new SerializedObject(station.GetComponent<InteractableHighlightView>());
             var renderers = highlight.FindProperty("_renderers");
             renderers.arraySize++;
-            renderers.GetArrayElementAtIndex(renderers.arraySize - 1).objectReferenceValue = block.GetComponent<Renderer>();
+            renderers.GetArrayElementAtIndex(renderers.arraySize - 1).objectReferenceValue = renderer;
             highlight.ApplyModifiedPropertiesWithoutUndo();
-            return rack;
         }
 
         // A hob: counter body, a burner ring that glows with the dial around the pan, and heat
@@ -885,7 +858,7 @@ namespace Game.Editor
                 "PF_Counter", Vector3.zero, CounterSize, CounterHeight, GreyboxAssets.EnsureMaterial(island.Name, island.Color), null, CounterFurniture));
             var hob = SaveFurniture(CreateHob("PF_Hob", Vector3.zero, GreyboxAssets.EnsureMaterial("Hob", HobColor), null));
             var grill = SaveFurniture(BuildGrill("PF_Grill", Vector3.zero, null));
-            var board = SaveFurniture(BuildCuttingBoard("PF_CuttingBoard", null));
+            var board = SaveFurniture(BuildCuttingBoard("PF_CuttingBoard", Vector3.zero, GreyboxAssets.EnsureMaterial(island.Name, island.Color), null));
             var knifeRack = SaveFurniture(BuildKnifeRack("PF_KnifeRack", null));
             var inductionHob = SaveFurniture(CreateHob("PF_InductionHob", Vector3.zero, GreyboxAssets.EnsureMaterial("InductionHob", InductionColor), null, Game.Simulation.Cooking.HeatKind.Induction));
             var fridge = SaveFurniture(BuildStorageForSale("PF_Fridge", StorageUnits[0]));

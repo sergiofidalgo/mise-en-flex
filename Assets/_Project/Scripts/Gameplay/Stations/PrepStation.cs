@@ -10,10 +10,10 @@ namespace Game.Gameplay.Stations
     /// <summary>
     /// The cutting board. A puts a whole ingredient on it, or with empty hands takes what's there;
     /// holding the knife, X cuts when the dial's needle is in the sweet spot. The cut stays here
-    /// and blocks the next one until someone moves it (decision 2026-11-04). It sits on a counter and
-    /// is moved only in management mode (decision 2026-11-07).
+    /// and blocks the next one until someone moves it (decision 2026-11-04). It's built into a counter
+    /// of its own (decision 2026-11-08): bought, placed, moved and sold as one piece.
     /// </summary>
-    public sealed class PrepStation : CounterTopStation, IFaceButtonTarget, IUsable, IStationPrompt
+    public sealed class PrepStation : Interactable, IFaceButtonTarget, IUsable, IStationPrompt
     {
         [Tooltip("Where the item on the cutting board sits.")]
         [SerializeField] private Transform _boardAnchor;

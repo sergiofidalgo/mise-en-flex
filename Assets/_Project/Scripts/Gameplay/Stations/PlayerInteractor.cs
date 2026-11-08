@@ -154,10 +154,8 @@ namespace Game.Gameplay.Stations
             for (var i = 0; i < _interactables.Count; i++)
             {
                 // Walls stop reaching, unless the station's against them: out of range is out of reach.
-                // A counter with a board on it is reached as that instead.
                 var position = _interactables[i].transform.position;
-                var covered = _interactables[i] is CounterStation counter && counter.IsCovered;
-                _candidatePositions.Add(!covered && _services.Building.CanReach(origin, _interactables[i].Footprint)
+                _candidatePositions.Add(_services.Building.CanReach(origin, _interactables[i].Footprint)
                     ? new SimVector2(position.x, position.z)
                     : origin + new SimVector2(float.MaxValue / 2f, 0f));
                 if (_interactables[i] == _target)

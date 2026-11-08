@@ -37,7 +37,6 @@ namespace Game.Tests.EditMode
             var stations = scene.GetRootGameObjects()
                 .SelectMany(root => root.GetComponentsInChildren<Game.Gameplay.Stations.Interactable>(true))
                 .Where(station => !(station is Game.Gameplay.Stations.StreetDoor)) // walked through, not around
-                .Where(station => !(station is Game.Gameplay.Stations.CounterTopStation)) // its counter blocks the way
                 .ToArray();
 
             Assert.That(stations, Is.Not.Empty);

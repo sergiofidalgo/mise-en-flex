@@ -101,8 +101,8 @@ namespace Game.Tests.PlayMode
         {
             yield return OpenKitchenWithCursor();
             var expensive = _editor.Shop.OrderByDescending(e => e.Price).First();
-            // Furniture that stands on the floor: kitchenware isn't carried, and a board goes on a counter.
-            var cheap = _editor.Shop.Where(e => !e.IsItem && e.Prefab.GetComponent<CounterTopStation>() == null).OrderBy(e => e.Price).First();
+            // Furniture, not kitchenware, which isn't carried.
+            var cheap = _editor.Shop.Where(e => !e.IsItem).OrderBy(e => e.Price).First();
             Days.TrySpend(Days.Balance);
 
             Assert.That(_editor.Buy(_cursor, expensive), Is.False);
@@ -265,19 +265,20 @@ namespace Game.Tests.PlayMode
         }
 
         [UnityTest]
-        public IEnumerator ABoughtBoardGoesOnAFreeCounterAndARackIsItsOwnCounter()
+        public IEnumerator ABoughtBoardAndKnifeRackAreEachTheirOwnCounter()
         {
             yield return OpenKitchenWithCursor();
-            Days.Receive(100f);
-            var free = _root.Services.Stations.All.OfType<CounterStation>().First(c => c.IsClear);
+            Days.Receive(200f);
 
-            var board = Buy<PrepStation>("board", new Vector2(free.transform.position.x, free.transform.position.z));
-            var rack = Buy<KnifeRackStation>("knife rack", OpenFloor);
-
-            Assert.That(board.OnCounter, Is.SameAs(free));
+            // Each goes on the floor like a counter. The board is sold again to make room for the rack.
+            var board = Buy<PrepStation>("board", OpenFloor);
             Assert.That(_root.Services.Stations.All.OfType<PrepStation>().Count(), Is.EqualTo(2));
-            var at = new Vector2(rack.transform.position.x, rack.transform.position.z);
-            Assert.That(Vector2.Distance(at, OpenFloor), Is.LessThan(0.5f), "placed on the floor like a counter");
+            Assert.That(Vector2.Distance(new Vector2(board.transform.position.x, board.transform.position.z), OpenFloor), Is.LessThan(0.5f));
+            Assert.That(_editor.Sell(_cursor), Is.True, "an empty board sells, with another left");
+            yield return null;
+
+            var rack = Buy<KnifeRackStation>("knife rack", OpenFloor);
+            Assert.That(Vector2.Distance(new Vector2(rack.transform.position.x, rack.transform.position.z), OpenFloor), Is.LessThan(0.5f));
 
             // The kitchen's knife goes from its counter onto the rack.
             _editor.Leave(_player);
