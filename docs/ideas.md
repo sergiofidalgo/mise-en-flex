@@ -265,3 +265,9 @@ Each customer gets a pickiness that widens or narrows what they accept and how r
 A later stage, and potentially ideal for co-op: hiring and buying stock happen at a separate place players physically go to, instead of on a menu. When a player leaves the restaurant, the camera zooms out, so one player can go for groceries while the other decorates, improves the layout or prepares mise en place. A hired helper can run the errand instead, and then the camera doesn't zoom out.
 
 To work out when we get there: staying readable when the camera has zoomed out, whether split-screen suits it better, and how long an errand takes compared to prep. Keep hiring and stock rules separate from their screens in Phase 3 and 5, so the Plan menus can be swapped for this. Connects to the framing camera deferred to Phase 4.
+
+## Taking out the trash (proposed by the user, 2026-11-08)
+
+The bin fills up as things are thrown away (its rubbish rises up the bag, `BinFillView`), but nothing empties it yet. Once the restaurant's outside exists, players tie off the full bag and carry it out to a dumpster, like any carried item, and put a fresh bag in.
+
+To work out when we get there: what a full bin does to play (refuses more rubbish? smells and costs hygiene or reputation, connecting to the hygiene realism dial and health inspections?), how many items fill a bag (`_itemsWhenFull` on `BinFillView`, 24 for now), and whether staff can do it. Today `BinStation.ThrownAway` only counts up, for the look.

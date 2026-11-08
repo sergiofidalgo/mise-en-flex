@@ -4,6 +4,21 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-08 — A deep sink with water, a bin that fills, plain dining furniture, a less yellow scene
+
+**Decision:**
+- **Dining furniture** (tables, the bar, chairs and stools) is plain wood colour, without grain.
+- **The sink** has parts in their own tones so its shape reads: a light steel top, a raised rolled rim round the opening, a darker basin, a dark drain and a chrome tap. It's always half-full of see-through blue water, so its depth shows, with the plate being washed visible under it.
+- **While anyone washes** (chef or dishwasher), water runs from the tap onto the water with splashes, and soap bubbles float on it (`SinkWashView`). It's seen from the wash progress moving and lingers a moment after.
+- **The bin** is an open tub lined with its black bag, so it looks deep and empty. A rubbish mound rises up the bag with each thing thrown away (`BinStation.ThrownAway`, `BinFillView`), full at 24.
+  - For now it only fills, and being full changes nothing in play.
+  - Taking the bag out comes with the restaurant's outside (docs/ideas.md).
+- **The scene is less yellow:** a near-white sun, neutral sky light, slightly cool shadows, and cream walls and countertops instead of yellow ones. The wood keeps its warmth.
+
+**Reason:** The user's notes on the dining furniture, the sink, the bin and the overall colour.
+
+---
+
 ## 2026-11-08 — Gas hob: fire is the only heat cue; soft gas flames; a grey knob with a red pointer
 
 **Decision:**

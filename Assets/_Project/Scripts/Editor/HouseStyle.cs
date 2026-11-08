@@ -19,17 +19,18 @@ namespace Game.Editor
         public const float OutlineWidth = 0.0035f;
 
         // The shadow side of a toon surface: its colour multiplied by this, a warm brown-rose.
-        public static readonly Color ShadowTint = new Color(0.76f, 0.66f, 0.64f);
+        public static readonly Color ShadowTint = new Color(0.72f, 0.7f, 0.75f);
 
-        // A warm sun from the top left, as in the vision image, with soft, not-quite-black shadows.
-        private static readonly Color SunColor = new Color(1f, 0.93f, 0.82f);
+        // A sun from the top left, as in the vision image, only slightly warm (the user found the
+        // scene too yellow, 2026-11-08), with soft, not-quite-black shadows.
+        private static readonly Color SunColor = new Color(1f, 0.97f, 0.92f);
         private const float SunIntensity = 1.15f;
         private const float ShadowStrength = 0.6f;
 
         // Sky light: warm from above, a little darker round the sides and below.
-        private static readonly Color AmbientSky = new Color(0.66f, 0.62f, 0.58f);
-        private static readonly Color AmbientEquator = new Color(0.52f, 0.46f, 0.4f);
-        private static readonly Color AmbientGround = new Color(0.3f, 0.25f, 0.21f);
+        private static readonly Color AmbientSky = new Color(0.62f, 0.63f, 0.65f);
+        private static readonly Color AmbientEquator = new Color(0.5f, 0.49f, 0.48f);
+        private static readonly Color AmbientGround = new Color(0.3f, 0.28f, 0.27f);
 
         private const string RoomShader = "Game/Room/Surface";
 
@@ -58,7 +59,7 @@ namespace Game.Editor
         /// <summary>Walls: cream plaster over wood panelling, with a wooden rail and cap.</summary>
         public static Material Wall() => RoomMaterial("Wall", "WALL", m =>
         {
-            m.SetColor("_BaseColor", new Color(0.93f, 0.87f, 0.75f));
+            m.SetColor("_BaseColor", new Color(0.92f, 0.9f, 0.85f));
             m.SetColor("_PanelColor", new Color(0.6f, 0.4f, 0.24f));
             m.SetColor("_CapColor", new Color(0.44f, 0.28f, 0.17f));
             m.SetColor("_SeamColor", new Color(0.33f, 0.21f, 0.13f));

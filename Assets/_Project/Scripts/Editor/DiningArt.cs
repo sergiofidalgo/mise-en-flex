@@ -3,7 +3,8 @@ using UnityEngine;
 namespace Game.Editor
 {
     /// <summary>
-    /// The dining room's furniture models (decision 2026-11-08, the art overhaul): wooden tables, a
+    /// The dining room's furniture models (decision 2026-11-08, the art overhaul), in plain wood
+    /// colours without grain (the user's note): wooden tables, a
     /// panelled bar, chairs that face their table, bar stools, and framed pictures for the walls.
     /// Without the model, everything keeps its greybox shape.
     /// </summary>
@@ -12,11 +13,8 @@ namespace Game.Editor
         private const string Model = "SM_Dining";
 
         private static readonly Color TableWood = new Color(0.6f, 0.4f, 0.24f);
-        private static readonly Color TableGrain = new Color(0.52f, 0.34f, 0.2f);
         private static readonly Color BarWood = new Color(0.5f, 0.32f, 0.19f);
-        private static readonly Color BarGrain = new Color(0.43f, 0.27f, 0.16f);
         private static readonly Color BarTopWood = new Color(0.72f, 0.52f, 0.32f);
-        private static readonly Color BarTopGrain = new Color(0.64f, 0.45f, 0.27f);
         private static readonly Color ChairWood = new Color(0.44f, 0.28f, 0.17f);
         private static readonly Color FrameWood = new Color(0.36f, 0.22f, 0.13f);
 
@@ -31,13 +29,13 @@ namespace Game.Editor
                 return null;
 
             body.GetComponent<Renderer>().sharedMaterial = bar
-                ? StyleTest.EnsureToonMaterial("BarWood", BarWood, BarGrain, grainScale: 14f)
-                : StyleTest.EnsureToonMaterial("TableWood", TableWood, TableGrain, grainScale: 14f);
+                ? StyleTest.EnsureToonMaterial("BarWood", BarWood)
+                : StyleTest.EnsureToonMaterial("TableWood", TableWood);
             if (!bar)
                 return null;
 
             var top = GreyboxAssets.CreatePrimitive(PrimitiveType.Cube, "Top", body,
-                StyleTest.EnsureToonMaterial("BarTop", BarTopWood, BarTopGrain, grainScale: 18f), keepCollider: false);
+                StyleTest.EnsureToonMaterial("BarTop", BarTopWood), keepCollider: false);
             if (PilotArt.TryUseMesh(top, Model, "BarTop"))
                 return top.GetComponent<Renderer>();
             Object.DestroyImmediate(top);
@@ -52,7 +50,7 @@ namespace Game.Editor
         {
             if (!PilotArt.TryUseMesh(chair, Model, stool ? "Stool" : "DiningChair"))
                 return;
-            chair.GetComponent<Renderer>().sharedMaterial = StyleTest.EnsureToonMaterial("ChairWood", ChairWood, TableGrain, grainScale: 20f);
+            chair.GetComponent<Renderer>().sharedMaterial = StyleTest.EnsureToonMaterial("ChairWood", ChairWood);
             if (!stool)
                 chair.transform.localRotation = Quaternion.LookRotation(-fromTable);
         }

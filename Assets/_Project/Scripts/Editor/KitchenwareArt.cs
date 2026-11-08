@@ -39,9 +39,41 @@ namespace Game.Editor
         private const float PlateOutline = 0.0025f;
         private const float WireOutline = 0.0012f;
         private static readonly Color SteelColor = new Color(0.74f, 0.76f, 0.8f);
+        private static readonly Color SinkRimSteel = new Color(0.88f, 0.9f, 0.93f);
+        private static readonly Color SinkBasinGrey = new Color(0.48f, 0.5f, 0.55f);
+        private static readonly Color SinkDrainDark = new Color(0.12f, 0.12f, 0.14f);
+        private static readonly Color SinkChrome = new Color(0.93f, 0.95f, 0.98f);
+
+        // The tap's nozzle, from the sink's model: water falls from here to the basin's floor.
+        // Must match build_sink() in blender/build_pilot_models.py (Blender y -0.2 is the game's z 0.2).
+        private const float NozzleHeight = 1.08f;
+        private const float NozzleBack = 0.2f;
+        private const float StreamWidth = 0.028f;
+        // The water in the basin: about half way up its 0.15 m, over the plate on its floor.
+        // The basin's opening, from build_sink(): 0.76 by 0.64 m.
+        private const float WaterLevel = 0.82f;
+        private const float BasinWidth = 0.74f;
+        private const float BasinDepth = 0.62f;
         private const string BinModel = "SM_Bin";
         private static readonly Color BinGrey = new Color(0.45f, 0.47f, 0.5f);
         private static readonly Color BinBagBlack = new Color(0.12f, 0.12f, 0.13f);
+        private static readonly Color BinTrashColor = new Color(0.5f, 0.45f, 0.38f);
+
+        /// <summary>
+        /// Shows the bin's fill (the user's note, 2026-11-08): its rubbish mound, made by DressBin,
+        /// rises with what's thrown away. Only with the bin's model.
+        /// </summary>
+        public static void AddBinFill(Game.Gameplay.Stations.BinStation bin, Transform body)
+        {
+            var trash = body.Find("Trash");
+            if (trash == null)
+                return;
+            trash.GetComponent<Renderer>().enabled = false; // empty to start
+            var view = new SerializedObject(bin.gameObject.AddComponent<BinFillView>());
+            view.FindProperty("_bin").objectReferenceValue = bin;
+            view.FindProperty("_trash").objectReferenceValue = trash;
+            view.ApplyModifiedPropertiesWithoutUndo();
+        }
 
         public enum PlateLayout
         {
@@ -116,17 +148,84 @@ namespace Game.Editor
         }
 
         /// <summary>
-        /// The sink's steel top, basin and tap, on its cabinet (CabinetArt, underSink): a part under
-        /// the station's body, so it shakes and lights up with it. Null if there's no model.
+        /// The sink's steel top, rolled rim, basin, drain and tap on its cabinet (CabinetArt,
+        /// underSink), in their own tones so its shape reads (the user's note, 2026-11-08): parts
+        /// under the station's body, so they shake and light up with it. Empty without the model.
         /// </summary>
-        public static Renderer DressSink(Transform body)
+        public static List<Renderer> DressSink(Transform body)
         {
-            var part = GreyboxAssets.CreatePrimitive(PrimitiveType.Cube, "SinkTop", body,
-                StyleTest.EnsureToonMaterial("SinkSteel", SteelColor), keepCollider: false);
-            if (PilotArt.TryUseMesh(part, SinkModel, "SinkBody"))
-                return part.GetComponent<Renderer>();
-            Object.DestroyImmediate(part);
-            return null;
+            var parts = new List<Renderer>();
+            Add("SinkTop", "SinkBody", SteelColor);
+            if (parts.Count == 0)
+                return parts;
+            Add("Rim", "SinkRim", SinkRimSteel);
+            Add("Basin", "SinkBasin", SinkBasinGrey);
+            Add("Drain", "SinkDrain", SinkDrainDark);
+            Add("Tap", "SinkTap", SinkChrome);
+            return parts;
+
+            void Add(string name, string mesh, Color color)
+            {
+                var part = GreyboxAssets.CreatePrimitive(PrimitiveType.Cube, name, body,
+                    StyleTest.EnsureToonMaterial(name == "SinkTop" ? "SinkSteel" : $"Sink{name}", color), keepCollider: false);
+                if (PilotArt.TryUseMesh(part, SinkModel, mesh))
+                    parts.Add(part.GetComponent<Renderer>());
+                else
+                    Object.DestroyImmediate(part);
+            }
+        }
+
+        /// <summary>
+        /// The water that runs while the sink is in use (the user's note, 2026-11-08): a stream from
+        /// the tap's nozzle to the basin, splashes where it lands and soap bubbles round the plate,
+        /// all under the sink, with the view that runs them. Only with the sink's model.
+        /// </summary>
+        public static void AddWashEffects(Game.Gameplay.Stations.SinkStation sink)
+        {
+            // Always half-full of water (the user's note, 2026-11-08): a see-through surface across
+            // the basin, so its depth reads, with the plate being washed visible beneath it.
+            var water = GreyboxAssets.CreatePrimitive(PrimitiveType.Quad, "Water", sink.transform,
+                PilotArt.EnsureSinkWaterMaterial(), keepCollider: false);
+            water.transform.localPosition = new Vector3(0f, WaterLevel, 0f);
+            water.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+            water.transform.localScale = new Vector3(BasinWidth, BasinDepth, 1f);
+            water.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+
+            var stream = GreyboxAssets.CreatePrimitive(PrimitiveType.Cylinder, "WaterStream", sink.transform,
+                PilotArt.EnsureWaterMaterial(), keepCollider: false);
+            var length = NozzleHeight - WaterLevel;
+            stream.transform.localPosition = new Vector3(0f, (NozzleHeight + WaterLevel) / 2f, NozzleBack);
+            stream.transform.localScale = new Vector3(StreamWidth, length / 2f, StreamWidth); // a cylinder is 2 tall
+            var streamRenderer = stream.GetComponent<Renderer>();
+            streamRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            streamRenderer.enabled = false; // runs only while washing (SinkWashView)
+
+            var splash = GreyboxKitchenware.CreateParticles(sink.transform, "Splash", WaterLevel, 0.03f,
+                lifetime: 0.35f, speed: 0.6f, minSize: 0.012f, maxSize: 0.025f, growth: 0.5f, maxParticles: 60);
+            splash.transform.localPosition = new Vector3(0f, WaterLevel, NozzleBack);
+            var splashMain = splash.main;
+            splashMain.gravityModifier = 1.5f;
+            splashMain.simulationSpace = ParticleSystemSimulationSpace.Local;
+            splashMain.startColor = new Color(0.8f, 0.92f, 1f, 0.9f);
+            var splashShape = splash.shape;
+            splashShape.angle = 55f;
+
+            // Soap bubbles floating on the water.
+            var bubbles = GreyboxKitchenware.CreateParticles(sink.transform, "Bubbles", WaterLevel + 0.005f, 0.22f,
+                lifetime: 1.6f, speed: 0.02f, minSize: 0.025f, maxSize: 0.06f, growth: 1.3f, maxParticles: 60);
+            var bubblesMain = bubbles.main;
+            bubblesMain.simulationSpace = ParticleSystemSimulationSpace.Local;
+            bubblesMain.startColor = new Color(0.95f, 0.98f, 1f, 0.85f);
+            var bubbleNoise = bubbles.noise;
+            bubbleNoise.enabled = true;
+            bubbleNoise.strength = 0.05f;
+
+            var view = new SerializedObject(sink.gameObject.AddComponent<SinkWashView>());
+            view.FindProperty("_sink").objectReferenceValue = sink;
+            view.FindProperty("_stream").objectReferenceValue = streamRenderer;
+            view.FindProperty("_splash").objectReferenceValue = splash;
+            view.FindProperty("_bubbles").objectReferenceValue = bubbles;
+            view.ApplyModifiedPropertiesWithoutUndo();
         }
 
         /// <summary>
@@ -140,6 +239,7 @@ namespace Game.Editor
                 return parts;
             body.GetComponent<Renderer>().sharedMaterial = StyleTest.EnsureToonMaterial("BinBody", BinGrey);
             AddBinPart("Bag", "BinBag", StyleTest.EnsureToonMaterial("BinBag", BinBagBlack));
+            AddBinPart("Trash", "BinTrash", StyleTest.EnsureToonMaterial("BinTrash", BinTrashColor));
             return parts;
 
             void AddBinPart(string name, string mesh, Material material)

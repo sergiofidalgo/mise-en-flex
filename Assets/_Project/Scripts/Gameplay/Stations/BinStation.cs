@@ -31,6 +31,9 @@ namespace Game.Gameplay.Stations
 
         public ItemSink Sink => _sink;
 
+        /// <summary>How many things have been thrown in, for showing how full it is.</summary>
+        public int ThrownAway { get; private set; }
+
         public override void Bind(KitchenServices services)
         {
             _services = services;
@@ -69,6 +72,7 @@ namespace Game.Gameplay.Stations
 
         private void HandleDiscarded(Item item)
         {
+            ThrownAway++;
             if (item is Ingredient ingredient)
                 _services.Cooking.Remove(ingredient);
             _services.ItemViews.Release(item);

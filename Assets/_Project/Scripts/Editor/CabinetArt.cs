@@ -19,7 +19,7 @@ namespace Game.Editor
         private static readonly Color FrontsGrain = new Color(0.59f, 0.39f, 0.23f);
         // A plain, pale top with no texture (the user's note, 2026-11-08), so plates, food and the
         // bamboo cutting board stand out on it.
-        private static readonly Color Top = new Color(0.87f, 0.77f, 0.6f);
+        private static readonly Color Top = new Color(0.86f, 0.81f, 0.73f);
         private static readonly Color Base = new Color(0.24f, 0.16f, 0.11f);
         private static readonly Color Brass = new Color(0.8f, 0.62f, 0.3f);
 

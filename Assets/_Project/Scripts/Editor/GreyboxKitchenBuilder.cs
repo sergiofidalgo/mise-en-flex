@@ -591,10 +591,12 @@ namespace Game.Editor
             // being washed shows in the basin.
             // On the shared wooden cabinet, with its steel top and basin (decision 2026-11-08).
             DressCabinet(sink, underSink: true);
-            var sinkTop = KitchenwareArt.DressSink(sink.transform.Find("Body"));
-            var modelled = sinkTop != null;
+            var sinkParts = KitchenwareArt.DressSink(sink.transform.Find("Body"));
+            var modelled = sinkParts.Count > 0;
+            foreach (var part in sinkParts)
+                AddToHighlight(sink, part);
             if (modelled)
-                AddToHighlight(sink, sinkTop);
+                KitchenwareArt.AddWashEffects(sink); // water and bubbles while it's in use
             SetObjects(sinkPile.FindProperty("_dirty"), KitchenwareArt.CreatePlates(sink.transform,
                 modelled ? KitchenwareArt.SinkBasinFloor : CounterHeight, 1, DirtyPlateColor, "DirtyPlate",
                 modelled ? new Vector3(KitchenwareArt.SinkBasinX, 0f, 0f) : Vector3.zero, KitchenwareArt.PlateLayout.Stack, dirty: true));
@@ -614,6 +616,7 @@ namespace Game.Editor
             binBody.SetParent(snug, false);
             foreach (var part in KitchenwareArt.DressBin(binBody))
                 AddToHighlight(bin, part);
+            KitchenwareArt.AddBinFill(bin, binBody); // rubbish rises as things are thrown away
             SetReference(bin, "_snug", snug);
 
             var storage = new GameObject("Zone_Storage").transform;

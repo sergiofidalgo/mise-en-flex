@@ -492,13 +492,6 @@ def build_sink():
     add_box(bm, (2 * hole_x, 0.5 - hole_y, thickness), (0.0, (0.5 + hole_y) / 2.0, z), bevel=0.014)
     add_box(bm, (2 * hole_x, 0.5 - hole_y, thickness), (0.0, -(0.5 + hole_y) / 2.0, z), bevel=0.014)
     add_box(bm, (1.0, 0.04, 0.1), (0.0, -0.48, top + 0.05), bevel=0.015)  # upstand along the back
-    # The basin, 0.15 deep: the plate being washed sits on its floor at 0.75.
-    add_box(bm, (2 * hole_x, 2 * hole_y, 0.02), (0.0, 0.0, top - 0.16), bevel=0.006)
-    for y in (-hole_y, hole_y):
-        add_box(bm, (2 * hole_x, 0.02, 0.16), (0.0, y, top - 0.08))
-    for x in (-hole_x, hole_x):
-        add_box(bm, (0.02, 2 * hole_y, 0.16), (x, 0.0, top - 0.08))
-    add_lathe(bm, [(0.035, 0.0), (0.035, 0.004), (0.0, 0.004)], segments=16, centre=(0.0, 0.0, top - 0.15))  # drain
     # A steel lip from the top down to the cabinet body below, so the sides stay closed.
     lip_top, lip_bottom = top - thickness, 0.72
     lip_z, lip_h = (lip_top + lip_bottom) / 2.0, lip_top - lip_bottom
@@ -506,8 +499,32 @@ def build_sink():
         add_box(bm, (0.98, 0.02, lip_h), (0.0, y, lip_z))
     for x in (-0.48, 0.48):
         add_box(bm, (0.02, 0.94, lip_h), (x, 0.0, lip_z))
+    body = finish("SinkBody", bm)
+
+    # The parts in their own tones, so the sink's shape reads (the user's note, 2026-11-08): a
+    # raised rolled rim round the opening, a darker basin, a dark drain and a bright tap.
+    bm = bmesh.new()
+    rim = 0.014
+    corners = [(-hole_x, -hole_y), (hole_x, -hole_y), (hole_x, hole_y), (-hole_x, hole_y), (-hole_x, -hole_y)]
+    add_pipe(bm, [(x, y, top + 0.004) for x, y in corners], radius=rim, segments=10)
+    rim_mesh = finish("SinkRim", bm)
+
+    # The basin, 0.15 deep: the plate being washed sits on its floor at 0.75.
+    bm = bmesh.new()
+    add_box(bm, (2 * hole_x, 2 * hole_y, 0.02), (0.0, 0.0, top - 0.16), bevel=0.006)
+    for y in (-hole_y, hole_y):
+        add_box(bm, (2 * hole_x, 0.02, 0.16), (0.0, y, top - 0.08))
+    for x in (-hole_x, hole_x):
+        add_box(bm, (0.02, 2 * hole_y, 0.16), (x, 0.0, top - 0.08))
+    basin = finish("SinkBasin", bm)
+    bm = bmesh.new()
+    add_lathe(bm, [(0.0, 0.0), (0.045, 0.0), (0.045, 0.004), (0.03, 0.006), (0.0, 0.006)], segments=20,
+              centre=(0.0, 0.0, top - 0.15))
+    drain = finish("SinkDrain", bm)
+
     # A swan-neck tap rising from the middle of the back edge and arching forward over the basin,
     # so water comes from the back of the sink.
+    bm = bmesh.new()
     add_lathe(bm, [(0.05, 0.0), (0.05, 0.025), (0.035, 0.045), (0.0, 0.045)], segments=20, centre=(0.0, -0.4, top))
     arch_centre, arch_radius = Vector((0.0, -0.3, top + 0.28)), 0.1
     neck = [(0.0, -0.4, top + 0.04)]
@@ -518,7 +535,8 @@ def build_sink():
     add_pipe(bm, neck, radius=0.022)
     add_lathe(bm, [(0.03, 0.0), (0.03, 0.025), (0.0, 0.025)], segments=16, centre=(0.0, -0.2, top + 0.18))  # nozzle
     add_pipe(bm, [(0.0, -0.4, top + 0.1), (0.0, -0.46, top + 0.17)], radius=0.013)  # lever, at the back
-    return [finish("SinkBody", bm)]
+    tap = finish("SinkTap", bm)
+    return [body, rim_mesh, basin, drain, tap]
 
 
 def build_cabinet():
@@ -606,20 +624,33 @@ def build_bin():
     so it sits snug against walls and stations within its 1 m slot (SnugFit)."""
     bottom_r, top_r, height = 0.24, 0.26, 0.72
     bm = bmesh.new()
+    # An open tub: the outside up to the rim, then the inside wall back down to a floor, so it
+    # looks deep and empty from above (the user's note, 2026-11-08).
     add_lathe(bm, [(0.0, 0.0), (bottom_r - 0.02, 0.0), (bottom_r, 0.02), (bottom_r, 0.3),
-                   (bottom_r + 0.01, 0.32), (top_r - 0.005, 0.62), (top_r, height - 0.04), (0.0, height - 0.04)], segments=32)
+                   (bottom_r + 0.01, 0.32), (top_r - 0.005, 0.62), (top_r, height - 0.04),
+                   (top_r - 0.02, height - 0.04), (bottom_r - 0.03, 0.06), (0.0, 0.06)], segments=32)
     for k in range(6):  # ribs down the sides
         a = 2 * math.pi * k / 6 + math.pi / 6
         add_box(bm, (0.03, 0.03, 0.28), (bottom_r * math.cos(a), bottom_r * math.sin(a), 0.16), bevel=0.01)
     for side in (-1.0, 1.0):  # handles
         add_box(bm, (0.04, 0.14, 0.06), (side * (top_r + 0.025), 0.0, 0.56), bevel=0.015)
     body = finish("BinBody", bm)
-    bm = bmesh.new()  # the bag: folded over the rim, and sunk a little inside
+    bm = bmesh.new()  # the bag: folded over the rim, and lining the tub right down to its floor
     add_lathe(bm, [(top_r - 0.02, height - 0.2), (top_r + 0.012, height - 0.12), (top_r + 0.022, height - 0.03),
-                   (top_r + 0.01, height), (top_r - 0.025, height - 0.005), (top_r - 0.04, height - 0.06),
-                   (0.0, height - 0.09)], segments=24)
+                   (top_r + 0.01, height), (top_r - 0.025, height - 0.005), (top_r - 0.035, height - 0.08),
+                   (bottom_r - 0.04, 0.09), (bottom_r - 0.06, 0.075), (0.0, 0.075)], segments=24)
     bag = finish("BinBag", bm)
-    return [body, bag]
+
+    # What's been thrown away: a lumpy mound, its origin at its base, that the game raises up
+    # the bag as the bin fills (BinFillView).
+    bm = bmesh.new()
+    add_lathe(bm, [(0.0, 0.0), (0.18, 0.0), (0.17, 0.03), (0.1, 0.06), (0.0, 0.07)], segments=20)
+    for k, (r, a, size) in enumerate([(0.0, 0.0, 0.06), (0.11, 0.4, 0.05), (0.12, 1.9, 0.045), (0.1, 3.2, 0.055),
+                                      (0.12, 4.5, 0.04), (0.08, 5.6, 0.05)]):
+        add_ball(bm, (r * math.cos(a), r * math.sin(a), 0.05 + 0.01 * (k % 2)), size, segments=10)
+    trash = finish("BinTrash", bm)
+    trash.location = (0.8, 0.0, 0.0)  # apart, for previews only
+    return [body, bag, trash]
 
 
 SEAT_HEIGHT = 0.44  # the top of a chair or stool seat; must match the builder's ChairScale (0.22 * 2)

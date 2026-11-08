@@ -121,6 +121,43 @@ namespace Game.Editor
             return material;
         }
 
+        /// <summary>
+        /// Running water (MAT_Water): unlit, pale blue and see-through, for the sink's stream.
+        /// Created once.
+        /// </summary>
+        public static Material EnsureWaterMaterial()
+        {
+            const string path = MaterialsFolder + "/MAT_Water.mat";
+            var material = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (material != null)
+                return material;
+
+            material = new Material(Shader.Find("Universal Render Pipeline/Unlit"));
+            material.SetColor(BaseColorId, new Color(0.72f, 0.88f, 1f, 0.6f));
+            material.SetFloat("_Surface", 1f); // transparent
+            material.SetFloat("_Blend", 0f);   // alpha
+            material.SetFloat("_SrcBlend", (float)UnityEngine.Rendering.BlendMode.SrcAlpha);
+            material.SetFloat("_DstBlend", (float)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+            material.SetFloat("_ZWrite", 0f);
+            material.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+            material.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
+            AssetDatabase.CreateAsset(material, path);
+            return material;
+        }
+
+        /// <summary>The water standing in the sink (MAT_SinkWater): a see-through blue. Created once.</summary>
+        public static Material EnsureSinkWaterMaterial()
+        {
+            const string path = MaterialsFolder + "/MAT_SinkWater.mat";
+            var material = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (material != null)
+                return material;
+            material = new Material(EnsureWaterMaterial());
+            material.SetColor(BaseColorId, new Color(0.42f, 0.66f, 0.88f, 0.42f));
+            AssetDatabase.CreateAsset(material, path);
+            return material;
+        }
+
         /// <summary>The layered food material (MAT_Food_<paramref name="name"/>). Created once.</summary>
         public static Material EnsureLayeredFoodMaterial(string name, Color rawColor)
         {

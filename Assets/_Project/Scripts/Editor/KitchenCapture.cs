@@ -73,6 +73,31 @@ namespace Game.Editor
                     Path.Combine(folder, $"close_{name}.png"));
             }
 
+            // The sink as it looks while washing: the view only runs in Play mode, so turn its
+            // water on and run its particles a while by hand.
+            var wash = UnityEngine.Object.FindFirstObjectByType<Game.Presentation.SinkWashView>();
+            if (wash != null)
+            {
+                var so = new SerializedObject(wash);
+                ((Renderer)so.FindProperty("_stream").objectReferenceValue).enabled = true;
+                foreach (var name in new[] { "_splash", "_bubbles" })
+                {
+                    var particles = (ParticleSystem)so.FindProperty(name).objectReferenceValue;
+                    var emission = particles.emission;
+                    emission.rateOverTime = 30f;
+                    particles.Simulate(1.5f, true, true);
+                }
+                // And the bin beside it, half full (BinFillView only runs in Play mode).
+                var fill = UnityEngine.Object.FindFirstObjectByType<Game.Presentation.BinFillView>();
+                if (fill != null)
+                {
+                    var trash = (Transform)new SerializedObject(fill).FindProperty("_trash").objectReferenceValue;
+                    trash.GetComponent<Renderer>().enabled = true;
+                    trash.localPosition = new Vector3(0f, 0.35f, 0f);
+                }
+                Render(camera, target, wash.transform.position + Vector3.up * 0.9f, CloseHeight, Path.Combine(folder, "close_Sink_washing.png"));
+            }
+
             // A row of plates outside the kitchen: clean, half washed, then dirty with different messes.
             var platePrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/_Project/Prefabs/Items/PF_Item_Plate.prefab");
             for (var i = 0; i < PlateRow; i++)
