@@ -4,6 +4,15 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-08 — A dropped-looking plate pile; the knife block faces front; no cutting dial for the layout cursor
+
+**Decision:** (the user's notes after playing)
+- **A pile of dirty plates on a counter looks dropped, not stacked.** Each plate is nudged up to 5 cm and turned, and the ones up the pile tip up to 5°. The bottom one lies flat. Before, the plates above the first sat exactly on it and missed the plate size on counters, so they showed smaller than the bottom one (`CounterRestView` now counts a pile's levels as on the counter).
+- **The knife block stands in the middle of its counter with its sloping face to the front.** It had been turned a quarter to show the handles full length; the user prefers it facing out.
+- **Bug fixed:** with the knife in the chef's tool slot, the cutting dial showed under the layout cursor in management mode, for instance while placing a cutting board from the shop. There the chef's target is whatever the cursor is over, so the dial thought the chef was at the board. The dial now ignores chefs who are managing. A play test checks it shows at the board and not for the cursor; the test failed before the fix.
+
+---
+
 ## 2026-11-08 — Steel sheet trays and gastronorm containers
 
 **Decision:** (the user's references) The tray and container racks were piles of grey discs, and the items were flat boxes.
