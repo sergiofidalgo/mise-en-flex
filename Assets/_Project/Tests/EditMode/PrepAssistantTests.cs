@@ -176,6 +176,27 @@ namespace Game.Tests.EditMode
         }
 
         [Test]
+        public void ForDiceTheyCutAnOnionIntoRingsAndOn()
+        {
+            // An onion cuts into rings, and the rings into dice (decision 2026-11-08).
+            Kitchen();
+            _board = new PrepCounter(whole => _sim.Transform(whole,
+                whole.TypeId == "Onion" ? Properties("OnionRings", "DicedOnion") : Properties("DicedOnion")));
+            var member = new StaffMember(new Candidate("Ana", StaffRole.PrepAssistant, "steady", 1f, 1f, 40f));
+            _job = new PrepAssistant(member, new[] { _counter }, new[] { _fridge }, _board, _trays, _bin, _sim,
+                new StaffSettings { FatiguePerJob = 0f, FatigueMistakes = 0f }, 1,
+                typeId => typeId == "OnionRings" ? "DicedOnion" : null);
+            var container = SetOutContainer("DicedOnion", 1);
+            _fridge.Stock("Onion", () => _sim.AddIngredient(Properties("Onion", "OnionRings")), 2);
+
+            Work();
+
+            Assert.That(container.Items.Count, Is.GreaterThanOrEqualTo(2));
+            Assert.That(container.Items.All(i => i.TypeId == "DicedOnion"), "dice, not rings");
+            Assert.That(_board.Current, Is.Null, "they leave the board clear");
+        }
+
+        [Test]
         public void SkillDecidesHowEvenTheirCutsAre()
         {
             float Evenness(float skill)

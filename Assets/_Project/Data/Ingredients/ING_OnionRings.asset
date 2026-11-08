@@ -1,0 +1,50 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7b2034aa0184d4d669bf41dc24493bdf, type: 3}
+  m_Name: ING_OnionRings
+  m_EditorClassIdentifier: Game.Data::Game.Data.IngredientDefinition
+  _typeId: OnionRings
+  _displayName: Onion rings
+  _prefab: {fileID: 2976180443513407102, guid: 37d509a43921f4c86a99ccc61452e03a, type: 3}
+  _massKg: 0.15
+  _specificHeat: 3900
+  _surfaceFraction: 0.25
+  _surfaceCoreConductance: 2
+  _panContactConductance: 6
+  _airConductance: 0.6
+  _evaporationConductance: 25
+  _browningStartTemperature: 140
+  _browningRate: 0.00007142857
+  _burntBrowning: 2
+  _donenessLevels:
+  - _name: Softened
+    _minPeakCoreTemperature: 80
+    _orderTargetCoreTemperature: 85
+  - _name: Cooked
+    _minPeakCoreTemperature: 92
+    _orderTargetCoreTemperature: 92
+  _startTemperature: 20
+  _freshnessLossPerHourAt20C: 0.020833334
+  _scoreDoneness: 1
+  _targetCoreTemperature: 92
+  _scoreBrowning: 1
+  _needsFlip: 0
+  _servedHot: 1
+  _servingIdealTemperature: 52
+  _servingColdTemperature: 38
+  _restTargetSeconds: 0
+  _cutIntoTypeId: DicedOnion
+  _cutsNeeded: 3
+  _chopSecondsPerSweep: 0.7
+  _sweetSpotPosition: 110
+  _sweetSpotGood: 14
+  _sweetSpotOk: 28

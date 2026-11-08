@@ -252,6 +252,60 @@ namespace Game.Tests.EditMode
             Assert.That(_counter.CanAccept(NewOnion()));
         }
 
+        // A cut that cuts further (decision 2026-11-08): an onion into rings, the rings into dice.
+
+        private static readonly IngredientProperties Rings = new IngredientProperties
+        {
+            TypeId = "OnionRings", HeatCapacity = 585f, SurfaceFraction = 0.25f, StartTemperature = 20f,
+            CutIntoTypeId = "DicedOnion", CutsNeeded = 3,
+            ChopSecondsPerSweep = Sweep, SweetSpotPosition = Spot, SweetSpotGoodHalfWidth = 12f, SweetSpotOkHalfWidth = 28f,
+        };
+
+        private PrepCounter ChainCounter() =>
+            new PrepCounter(whole => _sim.Transform(whole, whole.TypeId == "Onion" ? Rings : DicedOnion));
+
+        private static double ChopTimes(PrepCounter counter, int times, double t)
+        {
+            for (var i = 0; i < times; i++)
+            {
+                t += 0.01 + counter.Dial.SecondsUntil(Spot, t + 0.01);
+                counter.Chop(t);
+            }
+            return t;
+        }
+
+        private Ingredient NewOnionForRings() => _sim.AddIngredient(new IngredientProperties
+        {
+            TypeId = "Onion", HeatCapacity = 585f, SurfaceFraction = 0.15f, StartTemperature = 20f,
+            CutIntoTypeId = "OnionRings", CutsNeeded = 2,
+            ChopSecondsPerSweep = Sweep, SweetSpotPosition = Spot, SweetSpotGoodHalfWidth = 12f, SweetSpotOkHalfWidth = 28f,
+        });
+
+        [Test]
+        public void StoppingPartWayKeepsTheFirstCut()
+        {
+            var counter = ChainCounter();
+            counter.Put(NewOnionForRings());
+            ChopTimes(counter, 2, 10.0);
+
+            Assert.That(counter.Current.TypeId, Is.EqualTo("OnionRings"));
+            Assert.That(counter.CanChop, "rings can be cut on into dice");
+            Assert.That(counter.Cuts, Is.Zero, "a fresh count for the next cut");
+            Assert.That(counter.Take().TypeId, Is.EqualTo("OnionRings"), "taken off, they stay rings");
+        }
+
+        [Test]
+        public void CuttingOnTurnsTheFirstCutIntoTheNext()
+        {
+            var counter = ChainCounter();
+            counter.Put(NewOnionForRings());
+            var t = ChopTimes(counter, 2, 10.0);
+            ChopTimes(counter, 3, t);
+
+            Assert.That(counter.Current.TypeId, Is.EqualTo("DicedOnion"));
+            Assert.That(counter.CanChop, Is.False);
+        }
+
         [Test]
         public void OnlyFoodToCutGoesOnTheBoard()
         {

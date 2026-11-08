@@ -4,6 +4,20 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-08 — An onion cuts into rings, then on into dice; a clearer knife
+
+**Decision:**
+- **An onion cuts in two steps** (the user's note): two chops make **onion rings**, a new ingredient. Three more chops on the rings make dice: five in all, as before. To keep rings, stop and take them off the board. The board keeps cutting what it just cut whenever that can be cut further, with a fresh cutting dial for each step.
+- **Rings cook like dice but a little slower**, being thicker. This is starting tuning, copied from diced onion and not yet tested in play. No dish asks for rings yet (`ideas.md`).
+- **The prep assistant follows the chain:** asked for dice, it fetches an onion and cuts it through rings into dice.
+- **The cut shows its stage on the board:** the onion's first chop leaves two halves lying cut face up; then the fan of rings; each chop into the rings pushes fewer rings aside as the dice pile up; then the dice heap.
+- **A knife put down on a counter lies across it, diagonal and 1.6× its size**, so it reads from above. At its real size, pointing straight away, it was a sliver on a whole counter.
+- **The sheath only shows while the chef has a knife**, so you can tell at a glance whether a chef is carrying one (the user's note). This replaces "the sheath is there even without a knife" from the entry below.
+
+**Reason:** The user's notes from playing: an onion should go from halves to rings to dice, with stopping for rings; a knife on a counter was hard to see; and it should be clearer whether a chef has a knife.
+
+---
+
 ## 2026-11-08 — The knife rides in a sheath; an onion comes apart as it's cut
 
 **Decision:**

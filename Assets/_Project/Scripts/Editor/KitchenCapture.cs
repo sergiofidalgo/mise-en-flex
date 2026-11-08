@@ -155,14 +155,23 @@ namespace Game.Editor
             // A chef at the cutting board, knife out (the arms only move in play).
             var board = props + new Vector3(0f, 0f, 5f);
             var cuttingBoard = Spawn("Assets/_Project/Prefabs/Furniture/PF_CuttingBoard.prefab", board + new Vector3(0.75f, 0f, 0f));
-            // An onion part way through cutting: both halves and some dice (only seen in play).
+            // Onion rings part way through dicing: three rings pushed aside and some dice (only seen in play).
             var progress = cuttingBoard != null ? cuttingBoard.transform.Find("CutProgress") : null;
             if (progress != null)
                 foreach (Transform piece in progress)
-                    if (piece.name.StartsWith("Half_") || (piece.name.StartsWith("Die_") && int.Parse(piece.name.Substring(4)) < 7))
+                    if ((piece.name.StartsWith("Ring_") && int.Parse(piece.name.Substring(5)) < 3)
+                        || (piece.name.StartsWith("Die_") && int.Parse(piece.name.Substring(4)) < 4))
                         piece.gameObject.SetActive(true);
-            // A finished cut beside it.
-            Spawn("Assets/_Project/Prefabs/Items/PF_Item_DicedOnion.prefab", board + new Vector3(1.55f, 0.9f, 0.3f));
+            // The finished cuts beside it: rings, and dice.
+            Spawn("Assets/_Project/Prefabs/Items/PF_Item_OnionRings.prefab", board + new Vector3(1.55f, 0.9f, 0.55f));
+            Spawn("Assets/_Project/Prefabs/Items/PF_Item_DicedOnion.prefab", board + new Vector3(1.55f, 0.9f, 0.05f));
+            // An onion just halved, beside them.
+            if (progress != null)
+            {
+                var halved = UnityEngine.Object.Instantiate(progress.gameObject, board + new Vector3(1.55f, 0.9f, -0.5f), Quaternion.identity);
+                foreach (Transform piece in halved.transform)
+                    piece.gameObject.SetActive(piece.name.StartsWith("Half_"));
+            }
             var cook = Spawn("Assets/_Project/Prefabs/PF_Player.prefab", board);
             if (cook != null)
             {

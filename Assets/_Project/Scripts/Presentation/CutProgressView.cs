@@ -1,3 +1,4 @@
+using System;
 using Game.Gameplay.Items;
 using Game.Gameplay.Stations;
 using Game.Simulation.Cooking;
@@ -7,22 +8,35 @@ using UnityEngine;
 namespace Game.Presentation
 {
     /// <summary>
-    /// Shows a cut coming along on the cutting board (the user's choice, 2026-11-08): the first chop
-    /// splits the onion into two halves lying cut face up, then each chop piles up more dice beside
-    /// them until the last leaves the cut onion's heap (whose dice these are). Bits fly on every chop.
-    /// Only looks: the cut itself is the simulation's <see cref="PrepCounter"/>.
+    /// Shows a cut coming along on the cutting board (the user's notes, 2026-11-08). For each kind
+    /// of food being cut, what lies on the board after each chop: an onion's first chop leaves two
+    /// halves (its second makes rings, an item of their own); each chop into the rings leaves fewer
+    /// rings and more dice, until the last makes the dice heap. The food's own view hides while
+    /// its pieces show. Bits fly on every chop. Only looks: the cut itself is the simulation's
+    /// <see cref="PrepCounter"/>.
     /// </summary>
     public sealed class CutProgressView : MonoBehaviour
     {
+        [Serializable]
+        public sealed class Stage
+        {
+            [Tooltip("What lies on the board after this chop.")]
+            public GameObject[] Shown = Array.Empty<GameObject>();
+        }
+
+        [Serializable]
+        public sealed class Cut
+        {
+            [Tooltip("The food being cut.")]
+            public string TypeId;
+            [Tooltip("After its first chop, its second, and so on; the last chop makes the cut item instead.")]
+            public Stage[] Stages = Array.Empty<Stage>();
+        }
+
         [SerializeField] private PrepStation _station;
         [Tooltip("Where the item on the board sits; its view is hidden while the cut pieces show.")]
         [SerializeField] private Transform _boardAnchor;
-        [Tooltip("The ingredient these pieces are cut from.")]
-        [SerializeField] private string _typeId = "Onion";
-        [Tooltip("The halves after the first chop; one goes before the last chop.")]
-        [SerializeField] private GameObject[] _halves;
-        [Tooltip("The dice, in the order they pile up.")]
-        [SerializeField] private GameObject[] _pieces;
+        [SerializeField] private Cut[] _cuts = Array.Empty<Cut>();
         [Tooltip("Bits that fly off with each chop.")]
         [SerializeField] private ParticleSystem _bits;
         [SerializeField, Min(0)] private int _bitsPerChop = 7;
@@ -31,7 +45,7 @@ namespace Game.Presentation
         [SerializeField, Min(0.01f)] private float _bounceTime = 0.15f;
 
         private ItemView _hidden;
-        private int _shownCuts = -1;
+        private Stage _shown;
         private float _bounceAge = float.MaxValue;
 
         private void OnEnable()
@@ -55,20 +69,15 @@ namespace Game.Presentation
 
         private void LateUpdate()
         {
-            var counter = _station != null ? _station.Counter : null;
-            var cuts = counter?.Cuts ?? 0;
-            var needed = counter?.CutsNeeded ?? 0;
-            var cutting = counter?.Current is Ingredient ingredient && ingredient.TypeId == _typeId && cuts > 0 && cuts < needed;
-            if (!cutting)
-                cuts = 0;
+            var stage = CurrentStage();
 
-            // The whole onion hides while its pieces show.
-            Hide(cutting ? _boardAnchor.GetComponentInChildren<ItemView>() : null);
+            // The food hides while its pieces show.
+            Hide(stage != null ? _boardAnchor.GetComponentInChildren<ItemView>() : null);
 
-            if (cuts != _shownCuts)
+            if (stage != _shown)
             {
-                Show(cuts, needed);
-                _shownCuts = cuts;
+                Show(stage);
+                _shown = stage;
                 _bounceAge = 0f;
             }
             _bounceAge += Time.deltaTime;
@@ -76,16 +85,32 @@ namespace Game.Presentation
             transform.localScale = Vector3.one * (1f + _bounce * Mathf.Sin(Mathf.PI * t));
         }
 
-        // Two halves from the first chop, one left by the last; the dice grow from none after the
-        // first chop to most of the heap before the last, which makes the whole heap.
-        private void Show(int cuts, int needed)
+        // The stage for what's on the board and how many chops it has had, or null for none.
+        private Stage CurrentStage()
         {
-            var halves = cuts <= 0 ? 0 : cuts >= needed - 1 ? 1 : 2;
-            for (var i = 0; i < _halves.Length; i++)
-                _halves[i].SetActive(i < halves);
-            var pieces = cuts <= 0 || needed <= 1 ? 0 : Mathf.RoundToInt(_pieces.Length * (cuts - 1f) / (needed - 1f));
-            for (var i = 0; i < _pieces.Length; i++)
-                _pieces[i].SetActive(i < pieces);
+            var counter = _station != null ? _station.Counter : null;
+            if (!(counter?.Current is Ingredient ingredient) || counter.Cuts <= 0)
+                return null;
+            foreach (var cut in _cuts)
+            {
+                if (cut.TypeId == ingredient.TypeId)
+                    return counter.Cuts - 1 < cut.Stages.Length ? cut.Stages[counter.Cuts - 1] : null;
+            }
+            return null;
+        }
+
+        private void Show(Stage stage)
+        {
+            foreach (var cut in _cuts)
+                foreach (var each in cut.Stages)
+                    foreach (var piece in each.Shown)
+                        if (piece != null)
+                            piece.SetActive(false);
+            if (stage == null)
+                return;
+            foreach (var piece in stage.Shown)
+                if (piece != null)
+                    piece.SetActive(true);
         }
 
         private void Hide(ItemView view)

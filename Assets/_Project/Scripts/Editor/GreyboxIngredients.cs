@@ -86,8 +86,30 @@ namespace Game.Editor
             new IngredientType
             {
                 Id = "Onion", Color = new Color(0.93f, 0.84f, 0.62f), Shape = PrimitiveType.Sphere,
-                Scale = Vector3.one * 0.26f, CutInto = "DicedOnion", CutsNeeded = 5, ChopSecondsPerSweep = 0.7f, SweetSpotPosition = 110f, SweetSpotGood = 14f, SweetSpotOk = 28f,
+                // Cut into rings first, then on into dice (decision 2026-11-08): stop after the
+                // rings to keep them. Five chops in all to dice, as before.
+                Scale = Vector3.one * 0.26f, CutInto = "OnionRings", CutsNeeded = 2, ChopSecondsPerSweep = 0.7f, SweetSpotPosition = 110f, SweetSpotGood = 14f, SweetSpotOk = 28f,
                 InitialTuning = so => SetVegetable(so, massKg: 0.15f),
+            },
+            new IngredientType
+            {
+                // A portion of onion rings: thicker than dice, so they heat through a little slower
+                // and brown at their edges. Tuned from diced onion; untested in play.
+                Id = "OnionRings", DisplayName = "Onion rings", Color = new Color(0.97f, 0.92f, 0.74f), Shape = PrimitiveType.Sphere,
+                Scale = new Vector3(0.2f, 0.05f, 0.2f),
+                CutInto = "DicedOnion", CutsNeeded = 3, ChopSecondsPerSweep = 0.7f, SweetSpotPosition = 110f, SweetSpotGood = 14f, SweetSpotOk = 28f,
+                ScoreDoneness = true, ScoreBrowning = true, ServedHot = true, TargetCore = 92f,
+                InitialTuning = so =>
+                {
+                    SetVegetable(so, massKg: 0.15f);
+                    so.FindProperty("_surfaceFraction").floatValue = 0.25f;
+                    so.FindProperty("_surfaceCoreConductance").floatValue = 2f;
+                    so.FindProperty("_panContactConductance").floatValue = 6f;
+                    so.FindProperty("_airConductance").floatValue = 0.6f;
+                    so.FindProperty("_browningRate").floatValue = 1f / 14000f;
+                    so.FindProperty("_freshnessLossPerHourAt20C").floatValue = 1f / 48f;
+                    SetDoneness(so, ("Softened", 80f, 85f), ("Cooked", 92f, 92f));
+                },
             },
             new IngredientType
             {

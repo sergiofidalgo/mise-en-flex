@@ -923,6 +923,32 @@ def add_die(bm, centre, turn, size):
     bmesh.ops.transform(bm, matrix=Matrix.Translation(centre) @ turn, verts=new)
 
 
+# Onion rings lying in a loose fan: (centre x, centre y, radius). Bigger rings underneath.
+ONION_RINGS = [(-0.045, 0.03, 0.075), (0.045, 0.035, 0.068), (0.0, -0.035, 0.062), (0.06, -0.04, 0.05), (-0.055, -0.045, 0.045)]
+
+
+def add_ring(bm, k):
+    """One onion ring, lying flat and a little tilted, stacked on the ones before it."""
+    x, y, radius = ONION_RINGS[k]
+    thick = 0.014
+    before = set(bm.verts)
+    add_pipe(bm, [(radius * math.cos(2 * math.pi * i / 18), radius * math.sin(2 * math.pi * i / 18), 0.0) for i in range(19)],
+             radius=thick, segments=6)
+    new = [v for v in bm.verts if v not in before]
+    tilt = Matrix.Rotation(math.radians(6.0 * (1 if k % 2 else -1)), 4, 'X') @ Matrix.Rotation(math.radians(4.0 * k), 4, 'Y')
+    bmesh.ops.transform(bm, matrix=Matrix.Translation((x, y, thick + 0.008 * k)) @ tilt, verts=new)
+
+
+def build_onion_rings():
+    """Onion rings (decision 2026-11-08): the first cut of an onion, a loose fan of fat cream
+    rings, kept by stopping before cutting on into dice. One mesh, so it browns as one. Origin at
+    its base."""
+    bm = bmesh.new()
+    for k in range(len(ONION_RINGS)):
+        add_ring(bm, k)
+    return [finish("OnionRingsBody", bm)]
+
+
 def build_diced_onion():
     """A cut onion: a little heap of chunky cream dice (the user's note, 2026-11-08). One mesh, so
     it browns as one as it cooks. Origin at its base."""
@@ -933,8 +959,9 @@ def build_diced_onion():
 
 
 def build_onion_cut():
-    """An onion part way through cutting (the user's choice, 2026-11-08): a half lying cut face up
-    with its rings showing, and the heap's dice one by one, so the cut grows chop by chop."""
+    """An onion part way through cutting (the user's notes, 2026-11-08): a half lying cut face up
+    with its rings showing, the rings one by one, and the heap's dice one by one, so the cut grows
+    chop by chop: halves, then rings, then dice."""
     segments = 16
     # Half the bulb (angles 0..pi), then the flat cut face across it, then turned cut face up.
     bm = bmesh.new()
@@ -982,6 +1009,10 @@ def build_onion_cut():
     rings_obj = finish("OnionHalfRings", bm)
 
     pieces = []
+    for k in range(len(ONION_RINGS)):  # the rings one by one, to go as they're diced
+        bm = bmesh.new()
+        add_ring(bm, k)
+        pieces.append(finish(f"OnionRing_{k:02d}", bm))
     for k, (centre, turn, size) in enumerate(onion_dice()):
         bm = bmesh.new()
         add_die(bm, centre, turn, size)
@@ -1079,6 +1110,7 @@ def main():
         "SM_KnifeBlock.fbx": build_knife_block(),
         "SM_Onion.fbx": build_onion(),
         "SM_DicedOnion.fbx": build_diced_onion(),
+        "SM_OnionRings.fbx": build_onion_rings(),
         "SM_OnionCut.fbx": build_onion_cut(),
     }
     for filename, objects in models.items():

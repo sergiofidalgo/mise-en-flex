@@ -41,6 +41,9 @@ namespace Game.Simulation.Staff
         private readonly Random _random;
 
         private string _wanted;
+        // What a type is cut into, to follow a chain of cuts (onion, rings, dice); null knows only
+        // each ingredient's own next cut.
+        private readonly Func<string, string> _cutIntoOf;
         private bool _returning;
         private bool _fetchingWhole;
         private Ingredient _cutting;
@@ -56,8 +59,10 @@ namespace Game.Simulation.Staff
             ItemSink bin,
             CookingSimulation cooking,
             StaffSettings settings,
-            int seed)
+            int seed,
+            Func<string, string> cutIntoOf = null)
         {
+            _cutIntoOf = cutIntoOf;
             Member = member;
             _counters = counters;
             _storage = storage;
@@ -267,7 +272,7 @@ namespace Game.Simulation.Staff
                 for (var s = 0; s < TargetUnit.Slots.Count; s++)
                 {
                     var slot = TargetUnit.Slots[s];
-                    if (slot.Count > 0 && !slot.HoldsCooked && slot.Stock[0].Properties.CutIntoTypeId == _wanted && TargetUnit.TryTake(s, out var whole))
+                    if (slot.Count > 0 && !slot.HoldsCooked && CutsInto(slot.Stock[0], _wanted) && TargetUnit.TryTake(s, out var whole))
                     {
                         InHand = whole;
                         _cutting = whole;
@@ -342,7 +347,10 @@ namespace Game.Simulation.Staff
 
             // Skill and tiredness decide how even it comes out.
             var slip = (float)_random.NextDouble() * Member.MistakeChance(_settings);
-            _board.CutWithoutDial(Math.Clamp(1f - slip, 0f, 1f));
+            // Through every cut on the way: an onion for dice is cut into rings, then the rings.
+            do
+                _board.CutWithoutDial(Math.Clamp(1f - slip, 0f, 1f));
+            while (_board.Current is Ingredient done && done.TypeId != _wanted && _board.CanChop);
             InHand = (Ingredient)_board.Take();
             _cutting = null;
             Member.RecordJob(_settings.FatiguePerJob, mistake: false);
@@ -449,13 +457,26 @@ namespace Game.Simulation.Staff
             return null;
         }
 
+        // Whether cutting this, once or more in a row, gives the wanted type.
+        private bool CutsInto(Ingredient whole, string wanted)
+        {
+            var next = whole.Properties.CutIntoTypeId;
+            for (var step = 0; step < 4 && next != null; step++)
+            {
+                if (next == wanted)
+                    return true;
+                next = _cutIntoOf?.Invoke(next);
+            }
+            return false;
+        }
+
         private StorageUnit FindWholeFor(string cutTypeId)
         {
             foreach (var unit in _storage)
             {
                 foreach (var slot in unit.Slots)
                 {
-                    if (slot.Count > 0 && !slot.HoldsCooked && slot.Stock[0].Properties.CutIntoTypeId == cutTypeId)
+                    if (slot.Count > 0 && !slot.HoldsCooked && CutsInto(slot.Stock[0], cutTypeId))
                         return unit;
                 }
             }

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace Game.Editor
@@ -23,22 +24,29 @@ namespace Game.Editor
                 },
                 // Cut onion: a heap of cream dice (decision 2026-11-08), browning as one as it cooks.
                 ["DicedOnion"] = new[] { ("Body", "DicedOnionBody", new Color(0.96f, 0.9f, 0.7f)) },
+                // Onion rings: the first cut of an onion, a loose fan of fat cream rings.
+                ["OnionRings"] = new[] { ("Body", "OnionRingsBody", new Color(0.97f, 0.92f, 0.74f)) },
             };
 
         // The cut onion's colour, from its entry above (a static field here would be read before it's set).
         private static Color DiceColor => Parts["DicedOnion"][0].Color;
+        private static Color RingsColor => Parts["OnionRings"][0].Color;
         private static readonly Color CutFaceColor = new Color(0.98f, 0.94f, 0.8f);
         private static readonly Color CutRingsColor = new Color(0.86f, 0.76f, 0.55f);
 
-        // Where the halves lie on the board while cutting (m, from where the item sits): to one
-        // side, their length across the board, leaving the middle for the dice heap.
+        // Where the halves lie on the board after the first chop (m, from where the item sits):
+        // side by side, their length across the board, centred where the onion was.
         private const float HalfScale = 0.65f;
-        private static readonly Vector3[] HalfPlaces = { new Vector3(-0.1f, 0f, 0.105f), new Vector3(-0.1f, 0f, -0.105f) };
+        private static readonly Vector3[] HalfPlaces = { new Vector3(0.1f, 0f, 0.105f), new Vector3(0.1f, 0f, -0.105f) };
+        // Rings still to dice are pushed aside, leaving the middle for the dice heap.
+        private static readonly Vector3 RingsAside = new Vector3(-0.19f, 0f, 0f);
 
         /// <summary>
-        /// Adds an onion's cutting progress to the board: halves, the heap's dice one by one, and bits
-        /// that fly with each chop (<see cref="Game.Presentation.CutProgressView"/>). Placed where the
-        /// item sits on the board. Nothing without the models.
+        /// Adds an onion's cutting progress to the board (<see cref="Game.Presentation.CutProgressView"/>):
+        /// the onion's first chop leaves two halves; its second makes rings (an item of their own).
+        /// Each chop into the rings leaves fewer rings, pushed aside, and more dice, until the last
+        /// makes the dice heap, whose dice these are. Bits fly with each chop. Placed where the item
+        /// sits on the board. Nothing without the models.
         /// </summary>
         public static void DressCutProgress(Game.Gameplay.Stations.PrepStation prep, Transform boardAnchor)
         {
@@ -62,12 +70,17 @@ namespace Game.Editor
                 halves[i] = half;
             }
 
-            var pieces = new System.Collections.Generic.List<GameObject>();
+            var rings = new List<GameObject>();
+            for (var i = 0; PilotArt.FindMesh(model, $"OnionRing_{i:00}") != null; i++)
+            {
+                var ring = Part(root, $"Ring_{i:00}", model, $"OnionRing_{i:00}", StyleTest.EnsureToonMaterial("OnionRingsBody", RingsColor));
+                ring.transform.localPosition = RingsAside;
+                rings.Add(ring);
+            }
+            var dice = new List<GameObject>();
             for (var i = 0; PilotArt.FindMesh(model, $"OnionDie_{i:00}") != null; i++)
-                pieces.Add(Part(root, $"Die_{i:00}", model, $"OnionDie_{i:00}", StyleTest.EnsureToonMaterial("DicedOnionBody", DiceColor)));
-            foreach (var go in halves)
-                go.SetActive(false);
-            foreach (var go in pieces)
+                dice.Add(Part(root, $"Die_{i:00}", model, $"OnionDie_{i:00}", StyleTest.EnsureToonMaterial("DicedOnionBody", DiceColor)));
+            foreach (var go in halves.Concat(rings).Concat(dice))
                 go.SetActive(false);
 
             // Onion bits flying off the knife: a little burst of cream crumbs that fall back down.
@@ -85,20 +98,38 @@ namespace Game.Editor
                 new[] { new GradientAlphaKey(1f, 0f), new GradientAlphaKey(1f, 0.75f), new GradientAlphaKey(0f, 1f) });
             stay.color = visible;
 
+            // What lies on the board after each chop that doesn't finish a cut.
+            var cuts = new (string TypeId, GameObject[][] Stages)[]
+            {
+                ("Onion", new[] { halves }),
+                ("OnionRings", new[]
+                {
+                    rings.Take(3).Concat(dice.Take(dice.Count / 3)).ToArray(),
+                    rings.Take(1).Concat(dice.Take(dice.Count * 2 / 3)).ToArray(),
+                }),
+            };
+
             var view = new UnityEditor.SerializedObject(root.gameObject.AddComponent<Game.Presentation.CutProgressView>());
             view.FindProperty("_station").objectReferenceValue = prep;
             view.FindProperty("_boardAnchor").objectReferenceValue = boardAnchor;
-            SetArray(view.FindProperty("_halves"), halves);
-            SetArray(view.FindProperty("_pieces"), pieces);
             view.FindProperty("_bits").objectReferenceValue = bits;
+            var list = view.FindProperty("_cuts");
+            list.arraySize = cuts.Length;
+            for (var c = 0; c < cuts.Length; c++)
+            {
+                var cut = list.GetArrayElementAtIndex(c);
+                cut.FindPropertyRelative("TypeId").stringValue = cuts[c].TypeId;
+                var stages = cut.FindPropertyRelative("Stages");
+                stages.arraySize = cuts[c].Stages.Length;
+                for (var st = 0; st < cuts[c].Stages.Length; st++)
+                {
+                    var shown = stages.GetArrayElementAtIndex(st).FindPropertyRelative("Shown");
+                    shown.arraySize = cuts[c].Stages[st].Length;
+                    for (var k = 0; k < cuts[c].Stages[st].Length; k++)
+                        shown.GetArrayElementAtIndex(k).objectReferenceValue = cuts[c].Stages[st][k];
+                }
+            }
             view.ApplyModifiedPropertiesWithoutUndo();
-        }
-
-        private static void SetArray(UnityEditor.SerializedProperty list, System.Collections.Generic.IList<GameObject> items)
-        {
-            list.arraySize = items.Count;
-            for (var i = 0; i < items.Count; i++)
-                list.GetArrayElementAtIndex(i).objectReferenceValue = items[i];
         }
 
         private static GameObject Part(Transform parent, string name, string model, string mesh, Material material)

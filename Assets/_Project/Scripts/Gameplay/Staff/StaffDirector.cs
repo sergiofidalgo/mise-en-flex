@@ -271,7 +271,8 @@ namespace Game.Gameplay.Staff
                     services.Stations.All.OfType<BinStation>().First().Sink,
                     services.Cooking,
                     settings,
-                    seed);
+                    seed,
+                    typeId => services.Catalog.Find(typeId)?.ToProperties().CutIntoTypeId); // onion, rings, dice
             }
             return new Dishwasher(member, _sink.Sink, _stack.Stack, _clearable, _counters, settings, seed);
         }

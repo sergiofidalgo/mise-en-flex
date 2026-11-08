@@ -4,14 +4,11 @@ Ideas worth keeping that aren't decided or scheduled yet. When one is accepted, 
 
 ---
 
-## A more visual onion cut, and two cuts in a row
+## Dishes that ask for onion rings
 
-*Added 2026-11-08 · Relevant phase: 7 (content), visuals in 9 · Pillars: cooking is a craft*
+*Added 2026-11-08 · Relevant phase: 7 (content) · Pillars: cooking is a craft*
 
-The user's note: today a cut onion is a pale blob on the board. It should read as cut onion from the overhead camera.
-- **Two cuts:** the first pass makes onion rings, and a second pass dices them. Recipes could ask for either cut, so cutting becomes a choice, not just one step.
-- **Visuals:** rings as a small stack of flat toroids, and dice as a heap of small cubes, in the onion's colours. The pieces could fall away from the knife as each chop lands, so cutting shows its progress.
-- **Needs:** the ingredient data gains a chain of cuts (`CutIntoTypeId` already exists, so rings can cut into dice), plus models for each cut.
+An onion now cuts into rings and then on into dice (`decisions.md`, 2026-11-08), but no dish on the menu uses rings yet, so for now there's no reason to stop at rings. A dish that asks for rings (a burger, a steak with fried rings) would make stopping a real choice. A customer asking for rings and getting dice, or the reverse, should cost quality.
 
 ---
 

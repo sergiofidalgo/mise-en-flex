@@ -7,7 +7,9 @@ namespace Game.Simulation.Prep
     /// <summary>
     /// The cutting board (decisions 2026-11-02, 2026-11-04). A whole ingredient goes on it and is
     /// chopped with the knife by timing presses to the cutting dial. The cut stays on the board and
-    /// blocks the next one until someone moves it, so where it goes is the player's to plan.
+    /// blocks the next one until someone moves it, so where it goes is the player's to plan. A cut
+    /// that can be cut further stays ready to keep cutting (an onion into rings, then dice: decision
+    /// 2026-11-08), so stopping part way is how you get the first cut.
     /// </summary>
     public sealed class PrepCounter : IItemContainer, IItemHolder
     {
@@ -63,7 +65,7 @@ namespace Game.Simulation.Prep
                 var product = _cut(whole);
                 product.CutEvenness = evenness;
                 ClearBoard();
-                Current = product;
+                SetOnBoard(product);
                 CutFinished?.Invoke(product);
             }
 
@@ -81,7 +83,7 @@ namespace Game.Simulation.Prep
             var product = _cut((Ingredient)Current);
             product.CutEvenness = evenness;
             ClearBoard();
-            Current = product;
+            SetOnBoard(product);
             CutFinished?.Invoke(product);
             return product;
         }
@@ -105,11 +107,18 @@ namespace Game.Simulation.Prep
             if (!CanAccept(item))
                 throw new InvalidOperationException("The board can't take this.");
 
-            var ingredient = (Ingredient)item;
+            SetOnBoard((Ingredient)item);
+        }
+
+        // On the board with a fresh dial if it can be cut, none if it's as cut as it goes.
+        private void SetOnBoard(Ingredient ingredient)
+        {
             Current = ingredient;
             Cuts = 0;
             var p = ingredient.Properties;
-            Dial = new ChopDial(p.ChopSecondsPerSweep, _sweepDegrees, p.SweetSpotPosition, p.SweetSpotGoodHalfWidth, p.SweetSpotOkHalfWidth, _pacing);
+            Dial = IsCuttable(ingredient)
+                ? new ChopDial(p.ChopSecondsPerSweep, _sweepDegrees, p.SweetSpotPosition, p.SweetSpotGoodHalfWidth, p.SweetSpotOkHalfWidth, _pacing)
+                : null;
         }
 
         private void ClearBoard()
