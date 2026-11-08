@@ -65,22 +65,19 @@ namespace Game.Tests.EditMode
         }
 
         [Test]
-        public void WashingFinishesOnePlateAtATime()
+        public void AWashedPlateComesOutCleanToWhoeverFinishedIt()
         {
             var sink = new Sink();
-            var first = Dirty();
-            var second = Dirty();
-            sink.Put(first);
-            sink.Put(second);
+            var plate = Dirty();
+            sink.Put(plate);
 
             Assert.That(sink.Wash(0.5f), Is.Null);
             Assert.That(sink.WashProgress, Is.EqualTo(0.5f));
-            Assert.That(sink.Wash(0.5f), Is.SameAs(first), "oldest first");
-            Assert.That(first.IsDirty, Is.False);
-            Assert.That(sink.DirtyCount, Is.EqualTo(1));
-            Assert.That(sink.CleanCount, Is.EqualTo(1));
+            Assert.That(sink.Wash(0.5f), Is.SameAs(plate));
+            Assert.That(plate.IsDirty, Is.False);
+            Assert.That(sink.DirtyCount, Is.EqualTo(0), "the sink keeps no plates");
+            Assert.That(sink.CanTake, Is.False);
             Assert.That(sink.WashProgress, Is.EqualTo(0f));
-            Assert.That(sink.Take(), Is.SameAs(first));
         }
 
         [Test]
@@ -92,30 +89,56 @@ namespace Game.Tests.EditMode
         }
 
         [Test]
-        public void TheSinkHoldsOnlySoManyPlatesDirtyOrClean()
+        public void TheSinkWashesOnePlateAtATime()
         {
-            var sink = new Sink(capacity: 2);
+            var sink = new Sink();
             sink.Put(Dirty());
-            sink.Put(Dirty());
-            Assert.That(sink.CanAccept(Dirty()), Is.False, "full");
+            Assert.That(sink.CanAccept(Dirty()), Is.False, "busy");
 
             sink.Wash(1f);
-            Assert.That(sink.CanAccept(Dirty()), Is.False, "a clean plate still takes up room");
-            sink.Take();
             Assert.That(sink.CanAccept(Dirty()));
         }
 
         [Test]
-        public void TheDirtyPileHasALimit()
+        public void DirtyPlatesPileUpOnACounterToItsLimit()
         {
-            var pile = new DirtyPile(2);
-            pile.Put(Dirty());
-            pile.Put(Dirty());
-            Assert.That(pile.CanAccept(Dirty()), Is.False);
-            Assert.That(pile.CanAccept(new Plate(3)), Is.False, "clean plates don't go here");
+            var counter = new ItemSlot(3);
+            var bottom = Dirty();
+            counter.Put(bottom);
+            counter.Put(Dirty());
+            var top = Dirty();
+            counter.Put(top);
 
-            pile.Take();
-            Assert.That(pile.CanAccept(Dirty()));
+            Assert.That(counter.Count, Is.EqualTo(3));
+            Assert.That(counter.Current, Is.SameAs(top));
+            Assert.That(counter.IndexOf(bottom), Is.EqualTo(0));
+            Assert.That(counter.IndexOf(top), Is.EqualTo(2));
+            Assert.That(counter.CanAccept(Dirty()), Is.False, "full");
+
+            Assert.That(counter.Take(), Is.SameAs(top), "from the top");
+            Assert.That(counter.Count, Is.EqualTo(2));
+            Assert.That(counter.CanAccept(Dirty()));
+        }
+
+        [Test]
+        public void OnlyDirtyPlatesPileUp()
+        {
+            var counter = new ItemSlot(3);
+            counter.Put(Dirty());
+            Assert.That(counter.CanAccept(new Plate(3)), Is.False, "a clean plate doesn't go on a dirty one");
+            Assert.That(counter.CanAccept(new Item("Steak")), Is.False);
+
+            var clean = new ItemSlot(3);
+            clean.Put(new Plate(3));
+            Assert.That(clean.CanAccept(Dirty()), Is.False, "nor a dirty one on a clean one");
+        }
+
+        [Test]
+        public void HandsHoldOnePlateEvenDirty()
+        {
+            var hands = new ItemSlot();
+            hands.Put(Dirty());
+            Assert.That(hands.CanAccept(Dirty()), Is.False);
         }
 
         [Test]
@@ -128,24 +151,20 @@ namespace Game.Tests.EditMode
         }
 
         [Test]
-        public void ThePilesAndSinkHoldWhatTheDesignSays()
+        public void TheCleanStackHoldsWhatTheDesignSays()
         {
             var equipment = UnityEditor.AssetDatabase.LoadAssetAtPath<Game.Data.EquipmentTier>("Assets/_Project/Data/Settings/EquipmentTier_Basic.asset");
-            Assert.That(equipment.DirtyPileCapacity, Is.EqualTo(6));
             Assert.That(equipment.CleanPileCapacity, Is.EqualTo(6));
-            Assert.That(equipment.SinkCapacity, Is.EqualTo(2));
         }
 
         [Test]
         public void BreakingAPlateLosesItForGood()
         {
             var sink = new Sink();
-            sink.Put(Dirty());
-            sink.Wash(1f);
-            sink.BreakClean();
-
-            Assert.That(sink.CleanCount, Is.EqualTo(0));
+            sink.CountBroken();
             Assert.That(sink.Broken, Is.EqualTo(1));
+            Assert.That(sink.TakeBrokenCount(), Is.EqualTo(1));
+            Assert.That(sink.Broken, Is.EqualTo(0), "replaced in the morning");
         }
     }
 }

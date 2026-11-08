@@ -1,31 +1,21 @@
 using System;
-using System.Collections.Generic;
 
 namespace Game.Simulation.Items
 {
     /// <summary>
-    /// Where plates get washed. It holds only a couple of plates at a time, dirty or clean (decision
-    /// 2026-11-04): one is washed at a time, and clean ones wait to be taken to the stack, so a sink
-    /// full of clean plates has to be emptied before washing more. Whoever washes (a player scrubbing, a dishwasher working)
-    /// adds to the progress of the plate in hand.
+    /// Where plates get washed, one at a time (decision 2026-11-08). It holds no plates of its own: a
+    /// dirty plate goes in, and whoever finishes washing it (a player scrubbing, a cleaner working)
+    /// gets it back clean, to carry to the plate stack. Anyone washing adds to the same progress.
     /// </summary>
     public sealed class Sink : IPlateSource
     {
-        private readonly Queue<Plate> _dirty = new Queue<Plate>();
-        private readonly Stack<Plate> _clean = new Stack<Plate>();
+        /// <summary>The plate being washed, or null.</summary>
+        public Plate Washing { get; private set; }
 
-        /// <param name="capacity">Plates it holds, dirty and clean together.</param>
-        public Sink(int capacity = int.MaxValue)
-        {
-            Capacity = capacity;
-        }
+        public bool HasRoom => Washing == null;
 
-        public int Capacity { get; }
-
-        public bool HasRoom => _dirty.Count + _clean.Count < Capacity;
-
-        public int DirtyCount => _dirty.Count;
-        public int CleanCount => _clean.Count;
+        /// <summary>1 while a plate's waiting to be washed, otherwise 0.</summary>
+        public int DirtyCount => Washing == null ? 0 : 1;
 
         /// <summary>0..1 through the plate being washed.</summary>
         public float WashProgress { get; private set; }
@@ -44,31 +34,27 @@ namespace Game.Simulation.Items
         /// <summary>Raised when a plate goes in, so its view can go.</summary>
         public event Action<Plate> Received;
 
-        public bool CanTake => _clean.Count > 0;
+        /// <summary>Clean plates don't wait here: they go straight to whoever washed them.</summary>
+        public bool CanTake => false;
 
         public bool CanAccept(Item item) => item is Plate plate && plate.IsDirty && HasRoom;
 
-        public Item Take()
-        {
-            if (_clean.Count == 0)
-                throw new InvalidOperationException("No clean plates in the sink.");
-            return _clean.Pop();
-        }
+        public Item Take() => throw new InvalidOperationException("Washed plates go straight to whoever washed them.");
 
         public void Put(Item item)
         {
             if (!CanAccept(item))
-                throw new InvalidOperationException("Only dirty plates go in the sink, up to its limit.");
-            var plate = (Plate)item;
-            _dirty.Enqueue(plate);
-            Received?.Invoke(plate);
+                throw new InvalidOperationException("Only a dirty plate goes in the sink, one at a time.");
+            Washing = (Plate)item;
+            WashProgress = 0f;
+            Received?.Invoke(Washing);
         }
 
-        /// <summary>Adds to the current plate's progress.</summary>
-        /// <returns>The plate if this finished it (it's now with the clean ones), otherwise null.</returns>
+        /// <summary>Adds to the plate's progress.</summary>
+        /// <returns>The plate, clean and out of the sink, if this finished it; otherwise null.</returns>
         public Plate Wash(float amount)
         {
-            if (_dirty.Count == 0 || amount <= 0f)
+            if (Washing == null || amount <= 0f)
                 return null;
 
             WashProgress += amount;
@@ -76,22 +62,13 @@ namespace Game.Simulation.Items
                 return null;
 
             WashProgress = 0f;
-            var plate = _dirty.Dequeue();
+            var plate = Washing;
+            Washing = null;
             plate.Clean();
-            _clean.Push(plate);
             return plate;
         }
 
-        /// <summary>A clean plate gets dropped: the kitchen has one plate fewer for good.</summary>
-        /// <summary>A plate broken somewhere else: it's replaced with the others in the morning.</summary>
+        /// <summary>A plate broken somewhere: it's replaced with the others in the morning.</summary>
         public void CountBroken() => Broken++;
-
-        public void BreakClean()
-        {
-            if (_clean.Count == 0)
-                return;
-            _clean.Pop();
-            Broken++;
-        }
     }
 }

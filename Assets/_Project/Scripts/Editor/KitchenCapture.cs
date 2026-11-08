@@ -25,7 +25,7 @@ namespace Game.Editor
         private const float WholeKitchenHeight = 11f;
 
         // Stations to look at closely, by name in the scene.
-        private static readonly string[] CloseUps = { "Sink", "PlateStack", "DirtyPile", "BoardCounter", "CuttingBoard" };
+        private static readonly string[] CloseUps = { "Sink", "PlateStack", "WallCounter_01", "BoardCounter", "CuttingBoard" };
 
         [MenuItem("Tools/Game/Art/Capture Kitchen")]
         private static void CaptureFromMenu()

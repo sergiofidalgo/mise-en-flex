@@ -4,6 +4,20 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-08 — The sink only washes; dirty plates pile on any counter
+
+**Decision (user's calls):**
+- **The sink washes one plate at a time and keeps none.** Drop a dirty plate in and wash it, and it comes out clean in your hands, ready to carry to the plate stack. The cleaner works the same way. Replaces the sink holding 2 plates, dirty and clean (2026-11-04).
+- **The dirty pile station is gone.** Dirty plates pile up to 3 on any counter. A clean plate, food or anything else can't go on a pile, and a pile only takes dirty plates. Where the pile stood, by the sink, is now an ordinary counter.
+- **The waiter** clears stools onto counters, onto an existing pile before an empty counter, so plates gather in a few piles. With nowhere to put a plate, they leave the stool for now.
+- **The cleaner** washes whatever's in the sink first, then clears stools, then collects plates from counter piles. They take each clean plate to the stack. If the sink's busy, they pile the plate they're carrying on a counter.
+
+**Reason:** the sink becomes a quick station that players pass through, and dirty plates become visible clutter wherever they're left. That makes falling behind on washing up something you see across the kitchen.
+
+**Details (proposed while building):** a plate dropped with nowhere to go breaks, and is replaced in the morning like other broken plates. The pile limit and spacing are settings on each counter.
+
+---
+
 ## 2026-11-08 — Models for plates, the plate stack, the sink and the cutting board
 
 **Decision (user's call):** these get Blender models, following the user's reference photos. Only meshes change: footprints, anchors, slots, colliders and rules stay as they were.

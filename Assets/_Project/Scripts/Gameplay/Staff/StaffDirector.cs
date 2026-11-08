@@ -70,7 +70,6 @@ namespace Game.Gameplay.Staff
         private readonly Dictionary<StaffAgent, Roaming> _roaming = new Dictionary<StaffAgent, Roaming>();
         private SinkStation _sink;
         private PlateStackStation _stack;
-        private DirtyPileStation _dirtyPile;
         private PrepStation _board;
         private RackStation _trayRack;
         private readonly List<ItemSlot> _counters = new List<ItemSlot>();
@@ -82,14 +81,12 @@ namespace Game.Gameplay.Staff
             var all = _root.Services.Stations.All;
             _sink = all.OfType<SinkStation>().First();
             _stack = all.OfType<PlateStackStation>().First();
-            _dirtyPile = all.OfType<DirtyPileStation>().First();
             _board = all.OfType<PrepStation>().First();
             _trayRack = all.OfType<RackStation>().First(r => r.Kind == RackStation.RackKind.Trays);
             RebuildLayout();
 
             _stations[_sink.Sink] = _sink;
             _stations[_stack.Stack] = _stack;
-            _stations[_dirtyPile.Pile] = _dirtyPile;
             _stations[_board.Counter] = _board;
             _stations[_trayRack.Rack] = _trayRack;
             foreach (var station in all)
@@ -261,7 +258,7 @@ namespace Game.Gameplay.Staff
             var seed = services.StaffConfig.Seed + _nextSeed++;
             if (member.Role == StaffRole.Waiter)
             {
-                return new Waiter(member, services.Bell, _places, _counters, _dirtyPile.Pile, _sink.Sink, () => _root.Services.Service, services.Cooking, settings, seed);
+                return new Waiter(member, services.Bell, _places, _counters, _sink.Sink, () => _root.Services.Service, services.Cooking, settings, seed);
             }
             if (member.Role == StaffRole.PrepAssistant)
             {
@@ -276,7 +273,7 @@ namespace Game.Gameplay.Staff
                     settings,
                     seed);
             }
-            return new Dishwasher(member, _sink.Sink, _dirtyPile.Pile, _stack.Stack, _clearable, settings, seed);
+            return new Dishwasher(member, _sink.Sink, _stack.Stack, _clearable, _counters, settings, seed);
         }
 
         private void HandleItemGone(Item item) => _root.Services.ItemViews.Release(item);

@@ -25,7 +25,6 @@ namespace Game.Tests.EditMode
         private ItemSlot _counter;
         private ItemSlot _spareCounter;
         private Place _place;
-        private DirtyPile _pile;
         private Sink _sink;
         private StaffMember _member;
         private Waiter _waiter;
@@ -34,7 +33,7 @@ namespace Game.Tests.EditMode
         private void Hire(float skill = 1f)
         {
             _member = new StaffMember(new Candidate("Ana", StaffRole.Waiter, "steady", skill, 1f, 40f));
-            _waiter = new Waiter(_member, _bell, new[] { _place }, new[] { _counter, _spareCounter }, _pile, _sink, () => _service, _cooking,
+            _waiter = new Waiter(_member, _bell, new[] { _place }, new[] { _counter, _spareCounter }, _sink, () => _service, _cooking,
                 new StaffSettings { FatiguePerJob = 0f, FatigueMistakes = 0f, MoraleMistakeEffect = 0f }, 1);
             _waiter.ItemGone += _gone.Add;
         }
@@ -57,11 +56,11 @@ namespace Game.Tests.EditMode
                 Menu = new OrderMenu { MainTypeId = "Steak", Choices = new[] { new OrderChoice(Rare, 1f) } },
             }, 1);
             _bell = new ReadyBell();
-            _counter = new ItemSlot();
-            _spareCounter = new ItemSlot();
+            // Kitchen counters: dirty plates pile up to 3 on each (decision 2026-11-08).
+            _counter = new ItemSlot(3);
+            _spareCounter = new ItemSlot(3);
             _place = new Place { SeatIndex = 0 };
-            _pile = new DirtyPile(6);
-            _sink = new Sink(2);
+            _sink = new Sink();
             Hire();
         }
 
@@ -151,7 +150,7 @@ namespace Game.Tests.EditMode
         }
 
         [Test]
-        public void ADirtyPlateGoesBackToThePile()
+        public void ADirtyPlateIsPiledOnAKitchenCounter()
         {
             var dirty = new Plate(3);
             Clear(dirty);
@@ -161,10 +160,29 @@ namespace Game.Tests.EditMode
             _waiter.Arrived();
             Assert.That(_waiter.Carried, Is.SameAs(dirty));
             _waiter.Tick(1f);
-            Assert.That(_waiter.Target, Is.SameAs(_pile));
+            Assert.That(_waiter.Task, Is.EqualTo(WaiterTask.ToDirtyCounter));
+            Assert.That(_waiter.Target, Is.SameAs(_counter));
             _waiter.Arrived();
-            Assert.That(_pile.Count, Is.EqualTo(1));
+            Assert.That(_counter.Current, Is.SameAs(dirty));
             Assert.That(_waiter.Carried, Is.Null);
+            Assert.That(_member.JobsToday, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void DirtyPlatesGoOnAPileBeforeAnEmptyCounter()
+        {
+            var waiting = new Plate(3);
+            waiting.MarkDirty();
+            _spareCounter.Put(waiting);
+            Clear(new Plate(3));
+
+            _waiter.Tick(1f);
+            _waiter.Arrived();
+            _waiter.Tick(1f);
+            Assert.That(_waiter.Target, Is.SameAs(_spareCounter), "they gather in a few piles");
+            _waiter.Arrived();
+            Assert.That(_spareCounter.Count, Is.EqualTo(2));
+            Assert.That(_counter.IsEmpty);
         }
 
         // Puts a finished, dirty plate at the place, as after a meal.
@@ -181,7 +199,7 @@ namespace Game.Tests.EditMode
         {
             var other = new Place { SeatIndex = 1 };
             _service.OpenSeats(new[] { 1, 1 });
-            _waiter = new Waiter(_member, _bell, new IServingPlace[] { other, _place }, new[] { _counter }, _pile, _sink, () => _service, _cooking, new StaffSettings(), 1);
+            _waiter = new Waiter(_member, _bell, new IServingPlace[] { other, _place }, new[] { _counter }, _sink, () => _service, _cooking, new StaffSettings(), 1);
             Seated();
             Clear2(other);
             RingFor(Dish());
@@ -200,10 +218,10 @@ namespace Game.Tests.EditMode
         }
 
         [Test]
-        public void AFullPileWaits()
+        public void WithNoCounterForItTheyLeaveTheTableForNow()
         {
-            var full = new DirtyPile(0);
-            _waiter = new Waiter(_member, _bell, new[] { _place }, new[] { _counter }, full, _sink, () => _service, _cooking, new StaffSettings(), 1);
+            _waiter = new Waiter(_member, _bell, new[] { _place }, new[] { _counter }, _sink, () => _service, _cooking, new StaffSettings(), 1);
+            _counter.Put(new Plate(3)); // a clean plate: no room for a dirty one
             Clear2(_place);
             _waiter.Tick(1f);
             Assert.That(_waiter.Task, Is.EqualTo(WaiterTask.Idle), "nowhere to bring it");

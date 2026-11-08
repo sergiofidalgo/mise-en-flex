@@ -489,11 +489,13 @@ namespace Game.Tests.PlayMode
             Assert.That(customer.State, Is.Not.EqualTo(CustomerState.Waiting), $"{job.Task} at {agent.transform.position}, carrying {job.Carried != null}, counter empty {counter.Slot.IsEmpty}, rung {services.Bell.IsRung(counter.Slot)}, order {customer.Order.Doneness.Name}");
             Assert.That(counter.Slot.IsEmpty, Is.True);
 
-            var pile = services.Stations.All.OfType<DirtyPileStation>().First();
+            // Cleared plates are piled on a kitchen counter (decision 2026-11-08).
+            bool Cleared() => services.Stations.All.OfType<CounterStation>()
+                .Any(c => c.Slot.Current is Game.Simulation.Items.Plate plate && plate.IsDirty);
             until = Time.time + 40f;
-            while (pile.Pile.Count != 1 && Time.time < until)
+            while (!Cleared() && Time.time < until)
                 yield return null;
-            Assert.That(pile.Pile.Count, Is.EqualTo(1), $"{job.Task} at {agent.transform.position}, carrying {job.Carried != null}, customer {customer.State}");
+            Assert.That(Cleared(), Is.True, $"{job.Task} at {agent.transform.position}, carrying {job.Carried != null}, customer {customer.State}");
             Assert.That(services.Staff.Hired[0].JobsToday, Is.EqualTo(2), "one served, one cleared");
         }
 

@@ -13,13 +13,15 @@ namespace Game.Simulation.Staff
         ToDiner,
         ToCounter,
         ToTable,
-        ToPile,
+        /// <summary>Taking a cleared dirty plate to a counter, to pile it up there.</summary>
+        ToDirtyCounter,
     }
 
     /// <summary>
     /// Takes food out and clears up (decisions 2026-11-04 and 06). When the bell's been rung for a plate
     /// they carry it to the diner whose order it matches, one plate at a time; a plate nobody ordered
-    /// stays where it is. With nothing to serve, they bring dirty plates back to the pile. Follows the
+    /// stays where it is. With nothing to serve, they clear dirty plates and pile them on a kitchen
+    /// counter, up to its limit (decision 2026-11-08). Follows the
     /// same rules as a player, so they can be beaten to a plate. Gameplay walks them and calls
     /// <see cref="Arrived"/>.
     /// </summary>
@@ -28,7 +30,6 @@ namespace Game.Simulation.Staff
         private readonly ReadyBell _bell;
         private readonly IReadOnlyList<IServingPlace> _places;
         private readonly IReadOnlyList<ItemSlot> _counters;
-        private readonly DirtyPile _pile;
         private readonly Sink _sink;
         private readonly Func<ServiceSimulation> _service;
         private readonly CookingSimulation _cooking;
@@ -43,7 +44,6 @@ namespace Game.Simulation.Staff
             ReadyBell bell,
             IReadOnlyList<IServingPlace> places,
             IReadOnlyList<ItemSlot> counters,
-            DirtyPile pile,
             Sink sink,
             Func<ServiceSimulation> service,
             CookingSimulation cooking,
@@ -54,7 +54,6 @@ namespace Game.Simulation.Staff
             _bell = bell;
             _places = places;
             _counters = counters;
-            _pile = pile;
             _sink = sink;
             _service = service;
             _cooking = cooking;
@@ -78,12 +77,11 @@ namespace Game.Simulation.Staff
                 {
                     case WaiterTask.ToPlate:
                     case WaiterTask.ToCounter:
+                    case WaiterTask.ToDirtyCounter:
                         return _counter;
                     case WaiterTask.ToDiner:
                     case WaiterTask.ToTable:
                         return _place.Slot;
-                    case WaiterTask.ToPile:
-                        return _pile;
                     default:
                         return null;
                 }
@@ -124,22 +122,22 @@ namespace Game.Simulation.Staff
                     if (_place.Slot.HasDirtyPlate)
                     {
                         Carried = _place.Slot.TakeDirtyPlate();
-                        Task = WaiterTask.ToPile;
+                        Task = WaiterTask.Idle; // Decide picks a counter for it
                     }
                     else
                     {
                         Task = WaiterTask.Idle;
                     }
                     break;
-                case WaiterTask.ToPile:
-                    // A full pile: they hold the plate and wait for room.
-                    if (_pile.CanAccept(Carried))
+                case WaiterTask.ToDirtyCounter:
+                    // Someone may have filled it on the way: Decide picks another.
+                    if (_counter.CanAccept(Carried))
                     {
-                        _pile.Put(Carried);
+                        _counter.Put(Carried);
                         Carried = null;
                         Member.RecordJob(_settings.FatiguePerJob, false);
-                        Task = WaiterTask.Idle;
                     }
+                    Task = WaiterTask.Idle;
                     break;
             }
         }
@@ -152,10 +150,17 @@ namespace Game.Simulation.Staff
 
             if (Carried.IsDirty)
             {
-                if (_pile.CanAccept(Carried))
-                    _pile.Put(Carried);
+                var counter = CounterForDirtyPlate();
+                if (counter != null)
+                {
+                    counter.Put(Carried);
+                }
                 else
-                    _pile.PutOverLimit(Carried);
+                {
+                    // Nowhere for it: it's dropped and breaks.
+                    LoseCarried();
+                    _sink.CountBroken();
+                }
             }
             else
             {
@@ -175,7 +180,10 @@ namespace Game.Simulation.Staff
             {
                 if (Carried.IsDirty)
                 {
-                    Task = WaiterTask.ToPile;
+                    // With every counter full, they hold it until one frees up.
+                    _counter = CounterForDirtyPlate();
+                    if (_counter != null)
+                        Task = WaiterTask.ToDirtyCounter;
                     return;
                 }
                 _place = DinerFor(Carried);
@@ -202,7 +210,8 @@ namespace Game.Simulation.Staff
                 return;
             }
 
-            if (_pile.Count >= _pile.Capacity)
+            // Clearing only if there's somewhere to pile the plate.
+            if (CounterForDirtyPlate(anyDirtyPlate: true) == null)
                 return;
             foreach (var place in _places)
             {
@@ -260,6 +269,25 @@ namespace Game.Simulation.Staff
             var customer = _service().AtSeat(place.SeatIndex);
             return customer != null && customer.State == CustomerState.Waiting && customer.Order != null
                 && OrderCheck.Check(customer.Order, plate, out _) == OrderMatch.Matches;
+        }
+
+        // A counter where a dirty plate can go: on top of other dirty plates first, so they gather
+        // in a few piles rather than spreading over every counter.
+        private ItemSlot CounterForDirtyPlate(bool anyDirtyPlate = false)
+        {
+            ItemSlot empty = null;
+            foreach (var counter in _counters)
+            {
+                var top = counter.Current as Plate;
+                var hasRoom = anyDirtyPlate
+                    ? top != null && top.IsDirty && counter.Count < counter.MaxDirtyPlates
+                    : counter.CanPileOn(Carried);
+                if (hasRoom)
+                    return counter;
+                if (empty == null && counter.IsEmpty)
+                    empty = counter;
+            }
+            return empty;
         }
 
         private ItemSlot FreeCounter()

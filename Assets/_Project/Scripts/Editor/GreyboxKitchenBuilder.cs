@@ -159,7 +159,10 @@ namespace Game.Editor
         {
             ("Island", new Color(0.70f, 0.58f, 0.42f), CounterSize, CounterHeight,
                 new[] { new Vector3(-1.5f, 0f, -0.5f), new Vector3(-0.5f, 0f, -0.5f), new Vector3(0.5f, 0f, -0.5f), new Vector3(1.5f, 0f, -0.5f) }),
-            // Extra counters along the walls, for testing containers and trays (2026-11-04).
+            // Extra counters along the walls, for testing containers and trays (2026-11-04). The one
+            // by the sink is where the dirty pile stood: dirty plates now pile on any counter (2026-11-08).
+            ("WallCounter", new Color(0.50f, 0.46f, 0.42f), CounterSize, CounterHeight,
+                new[] { new Vector3(3.4f, 0f, -0.6f) }),
         };
 
         // The pass along the front, facing the dining side: plates put here are served and scored.
@@ -213,10 +216,6 @@ namespace Game.Editor
         private static readonly Vector3 SinkPosition = new Vector3(3.4f, 0f, 0.4f);
         private static readonly Color SinkColor = new Color(0.55f, 0.62f, 0.68f);
         private static readonly Color DirtyPlateColor = new Color(0.45f, 0.36f, 0.25f);
-        private const float SinkPileOffset = 0.2f;
-        private const int SinkVisualCount = 2;
-        private static readonly Vector3 DirtyPilePosition = new Vector3(3.4f, 0f, -0.6f);
-        private static readonly Color DirtyPileColor = new Color(0.50f, 0.46f, 0.42f);
         private static readonly Vector3 BinPosition = new Vector3(3.4f, 0f, 1.4f);
         private static readonly Color BinColor = new Color(0.25f, 0.55f, 0.30f);
         private const float BinSize = 0.7f;
@@ -552,30 +551,13 @@ namespace Game.Editor
                 "Sink", SinkPosition, CounterSize, CounterHeight, GreyboxAssets.EnsureMaterial("Sink", SinkColor), stations);
             var sinkPile = new SerializedObject(sink.gameObject.AddComponent<PlatePileView>());
             sinkPile.FindProperty("_station").objectReferenceValue = sink;
-            if (KitchenwareArt.DressSink(sink.transform.Find("Body").gameObject))
-            {
-                // Dirty plates in the basin, clean ones standing in the drainer's rack.
-                SetObjects(sinkPile.FindProperty("_dirty"), KitchenwareArt.CreatePlates(sink.transform, KitchenwareArt.SinkBasinFloor,
-                    SinkVisualCount, DirtyPlateColor, "DirtyPlate", new Vector3(KitchenwareArt.SinkBasinX, 0f, 0f), KitchenwareArt.PlateLayout.Messy));
-                SetObjects(sinkPile.FindProperty("_clean"), KitchenwareArt.CreatePlates(sink.transform, CounterHeight,
-                    SinkVisualCount, GreyboxKitchenware.PlateColor, "Plate", new Vector3(KitchenwareArt.SinkDrainerX, 0f, 0f), KitchenwareArt.PlateLayout.Rack));
-            }
-            else
-            {
-                SetObjects(sinkPile.FindProperty("_dirty"), GreyboxKitchenware.CreatePlatePile(
-                    sink.transform, CounterHeight, SinkVisualCount, DirtyPlateColor, "DirtyPlate", new Vector3(-SinkPileOffset, 0f, 0f)));
-                SetObjects(sinkPile.FindProperty("_clean"), GreyboxKitchenware.CreatePlatePile(
-                    sink.transform, CounterHeight, SinkVisualCount, GreyboxKitchenware.PlateColor, "Plate", new Vector3(SinkPileOffset, 0f, 0f)));
-            }
+            // The sink washes one plate at a time and keeps none (decision 2026-11-08): the plate
+            // being washed shows in the basin.
+            var modelled = KitchenwareArt.DressSink(sink.transform.Find("Body").gameObject);
+            SetObjects(sinkPile.FindProperty("_dirty"), KitchenwareArt.CreatePlates(sink.transform,
+                modelled ? KitchenwareArt.SinkBasinFloor : CounterHeight, 1, DirtyPlateColor, "DirtyPlate",
+                modelled ? new Vector3(KitchenwareArt.SinkBasinX, 0f, 0f) : Vector3.zero, KitchenwareArt.PlateLayout.Stack));
             sinkPile.ApplyModifiedPropertiesWithoutUndo();
-
-            var dirtyPile = CreateStation<DirtyPileStation>(
-                "DirtyPile", DirtyPilePosition, CounterSize, CounterHeight, GreyboxAssets.EnsureMaterial("DirtyPile", DirtyPileColor), stations);
-            var dirtyView = new SerializedObject(dirtyPile.gameObject.AddComponent<PlatePileView>());
-            dirtyView.FindProperty("_station").objectReferenceValue = dirtyPile;
-            SetObjects(dirtyView.FindProperty("_dirty"), KitchenwareArt.CreatePlates(dirtyPile.transform, CounterHeight,
-                PlateStackVisualCount, DirtyPlateColor, "DirtyPlate", Vector3.zero, KitchenwareArt.PlateLayout.Messy));
-            dirtyView.ApplyModifiedPropertiesWithoutUndo();
 
             CreateRack("TrayRack", RackStation.RackKind.Trays, TrayRackPosition, 4, GreyboxKitchenware.TrayColor, stations);
             CreateRack("ContainerRack", RackStation.RackKind.Containers, ContainerRackPosition, 6, GreyboxKitchenware.ContainerColor, stations);
