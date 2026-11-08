@@ -265,21 +265,19 @@ namespace Game.Tests.PlayMode
         }
 
         [UnityTest]
-        public IEnumerator ABoughtBoardAndKnifeRackGoOnFreeCounters()
+        public IEnumerator ABoughtBoardGoesOnAFreeCounterAndARackIsItsOwnCounter()
         {
             yield return OpenKitchenWithCursor();
             Days.Receive(100f);
-            var free = _root.Services.Stations.All.OfType<CounterStation>().Where(c => c.IsClear).Take(2).ToArray();
+            var free = _root.Services.Stations.All.OfType<CounterStation>().First(c => c.IsClear);
 
-            var board = Buy<PrepStation>("board", new Vector2(free[0].transform.position.x, free[0].transform.position.z));
-            // A rack isn't carried: it goes straight onto the free counter nearest a board.
-            Assert.That(_editor.Buy(_cursor, _editor.Shop.First(e => e.Id == "knife rack")), Is.True);
-            var rack = Object.FindObjectsByType<KnifeRackStation>(FindObjectsSortMode.None).Single();
+            var board = Buy<PrepStation>("board", new Vector2(free.transform.position.x, free.transform.position.z));
+            var rack = Buy<KnifeRackStation>("knife rack", OpenFloor);
 
-            Assert.That(board.OnCounter, Is.SameAs(free[0]));
-            Assert.That(rack.OnCounter, Is.Not.Null);
-            Assert.That(rack.OnCounter.Fixture, Is.SameAs(rack), "a counter of its own");
+            Assert.That(board.OnCounter, Is.SameAs(free));
             Assert.That(_root.Services.Stations.All.OfType<PrepStation>().Count(), Is.EqualTo(2));
+            var at = new Vector2(rack.transform.position.x, rack.transform.position.z);
+            Assert.That(Vector2.Distance(at, OpenFloor), Is.LessThan(0.5f), "placed on the floor like a counter");
 
             // The kitchen's knife goes from its counter onto the rack.
             _editor.Leave(_player);

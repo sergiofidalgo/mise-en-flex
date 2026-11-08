@@ -7,7 +7,7 @@ namespace Game.Gameplay.Stations
     /// <summary>
     /// A plain counter top that holds one item: a plate, a tray, a container, or a knife. Counters are
     /// precious: each thing kept here is one less place to work (decision 2026-11-04). With a finished
-    /// plate on it, Use rings the bell for it to go out. A cutting board or knife rack can sit on it
+    /// plate on it, Use rings the bell for it to go out. A cutting board can sit on it
     /// (decision 2026-11-07), and then it's that instead: the counter can't be reached until it's moved.
     /// </summary>
     public sealed class CounterStation : Interactable, IStationPrompt, IUsable, IToolStation
@@ -24,7 +24,7 @@ namespace Game.Gameplay.Stations
         /// <summary>What's on this counter, for staff who work from it.</summary>
         public ItemSlot Slot => _slot;
 
-        /// <summary>The board or rack sitting on it, if any.</summary>
+        /// <summary>The board sitting on it, if any.</summary>
         public CounterTopStation Fixture { get; private set; }
 
         public bool IsCovered => Fixture != null;
@@ -45,7 +45,7 @@ namespace Game.Gameplay.Stations
             }
         }
 
-        /// <summary>A board or rack now sits here; null when it's taken off.</summary>
+        /// <summary>A board now sits here; null when it's taken off.</summary>
         internal void SetFixture(CounterTopStation fixture) => Fixture = fixture;
 
         public bool TryUse(PlayerInteractor player) => _services.Bell.Ring(_slot);

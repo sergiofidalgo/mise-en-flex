@@ -14,8 +14,8 @@ using Vector2 = System.Numerics.Vector2;
 namespace Game.Tests.PlayMode
 {
     /// <summary>
-    /// Boards and knives on counters (decision 2026-11-07): the board and the knife rack sit on
-    /// counters and move only in management mode; the kitchen starts with one knife lying loose.
+    /// Boards and knives (decisions 2026-11-07 and 2026-11-08): the board sits on a counter and moves
+    /// only in management mode; the knife rack is a counter of its own; the kitchen starts with one knife lying loose.
     /// </summary>
     public class BoardAndKnifePlayTests
     {
@@ -179,33 +179,40 @@ namespace Game.Tests.PlayMode
             Assert.That(_chef.Target, Is.SameAs(Board));
         }
 
-        // A bought rack goes on the free counter nearest a board (decision 2026-11-08).
+        // A knife rack is a counter with the rack built in (decision 2026-11-08).
 
-        private KnifeRackStation BuyRack(LayoutEditor.Cursor cursor)
+        private KnifeRackStation BuyRack(LayoutEditor.Cursor cursor, Vector2 where)
         {
+            cursor.Position = where;
             Assert.That(_editor.Buy(cursor, _editor.Shop.First(e => e.Id == "knife rack")), Is.True);
-            Assert.That(cursor.Held, Is.Null, "nothing to carry: it's already down");
-            return Object.FindObjectsByType<KnifeRackStation>(FindObjectsSortMode.None).Single();
+            var rack = cursor.Held as KnifeRackStation;
+            Assert.That(rack, Is.Not.Null, "carried like a counter");
+            _editor.MoveCursor(cursor, Vector2.Zero);
+            Assert.That(_editor.Place(cursor), Is.True, cursor.Result.ToString());
+            return rack;
         }
 
+        // Between the island and the pass, clear of the starting layout and the chef's spawn.
+        private static readonly Vector2 OpenFloor = new Vector2(-0.4f, -2.0f);
+
         [UnityTest]
-        public IEnumerator ABoughtRackTakesTheFreeCounterNearestTheBoard()
+        public IEnumerator AKnifeRackIsBoughtAndPlacedAsOnePieceWithItsCounter()
         {
             yield return OpenKitchen();
             _root.Services.Days.Receive(100f);
-            var board = Floor(Board);
-            var nearest = Counters.Where(c => c.IsClear)
-                .OrderBy(c => Vector2.DistanceSquared(Floor(c), board))
-                .First();
-            var balance = _root.Services.Days.Balance;
+            var counters = Counters.Length;
             var cursor = _editor.Enter(_player);
 
-            var rack = BuyRack(cursor);
+            var rack = BuyRack(cursor, OpenFloor);
 
-            Assert.That(rack.OnCounter, Is.SameAs(nearest));
-            Assert.That(nearest.IsCovered, Is.True, "it takes the whole counter, as a board does");
-            Assert.That(_root.Services.Days.Balance, Is.LessThan(balance), "paid for");
-            Assert.That(_editor.StationUnder(cursor), Is.SameAs(rack), "the cursor shows where it went");
+            Assert.That(Counters.Length, Is.EqualTo(counters), "no separate counter comes with it");
+            Assert.That(rack.GetComponentInParent<CounterStation>(), Is.Null, "it isn't on a counter: it is one");
+            Assert.That(_editor.StationUnder(cursor), Is.SameAs(rack));
+
+            // Moved, it goes as a whole.
+            Assert.That(_editor.PickUp(cursor), Is.True);
+            Assert.That(cursor.Held, Is.SameAs(rack));
+            _editor.Cancel(cursor);
         }
 
         [UnityTest]
@@ -213,7 +220,7 @@ namespace Game.Tests.PlayMode
         {
             yield return OpenKitchen();
             _root.Services.Days.Receive(100f);
-            var rack = BuyRack(_editor.Enter(_player));
+            var rack = BuyRack(_editor.Enter(_player), OpenFloor);
             _editor.Leave(_player);
 
             Assert.That(_editor.BuyItem(_editor.Shop.First(e => e.Id == "knife")), Is.EqualTo(Placement.Ok));

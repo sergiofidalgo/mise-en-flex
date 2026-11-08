@@ -4,16 +4,22 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
-## 2026-11-08 — A bought knife rack goes next to a cutting board
+## 2026-11-08 — The knife rack is a counter of its own
 
 **Decision (user's call, from playtest feedback):**
-- **A bought knife rack goes straight onto the free counter nearest a cutting board.** It's paid for and put down at once, and the cursor moves to it so it's clear where it went. If there's no free counter, it's carried like anything else. It can be moved afterwards like any board or rack.
-- **It takes that whole counter, as a board does** (unchanged from 2026-11-07). A takes and hangs knives at the rack.
+- **A knife rack comes built into its own counter, and the two can't be separated.** It's bought, carried, placed, moved and sold as one piece, like a counter. It sells only when empty, like any piece.
+- **Price 55:** a counter (30) plus the rack (25).
+- **A takes and hangs knives at it**, as before. Food can't go on it.
 - **A bought knife hangs on a rack with room** before going to a free counter. This replaces "a bought knife appears on the first free counter" (2026-11-07) for kitchens that have a rack.
+- **Replaces** the 2026-11-07 rule that a knife rack sits on a counter like a cutting board. Boards still do.
 
-**Tried and dropped the same day:** the rack sharing the board's counter, with the board answering A for both. A rack on its own counter keeps the controls simple and makes it a real layout choice, since counters are precious. Real 3D knives laid flat would also have crowded a shared counter.
+**Tried and dropped the same day:**
+- **Sharing the board's counter, with the board answering A for both.** The controls got complicated, and real 3D knives laid flat would have crowded the counter.
+- **Putting a bought rack on the free counter nearest a board.** Building the rack into its own counter is simpler, and placing it is the players' choice, like any counter.
 
-**For the art phase:** model the rack as an upright knife block, which reads better from the overhead camera than knives lying flat.
+**Reason:** a rack fused to its counter is placed like everything else, so it's a clear layout decision, with no fixtures to manage.
+
+**For the art phase:** model it as an upright knife block on its counter, which reads better from the overhead camera than knives lying flat.
 
 ---
 

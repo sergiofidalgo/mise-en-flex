@@ -173,7 +173,7 @@ namespace Game.Gameplay.Staff
         }
 
         // The kitchen changed: everyone works out their way again.
-        // The counters staff can work from: not those with a board or rack on them. The jobs share
+        // The counters staff can work from: not those with a board on them. The jobs share
         // this list, so it's refilled rather than replaced.
         private void RefreshCounters()
         {

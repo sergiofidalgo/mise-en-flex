@@ -5,11 +5,12 @@ using UnityEngine;
 namespace Game.Gameplay.Stations
 {
     /// <summary>
-    /// A knife rack on a counter (decision 2026-11-07): several knives where one lying loose would
-    /// take a whole counter. A takes one into the chef's tool slot (even while carrying food) and puts
-    /// one back. Food can't go on it. It starts empty; knives are bought.
+    /// A knife rack built into its own counter (decision 2026-11-08): bought, carried, placed, moved
+    /// and sold as one piece, like a counter, and never taken apart. A takes a knife into the chef's
+    /// tool slot (even while carrying food) and puts one back. Food can't go on it. It starts empty;
+    /// knives are bought, and hang on a rack with room first.
     /// </summary>
-    public sealed class KnifeRackStation : CounterTopStation, IToolStation, IStationPrompt
+    public sealed class KnifeRackStation : Interactable, IToolStation, IStationPrompt
     {
         [Tooltip("Where each knife hangs, one per place; their number is how many it holds.")]
         [SerializeField] private Transform[] _places = System.Array.Empty<Transform>();

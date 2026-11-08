@@ -48,7 +48,7 @@ namespace Game.Editor
         private const float InductionPrice = 150f;
         private const float GrillPrice = 250f;
         private const float BoardPrice = 20f;
-        private const float KnifeRackPrice = 25f;
+        private const float KnifeRackPrice = CounterPrice + 25f; // a counter with the rack built in
         private const float KnifePrice = 15f;
         private const float PanPrice = 25f;
         private const float ShelfPrice = 60f;
@@ -226,6 +226,15 @@ namespace Game.Editor
         private static readonly Color FloorColor = new Color(0.62f, 0.63f, 0.66f);
         private static readonly Color WallColor = new Color(0.30f, 0.33f, 0.40f);
         private static readonly Color NoseColor = new Color(0.20f, 0.20f, 0.22f);
+
+        /// <summary>Rebuilds only the shop's furniture prefabs and catalog, leaving the scene as it is.</summary>
+        [MenuItem("Tools/Game/Rebuild Shop Furniture")]
+        public static void RebuildFurniture()
+        {
+            BuildFurniture();
+            AssetDatabase.SaveAssets();
+            Debug.Log("[GreyboxKitchenBuilder] Rebuilt the shop's furniture.");
+        }
 
         [MenuItem("Tools/Game/Build Greybox Kitchen")]
         public static void BuildAll()
@@ -705,9 +714,11 @@ namespace Game.Editor
             return prep;
         }
 
-        private static KnifeRackStation BuildKnifeRack(string name, Transform counter)
+        // A knife rack built into its own counter (decision 2026-11-08): one piece, placed like a counter.
+        private static KnifeRackStation BuildKnifeRack(string name, Transform parent)
         {
-            var rack = CreateCounterTop<KnifeRackStation>(name, counter, KnifeRackFurniture);
+            var rack = CreateStation<KnifeRackStation>(
+                name, Vector3.zero, CounterSize, CounterHeight, GreyboxAssets.EnsureMaterial(CounterZones[0].Name, CounterZones[0].Color), parent, KnifeRackFurniture);
             var block = GreyboxAssets.CreatePrimitive(
                 PrimitiveType.Cube, "Block", rack.transform, GreyboxAssets.EnsureMaterial("KnifeRack", KnifeRackColor), keepCollider: false);
             block.transform.localScale = KnifeRackBlockScale;
@@ -729,7 +740,13 @@ namespace Game.Editor
             for (var i = 0; i < places.Length; i++)
                 list.GetArrayElementAtIndex(i).objectReferenceValue = places[i];
             so.ApplyModifiedPropertiesWithoutUndo();
-            AddHighlight(rack, block.GetComponent<Renderer>());
+
+            // The rack lights up with its counter, as one piece.
+            var highlight = new SerializedObject(rack.GetComponent<InteractableHighlightView>());
+            var renderers = highlight.FindProperty("_renderers");
+            renderers.arraySize++;
+            renderers.GetArrayElementAtIndex(renderers.arraySize - 1).objectReferenceValue = block.GetComponent<Renderer>();
+            highlight.ApplyModifiedPropertiesWithoutUndo();
             return rack;
         }
 

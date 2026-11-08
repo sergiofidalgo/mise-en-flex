@@ -1,8 +1,8 @@
 namespace Game.Gameplay.Stations
 {
     /// <summary>
-    /// Something that sits on a counter and takes it over: a cutting board or a knife rack
-    /// (decision 2026-11-07). It's moved only in management mode, from one free counter to another,
+    /// Something that sits on a counter and takes it over: a cutting board (decision
+    /// 2026-11-07). A knife rack used to be one too; it's now its own counter (decision 2026-11-08). It's moved only in management mode, from one free counter to another,
     /// and goes wherever its counter goes. It has no floor of its own.
     /// </summary>
     public abstract class CounterTopStation : Interactable

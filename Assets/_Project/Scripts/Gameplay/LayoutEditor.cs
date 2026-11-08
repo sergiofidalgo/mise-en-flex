@@ -19,9 +19,10 @@ namespace Game.Gameplay
     /// rotate, B puts what's held back where it was, and Select returns to the chef. Furniture goes exactly where they put it, snapping
     /// to what's around it when close. What's on a station moves with it. Each player has their own
     /// cursor, and two can't hold the same thing. Y opens the shop, whose furniture is carried like any
-    /// other and paid for when it goes down, and X sells what's under the cursor. A cutting board or
-    /// knife rack on a counter is what's under the cursor there, and goes from one free counter to
-    /// another (decision 2026-11-07); the counter can only be moved once it's off.
+    /// other and paid for when it goes down, and X sells what's under the cursor. A cutting board on a
+    /// counter is what's under the cursor there, and goes from one free counter to another (decision
+    /// 2026-11-07); the counter can only be moved once it's off. A knife rack is its own counter
+    /// (decision 2026-11-08), moved like any piece.
     /// </summary>
     public sealed class LayoutEditor : MonoBehaviour
     {
@@ -44,7 +45,7 @@ namespace Game.Gameplay
             public SimVector2 Landing;
             public float Degrees;
 
-            // Where a board or rack being carried would go: a free counter, or null.
+            // Where a board being carried would go: a free counter, or null.
             public CounterStation Onto;
             public Placement Result;
             public float TurnVelocity;
@@ -283,7 +284,7 @@ namespace Game.Gameplay
             cursor.Held.transform.position = new Vector3(cursor.Landing.X, cursor.HeldFrom.y, cursor.Landing.Y);
         }
 
-        // A board or rack lands on the counter under the cursor, turned the way it is, if nothing's on
+        // A board lands on the counter under the cursor, turned the way it is, if nothing's on
         // it. Its own counter counts as free, so it can always go back.
         private void UpdateHeldFixture(Cursor cursor, CounterTopStation fixture)
         {
@@ -494,47 +495,12 @@ namespace Game.Gameplay
             return Placement.Ok;
         }
 
-        /// <summary>
-        /// A bought knife rack goes straight onto the free counter nearest a cutting board (user's call,
-        /// 2026-11-08): the two are used together on every cut. It takes that whole counter, as a board
-        /// does. With no free counter, it's carried like anything else.
-        /// </summary>
-        private bool TryPutRackByABoard(Cursor cursor, FurnitureCatalog.Entry entry)
-        {
-            if (entry.Prefab.GetComponent<KnifeRackStation>() == null)
-                return false;
-            var services = _root.Services;
-            var boards = services.Stations.All.OfType<PrepStation>().Where(b => b.OnCounter != null).ToList();
-            var counter = services.Stations.All.OfType<CounterStation>()
-                .Where(c => c.IsClear && boards.Count > 0)
-                .OrderBy(c => boards.Min(b => SimVector2.DistanceSquared(Floor(c.transform.position), Floor(b.transform.position))))
-                .FirstOrDefault();
-            if (counter == null || !services.Days.TrySpend(entry.Price))
-                return false;
-
-            var rack = Instantiate(entry.Prefab).GetComponent<KnifeRackStation>();
-            rack.name = entry.DisplayName;
-            rack.Bind(services);
-            services.Stations.Add(rack);
-            rack.PutOn(counter);
-            cursor.ShopOpen = false;
-            // The cursor goes to it, so it's lit up where it landed and nobody wonders where it went.
-            cursor.Position = Floor(counter.transform.position);
-            LayoutChanged?.Invoke();
-            return true;
-        }
-
-        /// <summary>
-        /// Puts a new piece on the cursor, to be carried like any other. Nothing's paid yet. A knife
-        /// rack is the exception: paid for and put on the free counter nearest a board at once.
-        /// </summary>
+        /// <summary>Puts a new piece on the cursor, to be carried like any other. Nothing's paid yet.</summary>
         /// <returns>False if the money isn't there.</returns>
         public bool Buy(Cursor cursor, FurnitureCatalog.Entry entry)
         {
             if (cursor.Held != null || entry.IsItem || !CanAfford(entry))
                 return false;
-            if (TryPutRackByABoard(cursor, entry))
-                return true;
 
             var position = new Vector3(cursor.Position.X, 0f, cursor.Position.Y);
             var instance = Instantiate(entry.Prefab, position, Quaternion.identity);
