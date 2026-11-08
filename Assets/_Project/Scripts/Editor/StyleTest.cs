@@ -16,8 +16,13 @@ namespace Game.Editor
         // Kitchen-real colours with clear contrast between parts: a stainless hob (decision 2026-11-08),
         // light enough that the darker pan on it stands out.
         private static readonly Color HobSteel = new Color(0.78f, 0.8f, 0.83f);
-        private static readonly Color HobTopCharcoal = new Color(0.2f, 0.2f, 0.23f);
-        private static readonly Color KnobSteel = new Color(0.86f, 0.88f, 0.9f);
+        // A steel top a shade darker than the body, with a black knob and the dark pan standing out
+        // on it; the oven door below has a smoked window and a chrome bar handle.
+        private static readonly Color HobTopSteel = new Color(0.68f, 0.7f, 0.74f);
+        private static readonly Color KnobBlack = new Color(0.13f, 0.13f, 0.14f);
+        private static readonly Color DoorSteel = new Color(0.64f, 0.66f, 0.7f);
+        private static readonly Color WindowSmoked = new Color(0.15f, 0.16f, 0.19f);
+        private static readonly Color Chrome = new Color(0.92f, 0.93f, 0.95f);
         private static readonly Color BurnerDark = new Color(0.08f, 0.08f, 0.09f);
         private static readonly Color PanSteel = new Color(0.32f, 0.36f, 0.44f);
         private static readonly Color HandleWood = new Color(0.55f, 0.33f, 0.18f);
@@ -57,15 +62,18 @@ namespace Game.Editor
         private static readonly Vector3 KnobPosition = new Vector3(0.37f, 0.9f, -0.37f);
 
         /// <summary>
-        /// The hob's body, top, heat knob and burner, each in its own flat colour. Returns the knob,
+        /// The range's body, top, heat knob, burner and oven door, each in its own flat colour. Returns the knob,
         /// for the hob's view to turn with the heat, or null without the model.
         /// </summary>
         public static Transform DressHob(Transform hob, GameObject burner)
         {
             hob.Find("Body").GetComponent<Renderer>().sharedMaterial = EnsureToonMaterial("HobBody", HobSteel);
             burner.GetComponent<Renderer>().sharedMaterial = EnsureToonMaterial("Burner", BurnerDark);
-            AddPart(hob, "Top", "HobTop", EnsureToonMaterial("HobTop", HobTopCharcoal));
-            var knob = AddPart(hob, Game.Presentation.HobView.KnobName, "HobDial", EnsureToonMaterial("HobDial", KnobSteel));
+            AddPart(hob, "Top", "HobTop", EnsureToonMaterial("HobTop", HobTopSteel));
+            AddPart(hob, "Door", "HobDoor", EnsureToonMaterial("HobDoor", DoorSteel));
+            AddPart(hob, "Window", "HobWindow", EnsureToonMaterial("HobWindow", WindowSmoked));
+            AddPart(hob, "Handle", "HobHandle", EnsureToonMaterial("HobHandle", Chrome));
+            var knob = AddPart(hob, Game.Presentation.HobView.KnobName, "HobDial", EnsureToonMaterial("HobDial", KnobBlack));
             if (knob != null)
                 knob.localPosition = KnobPosition;
             return knob;

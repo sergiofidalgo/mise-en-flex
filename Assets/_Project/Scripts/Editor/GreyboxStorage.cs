@@ -60,6 +60,7 @@ namespace Game.Editor
                 // A modelled basket has its origin at its base, sitting on the shelf.
                 if (PilotArt.TryUseMesh(bin, StorageArt.ModelFor(unit.Refrigerated), StorageArt.BasketMesh(unit.Refrigerated)))
                 {
+                    bin.GetComponent<Renderer>().sharedMaterial = StorageArt.BasketMaterial(unit.Refrigerated);
                     bin.transform.localPosition = slot;
                     binTop = StorageArt.BasketHeight;
                 }

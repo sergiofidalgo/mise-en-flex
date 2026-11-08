@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Game.Presentation;
 using UnityEditor;
 using UnityEngine;
@@ -37,7 +38,10 @@ namespace Game.Editor
         // Thin outlines on small things, so six plates and a wire rack don't turn into a tangle of black.
         private const float PlateOutline = 0.0025f;
         private const float WireOutline = 0.0012f;
-        private static readonly Color SteelColor = new Color(0.72f, 0.74f, 0.77f);
+        private static readonly Color SteelColor = new Color(0.74f, 0.76f, 0.8f);
+        private const string BinModel = "SM_Bin";
+        private static readonly Color BinGreen = new Color(0.27f, 0.45f, 0.33f);
+        private static readonly Color BinLidGreen = new Color(0.32f, 0.52f, 0.38f);
 
         public enum PlateLayout
         {
@@ -111,13 +115,42 @@ namespace Game.Editor
             AddRim(body.transform);
         }
 
-        /// <summary>The sink unit's model, on the station's body. False if there's no model.</summary>
-        public static bool DressSink(GameObject body)
+        /// <summary>
+        /// The sink's steel top, basin and tap, on its cabinet (CabinetArt, underSink): a part under
+        /// the station's body, so it shakes and lights up with it. Null if there's no model.
+        /// </summary>
+        public static Renderer DressSink(Transform body)
         {
-            if (!PilotArt.TryUseMesh(body, SinkModel, "SinkBody"))
-                return false;
-            body.GetComponent<Renderer>().sharedMaterial = GreyboxAssets.EnsureMaterial("SinkSteel", SteelColor);
-            return true;
+            var part = GreyboxAssets.CreatePrimitive(PrimitiveType.Cube, "SinkTop", body,
+                StyleTest.EnsureToonMaterial("SinkSteel", SteelColor), keepCollider: false);
+            if (PilotArt.TryUseMesh(part, SinkModel, "SinkBody"))
+                return part.GetComponent<Renderer>();
+            Object.DestroyImmediate(part);
+            return null;
+        }
+
+        /// <summary>
+        /// The pedal bin's model on the bin station's body, in green enamel with a steel pedal.
+        /// Returns its other parts' renderers, for the station's highlight; empty without the model.
+        /// </summary>
+        public static List<Renderer> DressBin(Transform body)
+        {
+            var parts = new List<Renderer>();
+            if (!PilotArt.TryUseMesh(body.gameObject, BinModel, "BinBody"))
+                return parts;
+            body.GetComponent<Renderer>().sharedMaterial = StyleTest.EnsureToonMaterial("BinBody", BinGreen);
+            AddBinPart("Lid", "BinLid", StyleTest.EnsureToonMaterial("BinLid", BinLidGreen));
+            AddBinPart("Pedal", "BinPedal", StyleTest.EnsureToonMaterial("SinkSteel", SteelColor));
+            return parts;
+
+            void AddBinPart(string name, string mesh, Material material)
+            {
+                var part = GreyboxAssets.CreatePrimitive(PrimitiveType.Cube, name, body, material, keepCollider: false);
+                if (PilotArt.TryUseMesh(part, BinModel, mesh))
+                    parts.Add(part.GetComponent<Renderer>());
+                else
+                    Object.DestroyImmediate(part);
+            }
         }
 
         /// <summary>

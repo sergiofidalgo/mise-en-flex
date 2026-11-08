@@ -40,6 +40,16 @@ namespace Game.Editor
         // The glass lid's hinge, along the back of the top. Must match FRIDGE_LID_HINGE in blender/build_pilot_models.py.
         public static readonly Vector3 LidHinge = new Vector3(0f, 0.9f, 0.44f);
         private static readonly Color LinerColor = new Color(0.9f, 0.94f, 0.97f);
+        private static readonly Color Enamel = new Color(0.95f, 0.94f, 0.9f);
+        private static readonly Color ShelfWood = new Color(0.6f, 0.4f, 0.24f);
+        private static readonly Color ShelfGrain = new Color(0.52f, 0.34f, 0.2f);
+        private static readonly Color FridgeBasket = new Color(0.82f, 0.86f, 0.9f);
+        private static readonly Color Wicker = new Color(0.78f, 0.62f, 0.4f);
+
+        /// <summary>A basket's material: pale plastic in the fridge, wicker on the shelf.</summary>
+        public static Material BasketMaterial(bool refrigerated) => refrigerated
+            ? StyleTest.EnsureToonMaterial("FridgeBasket", FridgeBasket)
+            : StyleTest.EnsureToonMaterial("ShelfBasket", Wicker);
         private static readonly Color GoodsColor = new Color(0.66f, 0.55f, 0.38f);
         private static readonly Color GlassColor = new Color(0.8f, 0.92f, 1f, 0.18f);
 
@@ -109,18 +119,22 @@ namespace Game.Editor
             var body = station.transform.Find("Body").gameObject;
             if (!PilotArt.TryUseMesh(body, ModelFor(refrigerated), refrigerated ? "FridgeBody" : "ShelfBody"))
                 return;
+            // Toon shaded like the rest of the kitchen (decision 2026-11-08, the art overhaul).
+            body.GetComponent<Renderer>().sharedMaterial = refrigerated
+                ? StyleTest.EnsureToonMaterial("FridgeEnamel", Enamel)
+                : StyleTest.EnsureToonMaterial("ShelfWood", ShelfWood, ShelfGrain, grainScale: 14f);
 
             if (refrigerated)
                 DressFridge(station, body.GetComponent<Renderer>().sharedMaterial);
             else
                 CreatePart(station.transform, "Goods", ShelfModel, "ShelfGoods",
-                    GreyboxAssets.EnsureMaterial("ShelfGoods", GoodsColor), Vector3.zero);
+                    StyleTest.EnsureToonMaterial("ShelfGoods", GoodsColor), Vector3.zero);
         }
 
         private static void DressFridge(StorageStation station, Material bodyMaterial)
         {
             CreatePart(station.transform, "Liner", FridgeModel, "FridgeLiner",
-                GreyboxAssets.EnsureMaterial("FridgeLiner", LinerColor), Vector3.zero);
+                StyleTest.EnsureToonMaterial("FridgeLiner", LinerColor), Vector3.zero);
 
             // The glass lid turns about its hinge along the back; its frame and glass hang from it.
             var lid = new GameObject("Lid").transform;

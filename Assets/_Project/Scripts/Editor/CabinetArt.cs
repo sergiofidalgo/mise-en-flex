@@ -25,18 +25,20 @@ namespace Game.Editor
 
         /// <summary>
         /// Gives a station's body the cabinet model and adds its other parts under it, so they
-        /// shake with it. Returns the renderers added, for the station's highlight; empty without
-        /// the model.
+        /// shake with it. Under a sink, the body stops lower and there's no wooden top: the sink's
+        /// own top and basin sit there. Returns the renderers added, for the station's highlight;
+        /// empty without the model.
         /// </summary>
-        public static IReadOnlyList<Renderer> Dress(Transform station)
+        public static IReadOnlyList<Renderer> Dress(Transform station, bool underSink = false)
         {
             var parts = new List<Renderer>();
             var body = station.Find("Body");
-            if (body == null || !PilotArt.TryUseMesh(body.gameObject, Model, "CabinetBody"))
+            if (body == null || !PilotArt.TryUseMesh(body.gameObject, Model, underSink ? "CabinetBodyLow" : "CabinetBody"))
                 return parts;
 
             body.GetComponent<Renderer>().sharedMaterial = StyleTest.EnsureToonMaterial("CabinetBody", Body, BodyGrain, grainScale: 14f);
-            Add("Top", "CabinetTop", StyleTest.EnsureToonMaterial("CabinetTop", Top, TopGrain, grainScale: 24f));
+            if (!underSink)
+                Add("Top", "CabinetTop", StyleTest.EnsureToonMaterial("CabinetTop", Top, TopGrain, grainScale: 24f));
             Add("Fronts", "CabinetFronts", StyleTest.EnsureToonMaterial("CabinetFronts", Fronts, FrontsGrain, grainScale: 14f));
             Add("Knobs", "CabinetKnobs", StyleTest.EnsureToonMaterial("CabinetKnobs", Brass));
             Add("Base", "CabinetKick", StyleTest.EnsureToonMaterial("CabinetBase", Base));

@@ -86,10 +86,13 @@ namespace Game.Tests.EditMode
         [Test]
         public void SinkFillsItsStationWithTheTopAtCounterHeight()
         {
+            // The sink is a steel top set into the shared cabinet (decision 2026-11-08): its lip
+            // comes down to the cabinet's lowered body, leaving no gap and no overlap.
             var sink = Model("SM_Sink", "SinkBody");
+            var cabinet = Model("SM_Cabinet", "CabinetBodyLow");
             Assert.That(sink.size.x, Is.EqualTo(1f).Within(Tolerance));
             Assert.That(sink.size.z, Is.LessThanOrEqualTo(1f + Tolerance));
-            Assert.That(sink.min.y, Is.EqualTo(0f).Within(Tolerance));
+            Assert.That(sink.min.y, Is.EqualTo(cabinet.max.y).Within(Tolerance), "The lip meets the cabinet.");
             Assert.That(sink.max.y, Is.GreaterThan(0.9f), "The tap and upstand rise above the top.");
         }
 

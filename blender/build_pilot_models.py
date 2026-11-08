@@ -114,8 +114,9 @@ def finish(name, bm):
 
 
 def build_hob():
-    """A stainless range (decision 2026-11-08): a rounded body under a thick dark top, with one
-    big heat knob on the top. Parts are separate meshes so each gets its own flat colour."""
+    """A stainless range (decision 2026-11-08): a rounded body under a thick top, one big heat
+    knob on the top and an oven door on the front. Parts are separate meshes so each gets its own
+    flat colour."""
     bm = bmesh.new()
     plinth = 0.08
     body_top = HOB_HEIGHT - 0.08
@@ -144,7 +145,23 @@ def build_hob():
         (0.235, HOB_HEIGHT + 0.009), (0.22, HOB_HEIGHT + 0.005), (0.2, HOB_HEIGHT + 0.003), (0.0, HOB_HEIGHT + 0.003),
     ])
     burner = finish("HobBurner", bm)
-    return [body, top, dial, burner]
+
+    # The oven door on the front (+Y, towards the camera), which says "range" at a glance: a
+    # panel with a dark window and a long bar handle, all inside the footprint.
+    front = -0.04 + 0.46  # the body's front face
+    bm = bmesh.new()
+    add_box(bm, (0.78, 0.03, 0.5), (0.0, front + 0.015, 0.42), bevel=0.02)
+    door = finish("HobDoor", bm)
+    bm = bmesh.new()
+    add_box(bm, (0.52, 0.01, 0.2), (0.0, front + 0.032, 0.46), bevel=0.004)
+    window = finish("HobWindow", bm)
+    bm = bmesh.new()
+    handle_y = front + 0.07
+    add_pipe(bm, [(-0.3, handle_y, 0.62), (0.3, handle_y, 0.62)], radius=0.014, segments=10)
+    for x in (-0.27, 0.27):
+        add_pipe(bm, [(x, front + 0.03, 0.62), (x, handle_y, 0.62)], radius=0.01, segments=8)
+    handle = finish("HobHandle", bm)
+    return [body, top, dial, burner, door, window, handle]
 def build_pan():
     """Style test: mostly rim and handle. A shallow pan with a fat rolled rim and a short, stubby
     handle with a big ball on the end, towards the camera (+Y here)."""
@@ -373,49 +390,49 @@ def build_plate_racks():
 
 
 def build_sink():
-    """A chunky stainless sink unit with one big basin and no room for plates: it only washes
-    (decision 2026-11-08). A thick rounded top, an oversized swan-neck tap at the back, and open
-    legs with a slatted bottom shelf."""
+    """A stainless sink top set into the shared wooden cabinet (decision 2026-11-08, the art
+    overhaul), like the user's reference: one big basin filling most of the counter, a swan-neck
+    tap rising from the back, and a steel lip down to the cabinet's lowered body (CabinetBodyLow),
+    so the basin has room underneath. It only washes, with no room for plates."""
     bm = bmesh.new()
-    top, thickness = COUNTER_HEIGHT, 0.06
+    top, thickness = COUNTER_HEIGHT, 0.05
     z = top - thickness / 2.0
     hole_x, hole_y = 0.38, 0.32  # half the basin's opening: most of the counter, like the references
     # The top around the basin's opening.
-    add_box(bm, (0.5 - hole_x, 1.0, thickness), ((0.5 + hole_x) / 2.0, 0.0, z), bevel=0.02)
-    add_box(bm, (0.5 - hole_x, 1.0, thickness), (-(0.5 + hole_x) / 2.0, 0.0, z), bevel=0.02)
-    add_box(bm, (2 * hole_x, 0.5 - hole_y, thickness), (0.0, (0.5 + hole_y) / 2.0, z), bevel=0.02)
-    add_box(bm, (2 * hole_x, 0.5 - hole_y, thickness), (0.0, -(0.5 + hole_y) / 2.0, z), bevel=0.02)
-    add_box(bm, (1.0, 0.05, 0.14), (0.0, -0.475, top + 0.07), bevel=0.022)  # upstand
+    add_box(bm, (0.5 - hole_x, 1.0, thickness), ((0.5 + hole_x) / 2.0, 0.0, z), bevel=0.014)
+    add_box(bm, (0.5 - hole_x, 1.0, thickness), (-(0.5 + hole_x) / 2.0, 0.0, z), bevel=0.014)
+    add_box(bm, (2 * hole_x, 0.5 - hole_y, thickness), (0.0, (0.5 + hole_y) / 2.0, z), bevel=0.014)
+    add_box(bm, (2 * hole_x, 0.5 - hole_y, thickness), (0.0, -(0.5 + hole_y) / 2.0, z), bevel=0.014)
+    add_box(bm, (1.0, 0.04, 0.1), (0.0, -0.48, top + 0.05), bevel=0.015)  # upstand along the back
     # The basin, 0.15 deep: the plate being washed sits on its floor at 0.75.
-    add_box(bm, (2 * hole_x, 2 * hole_y, 0.02), (0.0, 0.0, top - 0.16), bevel=0.008)
+    add_box(bm, (2 * hole_x, 2 * hole_y, 0.02), (0.0, 0.0, top - 0.16), bevel=0.006)
     for y in (-hole_y, hole_y):
         add_box(bm, (2 * hole_x, 0.02, 0.16), (0.0, y, top - 0.08))
     for x in (-hole_x, hole_x):
         add_box(bm, (0.02, 2 * hole_y, 0.16), (x, 0.0, top - 0.08))
-    add_lathe(bm, [(0.03, 0.0), (0.03, 0.2), (0.0, 0.2)], segments=12, centre=(0.0, 0.0, top - 0.36))  # drain
-    # An oversized gooseneck tap: it rises from the middle of the back edge and arches forward over
-    # the basin, so water always comes from the back of the sink, whichever way it's turned.
-    add_lathe(bm, [(0.06, 0.0), (0.06, 0.03), (0.04, 0.05), (0.0, 0.05)], segments=20, centre=(0.0, -0.4, top))
-    arch_centre, arch_radius = Vector((0.0, -0.28, top + 0.3)), 0.12
-    neck = [(0.0, -0.4, top + 0.04)]
-    for i in range(9):
-        angle = math.pi * i / 8  # from the back, over the top, to the front
-        neck.append((0.0, arch_centre.y - arch_radius * math.cos(angle), arch_centre.z + arch_radius * math.sin(angle)))
-    neck.append((0.0, -0.16, top + 0.2))
-    add_pipe(bm, neck, radius=0.032)
-    add_lathe(bm, [(0.042, 0.0), (0.042, 0.03), (0.0, 0.03)], segments=16, centre=(0.0, -0.16, top + 0.18))  # nozzle
-    add_pipe(bm, [(0.0, -0.4, top + 0.12), (0.0, -0.47, top + 0.2)], radius=0.018)  # a small lever, at the back
-    # Fat legs and a slatted bottom shelf.
-    for x in (-0.46, 0.46):
-        for y in (-0.46, 0.46):
-            add_box(bm, (0.07, 0.07, top - thickness), (x, y, (top - thickness) / 2.0), bevel=0.02)
+    add_lathe(bm, [(0.035, 0.0), (0.035, 0.004), (0.0, 0.004)], segments=16, centre=(0.0, 0.0, top - 0.15))  # drain
+    # A steel lip from the top down to the cabinet body below, so the sides stay closed.
+    lip_top, lip_bottom = top - thickness, 0.72
+    lip_z, lip_h = (lip_top + lip_bottom) / 2.0, lip_top - lip_bottom
     for y in (-0.46, 0.46):
-        add_box(bm, (0.92, 0.04, 0.04), (0.0, y, 0.14), bevel=0.012)
-    for x in (-0.46, 0.46):
-        add_box(bm, (0.04, 0.92, 0.04), (x, 0.0, 0.14), bevel=0.012)
-    for y in (-0.3, -0.1, 0.1, 0.3):
-        add_box(bm, (0.92, 0.07, 0.03), (0.0, y, 0.15), bevel=0.01)
+        add_box(bm, (0.98, 0.02, lip_h), (0.0, y, lip_z))
+    for x in (-0.48, 0.48):
+        add_box(bm, (0.02, 0.94, lip_h), (x, 0.0, lip_z))
+    # A swan-neck tap rising from the middle of the back edge and arching forward over the basin,
+    # so water comes from the back of the sink.
+    add_lathe(bm, [(0.05, 0.0), (0.05, 0.025), (0.035, 0.045), (0.0, 0.045)], segments=20, centre=(0.0, -0.4, top))
+    arch_centre, arch_radius = Vector((0.0, -0.3, top + 0.28)), 0.1
+    neck = [(0.0, -0.4, top + 0.04)]
+    for k in range(9):
+        angle = math.pi * k / 8
+        neck.append((0.0, arch_centre.y - arch_radius * math.cos(angle), arch_centre.z + arch_radius * math.sin(angle)))
+    neck.append((0.0, -0.2, top + 0.2))
+    add_pipe(bm, neck, radius=0.022)
+    add_lathe(bm, [(0.03, 0.0), (0.03, 0.025), (0.0, 0.025)], segments=16, centre=(0.0, -0.2, top + 0.18))  # nozzle
+    add_pipe(bm, [(0.0, -0.4, top + 0.1), (0.0, -0.46, top + 0.17)], radius=0.013)  # lever, at the back
     return [finish("SinkBody", bm)]
+
+
 def build_cabinet():
     """The counter every plain station shares (decision 2026-11-08, the art overhaul): a wooden
     cabinet with a light wood top, a recessed dark base, and a drawer over two doors on both working
@@ -460,7 +477,30 @@ def build_cabinet():
                       axis_matrix=Matrix.Rotation(math.radians(-90.0 * side), 4, 'X'))
     fronts = finish("CabinetFronts", bm)
     handles = finish("CabinetKnobs", knobs)
-    return [body, base, worktop, fronts, handles]
+
+    # Under a sink the body stops lower, leaving room for the basin; the sink's lip closes the gap.
+    bm = bmesh.new()
+    add_box(bm, (0.98, 0.94, 0.72 - kick), (0.0, 0.0, kick + (0.72 - kick) / 2.0), bevel=0.012)
+    low = finish("CabinetBodyLow", bm)
+    low.location = (1.2, 0.0, 0.0)  # apart, for previews only
+    return [body, base, worktop, fronts, handles, low]
+
+
+def build_bin():
+    """A pedal bin (decision 2026-11-08, the art overhaul): a rounded enamel body, a lid with a
+    grip and a steel pedal at the front, inside the bin station's 0.7 m footprint and 0.8 m height."""
+    bm = bmesh.new()
+    add_box(bm, (0.5, 0.5, 0.04), (0.0, 0.0, 0.02), bevel=0.012)  # foot
+    add_box(bm, (0.58, 0.58, 0.66), (0.0, 0.0, 0.04 + 0.33), bevel=0.06)
+    body = finish("BinBody", bm)
+    bm = bmesh.new()
+    add_box(bm, (0.62, 0.62, 0.06), (0.0, 0.0, 0.73), bevel=0.028)
+    add_box(bm, (0.22, 0.05, 0.035), (0.0, 0.0, 0.775), bevel=0.012)  # grip
+    lid = finish("BinLid", bm)
+    bm = bmesh.new()
+    add_box(bm, (0.18, 0.07, 0.03), (0.0, 0.32, 0.05), bevel=0.01)
+    pedal = finish("BinPedal", bm)
+    return [body, lid, pedal]
 
 
 def build_board():
@@ -547,6 +587,7 @@ def main():
         "SM_Sink.fbx": build_sink(),
         "SM_Board.fbx": build_board(),
         "SM_Cabinet.fbx": build_cabinet(),
+        "SM_Bin.fbx": build_bin(),
     }
     for filename, objects in models.items():
         export_fbx(objects, filename)

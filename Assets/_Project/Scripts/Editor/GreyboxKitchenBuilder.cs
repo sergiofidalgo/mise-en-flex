@@ -560,7 +560,12 @@ namespace Game.Editor
             sinkPile.FindProperty("_station").objectReferenceValue = sink;
             // The sink washes one plate at a time and keeps none (decision 2026-11-08): the plate
             // being washed shows in the basin.
-            var modelled = KitchenwareArt.DressSink(sink.transform.Find("Body").gameObject);
+            // On the shared wooden cabinet, with its steel top and basin (decision 2026-11-08).
+            DressCabinet(sink, underSink: true);
+            var sinkTop = KitchenwareArt.DressSink(sink.transform.Find("Body"));
+            var modelled = sinkTop != null;
+            if (modelled)
+                AddToHighlight(sink, sinkTop);
             SetObjects(sinkPile.FindProperty("_dirty"), KitchenwareArt.CreatePlates(sink.transform,
                 modelled ? KitchenwareArt.SinkBasinFloor : CounterHeight, 1, DirtyPlateColor, "DirtyPlate",
                 modelled ? new Vector3(KitchenwareArt.SinkBasinX, 0f, 0f) : Vector3.zero, KitchenwareArt.PlateLayout.Stack, dirty: true));
@@ -569,8 +574,10 @@ namespace Game.Editor
             CreateRack("TrayRack", RackStation.RackKind.Trays, TrayRackPosition, 4, GreyboxKitchenware.TrayColor, stations);
             CreateRack("ContainerRack", RackStation.RackKind.Containers, ContainerRackPosition, 6, GreyboxKitchenware.ContainerColor, stations);
 
-            CreateStation<BinStation>(
+            var bin = CreateStation<BinStation>(
                 "Bin", BinPosition, BinSize, BinHeight, GreyboxAssets.EnsureMaterial("Bin", BinColor), stations);
+            foreach (var part in KitchenwareArt.DressBin(bin.transform.Find("Body")))
+                AddToHighlight(bin, part);
 
             var storage = new GameObject("Zone_Storage").transform;
             storage.SetParent(stations, false);
@@ -716,9 +723,9 @@ namespace Game.Editor
         }
 
         // A plain counter's body becomes the shared wooden cabinet (decision 2026-11-08), lighting up as one piece.
-        private static T DressCabinet<T>(T station) where T : Interactable
+        private static T DressCabinet<T>(T station, bool underSink = false) where T : Interactable
         {
-            foreach (var part in CabinetArt.Dress(station.transform))
+            foreach (var part in CabinetArt.Dress(station.transform, underSink))
                 AddToHighlight(station, part);
             return station;
         }
