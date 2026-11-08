@@ -22,14 +22,16 @@ namespace Game.Editor
         public const float ShelfHeight = 1.05f; // the upper tier's board is its top
         private const float LowerTier = 0.45f;
         private const float UpperTier = 1.05f;
-        // The chest's baskets are small and gathered in the middle, so stock shows from every side
-        // (decision 2026-11-08). Must match FridgeBasket's location in blender/build_pilot_models.py.
-        private const float SlotX = 0.13f;
+        // The shelf's two slots per tier, either side of its middle.
+        private const float SlotX = 0.22f;
         // The shelf's stock sits in the middle, so it shows the same from any side: the rack is open.
         private const float ShelfSlotZ = 0f;
         // The chest's four slots sit on one level, its floor, near the top so they show through the
         // lid from above on any side (decision 2026-11-08): Y and B at the back, X and A at the front.
         public const float ChestFloor = 0.7f;
+        // The chest's baskets are small and gathered in the middle, so stock shows from every side
+        // (decision 2026-11-08). Must match FridgeBasket's location in blender/build_pilot_models.py.
+        private const float ChestSlotX = 0.13f;
         private const float ChestRowZ = 0.12f;
 
         /// <summary>Height of a modelled basket, which food sits on.</summary>
@@ -62,10 +64,10 @@ namespace Game.Editor
             {
                 switch ((FaceButton)slot)
                 {
-                    case FaceButton.South: return new Vector3(SlotX, ChestFloor, -ChestRowZ);  // A: front right
-                    case FaceButton.East: return new Vector3(SlotX, ChestFloor, ChestRowZ);    // B: back right
-                    case FaceButton.West: return new Vector3(-SlotX, ChestFloor, -ChestRowZ);  // X: front left
-                    default: return new Vector3(-SlotX, ChestFloor, ChestRowZ);                // Y: back left
+                    case FaceButton.South: return new Vector3(ChestSlotX, ChestFloor, -ChestRowZ);  // A: front right
+                    case FaceButton.East: return new Vector3(ChestSlotX, ChestFloor, ChestRowZ);    // B: back right
+                    case FaceButton.West: return new Vector3(-ChestSlotX, ChestFloor, -ChestRowZ);  // X: front left
+                    default: return new Vector3(-ChestSlotX, ChestFloor, ChestRowZ);                // Y: back left
                 }
             }
 

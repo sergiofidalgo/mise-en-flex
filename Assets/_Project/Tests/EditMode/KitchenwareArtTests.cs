@@ -58,6 +58,28 @@ namespace Game.Tests.EditMode
             Assert.That(rack.min.y, Is.EqualTo(0f).Within(Tolerance));
         }
 
+        [TestCase("Assets/_Project/Prefabs/Furniture/PF_Fridge.prefab", "SM_Fridge", "FridgeBasket")]
+        [TestCase("Assets/_Project/Prefabs/Furniture/PF_Shelf.prefab", "SM_Shelf", "ShelfBasket")]
+        public void StorageBasketsNeverOverlap(string prefabPath, string model, string basketMesh)
+        {
+            var basket = Model(model, basketMesh);
+            var bins = Prefab(prefabPath).GetComponentsInChildren<Transform>(true)
+                .Where(t => t.name.StartsWith("Bin_")).Select(t => t.localPosition).ToArray();
+            Assert.That(bins, Has.Length.EqualTo(4));
+
+            for (var i = 0; i < bins.Length; i++)
+            {
+                for (var j = i + 1; j < bins.Length; j++)
+                {
+                    var apart = bins[i] - bins[j];
+                    var clearX = Mathf.Abs(apart.x) >= basket.size.x - Tolerance;
+                    var clearZ = Mathf.Abs(apart.z) >= basket.size.z - Tolerance;
+                    var clearY = Mathf.Abs(apart.y) > Tolerance;
+                    Assert.That(clearX || clearZ || clearY, Is.True, $"baskets {i} and {j} overlap at {bins[i]} and {bins[j]}");
+                }
+            }
+        }
+
         [Test]
         public void SinkFillsItsStationWithTheTopAtCounterHeight()
         {
