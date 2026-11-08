@@ -337,6 +337,11 @@ namespace Game.Editor
             plate.transform.localScale *= SinkPlateSize;
             if (plate.TryGetComponent<Renderer>(out var body))
                 body.sharedMaterial = EnsureDirtyPlateMaterial();
+
+            // A different landing each time a dirty plate goes in (the user's note, 2026-11-08).
+            var shuffle = new SerializedObject(plate.AddComponent<Game.Presentation.RestPoseShuffle>());
+            shuffle.FindProperty("_basePosition").vector3Value = SinkPlateSpot;
+            shuffle.ApplyModifiedPropertiesWithoutUndo();
         }
 
         /// <summary>The plate material with its grime on (MAT_Plate_Dirty): a dirty plate shown by a station.</summary>

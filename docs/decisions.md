@@ -58,7 +58,7 @@ The cookbook file comes with the cookbook in milestone 4.
 
 ## 2026-11-08 — The dirty plate in the sink looks like the dirty plate
 
-**Decision:** (the user's notes) The dirty plate in the sink wears the dirty plate's own grime, the same plate shader and dirt as a dirty plate carried in. Its material (`MAT_Plate_Dirty`) has the grime on, so it shows in the Editor too, and washing fades it as before. It lies nearly flat (tipped 12° towards the tap), 1.2× its size, just under the water with its far edge breaking the surface. A first try propped it up at 40° with separate food scraps on it; that read as a speaker cone and didn't match the dirty plate, so it was dropped.
+**Decision:** (the user's notes) The dirty plate in the sink wears the dirty plate's own grime, the same plate shader and dirt as a dirty plate carried in. Its material (`MAT_Plate_Dirty`) has the grime on, so it shows in the Editor too, and washing fades it as before. It lies nearly flat (tipped 12° towards the tap), 1.2× its size, just under the water with its far edge breaking the surface. A first try propped it up at 40° with separate food scraps on it; that read as a speaker cone and didn't match the dirty plate, so it was dropped. Each time a dirty plate goes in it lands differently: turned any way, tipped 6–16° in a random direction and shifted a few centimetres (`RestPoseShuffle`, the user's note).
 
 ---
 
