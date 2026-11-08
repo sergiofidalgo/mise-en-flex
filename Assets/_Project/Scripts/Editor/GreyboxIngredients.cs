@@ -30,6 +30,8 @@ namespace Game.Editor
             // The whole item's size, wherever it is: evens out models so they read as one family
             // (decision 2026-11-08: the onion was oversized and the steak small next to it).
             public float ModelScale = 1f;
+            // Its size on a counter on top of the counter's 1.4x, to trim one that reads too big there.
+            public float CounterScale = 1f;
 
             // Layered food (a slab like steak) is built as a top surface over three edge bands,
             // so its doneness can be read from the side; anything else is a single shape.
@@ -68,6 +70,7 @@ namespace Game.Editor
                 Id = "Steak", Color = new Color(0.62f, 0.12f, 0.14f), Shape = PrimitiveType.Cylinder,
                 Scale = new Vector3(0.19f, 0.02f, 0.16f),
                 ModelScale = 1.15f, // bigger to read at a glance, still inside the pan
+                CounterScale = 0.88f, // a touch smaller on a counter: about 1.4x its old size there, not 1.6x
                 Layered = true, ScoreDoneness = true, ScoreBrowning = true, NeedsFlip = true, ServedHot = true,
                 TargetCore = 54.5f, RestTargetSeconds = 180f,
                 // Order targets sit inside each band, so an ordered level scores perfect without
@@ -255,6 +258,7 @@ namespace Game.Editor
             // On a counter it sits a little off centre and turned, differently on each (decision 2026-11-08).
             var rest = new SerializedObject(root.AddComponent<Game.Presentation.CounterRestView>());
             rest.FindProperty("_view").objectReferenceValue = itemView;
+            rest.FindProperty("_scale").floatValue = type.CounterScale;
             rest.ApplyModifiedPropertiesWithoutUndo();
 
             root.transform.localScale = Vector3.one * type.ModelScale; // its size everywhere; anchors add theirs

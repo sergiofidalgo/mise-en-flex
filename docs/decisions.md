@@ -26,7 +26,7 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
   - on the grill: 1.15×;
   - fridge, shelves, plates and the pan: 1×.
   **Change from the choice:** food in a pan was to be 1.15×, but the steak is made to fill the pan, so the pan stays at 1×. The knife on a counter now lies at 1.15× on top of the counter's 1.4×.
-- **Models evened out:** the onion is 0.8× and the steak 1.15× (`IngredientType.ModelScale`). **Change from the choice:** the steak was to be 1.3×, but then it overflows the pan. On a counter it is now about 1.6× its old size.
+- **Models evened out:** the onion is 0.8× and the steak 1.15× (`IngredientType.ModelScale`). **Change from the choice:** the steak was to be 1.3×, but then it overflows the pan. Later trimmed on counters only (`CounterScale` 0.88, the user's note): about 1.4× its old size there instead of 1.6×.
 - **The cutting board is deep walnut** with a thicker rim (6.5 cm wide) standing 1.5 cm proud of the cutting surface. Food still sits on the cutting surface.
 - **The plate rack and its plates show 1.25× bigger,** the frame is dark steel and plate rims are a stronger blue (on every plate).
 
