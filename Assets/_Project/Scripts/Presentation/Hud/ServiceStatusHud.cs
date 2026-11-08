@@ -97,7 +97,7 @@ namespace Game.Presentation.Hud
                 _prepStartedAt = Time.unscaledTime;
             }
 
-            if (_root.AwaitingLaunchChoice)
+            if (_root.AwaitingLaunchChoice || _root.Services.Days.Phase == DayPhase.Review)
             {
                 _card.Hide();
                 return;

@@ -79,6 +79,7 @@ namespace Game.Presentation.Hud
         private TextMeshProUGUI _search;
         private TextMeshProUGUI _name;
         private TextMeshProUGUI _rating;
+        private RectTransform _ratingStars;
         private TextMeshProUGUI _info;
         private RectTransform _chart;
         private readonly List<TextMeshProUGUI> _tabLabels = new List<TextMeshProUGUI>();
@@ -278,10 +279,65 @@ namespace Game.Presentation.Hud
             _ => _standGround,
         };
 
-        private string Stars(float stars)
+        // Stars are drawn, not typed: the HUD font has no star glyph.
+        private void StarRow(Transform parent, float x, float y, float size, float stars)
         {
             var filled = Mathf.Clamp(Mathf.RoundToInt(stars), 0, 5);
-            return HudStyle.Colored(new string('★', filled), _gold) + HudStyle.Colored(new string('★', 5 - filled), _card);
+            for (var i = 0; i < 5; i++)
+            {
+                var star = Rect(parent, "Star", x + i * size * 1.1f, y, size, size).gameObject.AddComponent<Image>();
+                star.sprite = StarSprite;
+                star.color = i < filled ? _gold : new Color(_muted.r, _muted.g, _muted.b, 0.25f);
+                star.raycastTarget = false;
+            }
+        }
+
+        private static Sprite _starSprite;
+
+        // A five-pointed star, made once, anti-aliased by sampling each pixel several times.
+        private static Sprite StarSprite
+        {
+            get
+            {
+                if (_starSprite != null)
+                    return _starSprite;
+                const int size = 64;
+                var corners = new Vector2[10];
+                for (var i = 0; i < 10; i++)
+                {
+                    var angle = Mathf.PI / 2f + i * Mathf.PI / 5f;
+                    var radius = i % 2 == 0 ? 0.5f : 0.2f;
+                    corners[i] = new Vector2(0.5f + radius * Mathf.Cos(angle), 0.53f + radius * Mathf.Sin(angle));
+                }
+                var texture = new Texture2D(size, size, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp };
+                for (var py = 0; py < size; py++)
+                for (var px = 0; px < size; px++)
+                {
+                    var inside = 0;
+                    for (var s = 0; s < 16; s++)
+                    {
+                        var point = new Vector2((px + (s % 4 + 0.5f) / 4f) / size, (py + (s / 4 + 0.5f) / 4f) / size);
+                        if (Inside(point, corners))
+                            inside++;
+                    }
+                    texture.SetPixel(px, py, new Color(1f, 1f, 1f, inside / 16f));
+                }
+                texture.Apply();
+                _starSprite = Sprite.Create(texture, new UnityEngine.Rect(0, 0, size, size), new Vector2(0.5f, 0.5f));
+                return _starSprite;
+            }
+        }
+
+        private static bool Inside(Vector2 point, Vector2[] polygon)
+        {
+            var inside = false;
+            for (int i = 0, j = polygon.Length - 1; i < polygon.Length; j = i++)
+            {
+                if ((polygon[i].y > point.y) != (polygon[j].y > point.y) &&
+                    point.x < (polygon[j].x - polygon[i].x) * (point.y - polygon[i].y) / (polygon[j].y - polygon[i].y) + polygon[i].x)
+                    inside = !inside;
+            }
+            return inside;
         }
 
         // ---- Refresh ----
@@ -300,23 +356,33 @@ namespace Game.Presentation.Hud
 
             _name.text = config.RestaurantName;
             var rating = ReviewReplies.Rating(all);
-            _rating.text = rating.HasValue
-                ? $"<b>{rating.Value:0.0}</b>  {Stars(rating.Value)}  <size=70%>{HudStyle.Colored($"({all.Count})", _muted)}</size>"
-                : HudStyle.Colored("No reviews yet", _muted);
+            Clear(_ratingStars);
+            _rating.text = rating.HasValue ? $"<b>{rating.Value:0.0}</b>" : HudStyle.Colored("No reviews yet", _muted);
+            if (rating.HasValue)
+            {
+                var after = _rating.preferredWidth + 18f;
+                StarRow(_ratingStars, after, 6f, 40f, rating.Value);
+                Text(_ratingStars, "Count", $"({all.Count})", 30f, _muted, FontStyles.Normal, after + 5f * 44f + 16f, 6f, 120f, 44f);
+            }
             var hours = Services.Service.Settings.DurationSeconds;
             var band = config.MainPrice < 15f ? 1 : config.MainPrice < 30f ? 2 : 3;
             _info.text = $"{new string(config.Currency[0], band)} · {config.StyleName} · Open {ClockAt(0f)}–{ClockAt(hours)}";
 
+            // Tabs sit an even gap apart, whatever their labels say.
+            var tabX = 840f;
             for (var i = 0; i < _tabLabels.Count; i++)
             {
                 var tab = (Tab)i;
-                _tabLabels[i].text = tab == Tab.Reviews ? $"Reviews {all.Count}" : tab.ToString();
-                _tabLabels[i].color = tab == _tab ? _ink : _muted;
-                _tabLabels[i].fontStyle = tab == _tab ? FontStyles.Bold : FontStyles.Normal;
+                var label = _tabLabels[i];
+                label.text = tab == Tab.Reviews ? $"Reviews {all.Count}" : tab.ToString();
+                label.color = tab == _tab ? _ink : _muted;
+                label.fontStyle = tab == _tab ? FontStyles.Bold : FontStyles.Normal;
+                label.rectTransform.anchoredPosition = new Vector2(tabX, label.rectTransform.anchoredPosition.y);
+                tabX += label.preferredWidth + 56f;
             }
             var selectedLabel = _tabLabels[(int)_tab].rectTransform;
             _tabUnderline.anchoredPosition = new Vector2(selectedLabel.anchoredPosition.x, _tabUnderline.anchoredPosition.y);
-            _tabUnderline.sizeDelta = new Vector2(_tabLabels[(int)_tab].preferredWidth + 24f, _tabUnderline.sizeDelta.y);
+            _tabUnderline.sizeDelta = new Vector2(_tabLabels[(int)_tab].preferredWidth, _tabUnderline.sizeDelta.y);
 
             DrawChart(today);
 
@@ -378,6 +444,7 @@ namespace Game.Presentation.Hud
                 var label = $"{ReasonFor(topic.Key)} · {topic.Count()}";
                 var chip = Box(_content, "Chip", complaint ? _alarm : _card, x, y, 0f, 50f);
                 var text = Text(chip, "Label", label, 22f, complaint ? _alarmText : _ink, FontStyles.Bold, 18f, 0f, 400f, 50f);
+                text.alignment = TextAlignmentOptions.MidlineLeft;
                 chip.sizeDelta = new Vector2(text.preferredWidth + 36f, 50f);
                 x += chip.sizeDelta.x + 14f;
             }
@@ -419,7 +486,7 @@ namespace Game.Presentation.Hud
             if (review.Day != Services.Days.Day)
                 heading += HudStyle.Colored($" · day {review.Day}", _muted);
             Text(card, "Heading", heading, 22f, _ink, FontStyles.Normal, 104f, 14f, 640f, 32f);
-            Text(card, "Stars", Stars(review.RatedStars), 24f, _ink, FontStyles.Normal, width - 200f, 14f, 176f, 32f).alignment = TextAlignmentOptions.TopRight;
+            StarRow(card, width - 24f - 5f * 26f * 1.1f, 16f, 26f, review.RatedStars);
             Text(card, "Quote", $"“{review.Line}”", 30f, _ink, FontStyles.Bold, 104f, 48f, width - 130f, 42f);
 
             var chipText = review.WalkedOut
@@ -427,11 +494,12 @@ namespace Game.Presentation.Hud
                 : $"{review.Stars:0.#} stars · {Money(review.Paid)} + {Money(review.Tip)} tip";
             var chip = Box(card, "Chip", review.WalkedOut ? _alarm : _card, 104f, 98f, 0f, 36f);
             var chipLabel = Text(chip, "Label", chipText, 19f, review.WalkedOut ? _alarmText : _ink, FontStyles.Bold, 14f, 0f, 400f, 36f);
+            chipLabel.alignment = TextAlignmentOptions.MidlineLeft;
             chip.sizeDelta = new Vector2(chipLabel.preferredWidth + 28f, 36f);
             var under = review.Reply >= 0
                 ? HudStyle.Colored($"You replied: “{ReplyText((ReviewReply)review.Reply)}”", _good)
                 : ReasonFor((ReviewTopic)review.Topic);
-            Text(card, "Reason", under, 20f, _muted, FontStyles.Normal, 104f + chip.sizeDelta.x + 16f, 98f, width - 260f - chip.sizeDelta.x, 36f);
+            Text(card, "Reason", under, 20f, _muted, FontStyles.Normal, 104f + chip.sizeDelta.x + 16f, 98f, width - 260f - chip.sizeDelta.x, 36f).alignment = TextAlignmentOptions.MidlineLeft;
 
             if (selected && review.Reply < 0)
                 Text(card, "Reply", _choosingReply ? HudStyle.Colored("Choose a reply", _accent) : $"{Badge("Y")} Reply", 22f, _ink, FontStyles.Normal, width - 200f, 98f, 176f, 36f).alignment = TextAlignmentOptions.Right;
@@ -532,7 +600,7 @@ namespace Game.Presentation.Hud
                 Box(box, "Bar", net >= 0f ? _good : _accent, x, net >= 0f ? baseline - height : baseline, 44f, height);
                 Text(box, "Day", $"{day.Day}", 16f, _muted, FontStyles.Normal, x, baseline + barArea + 8f, 44f, 22f).alignment = TextAlignmentOptions.Top;
                 if (day.Rating >= 0f)
-                    Text(box, "Rating", $"{day.Rating:0.0}★", 15f, _ink, FontStyles.Normal, x - 6f, 46f, 56f, 22f).alignment = TextAlignmentOptions.Top;
+                    Text(box, "Rating", $"{day.Rating:0.0} stars", 15f, _ink, FontStyles.Normal, x - 12f, 46f, 68f, 22f).alignment = TextAlignmentOptions.Top;
             }
 
             var team = string.Join("\n", Services.Staff.Hired.Select(m => $"{ServiceStatusHud.WorkDone(m)}, {ServiceStatusHud.Mood(m)}")
@@ -630,7 +698,11 @@ namespace Game.Presentation.Hud
             _panel.gameObject.AddComponent<RectMask2D>();
 
             var header = Box(_panel, "Header", _bar, 0f, 0f, PanelWidth, 90f, rounded: false);
-            Text(header, "Logo", HudStyle.Colored("◉ ", _gold) + HudStyle.Colored(_appName, _gold), 40f, _gold, FontStyles.Bold, 40f, 0f, 220f, 90f).alignment = TextAlignmentOptions.MidlineLeft;
+            // The app's mark: a gold ring with a dot, drawn (the font has no such glyph).
+            Box(header, "Mark", _gold, 40f, 27f, 36f, 36f, circle: true);
+            Box(header, "MarkHole", _bar, 45f, 32f, 26f, 26f, circle: true);
+            Box(header, "MarkDot", _gold, 51f, 38f, 14f, 14f, circle: true);
+            Text(header, "Logo", _appName, 40f, _gold, FontStyles.Bold, 90f, 0f, 180f, 90f).alignment = TextAlignmentOptions.MidlineLeft;
             var search = Box(header, "Search", new Color(1f, 1f, 1f, 0.08f), 260f, 18f, 680f, 54f);
             _search = Text(search, "Text", "", 26f, _card, FontStyles.Normal, 28f, 0f, 640f, 54f);
             _search.alignment = TextAlignmentOptions.MidlineLeft;
@@ -650,6 +722,7 @@ namespace Game.Presentation.Hud
             Text(caption, "Text", "Your photo · captured at close", 18f, _paper, FontStyles.Normal, 0f, 0f, 264f, 38f).alignment = TextAlignmentOptions.Center;
             _name = Text(_panel, "Name", "", 56f, _ink, FontStyles.Bold, 40f, 490f, 660f, 70f);
             _rating = Text(_panel, "Rating", "", 40f, _ink, FontStyles.Normal, 40f, 565f, 660f, 54f);
+            _ratingStars = Rect(_panel, "RatingStars", 40f, 565f, 660f, 54f);
             _info = Text(_panel, "Info", "", 26f, _muted, FontStyles.Normal, 40f, 624f, 660f, 40f);
             var chartBox = Box(_panel, "Guests", _card, 40f, 680f, 660f, 220f);
             Text(chartBox, "Title", "TONIGHT'S GUESTS", 18f, _muted, FontStyles.Bold, 24f, 16f, 300f, 28f).characterSpacing = 4f;
@@ -658,13 +731,8 @@ namespace Game.Presentation.Hud
 
             // Right: the tabs and what's under them.
             Badge(_panel, "LB", 740f, 122f);
-            var x = 830f;
             foreach (Tab tab in System.Enum.GetValues(typeof(Tab)))
-            {
-                var label = Text(_panel, tab.ToString(), tab.ToString(), 34f, _muted, FontStyles.Normal, x, 116f, 200f, 50f);
-                _tabLabels.Add(label);
-                x += tab == Tab.Reviews ? 220f : 180f;
-            }
+                _tabLabels.Add(Text(_panel, tab.ToString(), tab.ToString(), 34f, _muted, FontStyles.Normal, 0f, 116f, 220f, 50f));
             Badge(_panel, "RB", PanelWidth - 110f, 122f);
             Box(_panel, "Rule", _card, 740f, 172f, 1000f, 3f, rounded: false);
             _tabUnderline = Box(_panel, "Underline", _gold, 830f, 169f, 160f, 6f, rounded: false);
