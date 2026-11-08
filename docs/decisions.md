@@ -4,6 +4,18 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-08 — Softer ink: thinner, a shade of what's underneath, mostly silhouettes
+
+**Decision:** The user played the screen-space ink and found it far too strong ("it completely removes the fun"). They approved these changes to the brief below (relayed by the Main build session):
+- **Thinner:** 1 px at 1080p and never more than 2 px (`_Thickness` 1, new `_MaxThickness` 2). The brief's 1.5 px scaled with screen height, so it came out at about 3 px on the MacBook's Retina display.
+- **Coloured by what's underneath:** the line is the scene colour × 0.45 (`_InkShade`), with a quarter of the house brown mixed in (`_InkColorMix` 0.25), at half strength (`_InkOpacity` 0.5). It was the fixed #332117 at 0.92. Wood edges read as darker wood, and the white chef gets a soft brown-grey line.
+- **Silhouettes, not creases:** `_NormalThreshold` 1.1 (was 0.6), so cabinet doors, counter lips and plank grooves mostly stop inking.
+All of these are material properties on `MAT_Post_InkOutline`, set by `RenderLook`.
+
+**Open:** removing the old hull outlines, which were also approved. With the softer ink alone, the chef is barely outlined (white on white gives no line), so the user is asked whether to keep the hulls on the chef only.
+
+---
+
 ## 2026-11-08 — Screen-space ink, three-band ramp, banded SSAO
 
 **Decision:** (the art director's brief, approved by the user)

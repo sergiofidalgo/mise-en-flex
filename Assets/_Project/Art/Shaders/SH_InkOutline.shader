@@ -7,15 +7,22 @@
 //   Fetch Color Buffer: ON   Bind Depth-Stencil: OFF
 //   Requirements: Depth + Normal  (this turns on the DepthNormals prepass, which SSAO shares)
 // Perspective cameras only (LinearEyeDepth). Transparent queue and UI are never inked.
+// Softened after the user played it (2026-11-08): a thinner line, capped in pixels so a Retina
+// screen doesn't double it; drawn as a darker shade of what's underneath rather than one fixed
+// brown, so wood edges read as darker wood and the white chef gets a soft brown-grey line; and a
+// high normal threshold, so silhouettes carry the look and creases (doors, lips, grooves) mostly don't ink.
 Shader "Game/Post/InkOutline"
 {
     Properties
     {
         _InkColor        ("Ink Color", Color) = (0.2, 0.13, 0.09, 1)   // HouseStyle.OutlineColor, #332117
-        _InkOpacity      ("Ink Opacity", Range(0, 1)) = 0.92
-        _Thickness       ("Thickness @1080p (px)", Range(0.5, 4)) = 1.5
+        _InkColorMix     ("Ink Color Mix (0 = shade of the scene, 1 = Ink Color)", Range(0, 1)) = 0.25
+        _InkShade        ("Ink Shade (scene colour multiplier)", Range(0, 1)) = 0.45
+        _InkOpacity      ("Ink Opacity", Range(0, 1)) = 0.5
+        _Thickness       ("Thickness @1080p (px)", Range(0.5, 4)) = 1
+        _MaxThickness    ("Max Thickness (px)", Range(1, 4)) = 2
         _DepthThreshold  ("Depth Threshold (relative)", Range(0.002, 0.2)) = 0.015
-        _NormalThreshold ("Normal Threshold", Range(0.1, 2)) = 0.6
+        _NormalThreshold ("Normal Threshold", Range(0.1, 2)) = 1.1
     }
 
     SubShader
@@ -37,8 +44,11 @@ Shader "Game/Post/InkOutline"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DeclareNormalsTexture.hlsl"
 
             half4 _InkColor;
+            float _InkColorMix;
+            float _InkShade;
             float _InkOpacity;
             float _Thickness;
+            float _MaxThickness;
             float _DepthThreshold;
             float _NormalThreshold;
 
@@ -53,8 +63,9 @@ Shader "Game/Post/InkOutline"
                 float2 uv = input.texcoord;
                 half4 scene = SAMPLE_TEXTURE2D_X(_BlitTexture, sampler_LinearClamp, uv);
 
-                // Resolution-independent width: 1.5px @1080p -> 3px @4K, clamped to 1px on Deck (800p)
-                float px = max(1.0, _Thickness * _ScaledScreenParams.y / 1080.0);
+                // Width scales with the screen, between 1 px and a cap, so a Retina screen doesn't
+                // double the line (1 px at 1080p, 2 px at most).
+                float px = clamp(_Thickness * _ScaledScreenParams.y / 1080.0, 1.0, _MaxThickness);
                 float2 o = (px * 0.5) / _ScaledScreenParams.xy;
 
                 // Roberts cross: 4 taps, cheap enough for Steam Deck / integrated Mac GPUs
@@ -84,8 +95,10 @@ Shader "Game/Post/InkOutline"
                 float normalDelta = sqrt(dot(n1, n1) + dot(n2, n2));
                 float normalEdge = smoothstep(_NormalThreshold, _NormalThreshold * 1.3, normalDelta);
 
+                // The ink is a darker shade of what's underneath, with a little of the house brown.
                 float edge = saturate(max(depthEdge, normalEdge)) * _InkOpacity;
-                return half4(lerp(scene.rgb, _InkColor.rgb, edge), scene.a);
+                half3 ink = lerp(scene.rgb * _InkShade, _InkColor.rgb, _InkColorMix);
+                return half4(lerp(scene.rgb, ink, edge), scene.a);
             }
             ENDHLSL
         }

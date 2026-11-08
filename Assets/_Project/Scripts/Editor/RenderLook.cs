@@ -114,7 +114,9 @@ namespace Game.Editor
             so.ApplyModifiedPropertiesWithoutUndo();
         }
 
-        // The ink's colour is the house outline colour, so it has one source.
+        // The ink's settings, here so the build keeps the material true to them. Its brown is the
+        // house outline colour, so that has one source. Softened after the user played it
+        // (2026-11-08): thin, a shade of what's underneath, and mostly silhouettes.
         private static Material EnsureInkMaterial()
         {
             var material = AssetDatabase.LoadAssetAtPath<Material>(InkMaterialPath);
@@ -124,6 +126,13 @@ namespace Game.Editor
                 AssetDatabase.CreateAsset(material, InkMaterialPath);
             }
             material.SetColor("_InkColor", HouseStyle.OutlineColor);
+            material.SetFloat("_InkColorMix", 0.25f);
+            material.SetFloat("_InkShade", 0.45f);
+            material.SetFloat("_InkOpacity", 0.5f);
+            material.SetFloat("_Thickness", 1f);
+            material.SetFloat("_MaxThickness", 2f);
+            material.SetFloat("_DepthThreshold", 0.015f);
+            material.SetFloat("_NormalThreshold", 1.1f);
             EditorUtility.SetDirty(material);
             return material;
         }
