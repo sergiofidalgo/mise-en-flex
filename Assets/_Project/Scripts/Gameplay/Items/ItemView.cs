@@ -15,6 +15,7 @@ namespace Game.Gameplay.Items
         [SerializeField] private Transform[] _slotAnchors = System.Array.Empty<Transform>();
 
         private Vector3 _startLocalPosition;
+        private Vector3 _startLocalScale;
         private Vector3 _baseScale;
         private ItemMoveSettings _move;
         private float _elapsed;
@@ -69,6 +70,9 @@ namespace Game.Gameplay.Items
             transform.SetParent(anchor, worldPositionStays: true);
             transform.localRotation = Quaternion.identity;
             _startLocalPosition = transform.localPosition;
+            // Anchors can show items at different sizes (bigger on a counter than in the fridge):
+            // reparenting keeps the size it had, and the flight eases it to the new one.
+            _startLocalScale = transform.localScale;
             _move = move;
             _elapsed = 0f;
             _moving = true;
@@ -105,7 +109,7 @@ namespace Game.Gameplay.Items
             var bump = Mathf.Sin(Mathf.PI * t);
             transform.localPosition = Vector3.Lerp(_startLocalPosition, Vector3.zero, eased)
                                       + Vector3.up * (_move.ArcHeight * bump);
-            transform.localScale = _baseScale * (1f + _move.Pop * bump);
+            transform.localScale = Vector3.Lerp(_startLocalScale, _baseScale, eased) * (1f + _move.Pop * bump);
         }
 
         private void Finish()

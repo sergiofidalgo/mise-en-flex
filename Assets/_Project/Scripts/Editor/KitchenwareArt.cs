@@ -33,8 +33,12 @@ namespace Game.Editor
         public const float SinkBasinX = 0f;
 
         // A soft blue line round a white plate, and a light steel rack (decision 2026-11-08).
-        private static readonly Color RimColor = new Color(0.66f, 0.78f, 0.92f);
-        private static readonly Color RackSteel = new Color(0.62f, 0.66f, 0.72f);
+        // A stronger blue rim and a dark steel rack, so plates and the rack read at a glance
+        // (the user's note, 2026-11-08).
+        private static readonly Color RimColor = new Color(0.42f, 0.62f, 0.9f);
+        private static readonly Color RackSteel = new Color(0.3f, 0.32f, 0.36f);
+        // The plate rack and its plates show bigger, standing taller over the counter.
+        private const float RackSize = 1.25f;
         private static readonly Color SteelColor = new Color(0.74f, 0.76f, 0.8f);
         private static readonly Color SinkRimSteel = new Color(0.88f, 0.9f, 0.93f);
         private static readonly Color SinkBasinGrey = new Color(0.48f, 0.5f, 0.55f);
@@ -131,6 +135,7 @@ namespace Game.Editor
                 var rack = CreatePart(parent, $"{materialName}Rack", RackModel, "PlateRack",
                     StyleTest.EnsureToonMaterial("PlateRack", RackSteel));
                 rack.transform.localPosition = offset + Vector3.up * baseHeight;
+                rack.transform.localScale = Vector3.one * RackSize;
             }
 
             var plates = new GameObject[count];
@@ -149,8 +154,9 @@ namespace Game.Editor
                     case PlateLayout.Rack:
                         // Stood on its edge facing the camera: its base turns towards the camera.
                         plate.transform.localRotation = Quaternion.Euler(-90f, 0f, 0f);
-                        plate.transform.localPosition = offset + new Vector3(0f, baseHeight + RackRailHeight + PlateRadius,
-                            ((count - 1) / 2f - i) * RackSpacing);
+                        plate.transform.localScale *= RackSize;
+                        plate.transform.localPosition = offset + new Vector3(0f, baseHeight + (RackRailHeight + PlateRadius) * RackSize,
+                            ((count - 1) / 2f - i) * RackSpacing * RackSize);
                         break;
                     case PlateLayout.Messy:
                         plate.transform.localRotation = Quaternion.Euler(0f, Noise(i, 1) * 360f, 0f);

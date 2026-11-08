@@ -67,6 +67,14 @@ namespace Game.Editor
             Render(camera, target, new Vector3(0f, 0.9f, -1.5f), WholeKitchenHeight, null);
             Render(camera, target, new Vector3(0f, 0.9f, -1.5f), WholeKitchenHeight, Path.Combine(folder, "kitchen_whole.png"));
             Render(camera, target, new Vector3(0f, 0.9f, 0.3f), PlayHeight, Path.Combine(folder, "kitchen_play.png"));
+            // Food sitting on a counter, at the size counters show it (only seen in play).
+            var counterAnchor = GameObject.Find("WallCounter_01")?.transform.Find("ItemAnchor");
+            if (counterAnchor != null)
+            {
+                Spawn("Assets/_Project/Prefabs/Items/PF_Item_Steak.prefab", new Vector3(-0.2f, 0f, 0f), counterAnchor);
+                Spawn("Assets/_Project/Prefabs/Items/PF_Item_Onion.prefab", new Vector3(0.2f, 0f, 0f), counterAnchor);
+            }
+
             foreach (var name in CloseUps)
             {
                 var station = GameObject.Find(name);

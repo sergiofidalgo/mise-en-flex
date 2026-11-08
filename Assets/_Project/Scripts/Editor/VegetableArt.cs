@@ -57,6 +57,7 @@ namespace Game.Editor
             root.SetParent(prep.transform, false);
             root.localPosition = boardAnchor.localPosition;
             root.localRotation = boardAnchor.localRotation;
+            root.localScale = boardAnchor.localScale; // the same size as what's on the board
 
             var halves = new GameObject[HalfPlaces.Length];
             for (var i = 0; i < halves.Length; i++)

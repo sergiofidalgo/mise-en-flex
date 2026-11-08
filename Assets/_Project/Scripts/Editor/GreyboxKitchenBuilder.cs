@@ -110,7 +110,6 @@ namespace Game.Editor
 
         // Carried items sit in front of the chest, clear of the body so they read from above.
         private static readonly Vector3 CarryAnchorPosition = new Vector3(0f, 1.05f, 0.5f);
-        private const float HeldScale = 1.3f;
         // Where the chef bends; must match CHEF_WAIST in blender/build_pilot_models.py.
         private const float ChefWaistHeight = 0.85f;
         // Where the arms hang from, above the waist and either side (the chef model's shoulders).
@@ -331,11 +330,11 @@ namespace Game.Editor
             carryAnchor.localPosition = CarryAnchorPosition;
             // What a chef carries shows bigger than where it lies, so it reads at a glance
             // (the user's note, 2026-11-08); it's back to its size once put down.
-            carryAnchor.localScale = Vector3.one * HeldScale;
+            carryAnchor.localScale = Vector3.one * ItemSizes.Carried;
             var toolAnchor = new GameObject("ToolAnchor").transform;
             toolAnchor.SetParent(root.transform, false);
             toolAnchor.localPosition = ToolAnchorPosition;
-            toolAnchor.localScale = Vector3.one * HeldScale;
+            toolAnchor.localScale = Vector3.one * ItemSizes.Carried;
             var interactor = root.AddComponent<PlayerInteractor>();
             SetReference(interactor, "_carryAnchor", carryAnchor);
             SetReference(interactor, "_toolAnchor", toolAnchor);
@@ -449,8 +448,7 @@ namespace Game.Editor
             var settings = assets.Settings;
             var light = new GameObject("Directional Light").AddComponent<Light>();
             light.type = LightType.Directional;
-            light.transform.rotation = Quaternion.Euler(50f, -30f, 0f);
-            HouseStyle.LightScene(light);
+            HouseStyle.LightScene(light); // also aims it
 
             var camera = new GameObject("Main Camera").AddComponent<Camera>();
             camera.tag = "MainCamera";
@@ -733,8 +731,12 @@ namespace Game.Editor
             {
                 var list = so.FindProperty(field);
                 list.arraySize = 2;
-                list.GetArrayElementAtIndex(0).objectReferenceValue = Point($"{prefix}_Front", x, surface, -GrillPlaceOffset);
-                list.GetArrayElementAtIndex(1).objectReferenceValue = Point($"{prefix}_Back", x, surface, GrillPlaceOffset);
+                // Food on the grill shows a little big, as cooking does in a pan (decision 2026-11-08).
+                var front = Point($"{prefix}_Front", x, surface, -GrillPlaceOffset);
+                var back = Point($"{prefix}_Back", x, surface, GrillPlaceOffset);
+                front.localScale = back.localScale = Vector3.one * ItemSizes.Cooking;
+                list.GetArrayElementAtIndex(0).objectReferenceValue = front;
+                list.GetArrayElementAtIndex(1).objectReferenceValue = back;
             }
             Places("_hotPlaces", "HotPlace", -half);
             Places("_coolPlaces", "CoolPlace", half);
@@ -771,6 +773,7 @@ namespace Game.Editor
             var boardAnchor = new GameObject("BoardAnchor").transform;
             boardAnchor.SetParent(prep.transform, false);
             boardAnchor.localPosition = new Vector3(0f, CounterHeight + CuttingBoardScale.y, 0f);
+            boardAnchor.localScale = Vector3.one * ItemSizes.OnCounter; // big on the board, like a counter
 
             var so = new SerializedObject(prep);
             so.FindProperty("_boardAnchor").objectReferenceValue = boardAnchor;
@@ -963,6 +966,9 @@ namespace Game.Editor
             var anchor = new GameObject("ItemAnchor").transform;
             anchor.SetParent(root, false);
             anchor.localPosition = new Vector3(0f, height, 0f);
+            // What sits on a plain counter shows big, to read at a glance (decision 2026-11-08).
+            if (typeof(T) == typeof(CounterStation))
+                anchor.localScale = Vector3.one * ItemSizes.OnCounter;
 
             var station = root.gameObject.AddComponent<T>();
             SetReference(station, "_itemAnchor", anchor);

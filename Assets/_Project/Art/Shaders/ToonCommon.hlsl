@@ -35,8 +35,13 @@ half3 ToonShade(half3 albedo, float3 positionWS, float3 normalWS, float4 positio
     // Half-Lambert, so faces turned slightly away from the sun land in the mid band instead of
     // dropping straight to shadow. Cast shadows push the value down into the shadow band; soft
     // shadow edges become a ring of mid band, which reads as an inked cartoon shadow.
-    float facing = dot(normalWS, mainLight.direction) * 0.5 + 0.5;
-    float value = facing * mainLight.shadowAttenuation;
+    float ndotl = dot(normalWS, mainLight.direction);
+    float facing = ndotl * 0.5 + 0.5;
+    // Cast shadows only count on faces turned towards the sun. A face lit edge-on or from behind
+    // is already in its darker band, and at grazing angles the shadow map aliases into jagged
+    // teeth (seen on the fridge front, 2026-11-08), so its shadow fades out as it turns away.
+    float shadow = lerp(1.0, mainLight.shadowAttenuation, saturate(ndotl * 5.0));
+    float value = facing * shadow;
     half3 color = albedo * ToonRamp(value) * mainLight.color;
 
     // A little sky light, kept low so it doesn't smear gradients across the flat bands.

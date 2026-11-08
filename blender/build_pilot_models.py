@@ -1024,14 +1024,17 @@ def build_board():
     """A big, thick wooden cutting board using most of its counter, with fat rounded corners and a
     deep juice groove. The wood grain is drawn by its material (Game/Toon)."""
     width, depth, base, rise = 0.7, 0.55, 0.03, 0.01
-    border, groove = 0.045, 0.018
+    # A thick rim standing proud of the cutting surface, so the board pops off the counter (the
+    # user's note, 2026-11-08); the cutting surface itself stays where items sit.
+    border, groove, rim = 0.065, 0.018, 0.025
     bm = bmesh.new()
     add_box(bm, (width, depth, base), (0.0, 0.0, base / 2.0), bevel=0.03)
+    top = base + rim / 2.0
+    add_box(bm, (width - 0.03, border, rim), (0.0, depth / 2.0 - border / 2.0 - 0.015, top), bevel=0.008)
+    add_box(bm, (width - 0.03, border, rim), (0.0, -depth / 2.0 + border / 2.0 + 0.015, top), bevel=0.008)
+    add_box(bm, (border, depth - 0.03, rim), (width / 2.0 - border / 2.0 - 0.015, 0.0, top), bevel=0.008)
+    add_box(bm, (border, depth - 0.03, rim), (-width / 2.0 + border / 2.0 + 0.015, 0.0, top), bevel=0.008)
     top = base + rise / 2.0
-    add_box(bm, (width - 0.03, border, rise), (0.0, depth / 2.0 - border / 2.0 - 0.015, top), bevel=0.005)
-    add_box(bm, (width - 0.03, border, rise), (0.0, -depth / 2.0 + border / 2.0 + 0.015, top), bevel=0.005)
-    add_box(bm, (border, depth - 0.03, rise), (width / 2.0 - border / 2.0 - 0.015, 0.0, top), bevel=0.005)
-    add_box(bm, (border, depth - 0.03, rise), (-width / 2.0 + border / 2.0 + 0.015, 0.0, top), bevel=0.005)
     inset = border + 0.015 + groove
     add_box(bm, (width - 2 * inset, depth - 2 * inset, rise), (0.0, 0.0, top), bevel=0.005)
     return [finish("BoardBody", bm)]

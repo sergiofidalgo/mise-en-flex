@@ -27,6 +27,9 @@ namespace Game.Editor
             public Color Color;
             public PrimitiveType Shape;
             public Vector3 Scale;
+            // The whole item's size, wherever it is: evens out models so they read as one family
+            // (decision 2026-11-08: the onion was oversized and the steak small next to it).
+            public float ModelScale = 1f;
 
             // Layered food (a slab like steak) is built as a top surface over three edge bands,
             // so its doneness can be read from the side; anything else is a single shape.
@@ -64,6 +67,7 @@ namespace Game.Editor
                 // oversized (19 x 16 x 4 cm) so it reads from the overhead camera.
                 Id = "Steak", Color = new Color(0.62f, 0.12f, 0.14f), Shape = PrimitiveType.Cylinder,
                 Scale = new Vector3(0.19f, 0.02f, 0.16f),
+                ModelScale = 1.15f, // bigger to read at a glance, still inside the pan
                 Layered = true, ScoreDoneness = true, ScoreBrowning = true, NeedsFlip = true, ServedHot = true,
                 TargetCore = 54.5f, RestTargetSeconds = 180f,
                 // Order targets sit inside each band, so an ordered level scores perfect without
@@ -86,6 +90,7 @@ namespace Game.Editor
             new IngredientType
             {
                 Id = "Onion", Color = new Color(0.93f, 0.84f, 0.62f), Shape = PrimitiveType.Sphere,
+                ModelScale = 0.8f,
                 // Cut into rings first, then on into dice (decision 2026-11-08): stop after the
                 // rings to keep them. Five chops in all to dice, as before.
                 Scale = Vector3.one * 0.26f, CutInto = "OnionRings", CutsNeeded = 2, ChopSecondsPerSweep = 0.7f, SweetSpotPosition = 110f, SweetSpotGood = 14f, SweetSpotOk = 28f,
@@ -247,6 +252,7 @@ namespace Game.Editor
                 bandList.GetArrayElementAtIndex(i).objectReferenceValue = bands[i];
             so.ApplyModifiedPropertiesWithoutUndo();
 
+            root.transform.localScale = Vector3.one * type.ModelScale; // its size everywhere; anchors add theirs
             GreyboxAssets.EnsureFolder(PrefabFolder);
             var prefab = PrefabUtility.SaveAsPrefabAsset(root, $"{PrefabFolder}/PF_Item_{type.Id}.prefab");
             Object.DestroyImmediate(root);

@@ -46,7 +46,10 @@ namespace Game.Presentation
 
         private ItemView _hidden;
         private Stage _shown;
+        private Vector3 _baseScale = Vector3.one;
         private float _bounceAge = float.MaxValue;
+
+        private void Awake() => _baseScale = transform.localScale;
 
         private void OnEnable()
         {
@@ -82,7 +85,7 @@ namespace Game.Presentation
             }
             _bounceAge += Time.deltaTime;
             var t = Mathf.Clamp01(_bounceAge / _bounceTime);
-            transform.localScale = Vector3.one * (1f + _bounce * Mathf.Sin(Mathf.PI * t));
+            transform.localScale = _baseScale * (1f + _bounce * Mathf.Sin(Mathf.PI * t));
         }
 
         // The stage for what's on the board and how many chops it has had, or null for none.

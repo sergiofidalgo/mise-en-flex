@@ -58,6 +58,7 @@ namespace Game.Editor
             if (PilotArt.TryUseMesh(handle, "SM_Pan", "PanHandle"))
                 StyleTest.DressPan(body, handle); // the cartoony style test (decision 2026-11-08)
 
+            // Food in a pan stays its own size: the steak is made to fill the pan (decision 2026-11-08).
             var view = AddSlots(root, PanSlots, PanDepth);
             var smoke = CreateParticles(root.transform, "Smoke", PanDepth, PanDiameter * 0.3f,
                 SmokeLifetime, SmokeSpeed, SmokeMinSize, SmokeMaxSize, SmokeGrowth, SmokeMaxParticles);
@@ -216,7 +217,7 @@ namespace Game.Editor
             return discs;
         }
 
-        private static ItemView AddSlots(GameObject root, Vector3[] positions, float height)
+        private static ItemView AddSlots(GameObject root, Vector3[] positions, float height, float scale = 1f)
         {
             var slots = new Transform[positions.Length];
             for (var i = 0; i < positions.Length; i++)
@@ -224,6 +225,7 @@ namespace Game.Editor
                 slots[i] = new GameObject($"Slot_{i + 1}").transform;
                 slots[i].SetParent(root.transform, false);
                 slots[i].localPosition = positions[i] + Vector3.up * height;
+                slots[i].localScale = Vector3.one * scale;
             }
 
             var view = root.AddComponent<ItemView>();

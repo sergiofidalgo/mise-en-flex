@@ -20,6 +20,11 @@ namespace Game.Editor
         // A sun from the top left, as in the vision image, only slightly warm (the user found the
         // scene too yellow, 2026-11-08), with soft, not-quite-black shadows.
         private static readonly Color SunColor = new Color(1f, 0.97f, 0.92f);
+        // High and from the left, almost square to the camera (the user found things flat,
+        // 2026-11-08): tops land in the toon ramp's lit band, fronts in its mid band and right-hand
+        // sides in its shadow band, so every box reads as a box. Behind the camera, as before, tops
+        // and fronts were both fully lit and only the outlines told them apart.
+        private static readonly Vector3 SunAngles = new Vector3(58f, 96f, 0f);
         private const float SunIntensity = 1.15f;
         private const float ShadowStrength = 0.6f;
 
@@ -107,6 +112,7 @@ namespace Game.Editor
         /// <summary>Sets the scene's sun and sky light. The scene must be the active one.</summary>
         public static void LightScene(Light sun)
         {
+            sun.transform.rotation = Quaternion.Euler(SunAngles);
             sun.color = SunColor;
             sun.intensity = SunIntensity;
             sun.shadows = LightShadows.Soft;

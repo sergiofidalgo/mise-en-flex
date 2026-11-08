@@ -4,6 +4,25 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-08 — Volume from the sun; items sized by where they are; a bolder board and plate rack
+
+**Decision:** (the user's notes after playing: things looked flat, the fridge lost its volume, and the steak, cutting board and plate rack were hard to notice at a glance)
+- **The sun is high and from the left,** almost square to the camera (`HouseStyle.SunAngles`, 58° up, 96° round). Tops now land in the ramp's lit band, fronts in its mid band and right-hand sides in its shadow band, so every box reads as a box. With the sun behind the camera, tops and fronts were both fully lit, and only the removed hull outlines had told them apart.
+- **Shadows fade on faces turned from the sun** (`ToonCommon.hlsl`). A face lit edge-on or from behind is already in its darker band, and at grazing angles the shadow map aliased into teeth, first seen on the fridge front.
+- **Items show at a size that depends on where they are** (`ItemSizes`, the anchors' scale; an item eases between sizes as it moves):
+  - on a counter or the cutting board: 1.4×;
+  - carried: 1.3×;
+  - on the grill: 1.15×;
+  - fridge, shelves, plates and the pan: 1×.
+  **Change from the choice:** food in a pan was to be 1.15×, but the steak is made to fill the pan, so the pan stays at 1×. The knife on a counter now lies at 1.15× on top of the counter's 1.4×.
+- **Models evened out:** the onion is 0.8× and the steak 1.15× (`IngredientType.ModelScale`). **Change from the choice:** the steak was to be 1.3×, but then it overflows the pan. On a counter it is now about 1.6× its old size.
+- **The cutting board is deep walnut** with a thicker rim (6.5 cm wide) standing 1.5 cm proud of the cutting surface. Food still sits on the cutting surface.
+- **The plate rack and its plates show 1.25× bigger,** the frame is dark steel and plate rims are a stronger blue (on every plate).
+
+**To check by playing:** whether 1.4× on counters crowds the counters; the size easing when items fly between places; the new light direction across the whole kitchen and dining room.
+
+---
+
 ## 2026-11-08 — Softer ink: thinner, a shade of what's underneath, mostly silhouettes
 
 **Decision:** The user played the screen-space ink and found it far too strong ("it completely removes the fun"). They approved these changes to the brief below (relayed by the Main build session):

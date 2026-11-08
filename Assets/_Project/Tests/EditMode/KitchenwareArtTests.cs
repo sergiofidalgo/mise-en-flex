@@ -102,7 +102,10 @@ namespace Game.Tests.EditMode
             var board = Model("SM_Board", "BoardBody");
             Assert.That(board.size.x, Is.EqualTo(0.7f).Within(Tolerance), "most of its 1 m counter");
             Assert.That(board.size.z, Is.EqualTo(0.55f).Within(Tolerance));
-            Assert.That(board.size.y, Is.EqualTo(0.04f).Within(Tolerance));
+            // Its rim stands proud of the cutting surface (decision 2026-11-08): 5.5 cm to the rim's
+            // top, 4 cm to the cutting surface, where food sits.
+            const float cuttingSurface = 0.04f;
+            Assert.That(board.size.y, Is.EqualTo(0.055f).Within(Tolerance), "the rim's top");
             Assert.That(board.min.y, Is.EqualTo(0f).Within(Tolerance));
 
             var counter = Prefab("Assets/_Project/Prefabs/Furniture/PF_CuttingBoard.prefab");
@@ -110,8 +113,8 @@ namespace Game.Tests.EditMode
             Assert.That(piece.GetComponent<MeshFilter>().sharedMesh.name, Is.EqualTo("BoardBody"));
             Assert.That(piece.localPosition.y, Is.EqualTo(0.9f).Within(Tolerance), "Its base on the counter top.");
             Assert.That(piece.localScale, Is.EqualTo(Vector3.one));
-            Assert.That(counter.transform.Find("BoardAnchor").localPosition.y, Is.EqualTo(0.9f + board.size.y).Within(Tolerance),
-                "Food on the board sits on its surface.");
+            Assert.That(counter.transform.Find("BoardAnchor").localPosition.y, Is.EqualTo(0.9f + cuttingSurface).Within(Tolerance),
+                "Food on the board sits on its cutting surface, inside the rim.");
         }
     }
 }
