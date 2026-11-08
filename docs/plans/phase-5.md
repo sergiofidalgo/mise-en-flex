@@ -17,6 +17,28 @@ Each milestone ends with something playable. Order chosen so each one builds on 
 | 5 | **Dirt, cleaning and fire.** Service leaves dirt on floors, tables and counters, saved overnight and cleaned in Prep: hold X and move the stick to match a pattern, with a mop or cloth. A pan left burning on gas catches fire (2026-11 decision); the extinguisher uses the same stick game. Induction and the grill never catch fire. | Mornings start with the mess you made |
 | 6 | **Realism settings menu.** Presets (Relaxed / Standard / Chef) with individual dials under "advanced", read by the simulation through `RealismSettings`. | Tune the challenge |
 
+## The user's mockups (2026-11-08)
+
+**Review dashboard: "Plates", a review-listing app.**
+- **Header:** the app name, a search bar ("Restaurants near Old Town"), the day ("Day 1 · Mon") and a "3 new reviews" badge.
+- **Left column:**
+  - a photo of the restaurant taken at close;
+  - the restaurant's name and star rating with the review count;
+  - a price band, the style and the opening hours ("€€ · Bistro · Open 18:00–20:00");
+  - a "Tonight's guests" bar chart in half-hour buckets, served in green and walked out hatched orange, with a "Rush · 2 left" callout.
+- **Right column:**
+  - tabs Overview / Reviews / Menu / Books, switched with LB and RB;
+  - stat cards for served, walked out (highlighted when it's a problem) and turned away, plus a dark balance card with today's change;
+  - "Guests mention" chips, such as "Slow service · 3", "Steak · 2" and "Wrong order · 1";
+  - review cards: a customer avatar and name, their order and the time, a quote, stars, a chip with the money result ("Walked out · −€12", "0.5 stars · €0 + €0 tip") and the reason in plain words.
+- **Footer hints:** LB/RB Tabs, LS Browse, Y Reply, ≡ Start day 2.
+
+**Street: the restaurant's surroundings, where the vendors are.**
+- **The restaurant** faces a brick sidewalk and a road with passing cars. Customers queue on the sidewalk at the entrance. The dining room is open to the street behind a low fence with string lights. A tall sign with a bull's head stands at the right corner.
+- **To the left,** a paved plaza holds three market stalls under coloured canopies (blue, red, green), each with a counter of goods.
+- **To the right,** there's a parking lot. One trash container goes by the restaurant's side wall; the mockup's recycling area is too much (the user's note).
+- **Behind,** houses, trees, fences and power lines are backdrop only.
+
 ## Technical notes
 
 - Save data lives in `Game.Simulation` as plain C# records; `Game.Gameplay` reads and writes the file under `Application.persistentDataPath`. EditMode tests cover round-trips and every migration step.
@@ -26,7 +48,8 @@ Each milestone ends with something playable. Order chosen so each one builds on 
 ## Decided (2026-11-08, the user's calls)
 
 - **Vendors are stalls you walk to,** on a short street outside the front door. Crates are carried back by hand.
-- **Prices are free,** in steps of 1, with a suggested price shown.
+- **Prices are free,** in steps of 1, with a suggested price shown, and set from the management interface.
+- **The Review dashboard and the street follow the user's mockups** (above).
 - **Money can go below zero.** It shows as owed to the boss, with no consequences until Phase 6.
 - **Dirt comes from what happened:** spills, burnt pans, customers eating, busy floors.
 
