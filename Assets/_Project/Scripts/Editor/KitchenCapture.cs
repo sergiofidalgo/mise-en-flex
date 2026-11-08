@@ -24,6 +24,11 @@ namespace Game.Editor
         private const float PlayHeight = 6.5f;      // the closest the game camera comes
         private const float WholeKitchenHeight = 11f;
 
+        private const int PlateRow = 7;
+        private const float PlateSpacing = 0.4f;
+        private const float PlateRowHeight = 1.6f;
+        private static readonly Vector3 PlateRowStart = new Vector3(20f, 0f, 0f);
+
         // Stations to look at closely, by name in the scene.
         private static readonly string[] CloseUps = { "Sink", "PlateStack", "WallCounter_01", "BoardCounter", "CuttingBoard" };
 
@@ -65,6 +70,19 @@ namespace Game.Editor
                 Render(camera, target, station.transform.position + Vector3.up * 0.9f, CloseHeight,
                     Path.Combine(folder, $"close_{name}.png"));
             }
+
+            // A row of plates outside the kitchen: clean, half washed, then dirty with different messes.
+            var platePrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/_Project/Prefabs/Items/PF_Item_Plate.prefab");
+            for (var i = 0; i < PlateRow; i++)
+            {
+                var plate = UnityEngine.Object.Instantiate(platePrefab, PlateRowStart + Vector3.right * (i * PlateSpacing), Quaternion.identity);
+                var body = plate.transform.Find("Body").GetComponent<Renderer>();
+                var block = new MaterialPropertyBlock();
+                Game.Presentation.PlateGrime.Set(block, i == 0 ? 0f : i == 1 ? 0.5f : 1f, i * 0.137f);
+                body.SetPropertyBlock(block);
+            }
+            Render(camera, target, PlateRowStart + new Vector3((PlateRow - 1) * PlateSpacing / 2f, 0f, 0f), PlateRowHeight,
+                Path.Combine(folder, "plates_grime.png"));
 
             target.Release();
             UnityEngine.Object.DestroyImmediate(camera.gameObject);

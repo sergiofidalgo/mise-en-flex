@@ -4,6 +4,19 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-08 — A cartoony style for every model, and dirty plates that look dirty
+
+**Decision (user's calls):**
+- **Models are exaggerated and cartoony, not realistic,** so they read in a rush: chunky shapes, fat rounded edges, oversized details such as knobs, handles and the tap. The reference photos guide what something is, not its proportions. Sizes the game relies on stay exact: footprints, the counter height, where pans and plates rest, hinges, slots and how far the fridge lid swings.
+- **This covers every model now:** hob, pan, steak, fridge, shelf, chef, plates, plate rack, sink and board. The chef is a bean shape with a white toque. Plates, the board and the steak are thicker.
+- **Dirty plates show their mess:** a sauce puddle with a smear dragged from it, tomato red or gravy brown, greasy patches and clusters of crumbs. Each plate looks different, and gets a new mess every time it's used. A plate in the sink visibly comes clean as it's washed.
+
+**Reason:** in a frantic kitchen, things have to be recognised at a glance from the overhead camera, which exaggerated shapes and a messy-looking dirty plate do better than realistic ones.
+
+**Not verified:** how the chunkier shapes and the grime read in play, and whether the toque crowds the camera when chefs stand close together.
+
+---
+
 ## 2026-11-08 — The sink only washes; dirty plates pile on any counter
 
 **Decision (user's calls):**
@@ -21,10 +34,9 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 ## 2026-11-08 — Models for plates, the plate stack, the sink and the cutting board
 
 **Decision (user's call):** these get Blender models, following the user's reference photos. Only meshes change: footprints, anchors, slots, colliders and rules stay as they were.
-- **Plates** are white with a shallow well and a gold rim, everywhere a plate appears. Dirty plates still darken, and the rim stays gold.
+- **Plates** are white with a well and a gold rim, everywhere a plate appears.
 - **The plate stack** is plates standing upright in a black wire rack, facing the camera. The front plate is the first to go.
-- **The sink** is a stainless unit: a basin on the left with the dirty plates, and a ribbed drainer on the right with a small rack for the clean ones. It has a swan-neck tap, open legs and a slatted bottom shelf.
-- **The dirty pile** is a loose stack, each plate nudged and turned a little.
+- **The sink** is a stainless unit with one big basin, a swan-neck tap, open legs and a slatted bottom shelf. Its drainer went when the sink stopped keeping plates (see the entry above).
 - **The cutting board** is bamboo with rounded corners and a juice groove, without the photo's logo. It's lighter than its counter so it stands out.
 
 **Reason:** it brings the kitchen's most-used stations up to the look of the hob and storage, without touching how they play.

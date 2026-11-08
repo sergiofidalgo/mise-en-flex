@@ -4,8 +4,8 @@ using UnityEngine;
 namespace Game.Presentation
 {
     /// <summary>
-    /// Shows what's at the plate stack, the dirty pile, the sink or a rack as piles of discs, so running out and a
-    /// growing pile of washing-up read at a glance. More plates than discs just shows a full pile.
+    /// Shows what's at the plate stack, the sink or a rack as plates or discs, so running out reads at
+    /// a glance and a plate in the sink visibly comes clean. More plates than discs just shows a full pile.
     /// </summary>
     public sealed class PlatePileView : MonoBehaviour
     {
@@ -24,7 +24,12 @@ namespace Game.Presentation
             else if (_station is RackStation rack && rack.Rack != null)
                 Show(_clean, rack.Rack.Count);
             else if (_station is SinkStation sink && sink.Sink != null)
+            {
                 Show(_dirty, sink.Sink.DirtyCount);
+                // The plate comes clean as it's washed.
+                if (_dirty.Length > 0 && _dirty[0].TryGetComponent<PlateGrime>(out var grime))
+                    grime.SetDirt(1f - sink.Sink.WashProgress);
+            }
         }
 
         private static void Show(GameObject[] discs, int count)

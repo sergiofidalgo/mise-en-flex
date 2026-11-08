@@ -145,7 +145,7 @@ namespace Game.Tests.EditMode
         {
             var bounds = Model("SM_Steak", "SM_Steak").bounds;
             Assert.That(bounds.size.x, Is.EqualTo(0.28f).Within(0.03f));
-            Assert.That(bounds.size.y, Is.EqualTo(0.05f).Within(Tolerance));
+            Assert.That(bounds.size.y, Is.EqualTo(0.06f).Within(Tolerance));
             Assert.That(bounds.size.z, Is.EqualTo(0.22f).Within(0.03f));
             Assert.That(bounds.min.y, Is.EqualTo(0f).Within(Tolerance));
         }

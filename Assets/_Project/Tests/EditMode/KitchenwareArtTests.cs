@@ -31,7 +31,7 @@ namespace Game.Tests.EditMode
             Assert.That(body.size.x, Is.EqualTo(0.32f).Within(Tolerance));
             Assert.That(body.size.z, Is.EqualTo(0.32f).Within(Tolerance));
             Assert.That(body.min.y, Is.EqualTo(0f).Within(Tolerance));
-            Assert.That(body.max.y, Is.LessThanOrEqualTo(0.025f));
+            Assert.That(body.max.y, Is.LessThanOrEqualTo(0.035f), "a thick, cartoony plate, but one a pile's step high");
 
             var rim = Model("SM_Plate", "PlateRim");
             Assert.That(rim.size.x, Is.LessThanOrEqualTo(body.size.x + Tolerance), "The rim stays on the plate.");
@@ -71,7 +71,7 @@ namespace Game.Tests.EditMode
             var board = Model("SM_Board", "BoardBody");
             Assert.That(board.size.x, Is.EqualTo(0.34f).Within(Tolerance));
             Assert.That(board.size.z, Is.EqualTo(0.28f).Within(Tolerance));
-            Assert.That(board.size.y, Is.EqualTo(0.025f).Within(Tolerance));
+            Assert.That(board.size.y, Is.EqualTo(0.035f).Within(Tolerance));
             Assert.That(board.min.y, Is.EqualTo(0f).Within(Tolerance));
 
             var counter = Prefab("Assets/_Project/Prefabs/Furniture/PF_CuttingBoard.prefab");

@@ -27,7 +27,10 @@ MODELS_FOLDER = os.path.join(REPO_ROOT, "Assets", "_Project", "Art", "Models")
 # Edges sharper than this stay crisp; softer ones shade smooth. This is what gives the chunky,
 # soft-edged look a bevel needs in order to catch the light.
 SHARP_ANGLE = math.radians(40.0)
-BEVEL_SEGMENTS = 2
+# Cartoony (decision 2026-11-08): exaggerated, chunky shapes with fat rounded edges read better in
+# a rush than realistic proportions. Sizes the game relies on (footprints, counter height, where
+# things rest, hinges, slots) stay exact; everything else is pushed.
+BEVEL_SEGMENTS = 3
 LATHE_SEGMENTS = 48
 
 # Must match the hob's top in GreyboxKitchenBuilder (CounterHeight).
@@ -99,61 +102,64 @@ def finish(name, bm):
 
 
 def build_hob():
-    """A squat range: top slab, carcass, oven door and knobs on the side facing the camera."""
+    """A squat, chunky range: a thick rounded top, a fat oven door with a big bar handle, and
+    oversized knobs on the side facing the camera."""
     bm = bmesh.new()
-    top_thickness = 0.06
-    plinth = 0.07
-    add_box(bm, (1.0, 1.0, top_thickness), (0.0, 0.0, HOB_HEIGHT - top_thickness / 2.0), bevel=0.018)
+    top_thickness = 0.09
+    plinth = 0.08
+    add_box(bm, (1.0, 1.0, top_thickness), (0.0, 0.0, HOB_HEIGHT - top_thickness / 2.0), bevel=0.035)
     carcass_height = HOB_HEIGHT - top_thickness - plinth
-    add_box(bm, (0.96, 0.92, carcass_height), (0.0, -0.04, plinth + carcass_height / 2.0), bevel=0.02)
-    add_box(bm, (0.88, 0.84, plinth), (0.0, -0.04, plinth / 2.0))
-    add_box(bm, (0.78, 0.03, 0.42), (0.0, 0.43, 0.38), bevel=0.012)  # oven door
-    add_box(bm, (0.56, 0.03, 0.035), (0.0, 0.46, 0.53), bevel=0.012)  # door handle
+    add_box(bm, (0.94, 0.9, carcass_height), (0.0, -0.05, plinth + carcass_height / 2.0), bevel=0.045)
+    add_box(bm, (0.84, 0.8, plinth), (0.0, -0.05, plinth / 2.0), bevel=0.02)
+    add_box(bm, (0.76, 0.05, 0.4), (0.0, 0.41, 0.36), bevel=0.03)  # oven door
+    add_lathe(bm, [(0.025, 0.0), (0.025, 0.56), (0.0, 0.56)], segments=16,
+              centre=(0.28, 0.465, 0.52), axis_matrix=Matrix.Rotation(math.radians(-90.0), 4, 'Y'))  # bar handle
+    for x in (-0.27, 0.27):  # the handle's posts
+        add_box(bm, (0.03, 0.04, 0.03), (x, 0.445, 0.52), bevel=0.01)
 
-    # Knobs: chunky enough to read from above, under the slab's front edge.
+    # Big knobs under the top's front edge, easy to read from above.
     knob_axis = Matrix.Rotation(math.radians(-90.0), 4, 'X')
     for x in (-0.28, 0.0, 0.28):
-        add_lathe(bm, [(0.05, 0.0), (0.05, 0.03), (0.04, 0.05), (0.0, 0.05)], segments=16,
-                  centre=(x, 0.44, 0.73), axis_matrix=knob_axis)
+        add_lathe(bm, [(0.075, 0.0), (0.075, 0.03), (0.065, 0.06), (0.0, 0.065)], segments=20,
+                  centre=(x, 0.43, 0.7), axis_matrix=knob_axis)
     body = finish("HobBody", bm)
 
-    # The burner glows as one piece (HobView tints it). Its surface stays below the pan's
-    # resting height of 0.91, so the pan never sinks into it.
+    # The burner glows as one piece (HobView tints it): a fat rounded ring. Its surface stays below
+    # the pan's resting height of 0.91, so the pan never sinks into it.
     bm = bmesh.new()
     add_lathe(bm, [
-        (0.31, HOB_HEIGHT), (0.31, HOB_HEIGHT + 0.004), (0.30, HOB_HEIGHT + 0.008),
-        (0.215, HOB_HEIGHT + 0.008), (0.20, HOB_HEIGHT + 0.004), (0.0, HOB_HEIGHT + 0.004),
+        (0.34, HOB_HEIGHT), (0.345, HOB_HEIGHT + 0.004), (0.335, HOB_HEIGHT + 0.009), (0.3, HOB_HEIGHT + 0.0095),
+        (0.235, HOB_HEIGHT + 0.009), (0.22, HOB_HEIGHT + 0.005), (0.2, HOB_HEIGHT + 0.003), (0.0, HOB_HEIGHT + 0.003),
     ])
     burner = finish("HobBurner", bm)
     return [body, burner]
-
-
 def build_pan():
-    """A thick-based pan with a rounded rim, and a handle towards the camera (+Y here)."""
+    """A chunky pan: a thick base, deep walls with a fat rolled rim, and a big handle with a round
+    end, towards the camera (+Y here)."""
     bm = bmesh.new()
     add_lathe(bm, [
-        (0.0, 0.0), (0.20, 0.0), (0.212, 0.008), (0.218, 0.035), (0.22, 0.07),
-        (0.214, 0.076), (0.205, 0.07), (0.196, PAN_FLOOR + 0.004), (0.185, PAN_FLOOR), (0.0, PAN_FLOOR),
+        (0.0, 0.0), (0.19, 0.0), (0.206, 0.012), (0.214, 0.05), (0.22, 0.082), (0.216, 0.094),
+        (0.202, 0.096), (0.192, 0.085), (0.188, PAN_FLOOR + 0.008), (0.18, PAN_FLOOR), (0.0, PAN_FLOOR),
     ])
     body = finish("PanBody", bm)
 
     bm = bmesh.new()
-    length = 0.24
-    start = 0.20  # overlaps the wall, so no gap shows
+    length = 0.25
+    start = 0.19  # overlaps the wall, so no gap shows
     created = bmesh.ops.create_cube(bm, size=1.0)
     for vert in created["verts"]:
         along = vert.co.y + 0.5  # 0 at the pan, 1 at the far end
-        width = 0.05 + 0.012 * along  # widens towards the grip
-        vert.co = Vector((vert.co.x * width, start + along * length, 0.052 + vert.co.z * 0.03 + along * 0.016))
-    bmesh.ops.bevel(bm, geom=list(bm.edges), offset=0.009, segments=BEVEL_SEGMENTS, profile=0.5,
+        width = 0.055 + 0.02 * along  # widens towards the grip
+        vert.co = Vector((vert.co.x * width, start + along * length, 0.06 + vert.co.z * 0.04 + along * 0.02))
+    bmesh.ops.bevel(bm, geom=list(bm.edges), offset=0.016, segments=BEVEL_SEGMENTS, profile=0.5,
                     affect='EDGES', clamp_overlap=True)
+    add_lathe(bm, [(0.0, -0.035), (0.03, -0.03), (0.042, 0.0), (0.03, 0.03), (0.0, 0.035)], segments=16,
+              centre=(0.0, start + length, 0.08))  # a round knob on the end
     handle = finish("PanHandle", bm)
     return [body, handle]
-
-
 def steak_outline(angle):
     """A slightly lopsided rounded shape, so it reads as a cut of meat rather than a disc."""
-    half_x, half_y = 0.14, 0.11
+    half_x, half_y = 0.14, 0.11  # fits the pan at its largest (StorageArt/IngredientView size variation)
     cos_a, sin_a = math.cos(angle), math.sin(angle)
     # A superellipse with an exponent above 2 is squarer than an ellipse: plumper, more meat-like.
     exponent = 2.6
@@ -163,14 +169,15 @@ def steak_outline(angle):
 
 
 def build_steak():
-    """One mesh. The shader colours it by height and normal, so no separate bands are needed."""
-    thickness = 0.05
+    """One mesh. The shader colours it by height and normal, so no separate bands are needed.
+    Puffy and thick, with soft rounded edges (cartoony, decision 2026-11-08)."""
+    thickness = 0.06
     segments = 64
     # (outline scale, height), bottom to top: rounded at both edges, with flat faces that end in
     # a smaller inner ring so the top keeps its soft rim when shaded smooth.
     profile = [
-        (0.0, 0.0), (0.70, 0.0), (0.93, 0.0), (1.0, 0.012), (1.0, thickness * 0.5),
-        (1.0, thickness - 0.012), (0.93, thickness), (0.70, thickness), (0.0, thickness),
+        (0.0, 0.0), (0.70, 0.0), (0.88, 0.0), (0.97, 0.008), (1.0, 0.02), (1.0, thickness * 0.5),
+        (1.0, thickness - 0.02), (0.97, thickness - 0.008), (0.88, thickness), (0.70, thickness), (0.0, thickness),
     ]
     bm = bmesh.new()
     rings = []
@@ -215,95 +222,98 @@ CHEF_WAIST = 0.85
 
 
 def build_fridge():
-    """A chest fridge at counter height (decision 2026-11-08): a white box with a pale inside, four
-    baskets on one level near the top, and a glass lid in a white frame, so the stock shows from
-    above whichever way it's turned."""
-    wall = 0.04
+    """A chest fridge at counter height (decision 2026-11-08), chunky and rounded: a white box with
+    fat edges and a pale inside, four baskets on one level near the top, and a glass lid in a thick
+    white frame with a big handle, so the stock shows from above whichever way it's turned."""
+    wall = 0.06
     bm = bmesh.new()
-    add_box(bm, (0.96, 0.96, 0.12), (0.0, 0.0, 0.06), bevel=0.01)  # plinth
-    for x in (-0.48, 0.48):
-        add_box(bm, (wall, 1.0, FRIDGE_HEIGHT - 0.12), (x, 0.0, 0.12 + (FRIDGE_HEIGHT - 0.12) / 2.0), bevel=0.01)
-    for y in (-0.48, 0.48):
-        add_box(bm, (1.0, wall, FRIDGE_HEIGHT - 0.12), (0.0, y, 0.12 + (FRIDGE_HEIGHT - 0.12) / 2.0), bevel=0.01)
+    add_box(bm, (0.94, 0.94, 0.12), (0.0, 0.0, 0.06), bevel=0.03)  # plinth
+    for x in (-0.47, 0.47):
+        add_box(bm, (wall, 1.0, FRIDGE_HEIGHT - 0.12), (x, 0.0, 0.12 + (FRIDGE_HEIGHT - 0.12) / 2.0), bevel=0.028)
+    for y in (-0.47, 0.47):
+        add_box(bm, (1.0, wall, FRIDGE_HEIGHT - 0.12), (0.0, y, 0.12 + (FRIDGE_HEIGHT - 0.12) / 2.0), bevel=0.028)
     body = finish("FridgeBody", bm)
 
     # The pale inside: a floor the baskets stand on, and walls down to it.
     bm = bmesh.new()
-    add_box(bm, (0.92, 0.92, 0.02), (0.0, 0.0, FRIDGE_FLOOR - 0.01))
-    for x in (-0.455, 0.455):
-        add_box(bm, (0.01, 0.92, FRIDGE_HEIGHT - FRIDGE_FLOOR), (x, 0.0, (FRIDGE_HEIGHT + FRIDGE_FLOOR) / 2.0))
-    for y in (-0.455, 0.455):
-        add_box(bm, (0.92, 0.01, FRIDGE_HEIGHT - FRIDGE_FLOOR), (0.0, y, (FRIDGE_HEIGHT + FRIDGE_FLOOR) / 2.0))
+    add_box(bm, (0.9, 0.9, 0.02), (0.0, 0.0, FRIDGE_FLOOR - 0.01))
+    for x in (-0.445, 0.445):
+        add_box(bm, (0.01, 0.9, FRIDGE_HEIGHT - FRIDGE_FLOOR), (x, 0.0, (FRIDGE_HEIGHT + FRIDGE_FLOOR) / 2.0))
+    for y in (-0.445, 0.445):
+        add_box(bm, (0.9, 0.01, FRIDGE_HEIGHT - FRIDGE_FLOOR), (0.0, y, (FRIDGE_HEIGHT + FRIDGE_FLOOR) / 2.0))
     liner = finish("FridgeLiner", bm)
 
-    # The lid: a frame round glass, lying shut over the top, towards the front from its hinge.
-    size, length, bar, depth = 0.96, 0.9, 0.06, 0.03
+    # The lid: a thick frame round glass, lying shut over the top, towards the front from its hinge.
+    # As thick as before, so it clears the footprint while it swings (StorageArtTests); just chunkier bars.
+    size, length, bar, depth = 0.96, 0.9, 0.085, 0.03
     bm = bmesh.new()
     for x in (-(size - bar) / 2.0, (size - bar) / 2.0):
-        add_box(bm, (bar, length, depth), (x, length / 2.0, depth / 2.0), bevel=0.006)
+        add_box(bm, (bar, length, depth), (x, length / 2.0, depth / 2.0), bevel=0.012)
     for y in (bar / 2.0, length - bar / 2.0):
-        add_box(bm, (size - 2 * bar, bar, depth), (0.0, y, depth / 2.0), bevel=0.006)
-    add_box(bm, (0.3, 0.03, 0.02), (0.0, length - 0.015, depth + 0.01), bevel=0.006)  # handle, at the front
+        add_box(bm, (size - 2 * bar, bar, depth), (0.0, y, depth / 2.0), bevel=0.012)
+    add_box(bm, (0.4, 0.03, 0.02), (0.0, length - 0.015, depth + 0.01), bevel=0.008)  # handle, at the front
     frame = finish("FridgeLidFrame", bm)
     frame.location = FRIDGE_LID_HINGE
 
     bm = bmesh.new()
-    add_box(bm, (size - 2 * bar, length - 2 * bar, 0.008), (0.0, length / 2.0, depth / 2.0))
+    add_box(bm, (size - 2 * bar, length - 2 * bar, 0.01), (0.0, length / 2.0, depth / 2.0))
     glass = finish("FridgeLidGlass", bm)
     glass.location = FRIDGE_LID_HINGE
 
     bm = bmesh.new()
-    add_box(bm, (0.36, 0.34, 0.03), (0.0, 0.0, 0.015), bevel=0.006)
+    add_box(bm, (0.36, 0.34, 0.04), (0.0, 0.0, 0.02), bevel=0.014)
     basket = finish("FridgeBasket", bm)
     basket.location = (0.22, 0.2, FRIDGE_FLOOR)
     return [body, liner, frame, glass, basket]
-
-
 # The shelf's boards are shallow and centred, so what's on the lower tier isn't hidden under the
 # upper one from the camera's 55° view, whichever way the shelf is turned.
 SHELF_BOARD_DEPTH = 0.4
 
 
 def build_shelf():
-    """An open rack (decision 2026-11-08): two tiers of two slots on shallow boards, open on every
-    side, the upper tier's board its top, sacks on the bottom board."""
+    """An open rack (decision 2026-11-08), chunky: two tiers of two slots on thick shallow boards,
+    open on every side, the upper tier's board its top, fat posts, plump sacks on the bottom."""
     half = SHELF_BOARD_DEPTH / 2.0
     bm = bmesh.new()
-    for x in (-0.475, 0.475):
-        for y in (-half + 0.02, half - 0.02):
-            add_box(bm, (0.04, 0.04, SHELF_HEIGHT), (x, y, SHELF_HEIGHT / 2.0), bevel=0.008)
-    for top in (0.06,) + TIER_TOPS:
-        add_box(bm, (1.0, SHELF_BOARD_DEPTH, 0.04), (0.0, 0.0, top - 0.02), bevel=0.006)
+    for x in (-0.465, 0.465):
+        for y in (-half + 0.035, half - 0.035):
+            add_box(bm, (0.07, 0.07, SHELF_HEIGHT), (x, y, SHELF_HEIGHT / 2.0), bevel=0.022)
+    for top in (0.08,) + TIER_TOPS:
+        add_box(bm, (1.0, SHELF_BOARD_DEPTH, 0.06), (0.0, 0.0, top - 0.03), bevel=0.02)
     body = finish("ShelfBody", bm)
 
     bm = bmesh.new()
-    add_box(bm, (0.34, 0.3, 0.26), (-0.22, 0.0, 0.19), bevel=0.06)
-    add_box(bm, (0.3, 0.28, 0.22), (0.2, 0.0, 0.17), bevel=0.05)
+    add_box(bm, (0.36, 0.32, 0.27), (-0.22, 0.0, 0.215), bevel=0.09)
+    add_box(bm, (0.32, 0.3, 0.24), (0.2, 0.0, 0.2), bevel=0.08)
     goods = finish("ShelfGoods", bm)
 
     bm = bmesh.new()
-    add_box(bm, (0.3, 0.24, 0.03), (0.0, 0.0, 0.015), bevel=0.008)
+    add_box(bm, (0.3, 0.24, 0.04), (0.0, 0.0, 0.02), bevel=0.014)
     basket = finish("ShelfBasket", bm)
     basket.location = (0.0, 0.0, TIER_TOPS[1])
     return [body, goods, basket]
-
-
 def build_chef():
-    """A placeholder chef in two parts, so it can bend at the waist. Not final character art."""
+    """A placeholder chef in two parts, so it can bend at the waist: a bean, wide at the bottom with
+    a round top, and a puffy white toque so a chef reads as a chef. Not final character art."""
     bm = bmesh.new()
-    add_lathe(bm, [(0.0, 0.0), (0.28, 0.0), (0.33, 0.03), (0.35, 0.1), (0.35, 0.75),
-                   (0.3, 0.88), (0.18, 0.94), (0.0, 0.95)], segments=32)
+    add_lathe(bm, [(0.0, 0.0), (0.3, 0.0), (0.36, 0.04), (0.38, 0.15), (0.37, 0.7),
+                   (0.32, 0.88), (0.18, 0.95), (0.0, 0.96)], segments=32)
     legs = finish("ChefLegs", bm)
 
     # Its origin is the waist; it starts a little below, so no gap opens when it bends.
     bm = bmesh.new()
-    add_lathe(bm, [(0.0, -0.05), (0.25, -0.05), (0.33, 0.0), (0.35, 0.08), (0.35, 0.55),
-                   (0.33, 0.68), (0.26, 0.78), (0.14, 0.84), (0.0, 0.85)], segments=32)
+    add_lathe(bm, [(0.0, -0.05), (0.27, -0.05), (0.35, 0.0), (0.36, 0.1), (0.34, 0.5),
+                   (0.3, 0.66), (0.22, 0.77), (0.12, 0.83), (0.0, 0.85)], segments=32)
     torso = finish("ChefTorso", bm)
     torso.location = (0.0, 0.0, CHEF_WAIST)
-    return [legs, torso]
 
-
+    # The toque: a band and a puffed top, sitting on the torso's crown. Origin at the waist too.
+    bm = bmesh.new()
+    add_lathe(bm, [(0.0, 0.76), (0.16, 0.76), (0.17, 0.86), (0.2, 0.9), (0.24, 0.98), (0.24, 1.05),
+                   (0.2, 1.1), (0.1, 1.13), (0.0, 1.135)], segments=32)
+    hat = finish("ChefHat", bm)
+    hat.location = (0.0, 0.0, CHEF_WAIST)
+    return [legs, torso, hat]
 # Kitchenware. A plate is 0.32 m across (GreyboxKitchenware.PlateDiameter); its origin is the
 # centre of its base. Food sits in its well at 0.012 m.
 PLATE_RADIUS = 0.16
@@ -311,34 +321,30 @@ COUNTER_HEIGHT = 0.9
 
 
 def build_plate():
-    """A white plate with a shallow well and a gold rim (the rim is its own mesh and colour)."""
+    """A thick white plate with a deep well and a fat rolled rim (gold, its own mesh and colour)."""
     bm = bmesh.new()
     add_lathe(bm, [
-        (0.0, 0.0), (0.1, 0.0), (0.112, 0.004), (PLATE_RADIUS, 0.017), (PLATE_RADIUS + 0.001, 0.02),
-        (0.15, 0.0205), (0.11, 0.012), (0.0, 0.012),
+        (0.0, 0.0), (0.095, 0.0), (0.11, 0.006), (0.15, 0.022), (PLATE_RADIUS, 0.028), (PLATE_RADIUS, 0.031),
+        (0.15, 0.032), (0.112, 0.019), (0.1, 0.015), (0.0, 0.015),
     ])
     body = finish("PlateBody", bm)
 
     bm = bmesh.new()
-    add_lathe(bm, [(0.143, 0.0185), (0.15, 0.0215), (0.158, 0.0205), (0.1615, 0.018), (0.15, 0.017), (0.143, 0.0185)])
+    add_lathe(bm, [(0.134, 0.027), (0.142, 0.034), (0.152, 0.035), (0.159, 0.03), (0.148, 0.026), (0.134, 0.027)])
     rim = finish("PlateRim", bm)
     return [body, rim]
-
-
-def add_rack(bm, length, width=0.36, height=0.2, wire=0.012):
-    """A wire dish rack: an arch at each end and rails along the bottom. Plates stand in it
-    facing the camera, one behind the other, from the back (Blender -Y) to the front (+Y)."""
+def add_rack(bm, length, width=0.38, height=0.22, wire=0.024):
+    """A chunky dish rack: a rounded arch at each end and fat rails along the bottom. Plates stand
+    in it facing the camera, one behind the other, from the back (Blender -Y) to the front (+Y)."""
     half_width = width / 2.0
     for y in (-length / 2.0, length / 2.0):
         for x in (-half_width, half_width):
-            add_box(bm, (wire, wire, height), (x, y, height / 2.0), bevel=0.004)
-        add_box(bm, (width + wire, wire, wire), (0.0, y, height), bevel=0.004)
+            add_box(bm, (wire, wire, height), (x, y, height / 2.0), bevel=0.01)
+        add_box(bm, (width + wire, wire, wire), (0.0, y, height), bevel=0.01)
     for x in (-half_width, half_width):
-        add_box(bm, (wire, length, wire), (x, 0.0, wire / 2.0), bevel=0.004)
-    for x in (-0.06, 0.06):  # the plates rest on these
-        add_box(bm, (wire, length, wire), (x, 0.0, 0.02), bevel=0.004)
-
-
+        add_box(bm, (wire, length + wire, wire), (x, 0.0, wire / 2.0), bevel=0.01)
+    for x in (-0.07, 0.07):  # the plates rest on these
+        add_box(bm, (wire, length, wire), (x, 0.0, 0.025), bevel=0.01)
 def build_plate_racks():
     """A rack for the plate stack (six plates) and a short one for the sink's drainer."""
     bm = bmesh.new()
@@ -352,65 +358,58 @@ def build_plate_racks():
 
 
 def build_sink():
-    """A stainless sink unit: a basin on the game's left, a ribbed drainer on its right, a
-    swan-neck tap at the back, open legs with a half shelf and a slatted bottom shelf."""
+    """A chunky stainless sink unit with one big basin and no room for plates: it only washes
+    (decision 2026-11-08). A thick rounded top, an oversized swan-neck tap at the back, and open
+    legs with a slatted bottom shelf."""
     bm = bmesh.new()
-    top, thickness = COUNTER_HEIGHT, 0.04
+    top, thickness = COUNTER_HEIGHT, 0.06
     z = top - thickness / 2.0
-    # The top around the basin's opening (Blender x 0..0.4, y -0.2..0.2).
-    add_box(bm, (0.1, 1.0, thickness), (0.45, 0.0, z), bevel=0.008)
-    add_box(bm, (0.5, 1.0, thickness), (-0.25, 0.0, z), bevel=0.008)
-    add_box(bm, (0.4, 0.3, thickness), (0.2, 0.35, z))
-    add_box(bm, (0.4, 0.3, thickness), (0.2, -0.35, z))
-    add_box(bm, (1.0, 0.02, 0.06), (0.0, 0.49, top - 0.07))  # front apron
-    add_box(bm, (1.0, 0.03, 0.1), (0.0, -0.485, top + 0.05), bevel=0.008)  # upstand
-    # Basin, 0.14 deep: food and plates sit on its floor at 0.77.
-    add_box(bm, (0.4, 0.4, 0.01), (0.2, 0.0, top - 0.135))
-    for y in (-0.2, 0.2):
-        add_box(bm, (0.4, 0.01, 0.14), (0.2, y, top - 0.07))
-    for x in (0.0, 0.4):
-        add_box(bm, (0.01, 0.4, 0.14), (x, 0.0, top - 0.07))
-    add_lathe(bm, [(0.02, 0.0), (0.02, 0.21), (0.0, 0.21)], segments=12, centre=(0.2, 0.0, top - 0.35))  # drain
-    # Drainer ribs.
-    for x in (-0.1, -0.2, -0.3, -0.4):
-        add_box(bm, (0.012, 0.6, 0.004), (x, 0.05, top + 0.002))
-    # Swan-neck tap behind the basin.
-    add_lathe(bm, [(0.03, 0.0), (0.03, 0.02), (0.016, 0.03), (0.016, 0.28), (0.0, 0.28)],
-              segments=16, centre=(0.2, -0.4, top))
+    hole_x, hole_y = 0.32, 0.26  # half the basin's opening
+    # The top around the basin's opening.
+    add_box(bm, (0.5 - hole_x, 1.0, thickness), ((0.5 + hole_x) / 2.0, 0.0, z), bevel=0.02)
+    add_box(bm, (0.5 - hole_x, 1.0, thickness), (-(0.5 + hole_x) / 2.0, 0.0, z), bevel=0.02)
+    add_box(bm, (2 * hole_x, 0.5 - hole_y, thickness), (0.0, (0.5 + hole_y) / 2.0, z), bevel=0.02)
+    add_box(bm, (2 * hole_x, 0.5 - hole_y, thickness), (0.0, -(0.5 + hole_y) / 2.0, z), bevel=0.02)
+    add_box(bm, (1.0, 0.05, 0.14), (0.0, -0.475, top + 0.07), bevel=0.022)  # upstand
+    # The basin, 0.15 deep: the plate being washed sits on its floor at 0.75.
+    add_box(bm, (2 * hole_x, 2 * hole_y, 0.02), (0.0, 0.0, top - 0.16), bevel=0.008)
+    for y in (-hole_y, hole_y):
+        add_box(bm, (2 * hole_x, 0.02, 0.16), (0.0, y, top - 0.08))
+    for x in (-hole_x, hole_x):
+        add_box(bm, (0.02, 2 * hole_y, 0.16), (x, 0.0, top - 0.08))
+    add_lathe(bm, [(0.03, 0.0), (0.03, 0.2), (0.0, 0.2)], segments=12, centre=(0.0, 0.0, top - 0.36))  # drain
+    # An oversized swan-neck tap behind the basin.
+    add_lathe(bm, [(0.05, 0.0), (0.05, 0.03), (0.03, 0.05), (0.03, 0.36), (0.0, 0.36)],
+              segments=16, centre=(0.0, -0.4, top))
     spout = Matrix.Rotation(math.radians(-90.0), 4, 'X')  # along +Y, towards the front
-    add_lathe(bm, [(0.014, 0.0), (0.014, 0.2), (0.0, 0.2)], segments=12, centre=(0.2, -0.4, top + 0.27), axis_matrix=spout)
-    add_box(bm, (0.026, 0.026, 0.06), (0.2, -0.2, top + 0.24), bevel=0.006)
-    add_box(bm, (0.08, 0.015, 0.015), (0.27, -0.4, top + 0.1), bevel=0.004)  # lever
-    # Legs, a half shelf under the drainer and a slatted bottom shelf.
-    for x in (-0.47, 0.47):
-        for y in (-0.47, 0.47):
-            add_box(bm, (0.04, 0.04, top - thickness), (x, y, (top - thickness) / 2.0), bevel=0.008)
-    add_box(bm, (0.5, 0.9, 0.02), (-0.22, 0.0, 0.42), bevel=0.004)
-    for y in (-0.47, 0.47):
-        add_box(bm, (0.94, 0.03, 0.03), (0.0, y, 0.12))
-    for x in (-0.47, 0.47):
-        add_box(bm, (0.03, 0.94, 0.03), (x, 0.0, 0.12))
-    for y in (-0.36, -0.18, 0.0, 0.18, 0.36):
-        add_box(bm, (0.94, 0.04, 0.02), (0.0, y, 0.13))
+    add_lathe(bm, [(0.028, 0.0), (0.028, 0.24), (0.0, 0.24)], segments=12, centre=(0.0, -0.4, top + 0.34), axis_matrix=spout)
+    add_box(bm, (0.05, 0.05, 0.08), (0.0, -0.16, top + 0.31), bevel=0.015)
+    add_box(bm, (0.14, 0.03, 0.03), (0.09, -0.4, top + 0.14), bevel=0.012)  # lever
+    # Fat legs and a slatted bottom shelf.
+    for x in (-0.46, 0.46):
+        for y in (-0.46, 0.46):
+            add_box(bm, (0.07, 0.07, top - thickness), (x, y, (top - thickness) / 2.0), bevel=0.02)
+    for y in (-0.46, 0.46):
+        add_box(bm, (0.92, 0.04, 0.04), (0.0, y, 0.14), bevel=0.012)
+    for x in (-0.46, 0.46):
+        add_box(bm, (0.04, 0.92, 0.04), (x, 0.0, 0.14), bevel=0.012)
+    for y in (-0.3, -0.1, 0.1, 0.3):
+        add_box(bm, (0.92, 0.07, 0.03), (0.0, y, 0.15), bevel=0.01)
     return [finish("SinkBody", bm)]
-
-
 def build_board():
-    """A bamboo cutting board with rounded corners and a juice groove round its edge."""
-    width, depth, base, rise = 0.34, 0.28, 0.019, 0.006
-    border, groove = 0.022, 0.008
+    """A thick bamboo cutting board with fat rounded corners and a deep juice groove round its edge."""
+    width, depth, base, rise = 0.34, 0.28, 0.026, 0.009
+    border, groove = 0.026, 0.012
     bm = bmesh.new()
-    add_box(bm, (width, depth, base), (0.0, 0.0, base / 2.0), bevel=0.012)
+    add_box(bm, (width, depth, base), (0.0, 0.0, base / 2.0), bevel=0.02)
     top = base + rise / 2.0
-    add_box(bm, (width - 0.012, border, rise), (0.0, depth / 2.0 - border / 2.0 - 0.006, top), bevel=0.002)
-    add_box(bm, (width - 0.012, border, rise), (0.0, -depth / 2.0 + border / 2.0 + 0.006, top), bevel=0.002)
-    add_box(bm, (border, depth - 0.012, rise), (width / 2.0 - border / 2.0 - 0.006, 0.0, top), bevel=0.002)
-    add_box(bm, (border, depth - 0.012, rise), (-width / 2.0 + border / 2.0 + 0.006, 0.0, top), bevel=0.002)
-    inset = border + 0.006 + groove
-    add_box(bm, (width - 2 * inset, depth - 2 * inset, rise), (0.0, 0.0, top), bevel=0.002)
+    add_box(bm, (width - 0.016, border, rise), (0.0, depth / 2.0 - border / 2.0 - 0.008, top), bevel=0.004)
+    add_box(bm, (width - 0.016, border, rise), (0.0, -depth / 2.0 + border / 2.0 + 0.008, top), bevel=0.004)
+    add_box(bm, (border, depth - 0.016, rise), (width / 2.0 - border / 2.0 - 0.008, 0.0, top), bevel=0.004)
+    add_box(bm, (border, depth - 0.016, rise), (-width / 2.0 + border / 2.0 + 0.008, 0.0, top), bevel=0.004)
+    inset = border + 0.008 + groove
+    add_box(bm, (width - 2 * inset, depth - 2 * inset, rise), (0.0, 0.0, top), bevel=0.004)
     return [finish("BoardBody", bm)]
-
-
 def export_fbx(objects, filename):
     bpy.ops.object.select_all(action='DESELECT')
     for obj in objects:

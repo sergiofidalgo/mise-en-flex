@@ -1,3 +1,5 @@
+using Game.Presentation;
+using UnityEditor;
 using UnityEngine;
 
 namespace Game.Editor
@@ -16,18 +18,17 @@ namespace Game.Editor
 
         // Must match PLATE_RADIUS in blender/build_pilot_models.py; the plate's origin is its base.
         private const float PlateRadius = 0.16f;
-        private const float PlateHeight = 0.02f;
+        private const float PlateHeight = 0.035f;
         // Plates in a rack stand one behind the other, resting on rails this high.
         private const float RackSpacing = 0.055f;
-        private const float RackRailHeight = 0.026f;
+        private const float RackRailHeight = 0.037f;
         // A loose pile is nudged and turned a little per plate, so it reads as dirty dishes.
         private const float MessyNudge = 0.03f;
 
         /// <summary>The sink's basin floor, where dirty plates sit; must match build_sink().</summary>
-        public const float SinkBasinFloor = 0.77f;
-        /// <summary>Basin and drainer centres across the sink, in the game's x.</summary>
-        public const float SinkBasinX = -0.2f;
-        public const float SinkDrainerX = 0.27f;
+        public const float SinkBasinFloor = 0.75f;
+        /// <summary>The basin's centre across the sink, in the game's x: one big basin, in the middle.</summary>
+        public const float SinkBasinX = 0f;
 
         private static readonly Color RimColor = new Color(0.8f, 0.64f, 0.3f);
         private static readonly Color RackColor = new Color(0.08f, 0.08f, 0.09f);
@@ -51,12 +52,12 @@ namespace Game.Editor
         /// the first to go. Falls back to the greybox discs without the plate model.
         /// </summary>
         public static GameObject[] CreatePlates(Transform parent, float baseHeight, int count, Color color, string materialName,
-            Vector3 offset, PlateLayout layout)
+            Vector3 offset, PlateLayout layout, bool dirty = false)
         {
             if (!HasPlateModel)
                 return GreyboxKitchenware.CreatePlatePile(parent, baseHeight, count, color, materialName, offset);
 
-            var material = GreyboxAssets.EnsureMaterial(materialName, color);
+            var material = EnsurePlateMaterial();
             if (layout == PlateLayout.Rack)
             {
                 var rack = CreatePart(parent, $"{materialName}Rack", RackModel, count > 3 ? "PlateRack" : "PlateRackShort",
@@ -68,6 +69,13 @@ namespace Game.Editor
             for (var i = 0; i < count; i++)
             {
                 var plate = CreatePlate(parent, $"{materialName}_{i + 1}", material);
+                if (dirty)
+                {
+                    // A new mess each time it's shown.
+                    var grime = new SerializedObject(plate.AddComponent<PlateGrime>());
+                    grime.FindProperty("_body").objectReferenceValue = plate.GetComponent<Renderer>();
+                    grime.ApplyModifiedPropertiesWithoutUndo();
+                }
                 switch (layout)
                 {
                     case PlateLayout.Rack:
@@ -93,8 +101,10 @@ namespace Game.Editor
         /// <summary>Gives a carried plate's body the plate model and its gold rim.</summary>
         public static void DressPlateItem(GameObject body)
         {
-            if (PilotArt.TryUseMesh(body, PlateModel, "PlateBody"))
-                AddRim(body.transform);
+            if (!PilotArt.TryUseMesh(body, PlateModel, "PlateBody"))
+                return;
+            body.GetComponent<Renderer>().sharedMaterial = EnsurePlateMaterial();
+            AddRim(body.transform);
         }
 
         /// <summary>The sink unit's model, on the station's body. False if there's no model.</summary>
@@ -116,6 +126,19 @@ namespace Game.Editor
                 return;
             board.transform.localPosition = Vector3.up * counterHeight;
             board.GetComponent<Renderer>().sharedMaterial = GreyboxAssets.EnsureMaterial("Bamboo", BambooColor);
+        }
+
+        /// <summary>The plate shader's material (MAT_Plate): clean, until a view makes it dirty.</summary>
+        public static Material EnsurePlateMaterial()
+        {
+            const string path = "Assets/_Project/Art/Materials/MAT_Plate.mat";
+            var material = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (material != null)
+                return material;
+
+            material = new Material(Shader.Find("Game/Kitchen/Plate"));
+            AssetDatabase.CreateAsset(material, path);
+            return material;
         }
 
         private static GameObject CreatePlate(Transform parent, string name, Material material)

@@ -109,6 +109,7 @@ namespace Game.Editor
         private static readonly Vector3 CarryAnchorPosition = new Vector3(0f, 1.05f, 0.5f);
         // Where the chef bends; must match CHEF_WAIST in blender/build_pilot_models.py.
         private const float ChefWaistHeight = 0.85f;
+        private static readonly Color ChefHatColor = new Color(0.97f, 0.97f, 0.95f);
         // The knife sits at the chef's right side, so it reads separately from what's carried.
         private static readonly Vector3 ToolAnchorPosition = new Vector3(0.4f, 0.95f, 0.15f);
 
@@ -118,7 +119,7 @@ namespace Game.Editor
         // On the west wall, by prep: the back-left corner is the tall storage (decision 2026-11-07).
         private static readonly Vector3 KnifeCounterPosition = new Vector3(-3.4f, 0f, -0.6f);
         private static readonly Vector3 PrepCounterPosition = new Vector3(-1.4f, 0f, 1.4f);
-        private static readonly Vector3 CuttingBoardScale = new Vector3(0.34f, 0.025f, 0.28f);
+        private static readonly Vector3 CuttingBoardScale = new Vector3(0.34f, 0.035f, 0.28f); // the board model's size
         private static readonly Color CuttingBoardColor = new Color(0.92f, 0.82f, 0.62f);
 
         // A knife rack: a block along the counter's back with knives standing in it, one per place.
@@ -345,6 +346,12 @@ namespace Game.Editor
             torso.transform.localPosition = new Vector3(0f, halfScale.y, 0f);
             PilotArt.TryUseMesh(torso, "SM_Chef", "ChefTorso");
 
+            // A white toque, so a chef reads as a chef; it bends with the torso. Only with the model.
+            var hat = GreyboxAssets.CreatePrimitive(PrimitiveType.Cube, "Hat", waist,
+                GreyboxAssets.EnsureMaterial("ChefHat", ChefHatColor), keepCollider: false);
+            if (!PilotArt.TryUseMesh(hat, "SM_Chef", "ChefHat"))
+                Object.DestroyImmediate(hat);
+
             // A nose shows facing direction from the overhead camera; it bends with the torso.
             var nose = GreyboxAssets.CreatePrimitive(
                 PrimitiveType.Cube, "Nose", waist, GreyboxAssets.EnsureMaterial("Nose", NoseColor), keepCollider: false);
@@ -556,7 +563,7 @@ namespace Game.Editor
             var modelled = KitchenwareArt.DressSink(sink.transform.Find("Body").gameObject);
             SetObjects(sinkPile.FindProperty("_dirty"), KitchenwareArt.CreatePlates(sink.transform,
                 modelled ? KitchenwareArt.SinkBasinFloor : CounterHeight, 1, DirtyPlateColor, "DirtyPlate",
-                modelled ? new Vector3(KitchenwareArt.SinkBasinX, 0f, 0f) : Vector3.zero, KitchenwareArt.PlateLayout.Stack));
+                modelled ? new Vector3(KitchenwareArt.SinkBasinX, 0f, 0f) : Vector3.zero, KitchenwareArt.PlateLayout.Stack, dirty: true));
             sinkPile.ApplyModifiedPropertiesWithoutUndo();
 
             CreateRack("TrayRack", RackStation.RackKind.Trays, TrayRackPosition, 4, GreyboxKitchenware.TrayColor, stations);
