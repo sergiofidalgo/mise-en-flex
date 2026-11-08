@@ -6,8 +6,8 @@ namespace Game.Editor
 {
     /// <summary>
     /// The look every model follows, from the user's vision image (decision 2026-11-08): warm
-    /// afternoon light, soft shadows, warm shadow sides, and thin dark-brown outlines rather than
-    /// thick black ones. The kitchen builder applies it to the scene's light and to every toon
+    /// afternoon light, soft shadows, and dark-brown ink outlines rather than black ones. The ink
+    /// and the light bands are set by <see cref="RenderLook"/> and ToonCommon.hlsl. The kitchen builder applies it to the scene's light and to every toon
     /// material, so a change here reaches everything on the next build.
     /// </summary>
     public static class HouseStyle
@@ -17,9 +17,6 @@ namespace Game.Editor
         // Outlines: dark brown, and thin. Small things (plates, wires) set their own, thinner.
         public static readonly Color OutlineColor = new Color(0.2f, 0.13f, 0.09f);
         public const float OutlineWidth = 0.0035f;
-
-        // The shadow side of a toon surface: its colour multiplied by this, a warm brown-rose.
-        public static readonly Color ShadowTint = new Color(0.72f, 0.7f, 0.75f);
 
         // A sun from the top left, as in the vision image, only slightly warm (the user found the
         // scene too yellow, 2026-11-08), with soft, not-quite-black shadows.
@@ -124,8 +121,9 @@ namespace Game.Editor
         }
 
         /// <summary>
-        /// Gives every toon material the house outline colour and shadow tint, and caps outline
-        /// widths at the house width, leaving thinner ones as they are.
+        /// Gives every toon material the house outline colour, and caps outline widths at the house
+        /// width, leaving thinner ones as they are. The shadow side's colour is the toon ramp's in
+        /// ToonCommon.hlsl now (decision 2026-11-08); materials' _ShadowTint is no longer read.
         /// </summary>
         public static void ApplyToMaterials()
         {
@@ -136,7 +134,6 @@ namespace Game.Editor
                     continue;
 
                 material.SetColor("_OutlineColor", OutlineColor);
-                material.SetColor("_ShadowTint", ShadowTint);
                 if (material.GetFloat("_OutlineWidth") > OutlineWidth)
                     material.SetFloat("_OutlineWidth", OutlineWidth);
                 EditorUtility.SetDirty(material);

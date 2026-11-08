@@ -4,6 +4,27 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-08 — Screen-space ink, three-band ramp, banded SSAO
+
+**Decision:** (the art director's brief, approved by the user)
+- **Ink outlines drawn over the screen** (`SH_InkOutline`, `MAT_Post_InkOutline`, a Full Screen Pass before post-processing). They come from depth and normals at a constant on-screen width (1.5 px at 1080p), on every opaque surface, room surfaces included. The ink colour comes from `HouseStyle.OutlineColor`, so it has one source.
+- **The old inverted-hull outlines stay for now.** At the kitchen shot they're about half a pixel wide. *Tools > Game > Debug > Toggle Hull Outlines* turns them off and back on, each material keeping its own width, so the two can be compared. They will be removed once the user approves.
+- **A three-band toon ramp** (lit, mid, shadow) in `ToonCommon.hlsl` replaces the two-band step and each material's `_ShadowTint`, which is retired. The sky light is lower (0.12).
+- **SSAO, banded by the ramp into one flat contact shadow:**
+  - Blue Noise, intensity 1, radius 0.25, falloff 30, depth normals;
+  - normal quality, samples and blur as below;
+  - no After Opaque, direct lighting strength 0.
+  **Deviation from the brief:** the brief asked for a Medium blur at half resolution. That left grainy, speckled fringes once the ramp banded the noisy AO, so the AO runs at full resolution with the High (bilateral) blur. This costs more GPU; if frame time is tight, going back to half resolution is the first thing to try.
+- **Shadows:** 25 m in 2 cascades (split 0.4), low soft-shadow quality, depth and normal bias 0.6. No acne on counter tops in the renders.
+- **The camera clears to a near-black warm brown,** #120D0A.
+- The pipeline settings live in `RenderLook`, which the kitchen build applies (*Tools > Game > Apply Render Look*).
+
+**Reason:** At the overhead kitchen shot the hull outlines barely showed. Screen-space ink holds a steady width and reaches the room's edges. Three bands and contact shadows separate tops from fronts.
+
+**Still to check:** 60 fps with two players on the MacBook. SSAO and the full-screen pass are the main cost; check with the Stats panel or the Profiler in the Editor.
+
+---
+
 ## 2026-11-08 — An onion cuts into rings, then on into dice; a clearer knife
 
 **Decision:**

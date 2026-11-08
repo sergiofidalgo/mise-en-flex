@@ -59,6 +59,7 @@ namespace Game.Editor
             var camera = new GameObject("Capture Camera").AddComponent<Camera>();
             camera.fieldOfView = FieldOfView;
             HouseStyle.SmoothEdges(camera);
+            RenderLook.Backdrop(camera);
             // Anti-aliased like the game (4x MSAA in the PC pipeline asset).
             var target = new RenderTexture(Width, Height, 24, RenderTextureFormat.ARGB32, RenderTextureReadWrite.sRGB) { antiAliasing = 4 };
 

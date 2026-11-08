@@ -275,6 +275,7 @@ namespace Game.Editor
             assets.Furniture = BuildFurniture();
             BuildScene(scene, assets);
             HouseStyle.ApplyToMaterials();
+            RenderLook.Apply(); // ink, ambient occlusion and shadows in the PC pipeline
             AssetDatabase.SaveAssets();
             Debug.Log($"[GreyboxKitchenBuilder] Built {PlayerPrefabPath}, ingredients and {ScenePath}.");
         }
@@ -456,6 +457,7 @@ namespace Game.Editor
             camera.transform.SetPositionAndRotation(CameraPosition, Quaternion.Euler(CameraEuler));
             camera.fieldOfView = CameraFieldOfView;
             HouseStyle.SmoothEdges(camera);
+            RenderLook.Backdrop(camera);
 
             var floor = GameObject.CreatePrimitive(PrimitiveType.Plane);
             floor.name = "Floor";
