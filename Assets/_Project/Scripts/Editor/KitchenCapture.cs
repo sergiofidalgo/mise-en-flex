@@ -72,7 +72,7 @@ namespace Game.Editor
             if (counterAnchor != null)
             {
                 Spawn("Assets/_Project/Prefabs/Items/PF_Item_Steak.prefab", new Vector3(-0.2f, 0f, 0f), counterAnchor);
-                Spawn("Assets/_Project/Prefabs/Items/PF_Item_Onion.prefab", new Vector3(0.2f, 0f, 0f), counterAnchor);
+                Spawn("Assets/_Project/Prefabs/Items/PF_Item_Container.prefab", new Vector3(0.2f, 0f, 0f), counterAnchor);
             }
 
             foreach (var name in CloseUps)

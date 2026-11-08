@@ -8,7 +8,8 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 **Decision:** (the user's references) The tray and container racks were piles of grey discs, and the items were flat boxes.
 - **A tray is a steel sheet tray** (0.72 × 0.56 m, shallow, with a flat rim). The tray rack is an open steel frame with runners, holding its four trays one above another.
-- **A container is a deep, tapered gastronorm pan** (0.5 × 0.34 × 0.1 m) with a flat rim. The container rack is a stack of six, nested loosely: each one is nudged and turned a little, as if dropped back on the pile, not shaped exactly into the one below (the user's note).
+- **A container is a deep, tapered gastronorm pan** with a flat rim. The container rack is a stack of six, nested loosely: each one is nudged and turned a little, as if dropped back on the pile, not shaped exactly into the one below (the user's note).
+- **Follow-up:** containers are taller than they are wide and smaller across: 0.30 × 0.26 × 0.32 m deep, where they were 0.5 × 0.34 × 0.1 m. Portions start halfway up, as if the pan were part filled, so they show from above. The idle stack shows at 1.3×, using more of its counter (the user's notes).
 - Food sits on the pans' floors. The racks lose their top tray or container first. On a counter, a tray keeps about its own size (0.75× on top of the counter's 1.4×), since it already spans most of the counter.
 - `PanArt` builds them; without the models, the greybox shapes stay.
 

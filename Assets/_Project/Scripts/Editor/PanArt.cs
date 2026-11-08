@@ -17,9 +17,16 @@ namespace Game.Editor
         // Must match build_tray/build_container/build_tray_rack in blender/build_pilot_models.py.
         /// <summary>Height of a pan's inside floor above its base: where food sits.</summary>
         public const float PanFloor = 0.006f;
+        /// <summary>
+        /// Where portions start in a container: halfway up its deep pan, as if part filled, so they
+        /// show from the overhead camera rather than hiding at the bottom.
+        /// </summary>
+        public const float ContainerFoodLevel = 0.16f;
         private static readonly float[] TrayRackLevels = { 0.04f, 0.14f, 0.24f, 0.34f };
         // How far each container sits above the one it's nested in: its rim shows that much.
-        private const float NestStep = 0.034f;
+        private const float NestStep = 0.042f;
+        // The idle stack shows bigger, using more of its counter (the user's note, 2026-11-08).
+        private const float StackScale = 1.3f;
         // The stack isn't tidy (the user's note, 2026-11-08): each pan is nudged and turned a little,
         // as if dropped back on the pile, rather than shaped exactly into the one below.
         private const float StackNudge = 0.022f;
@@ -81,7 +88,8 @@ namespace Game.Editor
                 pans[i] = Part(station, $"StackContainer_{i + 1}", ContainerModel, "ContainerBody", Steel);
                 // The bottom one sits square; the others drift a little, the same way every build.
                 var drift = i == 0 ? Vector2.zero : new Vector2(Wobble(i, 1), Wobble(i, 2)) * StackNudge;
-                pans[i].transform.localPosition = new Vector3(drift.x, baseHeight + i * NestStep, drift.y);
+                pans[i].transform.localPosition = new Vector3(drift.x, baseHeight / StackScale + i * NestStep, drift.y) * StackScale;
+                pans[i].transform.localScale = Vector3.one * StackScale;
                 pans[i].transform.localRotation = Quaternion.Euler(0f, i == 0 ? 0f : Wobble(i, 3) * StackTurn, 0f);
             }
             return pans;

@@ -194,7 +194,7 @@ namespace Game.Editor
             var slots = new Vector3[6];
             for (var i = 0; i < slots.Length; i++)
                 slots[i] = new Vector3(0f, i * ContainerPileStep, 0f);
-            AddSlots(root, slots, modelled ? PanArt.PanFloor : ContainerScale.y);
+            AddSlots(root, slots, modelled ? PanArt.ContainerFoodLevel : ContainerScale.y);
             return Save(root, FoodContainer.ContainerTypeId);
         }
 
