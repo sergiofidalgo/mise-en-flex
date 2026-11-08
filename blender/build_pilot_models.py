@@ -812,9 +812,11 @@ def build_knife():
 
 def build_knife_block():
     """A chunky wooden knife block (the user's reference, 2026-11-08), set at the back of its
-    counter: low at the front (+Y, towards the camera) and tall at the back, with three dark slots
-    in its sloping face that the knives stand in, handles up and out. Origin at its base, centred."""
-    w, d, front_h, back_h = 0.36, 0.28, 0.16, 0.34
+    counter: low at the front (+Y, towards the camera) and tall at the back, with four slots in its
+    sloping face that the knives stand in, handles up and out. Each slot is a dark opening framed by
+    a brass collar standing proud of the face, so an empty slot reads as clearly as a full one (the
+    user's notes, 2026-11-08). Origin at its base, centred."""
+    w, d, front_h, back_h = 0.46, 0.28, 0.16, 0.34
     bm = bmesh.new()
     # Side profile (y, z) extruded across x: the front low, the back tall.
     profile = [(d / 2.0, 0.0), (d / 2.0, front_h), (-d / 2.0, back_h), (-d / 2.0, 0.0)]
@@ -832,18 +834,37 @@ def build_knife_block():
     slope = Vector((0.0, -d, back_h - front_h)).normalized()
     normal = Vector((0.0, back_h - front_h, d)).normalized()
     mid = Vector((0.0, 0.0, (front_h + back_h) / 2.0))
+    half_w, half_l = 0.014, 0.065  # the opening, across and up the slope
     for x in KNIFE_SLOTS_X:
-        centre = mid + Vector((x, 0.0, 0.0)) + normal * 0.002
+        centre = mid + Vector((x, 0.0, 0.0)) + normal * 0.004
         corners = [centre + slope * dy + Vector((dx, 0.0, 0.0)) for dx, dy in
-                   [(-0.009, -0.06), (0.009, -0.06), (0.009, 0.06), (-0.009, 0.06)]]
+                   [(-half_w, -half_l), (half_w, -half_l), (half_w, half_l), (-half_w, half_l)]]
         verts = [bm.verts.new(c) for c in corners]
-        bm.faces.new(verts)
-    slots = finish("KnifeBlockSlots", bm)
-    return [block, slots]
+        face = bm.faces.new(verts)
+        face.normal_update()
+        if face.normal.dot(normal) < 0.0:
+            face.normal_flip()  # out of the face, towards the camera; a lone face can't work it out
+    slots = finish("KnifeBlockSlots", bm, recalc=False)
+
+    bm = bmesh.new()  # a brass collar round each slot, proud of the face
+    lip, rise = 0.012, 0.012
+    turn = Matrix((Vector((1.0, 0.0, 0.0)), slope, normal)).transposed().to_4x4()  # x across, y up the slope, z out
+    for x in KNIFE_SLOTS_X:
+        centre = mid + Vector((x, 0.0, 0.0))
+        before = set(bm.verts)
+        for size, offset in (((2 * (half_w + lip), lip, rise), (0.0, half_l + lip / 2.0)),
+                             ((2 * (half_w + lip), lip, rise), (0.0, -half_l - lip / 2.0)),
+                             ((lip, 2 * half_l, rise), (half_w + lip / 2.0, 0.0)),
+                             ((lip, 2 * half_l, rise), (-half_w - lip / 2.0, 0.0))):
+            add_box(bm, size, (offset[0], offset[1], rise / 2.0 - 0.003), bevel=0.003)
+        new = [v for v in bm.verts if v not in before]
+        bmesh.ops.transform(bm, matrix=Matrix.Translation(centre) @ turn, verts=new)
+    rims = finish("KnifeBlockSlotRims", bm)
+    return [block, slots, rims]
 
 
 # Where the knife block's slots are across its face. Must match KnifeRackArt.SlotsX.
-KNIFE_SLOTS_X = (-0.11, 0.0, 0.11)
+KNIFE_SLOTS_X = (-0.15, -0.05, 0.05, 0.15)
 
 
 def build_onion():

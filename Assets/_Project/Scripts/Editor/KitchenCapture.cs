@@ -144,7 +144,7 @@ namespace Game.Editor
             if (rack != null)
             {
                 foreach (Transform child in rack.transform)
-                    if (child.name.StartsWith("Place_"))
+                    if (child.name.StartsWith("Place_") && child.name != "Place_4") // one left empty, to compare
                         Spawn("Assets/_Project/Prefabs/Items/PF_Item_Knife.prefab", Vector3.zero, child);
             }
             Spawn("Assets/_Project/Prefabs/Items/PF_Item_Knife.prefab", props + new Vector3(1.1f, 0f, 0.2f));

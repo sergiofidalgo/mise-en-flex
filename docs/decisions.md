@@ -4,6 +4,12 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-08 — A four-knife block with brass-collared slots
+
+**Decision:** (the user's notes) The knife block holds four knives, up from three, and is wider (0.46 m) to fit them. Each slot is a wider dark opening framed by a brass collar standing proud of the face. Knives in the block show 1.5× their size, with more of the bolster and blade out of the slot. A full slot shows a big handle, and an empty slot a dark opening in brass, so it's clear at a glance how many knives are there.
+
+---
+
 ## 2026-11-08 — Softer shadows under counters; the plate rack in light steel
 
 **Decision:** (the user's notes) The floor under the counters went too dark, so the contact shadow is lighter (the ramp's AO step goes to 0.87, from 0.78) and so are cast shadows (sun shadow strength 0.45, from 0.6). The plate rack is the same light steel as the tray rack's frame rather than near-black.

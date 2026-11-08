@@ -136,7 +136,7 @@ namespace Game.Editor
         private static readonly Color CuttingBoardColor = new Color(0.92f, 0.82f, 0.62f);
 
         // A knife rack: a block along the counter's back with knives standing in it, one per place.
-        private const int KnifeRackPlaces = 3;
+        private const int KnifeRackPlaces = 4; // as many as the block's slots (decision 2026-11-08)
         private static readonly Vector3 KnifeRackBlockScale = new Vector3(0.6f, 0.12f, 0.1f);
         private const float KnifeRackBack = 0.32f;
         private static readonly Color KnifeRackColor = new Color(0.36f, 0.26f, 0.18f);

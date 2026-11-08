@@ -18,12 +18,17 @@ namespace Game.Editor
         private const float BlockBackHeight = 0.34f;
         private const float BlockDepth = 0.28f;
         // Its slots across the face (Blender's x is the game's -x). Must match KNIFE_SLOTS_X.
-        private static readonly float[] SlotsX = { 0.11f, 0f, -0.11f };
+        private static readonly float[] SlotsX = { 0.15f, 0.05f, -0.05f, -0.15f };
         // The block faces the front, its sloping face towards the camera (the user's note,
         // 2026-11-08). It was turned a quarter to show the handles full length, but read better facing out.
         private static readonly Quaternion BlockTurn = Quaternion.identity;
-        // How much of a knife's blade stands out of its slot (m); the knife is 0.26 m of blade.
-        private const float BladeShowing = 0.07f;
+        // How much of a knife's blade stands out of its slot (m, at the knife's own size; the knife
+        // is 0.26 m of blade). More than at first, with the knives a little bigger in the block, so a
+        // knife's handle stands out clearly and an empty slot reads as empty (the user's note,
+        // 2026-11-08). The tip still stays inside the block.
+        private const float BladeShowing = 0.1f;
+        private const float KnifeInBlock = 1.5f;
+        private static readonly Color Brass = new Color(0.85f, 0.66f, 0.3f);
 
         private static readonly Color Steel = new Color(0.86f, 0.89f, 0.93f);
         // A black handle with silver rivets and a steel bolster, like the user's reference.
@@ -56,6 +61,7 @@ namespace Game.Editor
             block.transform.localRotation = BlockTurn;
             block.GetComponent<Renderer>().sharedMaterial = StyleTest.EnsureToonMaterial("KnifeBlock", BlockWood);
             var slots = Part(block.transform, "Slots", BlockModel, "KnifeBlockSlots", StyleTest.EnsureToonMaterial("KnifeBlockSlots", SlotDark));
+            Part(block.transform, "SlotRims", BlockModel, "KnifeBlockSlotRims", StyleTest.EnsureToonMaterial("KnifeBlockSlotRims", Brass));
             return slots == null ? null : slots.GetComponent<Renderer>();
         }
 
@@ -77,8 +83,9 @@ namespace Game.Editor
                 // A little of the blade shows above the slot, as in a real block, and the tip
                 // stays inside rather than poking out of the far side.
                 place.localPosition = blockPosition + BlockTurn * new Vector3(SlotsX[i], (BlockFrontHeight + BlockBackHeight) / 2f, 0f)
-                    + normal * BladeShowing;
+                    + normal * (BladeShowing * KnifeInBlock);
                 place.localRotation = Quaternion.LookRotation(intoBlock, BlockTurn * Vector3.right);
+                place.localScale = Vector3.one * KnifeInBlock;
                 places[i] = place;
             }
             return places;
