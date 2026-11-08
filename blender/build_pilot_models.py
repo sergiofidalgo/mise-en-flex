@@ -1052,8 +1052,9 @@ def add_steel_pan(bm, width, depth, height, taper, flange, wall=0.006, radius=0.
 
 # A sheet tray and a gastronorm container, their footprints the items' (GreyboxKitchenware).
 TRAY_SIZE = (0.72, 0.56, 0.03)
-# A deep, narrow pan (the user's notes, 2026-11-08): narrower than the first, and 0.32 m deep was too high.
-CONTAINER_SIZE = (0.3, 0.26, 0.2)
+# A rectangular pan, low enough to read as a container rather than a bin (the user's notes,
+# 2026-11-08: 0.32 and 0.2 m deep were too high, and nearly square looked wrong).
+CONTAINER_SIZE = (0.36, 0.22, 0.14)
 # The tray rack's shelves: four trays, each on runners this far above the last.
 TRAY_RACK_LEVELS = (0.04, 0.14, 0.24, 0.34)
 TRAY_RACK_HEIGHT = 0.44
@@ -1068,7 +1069,7 @@ def build_tray():
 
 def build_container():
     """A gastronorm container: a deep, tapered steel pan with a flat rim, made to nest in a stack.
-    The taper is steep enough that a pan nests about 3 cm into the one below."""
+    The taper is steep enough that a pan nests about 2 cm into the one below."""
     bm = bmesh.new()
     add_steel_pan(bm, CONTAINER_SIZE[0], CONTAINER_SIZE[1], CONTAINER_SIZE[2], taper=0.045, flange=0.016, radius=0.03)
     return [finish("ContainerBody", bm)]
