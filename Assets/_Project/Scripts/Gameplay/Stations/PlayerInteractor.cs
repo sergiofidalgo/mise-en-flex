@@ -157,9 +157,11 @@ namespace Game.Gameplay.Stations
             for (var i = 0; i < _interactables.Count; i++)
             {
                 // Walls stop reaching, unless the station's against them: out of range is out of reach.
-                // A counter with a board or rack on it is reached as that instead.
+                // A counter with a board or rack on it is reached as that instead, and a rack
+                // sharing a board's counter through the board.
                 var position = _interactables[i].transform.position;
-                var covered = _interactables[i] is CounterStation counter && counter.IsCovered;
+                var covered = (_interactables[i] is CounterStation counter && counter.IsCovered)
+                    || (_interactables[i] is KnifeRackStation rack && rack.SharesBoard);
                 _candidatePositions.Add(!covered && _services.Building.CanReach(origin, _interactables[i].Footprint)
                     ? new SimVector2(position.x, position.z)
                     : origin + new SimVector2(float.MaxValue / 2f, 0f));

@@ -4,6 +4,24 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-08 — A knife rack shares the cutting board's counter
+
+**Decision (user's call, from playtest feedback; the A order and layout proposed while building, flagged for review):**
+- **A bought knife rack goes straight onto a counter with a cutting board,** the one nearest the cursor that has no rack yet. It's paid for and put down at once, and the cursor moves to it so it's clear where it went. If every board already has a rack, it's carried and put on a free counter as before.
+- **A counter holds at most one board and one rack.** On a shared counter the board slides 0.25 m forward (`_sharedOffset` on `PrepStation`), clear of the knives lying at the back. In management mode either one can be moved onto the other's counter, and the cursor picks the board on the front half and the rack on the back half.
+- **Everything stays on A, and the board answers for both.** Chefs can do most things while holding a knife, so the knife isn't moved to another button:
+  - **Empty hands, no knife:** A takes a knife, even with food on the board.
+  - **Empty hands, holding the knife:** A takes what's on the board. With the board empty, it hangs the knife back. So after chopping, A picks up the cut instead of hanging the knife.
+  - **Food in hand:** A puts it on the board, as always ("hands first"). Only if the board can't take it does A swap the knife, as a rack does on its own.
+  - The prompt always names what A will do next.
+- **A bought knife hangs on a rack with room** before going to a free counter. This replaces "a bought knife appears on the first free counter" (2026-11-07) for kitchens that have a rack.
+
+**Reason:** the board and the rack are used together on every cut, so putting them on one counter saves a counter and a step. Keeping it on A means nothing new to learn.
+
+**Known limit:** to hang the knife while something's on the shared board, take the food off first (or hold food the board can't take).
+
+---
+
 ## 2026-11-07 — Playtest fixes: cooked food in storage, furniture landing on chefs, HUD on screen, fridge door
 
 **Decision (from playtest feedback; details proposed):**

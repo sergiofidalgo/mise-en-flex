@@ -9,6 +9,8 @@ namespace Game.Gameplay.Stations
     /// precious: each thing kept here is one less place to work (decision 2026-11-04). With a finished
     /// plate on it, Use rings the bell for it to go out. A cutting board or knife rack can sit on it
     /// (decision 2026-11-07), and then it's that instead: the counter can't be reached until it's moved.
+    /// A board and a rack can share one (decision 2026-11-08): the board slides to the front, the rack
+    /// stays along the back, and the board answers for both.
     /// </summary>
     public sealed class CounterStation : Interactable, IStationPrompt, IUsable, IToolStation
     {
@@ -24,8 +26,14 @@ namespace Game.Gameplay.Stations
         /// <summary>What's on this counter, for staff who work from it.</summary>
         public ItemSlot Slot => _slot;
 
-        /// <summary>The board or rack sitting on it, if any.</summary>
-        public CounterTopStation Fixture { get; private set; }
+        /// <summary>The cutting board on it, if any.</summary>
+        public PrepStation Board { get; private set; }
+
+        /// <summary>The knife rack on it, if any.</summary>
+        public KnifeRackStation Rack { get; private set; }
+
+        /// <summary>What a chef reaches here instead of the counter: the board if there is one, else the rack.</summary>
+        public CounterTopStation Fixture => Board != null ? Board : Rack;
 
         public bool IsCovered => Fixture != null;
 
@@ -45,8 +53,48 @@ namespace Game.Gameplay.Stations
             }
         }
 
-        /// <summary>A board or rack now sits here; null when it's taken off.</summary>
-        internal void SetFixture(CounterTopStation fixture) => Fixture = fixture;
+        /// <summary>
+        /// Room for this board or rack: nothing lying on the counter, and no other of its kind.
+        /// A board and a rack fit together; two of either don't.
+        /// </summary>
+        public bool HasRoomFor(CounterTopStation fixture)
+        {
+            if (_slot.Current != null)
+                return false;
+            return fixture switch
+            {
+                PrepStation _ => Board == null,
+                KnifeRackStation _ => Rack == null,
+                _ => Fixture == null,
+            };
+        }
+
+        /// <summary>A board or rack now sits here.</summary>
+        internal void Attach(CounterTopStation fixture)
+        {
+            if (fixture is PrepStation board)
+                Board = board;
+            else if (fixture is KnifeRackStation rack)
+                Rack = rack;
+            Arrange();
+        }
+
+        /// <summary>A board or rack has been taken off.</summary>
+        internal void Detach(CounterTopStation fixture)
+        {
+            if (Board == fixture)
+                Board = null;
+            if (Rack == fixture)
+                Rack = null;
+            Arrange();
+        }
+
+        // Sharing with a rack, the board moves forward, clear of the knives lying in front of it.
+        private void Arrange()
+        {
+            if (Board != null)
+                Board.SitForward(Rack != null);
+        }
 
         public bool TryUse(PlayerInteractor player) => _services.Bell.Ring(_slot);
 

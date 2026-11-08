@@ -178,5 +178,116 @@ namespace Game.Tests.PlayMode
 
             Assert.That(_chef.Target, Is.SameAs(Board));
         }
+
+        // A board and a knife rack share a counter (decision 2026-11-08).
+
+        private KnifeRackStation BuyRackByTheBoard()
+        {
+            _root.Services.Days.Receive(100f);
+            var cursor = _editor.Enter(_player);
+            cursor.Position = Floor(FreeCounter());
+            Assert.That(_editor.Buy(cursor, _editor.Shop.First(e => e.Id == "knife rack")), Is.True);
+            Assert.That(cursor.Held, Is.Null, "nothing to carry: it's already down");
+            _editor.Leave(_player);
+            return Object.FindObjectsByType<KnifeRackStation>(FindObjectsSortMode.None).Single();
+        }
+
+        [UnityTest]
+        public IEnumerator ABoughtRackGoesStraightOntoTheBoardsCounter()
+        {
+            yield return OpenKitchen();
+            var before = _root.Services.Days.Balance + 100f;
+            var rack = BuyRackByTheBoard();
+
+            Assert.That(rack.OnCounter, Is.SameAs(Board.OnCounter));
+            Assert.That(rack.SharesBoard, Is.True);
+            Assert.That(_root.Services.Days.Balance, Is.LessThan(before), "paid for");
+            Assert.That(Board.transform.localPosition.z, Is.LessThan(0f), "the board slides forward, clear of the knives");
+
+            // In management mode, the front of the counter is the board and the back the rack.
+            var cursor = _editor.Enter(_player);
+            var counter = Board.OnCounter.transform;
+            var front = counter.TransformPoint(new Vector3(0f, 0f, -0.3f));
+            var back = counter.TransformPoint(new Vector3(0f, 0f, 0.3f));
+            cursor.Position = new Vector2(front.x, front.z);
+            Assert.That(_editor.StationUnder(cursor), Is.SameAs(Board));
+            cursor.Position = new Vector2(back.x, back.z);
+            Assert.That(_editor.StationUnder(cursor), Is.SameAs(rack));
+        }
+
+        [UnityTest]
+        public IEnumerator ASecondRackIsCarriedOnceEveryBoardHasOne()
+        {
+            yield return OpenKitchen();
+            BuyRackByTheBoard();
+            var cursor = _editor.Enter(_player);
+            Assert.That(_editor.Buy(cursor, _editor.Shop.First(e => e.Id == "knife rack")), Is.True);
+            Assert.That(cursor.Held, Is.TypeOf<KnifeRackStation>(), "carried, to go on a free counter");
+            _editor.Cancel(cursor);
+        }
+
+        [UnityTest]
+        public IEnumerator OnASharedCounterTheBoardAnswersAForTheRack()
+        {
+            yield return OpenKitchen();
+            var rack = BuyRackByTheBoard();
+            var board = Board;
+            Assert.That(KnifeCounter.TryExchangeTool(_chef), Is.True);
+            Assert.That(rack.TryExchangeTool(_chef), Is.True, "the kitchen's knife onto the rack");
+
+            // Empty hands and no knife: A takes the knife, even with food on the board.
+            board.Container.Put(_root.Services.CreateItem("Onion"));
+            Assert.That(board.TryPress(FaceButton.South, _chef), Is.True);
+            Assert.That(_chef.Tool, Is.TypeOf<Knife>());
+            Assert.That(board.Counter.Current, Is.Not.Null, "the onion stays");
+
+            // Holding the knife: A takes what's on the board, then hangs the knife on an empty board.
+            Assert.That(board.TryPress(FaceButton.South, _chef), Is.True);
+            Assert.That(_chef.Hands.Current, Is.Not.Null, "the onion's in hand");
+            Assert.That(_chef.Tool, Is.TypeOf<Knife>(), "the knife's still held");
+
+            // Food in hand goes on the board first; only when the board is full does A swap the knife.
+            Assert.That(board.Container.CanAccept(_chef.Hands.Current), Is.True);
+            board.Container.Put(_chef.Hands.Take());
+            _chef.Hands.Put(_root.Services.CreateItem("Onion"));
+            Assert.That(board.Container.CanAccept(_chef.Hands.Current), Is.False, "the board holds one thing");
+            Assert.That(board.TryExchangeTool(_chef), Is.True);
+            Assert.That(_chef.Tool, Is.Null, "hung back");
+            Assert.That(rack.KnifeCount, Is.EqualTo(1));
+            _chef.Hands.Take();
+
+            board.Counter.Take();
+            Assert.That(rack.TryExchangeTool(_chef), Is.True, "knife back in hand");
+            Assert.That(board.TryPress(FaceButton.South, _chef), Is.True, "empty board, knife held: A hangs it");
+            Assert.That(_chef.Tool, Is.Null);
+        }
+
+        [UnityTest]
+        public IEnumerator TheChefFacesTheBoardNotTheRackOnASharedCounter()
+        {
+            yield return OpenKitchen();
+            var rack = BuyRackByTheBoard();
+            var under = Board.OnCounter;
+            var controller = _player.GetComponent<CharacterController>();
+            controller.enabled = false;
+            _player.transform.SetPositionAndRotation(under.transform.position + new Vector3(0f, 0f, -0.9f), Quaternion.identity);
+            controller.enabled = true;
+            yield return null;
+            yield return null;
+
+            Assert.That(_chef.Target, Is.SameAs(Board));
+            Assert.That(_chef.Target, Is.Not.SameAs(rack));
+        }
+
+        [UnityTest]
+        public IEnumerator ABoughtKnifeHangsOnARackWithRoom()
+        {
+            yield return OpenKitchen();
+            var rack = BuyRackByTheBoard();
+            _root.Services.Days.Receive(100f);
+
+            Assert.That(_editor.BuyItem(_editor.Shop.First(e => e.Id == "knife")), Is.EqualTo(Placement.Ok));
+            Assert.That(rack.KnifeCount, Is.EqualTo(1));
+        }
     }
 }

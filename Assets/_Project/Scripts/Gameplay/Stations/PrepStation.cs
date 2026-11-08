@@ -12,11 +12,19 @@ namespace Game.Gameplay.Stations
     /// holding the knife, X cuts when the dial's needle is in the sweet spot. The cut stays here
     /// and blocks the next one until someone moves it (decision 2026-11-04). It sits on a counter and
     /// is moved only in management mode (decision 2026-11-07).
+    ///
+    /// Sharing its counter with a knife rack (decision 2026-11-08), it answers for the rack too, all on
+    /// A: with empty hands and no knife, A takes a knife first; holding the knife, A takes what's on the
+    /// board, and hangs the knife back when the board is empty. With food in hand, A puts it on the
+    /// board, and only if the board can't take it, swaps the knife as the rack does.
     /// </summary>
-    public sealed class PrepStation : CounterTopStation, IFaceButtonTarget, IUsable, IStationPrompt
+    public sealed class PrepStation : CounterTopStation, IFaceButtonTarget, IUsable, IStationPrompt, IToolStation
     {
         [Tooltip("Where the item on the cutting board sits.")]
         [SerializeField] private Transform _boardAnchor;
+
+        [Tooltip("Where the board sits on its counter when a knife rack shares it: forward, clear of the knives.")]
+        [SerializeField] private Vector3 _sharedOffset = new Vector3(0f, 0f, -0.25f);
 
         private PrepCounter _counter;
         private PrepContainer _container;
@@ -33,6 +41,12 @@ namespace Game.Gameplay.Stations
         public override bool IsClear => _counter == null || _counter.Current == null;
 
         public bool PromptAsDiamond(PlayerInteractor player) => false;
+
+        /// <summary>The knife rack sharing this board's counter, if any.</summary>
+        public KnifeRackStation Rack => OnCounter != null ? OnCounter.Rack : null;
+
+        /// <summary>Moves the board forward on its counter while a rack shares it, back to the middle when not.</summary>
+        internal void SitForward(bool forward) => transform.localPosition = forward ? _sharedOffset : Vector3.zero;
 
         /// <summary>Raised on every chop, for rhythm feedback.</summary>
         public event Action<ChopGrade> Chopped;
@@ -61,13 +75,24 @@ namespace Game.Gameplay.Stations
                 return false;
             if (button == FaceButton.West && TryChop(player))
                 return true;
-            if (button == FaceButton.South && player.Hands.IsEmpty && _counter.Current != null)
+            if (button != FaceButton.South || !player.Hands.IsEmpty)
+                return false;
+
+            // Empty hands: a knife first if the chef has none, then what's on the board, then the
+            // knife goes back, so chopping and taking the cut never fight over A.
+            var rack = Rack;
+            if (rack != null && player.Tool == null && rack.KnifeCount > 0)
+                return rack.TryExchangeTool(player);
+            if (_counter.Current != null)
             {
                 player.ReceiveItem(_counter.Take(), _boardAnchor.position);
                 return true;
             }
-            return false;
+            return rack != null && player.Tool is Knife && rack.TryExchangeTool(player);
         }
+
+        // With food in hand, once the board has refused it: the rack swaps the knife as it would alone.
+        public bool TryExchangeTool(PlayerInteractor player) => Rack != null && Rack.TryExchangeTool(player);
 
         public bool TryUse(PlayerInteractor player) => TryChop(player);
 
@@ -77,12 +102,31 @@ namespace Game.Gameplay.Stations
                 return;
 
             var emptyHands = player.Hands.IsEmpty;
+            var rack = Rack;
             if (player.Tool is Knife && _counter.CanChop)
                 lines.Add(new PromptLine(PromptControl.West, $"cut {_counter.Cuts}/{_counter.CutsNeeded}"));
-            if (_counter.Current != null && emptyHands)
-                lines.Add(new PromptLine(PromptControl.South, $"take {_counter.Current.TypeId}"));
-            else if (!emptyHands)
-                lines.Add(new PromptLine(PromptControl.South, "put on board", _counter.CanAccept(player.Hands.Current)));
+
+            // The same order TryPress and Interact follow, so the prompt always names what A will do.
+            if (emptyHands)
+            {
+                if (rack != null && player.Tool == null && rack.KnifeCount > 0)
+                    lines.Add(new PromptLine(PromptControl.South, "take knife"));
+                else if (_counter.Current != null)
+                    lines.Add(new PromptLine(PromptControl.South, $"take {_counter.Current.TypeId}"));
+                else if (rack != null && player.Tool is Knife)
+                    lines.Add(new PromptLine(PromptControl.South, "hang knife", rack.KnifeCount < rack.Capacity));
+                else if (rack != null && player.Tool == null)
+                    lines.Add(new PromptLine(PromptControl.South, "take knife", available: false));
+                return;
+            }
+
+            var fits = _counter.CanAccept(player.Hands.Current);
+            if (!fits && rack != null && player.Tool == null && rack.KnifeCount > 0)
+                lines.Add(new PromptLine(PromptControl.South, "take knife"));
+            else if (!fits && rack != null && player.Tool is Knife && rack.KnifeCount < rack.Capacity)
+                lines.Add(new PromptLine(PromptControl.South, "hang knife"));
+            else
+                lines.Add(new PromptLine(PromptControl.South, "put on board", fits));
         }
 
         private bool TryChop(PlayerInteractor player)
