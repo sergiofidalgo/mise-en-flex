@@ -725,6 +725,129 @@ def build_dining():
     return objects
 
 
+def add_prism(bm, outline, z0, z1):
+    """A flat shape: the (x, y) outline, counter-clockwise, extruded from z0 to z1."""
+    bottom = [bm.verts.new((x, y, z0)) for x, y in outline]
+    top = [bm.verts.new((x, y, z1)) for x, y in outline]
+    bm.faces.new(list(reversed(bottom)))
+    bm.faces.new(top)
+    n = len(outline)
+    for i in range(n):
+        j = (i + 1) % n
+        bm.faces.new([bottom[i], bottom[j], top[j], top[i]])
+
+
+# A knife lies flat with its blade towards the game's +z (Blender -y) from its origin, where the
+# blade meets the handle, and its handle back the other way. Must match the knife block's slots
+# (KnifeRackArt): the blade goes into the block.
+KNIFE_THICKNESS = 0.014
+
+
+def build_knife():
+    """A big cartoony chef's knife (the user's note and reference, 2026-11-08): a wide steel blade
+    with a straight spine and a curved edge sweeping up to the point, a bolster, and a chunky dark
+    wooden handle with two brass rivets, so a chef carrying it reads at a glance."""
+    t = KNIFE_THICKNESS
+    # Outline in (across, along): spine on +across, edge curving to the tip. Blender x is the game's
+    # -x and y the game's -z, so "along" (towards the tip) is -y here.
+    outline = [(0.045, 0.0), (0.05, -0.04), (0.05, -0.24), (0.035, -0.31), (0.0, -0.36), (-0.03, -0.32),
+               (-0.05, -0.25), (-0.058, -0.14), (-0.055, -0.04), (-0.045, 0.0)]
+    bm = bmesh.new()
+    add_prism(bm, list(reversed(outline)), 0.0, t)
+    blade = finish("KnifeBlade", bm)
+
+    bm = bmesh.new()
+    add_box(bm, (0.11, 0.025, 0.03), (0.0, 0.012, t / 2.0), bevel=0.008)  # bolster
+    add_box(bm, (0.06, 0.16, 0.045), (0.0, 0.1, t / 2.0), bevel=0.018)   # handle
+    handle = finish("KnifeHandle", bm)
+
+    bm = bmesh.new()
+    for y in (0.06, 0.13):
+        add_ball(bm, (0.0, y, t / 2.0 + 0.022), 0.009, segments=10)
+    rivets = finish("KnifeRivets", bm)
+    return [blade, handle, rivets]
+
+
+def build_knife_block():
+    """A chunky wooden knife block (the user's reference, 2026-11-08), set at the back of its
+    counter: low at the front (+Y, towards the camera) and tall at the back, with three dark slots
+    in its sloping face that the knives stand in, handles up and out. Origin at its base, centred."""
+    w, d, front_h, back_h = 0.36, 0.28, 0.16, 0.34
+    bm = bmesh.new()
+    # Side profile (y, z) extruded across x: the front low, the back tall.
+    profile = [(d / 2.0, 0.0), (d / 2.0, front_h), (-d / 2.0, back_h), (-d / 2.0, 0.0)]
+    bottom = [bm.verts.new((-w / 2.0, y, z)) for y, z in profile]
+    top = [bm.verts.new((w / 2.0, y, z)) for y, z in profile]
+    bm.faces.new(bottom)
+    bm.faces.new(list(reversed(top)))
+    for i in range(4):
+        j = (i + 1) % 4
+        bm.faces.new([bottom[j], bottom[i], top[i], top[j]])
+    block = finish("KnifeBlockBody", bm)
+
+    bm = bmesh.new()
+    # Dark slots on the sloping face, running up the slope, just proud of it.
+    slope = Vector((0.0, -d, back_h - front_h)).normalized()
+    normal = Vector((0.0, back_h - front_h, d)).normalized()
+    mid = Vector((0.0, 0.0, (front_h + back_h) / 2.0))
+    for x in KNIFE_SLOTS_X:
+        centre = mid + Vector((x, 0.0, 0.0)) + normal * 0.002
+        corners = [centre + slope * dy + Vector((dx, 0.0, 0.0)) for dx, dy in
+                   [(-0.009, -0.06), (0.009, -0.06), (0.009, 0.06), (-0.009, 0.06)]]
+        verts = [bm.verts.new(c) for c in corners]
+        bm.faces.new(verts)
+    slots = finish("KnifeBlockSlots", bm)
+    return [block, slots]
+
+
+# Where the knife block's slots are across its face. Must match KnifeRackArt.SlotsX.
+KNIFE_SLOTS_X = (-0.11, 0.0, 0.11)
+
+
+def build_onion():
+    """A cartoony onion (the user's references, 2026-11-08): a fat, coppery bulb drawn up into a
+    pointed neck, a few fine darker stripes, a dry straw tuft at the neck and a little root tuft.
+    It lies on its side with its neck tilted up, as onions do, so from the overhead camera it shows
+    an onion's teardrop rather than a round top (which read as a pumpkin). Parts are separate
+    meshes for their own colours; origin at its base."""
+    r, h = 0.15, 0.32
+    profile = [(0.0, 0.0), (0.05, 0.004), (0.11, 0.03), (r, 0.1), (r - 0.005, 0.16), (0.11, 0.22),
+               (0.05, 0.27), (0.02, 0.3), (0.0, h)]
+    # On its side: the bulb's axis turned from up to along +x, then tilted up a little.
+    lie = Matrix.Rotation(math.radians(72.0), 4, 'Y')
+
+    def place(bm, lift):
+        bmesh.ops.transform(bm, matrix=Matrix.Translation((0.0, 0.0, lift)) @ lie, verts=bm.verts)
+
+    bm = bmesh.new()
+    add_lathe(bm, profile, segments=28)
+    bmesh.ops.transform(bm, matrix=lie, verts=bm.verts)
+    lift = -min(v.co.z for v in bm.verts)
+    bmesh.ops.translate(bm, vec=(0.0, 0.0, lift), verts=bm.verts)
+    body = finish("OnionBody", bm)
+
+    bm = bmesh.new()  # a few fine stripes from root to neck, following the bulb
+    for k in range(8):
+        a = 2 * math.pi * k / 8
+        pts = [((rad + 0.002) * math.cos(a), (rad + 0.002) * math.sin(a), z) for rad, z in profile[1:-1]]
+        add_pipe(bm, pts, radius=0.0018, segments=5)
+    place(bm, lift)
+    lines = finish("OnionLines", bm)
+
+    bm = bmesh.new()  # the dry tuft at the neck, splaying out
+    for k in range(6):
+        a = 2 * math.pi * k / 6
+        add_pipe(bm, [(0.0, 0.0, h - 0.01), (0.025 * math.cos(a), 0.025 * math.sin(a), h + 0.06)], radius=0.006, segments=5)
+    place(bm, lift)
+    tuft = finish("OnionTuft", bm)
+
+    bm = bmesh.new()  # the root tuft
+    add_lathe(bm, [(0.0, 0.0), (0.03, 0.0), (0.035, 0.006), (0.0, 0.01)], segments=12, centre=(0.0, 0.0, -0.008))
+    place(bm, lift)
+    root = finish("OnionRoot", bm)
+    return [body, lines, tuft, root]
+
+
 def build_board():
     """A big, thick wooden cutting board using most of its counter, with fat rounded corners and a
     deep juice groove. The wood grain is drawn by its material (Game/Toon)."""
@@ -811,6 +934,9 @@ def main():
         "SM_Cabinet.fbx": build_cabinet(),
         "SM_Bin.fbx": build_bin(),
         "SM_Dining.fbx": build_dining(),
+        "SM_Knife.fbx": build_knife(),
+        "SM_KnifeBlock.fbx": build_knife_block(),
+        "SM_Onion.fbx": build_onion(),
     }
     for filename, objects in models.items():
         export_fbx(objects, filename)

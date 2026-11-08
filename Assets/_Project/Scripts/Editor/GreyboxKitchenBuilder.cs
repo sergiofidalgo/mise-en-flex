@@ -110,6 +110,7 @@ namespace Game.Editor
 
         // Carried items sit in front of the chest, clear of the body so they read from above.
         private static readonly Vector3 CarryAnchorPosition = new Vector3(0f, 1.05f, 0.5f);
+        private const float HeldScale = 1.3f;
         // Where the chef bends; must match CHEF_WAIST in blender/build_pilot_models.py.
         private const float ChefWaistHeight = 0.85f;
         private static readonly Color ChefHatColor = new Color(0.97f, 0.97f, 0.95f);
@@ -322,9 +323,13 @@ namespace Game.Editor
             var carryAnchor = new GameObject("CarryAnchor").transform;
             carryAnchor.SetParent(root.transform, false);
             carryAnchor.localPosition = CarryAnchorPosition;
+            // What a chef carries shows bigger than where it lies, so it reads at a glance
+            // (the user's note, 2026-11-08); it's back to its size once put down.
+            carryAnchor.localScale = Vector3.one * HeldScale;
             var toolAnchor = new GameObject("ToolAnchor").transform;
             toolAnchor.SetParent(root.transform, false);
             toolAnchor.localPosition = ToolAnchorPosition;
+            toolAnchor.localScale = Vector3.one * HeldScale;
             var interactor = root.AddComponent<PlayerInteractor>();
             SetReference(interactor, "_carryAnchor", carryAnchor);
             SetReference(interactor, "_toolAnchor", toolAnchor);
@@ -742,15 +747,26 @@ namespace Game.Editor
             block.transform.localScale = KnifeRackBlockScale;
             block.transform.localPosition = new Vector3(0f, CounterHeight + KnifeRackBlockScale.y / 2f, KnifeRackBack);
 
-            // Knives lie along the counter in front of the block, side by side, handles to the back.
-            var places = new Transform[KnifeRackPlaces];
-            var spacing = KnifeRackBlockScale.x / KnifeRackPlaces;
-            for (var i = 0; i < KnifeRackPlaces; i++)
+            Transform[] places;
+            var blockSlots = KnifeArt.DressBlock(block, new Vector3(0f, CounterHeight, KnifeRackBack));
+            if (blockSlots != null)
             {
-                var place = new GameObject($"Place_{i + 1}").transform;
-                place.SetParent(rack.transform, false);
-                place.localPosition = new Vector3((i - (KnifeRackPlaces - 1) / 2f) * spacing, CounterHeight, KnifeRackBack - 0.25f);
-                places[i] = place;
+                // The knives stand in the angled block's slots, handles up and out (decision 2026-11-08).
+                places = KnifeArt.SlotPlaces(rack.transform, new Vector3(0f, CounterHeight, KnifeRackBack));
+                AddToHighlight(rack, blockSlots);
+            }
+            else
+            {
+                // Knives lie along the counter in front of the block, side by side, handles to the back.
+                places = new Transform[KnifeRackPlaces];
+                var spacing = KnifeRackBlockScale.x / KnifeRackPlaces;
+                for (var i = 0; i < KnifeRackPlaces; i++)
+                {
+                    var place = new GameObject($"Place_{i + 1}").transform;
+                    place.SetParent(rack.transform, false);
+                    place.localPosition = new Vector3((i - (KnifeRackPlaces - 1) / 2f) * spacing, CounterHeight, KnifeRackBack - 0.25f);
+                    places[i] = place;
+                }
             }
             var so = new SerializedObject(rack);
             var list = so.FindProperty("_places");

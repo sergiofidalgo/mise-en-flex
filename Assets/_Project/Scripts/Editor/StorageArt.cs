@@ -111,8 +111,8 @@ namespace Game.Editor
             }
 
             var shape = GreyboxIngredients.CreateShape(type, name, parent);
-            shape.transform.localScale = type.Scale * scale;
-            baseOffset = type.CentreHeight * scale;
+            shape.transform.localScale = GreyboxIngredients.HasModel(type) ? Vector3.one * scale : type.Scale * scale;
+            baseOffset = GreyboxIngredients.BaseOffset(type) * scale;
             return shape;
         }
 

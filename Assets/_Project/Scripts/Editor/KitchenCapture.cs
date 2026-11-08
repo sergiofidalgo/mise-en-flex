@@ -129,9 +129,46 @@ namespace Game.Editor
             Render(camera, target, PlateRowStart + new Vector3((PlateRow - 1) * PlateSpacing / 2f, 0f, 0f), PlateRowHeight,
                 Path.Combine(folder, "plates_grime.png"));
 
+            // Props, for the knife, knife block, onion and what a chef carries (only seen in play).
+            var props = new Vector3(30f, 0f, 0f);
+            var rack = Spawn("Assets/_Project/Prefabs/Furniture/PF_KnifeRack.prefab", props);
+            if (rack != null)
+            {
+                foreach (Transform child in rack.transform)
+                    if (child.name.StartsWith("Place_"))
+                        Spawn("Assets/_Project/Prefabs/Items/PF_Item_Knife.prefab", Vector3.zero, child);
+            }
+            Spawn("Assets/_Project/Prefabs/Items/PF_Item_Knife.prefab", props + new Vector3(1.1f, 0f, 0.2f));
+            Spawn("Assets/_Project/Prefabs/Items/PF_Item_Onion.prefab", props + new Vector3(1.1f, 0f, -0.4f));
+            var chef = Spawn("Assets/_Project/Prefabs/PF_Player.prefab", props + new Vector3(-1.2f, 0f, -0.3f));
+            if (chef != null)
+            {
+                chef.transform.rotation = Quaternion.Euler(0f, 160f, 0f);
+                Spawn("Assets/_Project/Prefabs/Items/PF_Item_Pan.prefab", Vector3.zero, chef.transform.Find("CarryAnchor"));
+                Spawn("Assets/_Project/Prefabs/Items/PF_Item_Knife.prefab", Vector3.zero, chef.transform.Find("ToolAnchor"));
+            }
+            Render(camera, target, props + new Vector3(0f, 0.9f, -0.2f), CloseHeight + 0.6f, Path.Combine(folder, "props.png"));
+
             target.Release();
             UnityEngine.Object.DestroyImmediate(camera.gameObject);
             Debug.Log($"[KitchenCapture] Saved to {folder}");
+        }
+
+        private static GameObject Spawn(string path, Vector3 position, Transform parent = null)
+        {
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+            if (prefab == null)
+                return null;
+            var instance = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
+            if (parent != null)
+            {
+                instance.transform.SetParent(parent, false);
+                instance.transform.localPosition = position;
+                instance.transform.localRotation = Quaternion.identity;
+            }
+            else
+                instance.transform.position = position;
+            return instance;
         }
 
         // Pitched like the game camera, looking at a point from the given height.

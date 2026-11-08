@@ -136,8 +136,20 @@ namespace Game.Editor
         }
 
         /// <summary>A collider-less copy of the item's shape, e.g. as a sample on a storage bin.</summary>
+        /// <summary>
+        /// True if the ingredient has a whole model (SM_&lt;Id&gt; with &lt;Id&gt;Body), used instead of its
+        /// primitive shape; its origin is at its base, not its centre.
+        /// </summary>
+        public static bool HasModel(IngredientType type) =>
+            !type.Layered && PilotArt.FindMesh($"SM_{type.Id}", $"{type.Id}Body") != null;
+
+        /// <summary>Height from the item's base to the shape's origin: zero for a model, which sits on its base.</summary>
+        public static float BaseOffset(IngredientType type) => HasModel(type) ? 0f : type.CentreHeight;
+
         public static GameObject CreateShape(IngredientType type, string name, Transform parent)
         {
+            if (HasModel(type))
+                return VegetableArt.Create(type.Id, name, parent);
             var shape = GreyboxAssets.CreatePrimitive(
                 type.Shape, name, parent, GreyboxAssets.EnsureMaterial(type.Id, type.Color), keepCollider: false);
             shape.transform.localScale = type.Scale;
@@ -195,7 +207,7 @@ namespace Game.Editor
             else
             {
                 var body = CreateShape(type, "Body", root.transform);
-                body.transform.localPosition = new Vector3(0f, type.CentreHeight, 0f);
+                body.transform.localPosition = new Vector3(0f, BaseOffset(type), 0f);
                 surface = body.GetComponent<Renderer>();
             }
 

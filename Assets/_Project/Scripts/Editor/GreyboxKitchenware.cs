@@ -139,6 +139,8 @@ namespace Game.Editor
         {
             var root = new GameObject($"PF_Item_{Knife.KnifeTypeId}");
             root.AddComponent<ItemView>();
+            if (KnifeArt.Dress(root.transform))
+                return Save(root, Knife.KnifeTypeId); // the big cartoony knife (decision 2026-11-08)
             var blade = GreyboxAssets.CreatePrimitive(
                 PrimitiveType.Cube, "Blade", root.transform, GreyboxAssets.EnsureMaterial("KnifeBlade", BladeColor), keepCollider: false);
             blade.transform.localScale = BladeScale;

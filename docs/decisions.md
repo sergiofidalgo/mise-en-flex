@@ -4,6 +4,18 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-08 — A big cartoony knife, an angled knife block, an onion, and bigger held items
+
+**Decision:**
+- **The knife** is big and cartoony (after the user's chef reference): a 0.36 m blade, wide and curved to its point, and a chunky dark wooden handle with brass rivets.
+- **The knife rack** is an angled wooden block, after the user's reference. The knives stand in three slots in its sloping face, a little blade and the whole handle showing. The block stands turned a quarter, its slope to the side, so the knives lean across the overhead camera's view; facing the camera, their handles were foreshortened to stubs.
+- **The onion** is a coppery bulb with a pointed neck, a few fine stripes, a dry tuft and roots, after the user's references. It lies on its side with its neck tilted up; from above, a round striped top read as a pumpkin. It shows wherever an onion does: in hand, on a board, in the shelf baskets and in its menu icon.
+- **What a chef carries shows 1.3 times bigger** (the carry and tool anchors), so a carried pan or knife reads at a glance. It's back to its own size once put down.
+
+**Reason:** The user found the props so realistic in proportion that it was hard to tell a chef was carrying a knife, or even a pan.
+
+---
+
 ## 2026-11-08 — 4x MSAA on the PC pipeline
 
 **Decision:** The PC pipeline asset (`Assets/Settings/PC_RPAsset.asset`) renders with 4x MSAA, and the game camera adds SMAA (High) on top. SMAA smooths the steps inside surfaces too, such as toon light bands and thin lines. SMAA needs the camera's post-processing on, so the PC pipeline no longer carries the template's sample effects profile (bloom, vignette, tonemapping); post-processing adds nothing else. The mobile asset is unchanged.
