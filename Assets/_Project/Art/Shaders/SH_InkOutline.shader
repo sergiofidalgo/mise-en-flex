@@ -23,6 +23,8 @@ Shader "Game/Post/InkOutline"
         _MaxThickness    ("Max Thickness (px)", Range(1, 4)) = 2
         _DepthThreshold  ("Depth Threshold (relative)", Range(0.002, 0.2)) = 0.015
         _NormalThreshold ("Normal Threshold", Range(0.1, 2)) = 1.1
+        _EdgeRamp        ("Edge Ramp (fade-in, x threshold)", Range(1.1, 4)) = 2.5
+        _SubSamples      ("Smooth Edges (4 sub-pixel samples)", Float) = 1
     }
 
     SubShader
@@ -51,10 +53,38 @@ Shader "Game/Post/InkOutline"
             float _MaxThickness;
             float _DepthThreshold;
             float _NormalThreshold;
+            float _EdgeRamp;
+            float _SubSamples;
 
             float EyeDepth(float2 uv)
             {
                 return LinearEyeDepth(SampleSceneDepth(uv), _ZBufferParams);
+            }
+
+            // How strongly there's an edge at uv: a Roberts cross over depth and normals, with
+            // corners o away. The ramps are wide (threshold to _EdgeRamp times it), so weak edges
+            // fade in rather than switch on (the user found hard on/off lines pixelated, 2026-11-08).
+            float EdgeAt(float2 uv, float2 o)
+            {
+                float2 uvA = uv + float2(-o.x, -o.y);
+                float2 uvB = uv + float2( o.x,  o.y);
+                float2 uvC = uv + float2( o.x, -o.y);
+                float2 uvD = uv + float2(-o.x,  o.y);
+
+                // Depth edges, relative to distance so thresholds hold anywhere in frame
+                float dCenter = max(EyeDepth(uv), 0.001);
+                float d1 = EyeDepth(uvB) - EyeDepth(uvA);
+                float d2 = EyeDepth(uvD) - EyeDepth(uvC);
+                float depthDelta = sqrt(d1 * d1 + d2 * d2) / dCenter;
+                float depthEdge = smoothstep(_DepthThreshold, _DepthThreshold * _EdgeRamp, depthDelta);
+
+                // Normal edges: silhouettes and only the sharpest creases at this threshold
+                float3 n1 = SampleSceneNormals(uvB) - SampleSceneNormals(uvA);
+                float3 n2 = SampleSceneNormals(uvD) - SampleSceneNormals(uvC);
+                float normalDelta = sqrt(dot(n1, n1) + dot(n2, n2));
+                float normalEdge = smoothstep(_NormalThreshold, _NormalThreshold * _EdgeRamp, normalDelta);
+
+                return saturate(max(depthEdge, normalEdge));
             }
 
             half4 Frag(Varyings input) : SV_Target
@@ -66,37 +96,25 @@ Shader "Game/Post/InkOutline"
                 // Width scales with the screen, between 1 px and a cap, so a Retina screen doesn't
                 // double the line (1 px at 1080p, 2 px at most).
                 float px = clamp(_Thickness * _ScaledScreenParams.y / 1080.0, 1.0, _MaxThickness);
-                float2 o = (px * 0.5) / _ScaledScreenParams.xy;
+                float2 texel = 1.0 / _ScaledScreenParams.xy;
+                float2 o = px * 0.5 * texel;
 
-                // Roberts cross: 4 taps, cheap enough for Steam Deck / integrated Mac GPUs
-                float2 uvA = uv + float2(-o.x, -o.y);
-                float2 uvB = uv + float2( o.x,  o.y);
-                float2 uvC = uv + float2( o.x, -o.y);
-                float2 uvD = uv + float2(-o.x,  o.y);
-
-                // Depth edges, relative to distance so thresholds hold anywhere in frame
-                float dA = EyeDepth(uvA);
-                float dB = EyeDepth(uvB);
-                float dC = EyeDepth(uvC);
-                float dD = EyeDepth(uvD);
-                float dCenter = max(EyeDepth(uv), 0.001);
-                float d1 = dB - dA;
-                float d2 = dD - dC;
-                float depthDelta = sqrt(d1 * d1 + d2 * d2) / dCenter;
-                float depthEdge = smoothstep(_DepthThreshold, _DepthThreshold * 1.5, depthDelta);
-
-                // Normal edges: creases, counter lips, plate rims (anything over ~25 degrees)
-                float3 nA = SampleSceneNormals(uvA);
-                float3 nB = SampleSceneNormals(uvB);
-                float3 nC = SampleSceneNormals(uvC);
-                float3 nD = SampleSceneNormals(uvD);
-                float3 n1 = nB - nA;
-                float3 n2 = nD - nC;
-                float normalDelta = sqrt(dot(n1, n1) + dot(n2, n2));
-                float normalEdge = smoothstep(_NormalThreshold, _NormalThreshold * 1.3, normalDelta);
+                // Smooth edges: the depth and normals buffers aren't anti-aliased and SMAA mostly
+                // misses a soft line, so the edge is averaged over four points a quarter pixel
+                // either side, giving partial coverage along diagonals instead of stair-steps.
+                // Four times the taps (32 instead of 8); _SubSamples 0 turns it off.
+                float edge;
+                if (_SubSamples > 0.5)
+                {
+                    float2 q = 0.25 * texel;
+                    edge = 0.25 * (EdgeAt(uv + float2(-q.x, -q.y), o) + EdgeAt(uv + float2( q.x, -q.y), o)
+                                 + EdgeAt(uv + float2(-q.x,  q.y), o) + EdgeAt(uv + float2( q.x,  q.y), o));
+                }
+                else
+                    edge = EdgeAt(uv, o);
 
                 // The ink is a darker shade of what's underneath, with a little of the house brown.
-                float edge = saturate(max(depthEdge, normalEdge)) * _InkOpacity;
+                edge *= _InkOpacity;
                 half3 ink = lerp(scene.rgb * _InkShade, _InkColor.rgb, _InkColorMix);
                 return half4(lerp(scene.rgb, ink, edge), scene.a);
             }

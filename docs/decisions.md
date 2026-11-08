@@ -16,6 +16,11 @@ All of these are material properties on `MAT_Post_InkOutline`, set by `RenderLoo
 
 **To check by playing:** whether the chef stands out enough without its own outline.
 
+**Smoother ink lines** (the user's note after playing: "some outlines still look pixelated"; fix suggested by the Main build session). The depth and normals buffers aren't anti-aliased, and SMAA mostly misses a soft line, so each pixel was either inked or not and diagonals stair-stepped. Two changes:
+- The edge test is averaged over four points a quarter pixel apart (`_SubSamples`, on). This gives partial coverage along diagonals. It costs four times the taps: 32 instead of 8 per pixel.
+- The fade-in ramps are wider: threshold to 2.5× it (`_EdgeRamp`), where it was 1.5× for depth and 1.3× for normals. Weak edges now fade in instead of switching on.
+In 1080p renders the improvement is modest, mostly on thin diagonals like the plate rack's wires. If the GPU cost shows, `_SubSamples` 0 keeps only the wider ramps.
+
 ---
 
 ## 2026-11-08 — Screen-space ink, three-band ramp, banded SSAO

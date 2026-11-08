@@ -133,6 +133,8 @@ namespace Game.Editor
             material.SetFloat("_MaxThickness", 2f);
             material.SetFloat("_DepthThreshold", 0.015f);
             material.SetFloat("_NormalThreshold", 1.1f);
+            material.SetFloat("_EdgeRamp", 2.5f);   // edges fade in, not switch on
+            material.SetFloat("_SubSamples", 1f);   // smooth edges: four sub-pixel samples
             EditorUtility.SetDirty(material);
             return material;
         }
