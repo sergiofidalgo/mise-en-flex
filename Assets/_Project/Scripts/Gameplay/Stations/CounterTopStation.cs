@@ -17,27 +17,27 @@ namespace Game.Gameplay.Stations
                 PutOn(counter);
         }
 
-        /// <summary>Moves it onto <paramref name="counter"/>, which has to have room for it.</summary>
+        /// <summary>Moves it onto <paramref name="counter"/>, which has to be free.</summary>
         public void PutOn(CounterStation counter)
         {
             if (OnCounter != null)
-                OnCounter.Detach(this);
+                OnCounter.SetFixture(null);
             OnCounter = counter;
+            counter.SetFixture(this);
             transform.SetParent(counter.transform, false);
             transform.localPosition = UnityEngine.Vector3.zero;
             transform.localRotation = UnityEngine.Quaternion.identity;
-            counter.Attach(this);
         }
 
         /// <summary>Sold: its counter is free again.</summary>
         public override void Retire(KitchenServices services)
         {
             if (OnCounter != null)
-                OnCounter.Detach(this);
+                OnCounter.SetFixture(null);
             OnCounter = null;
         }
 
-        /// <summary>A counter it could go on: nothing lying there, and no other of its kind (a board and a rack share).</summary>
-        public bool CanGoOn(CounterStation counter) => counter != null && counter.HasRoomFor(this);
+        /// <summary>A counter it could go on: one with nothing on it.</summary>
+        public static bool CanGoOn(CounterStation counter) => counter != null && counter.IsClear;
     }
 }

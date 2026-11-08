@@ -7,8 +7,7 @@ namespace Game.Gameplay.Stations
     /// <summary>
     /// A knife rack on a counter (decision 2026-11-07): several knives where one lying loose would
     /// take a whole counter. A takes one into the chef's tool slot (even while carrying food) and puts
-    /// one back. Food can't go on it. It starts empty; knives are bought. On a counter with a cutting
-    /// board (decision 2026-11-08), the board answers for it and it isn't faced on its own.
+    /// one back. Food can't go on it. It starts empty; knives are bought.
     /// </summary>
     public sealed class KnifeRackStation : CounterTopStation, IToolStation, IStationPrompt
     {
@@ -26,9 +25,6 @@ namespace Game.Gameplay.Stations
         public override bool IsClear => KnifeCount == 0;
 
         public int Capacity => _places.Length;
-
-        /// <summary>True when it shares its counter with a board, which answers for it.</summary>
-        public bool SharesBoard => OnCounter != null && OnCounter.Board != null;
 
         public int KnifeCount
         {

@@ -265,21 +265,21 @@ namespace Game.Tests.PlayMode
         }
 
         [UnityTest]
-        public IEnumerator ABoughtBoardGoesOnAFreeCounterAndARackJoinsTheNearestBoard()
+        public IEnumerator ABoughtBoardAndKnifeRackGoOnFreeCounters()
         {
             yield return OpenKitchenWithCursor();
             Days.Receive(100f);
-            var free = _root.Services.Stations.All.OfType<CounterStation>().First(c => c.IsClear);
+            var free = _root.Services.Stations.All.OfType<CounterStation>().Where(c => c.IsClear).Take(2).ToArray();
 
-            var board = Buy<PrepStation>("board", new Vector2(free.transform.position.x, free.transform.position.z));
-            Assert.That(board.OnCounter, Is.SameAs(free));
-            Assert.That(_root.Services.Stations.All.OfType<PrepStation>().Count(), Is.EqualTo(2));
-
-            // Bought with the cursor on the new board, the rack goes straight onto its counter.
+            var board = Buy<PrepStation>("board", new Vector2(free[0].transform.position.x, free[0].transform.position.z));
+            // A rack isn't carried: it goes straight onto the free counter nearest a board.
             Assert.That(_editor.Buy(_cursor, _editor.Shop.First(e => e.Id == "knife rack")), Is.True);
-            Assert.That(_cursor.Held, Is.Null);
             var rack = Object.FindObjectsByType<KnifeRackStation>(FindObjectsSortMode.None).Single();
-            Assert.That(rack.OnCounter, Is.SameAs(free));
+
+            Assert.That(board.OnCounter, Is.SameAs(free[0]));
+            Assert.That(rack.OnCounter, Is.Not.Null);
+            Assert.That(rack.OnCounter.Fixture, Is.SameAs(rack), "a counter of its own");
+            Assert.That(_root.Services.Stations.All.OfType<PrepStation>().Count(), Is.EqualTo(2));
 
             // The kitchen's knife goes from its counter onto the rack.
             _editor.Leave(_player);

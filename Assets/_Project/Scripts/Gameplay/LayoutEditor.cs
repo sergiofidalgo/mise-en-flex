@@ -79,9 +79,6 @@ namespace Game.Gameplay
         [Tooltip("Metres kept clear around a body when placing furniture, on top of its own radius, so a piece never lands touching a chef's capsule.")]
         [SerializeField, Min(0f)] private float _personalSpace = 0.1f;
 
-        // Metres from a counter's middle, towards its back, where a shared counter's rack begins for the cursor.
-        private const float SharedRackFrom = -0.1f;
-
         private readonly Dictionary<PlayerInput, Cursor> _cursors = new Dictionary<PlayerInput, Cursor>();
         private readonly Dictionary<object, Interactable> _stations = new Dictionary<object, Interactable>();
         private KitchenPlan _plan;
@@ -98,15 +95,8 @@ namespace Game.Gameplay
         public Interactable StationUnder(Cursor cursor)
         {
             var piece = _plan.PieceAt(cursor.Position);
-            if (piece is CounterStation counter && counter.Board != null && counter.Rack != null)
-            {
-                // Sharing a counter, the board sits at the front and the rack along the back:
-                // the cursor picks whichever half it's over.
-                var local = counter.transform.InverseTransformPoint(new Vector3(cursor.Position.X, 0f, cursor.Position.Y));
-                return local.z > SharedRackFrom ? counter.Rack : counter.Board;
-            }
-            if (piece is CounterStation covered && covered.Fixture != null)
-                return covered.Fixture;
+            if (piece is CounterStation counter && counter.Fixture != null)
+                return counter.Fixture;
             return piece != null ? (Interactable)piece : null;
         }
 
@@ -298,7 +288,7 @@ namespace Game.Gameplay
         private void UpdateHeldFixture(Cursor cursor, CounterTopStation fixture)
         {
             var counter = _plan.PieceAt(cursor.Position) as CounterStation;
-            var free = counter != null && (counter == fixture.OnCounter || fixture.CanGoOn(counter));
+            var free = counter != null && (counter == fixture.OnCounter || CounterTopStation.CanGoOn(counter));
             cursor.Onto = free ? counter : null;
             if (counter != null)
             {
@@ -505,26 +495,27 @@ namespace Game.Gameplay
         }
 
         /// <summary>
-        /// A bought knife rack goes straight onto the counter with a cutting board nearest the cursor
-        /// that has no rack yet (user's call, 2026-11-08): the two work together on one counter. With
-        /// no such counter, it's carried and put down like any other board or rack.
+        /// A bought knife rack goes straight onto the free counter nearest a cutting board (user's call,
+        /// 2026-11-08): the two are used together on every cut. It takes that whole counter, as a board
+        /// does. With no free counter, it's carried like anything else.
         /// </summary>
         private bool TryPutRackByABoard(Cursor cursor, FurnitureCatalog.Entry entry)
         {
-            var prefabRack = entry.Prefab.GetComponent<KnifeRackStation>();
-            if (prefabRack == null)
+            if (entry.Prefab.GetComponent<KnifeRackStation>() == null)
                 return false;
-            var counter = _root.Services.Stations.All.OfType<CounterStation>()
-                .Where(c => c.Board != null && prefabRack.CanGoOn(c))
-                .OrderBy(c => SimVector2.DistanceSquared(Floor(c.transform.position), cursor.Position))
+            var services = _root.Services;
+            var boards = services.Stations.All.OfType<PrepStation>().Where(b => b.OnCounter != null).ToList();
+            var counter = services.Stations.All.OfType<CounterStation>()
+                .Where(c => c.IsClear && boards.Count > 0)
+                .OrderBy(c => boards.Min(b => SimVector2.DistanceSquared(Floor(c.transform.position), Floor(b.transform.position))))
                 .FirstOrDefault();
-            if (counter == null || !_root.Services.Days.TrySpend(entry.Price))
+            if (counter == null || !services.Days.TrySpend(entry.Price))
                 return false;
 
             var rack = Instantiate(entry.Prefab).GetComponent<KnifeRackStation>();
             rack.name = entry.DisplayName;
-            rack.Bind(_root.Services);
-            _root.Services.Stations.Add(rack);
+            rack.Bind(services);
+            services.Stations.Add(rack);
             rack.PutOn(counter);
             cursor.ShopOpen = false;
             // The cursor goes to it, so it's lit up where it landed and nobody wonders where it went.
@@ -535,7 +526,7 @@ namespace Game.Gameplay
 
         /// <summary>
         /// Puts a new piece on the cursor, to be carried like any other. Nothing's paid yet. A knife
-        /// rack with a board free for it is the exception: paid for and put there at once.
+        /// rack is the exception: paid for and put on the free counter nearest a board at once.
         /// </summary>
         /// <returns>False if the money isn't there.</returns>
         public bool Buy(Cursor cursor, FurnitureCatalog.Entry entry)
