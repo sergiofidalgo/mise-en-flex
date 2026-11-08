@@ -56,12 +56,12 @@ namespace Game.Editor
         // Cold air: a soft, slow puff that spills over the front edge as the lid opens, and sinks.
         // A white breath with a cool blue tint, like cold air, and so it shows against the white
         // fridge (the user's reference, 2026-11-08).
-        private static readonly Color MistColor = new Color(0.8f, 0.9f, 1f, 0.85f);
+        private static readonly Color MistColor = new Color(0.82f, 0.91f, 1f, 0.9f);
         private static readonly Vector3 MistPosition = new Vector3(0f, 0.92f, -0.3f);
         private const float MistLifetime = 1f;
-        private const float MistSpeed = 0.3f;
-        private const float MistRadius = 0.3f;
-        private const float MistGravity = 0.04f;
+        private const float MistSpeed = 1.1f; // out to where the chef stands, about a metre in front
+        private const float MistRadius = 0.4f;
+        private const float MistGravity = 0.25f; // sinks to the floor round the chef's legs
 
         public static float Height(bool refrigerated) => refrigerated ? FridgeHeight : ShelfHeight;
 
@@ -154,9 +154,11 @@ namespace Game.Editor
             highlight.ApplyModifiedPropertiesWithoutUndo();
 
             var mist = GreyboxKitchenware.CreateParticles(station.transform, "ColdMist", MistPosition.y, MistRadius,
-                MistLifetime, MistSpeed, minSize: 0.14f, maxSize: 0.28f, growth: 2.2f, maxParticles: 40);
+                MistLifetime, MistSpeed, minSize: 0.24f, maxSize: 0.42f, growth: 2.4f, maxParticles: 60);
             mist.transform.localPosition = MistPosition;
-            mist.transform.localRotation = Quaternion.LookRotation(new Vector3(0f, -0.4f, -1f)); // over the front edge
+            mist.transform.localRotation = Quaternion.LookRotation(new Vector3(0f, -0.15f, -1f)); // out over the front edge, towards the chef
+            var spread = mist.shape;
+            spread.angle = 35f; // fanning out round the chef at the fridge
             var main = mist.main;
             main.startColor = MistColor;
             mist.GetComponent<ParticleSystemRenderer>().sharedMaterial = PilotArt.EnsureMistMaterial();

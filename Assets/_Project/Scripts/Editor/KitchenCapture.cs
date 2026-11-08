@@ -58,6 +58,7 @@ namespace Game.Editor
 
             var camera = new GameObject("Capture Camera").AddComponent<Camera>();
             camera.fieldOfView = FieldOfView;
+            HouseStyle.SmoothEdges(camera);
             // Anti-aliased like the game (4x MSAA in the PC pipeline asset).
             var target = new RenderTexture(Width, Height, 24, RenderTextureFormat.ARGB32, RenderTextureReadWrite.sRGB) { antiAliasing = 4 };
 
@@ -109,9 +110,10 @@ namespace Game.Editor
             {
                 fridge.Show(1f);
                 var mist = (ParticleSystem)new SerializedObject(fridge).FindProperty("_mist").objectReferenceValue;
-                mist.Emit(18);
+                mist.Emit(32);
                 mist.Simulate(0.6f, true, false);
-                Render(camera, target, fridge.transform.position + Vector3.up * 0.9f, CloseHeight, Path.Combine(folder, "close_Fridge_open.png"));
+                // Framed a little forward, where the chef stands at it.
+                Render(camera, target, fridge.transform.position + new Vector3(0f, 0.5f, -0.6f), CloseHeight, Path.Combine(folder, "close_Fridge_open.png"));
             }
 
             // A row of plates outside the kitchen: clean, half washed, then dirty with different messes.

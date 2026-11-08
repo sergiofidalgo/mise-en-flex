@@ -410,6 +410,7 @@ namespace Game.Editor
             camera.tag = "MainCamera";
             camera.transform.SetPositionAndRotation(CameraPosition, Quaternion.Euler(CameraEuler));
             camera.fieldOfView = CameraFieldOfView;
+            HouseStyle.SmoothEdges(camera);
 
             var floor = GameObject.CreatePrimitive(PrimitiveType.Plane);
             floor.name = "Floor";

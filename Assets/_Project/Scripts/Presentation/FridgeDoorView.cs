@@ -26,7 +26,7 @@ namespace Game.Presentation
         [Tooltip("How far past open it swings before settling, as a fraction.")]
         [SerializeField, Range(0f, 2f)] private float _overshoot = 1f;
         [Tooltip("Puffs of cold air when the lid opens: a short, visible breath (the user's note, 2026-11-08).")]
-        [SerializeField, Min(0)] private int _mistBurst = 18;
+        [SerializeField, Min(0)] private int _mistBurst = 32;
         [Tooltip("Puffs a second that keep spilling out while it stays open; none by default.")]
         [SerializeField, Min(0f)] private float _mistWhileOpen;
 

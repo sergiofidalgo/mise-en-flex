@@ -6,7 +6,7 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ## 2026-11-08 — 4x MSAA on the PC pipeline
 
-**Decision:** The PC pipeline asset (`Assets/Settings/PC_RPAsset.asset`) renders with 4x MSAA. The mobile asset is unchanged.
+**Decision:** The PC pipeline asset (`Assets/Settings/PC_RPAsset.asset`) renders with 4x MSAA, and the game camera adds SMAA (High) on top. SMAA smooths the steps inside surfaces too, such as toon light bands and thin lines. SMAA needs the camera's post-processing on, so the PC pipeline no longer carries the template's sample effects profile (bloom, vignette, tonemapping); post-processing adds nothing else. The mobile asset is unchanged.
 
 **Reason:** The user found the shapes' edges pixelated and noisy to look at. MSAA smooths geometry edges and the toon outlines, which are geometry too (an inverted hull). It's cheap for a scene this size, within the 60 fps target on a MacBook with two players. Still to check in play.
 
@@ -16,7 +16,7 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 **Decision:** Effects are a deliberate layer of fun and liveliness in the scene, not understated touches (the user's note).
 - **Washing:** a few big soap bubbles (a shiny ring texture, pastel tints, about five a second) drift off the sink in every direction, towards the chef too, then wobble, swell and pop. Splashes are chunky droplets thrown well up.
-- **The fridge:** opening it releases a short breath of cool fog, nothing while it stays open. The fog uses a texture that's white all over, fading only in its alpha (TEX_Puff). The built-in particle texture's darkening edges showed as a dark shade.
+- **The fridge:** opening it releases a short breath of cool fog, nothing while it stays open. The fog is dense and pushed out over the floor to where the chef stands, so it wraps round them. The fog uses a texture that's white all over, fading only in its alpha (TEX_Puff). The built-in particle texture's darkening edges showed as a dark shade.
 - **Cooking:** sparks are big, bright and plentiful from middling heat up (`HobView._emberRate`).
 - **The bin:** once it's past half full, flies circle it, more the fuller it gets (`BinFillView`).
 - **The sink basin** is deeper (0.23 m), with walls darker than its floor and the water at 0.79 m, so its depth reads from the camera. Under it the cabinet's body stops at 0.66 m.

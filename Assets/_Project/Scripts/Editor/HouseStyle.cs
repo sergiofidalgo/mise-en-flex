@@ -93,6 +93,21 @@ namespace Game.Editor
             return material;
         }
 
+        /// <summary>
+        /// Smooth edges (the user's note, 2026-11-08): on top of the pipeline's 4x MSAA, which
+        /// smooths geometry edges, SMAA smooths the steps inside surfaces too (toon light bands,
+        /// thin lines). SMAA runs with post-processing, which adds nothing else: the PC pipeline
+        /// carries no sample effects profile.
+        /// </summary>
+        public static void SmoothEdges(Camera camera)
+        {
+            var data = UnityEngine.Rendering.Universal.CameraExtensions.GetUniversalAdditionalCameraData(camera);
+            data.renderPostProcessing = true;
+            data.antialiasing = UnityEngine.Rendering.Universal.AntialiasingMode.SubpixelMorphologicalAntiAliasing;
+            data.antialiasingQuality = UnityEngine.Rendering.Universal.AntialiasingQuality.High;
+            camera.allowMSAA = true;
+        }
+
         /// <summary>Sets the scene's sun and sky light. The scene must be the active one.</summary>
         public static void LightScene(Light sun)
         {
