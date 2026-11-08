@@ -540,8 +540,9 @@ namespace Game.Editor
             var plateStack = CreateStation<PlateStackStation>(
                 "PlateStack", PlateStackPosition, CounterSize, CounterHeight,
                 GreyboxAssets.EnsureMaterial("PlateStack", PlateStackColor), stations);
-            var plateStackDiscs = GreyboxKitchenware.CreatePlatePile(
-                plateStack.transform, CounterHeight, PlateStackVisualCount, GreyboxKitchenware.PlateColor, "Plate", Vector3.zero);
+            // Clean plates stand in a wire rack, like a real plate stack.
+            var plateStackDiscs = KitchenwareArt.CreatePlates(plateStack.transform, CounterHeight, PlateStackVisualCount,
+                GreyboxKitchenware.PlateColor, "Plate", Vector3.zero, KitchenwareArt.PlateLayout.Rack);
             var stackPile = new SerializedObject(plateStack.gameObject.AddComponent<PlatePileView>());
             stackPile.FindProperty("_station").objectReferenceValue = plateStack;
             SetObjects(stackPile.FindProperty("_clean"), plateStackDiscs);
@@ -551,18 +552,29 @@ namespace Game.Editor
                 "Sink", SinkPosition, CounterSize, CounterHeight, GreyboxAssets.EnsureMaterial("Sink", SinkColor), stations);
             var sinkPile = new SerializedObject(sink.gameObject.AddComponent<PlatePileView>());
             sinkPile.FindProperty("_station").objectReferenceValue = sink;
-            SetObjects(sinkPile.FindProperty("_dirty"), GreyboxKitchenware.CreatePlatePile(
-                sink.transform, CounterHeight, SinkVisualCount, DirtyPlateColor, "DirtyPlate", new Vector3(-SinkPileOffset, 0f, 0f)));
-            SetObjects(sinkPile.FindProperty("_clean"), GreyboxKitchenware.CreatePlatePile(
-                sink.transform, CounterHeight, SinkVisualCount, GreyboxKitchenware.PlateColor, "Plate", new Vector3(SinkPileOffset, 0f, 0f)));
+            if (KitchenwareArt.DressSink(sink.transform.Find("Body").gameObject))
+            {
+                // Dirty plates in the basin, clean ones standing in the drainer's rack.
+                SetObjects(sinkPile.FindProperty("_dirty"), KitchenwareArt.CreatePlates(sink.transform, KitchenwareArt.SinkBasinFloor,
+                    SinkVisualCount, DirtyPlateColor, "DirtyPlate", new Vector3(KitchenwareArt.SinkBasinX, 0f, 0f), KitchenwareArt.PlateLayout.Messy));
+                SetObjects(sinkPile.FindProperty("_clean"), KitchenwareArt.CreatePlates(sink.transform, CounterHeight,
+                    SinkVisualCount, GreyboxKitchenware.PlateColor, "Plate", new Vector3(KitchenwareArt.SinkDrainerX, 0f, 0f), KitchenwareArt.PlateLayout.Rack));
+            }
+            else
+            {
+                SetObjects(sinkPile.FindProperty("_dirty"), GreyboxKitchenware.CreatePlatePile(
+                    sink.transform, CounterHeight, SinkVisualCount, DirtyPlateColor, "DirtyPlate", new Vector3(-SinkPileOffset, 0f, 0f)));
+                SetObjects(sinkPile.FindProperty("_clean"), GreyboxKitchenware.CreatePlatePile(
+                    sink.transform, CounterHeight, SinkVisualCount, GreyboxKitchenware.PlateColor, "Plate", new Vector3(SinkPileOffset, 0f, 0f)));
+            }
             sinkPile.ApplyModifiedPropertiesWithoutUndo();
 
             var dirtyPile = CreateStation<DirtyPileStation>(
                 "DirtyPile", DirtyPilePosition, CounterSize, CounterHeight, GreyboxAssets.EnsureMaterial("DirtyPile", DirtyPileColor), stations);
             var dirtyView = new SerializedObject(dirtyPile.gameObject.AddComponent<PlatePileView>());
             dirtyView.FindProperty("_station").objectReferenceValue = dirtyPile;
-            SetObjects(dirtyView.FindProperty("_dirty"), GreyboxKitchenware.CreatePlatePile(
-                dirtyPile.transform, CounterHeight, PlateStackVisualCount, DirtyPlateColor, "DirtyPlate", Vector3.zero));
+            SetObjects(dirtyView.FindProperty("_dirty"), KitchenwareArt.CreatePlates(dirtyPile.transform, CounterHeight,
+                PlateStackVisualCount, DirtyPlateColor, "DirtyPlate", Vector3.zero, KitchenwareArt.PlateLayout.Messy));
             dirtyView.ApplyModifiedPropertiesWithoutUndo();
 
             CreateRack("TrayRack", RackStation.RackKind.Trays, TrayRackPosition, 4, GreyboxKitchenware.TrayColor, stations);
@@ -671,6 +683,7 @@ namespace Game.Editor
                 PrimitiveType.Cube, "Board", prep.transform, GreyboxAssets.EnsureMaterial("CuttingBoard", CuttingBoardColor), keepCollider: false);
             board.transform.localScale = CuttingBoardScale;
             board.transform.localPosition = new Vector3(0f, CounterHeight + CuttingBoardScale.y / 2f, 0f);
+            KitchenwareArt.DressBoard(board, CounterHeight); // the bamboo board, the same size, when modelled
             var boardAnchor = new GameObject("BoardAnchor").transform;
             boardAnchor.SetParent(prep.transform, false);
             boardAnchor.localPosition = new Vector3(0f, CounterHeight + CuttingBoardScale.y, 0f);

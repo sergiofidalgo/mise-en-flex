@@ -185,6 +185,7 @@ namespace Game.Editor
                 PrimitiveType.Cylinder, "Body", root.transform, GreyboxAssets.EnsureMaterial("Plate", PlateColor), keepCollider: false);
             body.transform.localScale = new Vector3(PlateDiameter, PlateThickness / 2f, PlateDiameter);
             body.transform.localPosition = new Vector3(0f, PlateThickness / 2f, 0f);
+            KitchenwareArt.DressPlateItem(body); // the plate model and its gold rim, when modelled
 
             var itemView = AddSlots(root, PlateSlots, PlateThickness);
             var view = new SerializedObject(root.AddComponent<PlateView>());

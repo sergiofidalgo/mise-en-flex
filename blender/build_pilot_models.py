@@ -330,6 +330,113 @@ def build_chef():
     return [legs, torso]
 
 
+# Kitchenware. A plate is 0.32 m across (GreyboxKitchenware.PlateDiameter); its origin is the
+# centre of its base. Food sits in its well at 0.012 m.
+PLATE_RADIUS = 0.16
+COUNTER_HEIGHT = 0.9
+
+
+def build_plate():
+    """A white plate with a shallow well and a gold rim (the rim is its own mesh and colour)."""
+    bm = bmesh.new()
+    add_lathe(bm, [
+        (0.0, 0.0), (0.1, 0.0), (0.112, 0.004), (PLATE_RADIUS, 0.017), (PLATE_RADIUS + 0.001, 0.02),
+        (0.15, 0.0205), (0.11, 0.012), (0.0, 0.012),
+    ])
+    body = finish("PlateBody", bm)
+
+    bm = bmesh.new()
+    add_lathe(bm, [(0.143, 0.0185), (0.15, 0.0215), (0.158, 0.0205), (0.1615, 0.018), (0.15, 0.017), (0.143, 0.0185)])
+    rim = finish("PlateRim", bm)
+    return [body, rim]
+
+
+def add_rack(bm, length, width=0.36, height=0.2, wire=0.012):
+    """A wire dish rack: an arch at each end and rails along the bottom. Plates stand in it
+    facing the camera, one behind the other, from the back (Blender -Y) to the front (+Y)."""
+    half_width = width / 2.0
+    for y in (-length / 2.0, length / 2.0):
+        for x in (-half_width, half_width):
+            add_box(bm, (wire, wire, height), (x, y, height / 2.0), bevel=0.004)
+        add_box(bm, (width + wire, wire, wire), (0.0, y, height), bevel=0.004)
+    for x in (-half_width, half_width):
+        add_box(bm, (wire, length, wire), (x, 0.0, wire / 2.0), bevel=0.004)
+    for x in (-0.06, 0.06):  # the plates rest on these
+        add_box(bm, (wire, length, wire), (x, 0.0, 0.02), bevel=0.004)
+
+
+def build_plate_racks():
+    """A rack for the plate stack (six plates) and a short one for the sink's drainer."""
+    bm = bmesh.new()
+    add_rack(bm, length=0.34)
+    long_rack = finish("PlateRack", bm)
+    bm = bmesh.new()
+    add_rack(bm, length=0.16)
+    short_rack = finish("PlateRackShort", bm)
+    short_rack.location = (0.6, 0.0, 0.0)  # apart from the long one, for previews only
+    return [long_rack, short_rack]
+
+
+def build_sink():
+    """A stainless sink unit: a basin on the game's left, a ribbed drainer on its right, a
+    swan-neck tap at the back, open legs with a half shelf and a slatted bottom shelf."""
+    bm = bmesh.new()
+    top, thickness = COUNTER_HEIGHT, 0.04
+    z = top - thickness / 2.0
+    # The top around the basin's opening (Blender x 0..0.4, y -0.2..0.2).
+    add_box(bm, (0.1, 1.0, thickness), (0.45, 0.0, z), bevel=0.008)
+    add_box(bm, (0.5, 1.0, thickness), (-0.25, 0.0, z), bevel=0.008)
+    add_box(bm, (0.4, 0.3, thickness), (0.2, 0.35, z))
+    add_box(bm, (0.4, 0.3, thickness), (0.2, -0.35, z))
+    add_box(bm, (1.0, 0.02, 0.06), (0.0, 0.49, top - 0.07))  # front apron
+    add_box(bm, (1.0, 0.03, 0.1), (0.0, -0.485, top + 0.05), bevel=0.008)  # upstand
+    # Basin, 0.14 deep: food and plates sit on its floor at 0.77.
+    add_box(bm, (0.4, 0.4, 0.01), (0.2, 0.0, top - 0.135))
+    for y in (-0.2, 0.2):
+        add_box(bm, (0.4, 0.01, 0.14), (0.2, y, top - 0.07))
+    for x in (0.0, 0.4):
+        add_box(bm, (0.01, 0.4, 0.14), (x, 0.0, top - 0.07))
+    add_lathe(bm, [(0.02, 0.0), (0.02, 0.21), (0.0, 0.21)], segments=12, centre=(0.2, 0.0, top - 0.35))  # drain
+    # Drainer ribs.
+    for x in (-0.1, -0.2, -0.3, -0.4):
+        add_box(bm, (0.012, 0.6, 0.004), (x, 0.05, top + 0.002))
+    # Swan-neck tap behind the basin.
+    add_lathe(bm, [(0.03, 0.0), (0.03, 0.02), (0.016, 0.03), (0.016, 0.28), (0.0, 0.28)],
+              segments=16, centre=(0.2, -0.4, top))
+    spout = Matrix.Rotation(math.radians(-90.0), 4, 'X')  # along +Y, towards the front
+    add_lathe(bm, [(0.014, 0.0), (0.014, 0.2), (0.0, 0.2)], segments=12, centre=(0.2, -0.4, top + 0.27), axis_matrix=spout)
+    add_box(bm, (0.026, 0.026, 0.06), (0.2, -0.2, top + 0.24), bevel=0.006)
+    add_box(bm, (0.08, 0.015, 0.015), (0.27, -0.4, top + 0.1), bevel=0.004)  # lever
+    # Legs, a half shelf under the drainer and a slatted bottom shelf.
+    for x in (-0.47, 0.47):
+        for y in (-0.47, 0.47):
+            add_box(bm, (0.04, 0.04, top - thickness), (x, y, (top - thickness) / 2.0), bevel=0.008)
+    add_box(bm, (0.5, 0.9, 0.02), (-0.22, 0.0, 0.42), bevel=0.004)
+    for y in (-0.47, 0.47):
+        add_box(bm, (0.94, 0.03, 0.03), (0.0, y, 0.12))
+    for x in (-0.47, 0.47):
+        add_box(bm, (0.03, 0.94, 0.03), (x, 0.0, 0.12))
+    for y in (-0.36, -0.18, 0.0, 0.18, 0.36):
+        add_box(bm, (0.94, 0.04, 0.02), (0.0, y, 0.13))
+    return [finish("SinkBody", bm)]
+
+
+def build_board():
+    """A bamboo cutting board with rounded corners and a juice groove round its edge."""
+    width, depth, base, rise = 0.34, 0.28, 0.019, 0.006
+    border, groove = 0.022, 0.008
+    bm = bmesh.new()
+    add_box(bm, (width, depth, base), (0.0, 0.0, base / 2.0), bevel=0.012)
+    top = base + rise / 2.0
+    add_box(bm, (width - 0.012, border, rise), (0.0, depth / 2.0 - border / 2.0 - 0.006, top), bevel=0.002)
+    add_box(bm, (width - 0.012, border, rise), (0.0, -depth / 2.0 + border / 2.0 + 0.006, top), bevel=0.002)
+    add_box(bm, (border, depth - 0.012, rise), (width / 2.0 - border / 2.0 - 0.006, 0.0, top), bevel=0.002)
+    add_box(bm, (border, depth - 0.012, rise), (-width / 2.0 + border / 2.0 + 0.006, 0.0, top), bevel=0.002)
+    inset = border + 0.006 + groove
+    add_box(bm, (width - 2 * inset, depth - 2 * inset, rise), (0.0, 0.0, top), bevel=0.002)
+    return [finish("BoardBody", bm)]
+
+
 def export_fbx(objects, filename):
     bpy.ops.object.select_all(action='DESELECT')
     for obj in objects:
@@ -394,6 +501,10 @@ def main():
         "SM_Fridge.fbx": build_fridge(),
         "SM_Shelf.fbx": build_shelf(),
         "SM_Chef.fbx": build_chef(),
+        "SM_Plate.fbx": build_plate(),
+        "SM_PlateRack.fbx": build_plate_racks(),
+        "SM_Sink.fbx": build_sink(),
+        "SM_Board.fbx": build_board(),
     }
     for filename, objects in models.items():
         export_fbx(objects, filename)

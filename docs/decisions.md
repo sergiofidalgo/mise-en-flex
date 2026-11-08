@@ -4,6 +4,19 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-08 — Models for plates, the plate stack, the sink and the cutting board
+
+**Decision (user's call):** these get Blender models, following the user's reference photos. Only meshes change: footprints, anchors, slots, colliders and rules stay as they were.
+- **Plates** are white with a shallow well and a gold rim, everywhere a plate appears. Dirty plates still darken, and the rim stays gold.
+- **The plate stack** is plates standing upright in a black wire rack, facing the camera. The front plate is the first to go.
+- **The sink** is a stainless unit: a basin on the left with the dirty plates, and a ribbed drainer on the right with a small rack for the clean ones. It has a swan-neck tap, open legs and a slatted bottom shelf.
+- **The dirty pile** is a loose stack, each plate nudged and turned a little.
+- **The cutting board** is bamboo with rounded corners and a juice groove, without the photo's logo. It's lighter than its counter so it stands out.
+
+**Reason:** it brings the kitchen's most-used stations up to the look of the hob and storage, without touching how they play.
+
+---
+
 ## 2026-11-08 — Stock shows from any side: a glass fridge and an open shelf
 
 **Decision (user's call, details proposed):** players can turn storage any way, so what's in it should show from every angle.
