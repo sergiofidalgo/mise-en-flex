@@ -8,8 +8,8 @@ namespace Game.Editor
     /// <summary>
     /// The tall fridge and shelf: where their four slots are, and their models when those exist.
     /// Slots sit in two tiers of two seen from the front, Y and B on top, X and A below, so the
-    /// stock reads from the furniture itself. A fridge gets sliding glass panes, cold mist and
-    /// a pale lining; a shelf gets sacks on its bottom board. Without the models it stays greybox.
+    /// stock reads from the furniture itself. A fridge is glass on every side and on top,
+    /// with sliding panes front and back, glass shelves and cold mist; a shelf gets sacks on its bottom board. Without the models it stays greybox.
     /// </summary>
     public static class StorageArt
     {
@@ -22,10 +22,10 @@ namespace Game.Editor
         private const float LowerTier = 0.45f;
         private const float UpperTier = 1.05f;
         private const float SlotX = 0.22f;
-        // Near the front, so both tiers show through the door under the camera's 55° view: further
-        // back, the fridge's top hides the upper tier.
-        private const float FridgeSlotZ = -0.28f;
-        private const float ShelfSlotZ = -0.15f;
+        // In the middle, so the stock shows the same from any side (decision 2026-11-08): the fridge
+        // is glass all round and on top, and the shelf is open, with no top board.
+        private const float FridgeSlotZ = 0f;
+        private const float ShelfSlotZ = 0f;
 
         /// <summary>Height of a modelled basket, which food sits on.</summary>
         public const float BasketHeight = 0.03f;
@@ -34,7 +34,6 @@ namespace Game.Editor
         // front. Must match the FRIDGE_PANE_* and FRIDGE_*_TRACK values in blender/build_pilot_models.py.
         public static readonly Vector3 LeftPaneShut = new Vector3(-0.22f, 0.15f, -0.458f);
         public static readonly Vector3 RightPaneShut = new Vector3(0.22f, 0.15f, -0.482f);
-        private static readonly Color LinerColor = new Color(0.9f, 0.94f, 0.97f);
         private static readonly Color GoodsColor = new Color(0.66f, 0.55f, 0.38f);
         private static readonly Color GlassColor = new Color(0.8f, 0.92f, 1f, 0.18f);
 
@@ -103,12 +102,13 @@ namespace Game.Editor
 
         private static void DressFridge(StorageStation station, Material bodyMaterial)
         {
-            CreatePart(station.transform, "Liner", FridgeModel, "FridgeLiner",
-                GreyboxAssets.EnsureMaterial("FridgeLiner", LinerColor), Vector3.zero);
+            // Glass sides, top and shelves, so the stock shows from any angle.
+            var shell = CreatePart(station.transform, "Glass", FridgeModel, "FridgeGlass", PilotArt.EnsureGlassMaterial("FridgeGlass", GlassColor), Vector3.zero);
+            shell.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
 
-            // Two sliding panes, each a frame around glass, on tracks across the front.
-            var left = BuildPane(station, "PaneLeft", "Left", LeftPaneShut, bodyMaterial);
-            var right = BuildPane(station, "PaneRight", "Right", RightPaneShut, bodyMaterial);
+            // A door of two sliding panes at the front, and the same turned round at the back.
+            var front = BuildDoor(station, "FrontDoor", 0f, bodyMaterial);
+            var back = BuildDoor(station, "BackDoor", 180f, bodyMaterial);
 
             var mist = GreyboxKitchenware.CreateParticles(station.transform, "ColdMist", MistPosition.y, MistRadius,
                 MistLifetime, MistSpeed, minSize: 0.12f, maxSize: 0.22f, growth: 2.2f, maxParticles: 40);
@@ -119,17 +119,29 @@ namespace Game.Editor
             main.gravityModifier = MistGravity; // cold air sinks
 
             var view = new SerializedObject(station.gameObject.AddComponent<FridgeDoorView>());
-            view.FindProperty("_leftPane").objectReferenceValue = left;
-            view.FindProperty("_rightPane").objectReferenceValue = right;
+            view.FindProperty("_frontLeft").objectReferenceValue = front.Left;
+            view.FindProperty("_frontRight").objectReferenceValue = front.Right;
+            view.FindProperty("_backLeft").objectReferenceValue = back.Left;
+            view.FindProperty("_backRight").objectReferenceValue = back.Right;
             view.FindProperty("_mist").objectReferenceValue = mist;
             view.ApplyModifiedPropertiesWithoutUndo();
         }
 
+        // A door's two panes, built as for the front and turned by <paramref name="degrees"/> about the middle.
+        private static (Transform Left, Transform Right) BuildDoor(StorageStation station, string name, float degrees, Material bodyMaterial)
+        {
+            var door = new GameObject(name).transform;
+            door.SetParent(station.transform, false);
+            door.localRotation = Quaternion.Euler(0f, degrees, 0f);
+            return (BuildPane(station, door, "PaneLeft", "Left", LeftPaneShut, bodyMaterial),
+                BuildPane(station, door, "PaneRight", "Right", RightPaneShut, bodyMaterial));
+        }
+
         // A pane slides as a whole; its frame lights up with the body when the fridge is targeted.
-        private static Transform BuildPane(StorageStation station, string name, string side, Vector3 shut, Material bodyMaterial)
+        private static Transform BuildPane(StorageStation station, Transform door, string name, string side, Vector3 shut, Material bodyMaterial)
         {
             var pane = new GameObject(name).transform;
-            pane.SetParent(station.transform, false);
+            pane.SetParent(door, false);
             pane.localPosition = shut;
             var frame = CreatePart(pane, "Frame", FridgeModel, $"FridgePane{side}Frame", bodyMaterial, Vector3.zero);
             var glass = CreatePart(pane, "Glass", FridgeModel, $"FridgePane{side}Glass", PilotArt.EnsureGlassMaterial("FridgeGlass", GlassColor), Vector3.zero);

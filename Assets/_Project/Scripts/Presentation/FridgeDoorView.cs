@@ -9,16 +9,20 @@ namespace Game.Presentation
     /// each frame, so two players at one fridge keep it open until both let go. Opened and Closed are
     /// for sound.
     ///
-    /// The fridge has two panes on separate tracks, each covering half its front. The half in front
-    /// of whoever opens it slides behind or in front of the other, so the door never leaves the
-    /// fridge's own width: nothing about the room or the people in it can get in its way.
+    /// The fridge has a door at the front and one at the back, each two panes on separate tracks
+    /// covering half its width. The door on the opener's side opens the half in front of them, by
+    /// sliding that pane over the other, so it never leaves the fridge's own width: nothing about
+    /// the room or the people in it can get in its way.
     /// </summary>
     public sealed class FridgeDoorView : MonoBehaviour
     {
-        [Tooltip("The pane on the fridge's left, on the back track. Opening, it slides right, behind the other.")]
-        [SerializeField] private Transform _leftPane;
-        [Tooltip("The pane on the fridge's right, on the front track. Opening, it slides left, in front of the other.")]
-        [SerializeField] private Transform _rightPane;
+        [Tooltip("Each door's left pane (as seen facing that door), on the inner track. Opening, it slides right, behind the other.")]
+        [SerializeField] private Transform _frontLeft;
+        [Tooltip("Each door's right pane (as seen facing that door), on the outer track. Opening, it slides left, in front of the other.")]
+        [SerializeField] private Transform _frontRight;
+        [SerializeField] private Transform _backLeft;
+        [SerializeField] private Transform _backRight;
+        [Tooltip("Puffs out of whichever door opens.")]
         [SerializeField] private ParticleSystem _mist;
 
         [Tooltip("Metres a pane slides to open its half: the pane's width less the overlap.")]
@@ -30,8 +34,9 @@ namespace Game.Presentation
 
         private float _amount;
         private int _keptOpenOnFrame = int.MinValue;
-        private Vector3 _leftShut;
-        private Vector3 _rightShut;
+        private Vector3 _frontLeftShut, _frontRightShut, _backLeftShut, _backRightShut;
+        private Vector3 _mistAt;
+        private Quaternion _mistTurn;
         private bool _measured;
         private Transform _opener;
 
@@ -40,12 +45,15 @@ namespace Game.Presentation
 
         public bool IsOpen { get; private set; }
 
-        /// <summary>True when the right half is the one open (or opening); false for the left.</summary>
+        /// <summary>True when it's the back door that's open (or opening); false for the front.</summary>
+        public bool OpensBack { get; private set; }
+
+        /// <summary>True when the right half (facing that door) is the one open; false for the left.</summary>
         public bool OpensRight { get; private set; } = true;
 
         /// <summary>
         /// Call every frame something should hold the door open. <paramref name="opener"/> is who
-        /// opened it: the half in front of them is the one that opens.
+        /// opened it: the door on their side opens the half in front of them.
         /// </summary>
         public void KeepOpen(Transform opener = null)
         {
@@ -54,8 +62,14 @@ namespace Game.Presentation
                 _opener = opener;
         }
 
-        /// <summary>Which half opens for someone standing at <paramref name="position"/>: the one in front of them.</summary>
-        public bool OpensRightFor(Vector3 position) => transform.InverseTransformPoint(position).x >= 0f;
+        /// <summary>Which door and half open for someone at <paramref name="position"/>: those in front of them.</summary>
+        public (bool Back, bool Right) OpensFor(Vector3 position)
+        {
+            var local = transform.InverseTransformPoint(position);
+            var back = local.z > 0f;
+            // Facing the back door, the fridge's left is on their right.
+            return (back, back ? local.x <= 0f : local.x >= 0f);
+        }
 
         private void Update()
         {
@@ -68,8 +82,8 @@ namespace Game.Presentation
                 {
                     // The side only changes while it's shut, so a pane caught closing never jumps across.
                     if (_amount <= 0f && _opener != null)
-                        OpensRight = OpensRightFor(_opener.position);
-                    _mist.Emit(_mistBurst);
+                        (OpensBack, OpensRight) = OpensFor(_opener.position);
+                    PuffFromOpenDoor();
                     Opened?.Invoke();
                 }
                 else
@@ -83,31 +97,53 @@ namespace Game.Presentation
             Show(_amount);
         }
 
-        /// <summary>Poses the door, 0 shut to 1 open. Public so it can be previewed outside Play mode.</summary>
+        /// <summary>Poses the doors, 0 shut to 1 open. Public so it can be previewed outside Play mode.</summary>
         public void Show(float amount)
         {
             Measure();
             // Eased both ways, with no overshoot: a pane on a track glides and stops, it doesn't bounce.
             var offset = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(amount)) * _slide;
-            _leftPane.localPosition = _leftShut + (OpensRight ? Vector3.zero : Vector3.right * offset);
-            _rightPane.localPosition = _rightShut + (OpensRight ? Vector3.left * offset : Vector3.zero);
+            Pose(_frontLeft, _frontLeftShut, _frontRight, _frontRightShut, !OpensBack ? offset : 0f);
+            Pose(_backLeft, _backLeftShut, _backRight, _backRightShut, OpensBack ? offset : 0f);
         }
 
-        /// <summary>Previews the door opened on one side, outside Play mode.</summary>
-        public void Show(float amount, bool opensRight)
+        /// <summary>Previews one door opened on one side, outside Play mode.</summary>
+        public void Show(float amount, bool back, bool opensRight)
         {
+            OpensBack = back;
             OpensRight = opensRight;
             Show(amount);
         }
 
-        // The panes' shut places, as built.
+        // Panes move in their door's own space, so the back door, turned round, mirrors the front.
+        private void Pose(Transform left, Vector3 leftShut, Transform right, Vector3 rightShut, float offset)
+        {
+            left.localPosition = leftShut + (OpensRight ? Vector3.zero : Vector3.right * offset);
+            right.localPosition = rightShut + (OpensRight ? Vector3.left * offset : Vector3.zero);
+        }
+
+        // The cold air rolls out of whichever door opened.
+        private void PuffFromOpenDoor()
+        {
+            Measure();
+            var turn = OpensBack ? Quaternion.Euler(0f, 180f, 0f) : Quaternion.identity;
+            _mist.transform.localPosition = turn * _mistAt;
+            _mist.transform.localRotation = turn * _mistTurn;
+            _mist.Emit(_mistBurst);
+        }
+
+        // Where everything sits, as built.
         private void Measure()
         {
             if (_measured)
                 return;
             _measured = true;
-            _leftShut = _leftPane.localPosition;
-            _rightShut = _rightPane.localPosition;
+            _frontLeftShut = _frontLeft.localPosition;
+            _frontRightShut = _frontRight.localPosition;
+            _backLeftShut = _backLeft.localPosition;
+            _backRightShut = _backRight.localPosition;
+            _mistAt = _mist.transform.localPosition;
+            _mistTurn = _mist.transform.localRotation;
         }
     }
 }

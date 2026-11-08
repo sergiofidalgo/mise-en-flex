@@ -4,6 +4,21 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-08 — Stock shows from any side: a glass fridge and an open shelf
+
+**Decision (user's call, details proposed):** players can turn storage any way, so what's in it should show from every angle.
+- **The fridge is glass on every side and on top,** in a white frame of corner posts, a solid base and a rim round the top. Its two shelves are glass too.
+- **It has sliding doors at the front and the back.** The back door is the front one turned round. A chef opens the door on their side, and the half in front of them slides over the other, as before. The cold air puffs out of whichever door opened.
+- **The shelf is an open rack:** shallow boards 0.4 m deep (were 0.7 m), centred, with no top board, just a thin rim tying the posts together. From the camera's 55° view, the upper board no longer hides what's on the lower tier.
+- **Stock sits in the middle of both,** where it used to sit towards the front. It's then the same from the front, the back and either side.
+- **Replaces** the fridge's solid sides and back, its pale lining, the shelf's deep boards and top board, and slots sitting towards the front.
+
+**Reason:** with every piece placeable and turnable, any side might face the camera. Stock that only shows from the front would hide what's in storage for half of the possible layouts.
+
+**To check in play:** whether the glass and the shallow boards still read clearly as a fridge and a shelf from the overhead camera.
+
+---
+
 ## 2026-11-08 — The cutting board is a counter of its own
 
 **Decision (user's call):** the cutting board works like the knife rack. It comes built into its own counter, and the two can't be separated.
