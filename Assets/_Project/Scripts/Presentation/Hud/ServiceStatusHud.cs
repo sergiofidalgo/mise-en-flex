@@ -97,7 +97,7 @@ namespace Game.Presentation.Hud
                 _prepStartedAt = Time.unscaledTime;
             }
 
-            if (_root.AwaitingLaunchChoice || _root.Services.Days.Phase == DayPhase.Review)
+            if (_root.Services.Days.Phase == DayPhase.Review)
             {
                 _card.Hide();
                 return;
@@ -128,7 +128,7 @@ namespace Game.Presentation.Hud
                     _strip.ShowAt(PrepText(), new Vector2(0f, -_canvas.rect.height / 2f + _stripBottomMargin));
                     break;
                 case DayPhase.Review:
-                    // The Plates dashboard shows the day now (decision 2026-11-08).
+                    // The forkcast dashboard shows the day now (decision 2026-11-08).
                     _card.Hide();
                     break;
                 default:

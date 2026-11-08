@@ -4,6 +4,33 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-08 — A main menu with three campaign slots; the review app is forkcast
+
+**User's calls (from the user's main menu mockup):**
+- **There are three save slots, each a separate campaign** with its own restaurant, money, boss debt and days. This replaces "one campaign at a time, no slots" from 2026-11-06.
+
+  `CLAUDE.md` (hard rules and Saves) and `game-design.md` §15.4 still describe one campaign. They're out of date, and they're the user's to update.
+- **The main menu has:**
+  - a sign: "Mise en FLEX";
+  - Continue (the last played slot);
+  - New campaign;
+  - Free kitchen;
+  - Settings, Credits and Quit;
+  - slot cards on the right. Each card shows a photo, name, rating, style and area, the day, balance, the cooks who played it, the best review, when it was last played and the time played. Y deletes a slot.
+- **Free kitchen is a sandbox for later:** no money, fee or boss, and nothing saved. It's greyed out in the menu until it's built (`ideas.md`).
+- **The review app is called forkcast** everywhere, including the Review dashboard (was "Plates").
+- **The menu's backdrop is a 3D night city in the kitchen's style:** toon shading and ink outlines.
+
+**Details (proposed while building; flagged for review):**
+- **New campaign takes the first free slot.** With all three full, it asks players to delete one first.
+- **Opening the kitchen scene directly in the Editor** continues the last played slot, or starts a new campaign in a free slot. This is for testing, with no menu needed.
+- **The city is built from simple shapes for now.** Real models are a Blender task to raise with the user.
+- **Cards show the review count, not followers.** Followers wait for influencers (Phase 7).
+- **Settings holds the three realism dials that exist** (cooking precision, spoilage, customer patience), saved for all slots. Presets and rebinding controls come with milestone 6.
+- **The cookbook outlives campaigns.** Whether the three slots share one cookbook is open, to decide with milestone 4.
+
+---
+
 ## 2026-11-08 — Money out, the fee every 5 days, and the Plates dashboard
 
 **User's calls (Phase 5, milestone 2):**
@@ -15,7 +42,7 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
   - money in and out, line by line;
   - what's owed to the boss and when the next fee falls due;
   - how the restaurant is doing day by day (rating, guests, money).
-- **The dashboard follows the user's "Plates" mockup** (`plans/vision for management UI.png`).
+- **The dashboard follows the user's mockup** (named forkcast since the main menu decision) (`plans/vision for management UI.png`).
 
 **Details (proposed while building; flagged for review):**
 - **The dashboard is a full-screen view over the kitchen during Review,** not a separate Unity scene. It's still read-only, and it avoids reloading the restaurant every day.

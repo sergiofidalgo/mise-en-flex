@@ -305,3 +305,8 @@ To work out when we get there: staying readable when the camera has zoomed out, 
 The bin fills after 8 things (`BinStation._capacity`), then refuses more and shows a 🚫 until it's emptied; for now a fresh bag goes in each morning (decision 2026-11-08). Once the restaurant's outside exists, players tie off the full bag and carry it out to the street containers round the building, like any carried item, and put a fresh bag in. The morning reset goes then.
 
 To work out when we get there: whether a full bin left standing smells and costs hygiene or reputation (the hygiene realism dial, health inspections), and whether staff can take it out.
+
+
+## Free kitchen (sandbox)
+
+*From the main menu mockup, 2026-11-08.* A mode with the kitchen and every appliance, no money, fee or boss, and nothing saved: for trying techniques, layouts and co-op without pressure. It's greyed out in the main menu until it's built.

@@ -42,6 +42,20 @@ namespace Game.Simulation.Saving
         public float[] Period = new float[0];
 
         public List<Days.DayRecord> History = new List<Days.DayRecord>();
+
+        // For the slot card in the main menu.
+        public string RestaurantName = "";
+        public string StyleName = "";
+        public string Area = "";
+
+        /// <summary>Real seconds played in this campaign.</summary>
+        public float PlayedSeconds;
+
+        /// <summary>When it was last saved, as <see cref="DateTime.Ticks"/> in local time.</summary>
+        public long LastPlayedTicks;
+
+        /// <summary>Every player number that has cooked in this campaign, for the card's coloured dots.</summary>
+        public List<int> Cooks = new List<int>();
     }
 
     /// <summary>One piece of furniture where it stands.</summary>

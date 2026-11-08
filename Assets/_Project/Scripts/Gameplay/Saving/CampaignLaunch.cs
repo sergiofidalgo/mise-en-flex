@@ -1,28 +1,52 @@
 namespace Game.Gameplay.Saving
 {
     /// <summary>
-    /// What the players chose on the title card, kept across the scene reload that loads a save.
-    /// A deliberate small static, like the one exception noted for rejoining (decisions.md): it's the
-    /// only thing that has to outlive the scene. The boss's office replaces the card in Phase 6.
+    /// What the main menu chose (a slot, and whether to continue it), kept across the scene load.
+    /// A deliberate small static, like the earlier rejoin exception: it's the only thing that has to
+    /// outlive the scene.
     /// </summary>
     public static class CampaignLaunch
     {
-        /// <summary>True once Continue or New campaign has been chosen this session.</summary>
+        /// <summary>True once the menu (or a direct start) has chosen.</summary>
         public static bool Decided { get; private set; }
 
-        /// <summary>True if the scene should load the saved campaign as it starts.</summary>
+        /// <summary>True if the kitchen should load the slot's campaign as it starts.</summary>
         public static bool WantsSave { get; private set; }
 
-        public static void Continue()
+        /// <summary>Which of the three slots this campaign is saved in.</summary>
+        public static int Slot { get; private set; }
+
+        public static void Continue(int slot)
         {
             Decided = true;
             WantsSave = true;
+            Slot = slot;
         }
 
-        public static void StartNew()
+        /// <summary>A new campaign in this slot; anything there is deleted first.</summary>
+        public static void StartNew(int slot = 0)
         {
+            SaveSlots.Delete(slot);
             Decided = true;
             WantsSave = false;
+            Slot = slot;
+        }
+
+        /// <summary>
+        /// The kitchen opened without the menu (in the Editor): the last played slot carries on, or a
+        /// new campaign starts in a free one.
+        /// </summary>
+        public static void ChooseForDirectPlay()
+        {
+            var saves = SaveSlots.ReadAll();
+            var last = SaveSlots.LastPlayed(saves);
+            if (last >= 0)
+            {
+                Continue(last);
+                return;
+            }
+            var free = SaveSlots.FirstFree(saves);
+            StartNew(free >= 0 ? free : 0);
         }
 
         /// <summary>Back to a fresh launch: also as play mode starts, in case statics survive between runs.</summary>
@@ -31,6 +55,7 @@ namespace Game.Gameplay.Saving
         {
             Decided = false;
             WantsSave = false;
+            Slot = 0;
         }
     }
 }

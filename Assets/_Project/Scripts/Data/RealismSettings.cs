@@ -19,8 +19,28 @@ namespace Game.Data
         [Tooltip("Multiplies how long customers wait before walking out. 2 = twice as patient, 0 = never walk out.")]
         [SerializeField, Min(0f)] private float _customerPatience = 1f;
 
-        public float CookingPrecision => _cookingPrecision;
-        public float CustomerPatience => _customerPatience;
-        public float SpoilageMultiplier => _spoilageMultiplier;
+        // The players' own settings, set at runtime from the settings file. Not serialized, so the
+        // asset keeps the designer's defaults.
+        [System.NonSerialized] private bool _overridden;
+        [System.NonSerialized] private float _playerPrecision;
+        [System.NonSerialized] private float _playerPatience;
+        [System.NonSerialized] private float _playerSpoilage;
+
+        public float CookingPrecision => _overridden ? _playerPrecision : _cookingPrecision;
+        public float CustomerPatience => _overridden ? _playerPatience : _customerPatience;
+        public float SpoilageMultiplier => _overridden ? _playerSpoilage : _spoilageMultiplier;
+
+        public float DefaultCookingPrecision => _cookingPrecision;
+        public float DefaultCustomerPatience => _customerPatience;
+        public float DefaultSpoilageMultiplier => _spoilageMultiplier;
+
+        /// <summary>Uses the players' chosen values from now on (the Settings page).</summary>
+        public void UsePlayerValues(float precision, float spoilage, float patience)
+        {
+            _overridden = true;
+            _playerPrecision = precision;
+            _playerSpoilage = spoilage;
+            _playerPatience = patience;
+        }
     }
 }

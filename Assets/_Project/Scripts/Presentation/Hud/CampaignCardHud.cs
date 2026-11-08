@@ -6,19 +6,15 @@ using UnityEngine.InputSystem;
 namespace Game.Presentation.Hud
 {
     /// <summary>
-    /// Two small cards around the one campaign (decisions 2026-11-08). At launch, with a campaign
-    /// saved: Continue or New campaign, and New asks again since the old one is replaced. When
-    /// quitting with an unsaved day: quitting loses today, so it asks first. Read from any controller
-    /// (or the keyboard's face-button keys) because nobody has joined yet at launch. The boss's office
-    /// replaces the launch card in Phase 6.
+    /// Quitting with an unsaved day loses today, so it asks first (decision 2026-11-06). Continue and
+    /// New campaign moved to the main menu (decision 2026-11-08). Read from any controller (or the
+    /// keyboard's face-button keys).
     /// </summary>
     public sealed class CampaignCardHud : MonoBehaviour
     {
         private enum Card
         {
             None,
-            Launch,
-            ConfirmNew,
             ConfirmQuit,
         }
 
@@ -30,11 +26,6 @@ namespace Game.Presentation.Hud
         [SerializeField] private Vector2 _padding = new Vector2(40f, 28f);
 
         [Header("Text")]
-        [SerializeField] private string _continueText = "Continue · Day {0}";
-        [SerializeField] private string _newText = "New campaign";
-        [SerializeField] private string _confirmNewText = "Start a new campaign?\nThe saved restaurant will be replaced.";
-        [SerializeField] private string _confirmNewYes = "Start over";
-        [SerializeField] private string _back = "Back";
         [SerializeField] private string _confirmQuitText = "Quit now?\nToday isn't saved: the game saves as Review starts.";
         [SerializeField] private string _confirmQuitYes = "Quit";
         [SerializeField] private string _stay = "Keep playing";
@@ -47,7 +38,7 @@ namespace Game.Presentation.Hud
         {
             _label = WorldLabel.Create(_style, _canvas, "CampaignCard", _padding, new Vector2(0.5f, 0.5f));
             _label.FontSize = _fontSize;
-            _card = _root.AwaitingLaunchChoice ? Card.Launch : Card.None;
+            _card = Card.None;
             Application.wantsToQuit += AllowQuit;
         }
 
@@ -66,25 +57,6 @@ namespace Game.Presentation.Hud
         {
             switch (_card)
             {
-                case Card.Launch:
-                    _label.ShowAt($"{Badge(PromptControl.South)} {string.Format(_continueText, _root.SavedDay)}     {Badge(PromptControl.North)} {_newText}", Vector2.zero);
-                    if (Pressed(South))
-                        _root.ChooseContinue();
-                    else if (Pressed(North))
-                        _card = Card.ConfirmNew;
-                    break;
-                case Card.ConfirmNew:
-                    Show(_confirmNewText, $"{Badge(PromptControl.South)} {_confirmNewYes}     {Badge(PromptControl.East)} {_back}");
-                    if (Pressed(South))
-                    {
-                        _root.ChooseNewCampaign();
-                        _card = Card.None;
-                    }
-                    else if (Pressed(East))
-                    {
-                        _card = Card.Launch;
-                    }
-                    break;
                 case Card.ConfirmQuit:
                     Show(_confirmQuitText, $"{Badge(PromptControl.South)} {_confirmQuitYes}     {Badge(PromptControl.East)} {_stay}");
                     if (Pressed(South))
@@ -117,7 +89,6 @@ namespace Game.Presentation.Hud
 
         private const Face South = Face.South;
         private const Face East = Face.East;
-        private const Face North = Face.North;
 
         // Any controller, or the keyboard keys that stand in for the face buttons (X, D, W).
         private static bool Pressed(Face face)

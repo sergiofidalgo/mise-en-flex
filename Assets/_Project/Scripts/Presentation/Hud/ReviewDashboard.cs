@@ -14,7 +14,7 @@ using UnityEngine.UI;
 namespace Game.Presentation.Hud
 {
     /// <summary>
-    /// The Review dashboard (decisions 2026-11-06 and 2026-11-08, after the user's "Plates" mockup): a
+    /// The Review dashboard (decisions 2026-11-06 and 2026-11-08, after the user's mockup): forkcast, a
     /// review-listing app over the kitchen while Review lasts. It's read-only, except for replying to
     /// reviews. LB and RB switch tabs, the stick browses reviews, Y replies, and Menu readies up for
     /// the next day as usual. It's built in code, like the rest of the HUD.
@@ -61,7 +61,7 @@ namespace Game.Presentation.Hud
         [SerializeField, Min(1)] private int _visibleCards = 3;
 
         [Header("Text")]
-        [SerializeField] private string _appName = "Plates";
+        [SerializeField] private string _appName = "forkcast";
         [SerializeField] private string _apologise = "We're sorry. We'll do better next time.";
         [SerializeField] private string _thank = "Thank you for coming! See you soon.";
         [SerializeField] private string _standGround = "We stand by our kitchen.";
@@ -295,7 +295,7 @@ namespace Game.Presentation.Hud
         private static Sprite _starSprite;
 
         // A five-pointed star, made once, anti-aliased by sampling each pixel several times.
-        private static Sprite StarSprite
+        internal static Sprite StarSprite
         {
             get
             {
@@ -670,6 +670,29 @@ namespace Game.Presentation.Hud
             camera.Render();
             camera.targetTexture = previous;
             _photo.texture = _photoTexture;
+            KeepPhotoForTheMenu();
+        }
+
+        // The slot's card in the main menu shows the latest close.
+        private void KeepPhotoForTheMenu()
+        {
+            try
+            {
+                var previous = RenderTexture.active;
+                RenderTexture.active = _photoTexture;
+                var picture = new Texture2D(_photoTexture.width, _photoTexture.height, TextureFormat.RGB24, false);
+                picture.ReadPixels(new UnityEngine.Rect(0, 0, _photoTexture.width, _photoTexture.height), 0, 0);
+                picture.Apply();
+                RenderTexture.active = previous;
+                var path = Game.Gameplay.Saving.SaveSlots.PhotoPath(_root.Slot);
+                System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(path));
+                System.IO.File.WriteAllBytes(path, picture.EncodeToJPG(85));
+                Destroy(picture);
+            }
+            catch (System.Exception exception)
+            {
+                Debug.LogWarning($"Couldn't keep the photo for the menu: {exception.Message}");
+            }
         }
 
         // ---- Building ----

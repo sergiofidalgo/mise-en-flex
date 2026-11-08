@@ -37,8 +37,14 @@ namespace Game.Gameplay
 
         private void Awake()
         {
+            // Opened straight from the Editor, with no menu: carry on with the last campaign.
+            if (!CampaignLaunch.Decided)
+                CampaignLaunch.ChooseForDirectPlay();
+            PlayerSettings.Load(_realism).ApplyTo(_realism);
+
             // Continuing: the furniture goes where it was before anything binds (decision 2026-11-08).
             var save = CampaignLaunch.WantsSave ? SaveFile.Read() : null;
+            _loaded = save;
             var placed = save != null ? CampaignSnapshot.ApplyLayout(save, FindStations(), _furniture) : null;
             var stations = new StationRegistry(FindStations());
 
@@ -56,47 +62,15 @@ namespace Game.Gameplay
                 station.Bind(Services);
 
             if (save != null)
-            {
                 CampaignSnapshot.RestoreContents(save, placed, Services);
-            }
-
-            // First launch of the session with a campaign on disk: the title card asks first.
-            if (!CampaignLaunch.Decided)
-            {
-                var onDisk = SaveFile.Read();
-                if (onDisk != null)
-                    SavedDay = onDisk.Day;
-                else
-                    CampaignLaunch.StartNew();
-            }
         }
 
-        private void Start()
-        {
-            if (AwaitingLaunchChoice)
-                _playerInputManager.DisableJoining();
-        }
+        // The campaign as it was loaded, for what the card keeps across sessions (play time, cooks).
+        private Game.Simulation.Saving.CampaignSave _loaded;
+        private float _sessionSeconds;
 
-        /// <summary>True while the title card is up: nobody can join until Continue or New campaign is chosen.</summary>
-        public bool AwaitingLaunchChoice => !CampaignLaunch.Decided;
-
-        /// <summary>The day the saved campaign last played, for the title card.</summary>
-        public int SavedDay { get; private set; }
-
-        /// <summary>Loads the saved campaign: the scene starts again and puts the save back as it does.</summary>
-        public void ChooseContinue()
-        {
-            CampaignLaunch.Continue();
-            UnityEngine.SceneManagement.SceneManager.LoadScene(gameObject.scene.name);
-        }
-
-        /// <summary>Starts over in the fresh kitchen already here. The old file is kept aside, not read again.</summary>
-        public void ChooseNewCampaign()
-        {
-            CampaignLaunch.StartNew();
-            SaveFile.Retire();
-            _playerInputManager.EnableJoining();
-        }
+        /// <summary>The slot this campaign is saved in.</summary>
+        public int Slot => CampaignLaunch.Slot;
 
         /// <summary>Posts a reply under a review, once, and saves it straight away.</summary>
         public bool ReplyTo(Game.Simulation.Saving.ReviewRecord review, ReviewReply reply)
@@ -121,8 +95,8 @@ namespace Game.Gameplay
         /// <summary>True if quitting now would lose something: anything since Review started is unsaved.</summary>
         public bool HasUnsavedDay => CampaignLaunch.Decided && Services.Days.Phase != DayPhase.Review;
 
-        /// <summary>The one campaign file (decision 2026-11-06: no slots).</summary>
-        public SaveFile SaveFile => _saveFile ??= new SaveFile();
+        /// <summary>This campaign's file, in its slot (decision 2026-11-08: three slots).</summary>
+        public SaveFile SaveFile => _saveFile ??= SaveSlots.File(CampaignLaunch.Slot);
 
         private SaveFile _saveFile;
 
@@ -131,6 +105,15 @@ namespace Game.Gameplay
         {
             var players = PlayerInput.all.Select(p => p.GetComponent<PlayerInteractor>()).Where(p => p != null);
             var save = CampaignSnapshot.Capture(Services, players);
+
+            // What the slot card shows in the main menu.
+            save.RestaurantName = _serviceConfig.RestaurantName;
+            save.StyleName = _serviceConfig.StyleName;
+            save.Area = _serviceConfig.Area;
+            save.PlayedSeconds = (_loaded?.PlayedSeconds ?? 0f) + _sessionSeconds;
+            save.LastPlayedTicks = System.DateTime.Now.Ticks;
+            save.Cooks = (_loaded?.Cooks ?? new System.Collections.Generic.List<int>())
+                .Concat(PlayerInput.all.Select(p => p.playerIndex)).Distinct().OrderBy(i => i).ToList();
             try
             {
                 SaveFile.Write(save);
@@ -157,6 +140,8 @@ namespace Game.Gameplay
 
         private void Update()
         {
+            _sessionSeconds += Time.unscaledDeltaTime;
+
             // Dials are read every frame so Inspector edits apply live.
             var cooking = Services.Cooking;
             cooking.AmbientTemperature = _tuning.AmbientTemperature;
