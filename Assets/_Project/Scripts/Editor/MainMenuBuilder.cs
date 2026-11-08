@@ -89,6 +89,21 @@ namespace Game.Editor
             so.FindProperty("_coop").objectReferenceValue = AssetDatabase.LoadAssetAtPath<CoopSettings>(SettingsFolder + "/CoopSettings.asset");
             so.FindProperty("_realism").objectReferenceValue = AssetDatabase.LoadAssetAtPath<RealismSettings>(SettingsFolder + "/RealismSettings.asset");
             so.FindProperty("_service").objectReferenceValue = AssetDatabase.LoadAssetAtPath<ServiceConfig>(SettingsFolder + "/ServiceConfig.asset");
+            // The mockup's type and art (MenuArt makes the font assets and sprite imports on first use).
+            so.FindProperty("_medium").objectReferenceValue = MenuArt.Font("Inter-Medium");
+            so.FindProperty("_semiBold").objectReferenceValue = MenuArt.Font("Inter-SemiBold");
+            so.FindProperty("_bold").objectReferenceValue = MenuArt.Font("Inter-Bold");
+            so.FindProperty("_serifItalic").objectReferenceValue = MenuArt.Font("Lora-Italic");
+            so.FindProperty("_sign").objectReferenceValue = MenuArt.Sprite("TEX_Menu_Sign");
+            so.FindProperty("_forkcastLogo").objectReferenceValue = MenuArt.Sprite("TEX_Menu_ForkcastLogo");
+            so.FindProperty("_searchIcon").objectReferenceValue = MenuArt.Sprite("TEX_Menu_IconSearch");
+            so.FindProperty("_bellIcon").objectReferenceValue = MenuArt.Sprite("TEX_Menu_IconBell");
+            so.FindProperty("_polaroidFirst").objectReferenceValue = MenuArt.Sprite("TEX_Menu_PolaroidFirstUp");
+            so.FindProperty("_polaroidNext").objectReferenceValue = MenuArt.Sprite("TEX_Menu_PolaroidNextUp");
+            so.FindProperty("_slotDashed").objectReferenceValue = MenuArt.Sprite("TEX_Menu_SlotDashed");
+            so.FindProperty("_slotPlus").objectReferenceValue = MenuArt.Sprite("TEX_Menu_SlotPlus");
+            so.FindProperty("_avatarEmpty").objectReferenceValue = MenuArt.Sprite("TEX_Menu_AvatarEmpty");
+            so.FindProperty("_cookEmpty").objectReferenceValue = MenuArt.Sprite("TEX_Menu_CookEmpty");
             so.ApplyModifiedPropertiesWithoutUndo();
 
             EditorSceneManager.SaveScene(scene, ScenePath);

@@ -4,6 +4,25 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-09 — The main menu drawn to the Art Director's v11 mockups
+
+**Done (the user asked for the menu to mirror the intended design):**
+- **Measured, not eyeballed.** Positions, sizes, radii and colours come from the mockup SVGs (`Art/Direction/concepts/svg/ui_svgs.zip`); text is placed by its baseline, as the mockups set it. `Tools/Game/Capture Main Menu UI` renders the menu at 1920×1080 with sample campaigns that mirror the mockup, for side-by-side checks.
+- **Type:** Inter (Medium, SemiBold, Bold) and Lora Italic for quotes, both SIL Open Font License, as static TextMeshPro atlases (Latin-1). They replace LiberationSans on the menu only. The art bible's "e.g. Fredoka / Nunito" doesn't match the mockups; that line is the Art Director's to update.
+- **Static art is exported from the SVGs as sprites** (`Assets/_Project/Art/UI/Menu`): the sign with its stickers, the forkcast logo, icons, polaroids, the dashed slot frame. The sign follows v11 (gold chains, a hard drop shadow, an inner frame line) rather than the SVG export, which still had orange posts.
+- **The canvas scales with Expand**, so the whole 1920×1080 layout fits on a 16:10 MacBook screen (before, the sides were cut off). The hint bar spans the screen's bottom edge.
+- **Dark text on light panels gets a small SDF dilate**, because linear colour space draws it 20–40% thinner than designed.
+
+**Kept different from the mockup (flagged for review):**
+- **No followers chip:** followers wait for influencers (2026-11-08). The rating line already shows the review count.
+- **The hints show only what works:** on the list they're Browse and Select. The mockup also shows Back and Delete slot there, but those do nothing on the list.
+- **Cook dots use the game's player colours**, not the mockup's illustrative ones.
+- **The sign's "@ines.eats" sticker, 12.4k bubble and polaroid are now static art**, as in both mockups (the new-player mockup shows them with no campaigns). Before, the sticker showed the best real review.
+- **Free kitchen stays dimmed** until it's built (2026-11-08).
+- **Selected rows show a short line of what they do** (e.g. Settings: "Cooking precision, spoilage, patience"), extending the mockup's Continue and New campaign sub-lines to every row.
+
+---
+
 ## 2026-11-08 — A main menu with three campaign slots; the review app is forkcast
 
 **User's calls (from the user's main menu mockup):**
