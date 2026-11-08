@@ -7,11 +7,13 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 ## 2026-11-08 — Stock shows from any side: a glass fridge and an open shelf
 
 **Decision (user's call, details proposed):** players can turn storage any way, so what's in it should show from every angle.
-- **The fridge is glass on every side and on top,** in a white frame of corner posts, a solid base and a rim round the top. Its two shelves are glass too.
-- **It has sliding doors at the front and the back.** The back door is the front one turned round. A chef opens the door on their side, and the half in front of them slides over the other, as before. The cold air puffs out of whichever door opened.
-- **The shelf is an open rack:** shallow boards 0.4 m deep (were 0.7 m), centred, with no top board, just a thin rim tying the posts together. From the camera's 55° view, the upper board no longer hides what's on the lower tier.
+- **The fridge has a glass top and glass shelves,** in a white frame of corner posts, a solid base and a rim round the top.
+- **Each of its four sides is see-through where it faces open floor, and solid where it's up against something** (user's call, after play). A wall or a piece of furniture within 0.2 m of a side makes it solid white (`_reach` and `_gap` on `FridgeShellView`). People and loose items don't count. It checks every frame, so it follows the layout as pieces move, even while the fridge is carried.
+  - **Open, the left and right sides are glass, and the front and back are sliding doors.** The back door is the front one turned round.
+  - **A chef opens the door on their side,** and the half in front of them slides over the other, as before. If the door on their side is solid, the other one opens. The cold air puffs out of whichever door opened.
+- **The shelf is an open rack:** shallow boards 0.4 m deep (were 0.7 m), centred. The upper tier's board is its top, with no empty posts above it (user's call, after play), so it's 1.05 m tall (was 1.5 m). From the camera's 55° view, the upper board no longer hides what's on the lower tier.
 - **Stock sits in the middle of both,** where it used to sit towards the front. It's then the same from the front, the back and either side.
-- **Replaces** the fridge's solid sides and back, its pale lining, the shelf's deep boards and top board, and slots sitting towards the front.
+- **Replaces** the fridge's solid sides and back, its pale lining, the shelf's deep boards, its top board and its 1.5 m height, and slots sitting towards the front.
 
 **Reason:** with every piece placeable and turnable, any side might face the camera. Stock that only shows from the front would hide what's in storage for half of the possible layouts.
 

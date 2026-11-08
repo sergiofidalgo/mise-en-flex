@@ -24,6 +24,8 @@ namespace Game.Presentation
         [SerializeField] private Transform _backRight;
         [Tooltip("Puffs out of whichever door opens.")]
         [SerializeField] private ParticleSystem _mist;
+        [Tooltip("Which sides are doors and which are solid; a door against a wall isn't there to open.")]
+        [SerializeField] private FridgeShellView _shell;
 
         [Tooltip("Metres a pane slides to open its half: the pane's width less the overlap.")]
         [SerializeField, Range(0.1f, 0.6f)] private float _slide = 0.44f;
@@ -62,14 +64,22 @@ namespace Game.Presentation
                 _opener = opener;
         }
 
-        /// <summary>Which door and half open for someone at <paramref name="position"/>: those in front of them.</summary>
+        /// <summary>
+        /// Which door and half open for someone at <paramref name="position"/>: those in front of
+        /// them. If the door on their side is solid against something, it's the other one.
+        /// </summary>
         public (bool Back, bool Right) OpensFor(Vector3 position)
         {
             var local = transform.InverseTransformPoint(position);
             var back = local.z > 0f;
+            if (_shell != null && !IsDoor(back) && IsDoor(!back))
+                back = !back;
             // Facing the back door, the fridge's left is on their right.
             return (back, back ? local.x <= 0f : local.x >= 0f);
         }
+
+        private bool IsDoor(bool back) =>
+            _shell == null || _shell.IsOpen(back ? FridgeShellView.Facing.Back : FridgeShellView.Facing.Front);
 
         private void Update()
         {
@@ -83,7 +93,8 @@ namespace Game.Presentation
                     // The side only changes while it's shut, so a pane caught closing never jumps across.
                     if (_amount <= 0f && _opener != null)
                         (OpensBack, OpensRight) = OpensFor(_opener.position);
-                    PuffFromOpenDoor();
+                    if (IsDoor(OpensBack))
+                        PuffFromOpenDoor();
                     Opened?.Invoke();
                 }
                 else

@@ -402,6 +402,21 @@ namespace Game.Tests.PlayMode
             Assert.That(interactor.Target, Is.Not.SameAs(away), "in reach, but through the wall");
         }
 
+        // The starting fridge stands in the back-left corner with the shelf beside it: solid against
+        // both walls and the shelf, a door towards the kitchen (decision 2026-11-08).
+        [UnityTest]
+        public IEnumerator TheStartingFridgeIsSolidWhereItsBoxedInAndOpenToTheKitchen()
+        {
+            yield return OpenKitchenWithCursor();
+            yield return null;
+            var shell = Object.FindFirstObjectByType<Game.Presentation.FridgeShellView>();
+            Assert.That(shell, Is.Not.Null);
+            Assert.That(shell.IsOpen(Game.Presentation.FridgeShellView.Facing.Back), Is.False, "the back wall");
+            Assert.That(shell.IsOpen(Game.Presentation.FridgeShellView.Facing.Left), Is.False, "the west wall");
+            Assert.That(shell.IsOpen(Game.Presentation.FridgeShellView.Facing.Front), Is.True, "its door, to the kitchen");
+            Assert.That(shell.IsOpen(Game.Presentation.FridgeShellView.Facing.Right), Is.False, "the shelf beside it");
+        }
+
         private IEnumerator StandAt(Vector3 position)
         {
             var controller = _player.GetComponent<CharacterController>();

@@ -201,7 +201,7 @@ def build_steak():
 # footprint as other stations. Slot positions live in StorageArt.SlotPosition; the models only
 # give the shelves those slots sit on, at heights 0.45 and 1.05.
 FRIDGE_HEIGHT = 1.8
-SHELF_HEIGHT = 1.5
+SHELF_HEIGHT = 1.05  # the upper tier's board is its top (decision 2026-11-08)
 TIER_TOPS = (0.45, 1.05)
 # The fridge's sliding glass panes (decision 2026-11-08), each half the opening plus an overlap,
 # on a track of its own across the front (and, turned round in the game, the back): the game's left pane on the back track, the right one in
@@ -233,14 +233,27 @@ def build_fridge():
         add_box(bm, (0.04, 0.9, 0.1), (x, 0.0, FRIDGE_HEIGHT - 0.05), bevel=0.008)
     body = finish("FridgeBody", bm)
 
-    # Everything see-through in one mesh: both sides, the top and the two shelves.
+    # Always see-through: the top and the two shelves.
     bm = bmesh.new()
-    for x in (-0.48, 0.48):
-        add_box(bm, (0.006, 0.82, FRIDGE_HEIGHT - 0.25), (x, 0.0, 0.15 + (FRIDGE_HEIGHT - 0.25) / 2.0))
     add_box(bm, (0.92, 0.82, 0.006), (0.0, 0.0, FRIDGE_HEIGHT - 0.05))
     for top in TIER_TOPS:
         add_box(bm, (0.9, 0.8, 0.01), (0.0, 0.0, top - 0.005))
     glass_box = finish("FridgeGlass", bm)
+
+    # Each side is glass, or solid where it stands against something (decision 2026-11-08). Both
+    # are modelled for one side and one end, in place; the game turns copies round for the others.
+    # A side, on the game's left (Blender's +x), between the posts:
+    side_height = FRIDGE_HEIGHT - 0.25
+    bm = bmesh.new()
+    add_box(bm, (0.006, 0.82, side_height), (0.48, 0.0, 0.15 + side_height / 2.0))
+    side_glass = finish("FridgeSideGlass", bm)
+    bm = bmesh.new()
+    add_box(bm, (0.02, 0.82, side_height), (0.48, 0.0, 0.15 + side_height / 2.0))
+    side_panel = finish("FridgeSidePanel", bm)
+    # An end, at the front, filling the opening where the door would be:
+    bm = bmesh.new()
+    add_box(bm, (0.92, 0.02, FRIDGE_PANE_HEIGHT), (0.0, 0.46, FRIDGE_PANE_BOTTOM + FRIDGE_PANE_HEIGHT / 2.0))
+    end_panel = finish("FridgeEndPanel", bm)
 
     # Two sliding panes, each a white frame around glass. Nothing sticks out of them, so one can
     # pass the other; the wider outer stile is the grip. Both stay inside the fridge's width.
@@ -269,17 +282,17 @@ def build_fridge():
     add_box(bm, (0.3, 0.24, 0.03), (0.0, 0.0, 0.015), bevel=0.006)
     basket = finish("FridgeBasket", bm)
     basket.location = (0.0, 0.0, TIER_TOPS[1])
-    return [body, glass_box, *panes, basket]
+    return [body, glass_box, side_glass, side_panel, end_panel, *panes, basket]
 
 
-# The shelf's boards are shallow and centred, and it has no top board, so what's on the lower tier
-# isn't hidden under the upper one from the camera's 55° view, whichever way the shelf is turned.
+# The shelf's boards are shallow and centred, so what's on the lower tier isn't hidden under the
+# upper one from the camera's 55° view, whichever way the shelf is turned.
 SHELF_BOARD_DEPTH = 0.4
 
 
 def build_shelf():
-    """A tall open rack (decision 2026-11-08): two tiers of two slots on shallow boards, open on
-    every side and on top, sacks on the bottom board."""
+    """An open rack (decision 2026-11-08): two tiers of two slots on shallow boards, open on every
+    side, the upper tier's board its top, sacks on the bottom board."""
     half = SHELF_BOARD_DEPTH / 2.0
     bm = bmesh.new()
     for x in (-0.475, 0.475):
@@ -287,9 +300,6 @@ def build_shelf():
             add_box(bm, (0.04, 0.04, SHELF_HEIGHT), (x, y, SHELF_HEIGHT / 2.0), bevel=0.008)
     for top in (0.06,) + TIER_TOPS:
         add_box(bm, (1.0, SHELF_BOARD_DEPTH, 0.04), (0.0, 0.0, top - 0.02), bevel=0.006)
-    # A thin rim on top ties the posts together without hiding anything.
-    for y in (-half + 0.02, half - 0.02):
-        add_box(bm, (1.0, 0.03, 0.03), (0.0, y, SHELF_HEIGHT - 0.015), bevel=0.005)
     body = finish("ShelfBody", bm)
 
     bm = bmesh.new()
