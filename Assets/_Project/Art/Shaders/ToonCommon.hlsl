@@ -48,9 +48,10 @@ half3 ToonShade(half3 albedo, float3 positionWS, float3 normalWS, float4 positio
     color += albedo * SampleSH(normalWS) * 0.12;
 
     // Contact shadow from SSAO, banded to one flat step (needs _SCREEN_SPACE_OCCLUSION in the pass;
-    // without the keyword this returns 1 and does nothing).
+    // without the keyword this returns 1 and does nothing). A light step: at 0.78 the floor under
+    // the counters went too dark (the user's note, 2026-11-08).
     AmbientOcclusionFactor ao = GetScreenSpaceAmbientOcclusion(GetNormalizedScreenSpaceUV(positionCS));
-    color *= lerp(0.78, 1.0, smoothstep(0.55, 0.7, ao.indirectAmbientOcclusion));
+    color *= lerp(0.87, 1.0, smoothstep(0.55, 0.7, ao.indirectAmbientOcclusion));
 
     // A soft rim on the lit side, which separates shapes from the floor behind them.
     float lit = smoothstep(RampLitEdge - RampSoftness, RampLitEdge + RampSoftness, value);

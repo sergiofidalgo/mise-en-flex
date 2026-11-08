@@ -36,7 +36,8 @@ namespace Game.Editor
         // A stronger blue rim and a dark steel rack, so plates and the rack read at a glance
         // (the user's note, 2026-11-08).
         private static readonly Color RimColor = new Color(0.42f, 0.62f, 0.9f);
-        private static readonly Color RackSteel = new Color(0.3f, 0.32f, 0.36f);
+        // The same steel as the tray rack's frame (PanArt), not black (the user's note, 2026-11-08).
+        private static readonly Color RackSteel = new Color(0.58f, 0.6f, 0.64f);
         // The plate rack and its plates show bigger, standing taller over the counter.
         private const float RackSize = 1.25f;
         private static readonly Color SteelColor = new Color(0.74f, 0.76f, 0.8f);

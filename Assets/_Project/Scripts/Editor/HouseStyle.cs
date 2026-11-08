@@ -26,7 +26,8 @@ namespace Game.Editor
         // and fronts were both fully lit and only the outlines told them apart.
         private static readonly Vector3 SunAngles = new Vector3(58f, 96f, 0f);
         private const float SunIntensity = 1.15f;
-        private const float ShadowStrength = 0.6f;
+        // Soft enough that the floor under the counters doesn't go dark (the user's note, 2026-11-08).
+        private const float ShadowStrength = 0.45f;
 
         // Sky light: warm from above, a little darker round the sides and below.
         private static readonly Color AmbientSky = new Color(0.62f, 0.63f, 0.65f);
