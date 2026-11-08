@@ -25,16 +25,26 @@ namespace Game.Simulation.Movement
         /// <param name="buildingMin">The building's corner, if the view should stay on it: once all of it fits it's
         /// centred on the building rather than on people, and otherwise it doesn't show beyond its walls.</param>
         /// <param name="buildingMax">The opposite corner.</param>
+        /// <param name="areaMin">The corner of an area to show as it is, with no margins, as well as the points.</param>
+        /// <param name="areaMax">Its opposite corner.</param>
         /// <returns>The camera's position: X across, Y up, Z along the floor.</returns>
         public static Vector3 Fit(
             IReadOnlyList<Vector2> points, float tiltDegrees, float fieldOfViewDegrees, float aspect, float margin, float minHeight, float maxHeight,
-            float extraFar = 0f, float? nearMargin = null, float screenTop = 0f, float screenBottom = 0f, Vector2? buildingMin = null, Vector2? buildingMax = null)
+            float extraFar = 0f, float? nearMargin = null, float screenTop = 0f, float screenBottom = 0f, Vector2? buildingMin = null, Vector2? buildingMax = null,
+            Vector2? areaMin = null, Vector2? areaMax = null)
         {
             var near = nearMargin ?? margin;
             var minX = float.MaxValue;
             var maxX = float.MinValue;
             var minZ = float.MaxValue;
             var maxZ = float.MinValue;
+            if (areaMin.HasValue && areaMax.HasValue)
+            {
+                minX = areaMin.Value.X;
+                minZ = areaMin.Value.Y;
+                maxX = areaMax.Value.X;
+                maxZ = areaMax.Value.Y;
+            }
             foreach (var point in points)
             {
                 minX = Math.Min(minX, point.X - margin);
@@ -80,6 +90,52 @@ namespace Game.Simulation.Movement
             return new Vector3(cameraX, height, cameraZ);
         }
 
+        /// <summary>
+        /// The least a camera has to move from where it is to keep every point in view: up, if they've
+        /// spread further than it can see, and across or along, if one has gone past an edge. A camera
+        /// that already shows them all stays where it is. This is the hard limit under the eased moves,
+        /// so nobody walks off screen however fast they split up.
+        /// </summary>
+        public static Vector3 KeepInView(
+            IReadOnlyList<Vector2> points, Vector3 camera, float tiltDegrees, float fieldOfViewDegrees, float aspect, float margin, float maxHeight,
+            float screenTop = 0f, float screenBottom = 0f)
+        {
+            if (points.Count == 0)
+                return camera;
+
+            var fit = Fit(points, tiltDegrees, fieldOfViewDegrees, aspect, margin, 0f, maxHeight, 0f, null, screenTop, screenBottom);
+            var height = Math.Max(camera.Y, fit.Y);
+
+            var minX = float.MaxValue;
+            var maxX = float.MinValue;
+            var minZ = float.MaxValue;
+            var maxZ = float.MinValue;
+            foreach (var point in points)
+            {
+                minX = Math.Min(minX, point.X - margin);
+                maxX = Math.Max(maxX, point.X + margin);
+                minZ = Math.Min(minZ, point.Y - margin);
+                maxZ = Math.Max(maxZ, point.Y + margin);
+            }
+
+            // The same rays as in Fit. Along the floor, the camera can be anywhere that has the far
+            // edge below the top ray and the near edge above the bottom one.
+            var tanHalfView = (float)Math.Tan(Radians(fieldOfViewDegrees) / 2f);
+            var tilt = Radians(tiltDegrees);
+            var topAngle = tilt - (float)Math.Atan((1f - 2f * screenTop) * tanHalfView);
+            var bottomAngle = tilt - (float)Math.Atan((-1f + 2f * screenBottom) * tanHalfView);
+            var cameraZ = Within(camera.Z, maxZ - height * Cot(topAngle), minZ - height * Cot(bottomAngle));
+
+            // Across, measured where the view is narrowest, as in Fit.
+            var halfWidth = height * (float)(Math.Cos(bottomAngle - tilt) / Math.Sin(bottomAngle)) * tanHalfView * aspect;
+            var cameraX = Within(camera.X, maxX - halfWidth, minX + halfWidth);
+            return new Vector3(cameraX, height, cameraZ);
+        }
+
+        // Clamped between two limits; halfway if they cross, which only the top height can cause.
+        private static float Within(float value, float low, float high) =>
+            low > high ? (low + high) / 2f : Math.Max(low, Math.Min(high, value));
+
         // Centred if all of it fits across; otherwise as near the wanted place as stays on the building.
         private static float KeepOnBuilding(float wanted, float halfWidth, float low, float high)
         {
@@ -116,26 +172,56 @@ namespace Game.Simulation.Movement
         }
 
         /// <summary>
-        /// How close the camera may come, going by how far someone has wandered from where the cooking
-        /// is: it eases back as they go, however little it needs to fit them, up to a limit.
+        /// The floor the kitchen's still shot shows, exactly: its working area, a little past it at the
+        /// sides and back so the walls and the units on them show, and the floor in front of it where its
+        /// customers are served. The front is the side towards the dining room, the low end of the second
+        /// coordinate. Kept within the building's outer walls.
         /// </summary>
-        public static float ClosestHeight(float metresAway, float nearHeight, float extraPerMetre, float mostExtra) =>
-            nearHeight + mostExtra * SmoothStep(extraPerMetre > 0f && mostExtra > 0f ? Math.Max(0f, metresAway) * extraPerMetre / mostExtra : 0f);
-
-        // An S-curve from 0 to 1: it starts and ends gently, so there's no moment you can see it begin.
-        private static float SmoothStep(float t)
+        public static (Vector2 Min, Vector2 Max) KitchenShot(Vector2 kitchenMin, Vector2 kitchenMax, float inFront, float atSides, float behind, Vector2 buildingMin, Vector2 buildingMax)
         {
-            t = Math.Min(1f, t);
-            return t * t * (3f - 2f * t);
+            var min = new Vector2(kitchenMin.X - atSides, kitchenMin.Y - inFront);
+            var max = new Vector2(kitchenMax.X + atSides, kitchenMax.Y + behind);
+            return (Vector2.Clamp(min, buildingMin, buildingMax), Vector2.Clamp(max, buildingMin, buildingMax));
         }
 
-        /// <summary>How far a point is outside a rectangle; zero inside it.</summary>
-        public static float DistanceOutside(Vector2 point, Vector2 min, Vector2 max)
+        /// <summary>Whether a point is inside a rectangle, or within some slack of it.</summary>
+        public static bool Inside(Vector2 point, Vector2 min, Vector2 max, float slack = 0f) =>
+            point.X >= min.X - slack && point.X <= max.X + slack && point.Y >= min.Y - slack && point.Y <= max.Y + slack;
+
+        /// <summary>
+        /// Where along its way from one place to another a camera has to be, at the least, to keep every
+        /// point in view: so when someone outruns it, it hurries along the arc it's already on instead
+        /// of being pushed off it. Where it is, if they're all in view already; where it's going, if
+        /// even that doesn't show them.
+        /// </summary>
+        public static Vector3 HurryAlong(
+            IReadOnlyList<Vector2> points, Vector3 camera, Vector3 goal, float tiltDegrees, float fieldOfViewDegrees, float aspect, float margin, float maxHeight,
+            float screenTop = 0f, float screenBottom = 0f)
         {
-            var dx = Math.Max(0f, Math.Max(min.X - point.X, point.X - max.X));
-            var dy = Math.Max(0f, Math.Max(min.Y - point.Y, point.Y - max.Y));
-            return (float)Math.Sqrt(dx * dx + dy * dy);
+            bool Shows(Vector3 at) => KeepInView(points, at, tiltDegrees, fieldOfViewDegrees, aspect, margin, maxHeight, screenTop, screenBottom) == at;
+            if (Shows(camera) || !Shows(goal))
+                return Shows(camera) ? camera : goal;
+
+            var behind = 0f;
+            var ahead = 1f;
+            for (var i = 0; i < SearchSteps; i++)
+            {
+                var t = (behind + ahead) / 2f;
+                if (Shows(Vector3.Lerp(camera, goal, t)))
+                    ahead = t;
+                else
+                    behind = t;
+            }
+            return Vector3.Lerp(camera, goal, ahead);
         }
+
+        /// <summary>
+        /// Whether, once someone leaves the kitchen, to show the whole restaurant rather than grow the
+        /// kitchen's shot after them: when it's not much bigger, so the move out starts at once and goes
+        /// to one place instead of creeping. Never when the whole restaurant doesn't fit.
+        /// </summary>
+        public static bool ShowWhole(float kitchenHeight, float wholeHeight, float maxHeight, float mostTimesKitchen) =>
+            wholeHeight < maxHeight && wholeHeight <= kitchenHeight * mostTimesKitchen;
 
         private static float Cot(float radians) => 1f / (float)Math.Tan(radians);
 

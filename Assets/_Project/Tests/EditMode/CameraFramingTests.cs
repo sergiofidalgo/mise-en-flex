@@ -168,20 +168,128 @@ namespace Game.Tests.EditMode
         }
 
         [Test]
-        public void ItEasesBackAsSomeoneWalksAwayFromTheKitchenUpToALimit()
+        public void ACameraThatShowsEveryoneIsLeftWhereItIs()
         {
-            Assert.That(CameraFraming.ClosestHeight(0f, 6.5f, 0.5f, 2f), Is.EqualTo(6.5f));
-            Assert.That(CameraFraming.ClosestHeight(2f, 6.5f, 0.5f, 2f), Is.EqualTo(7.5f));
-            Assert.That(CameraFraming.ClosestHeight(20f, 6.5f, 0.5f, 2f), Is.EqualTo(8.5f));
+            var points = new[] { new Vector2(0f, 0f), new Vector2(1f, 1f) };
+            var camera = Fit(1f, points) + new Vector3(0.1f, 2f, -0.1f);
+            var kept = CameraFraming.KeepInView(points, camera, Tilt, Fov, Aspect, 0.5f, 40f);
+
+            Assert.That(kept, Is.EqualTo(camera));
         }
 
         [Test]
-        public void DistanceOutsideARectangle()
+        public void PlayersSplittingFasterThanItZoomsPushItUpAtOnce()
         {
-            var min = new Vector2(-1f, -1f);
-            var max = new Vector2(1f, 1f);
-            Assert.That(CameraFraming.DistanceOutside(Vector2.Zero, min, max), Is.EqualTo(0f));
-            Assert.That(CameraFraming.DistanceOutside(new Vector2(0f, -4f), min, max), Is.EqualTo(3f));
+            var points = new[] { new Vector2(-9f, 1f), new Vector2(9f, -6f) };
+            var tooLow = new Vector3(0f, 6.5f, -8f);
+            var kept = CameraFraming.KeepInView(points, tooLow, Tilt, Fov, Aspect, 0.5f, 40f, 0.1f, 0.02f);
+
+            Assert.That(kept.Y, Is.GreaterThan(tooLow.Y));
+            foreach (var point in points)
+                AssertInView(kept, point);
+        }
+
+        [Test]
+        public void SomeoneRunningPastAnEdgeDragsItAlongWithoutZooming()
+        {
+            var runner = new[] { new Vector2(12f, 9f) };
+            var behind = new Vector3(0f, 8f, -6f);
+            var kept = CameraFraming.KeepInView(runner, behind, Tilt, Fov, Aspect, 0.5f, 40f, 0.1f, 0.02f);
+
+            Assert.That(kept.Y, Is.EqualTo(8f));
+            AssertInView(kept, runner[0]);
+            Assert.That(ScreenHeight(kept, runner[0]), Is.InRange(0.5f, 0.8f), "only as far as needed: they're near the edge it leaves clear");
+        }
+
+        private static readonly Vector2 KitchenMin = new Vector2(-3.4f, -2.4f);
+        private static readonly Vector2 KitchenMax = new Vector2(3.4f, 1.4f);
+        private static readonly Vector2 RoomMin = new Vector2(-3.6f, -6.6f);
+        private static readonly Vector2 RoomMax = new Vector2(3.6f, 1.6f);
+
+        private static readonly Vector2 Walls = new Vector2(0.5f);
+        private static (Vector2 Min, Vector2 Max) Shot => CameraFraming.KitchenShot(KitchenMin, KitchenMax, 2f, 0.5f, 0.5f, RoomMin - Walls, RoomMax + Walls);
+
+        // As the camera does: the shot as it is, plus anyone outside it, with the usual margins.
+        private static Vector3 KitchenFraming(params Vector2[] people)
+        {
+            var shot = Shot;
+            var outside = new System.Collections.Generic.List<Vector2>();
+            foreach (var person in people)
+                if (!CameraFraming.Inside(person, shot.Min, shot.Max))
+                    outside.Add(person);
+            return CameraFraming.Fit(outside, Tilt, Fov, Aspect, 2f, 6.5f, 40f, -0.5f, 0.6f, 0.27f, 0.06f, RoomMin - Walls, RoomMax + Walls, shot.Min, shot.Max);
+        }
+
+        [Test]
+        public void TheKitchenShotTakesInItsCustomersAndStaysInsideTheBuilding()
+        {
+            var shot = Shot;
+
+            Assert.That(shot.Min.Y, Is.EqualTo(-4.4f).Within(0.001f), "past the bar seats at the wall");
+            Assert.That(shot.Min.X, Is.EqualTo(-3.9f).Within(0.001f), "the side wall");
+            Assert.That(shot.Max.Y, Is.EqualTo(1.9f).Within(0.001f), "the back wall");
+        }
+
+        [Test]
+        public void TheKitchenShotShowsAllOfItsArea()
+        {
+            var camera = KitchenFraming();
+            var shot = Shot;
+            foreach (var corner in new[] { shot.Min, shot.Max, new Vector2(shot.Min.X, shot.Max.Y), new Vector2(shot.Max.X, shot.Min.Y) })
+                AssertInView(camera, corner);
+        }
+
+        // The point of the shot: chefs moving about the kitchen, even pressed into its corners, don't
+        // move the camera at all.
+        [Test]
+        public void WalkingAroundTheKitchenDoesntMoveIt()
+        {
+            var still = KitchenFraming();
+            foreach (var chef in new[] { new Vector2(0f, 0f), new Vector2(-3.3f, 1.3f), new Vector2(3.3f, -2.5f), new Vector2(-3.3f, -2.4f) })
+                Assert.That(KitchenFraming(chef, new Vector2(1f, 1f)), Is.EqualTo(still), $"a chef at {chef}");
+        }
+
+        [Test]
+        public void LeavingTheKitchenGrowsTheShotAndKeepsTheKitchen()
+        {
+            var still = KitchenFraming();
+            var diner = new Vector2(2f, -6f);
+            var out_ = KitchenFraming(new Vector2(0f, 0f), diner);
+
+            Assert.That(out_.Y, Is.GreaterThan(still.Y));
+            AssertInView(out_, diner);
+            AssertInView(out_, new Vector2(0f, KitchenMax.Y));
+        }
+
+        [Test]
+        public void SomeoneLeavingShowsTheWholeRestaurantWhenItsNotMuchBigger()
+        {
+            Assert.That(CameraFraming.ShowWhole(8f, 10.5f, 40f, 1.4f), Is.True);
+            Assert.That(CameraFraming.ShowWhole(8f, 20f, 40f, 1.4f), Is.False, "much bigger: grow the kitchen's shot instead");
+            Assert.That(CameraFraming.ShowWhole(30f, 40f, 40f, 1.4f), Is.False, "never when it doesn't all fit");
+        }
+
+        [Test]
+        public void SomeoneOutrunningItHurriesItAlongItsArcInsteadOfOffIt()
+        {
+            var shot = Shot;
+            var from = KitchenFraming();
+            var to = CameraFraming.Fit(new[] { RoomMin, RoomMax }, Tilt, Fov, Aspect, 2f, 6.5f, 40f, -0.5f, 0.6f, 0.14f, 0.06f, RoomMin - Walls, RoomMax + Walls);
+            var walkingOut = new[] { new Vector2(-3f, -5.6f) };
+            var hurried = CameraFraming.HurryAlong(walkingOut, from, to, Tilt, Fov, Aspect, 0.6f, 40f, 0.1f, 0.02f);
+
+            AssertInView(hurried, walkingOut[0]);
+            var along = Vector3.Dot(hurried - from, to - from) / (to - from).LengthSquared();
+            Assert.That(along, Is.InRange(0.01f, 1f), "partway along");
+            Assert.That(Vector3.Distance(hurried, Vector3.Lerp(from, to, along)), Is.LessThan(0.001f), "on the line, not off it");
+        }
+
+        [Test]
+        public void ACameraThatShowsEveryoneIsntHurried()
+        {
+            var from = KitchenFraming();
+            var to = from + new Vector3(0f, 3f, -2f);
+            Assert.That(CameraFraming.HurryAlong(new[] { new Vector2(0f, 0f) }, from, to, Tilt, Fov, Aspect, 0.6f, 40f, 0.1f, 0.02f), Is.EqualTo(from));
         }
     }
 }

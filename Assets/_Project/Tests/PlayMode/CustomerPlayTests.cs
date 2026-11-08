@@ -584,7 +584,7 @@ namespace Game.Tests.PlayMode
             var keyboard = InputSystem.GetDevice<Keyboard>() ?? InputSystem.AddDevice<Keyboard>();
             var mouse = InputSystem.GetDevice<Mouse>() ?? InputSystem.AddDevice<Mouse>();
             Object.FindFirstObjectByType<PlayerInputManager>().JoinPlayer(controlScheme: "Keyboard&Mouse", pairWithDevices: new InputDevice[] { keyboard, mouse });
-            yield return WaitFor(() => camera.transform.position.y < whole - 0.5f, 10f);
+            yield return WaitFor(() => camera.transform.position.y < whole - 0.5f, 2f); // at once, with no wait first
         }
 
         [UnityTest]
@@ -649,26 +649,71 @@ namespace Game.Tests.PlayMode
             controller.enabled = false;
             second.transform.position = _player.transform.position + new Vector3(1f, 0f, 0f);
             controller.enabled = true;
-            yield return new WaitForSeconds(10f); // it pauses, then closes in gradually
+            yield return new WaitForSeconds(10f); // it closes in gradually
 
             Assert.That(Camera.main.transform.position.y, Is.EqualTo(alone).Within(0.1f));
             InputSystem.RemoveDevice(pad);
         }
 
         [UnityTest]
-        public IEnumerator TheCameraEasesBackAsAChefWalksAwayFromTheKitchen()
+        public IEnumerator AChefLeavingTheKitchenShowsTheWholeRestaurantAndComingBackClosesInAtOnce()
         {
             yield return OpenForBuying();
             yield return new WaitForSeconds(8f);
-            var inTheKitchen = Camera.main.transform.position.y;
-
+            var camera = Camera.main;
+            var inTheKitchen = camera.transform.position.y;
             var controller = _player.GetComponent<CharacterController>();
+            var kitchenSpot = _player.transform.position;
+
             controller.enabled = false;
-            _player.transform.position = new Vector3(-2f, _player.transform.position.y, -6f);
+            _player.transform.position = new Vector3(-2f, kitchenSpot.y, -6f);
             controller.enabled = true;
             yield return new WaitForSeconds(6f);
+            var whole = camera.transform.position.y;
+            Assert.That(whole, Is.GreaterThan(inTheKitchen + 1f));
+            Assert.That(camera.WorldToViewportPoint(Object.FindFirstObjectByType<StreetDoor>().transform.position).y, Is.InRange(0f, 1f), "all of the restaurant, door and all");
 
-            Assert.That(Camera.main.transform.position.y, Is.GreaterThan(inTheKitchen + 1f));
+            // Walking about the dining room, from its front to near the counter, never moves it.
+            var wholeShot = camera.transform.position;
+            controller.enabled = false;
+            _player.transform.position = new Vector3(2f, kitchenSpot.y, -4f);
+            controller.enabled = true;
+            yield return new WaitForSeconds(3f);
+            Assert.That(Vector3.Distance(camera.transform.position, wholeShot), Is.LessThan(0.05f), "the whole restaurant stays still");
+
+            controller.enabled = false;
+            _player.transform.position = kitchenSpot;
+            controller.enabled = true;
+            yield return WaitFor(() => camera.transform.position.y < whole - 0.5f, 2f); // at once, with no wait first
+            yield return new WaitForSeconds(8f);
+            Assert.That(camera.transform.position.y, Is.EqualTo(inTheKitchen).Within(0.05f), "the same kitchen shot every time");
+        }
+
+        [UnityTest]
+        public IEnumerator AManagingPlayersCursorLeadsTheCameraNotTheirChef()
+        {
+            yield return OpenForBuying();
+            yield return new WaitForSeconds(8f);
+            var camera = Camera.main;
+            var inTheKitchen = camera.transform.position.y;
+            var controller = _player.GetComponent<CharacterController>();
+            var kitchenSpot = _player.transform.position;
+
+            controller.enabled = false;
+            _player.transform.position = new Vector3(-2f, kitchenSpot.y, -6f);
+            controller.enabled = true;
+            yield return new WaitForSeconds(6f);
+            Assert.That(camera.transform.position.y, Is.GreaterThan(inTheKitchen + 1f), "the chef's in the dining room");
+
+            var editor = Object.FindFirstObjectByType<LayoutEditor>();
+            var cursor = editor.Enter(_player);
+            cursor.Position = new System.Numerics.Vector2(kitchenSpot.x, kitchenSpot.z);
+            yield return new WaitForSeconds(8f);
+            Assert.That(camera.transform.position.y, Is.EqualTo(inTheKitchen).Within(0.05f), "the kitchen, where the cursor is, as if the chef were there");
+
+            editor.Leave(_player);
+            yield return new WaitForSeconds(6f);
+            Assert.That(camera.transform.position.y, Is.GreaterThan(inTheKitchen + 1f), "back to the chef once done");
         }
     }
 }

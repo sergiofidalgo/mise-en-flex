@@ -10,12 +10,13 @@ using SimVector2 = System.Numerics.Vector2;
 namespace Game.Presentation
 {
     /// <summary>
-    /// Follows the people doing the work: keeps every player and staff member in view, zooming out as
-    /// they spread apart and in as they gather. To see all of a big restaurant, players have to split up.
-    /// As a player walks away from the kitchen it also eases back, so there's more to see out there.
-    /// Customers don't count: those out of view get markers at the edge of the screen. Before anyone joins,
-    /// and during the Review, it shows the whole restaurant. Its moves build up and settle gently, and it
-    /// waits for people to settle before closing in.
+    /// Holds one still shot of the kitchen, where the cooking is, with the customers served across its
+    /// wall. Walking around inside it never moves the camera. When someone leaves it, the shot grows to
+    /// take them in, always keeping the kitchen, and settles back into the same shot when they return.
+    /// Once nearly all of the restaurant would show anyway, it shows all of it, centred and still. Only
+    /// past a height where the kitchen can't sensibly stay in does it follow the people alone. Customers
+    /// don't count: those out of view get markers at the edge of the screen. Before anyone joins, and
+    /// during the Review, it shows the whole restaurant.
     /// </summary>
     [RequireComponent(typeof(Camera))]
     public sealed class FramingCamera : MonoBehaviour
@@ -32,6 +33,16 @@ namespace Game.Presentation
         [SerializeField, Min(0f)] private float _farMargin = 1.5f;
         [Tooltip("Metres of floor to keep before the nearest. Little: nothing stands below them on screen.")]
         [SerializeField, Min(0f)] private float _nearMargin = 0.6f;
+        [Tooltip("Metres of floor in front of the kitchen in its shot: the customers served across the wall, and a little behind them.")]
+        [SerializeField, Min(0f)] private float _frontOfKitchen = 2f;
+        [Tooltip("Metres past the kitchen's sides in its shot, for the walls and the units on them. Anyone within this counts as in the kitchen.")]
+        [SerializeField, Min(0f)] private float _kitchenSides = 0.5f;
+        [Tooltip("Metres past the kitchen's back in its shot, for the back wall. The room left at the top of the screen shows what stands on it.")]
+        [SerializeField, Min(0f)] private float _kitchenBehind = 0.5f;
+        [Tooltip("The highest it goes keeping the kitchen in the shot. Past it, in a big restaurant, it frames the people alone.")]
+        [SerializeField, Min(1f)] private float _mostKeepingKitchen = 18f;
+        [Tooltip("Shows the whole restaurant as soon as anyone leaves the kitchen, if that's no more than this many times the kitchen's height. Otherwise the kitchen's shot grows to take them in.")]
+        [SerializeField, Min(1f)] private float _wholeWithin = 1.4f;
         [Tooltip("Share of the screen to leave clear at the top, for heads, furniture and the prompts above them.")]
         [SerializeField, Range(0f, 0.45f)] private float _screenTop = 0.27f;
         [Tooltip("The same with people as far apart as they get. Everything's smaller out there, so the floor needs the screen more, and a prompt still fits.")]
@@ -40,43 +51,46 @@ namespace Game.Presentation
         [SerializeField, Min(1f)] private float _farApartHeight = 12f;
         [Tooltip("The same when showing the whole restaurant: nobody's cooking, so no prompts need the room.")]
         [SerializeField, Range(0f, 0.45f)] private float _screenTopForWhole = 0.14f;
+        [Tooltip("Metres of floor to keep beyond the back of the room when showing all of it: less than with people far apart, as the room at the top already shows the back wall and what stands on it.")]
+        [SerializeField, Min(0f)] private float _wholeFarMargin = 0.9f;
         [Tooltip("Share of the screen to leave clear at the bottom.")]
         [SerializeField, Range(0f, 0.45f)] private float _screenBottom = 0.06f;
         [Tooltip("The closest it gets, in metres above the floor.")]
         [SerializeField, Min(1f)] private float _minHeight = 6.5f;
-        [Tooltip("Metres further back for each metre a player is from the kitchen.")]
-        [SerializeField, Min(0f)] private float _backPerMetreAway = 0.45f;
-        [Tooltip("The most it backs away for that, in metres.")]
-        [SerializeField, Min(0f)] private float _mostBack = 2f;
         [Tooltip("The furthest it gets, in metres above the floor.")]
         [SerializeField, Min(1f)] private float _maxHeight = 40f;
         [Tooltip("How far the building's outer walls are from where people can stand, in metres.")]
         [SerializeField, Min(0f)] private float _wallsBeyondRoom = 0.5f;
-        [Tooltip("Roughly how many seconds it trails behind someone walking. Quicker than zooming: a chef walks fast, and the longer this is the closer they get to the edge.")]
-        [SerializeField, Min(0.01f)] private float _followSeconds = 0.3f;
-        [Tooltip("Roughly how many seconds it takes to back away to fit someone in.")]
-        [SerializeField, Min(0.01f)] private float _zoomOutSeconds = 1.2f;
-        [Tooltip("Roughly how many seconds it takes to close in again.")]
-        [SerializeField, Min(0.01f)] private float _zoomInSeconds = 2f;
-        [Tooltip("Seconds everyone has to stay put before it starts closing in.")]
-        [SerializeField, Min(0f)] private float _holdBeforeClosingIn = 0.75f;
-        [Tooltip("The fastest it moves across the floor, in metres per second. Above a chef's walking speed, or they'd outrun it.")]
-        [SerializeField, Min(0.1f)] private float _maxSpeed = 6f;
-        [Tooltip("The fastest it moves up and down, in metres per second.")]
-        [SerializeField, Min(0.1f)] private float _maxZoomSpeed = 2f;
+        [Tooltip("How quickly it changes shot when backing away: it's most of the way there in twice this many seconds. It moves off at once, quickest at the start. Height and floor position move together, in one smooth arc.")]
+        [SerializeField, Min(0.01f)] private float _zoomOutSeconds = 0.45f;
+        [Tooltip("The same when closing in.")]
+        [SerializeField, Min(0.01f)] private float _zoomInSeconds = 0.7f;
+        [Tooltip("The same when the first player joins, or a new day starts after the Review: quicker, as everyone's waiting to start.")]
+        [SerializeField, Min(0.01f)] private float _joinSeconds = 0.32f;
+        [Tooltip("Seconds it waits before closing in, not moving at all meanwhile. None by default (user's call): coming back into the kitchen or joining, it starts at once.")]
+        [SerializeField, Min(0f)] private float _holdBeforeClosingIn = 0f;
+        [Tooltip("The fastest it moves, in metres per second, in any direction.")]
+        [SerializeField, Min(0.1f)] private float _maxSpeed = 40f;
+        [Tooltip("Metres of floor kept around everyone even while the camera is still catching up: past this, it's pushed along at once instead of easing.")]
+        [SerializeField, Min(0f)] private float _edgeMargin = 0.6f;
+        [Tooltip("Share of the screen at the top it never lets anyone into, so heads stay in view while it catches up.")]
+        [SerializeField, Range(0f, 0.45f)] private float _edgeScreenTop = 0.1f;
+        [Tooltip("The same at the bottom.")]
+        [SerializeField, Range(0f, 0.45f)] private float _edgeScreenBottom = 0.02f;
 
         private readonly List<SimVector2> _points = new List<SimVector2>();
+        private readonly List<SimVector2> _people = new List<SimVector2>();
         private Camera _camera;
         private bool _placed;
         private bool _showingWhole;
-        private float _heightGoal;
+        private bool _wentWhole;
+        private bool _joining;
+        private bool _hasArea;
+        private SimVector2 _areaMin;
+        private SimVector2 _areaMax;
+        private Vector3 _goal;
         private float _holdLeft;
-        private float _easedHeight;
-        private float _easedHeightVelocity;
-        private float _heightVelocity;
-        private Vector2 _easedAlong;
-        private Vector2 _easedAlongVelocity;
-        private Vector2 _alongVelocity;
+        private Vector3 _velocity;
 
         private void Awake()
         {
@@ -86,91 +100,174 @@ namespace Game.Presentation
 
         private void LateUpdate()
         {
-            CollectPoints();
             var floor = _root.Services.FloorPlan;
             var walls = new SimVector2(_wallsBeyondRoom, _wallsBeyondRoom);
             var delta = Time.unscaledDeltaTime;
-            var closest = ClosestHeight(floor);
+            CollectPeople();
 
-            // The further out it has to go, the less room it leaves at the top. Judged by the height
-            // needed at the usual room, so the answer doesn't change the question.
-            var top = _showingWhole ? _screenTopForWhole : Mathf.Lerp(_screenTop, _screenTopFarApart, Mathf.InverseLerp(_minHeight, _farApartHeight, Fit(floor, walls, closest, _maxHeight, _screenTop).Y));
+            // Nobody's in yet, or the day's done: the whole restaurant.
+            var wasShowingWhole = _showingWhole;
+            _showingWhole = PlayerInput.all.Count == 0 || _root.Services.Days.Phase == DayPhase.Review;
+            if (wasShowingWhole && !_showingWhole)
+                _joining = true;
+            float top;
+            System.Numerics.Vector3 wanted;
+            if (_showingWhole)
+            {
+                UseWhole(floor);
+                top = _screenTopForWhole;
+                wanted = Fit(floor, walls, _minHeight, _maxHeight, top, _wholeFarMargin);
+            }
+            else
+            {
+                var someoneOut = UseKitchenAndPeople(floor, walls);
+                top = TopFor(floor, walls);
+                wanted = Fit(floor, walls, _minHeight, _maxHeight, top);
 
-            var wanted = Fit(floor, walls, closest, _maxHeight, top);
+                // Someone's left the kitchen and all of it isn't much more: all of it, centred and
+                // still, and the move there starts at once, rather than creeping after them.
+                if (someoneOut)
+                {
+                    var kitchen = KitchenHeight(floor, walls);
+                    UseWhole(floor);
+                    var whole = Fit(floor, walls, _minHeight, _maxHeight, _screenTopForWhole, _wholeFarMargin);
+                    _wentWhole = CameraFraming.ShowWhole(kitchen, whole.Y, _maxHeight, _wholeWithin);
+                    if (_wentWhole)
+                    {
+                        top = _screenTopForWhole;
+                        wanted = whole;
+                    }
+                    else
+                    {
+                        UseKitchenAndPeople(floor, walls);
+                    }
+                }
+                else
+                {
+                    _wentWhole = false;
+                }
+            }
 
+            var wantedAt = new Vector3(wanted.X, wanted.Y, wanted.Z);
             if (!_placed)
             {
-                transform.position = new Vector3(wanted.X, wanted.Y, wanted.Z);
-                _easedAlong = new Vector2(wanted.X, wanted.Z);
-                _easedHeight = wanted.Y;
-                _heightGoal = wanted.Y;
+                transform.position = wantedAt;
+                _goal = wantedAt;
                 _placed = true;
                 return;
             }
 
-            // Backs away at once, but only closes in once they've settled, so it isn't seen to react
-            // to someone coming back, and walking in and out doesn't make it pump.
-            if (wanted.Y >= _heightGoal)
+            // Backs away at once, and closes in at once too unless told to wait first. The doorway's
+            // in-and-out margins keep walking in and out from making it pump. While it waits, it
+            // doesn't move at all: sliding across first and dropping later is what made it hook.
+            if (wantedAt.y >= _goal.y)
             {
-                _heightGoal = wanted.Y;
+                _goal = wantedAt;
                 _holdLeft = _holdBeforeClosingIn;
             }
             else
             {
                 _holdLeft -= delta;
                 if (_holdLeft <= 0f)
-                    _heightGoal = wanted.Y;
+                    _goal = wantedAt;
             }
 
-            // Everything is eased twice, each half as long: one easing starts moving the moment anything
-            // changes, while two build up and settle in a soft S-curve, with no visible start or stop.
+            // Height and floor position are eased as one point in space, so they start and arrive
+            // together and a change of shot is one arc rather than a slide followed by a zoom. Eased
+            // once (user's call): it moves off the moment the shot changes, quickest at the start, and
+            // settles into the new shot without passing it. A two-stage S-curve felt late every time.
             var at = transform.position;
-            _easedHeight = Mathf.SmoothDamp(_easedHeight, _heightGoal, ref _easedHeightVelocity, ZoomSeconds(_heightGoal, _easedHeight) / 2f, _maxZoomSpeed, delta);
-            var height = Mathf.SmoothDamp(at.y, _easedHeight, ref _heightVelocity, ZoomSeconds(_easedHeight, at.y) / 2f, _maxZoomSpeed, delta);
+            // The quick move in after joining lasts until it arrives, or until it has to back away.
+            if (_goal.y > at.y || (_goal - at).sqrMagnitude < 0.0025f)
+                _joining = false;
+            var eased = Vector3.SmoothDamp(at, _goal, ref _velocity, ZoomSeconds(_goal.y, at.y), _maxSpeed, delta);
 
-            // Where to be on the floor at the height it's actually at. The floor position follows
-            // quickly and the height slowly, so aiming for the final height's position would slide the
-            // view across the floor long before the zoom got there.
-            var framed = Fit(floor, walls, height, height, top);
-            _easedAlong = Vector2.SmoothDamp(_easedAlong, new Vector2(framed.X, framed.Z), ref _easedAlongVelocity, _followSeconds / 2f, _maxSpeed, delta);
-            var along = Vector2.SmoothDamp(new Vector2(at.x, at.z), _easedAlong, ref _alongVelocity, _followSeconds / 2f, _maxSpeed, delta);
-            transform.position = new Vector3(along.x, height, along.y);
+            // Someone walking out of the shot can still outrun the easing. Then it hurries along the arc
+            // it's on, which leads to a shot that shows them, and goes on easing from there towards the
+            // same shot, never past it. Under that sits a hard limit, for anyone that arc doesn't cover:
+            // it's pushed at once so nobody leaves the screen, and held there while it's needed.
+            var hurried = CameraFraming.HurryAlong(_people, ToSim(eased), ToSim(_goal), _tilt, _camera.fieldOfView, _camera.aspect, _edgeMargin, _maxHeight, _edgeScreenTop, _edgeScreenBottom);
+            var kept = CameraFraming.KeepInView(_people, hurried, _tilt, _camera.fieldOfView, _camera.aspect, _edgeMargin, _maxHeight, _edgeScreenTop, _edgeScreenBottom);
+            if (kept != hurried)
+                _velocity = Vector3.zero;
+            transform.position = new Vector3(kept.X, kept.Y, kept.Z);
         }
 
-        private System.Numerics.Vector3 Fit(Game.Data.FloorPlanConfig floor, SimVector2 walls, float lowest, float highest, float top) =>
-            CameraFraming.Fit(_points, _tilt, _camera.fieldOfView, _camera.aspect, _margin, lowest, highest, _farMargin - _margin, _nearMargin, top, _screenBottom, floor.RoomMin - walls, floor.RoomMax + walls);
+        private static System.Numerics.Vector3 ToSim(Vector3 v) => new System.Numerics.Vector3(v.x, v.y, v.z);
 
-        private float ZoomSeconds(float to, float from) => to > from ? _zoomOutSeconds : _zoomInSeconds;
+        private System.Numerics.Vector3 Fit(Game.Data.FloorPlanConfig floor, SimVector2 walls, float lowest, float highest, float top, float? farMargin = null) =>
+            CameraFraming.Fit(_points, _tilt, _camera.fieldOfView, _camera.aspect, _margin, lowest, highest, (farMargin ?? _farMargin) - _margin, _nearMargin, top, _screenBottom, floor.RoomMin - walls, floor.RoomMax + walls,
+                _hasArea ? _areaMin : (SimVector2?)null, _hasArea ? _areaMax : (SimVector2?)null);
 
-        // Measured from the kitchen, whichever player is furthest from it.
-        private float ClosestHeight(Game.Data.FloorPlanConfig floor)
+        private float ZoomSeconds(float to, float from) => to > from ? _zoomOutSeconds : _joining ? _joinSeconds : _zoomInSeconds;
+
+        // The further out it has to go, the less room it leaves at the top. Judged by the height
+        // needed at the usual room, so the answer doesn't change the question.
+        private float TopFor(Game.Data.FloorPlanConfig floor, SimVector2 walls) =>
+            Mathf.Lerp(_screenTop, _screenTopFarApart, Mathf.InverseLerp(_minHeight, _farApartHeight, Fit(floor, walls, _minHeight, _maxHeight, _screenTop).Y));
+
+        private void UseWhole(Game.Data.FloorPlanConfig floor)
         {
-            var furthest = 0f;
-            foreach (var player in PlayerInput.all)
-                furthest = Mathf.Max(furthest, CameraFraming.DistanceOutside(Floor(player.transform.position), floor.KitchenAreaMin, floor.KitchenAreaMax));
-            return CameraFraming.ClosestHeight(furthest, _minHeight, _backPerMetreAway, _mostBack);
-        }
-
-        private void CollectPoints()
-        {
+            _hasArea = false;
             _points.Clear();
-            var plan = _root.Services.FloorPlan;
+            _points.Add(floor.RoomMin);
+            _points.Add(floor.RoomMax);
+        }
 
-            // Nobody's in yet, or the day's done: the whole restaurant.
-            _showingWhole = PlayerInput.all.Count == 0 || _root.Services.Days.Phase == DayPhase.Review;
-            if (_showingWhole)
+        private (SimVector2 Min, SimVector2 Max) KitchenShot(Game.Data.FloorPlanConfig floor, SimVector2 walls) =>
+            CameraFraming.KitchenShot(floor.KitchenAreaMin, floor.KitchenAreaMax, _frontOfKitchen, _kitchenSides, _kitchenBehind, floor.RoomMin - walls, floor.RoomMax + walls);
+
+        // The kitchen's shot alone, however far anyone is, with the room at the top it has alone. Not
+        // the room it would leave with someone far off: that shrinks as they walk away, which flipped
+        // the choice between the whole restaurant and following them as they crossed the dining room.
+        private float KitchenHeight(Game.Data.FloorPlanConfig floor, SimVector2 walls)
+        {
+            var shot = KitchenShot(floor, walls);
+            _points.Clear();
+            (_hasArea, _areaMin, _areaMax) = (true, shot.Min, shot.Max);
+            return Fit(floor, walls, _minHeight, _maxHeight, TopFor(floor, walls)).Y;
+        }
+
+        // The kitchen's shot and anyone outside it, or everyone alone if keeping the kitchen in would
+        // take it too high, as in a big restaurant with someone far off. Anyone inside the shot shows
+        // already, so they don't count: moving about in there never moves the camera. Says whether
+        // anyone has left the kitchen.
+        private bool UseKitchenAndPeople(Game.Data.FloorPlanConfig floor, SimVector2 walls)
+        {
+            var shot = KitchenShot(floor, walls);
+            var someoneOut = false;
+            _points.Clear();
+            (_hasArea, _areaMin, _areaMax) = (true, shot.Min, shot.Max);
+            foreach (var person in _people)
             {
-                _points.Add(plan.RoomMin);
-                _points.Add(plan.RoomMax);
-                return;
+                // Back in only a little further in than out, so standing in the doorway doesn't flick it.
+                if (!CameraFraming.Inside(person, floor.KitchenAreaMin, floor.KitchenAreaMax, _wentWhole ? _kitchenSides / 2f : _kitchenSides))
+                    someoneOut = true;
+                if (!CameraFraming.Inside(person, shot.Min, shot.Max))
+                    _points.Add(person);
             }
+            if (Fit(floor, walls, _minHeight, _maxHeight, _screenTop).Y <= _mostKeepingKitchen)
+                return someoneOut;
 
+            _hasArea = false;
+            _points.Clear();
+            _points.AddRange(_people);
+            return someoneOut;
+        }
+
+        private void CollectPeople()
+        {
+            _people.Clear();
+            // A player who's managing is wherever their cursor is, not where they left their chef:
+            // rearranging the kitchen from the dining room frames the kitchen. The chef may go off
+            // screen meanwhile, but it stands still, so nothing's missed.
             foreach (var player in PlayerInput.all)
-                _points.Add(Floor(player.transform.position));
+                if (!_editor.IsManaging(player))
+                    _people.Add(Floor(player.transform.position));
             foreach (var cursor in _editor.Cursors)
-                _points.Add(cursor.Held != null ? cursor.Landing : cursor.Position);
+                _people.Add(cursor.Held != null ? cursor.Landing : cursor.Position);
             foreach (var agent in _staff.Agents)
-                _points.Add(Floor(agent.transform.position));
+                _people.Add(Floor(agent.transform.position));
         }
 
         private static SimVector2 Floor(Vector3 position) => new SimVector2(position.x, position.z);
