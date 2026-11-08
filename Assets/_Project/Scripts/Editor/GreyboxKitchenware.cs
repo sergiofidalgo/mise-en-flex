@@ -213,11 +213,13 @@ namespace Game.Editor
             view.FindProperty("_body").objectReferenceValue = body.GetComponent<Renderer>();
             view.ApplyModifiedPropertiesWithoutUndo();
             // On a counter, a plate or a prepared dish shows bigger still, nearly filling it (the
-            // user's note, 2026-11-08), barely off centre.
+            // user's note, 2026-11-08). In a pile of dirty plates each is nudged, turned and tipped a
+            // little, so the pile looks dropped, not stacked.
             var rest = new SerializedObject(root.AddComponent<CounterRestView>());
             rest.FindProperty("_view").objectReferenceValue = itemView;
             rest.FindProperty("_scale").floatValue = PlateOnCounter;
-            rest.FindProperty("_maxOffset").floatValue = 0.03f;
+            rest.FindProperty("_maxOffset").floatValue = 0.05f;
+            rest.FindProperty("_maxTilt").floatValue = 5f;
             rest.ApplyModifiedPropertiesWithoutUndo();
             return Save(root, Plate.PlateTypeId);
         }

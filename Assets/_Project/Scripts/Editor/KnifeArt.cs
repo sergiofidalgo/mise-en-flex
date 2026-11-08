@@ -19,10 +19,9 @@ namespace Game.Editor
         private const float BlockDepth = 0.28f;
         // Its slots across the face (Blender's x is the game's -x). Must match KNIFE_SLOTS_X.
         private static readonly float[] SlotsX = { 0.11f, 0f, -0.11f };
-        // The block stands turned a quarter, its sloping face to the side (+x), so the knives lean
-        // across the overhead camera's view and their handles show full length; facing the camera
-        // they were foreshortened to stubs.
-        private static readonly Quaternion BlockTurn = Quaternion.Euler(0f, -90f, 0f);
+        // The block faces the front, its sloping face towards the camera (the user's note,
+        // 2026-11-08). It was turned a quarter to show the handles full length, but read better facing out.
+        private static readonly Quaternion BlockTurn = Quaternion.identity;
         // How much of a knife's blade stands out of its slot (m); the knife is 0.26 m of blade.
         private const float BladeShowing = 0.07f;
 

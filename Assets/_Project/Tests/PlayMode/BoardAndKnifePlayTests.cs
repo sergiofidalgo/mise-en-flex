@@ -125,6 +125,42 @@ namespace Game.Tests.PlayMode
             Assert.That(_chef.Target, Is.SameAs(Board));
         }
 
+        // Visible cutting dials, by their names (ChopDial_<board>); the HUD lives in Presentation.
+        private static int DialsShowing() => Object.FindObjectsByType<RectTransform>(FindObjectsSortMode.None)
+            .Count(r => r.name.StartsWith("ChopDial_") && r.gameObject.activeInHierarchy);
+
+        [UnityTest]
+        public IEnumerator TheCuttingDialShowsOnlyForAChefAtTheBoardNotForTheLayoutCursor()
+        {
+            // The user's bug report (2026-11-08): in management mode the dial stuck to the cursor.
+            yield return OpenKitchen();
+            Assert.That(KnifeCounter.TryExchangeTool(_chef), Is.True);
+            var onion = _root.Services.Cooking.AddIngredient(_root.Services.Catalog.Find("Onion").ToProperties());
+            Board.Container.Put(onion);
+            _root.Services.ItemViews.PlaceImmediately(onion, Board.AnchorFor(onion));
+
+            var controller = _player.GetComponent<CharacterController>();
+            controller.enabled = false;
+            _player.transform.SetPositionAndRotation(Board.transform.position + new Vector3(0f, 0f, -0.9f), Quaternion.identity);
+            controller.enabled = true;
+            yield return null;
+            yield return null;
+            Assert.That(DialsShowing(), Is.EqualTo(1), "a chef with the knife at the board sees the dial");
+
+            var cursor = _editor.Enter(_player);
+            cursor.Position = Floor(Board);
+            _editor.MoveCursor(cursor, Vector2.Zero);
+            yield return null;
+            yield return null;
+            Assert.That(_chef.Target, Is.SameAs(Board), "the cursor is over the board");
+            Assert.That(DialsShowing(), Is.Zero, "no dial for the layout cursor");
+
+            _editor.Leave(_player);
+            yield return null;
+            yield return null;
+            Assert.That(DialsShowing(), Is.EqualTo(1), "back at the board, the dial is back");
+        }
+
         // A knife rack is a counter with the rack built in (decision 2026-11-08).
 
         private KnifeRackStation BuyRack(LayoutEditor.Cursor cursor, Vector2 where)

@@ -139,6 +139,32 @@ namespace Game.Tests.PlayMode
         }
 
         [UnityTest]
+        public IEnumerator APileOfDirtyPlatesLooksDroppedNotStacked()
+        {
+            // The user's note (2026-11-08): each plate in a pile sits its own way, all at the plate size.
+            yield return OpenKitchen();
+            var counter = _root.Services.Stations.All.OfType<CounterStation>().First(c => c.Slot.Current == null);
+            var views = new ItemView[3];
+            for (var i = 0; i < 3; i++)
+            {
+                var plate = new Plate(3);
+                plate.MarkDirty();
+                counter.Slot.Put(plate);
+                _root.Services.ItemViews.PlaceImmediately(plate, counter.AnchorFor(plate));
+                views[i] = ViewOf(plate);
+            }
+            yield return Wait(1.5f);
+
+            for (var i = 0; i < 3; i++)
+                Assert.That(views[i].transform.lossyScale.x, Is.EqualTo(1.4f * 1.3f).Within(0.05f), $"plate {i} at the plate size");
+            Assert.That(Vector3.Angle(views[0].transform.up, Vector3.up), Is.LessThan(0.5f), "the bottom one lies flat");
+            Assert.That(Vector3.Angle(views[1].transform.up, Vector3.up) + Vector3.Angle(views[2].transform.up, Vector3.up),
+                Is.GreaterThan(1f), "the ones on top tip a little");
+            Assert.That(Vector3.Distance(views[1].transform.localPosition, views[2].transform.localPosition), Is.GreaterThan(0.002f),
+                "not stacked exactly on each other");
+        }
+
+        [UnityTest]
         public IEnumerator APanIsCarriedByItsHandleWithBothHands()
         {
             yield return OpenKitchen();

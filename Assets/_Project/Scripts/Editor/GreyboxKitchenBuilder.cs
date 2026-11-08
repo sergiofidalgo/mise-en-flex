@@ -796,11 +796,13 @@ namespace Game.Editor
             block.transform.localPosition = new Vector3(0f, CounterHeight + KnifeRackBlockScale.y / 2f, KnifeRackBack);
 
             Transform[] places;
-            var blockSlots = KnifeArt.DressBlock(block, new Vector3(0f, CounterHeight, KnifeRackBack));
+            // The modelled block stands in the middle of its counter, its face to the front (the
+            // user's note, 2026-11-08); the greybox block keeps to the back.
+            var blockSlots = KnifeArt.DressBlock(block, new Vector3(0f, CounterHeight, 0f));
             if (blockSlots != null)
             {
                 // The knives stand in the angled block's slots, handles up and out (decision 2026-11-08).
-                places = KnifeArt.SlotPlaces(rack.transform, new Vector3(0f, CounterHeight, KnifeRackBack));
+                places = KnifeArt.SlotPlaces(rack.transform, new Vector3(0f, CounterHeight, 0f));
                 AddToHighlight(rack, blockSlots);
             }
             else
