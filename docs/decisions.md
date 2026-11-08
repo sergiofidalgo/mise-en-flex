@@ -4,6 +4,28 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-08 — Money out, the fee every 5 days, and the Plates dashboard
+
+**User's calls (Phase 5, milestone 2):**
+- **The fee to the boss falls due every 5 finished days in a restaurant, not 7.** It's a tuning value. This replaces "every 7 days" in `game-design.md` §15.4, and the collection day also sets the next period's goal.
+- **The fee is sized at about three good days' profit,** so a good period leaves money over and a bad one goes into debt. It's a tuning value, to adjust in play.
+- **The morning delivery is charged at the ingredients' prices** until street vendors replace it in milestone 3.
+- **Replying to a review (Y) gives a small reputation nudge.** There are three canned replies: apologise, thank or stand your ground. A fitting reply softens a bad review a little, and a poor one makes it slightly worse. One reply per review, shown under it.
+- **Books shows today and the period so far, plus the boss and progress:**
+  - money in and out, line by line;
+  - what's owed to the boss and when the next fee falls due;
+  - how the restaurant is doing day by day (rating, guests, money).
+- **The dashboard follows the user's "Plates" mockup** (`plans/vision for management UI.png`).
+
+**Details (proposed while building; flagged for review):**
+- **The dashboard is a full-screen view over the kitchen during Review,** not a separate Unity scene. It's still read-only, and it avoids reloading the restaurant every day.
+- **Replies:** apologising fits complaints and thanking fits praise. Standing your ground never fits, which players learn from the listing. The nudge is about ±0.25 stars on that review's weight in the rating, as a tuning value.
+- **The rating in the listing is the average of every review so far,** after reply nudges.
+- **Broken plates are no longer replaced free;** plates are bought in the shop, a few at a time.
+- **The restaurant's name is a placeholder until it's chosen when buying in Phase 6.** Day 1 is a Monday.
+
+---
+
 ## 2026-11-08 — Saves: a title card, the morning after, everything as it lies
 
 **User's calls (Phase 5, milestone 1):**

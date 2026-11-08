@@ -34,6 +34,11 @@ namespace Game.Data
         [SerializeField] private string _typeId;
         [Tooltip("What players read on tickets and prompts, e.g. \"Onions\". Empty = the type id.")]
         [SerializeField] private string _displayName;
+        [Tooltip("What one portion costs from the supplier.")]
+        [SerializeField, Min(0f)] private float _price = 1f;
+
+        public float Price => _price;
+
         [SerializeField] private GameObject _prefab;
 
         [Header("Heat")]

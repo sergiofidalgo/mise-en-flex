@@ -62,8 +62,6 @@ namespace Game.Presentation.Hud
         private WorldLabel _card;
         private WorldLabel _strip;
         private float _prepStartedAt = -1f;
-        private string _summary;
-        private int _summaryDay;
 
         private void Start()
         {
@@ -130,12 +128,8 @@ namespace Game.Presentation.Hud
                     _strip.ShowAt(PrepText(), new Vector2(0f, -_canvas.rect.height / 2f + _stripBottomMargin));
                     break;
                 case DayPhase.Review:
-                    if (_summaryDay != days.Day)
-                    {
-                        _summaryDay = days.Day;
-                        _summary = Describe(days);
-                    }
-                    _card.ShowAt(WithReady(_summary), Vector2.zero);
+                    // The Plates dashboard shows the day now (decision 2026-11-08).
+                    _card.Hide();
                     break;
                 default:
                     _card.Hide();
@@ -191,7 +185,7 @@ namespace Game.Presentation.Hud
             $"[{HudStyle.Glyph(control, true)}]";
 
         // Words, not numbers, like the candidates' descriptions. New staff haven't settled in yet.
-        private static string Mood(StaffMember member)
+        internal static string Mood(StaffMember member)
         {
             if (member.Morale < 0f)
                 return "new";
@@ -211,7 +205,7 @@ namespace Game.Presentation.Hud
             _ => "cleaner",
         };
 
-        private static string WorkDone(StaffMember member) => member.Role switch
+        internal static string WorkDone(StaffMember member) => member.Role switch
         {
             StaffRole.PrepAssistant => $"{member.Name} prepared {member.JobsToday}, dropped {member.MistakesToday}",
             StaffRole.Waiter => $"{member.Name} carried {member.JobsToday} plates, dropped {member.MistakesToday}",
@@ -249,59 +243,6 @@ namespace Game.Presentation.Hud
                 ServicePhase.Closed => $"{clock}  {HudStyle.Colored(_closedText, _noticeColor)}",
                 _ => clock,
             };
-        }
-
-        private string Describe(DayCycle days)
-        {
-            var summary = days.LastService;
-            var currency = _root.Services.ServiceConfig.Currency;
-            _text.Clear();
-            _text.AppendLine($"<b>Day {days.Day}: service over</b>");
-            _text.AppendLine();
-
-            var money = FormatMoney(summary.Money, currency);
-            _text.AppendLine($"<b>{HudStyle.Colored(money, summary.Money < 0f ? _badColor : _goodColor)}</b>");
-            _text.AppendLine($"{currency}{summary.Payments:0} meals  +  {currency}{summary.Tips:0} tips  -  {currency}{summary.WalkOutLosses:0} walk-outs");
-            _text.AppendLine();
-
-            if (summary.Rating.HasValue)
-                _text.AppendLine(HudStyle.Colored($"{summary.Rating.Value:0.0} stars", _style.RatingColor(summary.Rating.Value / 5f)) + $" from {summary.ReviewCount} reviews");
-            _text.AppendLine($"Served {summary.Served}  ({summary.AsOrdered} as ordered)");
-            _text.AppendLine($"Walked out {summary.WalkOuts}  ·  Turned away {summary.TurnedAway}");
-
-            if (summary.Best != null || summary.TopComplaint != null)
-                _text.AppendLine();
-            if (summary.Best != null && !string.IsNullOrEmpty(summary.Best.Line))
-                _text.AppendLine($"Best: \"{summary.Best.Line}\"");
-            if (summary.TopComplaint != null && !string.IsNullOrEmpty(summary.TopComplaint.Line))
-                _text.AppendLine($"Heard {summary.TopComplaintCount}x: \"{summary.TopComplaint.Line}\"");
-
-            _text.AppendLine();
-            if (days.LastClose.Spoiled > 0 || days.LastClose.LeftOut > 0)
-            {
-                _text.AppendLine($"Overnight: {days.LastClose.Spoiled} spoiled, {days.LastClose.LeftOut} left out");
-                _text.AppendLine();
-            }
-            foreach (var member in _root.Services.Staff.Hired)
-                _text.AppendLine($"{WorkDone(member)}, {Mood(member)}");
-            foreach (var member in _root.Services.Staff.LastQuit)
-                _text.AppendLine(HudStyle.Colored($"{WorkDone(member)}, and quit", _badColor));
-            if (days.LastWages > 0f)
-                _text.AppendLine($"Wages -{currency}{days.LastWages:0}");
-            var energy = days.LastEnergy;
-            if (energy.Total > 0f)
-            {
-                var parts = new System.Collections.Generic.List<string>();
-                if (energy.Electricity > 0f)
-                    parts.Add($"electricity {currency}{energy.Electricity:0.00}");
-                if (energy.Gas > 0f)
-                    parts.Add($"gas {currency}{energy.Gas:0.00}");
-                if (energy.Charcoal > 0f)
-                    parts.Add($"charcoal {currency}{energy.Charcoal:0.00}");
-                _text.AppendLine($"Energy -{currency}{energy.Total:0.00} ({string.Join(", ", parts)})");
-            }
-            _text.Append($"Balance {FormatMoney(days.Balance, currency)}");
-            return _text.ToString();
         }
     }
 }

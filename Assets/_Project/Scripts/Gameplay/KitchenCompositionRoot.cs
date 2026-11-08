@@ -43,7 +43,10 @@ namespace Game.Gameplay
             var stations = new StationRegistry(FindStations());
 
             var cooking = new CookingSimulation(_tuning.AmbientTemperature, _realism.SpoilageMultiplier);
-            var days = save != null ? DayCycle.Continuing(save.Day, save.Balance) : new DayCycle(_staffConfig.StartingMoney);
+            var fee = _serviceConfig.ToFeeSettings();
+            var days = save != null
+                ? DayCycle.Continuing(save.Day, save.Balance, fee, save.DaysTowardsFee, Ledger.FromArray(save.Period), save.History)
+                : new DayCycle(_staffConfig.StartingMoney, fee);
             days.PhaseChanged += HandlePhaseChanged;
             var service = NewService(days.Day);
             Services = new KitchenServices(cooking, new ItemViewRegistry(_itemCatalog), _itemCatalog, _equipment, _tuning, _realism, service, _serviceConfig, days, new StaffRoster(), _staffConfig, stations, _floorPlan);
@@ -55,7 +58,6 @@ namespace Game.Gameplay
             if (save != null)
             {
                 CampaignSnapshot.RestoreContents(save, placed, Services);
-                ReplaceBrokenPlates(); // the morning after the save, as if the night had just passed
             }
 
             // First launch of the session with a campaign on disk: the title card asks first.
@@ -96,6 +98,26 @@ namespace Game.Gameplay
             _playerInputManager.EnableJoining();
         }
 
+        /// <summary>Posts a reply under a review, once, and saves it straight away.</summary>
+        public bool ReplyTo(Game.Simulation.Saving.ReviewRecord review, ReviewReply reply)
+        {
+            if (!ReviewReplies.Reply(review, reply, _serviceConfig.ToReplySettings()))
+                return false;
+            SaveCampaign();
+            return true;
+        }
+
+        /// <summary>Today's reviews join the listing as the day ends, before it's saved.</summary>
+        public void ListTodaysReviews()
+        {
+            var day = Services.Days.Day;
+            foreach (var review in Services.Service.Reviews)
+            {
+                var guest = _serviceConfig.GuestName(review.Customer?.Id ?? 0, day);
+                Services.ReviewHistory.Add(Game.Simulation.Saving.SaveConversions.ToRecord(review, day, guest));
+            }
+        }
+
         /// <summary>True if quitting now would lose something: anything since Review started is unsaved.</summary>
         public bool HasUnsavedDay => CampaignLaunch.Decided && Services.Days.Phase != DayPhase.Review;
 
@@ -112,8 +134,6 @@ namespace Game.Gameplay
             try
             {
                 SaveFile.Write(save);
-                Services.ReviewHistory.Clear();
-                Services.ReviewHistory.AddRange(save.Reviews);
             }
             catch (System.Exception exception)
             {
@@ -189,6 +209,10 @@ namespace Game.Gameplay
             if (phase == DayPhase.Prep)
             {
                 Services.LastDelivery = Services.Stations.All.OfType<StorageStation>().SelectMany(s => s.TakeDelivery()).ToList();
+
+                // Paid for whatever the balance, until street vendors replace the delivery (decision 2026-11-08).
+                var cost = Services.LastDelivery.Sum(d => (_itemCatalog.Find(d.TypeId)?.Price ?? 0f) * d.Count);
+                Services.Days.Charge(LedgerLine.Ingredients, cost);
                 return;
             }
             if (phase != DayPhase.Plan)
@@ -196,17 +220,6 @@ namespace Game.Gameplay
 
             Services.ReplaceService(NewService(Services.Days.Day));
             Services.Staff.Candidates = _staffConfig.CandidatesFor(Services.Days.Day);
-
-            ReplaceBrokenPlates();
-        }
-
-        // TODO(Phase 5, milestone 2): broken plates get replaced for free each morning until they can be bought.
-        private void ReplaceBrokenPlates()
-        {
-            var stack = Services.Stations.All.OfType<PlateStackStation>().FirstOrDefault();
-            var sink = Services.Stations.All.OfType<SinkStation>().FirstOrDefault();
-            if (stack != null && sink != null)
-                stack.Stack.AddNew(sink.Sink.TakeBrokenCount(), _equipment.PlateCapacity);
         }
 
         // Doors open: the seating is whatever tables there are by now.

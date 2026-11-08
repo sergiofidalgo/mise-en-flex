@@ -119,6 +119,26 @@ namespace Game.Data
         [Tooltip("Chance an order includes the side.")]
         [SerializeField, Range(0f, 1f)] private float _sideChance = 0.4f;
 
+        [Header("The restaurant and the boss")]
+        [Tooltip("A placeholder until the name is chosen when buying the restaurant (Phase 6).")]
+        [SerializeField] private string _restaurantName = "The Copper Pan";
+        [Tooltip("Where the restaurant is, for the review listing's search bar.")]
+        [SerializeField] private string _area = "Old Town";
+        [Tooltip("Its style as the listing shows it. The first restaurant is a grill (decision 2026-11-06).")]
+        [SerializeField] private string _styleName = "Grill";
+        [Tooltip("The fee to the boss, about three good days' profit (decision 2026-11-08).")]
+        [SerializeField, Min(0f)] private float _feeAmount = 450f;
+        [Tooltip("Finished days between fees (decision 2026-11-08: 5).")]
+        [SerializeField, Min(1)] private int _feeEveryDays = 5;
+        [Tooltip("Stars a fitting reply adds to how a review counts; a poor one takes the same away.")]
+        [SerializeField, Min(0f)] private float _replyNudge = 0.25f;
+        [Tooltip("First names for guests in the review listing.")]
+        [SerializeField] private string[] _guestFirstNames =
+        {
+            "Inés", "Tomáš", "Pavla", "Marco", "Aiko", "Lena", "Omar", "Sofia", "Jonas", "Nadia",
+            "Pedro", "Hana", "Luca", "Maya", "Viktor", "Elif", "Rosa", "Kofi", "Ana", "Felix",
+        };
+
         [Header("Prices and payment")]
         [Tooltip("Shown before amounts of money.")]
         [SerializeField] private string _currency = "€";
@@ -176,6 +196,27 @@ namespace Game.Data
         [SerializeField, Min(0.1f)] private float _walkSpeed = 1.6f;
 
         public float OpensAt => _opensAt;
+        public string RestaurantName => _restaurantName;
+        public string Area => _area;
+        public string StyleName => _styleName;
+        public float MainPrice => _mainPrice;
+
+        public Game.Simulation.Days.FeeSettings ToFeeSettings() =>
+            new Game.Simulation.Days.FeeSettings { Amount = _feeAmount, EveryDays = _feeEveryDays };
+
+        public Game.Simulation.Service.ReplySettings ToReplySettings() =>
+            new Game.Simulation.Service.ReplySettings { FittingNudge = _replyNudge, PoorNudge = _replyNudge };
+
+        /// <summary>A guest's name for the listing, e.g. "Inés R.": the same guest gets the same name.</summary>
+        public string GuestName(int customerId, int day)
+        {
+            if (_guestFirstNames == null || _guestFirstNames.Length == 0)
+                return $"Guest {customerId + 1}";
+            var seed = (uint)(customerId * 7919 + day * 104729);
+            var first = _guestFirstNames[seed % (uint)_guestFirstNames.Length];
+            var initial = (char)('A' + (seed / 7u) % 26u);
+            return $"{first} {initial}.";
+        }
         public float WalkSpeed => _walkSpeed;
         public string Currency => _currency;
 

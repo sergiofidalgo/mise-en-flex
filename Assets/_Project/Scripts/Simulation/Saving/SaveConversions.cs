@@ -24,12 +24,24 @@ namespace Game.Simulation.Saving
                 Morale = record.Morale,
             };
 
-        public static ReviewRecord ToRecord(Review review, int day) => new ReviewRecord
+        public static ReviewRecord ToRecord(Review review, int day, string guest = "")
         {
-            Day = day,
-            Stars = review.Stars,
-            Topic = (int)review.Topic,
-            Line = review.Line ?? "",
-        };
+            var customer = review.Customer;
+            var order = customer?.Order;
+            return new ReviewRecord
+            {
+                Day = day,
+                Stars = review.Stars,
+                Topic = (int)review.Topic,
+                Line = review.Line ?? "",
+                Guest = guest ?? "",
+                Order = order == null ? "" : $"{order.MainName.ToLowerInvariant()}, {order.Doneness.Name.ToLowerInvariant()}",
+                ArrivedAt = customer?.ArrivedAt ?? 0f,
+                WalkedOut = customer?.WalkedOut ?? false,
+                Paid = customer?.Bill?.Payment ?? 0f,
+                Tip = customer?.Bill?.Tip ?? 0f,
+                Penalty = customer?.WalkOutPenalty ?? 0f,
+            };
+        }
     }
 }

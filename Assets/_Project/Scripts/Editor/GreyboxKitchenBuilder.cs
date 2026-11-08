@@ -51,6 +51,7 @@ namespace Game.Editor
         private const float KnifeRackPrice = CounterPrice + 25f; // a counter with the rack built in
         private const float KnifePrice = 15f;
         private const float PanPrice = 25f;
+        private const float PlatePrice = 3f;
         private const float ShelfPrice = 60f;
         private const float FridgePrice = 120f;
         private const float TablePrice = 50f;
@@ -1036,6 +1037,8 @@ namespace Game.Editor
             SetFurniture(entries, KnifeRackFurniture, "Knife rack", KnifeRackPrice, keepOne: false, knifeRack);
             SetFurniture(entries, "knife", "Knife", KnifePrice, keepOne: false, null, Game.Simulation.Items.Knife.KnifeTypeId);
             SetFurniture(entries, "pan", "Pan", PanPrice, keepOne: false, null, GreyboxKitchenware.PanTypeId);
+            // Broken plates aren't replaced free any more (decision 2026-11-08): new ones join the clean pile.
+            SetFurniture(entries, "plate", "Plate", PlatePrice, keepOne: false, null, Game.Simulation.Items.Plate.PlateTypeId);
             SetFurniture(entries, ShelfFurniture, "Shelf", ShelfPrice, keepOne: true, shelf);
             SetFurniture(entries, FridgeFurniture, "Fridge", FridgePrice, keepOne: true, fridge);
             SetFurniture(entries, TableFurniture, "Table", TablePrice, keepOne: false, table);
