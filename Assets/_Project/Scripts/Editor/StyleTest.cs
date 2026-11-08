@@ -13,11 +13,12 @@ namespace Game.Editor
         private const string MaterialsFolder = "Assets/_Project/Art/Materials";
         private const string ToonShader = "Game/Toon";
 
-        // A bold, cheerful palette, with clear contrast between parts.
-        private static readonly Color HobRed = new Color(0.88f, 0.3f, 0.22f);
+        // Kitchen-real colours with clear contrast between parts: a stainless hob (decision 2026-11-08),
+        // light enough that the darker pan on it stands out.
+        private static readonly Color HobSteel = new Color(0.78f, 0.8f, 0.83f);
         private static readonly Color HobTopCharcoal = new Color(0.2f, 0.2f, 0.23f);
-        private static readonly Color DialCream = new Color(0.98f, 0.92f, 0.78f);
-        private static readonly Color WindowTeal = new Color(0.16f, 0.24f, 0.28f);
+        private static readonly Color DialBlack = new Color(0.12f, 0.12f, 0.13f);
+        private static readonly Color WindowSmoked = new Color(0.14f, 0.15f, 0.18f);
         private static readonly Color BurnerDark = new Color(0.08f, 0.08f, 0.09f);
         private static readonly Color PanSteel = new Color(0.32f, 0.36f, 0.44f);
         private static readonly Color HandleWood = new Color(0.55f, 0.33f, 0.18f);
@@ -29,19 +30,24 @@ namespace Game.Editor
         public static Material EnsureToonMaterial(string name, Color color, Color? grain = null, float grainScale = 30f)
         {
             var path = $"{MaterialsFolder}/MAT_Toon_{name}.mat";
+            // An existing material takes the colours given here too, so a change in code shows on rebuild.
             var material = AssetDatabase.LoadAssetAtPath<Material>(path);
-            if (material != null)
-                return material;
+            var isNew = material == null;
+            if (isNew)
+                material = new Material(Shader.Find(ToonShader));
 
-            material = new Material(Shader.Find(ToonShader));
             material.SetColor("_BaseColor", color);
+            material.SetFloat("_WoodGrain", grain.HasValue ? 1f : 0f);
             if (grain.HasValue)
             {
-                material.SetFloat("_WoodGrain", 1f);
                 material.SetColor("_GrainColor", grain.Value);
                 material.SetFloat("_GrainScale", grainScale);
             }
-            AssetDatabase.CreateAsset(material, path);
+
+            if (isNew)
+                AssetDatabase.CreateAsset(material, path);
+            else
+                EditorUtility.SetDirty(material);
             return material;
         }
 
@@ -50,11 +56,11 @@ namespace Game.Editor
         /// <summary>The hob's body, top, dial, oven window and burner, each in its own flat colour.</summary>
         public static void DressHob(Transform hob, GameObject burner)
         {
-            hob.Find("Body").GetComponent<Renderer>().sharedMaterial = EnsureToonMaterial("HobBody", HobRed);
+            hob.Find("Body").GetComponent<Renderer>().sharedMaterial = EnsureToonMaterial("HobBody", HobSteel);
             burner.GetComponent<Renderer>().sharedMaterial = EnsureToonMaterial("Burner", BurnerDark);
             AddPart(hob, "Top", "HobTop", EnsureToonMaterial("HobTop", HobTopCharcoal));
-            AddPart(hob, "Dial", "HobDial", EnsureToonMaterial("HobDial", DialCream));
-            AddPart(hob, "Window", "HobWindow", EnsureToonMaterial("HobWindow", WindowTeal));
+            AddPart(hob, "Dial", "HobDial", EnsureToonMaterial("HobDial", DialBlack));
+            AddPart(hob, "Window", "HobWindow", EnsureToonMaterial("HobWindow", WindowSmoked));
         }
 
         /// <summary>The pan: a steel body (PanView still tints it with heat) and a wooden handle.</summary>

@@ -4,6 +4,18 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-08 — Kitchen-real colours and counter-sized proportions
+
+**Decision:**
+- **Sink:** the tap stands at the model's back. The greybox layout turns the sink so its back is against the wall, and players turn it themselves when they move it. Nothing works out which wall is nearest. The basin is wider and fills most of the counter.
+- **Hob:** stainless steel (light steel body, charcoal top, black knobs, smoked oven window) instead of red.
+- **Fridge:** the four baskets are steak-sized (0.32 × 0.26 m) and sit towards the middle (±0.18, ±0.15).
+- **Plate rack:** plates stand upright again, as in the first design. The rack has thin rounded light-steel wires and short tines between the plates. Plates get a soft blue rim, and plates and wires get thinner outlines.
+
+**Reason:** The user's references show appliances that are real-coloured and fill their counter the way real ones do, with detail in lines rather than in thick shapes. The exaggerated rack and the red hob read as toys.
+
+---
+
 ## 2026-11-08 — Style test on the hob; notes on the sink, fridge, board, plates and rack
 
 **Decision (user's calls):**

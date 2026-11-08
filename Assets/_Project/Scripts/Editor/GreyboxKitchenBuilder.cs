@@ -215,6 +215,7 @@ namespace Game.Editor
         private static readonly Vector3 ContainerRackPosition = new Vector3(-0.4f, 0f, 1.4f);
         private static readonly Color RackColor = new Color(0.46f, 0.48f, 0.52f);
         private static readonly Vector3 SinkPosition = new Vector3(3.4f, 0f, 0.4f);
+        private const float SinkYaw = 90f; // back (+z) to the east wall
         private static readonly Color SinkColor = new Color(0.55f, 0.62f, 0.68f);
         private static readonly Color DirtyPlateColor = new Color(0.45f, 0.36f, 0.25f);
         private static readonly Vector3 BinPosition = new Vector3(3.4f, 0f, 1.4f);
@@ -556,6 +557,8 @@ namespace Game.Editor
 
             var sink = CreateStation<SinkStation>(
                 "Sink", SinkPosition, CounterSize, CounterHeight, GreyboxAssets.EnsureMaterial("Sink", SinkColor), stations);
+            // Its back, where the tap is, against the east wall; players turn it as they like.
+            sink.transform.localRotation = Quaternion.Euler(0f, SinkYaw, 0f);
             var sinkPile = new SerializedObject(sink.gameObject.AddComponent<PlatePileView>());
             sinkPile.FindProperty("_station").objectReferenceValue = sink;
             // The sink washes one plate at a time and keeps none (decision 2026-11-08): the plate

@@ -52,9 +52,12 @@ namespace Game.Tests.EditMode
         [Test]
         public void PlateRackHoldsTheStacksSixPlatesAndFitsTheCounter()
         {
+            const float plateRadius = 0.16f, spacing = 0.08f; // KitchenwareArt.RackSpacing
             var rack = Model("SM_PlateRack", "PlateRack");
-            Assert.That(rack.size.z, Is.GreaterThanOrEqualTo(5 * 0.06f), "Room for six plates, one behind the other.");
+            Assert.That(rack.size.z, Is.GreaterThanOrEqualTo(5 * spacing), "Room for six plates, one behind the other.");
+            Assert.That(rack.size.x, Is.GreaterThan(2 * plateRadius), "The plates fit between its arches.");
             Assert.That(rack.size.x, Is.LessThan(1f));
+            Assert.That(rack.size.z, Is.LessThan(1f));
             Assert.That(rack.min.y, Is.EqualTo(0f).Within(Tolerance));
         }
 

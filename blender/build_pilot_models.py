@@ -270,10 +270,11 @@ def build_fridge():
     glass.location = FRIDGE_LID_HINGE
 
     bm = bmesh.new()
-    # Small, and gathered in the middle (StorageArt.SlotPosition), so stock shows from every side.
-    add_box(bm, (0.22, 0.2, 0.04), (0.0, 0.0, 0.02), bevel=0.014)
+    # Big enough for a steak, gathered towards the middle (StorageArt.SlotPosition) with a little
+    # room to the walls, so stock shows from every side.
+    add_box(bm, (0.32, 0.26, 0.04), (0.0, 0.0, 0.02), bevel=0.014)
     basket = finish("FridgeBasket", bm)
-    basket.location = (0.13, 0.12, FRIDGE_FLOOR)
+    basket.location = (0.18, 0.15, FRIDGE_FLOOR)
     return [body, liner, frame, glass, basket]
 # The shelf's boards are shallow and centred, so what's on the lower tier isn't hidden under the
 # upper one from the camera's 55° view, whichever way the shelf is turned.
@@ -347,29 +348,33 @@ def build_plate():
     add_lathe(bm, profile)
     rim = finish("PlateRim", bm)
     return [body, rim]
-def add_rack(bm, length, width=0.42, height=0.24, wire=0.04):
-    """A chunky toy-like dish rack: fat round arches at each end and fat rails. Plates stand in it
-    facing the camera, one behind the other, from the back (Blender -Y) to the front (+Y)."""
-    half_width = width / 2.0
-    for y in (-length / 2.0, length / 2.0):
-        # The feet sit on the counter: the pipe's joints are balls, so they start a radius up.
-        add_pipe(bm, [(-half_width, y, wire / 2.0), (-half_width, y, height - half_width * 0.4),
-                      (-half_width * 0.6, y, height), (half_width * 0.6, y, height),
-                      (half_width, y, height - half_width * 0.4), (half_width, y, wire / 2.0)], radius=wire / 2.0, segments=12)
-    for x in (-half_width, half_width):
-        add_pipe(bm, [(x, -length / 2.0, wire / 2.0), (x, length / 2.0, wire / 2.0)], radius=wire / 2.0, segments=12)
-    for x in (-0.07, 0.07):  # the plates rest on these
-        add_pipe(bm, [(x, -length / 2.0, wire / 2.0), (x, length / 2.0, wire / 2.0)], radius=wire / 2.0, segments=12)
+# The upright plate rack (decision 2026-11-08): plates stand on edge, this far apart, on rails
+# whose tops are this high. Must match KitchenwareArt.RackSpacing and RackRailHeight.
+RACK_WIRE = 0.016
+RACK_SPACING = 0.08
+RACK_PLATES = 6
+
+
 def build_plate_racks():
-    """A rack for the plate stack (six plates) and a short one for the sink's drainer."""
+    """A simple wire dish rack, sized to the counter like the references: plates stand on edge
+    facing the camera, one behind the other, between short tines. Rounded wires, thin enough that
+    the plates read first and the rack second."""
     bm = bmesh.new()
-    add_rack(bm, length=0.4)
-    long_rack = finish("PlateRack", bm)
-    bm = bmesh.new()
-    add_rack(bm, length=0.2)
-    short_rack = finish("PlateRackShort", bm)
-    short_rack.location = (0.6, 0.0, 0.0)  # apart from the long one, for previews only
-    return [long_rack, short_rack]
+    r = RACK_WIRE / 2.0
+    length = RACK_PLATES * RACK_SPACING + 0.02
+    half_width, height = PLATE_RADIUS + 0.04, 0.22
+    for y in (-length / 2.0, length / 2.0):
+        # An arch at each end, its feet on the counter.
+        add_pipe(bm, [(-half_width, y, r), (-half_width, y, height - 0.06), (-half_width + 0.06, y, height),
+                      (half_width - 0.06, y, height), (half_width, y, height - 0.06), (half_width, y, r)], radius=r, segments=10)
+    for x in (-half_width, half_width):
+        add_pipe(bm, [(x, -length / 2.0, r), (x, length / 2.0, r)], radius=r, segments=10)
+    for x in (-0.07, 0.07):  # the plates rest on these, held apart by short tines
+        add_pipe(bm, [(x, -length / 2.0, r), (x, length / 2.0, r)], radius=r, segments=10)
+        for k in range(RACK_PLATES + 1):
+            y = (k - RACK_PLATES / 2.0) * RACK_SPACING
+            add_pipe(bm, [(x, y, r), (x, y, 0.07)], radius=r * 0.8, segments=8)
+    return [finish("PlateRack", bm)]
 
 
 def build_sink():
@@ -379,7 +384,7 @@ def build_sink():
     bm = bmesh.new()
     top, thickness = COUNTER_HEIGHT, 0.06
     z = top - thickness / 2.0
-    hole_x, hole_y = 0.32, 0.26  # half the basin's opening
+    hole_x, hole_y = 0.38, 0.32  # half the basin's opening: most of the counter, like the references
     # The top around the basin's opening.
     add_box(bm, (0.5 - hole_x, 1.0, thickness), ((0.5 + hole_x) / 2.0, 0.0, z), bevel=0.02)
     add_box(bm, (0.5 - hole_x, 1.0, thickness), (-(0.5 + hole_x) / 2.0, 0.0, z), bevel=0.02)

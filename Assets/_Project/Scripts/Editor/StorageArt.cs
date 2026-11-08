@@ -29,10 +29,10 @@ namespace Game.Editor
         // The chest's four slots sit on one level, its floor, near the top so they show through the
         // lid from above on any side (decision 2026-11-08): Y and B at the back, X and A at the front.
         public const float ChestFloor = 0.7f;
-        // The chest's baskets are small and gathered in the middle, so stock shows from every side
-        // (decision 2026-11-08). Must match FridgeBasket's location in blender/build_pilot_models.py.
-        private const float ChestSlotX = 0.13f;
-        private const float ChestRowZ = 0.12f;
+        // The chest's baskets fit a steak and are gathered towards the middle, so stock shows from
+        // every side (decision 2026-11-08). Must match FridgeBasket's location in blender/build_pilot_models.py.
+        private const float ChestSlotX = 0.18f;
+        private const float ChestRowZ = 0.15f;
 
         /// <summary>Height of a modelled basket, which food sits on.</summary>
         public const float BasketHeight = 0.03f;

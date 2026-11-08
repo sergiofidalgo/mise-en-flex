@@ -19,9 +19,10 @@ namespace Game.Editor
         // Must match PLATE_RADIUS in blender/build_pilot_models.py; the plate's origin is its base.
         private const float PlateRadius = 0.16f;
         private const float PlateHeight = 0.042f;
-        // Plates in a rack stand one behind the other, resting on rails this high.
-        private const float RackSpacing = 0.06f;
-        private const float RackRailHeight = 0.04f;
+        // Plates in the rack stand on edge, one behind the other, on rails this high. Must match
+        // RACK_SPACING and RACK_WIRE in blender/build_pilot_models.py.
+        private const float RackSpacing = 0.08f;
+        private const float RackRailHeight = 0.016f;
         // A loose pile is nudged and turned a little per plate, so it reads as dirty dishes.
         private const float MessyNudge = 0.03f;
 
@@ -30,8 +31,12 @@ namespace Game.Editor
         /// <summary>The basin's centre across the sink, in the game's x: one big basin, in the middle.</summary>
         public const float SinkBasinX = 0f;
 
-        private static readonly Color RimColor = new Color(0.8f, 0.64f, 0.3f);
-        private static readonly Color RackColor = new Color(0.08f, 0.08f, 0.09f);
+        // A soft blue line round a white plate, and a light steel rack (decision 2026-11-08).
+        private static readonly Color RimColor = new Color(0.66f, 0.78f, 0.92f);
+        private static readonly Color RackSteel = new Color(0.62f, 0.66f, 0.72f);
+        // Thin outlines on small things, so six plates and a wire rack don't turn into a tangle of black.
+        private const float PlateOutline = 0.0025f;
+        private const float WireOutline = 0.0012f;
         private static readonly Color SteelColor = new Color(0.72f, 0.74f, 0.77f);
 
         public enum PlateLayout
@@ -56,11 +61,11 @@ namespace Game.Editor
             if (!HasPlateModel)
                 return GreyboxKitchenware.CreatePlatePile(parent, baseHeight, count, color, materialName, offset);
 
-            var material = EnsurePlateMaterial();
+            var material = Outlined(EnsurePlateMaterial(), PlateOutline);
             if (layout == PlateLayout.Rack)
             {
-                var rack = CreatePart(parent, $"{materialName}Rack", RackModel, count > 3 ? "PlateRack" : "PlateRackShort",
-                    GreyboxAssets.EnsureMaterial("PlateRack", RackColor));
+                var rack = CreatePart(parent, $"{materialName}Rack", RackModel, "PlateRack",
+                    Outlined(StyleTest.EnsureToonMaterial("PlateRack", RackSteel), WireOutline));
                 rack.transform.localPosition = offset + Vector3.up * baseHeight;
             }
 
@@ -127,6 +132,13 @@ namespace Game.Editor
             board.GetComponent<Renderer>().sharedMaterial = StyleTest.BoardMaterial(); // wood grain, toon shaded
         }
 
+        private static Material Outlined(Material material, float width)
+        {
+            material.SetFloat("_OutlineWidth", width);
+            EditorUtility.SetDirty(material);
+            return material;
+        }
+
         /// <summary>The plate shader's material (MAT_Plate): clean, until a view makes it dirty.</summary>
         public static Material EnsurePlateMaterial()
         {
@@ -148,7 +160,7 @@ namespace Game.Editor
         }
 
         private static void AddRim(Transform plate) =>
-            CreatePart(plate, "Rim", PlateModel, "PlateRim", GreyboxAssets.EnsureMaterial("PlateRim", RimColor));
+            CreatePart(plate, "Rim", PlateModel, "PlateRim", Outlined(StyleTest.EnsureToonMaterial("PlateRim", RimColor), PlateOutline));
 
         private static GameObject CreatePart(Transform parent, string name, string model, string mesh, Material material)
         {
