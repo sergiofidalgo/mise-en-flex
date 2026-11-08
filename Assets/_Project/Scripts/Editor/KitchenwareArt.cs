@@ -244,10 +244,15 @@ namespace Game.Editor
             var splashShape = splash.shape;
             splashShape.angle = 60f;
 
-            // Soap bubbles: shiny rings in pastel tints, rising off the water, wobbling as they
-            // drift, swelling a little and then popping.
-            var bubbles = GreyboxKitchenware.CreateParticles(sink.transform, "Bubbles", WaterLevel + 0.005f, 0.22f,
-                lifetime: 2.2f, speed: 0.22f, minSize: 0.045f, maxSize: 0.11f, growth: 1f, maxParticles: 120);
+            // Soap bubbles: shiny rings in pastel tints, a few at a time, drifting off the water in
+            // every direction, towards the chef too, wobbling, swelling a little and popping (the
+            // user's notes, 2026-11-08: big, but few, so present but subtle).
+            var bubbles = GreyboxKitchenware.CreateParticles(sink.transform, "Bubbles", WaterLevel + 0.005f, 0.2f,
+                lifetime: 2.2f, speed: 0.2f, minSize: 0.1f, maxSize: 0.2f, growth: 1f, maxParticles: 24);
+            var spread = bubbles.shape;
+            spread.shapeType = ParticleSystemShapeType.Cone;
+            spread.angle = 70f; // up off the water and out every way
+            spread.radius = 0.2f;
             var bubblesMain = bubbles.main;
             bubblesMain.simulationSpace = ParticleSystemSimulationSpace.Local;
             bubblesMain.startColor = new ParticleSystem.MinMaxGradient(new Color(1f, 0.85f, 0.95f, 1f), new Color(0.8f, 0.95f, 1f, 1f));

@@ -7,8 +7,8 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 ## 2026-11-08 — Effects carry the fun: bubbles, fog, sparks and flies
 
 **Decision:** Effects are a deliberate layer of fun and liveliness in the scene, not understated touches (the user's note).
-- **Washing:** big soap bubbles (a shiny ring texture, pastel tints) float up out of the sink, wobble, swell and pop. Splashes are chunky droplets thrown well up.
-- **The fridge:** opening it releases a big cloud of icy-blue fog that rolls over its front, and fog keeps spilling while it's open. The fog uses its own premultiplied material; alpha blending made it grey smudges.
+- **Washing:** a few big soap bubbles (a shiny ring texture, pastel tints, about five a second) drift off the sink in every direction, towards the chef too, then wobble, swell and pop. Splashes are chunky droplets thrown well up.
+- **The fridge:** opening it releases a short breath of cool fog, nothing while it stays open. The fog uses a texture that's white all over, fading only in its alpha (TEX_Puff). The built-in particle texture's darkening edges showed as a dark shade.
 - **Cooking:** sparks are big, bright and plentiful from middling heat up (`HobView._emberRate`).
 - **The bin:** once it's past half full, flies circle it, more the fuller it gets (`BinFillView`).
 - **The sink basin** is deeper (0.23 m), with walls darker than its floor and the water at 0.79 m, so its depth reads from the camera. Under it the cabinet's body stops at 0.66 m.

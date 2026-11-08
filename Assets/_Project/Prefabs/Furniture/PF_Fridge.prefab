@@ -656,7 +656,7 @@ ParticleSystem:
     startLifetime:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 1.8
+      scalar: 1
       minScalar: 5
       maxCurve:
         serializedVersion: 2
@@ -709,7 +709,7 @@ ParticleSystem:
     startSpeed:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 0.35
+      scalar: 0.3
       minScalar: 5
       maxCurve:
         serializedVersion: 2
@@ -763,7 +763,7 @@ ParticleSystem:
       serializedVersion: 2
       minMaxState: 0
       minColor: {r: 1, g: 1, b: 1, a: 1}
-      maxColor: {r: 0.62, g: 0.82, b: 1, a: 0.85}
+      maxColor: {r: 0.8, g: 0.9, b: 1, a: 0.85}
       maxGradient:
         serializedVersion: 2
         key0: {r: 1, g: 1, b: 1, a: 1}
@@ -827,8 +827,8 @@ ParticleSystem:
     startSize:
       serializedVersion: 2
       minMaxState: 3
-      scalar: 0.46
-      minScalar: 0.26
+      scalar: 0.28
+      minScalar: 0.14
       maxCurve:
         serializedVersion: 2
         m_Curve:
@@ -1144,7 +1144,7 @@ ParticleSystem:
         m_RotationOrder: 4
     randomizeRotationDirection: 0
     gravitySource: 0
-    maxNumParticles: 160
+    maxNumParticles: 40
     customEmitterVelocity: {x: 0, y: 0, z: 0}
     size3D: 0
     rotation3D: 0
@@ -1529,15 +1529,15 @@ ParticleSystem:
           time: 0
           value: 1
           inSlope: 0
-          outSlope: 1.5
+          outSlope: 1.2
           tangentMode: 0
           weightedMode: 0
           inWeight: 0
           outWeight: 0
         - serializedVersion: 3
           time: 1
-          value: 2.5
-          inSlope: 1.5
+          value: 2.2
+          inSlope: 1.2
           outSlope: 0
           tangentMode: 0
           weightedMode: 0
@@ -6371,8 +6371,8 @@ MonoBehaviour:
   _openSeconds: 0.25
   _closeSeconds: 0.3
   _overshoot: 1
-  _mistBurst: 40
-  _mistWhileOpen: 14
+  _mistBurst: 18
+  _mistWhileOpen: 0
 --- !u!1 &7338713043707098060
 GameObject:
   m_ObjectHideFlags: 0

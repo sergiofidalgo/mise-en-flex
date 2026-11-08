@@ -54,11 +54,12 @@ namespace Game.Editor
         private static readonly Color GlassColor = new Color(0.8f, 0.92f, 1f, 0.18f);
 
         // Cold air: a soft, slow puff that spills over the front edge as the lid opens, and sinks.
-        // Icy blue, so it shows against the white fridge, not just white on white.
-        private static readonly Color MistColor = new Color(0.62f, 0.82f, 1f, 0.85f);
+        // A white breath with a cool blue tint, like cold air, and so it shows against the white
+        // fridge (the user's reference, 2026-11-08).
+        private static readonly Color MistColor = new Color(0.8f, 0.9f, 1f, 0.85f);
         private static readonly Vector3 MistPosition = new Vector3(0f, 0.92f, -0.3f);
-        private const float MistLifetime = 1.8f;
-        private const float MistSpeed = 0.35f;
+        private const float MistLifetime = 1f;
+        private const float MistSpeed = 0.3f;
         private const float MistRadius = 0.3f;
         private const float MistGravity = 0.04f;
 
@@ -153,7 +154,7 @@ namespace Game.Editor
             highlight.ApplyModifiedPropertiesWithoutUndo();
 
             var mist = GreyboxKitchenware.CreateParticles(station.transform, "ColdMist", MistPosition.y, MistRadius,
-                MistLifetime, MistSpeed, minSize: 0.26f, maxSize: 0.46f, growth: 2.5f, maxParticles: 160);
+                MistLifetime, MistSpeed, minSize: 0.14f, maxSize: 0.28f, growth: 2.2f, maxParticles: 40);
             mist.transform.localPosition = MistPosition;
             mist.transform.localRotation = Quaternion.LookRotation(new Vector3(0f, -0.4f, -1f)); // over the front edge
             var main = mist.main;

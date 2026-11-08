@@ -177,22 +177,54 @@ namespace Game.Editor
         }
 
         /// <summary>
-        /// Cold fog (MAT_Particle_Mist): soft puffs that add their light over what's behind,
-        /// so they read as bright vapour. Alpha blending showed the particle texture's dark edges
-        /// as grey smudges. Created once.
+        /// Cold fog (MAT_Particle_Mist): soft white puffs, alpha blended over a texture that is
+        /// white all over and fades only in its alpha (TEX_Puff). The built-in particle texture's
+        /// colour darkens towards its edges, which showed as a dark shade round the fog (the
+        /// user's note, 2026-11-08). Brought up to date on every build.
         /// </summary>
         public static Material EnsureMistMaterial()
         {
             const string path = MaterialsFolder + "/MAT_Particle_Mist.mat";
             var material = AssetDatabase.LoadAssetAtPath<Material>(path);
-            if (material != null)
-                return material;
-            material = new Material(GreyboxAssets.EnsureParticleMaterial("Smoke"));
-            material.SetFloat("_Blend", 1f); // premultiplied
-            material.SetFloat("_SrcBlend", (float)UnityEngine.Rendering.BlendMode.One);
+            var isNew = material == null;
+            if (isNew)
+                material = new Material(GreyboxAssets.EnsureParticleMaterial("Smoke"));
+            material.SetTexture("_BaseMap", EnsurePuffTexture());
+            material.SetFloat("_Blend", 0f); // alpha
+            material.SetFloat("_SrcBlend", (float)UnityEngine.Rendering.BlendMode.SrcAlpha);
             material.SetFloat("_DstBlend", (float)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
-            AssetDatabase.CreateAsset(material, path);
+            if (isNew)
+                AssetDatabase.CreateAsset(material, path);
+            else
+                EditorUtility.SetDirty(material);
             return material;
+        }
+
+        // A soft round puff: white everywhere, its alpha falling off smoothly to the edge.
+        private static Texture2D EnsurePuffTexture()
+        {
+            const string path = "Assets/_Project/Art/Textures/TEX_Puff.asset";
+            var texture = AssetDatabase.LoadAssetAtPath<Texture2D>(path);
+            if (texture != null)
+                return texture;
+
+            GreyboxAssets.EnsureFolder("Assets/_Project/Art/Textures");
+            const int size = 64;
+            texture = new Texture2D(size, size, TextureFormat.RGBA32, true) { wrapMode = TextureWrapMode.Clamp };
+            for (var y = 0; y < size; y++)
+            {
+                for (var x = 0; x < size; x++)
+                {
+                    var px = (x + 0.5f) / size * 2f - 1f;
+                    var py = (y + 0.5f) / size * 2f - 1f;
+                    var r = Mathf.Sqrt(px * px + py * py);
+                    var alpha = Mathf.Clamp01(1f - r);
+                    texture.SetPixel(x, y, new Color(1f, 1f, 1f, alpha * alpha * (3f - 2f * alpha)));
+                }
+            }
+            texture.Apply();
+            AssetDatabase.CreateAsset(texture, path);
+            return texture;
         }
 
         private static Texture2D EnsureBubbleTexture()

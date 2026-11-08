@@ -84,7 +84,7 @@ namespace Game.Editor
                 {
                     var particles = (ParticleSystem)so.FindProperty(name).objectReferenceValue;
                     var emission = particles.emission;
-                    emission.rateOverTime = 30f;
+                    emission.rateOverTime = name == "_bubbles" ? 5f : 30f;
                     particles.Simulate(1.5f, true, true);
                 }
                 // And the bin beside it, half full (BinFillView only runs in Play mode).
@@ -108,7 +108,7 @@ namespace Game.Editor
             {
                 fridge.Show(1f);
                 var mist = (ParticleSystem)new SerializedObject(fridge).FindProperty("_mist").objectReferenceValue;
-                mist.Emit(40);
+                mist.Emit(18);
                 mist.Simulate(0.6f, true, false);
                 Render(camera, target, fridge.transform.position + Vector3.up * 0.9f, CloseHeight, Path.Combine(folder, "close_Fridge_open.png"));
             }
