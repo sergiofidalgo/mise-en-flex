@@ -138,9 +138,13 @@ namespace Game.Editor
         public static GameObject BuildKnife()
         {
             var root = new GameObject($"PF_Item_{Knife.KnifeTypeId}");
-            root.AddComponent<ItemView>();
+            var view = root.AddComponent<ItemView>();
+            // Put down on a counter, it lies across it bigger, to read from above (decision 2026-11-08).
+            var rest = new SerializedObject(root.AddComponent<Game.Presentation.KnifeRestView>());
+            rest.FindProperty("_view").objectReferenceValue = view;
+            rest.ApplyModifiedPropertiesWithoutUndo();
             if (KnifeArt.Dress(root.transform))
-                return Save(root, Knife.KnifeTypeId); // the big cartoony knife (decision 2026-11-08)
+                return Save(root, Knife.KnifeTypeId); // the chef's knife (decision 2026-11-08)
             var blade = GreyboxAssets.CreatePrimitive(
                 PrimitiveType.Cube, "Blade", root.transform, GreyboxAssets.EnsureMaterial("KnifeBlade", BladeColor), keepCollider: false);
             blade.transform.localScale = BladeScale;

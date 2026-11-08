@@ -35,6 +35,8 @@ namespace Game.Presentation
         [SerializeField] private Vector3 _panGripFar = new Vector3(0f, 0.11f, -0.4f);
 
         [Header("The knife")]
+        [Tooltip("The sheath on the hip: shown only while the chef has a knife, so you can tell at a glance (the user's note, 2026-11-08).")]
+        [SerializeField] private Renderer[] _sheath = System.Array.Empty<Renderer>();
         [Tooltip("Where a picked-up knife rides, in the sheath on the right hip, from the tool point (its frame, m before the held scale): its bolster at the sheath's mouth (CHEF_SHEATH in the Blender script). It only comes out at the board (the user's notes, 2026-11-08).")]
         [SerializeField] private Vector3 _beltOffset = new Vector3(-0.076f, -0.069f, -0.177f);
         [Tooltip("The knife's turn in the sheath: blade straight down, flat against the hip.")]
@@ -163,6 +165,7 @@ namespace Game.Presentation
             // The knife stays in the belt except facing the board with empty hands.
             var atBoard = _interactor.Target is PrepStation && _interactor.Hands.Current == null;
             var knife = _interactor.Tool != null ? _toolAnchor.GetComponentInChildren<ItemView>() : null;
+            ShowSheath(_interactor.Tool != null);
             if (knife != null)
             {
                 if (atBoard)
@@ -189,6 +192,7 @@ namespace Game.Presentation
                 carried.transform.localRotation = Quaternion.Euler(0f, _panTurn, 0f);
             }
             var knife = _toolAnchor.GetComponentInChildren<ItemView>();
+            ShowSheath(knife != null);
             if (knife != null)
             {
                 knife.transform.localPosition = cutting
@@ -197,6 +201,13 @@ namespace Game.Presentation
                 knife.transform.localRotation = Quaternion.Euler(cutting ? _boardTurn : _beltTurn);
             }
             Pose(carried, pan, cutting ? knife : null, false, 1f);
+        }
+
+        private void ShowSheath(bool shown)
+        {
+            foreach (var part in _sheath)
+                if (part != null && part.enabled != shown)
+                    part.enabled = shown;
         }
 
         // How far the knife is above the board: raised between cuts, down to it and back in a chop.

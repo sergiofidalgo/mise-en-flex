@@ -22,6 +22,7 @@ namespace Game.Gameplay.Items
         private bool _posed;
         private Vector3 _poseOffset;
         private Quaternion _poseRotation = Quaternion.identity;
+        private float _poseScale = 1f;
 
         public Item Item { get; private set; }
 
@@ -40,18 +41,21 @@ namespace Game.Gameplay.Items
 
         /// <summary>
         /// Holds the item at an offset and turn from its anchor, for how it looks in a chef's hands
-        /// (a pan held by its handle, decision 2026-11-08). Eased into; cleared by the next move.
-        /// Only presentation: where the item is held for play doesn't change.
+        /// (a pan held by its handle, decision 2026-11-08), or how it lies (a knife shown bigger on a
+        /// counter), optionally scaled. Eased into; cleared by the next move. Only presentation:
+        /// where the item is held for play doesn't change.
         /// </summary>
-        public void SetHeldPose(Vector3 localOffset, Quaternion localRotation, bool immediate = false)
+        public void SetHeldPose(Vector3 localOffset, Quaternion localRotation, bool immediate = false, float scale = 1f)
         {
             _posed = true;
             _poseOffset = localOffset;
             _poseRotation = localRotation;
+            _poseScale = scale;
             if (immediate && !_moving)
             {
                 transform.localPosition = localOffset;
                 transform.localRotation = localRotation;
+                transform.localScale = _baseScale * scale;
             }
         }
 
@@ -60,6 +64,7 @@ namespace Game.Gameplay.Items
             _posed = false;
             _poseOffset = Vector3.zero;
             _poseRotation = Quaternion.identity;
+            _poseScale = 1f;
             Anchor = anchor;
             transform.SetParent(anchor, worldPositionStays: true);
             transform.localRotation = Quaternion.identity;
@@ -81,6 +86,7 @@ namespace Game.Gameplay.Items
                     var ease = 1f - Mathf.Exp(-14f * Time.deltaTime);
                     transform.localPosition = Vector3.Lerp(transform.localPosition, _poseOffset, ease);
                     transform.localRotation = Quaternion.Slerp(transform.localRotation, _poseRotation, ease);
+                    transform.localScale = Vector3.Lerp(transform.localScale, _baseScale * _poseScale, ease);
                 }
                 return;
             }

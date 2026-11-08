@@ -388,9 +388,15 @@ namespace Game.Editor
                     shoulders[i] = shoulder;
                 }
                 // The knife's sheath on the right hip (the user's choice, 2026-11-08): the knife rides
-                // in it until the board. It hangs from the belt, so it doesn't bend with the torso.
-                AddChefPart(visuals, "Sheath", "ChefSheath", StyleTest.EnsureToonMaterial("ChefSheath", SheathColor));
-                AddChefPart(visuals, "SheathRim", "ChefSheathRim", StyleTest.EnsureToonMaterial("ChefSheathRim", SheathRimColor));
+                // in it until the board, and it only shows while the chef has one. It hangs from the
+                // belt, so it doesn't bend with the torso.
+                var sheath = new[]
+                {
+                    AddChefPart(visuals, "Sheath", "ChefSheath", StyleTest.EnsureToonMaterial("ChefSheath", SheathColor)),
+                    AddChefPart(visuals, "SheathRim", "ChefSheathRim", StyleTest.EnsureToonMaterial("ChefSheathRim", SheathRimColor)),
+                }.Where(part => part != null).ToArray();
+                foreach (var part in sheath)
+                    part.enabled = false; // until the chef takes a knife
 
                 var arms = new SerializedObject(root.AddComponent<ChefArmsView>());
                 arms.FindProperty("_interactor").objectReferenceValue = interactor;
@@ -398,6 +404,10 @@ namespace Game.Editor
                 arms.FindProperty("_rightShoulder").objectReferenceValue = shoulders[1];
                 arms.FindProperty("_carryAnchor").objectReferenceValue = carryAnchor;
                 arms.FindProperty("_toolAnchor").objectReferenceValue = toolAnchor;
+                var sheathList = arms.FindProperty("_sheath");
+                sheathList.arraySize = sheath.Length;
+                for (var i = 0; i < sheath.Length; i++)
+                    sheathList.GetArrayElementAtIndex(i).objectReferenceValue = sheath[i];
                 arms.ApplyModifiedPropertiesWithoutUndo();
             }
             else

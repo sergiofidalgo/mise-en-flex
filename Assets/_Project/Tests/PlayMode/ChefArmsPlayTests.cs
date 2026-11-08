@@ -69,6 +69,37 @@ namespace Game.Tests.PlayMode
             Assert.That(local.z, Is.LessThan(0.15f), "at the hip, not held out in front");
         }
 
+        private Renderer Sheath => _player.GetComponentsInChildren<Renderer>(true).First(r => r.name == "Sheath");
+
+        [UnityTest]
+        public IEnumerator TheSheathShowsOnlyWhileTheChefHasAKnife()
+        {
+            yield return OpenKitchen();
+            yield return null;
+            Assert.That(Sheath.enabled, Is.False, "no knife, no sheath");
+
+            var counter = _root.Services.Stations.All.OfType<CounterStation>().Single(c => c.Slot.Current is Knife);
+            Assert.That(counter.TryExchangeTool(_chef), Is.True);
+            yield return null;
+            Assert.That(Sheath.enabled, Is.True);
+
+            Assert.That(counter.TryExchangeTool(_chef), Is.True, "put back down");
+            yield return null;
+            Assert.That(Sheath.enabled, Is.False);
+        }
+
+        [UnityTest]
+        public IEnumerator AKnifeOnACounterLiesAcrossItBigger()
+        {
+            yield return OpenKitchen();
+            var counter = _root.Services.Stations.All.OfType<CounterStation>().Single(c => c.Slot.Current is Knife);
+            var view = ViewOf(counter.Slot.Current);
+            yield return Wait(1.5f);
+
+            Assert.That(view.transform.localScale.x, Is.GreaterThan(1.3f), "bigger than its real size");
+            Assert.That(Quaternion.Angle(view.transform.localRotation, Quaternion.identity), Is.GreaterThan(20f), "diagonal, not pointing straight away");
+        }
+
         [UnityTest]
         public IEnumerator APanIsCarriedByItsHandleWithBothHands()
         {
