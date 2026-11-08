@@ -18,6 +18,23 @@ Kinds of heat replaced equipment tiers (`decisions.md`, 2026-11-07). These need 
 
 ---
 
+## Players reshape the rooms inside their restaurant
+
+*Added 2026-11-08 · Relevant phase: 6 (with decoration) · Pillar: your restaurant, your identity*
+
+**The idea (user's):** players customise the restaurant to their needs and taste, including how the floor plan is split into rooms, as well as the walls' and floors' look (the look is already planned as decoration, §15.9).
+
+**Proposed shape:**
+- **The outer walls stay fixed:** they're the building that was bought, so size still comes from which restaurant you buy.
+- **Inside them,** in management mode: move the wall between kitchen and dining room (a bigger kitchen means a smaller dining room), and move the door between them.
+- **Later:** extra rooms (a storeroom), and knocking through an outer wall to grow a restaurant you own (see "Expanding a restaurant you own" below).
+
+**What it touches:** the floor plan is two fixed rectangles today, and placement rules depend on which room something is in; customers and staff route through the one inner door; the camera assumes the kitchen faces the dining room to the south (`decisions.md`, camera notes).
+
+**Open questions:** whether reshaping costs money or takes a day, whether a wall can move with furniture against it (learn by playing suggests letting it, with furniture pushed or blocked), and how irregular rooms may get.
+
+---
+
 ## The prompt card hides a hob's heat pips
 
 *Added 2026-11-07 · Relevant phase: 9 (HUD polish), or sooner if it gets in the way · Pillar: cooking is a craft*
