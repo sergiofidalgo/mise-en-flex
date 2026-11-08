@@ -36,14 +36,49 @@ namespace Game.Simulation.Days
     /// </summary>
     public sealed class DayCycle
     {
-        public DayCycle(float startingBalance = 0f)
+        public DayCycle(float startingBalance = 0f, FeeSettings fee = null)
         {
             Balance = startingBalance;
+            Fee = fee ?? new FeeSettings();
         }
 
         /// <summary>Carries on from a save: the morning after the day that was played (decision 2026-11-08).</summary>
-        public static DayCycle Continuing(int dayPlayed, float balance) =>
-            new DayCycle(balance) { Day = Math.Max(1, dayPlayed + 1) };
+        /// <param name="daysTowardsFee">Finished days since the last fee.</param>
+        /// <param name="period">Money in and out since the last fee.</param>
+        public static DayCycle Continuing(int dayPlayed, float balance, FeeSettings fee = null, int daysTowardsFee = 0, Ledger period = null, IEnumerable<DayRecord> history = null)
+        {
+            var days = new DayCycle(balance, fee) { Day = Math.Max(1, dayPlayed + 1), DaysTowardsFee = daysTowardsFee };
+            if (period != null && daysTowardsFee > 0)
+                days.Period.Add(period);
+            if (history != null)
+                days._history.AddRange(history);
+            return days;
+        }
+
+        private readonly List<DayRecord> _history = new List<DayRecord>();
+
+        public FeeSettings Fee { get; }
+
+        /// <summary>Money in and out today.</summary>
+        public Ledger Today { get; } = new Ledger();
+
+        /// <summary>Money in and out since the last fee, today included.</summary>
+        public Ledger Period { get; } = new Ledger();
+
+        /// <summary>Finished days since the last fee fell due.</summary>
+        public int DaysTowardsFee { get; private set; }
+
+        /// <summary>Finished days before the next fee falls due (it's collected as that day's Review starts).</summary>
+        public int DaysUntilFee => Math.Max(1, Fee.EveryDays - DaysTowardsFee);
+
+        /// <summary>True on the Review of a day whose fee has just been collected.</summary>
+        public bool FeeCollectedToday { get; private set; }
+
+        /// <summary>What's owed to the boss: money below zero (decision 2026-11-08).</summary>
+        public float OwedToBoss => Math.Max(0f, -Balance);
+
+        /// <summary>Every finished day, oldest first.</summary>
+        public IReadOnlyList<DayRecord> History => _history;
 
         public int Day { get; private set; } = 1;
 
@@ -80,6 +115,10 @@ namespace Game.Simulation.Days
                     break;
                 case DayPhase.Review:
                     Day++;
+                    Today.Clear();
+                    if (FeeCollectedToday)
+                        Period.Clear();
+                    FeeCollectedToday = false;
                     SetPhase(DayPhase.Plan);
                     break;
                 default:
@@ -96,7 +135,32 @@ namespace Game.Simulation.Days
             LastWages = wages;
             LastEnergy = energy;
             LastClose = close;
-            Balance += summary.Money - wages - energy.Total;
+            Book(LedgerLine.Payments, summary.Payments);
+            Book(LedgerLine.Tips, summary.Tips);
+            Book(LedgerLine.WalkOuts, summary.WalkOutLosses);
+            Book(LedgerLine.Wages, wages);
+            Book(LedgerLine.Energy, energy.Total);
+
+            // The fee is collected as Review starts, once enough days are finished (decision 2026-11-08).
+            DaysTowardsFee++;
+            if (DaysTowardsFee >= Fee.EveryDays)
+            {
+                Book(LedgerLine.Fee, Fee.Amount);
+                DaysTowardsFee = 0;
+                FeeCollectedToday = true;
+            }
+
+            _history.Add(new DayRecord
+            {
+                Day = Day,
+                Served = summary.Served,
+                WalkOuts = summary.WalkOuts,
+                TurnedAway = summary.TurnedAway,
+                Rating = summary.Rating ?? -1f,
+                In = Today.In,
+                Out = Today.Out,
+                Balance = Balance,
+            });
             SetPhase(DayPhase.Review);
         }
 
@@ -106,12 +170,25 @@ namespace Game.Simulation.Days
         {
             if (amount > Balance)
                 return false;
-            Balance -= amount;
+            Book(LedgerLine.Purchases, amount);
             return true;
         }
 
         /// <summary>Money from outside a service, such as selling furniture.</summary>
-        public void Receive(float amount) => Balance += amount;
+        public void Receive(float amount) => Book(LedgerLine.Sales, amount);
+
+        /// <summary>A bill that's paid whatever the balance, such as the morning delivery: it can go into debt.</summary>
+        public void Charge(LedgerLine line, float amount) => Book(line, amount);
+
+        // Every movement of money goes through here, so the books always add up to the balance.
+        private void Book(LedgerLine line, float amount)
+        {
+            if (amount == 0f)
+                return;
+            Today.Add(line, amount);
+            Period.Add(line, amount);
+            Balance += Ledger.IsIncome(line) ? amount : -amount;
+        }
 
         private void SetPhase(DayPhase phase)
         {

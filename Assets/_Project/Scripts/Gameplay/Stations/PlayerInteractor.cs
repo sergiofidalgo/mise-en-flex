@@ -86,6 +86,9 @@ namespace Game.Gameplay.Stations
         /// <summary>The stick right now, for a station that has taken over the chef.</summary>
         public Vector2 MoveInput => _playerInput.actions[MoveActionName].ReadValue<Vector2>();
 
+        /// <summary>True while the Review dashboard is up: the chef waits.</summary>
+        public bool IsReviewing => _services != null && _services.Days.Phase == DayPhase.Review;
+
         public bool CanAct => _services != null && !IsManaging &&
             (_services.Days.Phase == DayPhase.Prep || _services.Days.Phase == DayPhase.Service);
 

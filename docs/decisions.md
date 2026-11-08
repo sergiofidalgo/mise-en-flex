@@ -4,6 +4,55 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-08 — A main menu with three campaign slots; the review app is forkcast
+
+**User's calls (from the user's main menu mockup):**
+- **There are three save slots, each a separate campaign** with its own restaurant, money, boss debt and days. This replaces "one campaign at a time, no slots" from 2026-11-06.
+
+  `CLAUDE.md` (hard rules and Saves) and `game-design.md` §15.4 still describe one campaign. They're out of date, and they're the user's to update.
+- **The main menu has:**
+  - a sign: "Mise en FLEX";
+  - Continue (the last played slot);
+  - New campaign;
+  - Free kitchen;
+  - Settings, Credits and Quit;
+  - slot cards on the right. Each card shows a photo, name, rating, style and area, the day, balance, the cooks who played it, the best review, when it was last played and the time played. Y deletes a slot.
+- **Free kitchen is a sandbox for later:** no money, fee or boss, and nothing saved. It's greyed out in the menu until it's built (`ideas.md`).
+- **The review app is called forkcast** everywhere, including the Review dashboard (was "Plates").
+- **The menu's backdrop is a 3D night city in the kitchen's style:** toon shading and ink outlines.
+
+**Details (proposed while building; flagged for review):**
+- **New campaign takes the first free slot.** With all three full, it asks players to delete one first.
+- **Opening the kitchen scene directly in the Editor** continues the last played slot, or starts a new campaign in a free slot. This is for testing, with no menu needed.
+- **The city is built from simple shapes for now.** Real models are a Blender task to raise with the user.
+- **Cards show the review count, not followers.** Followers wait for influencers (Phase 7).
+- **Settings holds the three realism dials that exist** (cooking precision, spoilage, customer patience), saved for all slots. Presets and rebinding controls come with milestone 6.
+- **The cookbook outlives campaigns.** Whether the three slots share one cookbook is open, to decide with milestone 4.
+
+---
+
+## 2026-11-08 — Money out, the fee every 5 days, and the Plates dashboard
+
+**User's calls (Phase 5, milestone 2):**
+- **The fee to the boss falls due every 5 finished days in a restaurant, not 7.** It's a tuning value. This replaces "every 7 days" in `game-design.md` §15.4, and the collection day also sets the next period's goal.
+- **The fee is sized at about three good days' profit,** so a good period leaves money over and a bad one goes into debt. It's a tuning value, to adjust in play.
+- **The morning delivery is charged at the ingredients' prices** until street vendors replace it in milestone 3.
+- **Replying to a review (Y) gives a small reputation nudge.** There are three canned replies: apologise, thank or stand your ground. A fitting reply softens a bad review a little, and a poor one makes it slightly worse. One reply per review, shown under it.
+- **Books shows today and the period so far, plus the boss and progress:**
+  - money in and out, line by line;
+  - what's owed to the boss and when the next fee falls due;
+  - how the restaurant is doing day by day (rating, guests, money).
+- **The dashboard follows the user's mockup** (named forkcast since the main menu decision) (`plans/vision for management UI.png`).
+
+**Details (proposed while building; flagged for review):**
+- **The dashboard is a full-screen view over the kitchen during Review,** not a separate Unity scene. It's still read-only, and it avoids reloading the restaurant every day.
+- **Replies:** apologising fits complaints and thanking fits praise. Standing your ground never fits, which players learn from the listing. The nudge is about ±0.25 stars on that review's weight in the rating, as a tuning value.
+- **The rating in the listing is the average of every review so far,** after reply nudges.
+- **Broken plates are no longer replaced free;** plates are bought in the shop, a few at a time.
+- **The restaurant's name is a placeholder until it's chosen when buying in Phase 6.** Day 1 is a Monday.
+
+---
+
 ## 2026-11-08 — Saves: a title card, the morning after, everything as it lies
 
 **User's calls (Phase 5, milestone 1):**

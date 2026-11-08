@@ -29,6 +29,9 @@ namespace Game.Simulation.Service
 
         public int Id { get; }
 
+        /// <summary>Service seconds when they arrived, for the guests chart.</summary>
+        public float ArrivedAt { get; internal set; }
+
         public CustomerState State { get; internal set; }
 
         /// <summary>Who they came with, themselves included. They sit together and leave together.</summary>

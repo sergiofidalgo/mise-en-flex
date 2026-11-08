@@ -414,6 +414,19 @@ namespace Game.Gameplay
         public Placement BuyItem(FurnitureCatalog.Entry entry)
         {
             var services = _root.Services;
+
+            // A plate joins the clean pile, if it has room.
+            if (entry.ItemTypeId == Game.Simulation.Items.Plate.PlateTypeId)
+            {
+                var stack = services.Stations.All.OfType<PlateStackStation>().FirstOrDefault(s => s.Stack.Count < s.Stack.Capacity);
+                if (stack == null)
+                    return Placement.NoFreeCounter;
+                if (!services.Days.TrySpend(entry.Price))
+                    return Placement.CantAfford;
+                stack.Stack.AddNew(1, services.Equipment.PlateCapacity);
+                return Placement.Ok;
+            }
+
             var isKnife = entry.ItemTypeId == Game.Simulation.Items.Knife.KnifeTypeId;
             var rack = isKnife
                 ? services.Stations.All.OfType<KnifeRackStation>().FirstOrDefault(r => r.KnifeCount < r.Capacity)

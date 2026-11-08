@@ -34,6 +34,28 @@ namespace Game.Simulation.Saving
         public List<StaffRecord> Staff = new List<StaffRecord>();
 
         public List<ReviewRecord> Reviews = new List<ReviewRecord>();
+
+        /// <summary>Finished days since the last fee.</summary>
+        public int DaysTowardsFee;
+
+        /// <summary>Money in and out since the last fee, one amount per ledger line.</summary>
+        public float[] Period = new float[0];
+
+        public List<Days.DayRecord> History = new List<Days.DayRecord>();
+
+        // For the slot card in the main menu.
+        public string RestaurantName = "";
+        public string StyleName = "";
+        public string Area = "";
+
+        /// <summary>Real seconds played in this campaign.</summary>
+        public float PlayedSeconds;
+
+        /// <summary>When it was last saved, as <see cref="DateTime.Ticks"/> in local time.</summary>
+        public long LastPlayedTicks;
+
+        /// <summary>Every player number that has cooked in this campaign, for the card's coloured dots.</summary>
+        public List<int> Cooks = new List<int>();
     }
 
     /// <summary>One piece of furniture where it stands.</summary>
@@ -122,6 +144,7 @@ namespace Game.Simulation.Saving
         public float Morale = -1f;
     }
 
+    /// <summary>One review in the listing, with everything its card shows.</summary>
     [Serializable]
     public sealed class ReviewRecord
     {
@@ -129,6 +152,31 @@ namespace Game.Simulation.Saving
         public float Stars;
         public int Topic;
         public string Line = "";
+
+        /// <summary>The guest's name as the listing shows it.</summary>
+        public string Guest = "";
+
+        /// <summary>What they ordered, e.g. "steak, medium"; empty if they never ordered.</summary>
+        public string Order = "";
+
+        /// <summary>Service seconds when they arrived.</summary>
+        public float ArrivedAt;
+
+        public bool WalkedOut;
+        public float Paid;
+        public float Tip;
+
+        /// <summary>What walking out cost.</summary>
+        public float Penalty;
+
+        /// <summary>The reply given (a <see cref="Service.ReviewReply"/>), or -1 for none yet.</summary>
+        public int Reply = -1;
+
+        /// <summary>Stars this review counts for in the rating, after the reply's nudge.</summary>
+        public float RatedStars => Math.Max(0f, Math.Min(5f, Stars + Nudge));
+
+        /// <summary>What the reply did to how this review counts.</summary>
+        public float Nudge;
     }
 
     /// <summary>Brings a file from an older version up to date, one version at a time.</summary>

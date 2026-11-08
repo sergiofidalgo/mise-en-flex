@@ -42,6 +42,7 @@ namespace Game.Gameplay
                     _root.Services.Staff.EndDay(summary, _root.Services.StaffConfig.ToSettings());
 
                     // Saved as Review starts, once the day's results are in (decision 2026-11-06).
+                    _root.ListTodaysReviews();
                     _root.SaveCampaign();
                 }
             }

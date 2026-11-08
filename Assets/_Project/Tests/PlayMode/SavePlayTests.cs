@@ -31,7 +31,7 @@ namespace Game.Tests.PlayMode
         [TearDown]
         public void BackToNewCampaigns()
         {
-            new SaveFile().Retire();
+            SaveSlots.Delete(CampaignLaunch.Slot);
             CampaignLaunch.StartNew();
         }
 
@@ -79,7 +79,7 @@ namespace Game.Tests.PlayMode
             _root.SaveCampaign();
             Assert.That(_root.SaveFile.Exists, Is.True, "written");
 
-            CampaignLaunch.Continue();
+            CampaignLaunch.Continue(CampaignLaunch.Slot);
             yield return Open();
             services = _root.Services;
 

@@ -37,13 +37,22 @@ namespace Game.Gameplay
 
         private void Awake()
         {
+            // Opened straight from the Editor, with no menu: carry on with the last campaign.
+            if (!CampaignLaunch.Decided)
+                CampaignLaunch.ChooseForDirectPlay();
+            PlayerSettings.Load(_realism).ApplyTo(_realism);
+
             // Continuing: the furniture goes where it was before anything binds (decision 2026-11-08).
             var save = CampaignLaunch.WantsSave ? SaveFile.Read() : null;
+            _loaded = save;
             var placed = save != null ? CampaignSnapshot.ApplyLayout(save, FindStations(), _furniture) : null;
             var stations = new StationRegistry(FindStations());
 
             var cooking = new CookingSimulation(_tuning.AmbientTemperature, _realism.SpoilageMultiplier);
-            var days = save != null ? DayCycle.Continuing(save.Day, save.Balance) : new DayCycle(_staffConfig.StartingMoney);
+            var fee = _serviceConfig.ToFeeSettings();
+            var days = save != null
+                ? DayCycle.Continuing(save.Day, save.Balance, fee, save.DaysTowardsFee, Ledger.FromArray(save.Period), save.History)
+                : new DayCycle(_staffConfig.StartingMoney, fee);
             days.PhaseChanged += HandlePhaseChanged;
             var service = NewService(days.Day);
             Services = new KitchenServices(cooking, new ItemViewRegistry(_itemCatalog), _itemCatalog, _equipment, _tuning, _realism, service, _serviceConfig, days, new StaffRoster(), _staffConfig, stations, _floorPlan);
@@ -53,54 +62,41 @@ namespace Game.Gameplay
                 station.Bind(Services);
 
             if (save != null)
-            {
                 CampaignSnapshot.RestoreContents(save, placed, Services);
-                ReplaceBrokenPlates(); // the morning after the save, as if the night had just passed
-            }
+        }
 
-            // First launch of the session with a campaign on disk: the title card asks first.
-            if (!CampaignLaunch.Decided)
+        // The campaign as it was loaded, for what the card keeps across sessions (play time, cooks).
+        private Game.Simulation.Saving.CampaignSave _loaded;
+        private float _sessionSeconds;
+
+        /// <summary>The slot this campaign is saved in.</summary>
+        public int Slot => CampaignLaunch.Slot;
+
+        /// <summary>Posts a reply under a review, once, and saves it straight away.</summary>
+        public bool ReplyTo(Game.Simulation.Saving.ReviewRecord review, ReviewReply reply)
+        {
+            if (!ReviewReplies.Reply(review, reply, _serviceConfig.ToReplySettings()))
+                return false;
+            SaveCampaign();
+            return true;
+        }
+
+        /// <summary>Today's reviews join the listing as the day ends, before it's saved.</summary>
+        public void ListTodaysReviews()
+        {
+            var day = Services.Days.Day;
+            foreach (var review in Services.Service.Reviews)
             {
-                var onDisk = SaveFile.Read();
-                if (onDisk != null)
-                    SavedDay = onDisk.Day;
-                else
-                    CampaignLaunch.StartNew();
+                var guest = _serviceConfig.GuestName(review.Customer?.Id ?? 0, day);
+                Services.ReviewHistory.Add(Game.Simulation.Saving.SaveConversions.ToRecord(review, day, guest));
             }
-        }
-
-        private void Start()
-        {
-            if (AwaitingLaunchChoice)
-                _playerInputManager.DisableJoining();
-        }
-
-        /// <summary>True while the title card is up: nobody can join until Continue or New campaign is chosen.</summary>
-        public bool AwaitingLaunchChoice => !CampaignLaunch.Decided;
-
-        /// <summary>The day the saved campaign last played, for the title card.</summary>
-        public int SavedDay { get; private set; }
-
-        /// <summary>Loads the saved campaign: the scene starts again and puts the save back as it does.</summary>
-        public void ChooseContinue()
-        {
-            CampaignLaunch.Continue();
-            UnityEngine.SceneManagement.SceneManager.LoadScene(gameObject.scene.name);
-        }
-
-        /// <summary>Starts over in the fresh kitchen already here. The old file is kept aside, not read again.</summary>
-        public void ChooseNewCampaign()
-        {
-            CampaignLaunch.StartNew();
-            SaveFile.Retire();
-            _playerInputManager.EnableJoining();
         }
 
         /// <summary>True if quitting now would lose something: anything since Review started is unsaved.</summary>
         public bool HasUnsavedDay => CampaignLaunch.Decided && Services.Days.Phase != DayPhase.Review;
 
-        /// <summary>The one campaign file (decision 2026-11-06: no slots).</summary>
-        public SaveFile SaveFile => _saveFile ??= new SaveFile();
+        /// <summary>This campaign's file, in its slot (decision 2026-11-08: three slots).</summary>
+        public SaveFile SaveFile => _saveFile ??= SaveSlots.File(CampaignLaunch.Slot);
 
         private SaveFile _saveFile;
 
@@ -109,11 +105,18 @@ namespace Game.Gameplay
         {
             var players = PlayerInput.all.Select(p => p.GetComponent<PlayerInteractor>()).Where(p => p != null);
             var save = CampaignSnapshot.Capture(Services, players);
+
+            // What the slot card shows in the main menu.
+            save.RestaurantName = _serviceConfig.RestaurantName;
+            save.StyleName = _serviceConfig.StyleName;
+            save.Area = _serviceConfig.Area;
+            save.PlayedSeconds = (_loaded?.PlayedSeconds ?? 0f) + _sessionSeconds;
+            save.LastPlayedTicks = System.DateTime.Now.Ticks;
+            save.Cooks = (_loaded?.Cooks ?? new System.Collections.Generic.List<int>())
+                .Concat(PlayerInput.all.Select(p => p.playerIndex)).Distinct().OrderBy(i => i).ToList();
             try
             {
                 SaveFile.Write(save);
-                Services.ReviewHistory.Clear();
-                Services.ReviewHistory.AddRange(save.Reviews);
             }
             catch (System.Exception exception)
             {
@@ -137,6 +140,8 @@ namespace Game.Gameplay
 
         private void Update()
         {
+            _sessionSeconds += Time.unscaledDeltaTime;
+
             // Dials are read every frame so Inspector edits apply live.
             var cooking = Services.Cooking;
             cooking.AmbientTemperature = _tuning.AmbientTemperature;
@@ -189,6 +194,10 @@ namespace Game.Gameplay
             if (phase == DayPhase.Prep)
             {
                 Services.LastDelivery = Services.Stations.All.OfType<StorageStation>().SelectMany(s => s.TakeDelivery()).ToList();
+
+                // Paid for whatever the balance, until street vendors replace the delivery (decision 2026-11-08).
+                var cost = Services.LastDelivery.Sum(d => (_itemCatalog.Find(d.TypeId)?.Price ?? 0f) * d.Count);
+                Services.Days.Charge(LedgerLine.Ingredients, cost);
                 return;
             }
             if (phase != DayPhase.Plan)
@@ -196,17 +205,6 @@ namespace Game.Gameplay
 
             Services.ReplaceService(NewService(Services.Days.Day));
             Services.Staff.Candidates = _staffConfig.CandidatesFor(Services.Days.Day);
-
-            ReplaceBrokenPlates();
-        }
-
-        // TODO(Phase 5, milestone 2): broken plates get replaced for free each morning until they can be bought.
-        private void ReplaceBrokenPlates()
-        {
-            var stack = Services.Stations.All.OfType<PlateStackStation>().FirstOrDefault();
-            var sink = Services.Stations.All.OfType<SinkStation>().FirstOrDefault();
-            if (stack != null && sink != null)
-                stack.Stack.AddNew(sink.Sink.TakeBrokenCount(), _equipment.PlateCapacity);
         }
 
         // Doors open: the seating is whatever tables there are by now.

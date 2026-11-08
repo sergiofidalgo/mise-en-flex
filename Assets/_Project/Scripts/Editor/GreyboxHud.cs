@@ -138,6 +138,13 @@ namespace Game.Editor
             status.FindProperty("_settings").objectReferenceValue = settings;
             status.ApplyModifiedPropertiesWithoutUndo();
 
+            var dashboard = new SerializedObject(hud.AddComponent<ReviewDashboard>());
+            dashboard.FindProperty("_style").objectReferenceValue = style;
+            dashboard.FindProperty("_root").objectReferenceValue = root;
+            dashboard.FindProperty("_dayLoop").objectReferenceValue = root.GetComponent<DayLoop>();
+            dashboard.FindProperty("_settings").objectReferenceValue = settings;
+            dashboard.ApplyModifiedPropertiesWithoutUndo();
+
             var campaign = new SerializedObject(hud.AddComponent<CampaignCardHud>());
             campaign.FindProperty("_canvas").objectReferenceValue = hud.GetComponent<RectTransform>();
             campaign.FindProperty("_style").objectReferenceValue = style;

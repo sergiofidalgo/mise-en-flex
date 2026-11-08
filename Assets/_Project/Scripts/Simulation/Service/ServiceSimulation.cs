@@ -254,7 +254,7 @@ namespace Game.Simulation.Service
             var party = new Customer[size];
             for (var i = 0; i < size; i++)
             {
-                party[i] = new Customer(_nextId++) { Order = Settings.Menu?.Pick(_orderRandom), Party = party };
+                party[i] = new Customer(_nextId++) { Order = Settings.Menu?.Pick(_orderRandom), Party = party, ArrivedAt = Elapsed };
                 _customers.Add(party[i]);
             }
 
