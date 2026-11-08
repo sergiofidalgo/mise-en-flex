@@ -4,6 +4,14 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-08 — The current look is the reference for all future models and visual style
+
+**Decision:** (the user's words) The direction the art has taken as of today is good, and it rules future models and visual style. That means the stylized models, the three-band toon ramp, the soft screen-space ink (a darker shade of what's underneath, mostly silhouettes, no hull outlines), and the banded contact shadows as they stand on main. New assets match this look. Changes to it are the user's call, made by playing here. They aren't delegated to the Art Director or another project.
+
+**Reason:** The user played the kitchen after the softer ink and likes the result. A fixed reference keeps new assets consistent and stops the style drifting through outside hand-offs.
+
+---
+
 ## 2026-11-08 — A four-knife block with brass-collared slots
 
 **Decision:** (the user's notes) The knife block holds four knives, up from three, and is wider (0.46 m) to fit them. Each slot is a wider dark opening framed by a brass collar standing proud of the face. Knives in the block show 1.5× their size, with more of the bolster and blade out of the slot. A full slot shows a big handle, and an empty slot a dark opening in brass, so it's clear at a glance how many knives are there.
