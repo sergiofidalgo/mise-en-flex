@@ -117,6 +117,8 @@ namespace Game.Editor
         private const float ChefShoulderHeight = 0.38f;
         private const float ChefShoulderWidth = 0.27f;
         private static readonly Color ChefHatColor = new Color(0.97f, 0.97f, 0.95f);
+        private static readonly Color SheathColor = new Color(0.42f, 0.24f, 0.13f);
+        private static readonly Color SheathRimColor = new Color(0.26f, 0.15f, 0.09f);
         private static readonly Color ChefTrousersColor = new Color(0.2f, 0.2f, 0.24f);
         private static readonly Color ChefSkinColor = new Color(0.96f, 0.78f, 0.63f);
         private static readonly Color ChefFaceColor = new Color(0.16f, 0.11f, 0.09f);
@@ -385,6 +387,11 @@ namespace Game.Editor
                     AddChefPart(shoulder, "Hand", "ChefHand", StyleTest.EnsureToonMaterial("ChefSkin", ChefSkinColor));
                     shoulders[i] = shoulder;
                 }
+                // The knife's sheath on the right hip (the user's choice, 2026-11-08): the knife rides
+                // in it until the board. It hangs from the belt, so it doesn't bend with the torso.
+                AddChefPart(visuals, "Sheath", "ChefSheath", StyleTest.EnsureToonMaterial("ChefSheath", SheathColor));
+                AddChefPart(visuals, "SheathRim", "ChefSheathRim", StyleTest.EnsureToonMaterial("ChefSheathRim", SheathRimColor));
+
                 var arms = new SerializedObject(root.AddComponent<ChefArmsView>());
                 arms.FindProperty("_interactor").objectReferenceValue = interactor;
                 arms.FindProperty("_leftShoulder").objectReferenceValue = shoulders[0];
@@ -756,6 +763,7 @@ namespace Game.Editor
             var so = new SerializedObject(prep);
             so.FindProperty("_boardAnchor").objectReferenceValue = boardAnchor;
             so.ApplyModifiedPropertiesWithoutUndo();
+            VegetableArt.DressCutProgress(prep, boardAnchor); // an onion comes apart as it's cut
             AddToHighlight(prep, board.GetComponent<Renderer>());
             return prep;
         }

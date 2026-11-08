@@ -14,6 +14,7 @@ against the imported meshes.
 """
 
 import math
+import random
 import os
 import sys
 
@@ -97,9 +98,11 @@ def connect_rings(bm, rings):
                 bm.faces.new([a, b, c, d])
 
 
-def finish(name, bm):
-    """Turns `bm` into an object with outward normals and hard/soft edges decided by angle."""
-    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+def finish(name, bm, recalc=True):
+    """Turns `bm` into an object with outward normals and hard/soft edges decided by angle.
+    `recalc` off keeps the faces as made, for a lone flat face whose way out can't be worked out."""
+    if recalc:
+        bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
     bm.edges.ensure_lookup_table()
     for face in bm.faces:
         face.smooth = True
@@ -291,6 +294,9 @@ TRAY_TOP = 0.865
 # A chef's arm hangs from its shoulder: the hand's centre is this far below. Must match
 # ChefArmsView's arm length in the player builder.
 CHEF_ARM_LENGTH = 0.38
+# Where the knife sheath hangs, in the game's axes (right, up, forward) from the chef's feet: the
+# mouth where the knife's bolster rests. Must match ChefArmsView's belt pose.
+CHEF_SHEATH = (0.31, 0.82, -0.08)
 # The chef bends at the waist: the torso's origin is there. Must match the player builder.
 CHEF_WAIST = 0.85
 
@@ -438,7 +444,26 @@ def build_chef():
     add_ball(bm, (0.0, -0.068, -CHEF_ARM_LENGTH + 0.035), 0.038, segments=10)  # thumb, to the front
     hand = finish("ChefHand", bm)
     arm.location, hand.location = (1.0, 0.0, 1.0), (1.0, 0.0, 1.0)  # apart, for previews only
-    return objects + upper + [arm, hand]
+
+    # A leather knife sheath on the right hip, a little behind so a swinging arm clears it (the
+    # user's choice, 2026-11-08): the knife rides in it blade down, only its handle showing.
+    # Blender -x is the chef's right, +y behind. Must match the knife's belt pose (ChefArmsView).
+    sx, sy = -CHEF_SHEATH[0], -CHEF_SHEATH[2]
+    top, bottom, thick = CHEF_SHEATH[1] + 0.02, CHEF_SHEATH[1] - 0.37, 0.05
+    bm = bmesh.new()
+    points = []
+    # Shaped round the blade, which stays wide almost to its tip, so no steel shows through.
+    for z, half in ((top, 0.054), (top - 0.05, 0.054), (bottom + 0.1, 0.05), (bottom + 0.035, 0.036), (bottom, 0.012)):
+        for dy in (-half, half):
+            for dx in (-thick / 2.0, thick / 2.0):
+                points.append(bm.verts.new((sx + dx, sy + dy, z)))
+    bmesh.ops.convex_hull(bm, input=points)
+    sheath = finish("ChefSheath", bm)
+    bm = bmesh.new()
+    add_box(bm, (thick + 0.012, 0.12, 0.035), (sx, sy, top - 0.012), bevel=0.006)  # the mouth's band
+    add_box(bm, (0.05, 0.03, 0.03), (sx + 0.03, sy, top - 0.012), bevel=0.006)  # the loop to the belt
+    rim = finish("ChefSheathRim", bm)
+    return objects + upper + [arm, hand, sheath, rim]
 
 
 # Kitchenware. A plate is 0.32 m across (GreyboxKitchenware.PlateDiameter); its origin is the
@@ -865,6 +890,105 @@ def build_onion():
     return [body, lines, tuft, root]
 
 
+ONION_PROFILE = [(0.0, 0.0), (0.05, 0.004), (0.11, 0.03), (0.15, 0.1), (0.145, 0.16), (0.11, 0.22),
+                 (0.05, 0.27), (0.02, 0.3), (0.0, 0.32)]
+
+
+def onion_dice():
+    """Where each piece of a diced onion lies: a little heap, the bottom layer first, so pieces can
+    appear one by one while cutting and end as the cut onion's heap (decision 2026-11-08)."""
+    rng = random.Random(7)
+    size = 0.042
+    spots = []
+    for k in range(8):  # bottom ring
+        a = 2 * math.pi * k / 8 + 0.2
+        spots.append((0.068 * math.cos(a), 0.068 * math.sin(a), size / 2.0))
+    spots.append((0.0, 0.0, size / 2.0))
+    for k in range(4):  # second layer
+        a = 2 * math.pi * k / 4 + 0.6
+        spots.append((0.034 * math.cos(a), 0.034 * math.sin(a), size * 1.4))
+    spots.append((0.0, 0.0, size * 2.25))  # on top
+    dice = []
+    for x, y, z in spots:
+        turn = Matrix.Rotation(rng.uniform(0, math.pi), 4, 'Z') @ Matrix.Rotation(rng.uniform(-0.25, 0.25), 4, 'X')
+        dice.append((Vector((x + rng.uniform(-0.006, 0.006), y + rng.uniform(-0.006, 0.006), z)), turn, size * rng.uniform(0.85, 1.1)))
+    return dice
+
+
+def add_die(bm, centre, turn, size):
+    """One chunky, bevelled piece of onion, turned and placed."""
+    before = set(bm.verts)
+    add_box(bm, (size, size, size * 0.8), (0.0, 0.0, 0.0), bevel=size * 0.18)
+    new = [v for v in bm.verts if v not in before]
+    bmesh.ops.transform(bm, matrix=Matrix.Translation(centre) @ turn, verts=new)
+
+
+def build_diced_onion():
+    """A cut onion: a little heap of chunky cream dice (the user's note, 2026-11-08). One mesh, so
+    it browns as one as it cooks. Origin at its base."""
+    bm = bmesh.new()
+    for centre, turn, size in onion_dice():
+        add_die(bm, centre, turn, size)
+    return [finish("DicedOnionBody", bm)]
+
+
+def build_onion_cut():
+    """An onion part way through cutting (the user's choice, 2026-11-08): a half lying cut face up
+    with its rings showing, and the heap's dice one by one, so the cut grows chop by chop."""
+    segments = 16
+    # Half the bulb (angles 0..pi), then the flat cut face across it, then turned cut face up.
+    bm = bmesh.new()
+    rings = []
+    for radius, height in ONION_PROFILE:
+        if radius <= 0.0:
+            rings.append([bm.verts.new((0.0, 0.0, height))])
+        else:
+            rings.append([bm.verts.new((radius * math.cos(math.pi * i / segments), radius * math.sin(math.pi * i / segments), height))
+                          for i in range(segments + 1)])
+    for lower, upper in zip(rings, rings[1:]):
+        for i in range(segments):
+            if len(lower) == 1:
+                bm.faces.new([lower[0], upper[i + 1], upper[i]])
+            elif len(upper) == 1:
+                bm.faces.new([lower[i], lower[i + 1], upper[0]])
+            else:
+                bm.faces.new([lower[i], lower[i + 1], upper[i + 1], upper[i]])
+    skin_verts = list(bm.verts)
+    face_up = Matrix.Rotation(math.radians(-90.0), 4, 'X')
+    bmesh.ops.transform(bm, matrix=face_up, verts=skin_verts)
+    drop = -min(v.co.z for v in bm.verts)
+    bmesh.ops.translate(bm, vec=(0.0, 0.0, drop), verts=bm.verts)
+    skin = finish("OnionHalfSkin", bm)
+
+    # The cut face: the profile's outline on both sides of the axis, in the plane of the cut.
+    def outline(scale):
+        centre_h = 0.15
+        side = [(r * scale, centre_h + (h - centre_h) * scale) for r, h in ONION_PROFILE]
+        return [(r, 0.0, h) for r, h in side] + [(-r, 0.0, h) for r, h in reversed(side[1:-1])]
+
+    bm = bmesh.new()
+    cut = bm.faces.new([bm.verts.new(p) for p in outline(0.99)])
+    bmesh.ops.transform(bm, matrix=Matrix.Translation((0.0, 0.0, drop)) @ face_up, verts=bm.verts)
+    cut.normal_update()
+    if cut.normal.z < 0.0:
+        cut.normal_flip()  # facing up, to the camera
+    face = finish("OnionHalfFace", bm, recalc=False)
+
+    bm = bmesh.new()  # rings, drawn just above the face
+    for scale in (0.8, 0.6, 0.4, 0.2):
+        pts = outline(scale)
+        add_pipe(bm, [(x, -0.003, z) for x, _, z in pts + pts[:1]], radius=0.0035, segments=5)
+    bmesh.ops.transform(bm, matrix=Matrix.Translation((0.0, 0.0, drop)) @ face_up, verts=bm.verts)
+    rings_obj = finish("OnionHalfRings", bm)
+
+    pieces = []
+    for k, (centre, turn, size) in enumerate(onion_dice()):
+        bm = bmesh.new()
+        add_die(bm, centre, turn, size)
+        pieces.append(finish(f"OnionDie_{k:02d}", bm))
+    return [skin, face, rings_obj] + pieces
+
+
 def build_board():
     """A big, thick wooden cutting board using most of its counter, with fat rounded corners and a
     deep juice groove. The wood grain is drawn by its material (Game/Toon)."""
@@ -954,6 +1078,8 @@ def main():
         "SM_Knife.fbx": build_knife(),
         "SM_KnifeBlock.fbx": build_knife_block(),
         "SM_Onion.fbx": build_onion(),
+        "SM_DicedOnion.fbx": build_diced_onion(),
+        "SM_OnionCut.fbx": build_onion_cut(),
     }
     for filename, objects in models.items():
         export_fbx(objects, filename)

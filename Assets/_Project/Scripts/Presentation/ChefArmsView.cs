@@ -35,10 +35,10 @@ namespace Game.Presentation
         [SerializeField] private Vector3 _panGripFar = new Vector3(0f, 0.11f, -0.4f);
 
         [Header("The knife")]
-        [Tooltip("Where a picked-up knife rides, tucked in the belt at the right hip, from the tool point (its frame, m before the held scale). It only comes out at the board (the user's note, 2026-11-08).")]
-        [SerializeField] private Vector3 _beltOffset = new Vector3(-0.03f, -0.07f, -0.12f);
-        [Tooltip("The knife's turn in the belt: blade down into it, the handle leaning out from the hip so it shows from above.")]
-        [SerializeField] private Vector3 _beltTurn = new Vector3(55f, -90f, 0f);
+        [Tooltip("Where a picked-up knife rides, in the sheath on the right hip, from the tool point (its frame, m before the held scale): its bolster at the sheath's mouth (CHEF_SHEATH in the Blender script). It only comes out at the board (the user's notes, 2026-11-08).")]
+        [SerializeField] private Vector3 _beltOffset = new Vector3(-0.076f, -0.069f, -0.177f);
+        [Tooltip("The knife's turn in the sheath: blade straight down, flat against the hip.")]
+        [SerializeField] private Vector3 _beltTurn = new Vector3(90f, 90f, 0f);
         [Tooltip("Where the knife is held over the board, from the tool point: pointing away from the chef, edge down (the user's reference).")]
         [SerializeField] private Vector3 _boardOffset = new Vector3(-0.2f, 0.06f, 0.26f);
         [SerializeField] private Vector3 _boardTurn = new Vector3(0f, -8f, -90f);

@@ -143,7 +143,7 @@ namespace Game.Editor
             var chef = Spawn("Assets/_Project/Prefabs/PF_Player.prefab", props + new Vector3(-1.2f, 0f, -0.3f));
             if (chef != null)
             {
-                chef.transform.rotation = Quaternion.Euler(0f, 160f, 0f);
+                chef.transform.rotation = Quaternion.Euler(0f, 120f, 0f); // its right hip, with the knife sheath, to the camera
                 Spawn("Assets/_Project/Prefabs/Items/PF_Item_Pan.prefab", Vector3.zero, chef.transform.Find("CarryAnchor"));
                 Spawn("Assets/_Project/Prefabs/Items/PF_Item_Knife.prefab", Vector3.zero, chef.transform.Find("ToolAnchor"));
                 var arms = chef.GetComponent<Game.Presentation.ChefArmsView>();
@@ -154,7 +154,15 @@ namespace Game.Editor
 
             // A chef at the cutting board, knife out (the arms only move in play).
             var board = props + new Vector3(0f, 0f, 5f);
-            Spawn("Assets/_Project/Prefabs/Furniture/PF_CuttingBoard.prefab", board + new Vector3(0.75f, 0f, 0f));
+            var cuttingBoard = Spawn("Assets/_Project/Prefabs/Furniture/PF_CuttingBoard.prefab", board + new Vector3(0.75f, 0f, 0f));
+            // An onion part way through cutting: both halves and some dice (only seen in play).
+            var progress = cuttingBoard != null ? cuttingBoard.transform.Find("CutProgress") : null;
+            if (progress != null)
+                foreach (Transform piece in progress)
+                    if (piece.name.StartsWith("Half_") || (piece.name.StartsWith("Die_") && int.Parse(piece.name.Substring(4)) < 7))
+                        piece.gameObject.SetActive(true);
+            // A finished cut beside it.
+            Spawn("Assets/_Project/Prefabs/Items/PF_Item_DicedOnion.prefab", board + new Vector3(1.55f, 0.9f, 0.3f));
             var cook = Spawn("Assets/_Project/Prefabs/PF_Player.prefab", board);
             if (cook != null)
             {

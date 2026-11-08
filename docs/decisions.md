@@ -4,6 +4,23 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-08 — The knife rides in a sheath; an onion comes apart as it's cut
+
+**Decision:**
+- **A leather sheath on the right hip**, a little behind, holds the knife blade-down with only its handle and bolster showing (the user's choice). It replaces pushing the knife into the belt, which read as stabbed into the thigh. The knife still comes out only facing the board with empty hands. The sheath is part of the chef, so it is there even without a knife.
+- **Cutting shows its progress** on the board (the user's choice):
+  - the first chop splits the onion into two halves lying cut face up, their rings showing;
+  - each later chop piles up more dice beside them, and one half goes before the last chop;
+  - the last chop leaves the cut onion's heap;
+  - bits of onion fly with every chop.
+  It's only looks (`CutProgressView`); the cut itself is unchanged.
+- **A cut onion is a heap of chunky cream dice** everywhere it shows: on the board, in the pan (browning as one), on a plate and in its menu icon. It used to be a pale flattened ball.
+- **Rings on a first pass and dice on a second** stay an idea for later (`ideas.md`).
+
+**Reason:** The user's notes: the knife looked stabbed into the thigh, and the onion cut should be more visual.
+
+---
+
 ## 2026-11-08 — Chef arms that act out the work; a real chef's knife; the knife rides in the belt
 
 **Decision:**
