@@ -109,9 +109,9 @@ namespace Game.Editor
         {
             var street = new GameObject("Street").transform;
             street.SetParent(city, false);
-            Slab(street, "Road", Toon("NightRoad", new Color(0.13f, 0.13f, 0.17f)), new Vector3(0f, -0.05f, -6f), new Vector3(140f, 0.1f, 10f));
-            Slab(street, "Pavement", Toon("NightPavement", new Color(0.33f, 0.24f, 0.24f)), new Vector3(0f, 0.05f, 0.5f), new Vector3(140f, 0.2f, 3f));
-            Slab(street, "PavementNear", Toon("NightPavement", new Color(0.33f, 0.24f, 0.24f)), new Vector3(0f, 0.05f, -12f), new Vector3(140f, 0.2f, 3f));
+            Slab(street, "Road", Asphalt(), new Vector3(0f, -0.05f, -6f), new Vector3(140f, 0.1f, 10f));
+            Slab(street, "Pavement", PavementSlabs(), new Vector3(0f, 0.05f, 0.5f), new Vector3(140f, 0.2f, 3f));
+            Slab(street, "PavementNear", PavementSlabs(), new Vector3(0f, 0.05f, -12f), new Vector3(140f, 0.2f, 3f));
             // A plaza between the camera and the street, so the ground reaches the bottom of the frame.
             Slab(street, "Plaza", Toon("NightPlaza", new Color(0.24f, 0.20f, 0.24f)), new Vector3(0f, -0.05f, -36f), new Vector3(160f, 0.1f, 46f));
             var line = Unlit("NightRoadLine", new Color(0.85f, 0.70f, 0.30f));
@@ -211,7 +211,7 @@ namespace Game.Editor
                 return;
             var plaza = new GameObject("Plaza").transform;
             plaza.SetParent(city, false);
-            var paving = Toon("CityPaving", new Color(0.36f, 0.31f, 0.33f));
+            var paving = Stone("CityPaving", new Color(0.36f, 0.31f, 0.33f), 0.35f);
             for (var x = -24f; x <= 24f; x += 24f)
                 Model(plaza, "Paving", "CityPaving", paving, new Vector3(x, 0f, -25f));
 
@@ -288,7 +288,7 @@ namespace Game.Editor
                     var building = new GameObject("Building").transform;
                     building.SetParent(blocks, false);
                     building.localPosition = new Vector3(x + width / 2f, 0f, rows[row] + depth / 2f);
-                    var wall = Toon($"NightBuilding{System.Array.IndexOf(BuildingColors, colour)}", colour);
+                    var wall = Facade(System.Array.IndexOf(BuildingColors, colour));
                     var tower = random.NextDouble() < 0.3;
                     if (Modelled)
                     {
@@ -421,6 +421,52 @@ namespace Game.Editor
         }
 
         private static Material Toon(string name, Color color) => StyleTest.EnsureToonMaterial(name, color);
+
+        // Surface detail (the user's note, 2026-11-09: "surfaces look a bit too flat"), drawn from
+        // world position by the room shader so any size of block patterns seamlessly. Its fine lines
+        // fade with distance, so the far rows of buildings stay calm. The room shader has no rim light
+        // by default; the city takes the toon materials' 0.2, which keeps the moonlit ground as light
+        // as it was, seen at a low angle.
+        private const float CityRim = 0.2f;
+
+        // A building's walls: the warm colours in small bricks, the blues in larger stone blocks.
+        private static Material Facade(int colour)
+        {
+            var baseColor = BuildingColors[colour];
+            var stoneBlocks = baseColor.b > baseColor.r;
+            return HouseStyle.RoomMaterial($"CityFacade{colour}", "BRICK", m =>
+            {
+                m.SetColor("_BaseColor", baseColor);
+                m.SetColor("_SeamColor", baseColor * (stoneBlocks ? 0.82f : 0.7f));
+                m.SetFloat("_Size", stoneBlocks ? 0.6f : 0.3f);
+                m.SetFloat("_Length", stoneBlocks ? 1.4f : 0.75f);
+                m.SetFloat("_SeamWidth", stoneBlocks ? 0.06f : 0.05f);
+                m.SetFloat("_Variation", stoneBlocks ? 0.05f : 0.08f);
+                m.SetFloat("_RimStrength", CityRim);
+            });
+        }
+
+        // Mottled stone with specks of grit `speck` metres apart.
+        private static Material Stone(string name, Color color, float speck) => HouseStyle.RoomMaterial(name, "STONE", m =>
+        {
+            m.SetColor("_BaseColor", color);
+            m.SetFloat("_Size", speck);
+            m.SetFloat("_Variation", 0.07f);
+            m.SetFloat("_RimStrength", CityRim);
+        });
+
+        private static Material Asphalt() => Stone("CityAsphalt", new Color(0.13f, 0.13f, 0.17f), 0.25f);
+
+        // The pavements: big square slabs with dark joints.
+        private static Material PavementSlabs() => HouseStyle.RoomMaterial("CityPavement", "TILES", m =>
+        {
+            m.SetColor("_BaseColor", new Color(0.33f, 0.24f, 0.24f));
+            m.SetColor("_SeamColor", new Color(0.2f, 0.15f, 0.16f));
+            m.SetFloat("_Size", 1f);
+            m.SetFloat("_SeamWidth", 0.05f);
+            m.SetFloat("_Variation", 0.06f);
+            m.SetFloat("_RimStrength", CityRim);
+        });
 
         // Lights that glow at night (windows, lamps, the moon): unlit, so they read bright in the dark.
         private static Material Unlit(string name, Color color)

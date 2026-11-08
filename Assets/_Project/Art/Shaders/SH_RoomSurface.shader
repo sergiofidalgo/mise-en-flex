@@ -4,11 +4,14 @@
 //   Tiles:  square floor tiles with grout and a slight colour change per tile (the kitchen).
 //   Planks: wooden boards along x with staggered ends, seams and grain (the dining room).
 //   Wall:   cream plaster over a wood-panelled lower band with a rail, and a wood cap on top.
+//   Brick:  running-bond courses on upright faces, with weathering (the main menu's city).
+//   Stone:  mottled stone or asphalt with specks, on any face (the city's road and paving).
+// City patterns fade their fine lines out with distance, so far buildings don't shimmer.
 Shader "Game/Room/Surface"
 {
     Properties
     {
-        [KeywordEnum(Tiles, Planks, Wall)] _Pattern("Pattern", Float) = 0
+        [KeywordEnum(Tiles, Planks, Wall, Brick, Stone)] _Pattern("Pattern", Float) = 0
 
         [Header(Toon)]
         _ShadowTint("Shadow tint (multiplies the colour)", Color) = (0.76, 0.66, 0.64, 1)
@@ -21,8 +24,8 @@ Shader "Game/Room/Surface"
         [Header(Main)]
         _BaseColor("Tile, plank or plaster", Color) = (0.5, 0.47, 0.44, 1)
         _SeamColor("Grout or seams", Color) = (0.36, 0.33, 0.3, 1)
-        _Size("Tile size, or plank width (m)", Float) = 0.5
-        _Length("Plank length (m)", Float) = 1.6
+        _Size("Tile size, plank width or brick course (m)", Float) = 0.5
+        _Length("Plank or brick length (m)", Float) = 1.6
         _SeamWidth("Seam width (m)", Float) = 0.012
         _Variation("Colour change per tile or plank", Range(0, 0.3)) = 0.06
         _Grain("Wood grain", Range(0, 1)) = 0
@@ -70,7 +73,7 @@ Shader "Game/Room/Surface"
             HLSLPROGRAM
             #pragma vertex Vertex
             #pragma fragment Fragment
-            #pragma shader_feature_local _PATTERN_TILES _PATTERN_PLANKS _PATTERN_WALL
+            #pragma shader_feature_local _PATTERN_TILES _PATTERN_PLANKS _PATTERN_WALL _PATTERN_BRICK _PATTERN_STONE
             #pragma multi_compile _ _MAIN_LIGHT_SHADOWS _MAIN_LIGHT_SHADOWS_CASCADE _MAIN_LIGHT_SHADOWS_SCREEN
             #pragma multi_compile_fragment _ _SHADOWS_SOFT _SHADOWS_SOFT_LOW _SHADOWS_SOFT_MEDIUM _SHADOWS_SOFT_HIGH
             #pragma multi_compile_fragment _ _SCREEN_SPACE_OCCLUSION
@@ -182,10 +185,63 @@ Shader "Game/Room/Surface"
                 return lerp(panel, _SeamColor.rgb, seam);
             }
 
+            // Where on an upright face a point is: (along the face, height). City blocks are square
+            // to the world, so the face runs along z or x.
+            float2 FacePos(float3 positionWS, float3 normalWS)
+            {
+                return float2(abs(normalWS.x) > 0.5 ? positionWS.z : positionWS.x, positionWS.y);
+            }
+
+            // How much fine detail to draw for a pattern of cells `p`: 1 while a cell is several
+            // pixels across, fading to 0 as cells shrink towards a pixel, where lines would shimmer.
+            float Detail(float2 p)
+            {
+                float2 perPixel = fwidth(p);
+                return 1.0 - smoothstep(0.12, 0.3, max(perPixel.x, perPixel.y));
+            }
+
+            // Broad blotches a few metres across, lighter and darker: weathering and wear.
+            half3 Weather(half3 color, float2 pos)
+            {
+                float blotch = ValueNoise(pos * 0.35) * 0.65 + ValueNoise(pos * 1.3 + 17.0) * 0.35;
+                return color * (1.0 + (blotch - 0.5) * 2.0 * _Variation);
+            }
+
+            half3 Brick(float3 positionWS, float3 normalWS)
+            {
+                if (abs(normalWS.y) > 0.5)
+                    return _BaseColor.rgb;
+                float2 face = FacePos(positionWS, normalWS);
+                // Running bond: every other course shifted by half a brick.
+                float course = floor(face.y / _Size);
+                float2 p = float2(face.x / _Length + 0.5 * fmod(abs(course), 2.0), face.y / _Size);
+                float detail = Detail(p);
+                half3 brick = lerp(_BaseColor.rgb, Vary(_BaseColor.rgb, floor(p)), detail);
+                brick = Weather(brick, face);
+                float2 width = float2(_SeamWidth / _Length, _SeamWidth / _Size);
+                return lerp(brick, _SeamColor.rgb, Seam(p, width) * detail);
+            }
+
+            half3 Stone(float3 positionWS, float3 normalWS)
+            {
+                float2 pos = abs(normalWS.y) > 0.5 ? positionWS.xz : FacePos(positionWS, normalWS);
+                half3 stone = Weather(_BaseColor.rgb, pos);
+                // Specks of grit, about _Size apart, some lighter and some darker.
+                float2 p = pos / _Size;
+                float speck = Hash(floor(p));
+                float grit = 1.0 - smoothstep(0.18, 0.3, length(frac(p) - 0.5));
+                float shade = speck > 0.85 ? 1.25 : (speck < 0.15 ? 0.78 : 1.0);
+                return lerp(stone, stone * shade, grit * Detail(p));
+            }
+
             half4 Fragment(Varyings input) : SV_Target
             {
                 float3 normalWS = normalize(input.normalWS);
-                #if defined(_PATTERN_WALL)
+                #if defined(_PATTERN_BRICK)
+                    half3 albedo = Brick(input.positionWS, normalWS);
+                #elif defined(_PATTERN_STONE)
+                    half3 albedo = Stone(input.positionWS, normalWS);
+                #elif defined(_PATTERN_WALL)
                     half3 albedo = Wall(input.positionWS, normalWS);
                 #elif defined(_PATTERN_PLANKS)
                     half3 albedo = Planks(input.positionWS.xz);

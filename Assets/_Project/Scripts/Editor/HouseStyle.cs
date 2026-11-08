@@ -72,8 +72,9 @@ namespace Game.Editor
             m.SetFloat("_Grain", 1f);
         });
 
-        // A room material (MAT_Room_<name>), created or brought up to date with the given pattern.
-        private static Material RoomMaterial(string name, string pattern, System.Action<Material> set)
+        // A room material (MAT_Room_<name>), created or brought up to date with the given pattern:
+        // TILES, PLANKS, WALL, or the city's BRICK and STONE (the main menu).
+        internal static Material RoomMaterial(string name, string pattern, System.Action<Material> set)
         {
             var path = $"{MaterialsFolder}/MAT_Room_{name}.mat";
             var material = AssetDatabase.LoadAssetAtPath<Material>(path);
@@ -81,7 +82,7 @@ namespace Game.Editor
             if (isNew)
                 material = new Material(Shader.Find(RoomShader));
 
-            var patterns = new[] { "TILES", "PLANKS", "WALL" };
+            var patterns = new[] { "TILES", "PLANKS", "WALL", "BRICK", "STONE" };
             foreach (var keyword in patterns)
                 material.DisableKeyword($"_PATTERN_{keyword}");
             material.EnableKeyword($"_PATTERN_{pattern}");
