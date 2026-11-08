@@ -114,9 +114,8 @@ def finish(name, bm):
 
 
 def build_hob():
-    """Style test (decision 2026-11-08): a toy-like range. A rounded body with one huge dial and a
-    big round oven window on the side facing the camera, under a thick dark top. Parts are separate
-    meshes so each gets its own flat colour."""
+    """A stainless range (decision 2026-11-08): a rounded body under a thick dark top, with one
+    big heat knob on the top. Parts are separate meshes so each gets its own flat colour."""
     bm = bmesh.new()
     plinth = 0.08
     body_top = HOB_HEIGHT - 0.08
@@ -128,18 +127,14 @@ def build_hob():
     add_box(bm, (1.0, 1.0, 0.1), (0.0, 0.0, HOB_HEIGHT - 0.05), bevel=0.045)
     top = finish("HobTop", bm)
 
-    # One huge dial, and a porthole: chunky details that read from the camera.
-    toward_camera = Matrix.Rotation(math.radians(-90.0), 4, 'X')
+    # One big heat knob, set on the top by the game (StyleTest.KnobPosition) at the front corner,
+    # where the chef reaching for it would find it. Built round its own origin so it turns in place
+    # with the heat; its grip points at the camera (+Y) when off.
     bm = bmesh.new()
-    add_lathe(bm, [(0.11, 0.0), (0.11, 0.035), (0.095, 0.06), (0.04, 0.065), (0.04, 0.1), (0.0, 0.1)],
-              segments=24, centre=(0.3, 0.42, 0.58), axis_matrix=toward_camera)
-    add_box(bm, (0.035, 0.03, 0.15), (0.3, 0.5, 0.58), bevel=0.012)  # the dial's grip
+    add_lathe(bm, [(0.075, 0.0), (0.075, 0.03), (0.06, 0.045), (0.0, 0.045)], segments=24)
+    add_box(bm, (0.032, 0.13, 0.035), (0.0, 0.0, 0.06), bevel=0.012)  # the grip, across the knob
+    add_box(bm, (0.02, 0.02, 0.012), (0.0, 0.055, 0.08))  # a pointer at the grip's front end
     dial = finish("HobDial", bm)
-
-    bm = bmesh.new()
-    add_lathe(bm, [(0.2, 0.0), (0.2, 0.03), (0.17, 0.045), (0.0, 0.03)], segments=32,
-              centre=(-0.12, 0.42, 0.42), axis_matrix=toward_camera)
-    window = finish("HobWindow", bm)
 
     # The burner glows as one piece (HobView tints it): a fat rounded ring. Its surface stays below
     # the pan's resting height of 0.91, so the pan never sinks into it.
@@ -149,7 +144,7 @@ def build_hob():
         (0.235, HOB_HEIGHT + 0.009), (0.22, HOB_HEIGHT + 0.005), (0.2, HOB_HEIGHT + 0.003), (0.0, HOB_HEIGHT + 0.003),
     ])
     burner = finish("HobBurner", bm)
-    return [body, top, dial, window, burner]
+    return [body, top, dial, burner]
 def build_pan():
     """Style test: mostly rim and handle. A shallow pan with a fat rolled rim and a short, stubby
     handle with a big ball on the end, towards the camera (+Y here)."""

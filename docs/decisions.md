@@ -8,7 +8,7 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 **Decision:**
 - **Sink:** the tap stands at the model's back. The greybox layout turns the sink so its back is against the wall, and players turn it themselves when they move it. Nothing works out which wall is nearest. The basin is wider and fills most of the counter.
-- **Hob:** stainless steel (light steel body, charcoal top, black knobs, smoked oven window) instead of red.
+- **Hob:** stainless steel (light steel body, charcoal top) instead of red. One big light-steel heat knob sits on the top's front-right corner and turns clockwise with the heat, up to 270°, next to the heat pips along the back. The front is plain steel: the dial and oven window that were there read as unexplained circles.
 - **Fridge:** the four baskets are steak-sized (0.32 × 0.26 m) and sit towards the middle (±0.18, ±0.15).
 - **Plate rack:** plates stand upright again, as in the first design. The rack has thin rounded light-steel wires and short tines between the plates. Plates get a soft blue rim, and plates and wires get thinner outlines.
 

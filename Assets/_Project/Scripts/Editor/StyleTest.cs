@@ -17,8 +17,7 @@ namespace Game.Editor
         // light enough that the darker pan on it stands out.
         private static readonly Color HobSteel = new Color(0.78f, 0.8f, 0.83f);
         private static readonly Color HobTopCharcoal = new Color(0.2f, 0.2f, 0.23f);
-        private static readonly Color DialBlack = new Color(0.12f, 0.12f, 0.13f);
-        private static readonly Color WindowSmoked = new Color(0.14f, 0.15f, 0.18f);
+        private static readonly Color KnobSteel = new Color(0.86f, 0.88f, 0.9f);
         private static readonly Color BurnerDark = new Color(0.08f, 0.08f, 0.09f);
         private static readonly Color PanSteel = new Color(0.32f, 0.36f, 0.44f);
         private static readonly Color HandleWood = new Color(0.55f, 0.33f, 0.18f);
@@ -53,14 +52,23 @@ namespace Game.Editor
 
         public static Material BoardMaterial() => EnsureToonMaterial("Board", Bamboo, BambooGrain, grainScale: 18f);
 
-        /// <summary>The hob's body, top, dial, oven window and burner, each in its own flat colour.</summary>
-        public static void DressHob(Transform hob, GameObject burner)
+        // The heat knob sits on the top's front-right corner, clear of the burner and the pan's
+        // handle, next to the pips along the back (decision 2026-11-08).
+        private static readonly Vector3 KnobPosition = new Vector3(0.37f, 0.9f, -0.37f);
+
+        /// <summary>
+        /// The hob's body, top, heat knob and burner, each in its own flat colour. Returns the knob,
+        /// for the hob's view to turn with the heat, or null without the model.
+        /// </summary>
+        public static Transform DressHob(Transform hob, GameObject burner)
         {
             hob.Find("Body").GetComponent<Renderer>().sharedMaterial = EnsureToonMaterial("HobBody", HobSteel);
             burner.GetComponent<Renderer>().sharedMaterial = EnsureToonMaterial("Burner", BurnerDark);
             AddPart(hob, "Top", "HobTop", EnsureToonMaterial("HobTop", HobTopCharcoal));
-            AddPart(hob, "Dial", "HobDial", EnsureToonMaterial("HobDial", DialBlack));
-            AddPart(hob, "Window", "HobWindow", EnsureToonMaterial("HobWindow", WindowSmoked));
+            var knob = AddPart(hob, Game.Presentation.HobView.KnobName, "HobDial", EnsureToonMaterial("HobDial", KnobSteel));
+            if (knob != null)
+                knob.localPosition = KnobPosition;
+            return knob;
         }
 
         /// <summary>The pan: a steel body (PanView still tints it with heat) and a wooden handle.</summary>
@@ -70,11 +78,13 @@ namespace Game.Editor
             handle.GetComponent<Renderer>().sharedMaterial = EnsureToonMaterial("PanHandle", HandleWood, HandleGrain, grainScale: 60f);
         }
 
-        private static void AddPart(Transform parent, string name, string mesh, Material material)
+        private static Transform AddPart(Transform parent, string name, string mesh, Material material)
         {
             var part = GreyboxAssets.CreatePrimitive(PrimitiveType.Cube, name, parent, material, keepCollider: false);
-            if (!PilotArt.TryUseMesh(part, "SM_Hob", mesh))
-                Object.DestroyImmediate(part);
+            if (PilotArt.TryUseMesh(part, "SM_Hob", mesh))
+                return part.transform;
+            Object.DestroyImmediate(part);
+            return null;
         }
     }
 }
