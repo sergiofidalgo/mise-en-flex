@@ -16,6 +16,18 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-08 — A full bin refuses more, with a 🚫 over it
+
+**Decision:**
+- **The bin's bag fills after 8 things** (`BinStation._capacity`, was 24 and only for the look). A plate scraped into a nearly full bin keeps what didn't fit.
+- **A full bin takes nothing more.** A red 🚫 sign pops up over it, bobbing, and rocks when a player with something in hand faces it. Players have to leave food somewhere else (`BinFillView`).
+- **A prep assistant** with cut food and a full bin keeps hold of it and waits by the bin; it's dealt with when they're let go at the end of the day.
+- **For now a fresh bag goes in each morning** (start of Plan). Later, once the restaurant's outside exists, players take the bag out to street containers round the building (docs/ideas.md).
+
+**Reason:** The user's notes: the bin should fill with less, and once full, a small sign should show and players must put things elsewhere. Supersedes "for now it only fills, and being full changes nothing in play" in the 2026-11-08 sink and bin entry.
+
+---
+
 ## 2026-11-08 — 4x MSAA on the PC pipeline
 
 **Decision:** The PC pipeline asset (`Assets/Settings/PC_RPAsset.asset`) renders with 4x MSAA, and the game camera adds SMAA (High) on top. SMAA smooths the steps inside surfaces too, such as toon light bands and thin lines. SMAA needs the camera's post-processing on, so the PC pipeline no longer carries the template's sample effects profile (bloom, vignette, tonemapping); post-processing adds nothing else. The mobile asset is unchanged.

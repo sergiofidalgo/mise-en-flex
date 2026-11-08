@@ -375,8 +375,9 @@ namespace Game.Simulation.Staff
 
         private void ArrivedAtBin()
         {
-            // Only what has nowhere else to go: cut food, or food with no room in storage.
-            while (TryPeekCarriedFood(out var food) && (IsCut(food) || FindRoomFor(food) == null))
+            // Only what has nowhere else to go: cut food, or food with no room in storage. If the
+            // bin is full they keep hold of it and stay by the bin until there's room.
+            while (TryPeekCarriedFood(out var food) && (IsCut(food) || FindRoomFor(food) == null) && _bin.CanAccept(food))
             {
                 TryTakeCarriedFood(out food);
                 _bin.Put(food);
