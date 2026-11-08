@@ -31,7 +31,12 @@ Kinds of heat replaced equipment tiers (`decisions.md`, 2026-11-07). These need 
 
 **What it touches:** the floor plan is two fixed rectangles today, and placement rules depend on which room something is in; customers and staff route through the one inner door; the camera assumes the kitchen faces the dining room to the south (`decisions.md`, camera notes).
 
-**Open questions:** whether reshaping costs money or takes a day, whether a wall can move with furniture against it (learn by playing suggests letting it, with furniture pushed or blocked), and how irregular rooms may get.
+**Answered (user's calls, 2026-11-08):**
+- **Moving or building walls is free.**
+- **Furniture in the way is the players' to deal with:** a wall can't go through an appliance, so they move appliances first to avoid clashes.
+- **Walls can run at 45°,** as furniture can turn by 45°, so rooms aren't limited to rectangles.
+
+**Still open:** whether reshaping takes time (only in Plan, or any time in management mode), how a wall at 45° meets the camera's framing and customers' and staff's routes, and whether there's a limit to how small a room can be (a kitchen too small for a hob, a dining room with no space for a table).
 
 ---
 
