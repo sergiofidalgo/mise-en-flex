@@ -58,7 +58,8 @@ namespace Game.Editor
 
             var camera = new GameObject("Capture Camera").AddComponent<Camera>();
             camera.fieldOfView = FieldOfView;
-            var target = new RenderTexture(Width, Height, 24, RenderTextureFormat.ARGB32, RenderTextureReadWrite.sRGB);
+            // Anti-aliased like the game (4x MSAA in the PC pipeline asset).
+            var target = new RenderTexture(Width, Height, 24, RenderTextureFormat.ARGB32, RenderTextureReadWrite.sRGB) { antiAliasing = 4 };
 
             // A throwaway first frame: shader variants not compiled yet come out black in it.
             Render(camera, target, new Vector3(0f, 0.9f, -1.5f), WholeKitchenHeight, null);

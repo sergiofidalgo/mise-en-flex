@@ -4,6 +4,14 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-08 — 4x MSAA on the PC pipeline
+
+**Decision:** The PC pipeline asset (`Assets/Settings/PC_RPAsset.asset`) renders with 4x MSAA. The mobile asset is unchanged.
+
+**Reason:** The user found the shapes' edges pixelated and noisy to look at. MSAA smooths geometry edges and the toon outlines, which are geometry too (an inverted hull). It's cheap for a scene this size, within the 60 fps target on a MacBook with two players. Still to check in play.
+
+---
+
 ## 2026-11-08 — Effects carry the fun: bubbles, fog, sparks and flies
 
 **Decision:** Effects are a deliberate layer of fun and liveliness in the scene, not understated touches (the user's note).
