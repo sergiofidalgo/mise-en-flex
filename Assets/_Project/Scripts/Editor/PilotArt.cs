@@ -84,6 +84,25 @@ namespace Game.Editor
             return material;
         }
 
+        /// <summary>
+        /// A soft, additive particle material (MAT_Particle_Fire): glowing puffs and embers that
+        /// brighten what's behind them, as fire does. Created once.
+        /// </summary>
+        public static Material EnsureFireMaterial()
+        {
+            const string path = MaterialsFolder + "/MAT_Particle_Fire.mat";
+            var material = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (material != null)
+                return material;
+
+            material = new Material(GreyboxAssets.EnsureParticleMaterial("Smoke"));
+            material.SetFloat("_Blend", 2f); // additive
+            material.SetFloat("_SrcBlend", (float)UnityEngine.Rendering.BlendMode.SrcAlpha);
+            material.SetFloat("_DstBlend", (float)UnityEngine.Rendering.BlendMode.One);
+            AssetDatabase.CreateAsset(material, path);
+            return material;
+        }
+
         /// <summary>The layered food material (MAT_Food_<paramref name="name"/>). Created once.</summary>
         public static Material EnsureLayeredFoodMaterial(string name, Color rawColor)
         {

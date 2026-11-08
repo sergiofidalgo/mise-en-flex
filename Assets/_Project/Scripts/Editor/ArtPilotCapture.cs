@@ -224,20 +224,44 @@ namespace Game.Editor
             }
 
             // The flames as HobView sizes and colours them, without the flicker.
-            var flames = so.FindProperty("_flames");
             var height = so.FindProperty("_flameHeight").vector2Value;
             var width = so.FindProperty("_flameWidth").vector2Value;
-            var flameColor = Color.Lerp(so.FindProperty("_flameLow").colorValue, so.FindProperty("_flameHigh").colorValue, HobView.FlameWarmth(dial));
-            for (var i = 0; i < flames.arraySize; i++)
+            var warmth = HobView.FlameWarmth(dial);
+            ShowRing("_flames", 1f, Color.Lerp(so.FindProperty("_flameLow").colorValue, so.FindProperty("_flameHigh").colorValue, warmth));
+            ShowRing("_flameCores", so.FindProperty("_coreScale").floatValue,
+                Color.Lerp(so.FindProperty("_coreLow").colorValue, so.FindProperty("_coreHigh").colorValue, warmth));
+
+            // Particles don't run outside Play mode: set their rate as HobView would and run them a while.
+            SimulateFire("_puffs", so.FindProperty("_puffRate").floatValue * dial);
+            SimulateFire("_embers", so.FindProperty("_emberRate").floatValue * dial * dial);
+
+            void SimulateFire(string property, float rate)
             {
-                var flameName = ((Renderer)flames.GetArrayElementAtIndex(i).objectReferenceValue).name;
-                var flame = hob.transform.Find(flameName).GetComponent<Renderer>();
-                flame.enabled = dial > 0.001f;
-                var w = Mathf.Lerp(width.x, width.y, dial);
-                flame.transform.localScale = new Vector3(w, Mathf.Lerp(height.x, height.y, dial), w);
-                var flameBlock = new MaterialPropertyBlock();
-                flameBlock.SetColor("_BaseColor", flameColor);
-                flame.SetPropertyBlock(flameBlock);
+                var systems = so.FindProperty(property);
+                for (var i = 0; i < systems.arraySize; i++)
+                {
+                    var name = ((ParticleSystem)systems.GetArrayElementAtIndex(i).objectReferenceValue).name;
+                    var particles = hob.transform.Find(name).GetComponent<ParticleSystem>();
+                    var emission = particles.emission;
+                    emission.rateOverTime = rate;
+                    particles.Simulate(1.5f, true, true);
+                }
+            }
+
+            void ShowRing(string property, float scale, Color color)
+            {
+                var ring = so.FindProperty(property);
+                for (var i = 0; i < ring.arraySize; i++)
+                {
+                    var flameName = ((Renderer)ring.GetArrayElementAtIndex(i).objectReferenceValue).name;
+                    var flame = hob.transform.Find(flameName).GetComponent<Renderer>();
+                    flame.enabled = dial > 0.001f;
+                    var w = Mathf.Lerp(width.x, width.y, dial);
+                    flame.transform.localScale = new Vector3(w, Mathf.Lerp(height.x, height.y, dial), w) * scale;
+                    var flameBlock = new MaterialPropertyBlock();
+                    flameBlock.SetColor("_BaseColor", color);
+                    flame.SetPropertyBlock(flameBlock);
+                }
             }
         }
 

@@ -124,9 +124,19 @@ def build_hob():
     add_box(bm, (0.8, 0.76, plinth), (0.0, -0.04, plinth / 2.0), bevel=0.03)
     body = finish("HobBody", bm)
 
+    # The top: a steel rim round a recessed spill tray (the user's note, 2026-11-08: room for a
+    # grate with presence), wide at the front as a control strip for the knob, and at the back
+    # for the heat pips.
+    rim_z, rim_t = HOB_HEIGHT - 0.02, 0.04
     bm = bmesh.new()
-    add_box(bm, (1.0, 1.0, 0.1), (0.0, 0.0, HOB_HEIGHT - 0.05), bevel=0.045)
+    add_box(bm, (1.0, 0.2, rim_t), (0.0, 0.4, rim_z), bevel=0.015)     # front strip (+Y)
+    add_box(bm, (1.0, 0.13, rim_t), (0.0, -0.435, rim_z), bevel=0.015)  # back
+    for x in (-0.45, 0.45):
+        add_box(bm, (0.1, 0.71, rim_t), (x, -0.035, rim_z), bevel=0.015)
     top = finish("HobTop", bm)
+    bm = bmesh.new()
+    add_box(bm, (0.82, 0.69, 0.03), (0.0, -0.035, TRAY_TOP - 0.015))
+    tray = finish("HobTray", bm)
 
     # One big heat knob, set on the top by the game (StyleTest.KnobPosition) at the front corner,
     # where the chef reaching for it would find it. Built round its own origin so it turns in place
@@ -137,22 +147,35 @@ def build_hob():
     add_box(bm, (0.02, 0.02, 0.012), (0.0, 0.055, 0.08))  # a pointer at the grip's front end
     dial = finish("HobDial", bm)
 
-    # The burner head, small in the middle (HobView tints it with the heat), below the grate.
+    # The burner head on the tray (HobView tints it with the heat), under the grate.
     bm = bmesh.new()
-    add_lathe(bm, [(0.0, HOB_HEIGHT), (0.1, HOB_HEIGHT), (0.1, HOB_HEIGHT + 0.003), (0.09, HOB_HEIGHT + 0.006),
-                   (0.03, HOB_HEIGHT + 0.007), (0.0, HOB_HEIGHT + 0.007)], segments=24)
+    add_lathe(bm, [(0.0, TRAY_TOP), (0.095, TRAY_TOP), (0.095, TRAY_TOP + 0.008), (0.085, TRAY_TOP + 0.014),
+                   (0.03, TRAY_TOP + 0.016), (0.0, TRAY_TOP + 0.016)], segments=24)
     burner = finish("HobBurner", bm)
 
-    # The grate the pan rests on (the user's note, 2026-11-08): six cast-iron fingers round the
-    # burner and a ring joining them. Their tops are at the pan's resting height of 0.91.
+    # The grate (the user's note, 2026-11-08: chunky, with personality): a heavy cast-iron frame
+    # standing on the tray with knuckled corners, four thick arms reaching in on the diagonals,
+    # and pan supports rising from them. The supports' tops are the pan's resting height, 0.91.
     bm = bmesh.new()
-    wire, rest = 0.007, HOB_HEIGHT + 0.01
-    for k in range(6):
-        a = 2 * math.pi * k / 6 + math.pi / 6
-        add_pipe(bm, [(0.12 * math.cos(a), 0.12 * math.sin(a), rest - wire), (0.36 * math.cos(a), 0.36 * math.sin(a), rest - wire)],
-                 radius=wire, segments=8)
-    add_pipe(bm, [(0.36 * math.cos(2 * math.pi * k / 24), 0.36 * math.sin(2 * math.pi * k / 24), rest - wire) for k in range(25)],
-             radius=wire, segments=8)
+    rest = HOB_HEIGHT + 0.01
+    hx, hy, bar = 0.36, 0.3, 0.04
+    frame_z = TRAY_TOP + 0.02
+    for y in (-hy, hy):
+        add_box(bm, (2 * hx, bar, 0.034), (0.0, y, frame_z), bevel=0.013)
+    for x in (-hx, hx):
+        add_box(bm, (bar, 2 * hy, 0.034), (x, 0.0, frame_z), bevel=0.013)
+    for x in (-hx, hx):
+        for y in (-hy, hy):
+            add_ball(bm, (x, y, frame_z), rest - frame_z)             # knuckles, level with the supports
+            add_lathe(bm, [(0.0, TRAY_TOP), (0.026, TRAY_TOP), (0.022, TRAY_TOP + 0.01), (0.0, TRAY_TOP + 0.01)],
+                      segments=12, centre=(x, y, 0.0))                 # feet
+            # A thick arm from the corner in towards the burner, and two supports on it.
+            inner = (x * 0.24, y * 0.24)
+            add_pipe(bm, [(x, y, frame_z), (inner[0], inner[1], frame_z)], radius=0.02, segments=10)
+            for t in (0.42, 0.78):
+                px, py = x * (1 - t) + inner[0] * t, y * (1 - t) + inner[1] * t
+                add_pipe(bm, [(px, py, frame_z), (px, py, rest - 0.014)], radius=0.014, segments=10)
+                add_ball(bm, (px, py, rest - 0.014), 0.014)
     grate = finish("HobGrate", bm)
 
     # One flame tongue, its origin at its base; the game rings the burner with them and grows them
@@ -177,7 +200,7 @@ def build_hob():
     for x in (-0.27, 0.27):
         add_pipe(bm, [(x, front + 0.03, 0.62), (x, handle_y, 0.62)], radius=0.01, segments=8)
     handle = finish("HobHandle", bm)
-    return [body, top, dial, burner, door, window, handle, grate, flame]
+    return [body, top, tray, dial, burner, door, window, handle, grate, flame]
 def build_pan():
     """Style test: mostly rim and handle. A shallow pan with a fat rolled rim and a short, stubby
     handle with a big ball on the end, towards the camera (+Y here)."""
@@ -254,6 +277,9 @@ FRIDGE_FLOOR = 0.7
 # stays over the footprint; its meshes are built around that hinge, lying shut towards the front.
 # Must match StorageArt.LidHinge: the game's (0, 0.9, 0.44).
 FRIDGE_LID_HINGE = (0.0, -0.44, FRIDGE_HEIGHT)
+# The range's spill tray, recessed under the rim; the burner and grate stand on it.
+# Must match StyleTest.TrayTop.
+TRAY_TOP = 0.865
 # The chef bends at the waist: the torso's origin is there. Must match the player builder.
 CHEF_WAIST = 0.85
 
@@ -500,17 +526,43 @@ def build_cabinet():
     kick = 0.09
     body_top = top_z - slab
 
+    # The carcass and base run the full width, square-edged, so side by side counters read as
+    # one run of cabinets (the user's note, 2026-11-08).
     bm = bmesh.new()  # the carcass, set back a little from the fronts
-    add_box(bm, (0.98, 0.94, body_top - kick), (0.0, 0.0, kick + (body_top - kick) / 2.0), bevel=0.012)
+    add_box(bm, (1.0, 0.94, body_top - kick), (0.0, 0.0, kick + (body_top - kick) / 2.0))
     body = finish("CabinetBody", bm)
 
     bm = bmesh.new()  # the recessed base
-    add_box(bm, (0.92, 0.88, kick), (0.0, 0.0, kick / 2.0))
+    add_box(bm, (1.0, 0.88, kick), (0.0, 0.0, kick / 2.0))
     base = finish("CabinetKick", bm)
 
-    bm = bmesh.new()  # the top: a slab with rounded edges, flush with the footprint
-    add_box(bm, (1.0, 1.0, slab), (0.0, 0.0, top_z - slab / 2.0), bevel=0.014)
-    worktop = finish("CabinetTop", bm)
+    # The top, in sixteen versions: rounded along each side open to the room, square and flush
+    # to the footprint along each side that meets another counter, so joined tops make one
+    # continuous surface. Bits, in the game's axes: 1 +x, 2 -x, 4 +z, 8 -z joined (CounterJoins).
+    # Blender's x is the game's -x, and its y the game's -z.
+    tops = []
+    r = slab / 2.0
+    zc = top_z - r
+    for mask in range(16):
+        joined_bx_pos, joined_bx_neg = bool(mask & 2), bool(mask & 1)
+        joined_by_pos, joined_by_neg = bool(mask & 8), bool(mask & 4)
+        x0 = -0.5 if joined_bx_neg else -0.5 + r
+        x1 = 0.5 if joined_bx_pos else 0.5 - r
+        y0 = -0.5 if joined_by_neg else -0.5 + r
+        y1 = 0.5 if joined_by_pos else 0.5 - r
+        bm = bmesh.new()
+        add_box(bm, (x1 - x0, y1 - y0, slab), ((x0 + x1) / 2.0, (y0 + y1) / 2.0, zc))
+        if not joined_bx_pos:
+            add_pipe(bm, [(x1, y0, zc), (x1, y1, zc)], radius=r, segments=12)
+        if not joined_bx_neg:
+            add_pipe(bm, [(x0, y0, zc), (x0, y1, zc)], radius=r, segments=12)
+        if not joined_by_pos:
+            add_pipe(bm, [(x0, y1, zc), (x1, y1, zc)], radius=r, segments=12)
+        if not joined_by_neg:
+            add_pipe(bm, [(x0, y0, zc), (x1, y0, zc)], radius=r, segments=12)
+        top = finish(f"CabinetTop_{mask}", bm)
+        top.location = (1.2 * (mask + 2), 0.0, 0.0)  # apart, for previews only
+        tops.append(top)
 
     # Fronts: a drawer under the top and two doors below it, proud of the carcass, with gaps
     # between them that read as seams from the camera.
@@ -538,10 +590,10 @@ def build_cabinet():
 
     # Under a sink the body stops lower, leaving room for the basin; the sink's lip closes the gap.
     bm = bmesh.new()
-    add_box(bm, (0.98, 0.94, 0.72 - kick), (0.0, 0.0, kick + (0.72 - kick) / 2.0), bevel=0.012)
+    add_box(bm, (1.0, 0.94, 0.72 - kick), (0.0, 0.0, kick + (0.72 - kick) / 2.0))
     low = finish("CabinetBodyLow", bm)
     low.location = (1.2, 0.0, 0.0)  # apart, for previews only
-    return [body, base, worktop, fronts, handles, low]
+    return [body, base, fronts, handles, low] + tops
 
 
 def build_bin():

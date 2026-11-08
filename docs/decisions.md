@@ -4,6 +4,18 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-08 — A grate with presence, layered fire, and counters that join
+
+**Decision:**
+- **The range's top** is a steel rim round a recessed black spill tray, so the grate has room to show. The rim is wide at the front as a control strip, where the knob now sits, and at the back, where the heat pips sit.
+- **The grate** is heavy cast iron: a thick frame with corner knuckles and feet, four thick arms on the diagonals, and pan supports whose tops are the pan's resting height, 0.91 m.
+- **The fire** mixes cartoon and realistic. Orange tongues lean out past the pan, with shorter yellow-hot cores between them. Soft additive flame puffs rise from a ring just outside the pan, and embers drift off. All of it grows with the heat (`HobView`), and embers only really start at higher heat.
+- **Counters right beside each other join into one continuous top.** Each top is rounded along sides open to the room and square and flush where it meets another counter, chosen from 16 versions of the top (`CounterJoins`, tested). Cabinet bodies and bases run the full width, so they touch. It's worked out in each counter's own axes and follows the layout editor. Only counters join: hobs, sinks and the rest keep their own edges.
+
+**Reason:** The user found the thin grate sluggish and without personality, wanted fire that mixes cartoon and realistic effects, and wanted side-by-side counters to read as one surface.
+
+---
+
 ## 2026-11-08 — Notes on the overhaul: plain tops, a snug round bin, flames and a grate
 
 **Decision:**

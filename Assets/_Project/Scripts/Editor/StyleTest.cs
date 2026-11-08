@@ -25,12 +25,22 @@ namespace Game.Editor
         private static readonly Color Chrome = new Color(0.92f, 0.93f, 0.95f);
         private static readonly Color CastIron = new Color(0.12f, 0.12f, 0.13f);
 
-        // The flame ring: tongues just inside the pan's edge (0.22 m), leaning out, so they show
-        // past it at high heat. Their bases sit on the burner, under the grate.
+        private static readonly Color TrayEnamel = new Color(0.14f, 0.14f, 0.16f);
+
+        /// <summary>The spill tray's top, where the burner and grate stand. Must match TRAY_TOP in blender/build_pilot_models.py.</summary>
+        public const float TrayTop = 0.865f;
+
+        // The flames (the user's notes, 2026-11-08): cartoon tongues leaning out from the burner so
+        // a high flame licks past the pan's edge (0.22 m), and between them shorter, brighter cores,
+        // so the fire has a hot heart; soft flame puffs and embers rise from it too.
         private const int FlameCount = 12;
         private const float FlameRadius = 0.2f;
-        private const float FlameBase = 0.903f;
+        private const float FlameBase = TrayTop + 0.012f;
         private const float FlameLean = 50f;
+        private const float CoreRadius = 0.19f;
+        private const float CoreLean = 45f;
+        private const float CoreScale = 0.6f;
+        private const float FireRingRadius = 0.25f;
         private static readonly Color BurnerDark = new Color(0.08f, 0.08f, 0.09f);
         private static readonly Color PanSteel = new Color(0.32f, 0.36f, 0.44f);
         private static readonly Color HandleWood = new Color(0.55f, 0.33f, 0.18f);
@@ -65,20 +75,30 @@ namespace Game.Editor
 
         public static Material BoardMaterial() => EnsureToonMaterial("Board", Bamboo, BambooGrain, grainScale: 18f);
 
-        // The heat knob sits on the top's front-right corner, clear of the burner and the pan's
-        // handle, next to the pips along the back (decision 2026-11-08).
-        private static readonly Vector3 KnobPosition = new Vector3(0.37f, 0.9f, -0.37f);
+        // The heat knob sits on the control strip along the top's front, to the right, clear of
+        // the grate and the pan's handle (decision 2026-11-08).
+        private static readonly Vector3 KnobPosition = new Vector3(0.32f, 0.9f, -0.4f);
+
+        /// <summary>What the range's fire is made of, for its view to drive with the heat.</summary>
+        public sealed class HobFire
+        {
+            public Renderer[] Flames = System.Array.Empty<Renderer>();
+            public Renderer[] Cores = System.Array.Empty<Renderer>();
+            public ParticleSystem[] Puffs = System.Array.Empty<ParticleSystem>();
+            public ParticleSystem[] Embers = System.Array.Empty<ParticleSystem>();
+        }
 
         /// <summary>
-        /// The range's body, top, heat knob, burner, grate and oven door, each in its own flat
-        /// colour, and a ring of flames round the burner for the hob's view to grow with the heat.
-        /// Returns the flames; empty without the model.
+        /// The range's body, top, spill tray, heat knob, burner, grate and oven door, each in its
+        /// own flat colour, and its fire for the hob's view to grow with the heat. The fire is
+        /// empty without the model.
         /// </summary>
-        public static Renderer[] DressHob(Transform hob, GameObject burner)
+        public static HobFire DressHob(Transform hob, GameObject burner)
         {
             hob.Find("Body").GetComponent<Renderer>().sharedMaterial = EnsureToonMaterial("HobBody", HobSteel);
             burner.GetComponent<Renderer>().sharedMaterial = EnsureToonMaterial("Burner", BurnerDark);
             AddPart(hob, "Top", "HobTop", EnsureToonMaterial("HobTop", HobTopSteel));
+            AddPart(hob, "Tray", "HobTray", EnsureToonMaterial("HobTray", TrayEnamel));
             AddPart(hob, "Door", "HobDoor", EnsureToonMaterial("HobDoor", DoorSteel));
             AddPart(hob, "Window", "HobWindow", EnsureToonMaterial("HobWindow", WindowSmoked));
             AddPart(hob, "Handle", "HobHandle", EnsureToonMaterial("HobHandle", Chrome));
@@ -87,23 +107,67 @@ namespace Game.Editor
             if (knob != null)
                 knob.localPosition = KnobPosition;
 
-            // Flame tongues round the burner, leaning out so a high flame licks past the pan's edge.
-            var flames = new Renderer[FlameCount];
+            var fire = new HobFire();
             var flameMaterial = PilotArt.EnsureUnlitMaterial("Flame", Color.white);
-            for (var i = 0; i < FlameCount; i++)
+            var flames = Ring("Flame", FlameRadius, FlameLean, 0f, 1f);
+            var cores = Ring("FlameCore", CoreRadius, CoreLean, 180f / FlameCount, CoreScale);
+            if (flames == null || cores == null)
+                return fire;
+            fire.Flames = flames;
+            fire.Cores = cores;
+
+            // Soft flame puffs flickering up round the pan, and embers drifting off: realistic
+            // touches on the cartoon fire. Their rates follow the heat (HobView).
+            var puffs = GreyboxKitchenware.CreateParticles(hob, "FlamePuffs", FlameBase, FireRingRadius, lifetime: 0.35f,
+                speed: 0.7f, minSize: 0.07f, maxSize: 0.15f, growth: 0.3f, maxParticles: 120);
+            Glow(puffs, new Color(1f, 0.85f, 0.35f), new Color(1f, 0.38f, 0.05f), new Color(0.75f, 0.12f, 0.03f));
+            var embers = GreyboxKitchenware.CreateParticles(hob, "Embers", FlameBase + 0.02f, FireRingRadius, lifetime: 1.3f,
+                speed: 0.8f, minSize: 0.02f, maxSize: 0.035f, growth: 0.4f, maxParticles: 60);
+            Glow(embers, new Color(1f, 0.8f, 0.3f), new Color(1f, 0.45f, 0.08f), new Color(0.9f, 0.2f, 0.04f));
+            var noise = embers.noise;
+            noise.enabled = true;
+            noise.strength = 0.35f;
+            noise.frequency = 1.5f;
+            fire.Puffs = new[] { puffs };
+            fire.Embers = new[] { embers };
+            return fire;
+
+            Renderer[] Ring(string name, float radius, float lean, float turn, float scale)
             {
-                var flame = AddPart(hob, $"Flame_{i + 1}", "HobFlame", flameMaterial);
-                if (flame == null)
-                    return System.Array.Empty<Renderer>();
-                var angle = 360f * i / FlameCount;
-                var outward = Quaternion.Euler(0f, angle, 0f) * Vector3.forward;
-                flame.localPosition = new Vector3(0f, FlameBase, 0f) + outward * FlameRadius;
-                flame.localRotation = Quaternion.AngleAxis(FlameLean, Vector3.Cross(Vector3.up, outward));
-                var renderer = flame.GetComponent<Renderer>();
-                renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-                flames[i] = renderer;
+                var ring = new Renderer[FlameCount];
+                for (var i = 0; i < FlameCount; i++)
+                {
+                    var flame = AddPart(hob, $"{name}_{i + 1}", "HobFlame", flameMaterial);
+                    if (flame == null)
+                        return null;
+                    var outward = Quaternion.Euler(0f, turn + 360f * i / FlameCount, 0f) * Vector3.forward;
+                    flame.localPosition = new Vector3(0f, FlameBase, 0f) + outward * radius;
+                    flame.localRotation = Quaternion.AngleAxis(lean, Vector3.Cross(Vector3.up, outward));
+                    flame.localScale = Vector3.one * scale;
+                    var renderer = flame.GetComponent<Renderer>();
+                    renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                    renderer.enabled = false; // lit by HobView once there's heat
+                    ring[i] = renderer;
+                }
+                return ring;
             }
-            return flames;
+        }
+
+        // Fire colours over a particle's life, glowing additively and fading out; none at first.
+        private static void Glow(ParticleSystem particles, Color start, Color middle, Color end)
+        {
+            var fade = particles.colorOverLifetime;
+            var gradient = new Gradient();
+            gradient.SetKeys(
+                new[] { new GradientColorKey(start, 0f), new GradientColorKey(middle, 0.45f), new GradientColorKey(end, 1f) },
+                new[] { new GradientAlphaKey(0f, 0f), new GradientAlphaKey(1f, 0.12f), new GradientAlphaKey(0.7f, 0.6f), new GradientAlphaKey(0f, 1f) });
+            fade.color = gradient;
+            var main = particles.main;
+            main.simulationSpace = ParticleSystemSimulationSpace.Local;
+            // From a ring just outside the pan's edge, so a pan on the fire doesn't hide them.
+            var shape = particles.shape;
+            shape.radiusThickness = 0f;
+            particles.GetComponent<ParticleSystemRenderer>().sharedMaterial = PilotArt.EnsureFireMaterial();
         }
 
         /// <summary>The pan: a steel body (PanView still tints it with heat) and a wooden handle.</summary>

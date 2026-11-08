@@ -22,6 +22,18 @@ namespace Game.Presentation
         [SerializeField] private Renderer[] _pips = System.Array.Empty<Renderer>();
         [Tooltip("The gas hob's flame tongues round its burner. Empty on the induction hob.")]
         [SerializeField] private Renderer[] _flames = System.Array.Empty<Renderer>();
+        [Tooltip("Shorter, brighter flames between the tongues: the fire's hot heart.")]
+        [SerializeField] private Renderer[] _flameCores = System.Array.Empty<Renderer>();
+        [Tooltip("Soft flame puffs rising round the pan; their rate follows the heat.")]
+        [SerializeField] private ParticleSystem[] _puffs = System.Array.Empty<ParticleSystem>();
+        [Tooltip("Embers drifting off the fire; only at higher heat, more as it rises.")]
+        [SerializeField] private ParticleSystem[] _embers = System.Array.Empty<ParticleSystem>();
+        [SerializeField, Min(0f)] private float _puffRate = 70f;
+        [SerializeField, Min(0f)] private float _emberRate = 12f;
+        [Tooltip("A core's size relative to the tongues round it.")]
+        [SerializeField, Range(0f, 1f)] private float _coreScale = 0.6f;
+        [SerializeField] private Color _coreLow = new Color(0.65f, 0.85f, 1f);
+        [SerializeField] private Color _coreHigh = new Color(1f, 0.9f, 0.5f);
         [Tooltip("A flame's height scale at the lowest heat and at full heat.")]
         [SerializeField] private Vector2 _flameHeight = new Vector2(0.5f, 2.6f);
         [Tooltip("A flame's width scale at the lowest heat and at full heat.")]
@@ -76,19 +88,39 @@ namespace Game.Presentation
         private void ShowFlames(float dial)
         {
             var on = dial > 0.001f;
-            var color = Color.Lerp(_flameLow, _flameHigh, FlameWarmth(dial));
+            var warmth = FlameWarmth(dial);
             var height = Mathf.Lerp(_flameHeight.x, _flameHeight.y, dial);
             var width = Mathf.Lerp(_flameWidth.x, _flameWidth.y, dial);
-            for (var i = 0; i < _flames.Length; i++)
+            ShowRing(_flames, on, 1f, height, width, Color.Lerp(_flameLow, _flameHigh, warmth), 0f);
+            ShowRing(_flameCores, on, _coreScale, height, width, Color.Lerp(_coreLow, _coreHigh, warmth), 1.1f);
+
+            // The particles thicken with the heat; embers only really start once it's high.
+            SetRate(_puffs, on ? _puffRate * dial : 0f);
+            SetRate(_embers, on ? _emberRate * dial * dial : 0f);
+        }
+
+        private void ShowRing(Renderer[] ring, bool on, float scale, float height, float width, Color color, float beat)
+        {
+            for (var i = 0; i < ring.Length; i++)
             {
-                var flame = _flames[i];
+                var flame = ring[i];
                 if (flame.enabled != on)
                     flame.enabled = on;
                 if (!on)
                     continue;
-                var flicker = 1f + _flicker * Mathf.Sin(Time.time * _flickerSpeed + i * 2.3f) * Mathf.Sin(Time.time * _flickerSpeed * 0.61f + i);
-                flame.transform.localScale = new Vector3(width, height * flicker, width);
+                var t = Time.time * _flickerSpeed;
+                var flicker = 1f + _flicker * Mathf.Sin(t + i * 2.3f + beat) * Mathf.Sin(t * 0.61f + i + beat);
+                flame.transform.localScale = new Vector3(width, height * flicker, width) * scale;
                 SetColor(flame, color);
+            }
+        }
+
+        private static void SetRate(ParticleSystem[] systems, float rate)
+        {
+            foreach (var particles in systems)
+            {
+                var emission = particles.emission;
+                emission.rateOverTime = rate;
             }
         }
 

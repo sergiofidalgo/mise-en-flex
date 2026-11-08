@@ -419,6 +419,7 @@ namespace Game.Editor
             BuildDiningFloor();
             BuildWalls(assets.FloorPlan);
             BuildStations();
+            CabinetArt.JoinAll(); // side by side counters as one surface, in the saved scene too
 
             var spawnRoot = new GameObject("SpawnPoints").transform;
             var spawnPoints = SpawnPositions.Select((position, i) =>
@@ -805,12 +806,12 @@ namespace Game.Editor
             hob.ItemAnchor.localPosition = new Vector3(0f, top + 0.01f, 0f);
 
             // The art pilot's model is a gas hob; induction stays greybox until it gets its own.
-            var flames = System.Array.Empty<Renderer>();
+            var fire = new StyleTest.HobFire();
             if (!induction)
             {
                 PilotArt.TryUseMesh(hob.transform.Find("Body").gameObject, "SM_Hob", "HobBody");
                 PilotArt.TryUseMesh(burner, "SM_Hob", "HobBurner");
-                flames = StyleTest.DressHob(hob.transform, burner); // the cartoony style test (decision 2026-11-08)
+                fire = StyleTest.DressHob(hob.transform, burner); // the cartoony style test (decision 2026-11-08)
             }
 
             var pips = new Renderer[HeatPipCount];
@@ -843,10 +844,10 @@ namespace Game.Editor
                 viewSo.FindProperty("_burnerOff").colorValue = InductionZoneOff;
                 viewSo.FindProperty("_burnerFull").colorValue = InductionZoneOn;
             }
-            var flameList = viewSo.FindProperty("_flames");
-            flameList.arraySize = flames.Length;
-            for (var i = 0; i < flames.Length; i++)
-                flameList.GetArrayElementAtIndex(i).objectReferenceValue = flames[i];
+            SetObjects(viewSo.FindProperty("_flames"), fire.Flames);
+            SetObjects(viewSo.FindProperty("_flameCores"), fire.Cores);
+            SetObjects(viewSo.FindProperty("_puffs"), fire.Puffs);
+            SetObjects(viewSo.FindProperty("_embers"), fire.Embers);
             var pipList = viewSo.FindProperty("_pips");
             pipList.arraySize = pips.Length;
             for (var i = 0; i < pips.Length; i++)
@@ -868,7 +869,7 @@ namespace Game.Editor
             pile.ApplyModifiedPropertiesWithoutUndo();
         }
 
-        private static void SetObjects(SerializedProperty property, GameObject[] values)
+        private static void SetObjects(SerializedProperty property, Object[] values)
         {
             property.arraySize = values.Length;
             for (var i = 0; i < values.Length; i++)

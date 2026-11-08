@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using UnityEditor;
 using UnityEngine;
 
 namespace Game.Editor
@@ -37,19 +38,54 @@ namespace Game.Editor
 
             body.GetComponent<Renderer>().sharedMaterial = StyleTest.EnsureToonMaterial("CabinetBody", Body, BodyGrain, grainScale: 14f);
             if (!underSink)
-                Add("Top", "CabinetTop", StyleTest.EnsureToonMaterial("CabinetTop", Top));
+                JoinTop(station, Add("Top", "CabinetTop_0", StyleTest.EnsureToonMaterial("CabinetTop", Top)));
             Add("Fronts", "CabinetFronts", StyleTest.EnsureToonMaterial("CabinetFronts", Fronts, FrontsGrain, grainScale: 14f));
             Add("Knobs", "CabinetKnobs", StyleTest.EnsureToonMaterial("CabinetKnobs", Brass));
             Add("Base", "CabinetKick", StyleTest.EnsureToonMaterial("CabinetBase", Base));
             return parts;
 
-            void Add(string name, string mesh, Material material)
+            Renderer Add(string name, string mesh, Material material)
             {
                 var part = GreyboxAssets.CreatePrimitive(PrimitiveType.Cube, name, body, material, keepCollider: false);
-                if (PilotArt.TryUseMesh(part, Model, mesh))
-                    parts.Add(part.GetComponent<Renderer>());
-                else
+                if (!PilotArt.TryUseMesh(part, Model, mesh))
+                {
                     Object.DestroyImmediate(part);
+                    return null;
+                }
+                var renderer = part.GetComponent<Renderer>();
+                parts.Add(renderer);
+                return renderer;
+            }
+        }
+
+        // The top joins the counters beside it into one surface (the user's note, 2026-11-08):
+        // a version of it for each set of joined sides, swapped by CounterJoin.
+        private static void JoinTop(Transform station, Renderer top)
+        {
+            if (top == null)
+                return;
+            var join = new SerializedObject(station.gameObject.AddComponent<Game.Gameplay.Stations.CounterJoin>());
+            join.FindProperty("_top").objectReferenceValue = top.GetComponent<MeshFilter>();
+            var tops = join.FindProperty("_tops");
+            tops.arraySize = 16;
+            for (var joined = 0; joined < 16; joined++)
+                tops.GetArrayElementAtIndex(joined).objectReferenceValue = PilotArt.FindMesh(Model, $"CabinetTop_{joined}");
+            join.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        /// <summary>Joins the tops of every counter in the open scene, as play would, so the scene is saved joined.</summary>
+        public static void JoinAll()
+        {
+            var counters = Object.FindObjectsByType<Game.Gameplay.Stations.CounterJoin>(FindObjectsSortMode.None);
+            foreach (var counter in counters)
+            {
+                var others = new List<Game.Simulation.Movement.Footprint>();
+                foreach (var other in counters)
+                {
+                    if (other != counter)
+                        others.Add(other.Footprint);
+                }
+                counter.Show(Game.Simulation.Movement.CounterJoins.Joined(counter.Footprint, 0.5f, others));
             }
         }
     }
