@@ -40,8 +40,8 @@ namespace Game.Editor
         private const float WireOutline = 0.0012f;
         private static readonly Color SteelColor = new Color(0.74f, 0.76f, 0.8f);
         private const string BinModel = "SM_Bin";
-        private static readonly Color BinGreen = new Color(0.27f, 0.45f, 0.33f);
-        private static readonly Color BinLidGreen = new Color(0.32f, 0.52f, 0.38f);
+        private static readonly Color BinGrey = new Color(0.45f, 0.47f, 0.5f);
+        private static readonly Color BinBagBlack = new Color(0.12f, 0.12f, 0.13f);
 
         public enum PlateLayout
         {
@@ -130,7 +130,7 @@ namespace Game.Editor
         }
 
         /// <summary>
-        /// The pedal bin's model on the bin station's body, in green enamel with a steel pedal.
+        /// The round bin's model on the bin station's body, grey with a black bag over its rim.
         /// Returns its other parts' renderers, for the station's highlight; empty without the model.
         /// </summary>
         public static List<Renderer> DressBin(Transform body)
@@ -138,9 +138,8 @@ namespace Game.Editor
             var parts = new List<Renderer>();
             if (!PilotArt.TryUseMesh(body.gameObject, BinModel, "BinBody"))
                 return parts;
-            body.GetComponent<Renderer>().sharedMaterial = StyleTest.EnsureToonMaterial("BinBody", BinGreen);
-            AddBinPart("Lid", "BinLid", StyleTest.EnsureToonMaterial("BinLid", BinLidGreen));
-            AddBinPart("Pedal", "BinPedal", StyleTest.EnsureToonMaterial("SinkSteel", SteelColor));
+            body.GetComponent<Renderer>().sharedMaterial = StyleTest.EnsureToonMaterial("BinBody", BinGrey);
+            AddBinPart("Bag", "BinBag", StyleTest.EnsureToonMaterial("BinBag", BinBagBlack));
             return parts;
 
             void AddBinPart(string name, string mesh, Material material)

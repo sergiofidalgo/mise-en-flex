@@ -222,6 +222,23 @@ namespace Game.Editor
                 pipBlock.SetColor("_BaseColor", pipColor);
                 hob.transform.Find(pipName).GetComponent<Renderer>().SetPropertyBlock(pipBlock);
             }
+
+            // The flames as HobView sizes and colours them, without the flicker.
+            var flames = so.FindProperty("_flames");
+            var height = so.FindProperty("_flameHeight").vector2Value;
+            var width = so.FindProperty("_flameWidth").vector2Value;
+            var flameColor = Color.Lerp(so.FindProperty("_flameLow").colorValue, so.FindProperty("_flameHigh").colorValue, HobView.FlameWarmth(dial));
+            for (var i = 0; i < flames.arraySize; i++)
+            {
+                var flameName = ((Renderer)flames.GetArrayElementAtIndex(i).objectReferenceValue).name;
+                var flame = hob.transform.Find(flameName).GetComponent<Renderer>();
+                flame.enabled = dial > 0.001f;
+                var w = Mathf.Lerp(width.x, width.y, dial);
+                flame.transform.localScale = new Vector3(w, Mathf.Lerp(height.x, height.y, dial), w);
+                var flameBlock = new MaterialPropertyBlock();
+                flameBlock.SetColor("_BaseColor", flameColor);
+                flame.SetPropertyBlock(flameBlock);
+            }
         }
 
         private static Material LoadMaterial(string name) => Load<Material>($"Assets/_Project/Art/Materials/{name}.mat");

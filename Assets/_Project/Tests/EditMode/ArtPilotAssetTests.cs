@@ -182,5 +182,15 @@ namespace Game.Tests.EditMode
             Assert.That(body.min.y, Is.EqualTo(0f).Within(Tolerance));
             Assert.That(burner.max.y, Is.LessThanOrEqualTo(0.91f), "The pan rests at 0.91 m.");
         }
+
+        [Test]
+        public void ThePanRestsOnTheGrateWithTheBurnerUnderIt()
+        {
+            var grate = Model("SM_Hob", "HobGrate").bounds;
+            var burner = Model("SM_Hob", "HobBurner").bounds;
+            Assert.That(grate.max.y, Is.EqualTo(0.91f).Within(0.001f), "The pan rests at 0.91 m, on the grate.");
+            Assert.That(burner.max.y, Is.LessThan(grate.max.y), "The burner sits under the grate.");
+            Assert.That(grate.size.x, Is.LessThan(1f), "The grate stays on the hob.");
+        }
     }
 }

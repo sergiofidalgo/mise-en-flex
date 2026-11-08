@@ -23,6 +23,14 @@ namespace Game.Editor
         private static readonly Color DoorSteel = new Color(0.64f, 0.66f, 0.7f);
         private static readonly Color WindowSmoked = new Color(0.15f, 0.16f, 0.19f);
         private static readonly Color Chrome = new Color(0.92f, 0.93f, 0.95f);
+        private static readonly Color CastIron = new Color(0.12f, 0.12f, 0.13f);
+
+        // The flame ring: tongues just inside the pan's edge (0.22 m), leaning out, so they show
+        // past it at high heat. Their bases sit on the burner, under the grate.
+        private const int FlameCount = 12;
+        private const float FlameRadius = 0.2f;
+        private const float FlameBase = 0.903f;
+        private const float FlameLean = 50f;
         private static readonly Color BurnerDark = new Color(0.08f, 0.08f, 0.09f);
         private static readonly Color PanSteel = new Color(0.32f, 0.36f, 0.44f);
         private static readonly Color HandleWood = new Color(0.55f, 0.33f, 0.18f);
@@ -62,10 +70,11 @@ namespace Game.Editor
         private static readonly Vector3 KnobPosition = new Vector3(0.37f, 0.9f, -0.37f);
 
         /// <summary>
-        /// The range's body, top, heat knob, burner and oven door, each in its own flat colour. Returns the knob,
-        /// for the hob's view to turn with the heat, or null without the model.
+        /// The range's body, top, heat knob, burner, grate and oven door, each in its own flat
+        /// colour, and a ring of flames round the burner for the hob's view to grow with the heat.
+        /// Returns the flames; empty without the model.
         /// </summary>
-        public static Transform DressHob(Transform hob, GameObject burner)
+        public static Renderer[] DressHob(Transform hob, GameObject burner)
         {
             hob.Find("Body").GetComponent<Renderer>().sharedMaterial = EnsureToonMaterial("HobBody", HobSteel);
             burner.GetComponent<Renderer>().sharedMaterial = EnsureToonMaterial("Burner", BurnerDark);
@@ -73,10 +82,28 @@ namespace Game.Editor
             AddPart(hob, "Door", "HobDoor", EnsureToonMaterial("HobDoor", DoorSteel));
             AddPart(hob, "Window", "HobWindow", EnsureToonMaterial("HobWindow", WindowSmoked));
             AddPart(hob, "Handle", "HobHandle", EnsureToonMaterial("HobHandle", Chrome));
+            AddPart(hob, "Grate", "HobGrate", EnsureToonMaterial("HobGrate", CastIron));
             var knob = AddPart(hob, Game.Presentation.HobView.KnobName, "HobDial", EnsureToonMaterial("HobDial", KnobBlack));
             if (knob != null)
                 knob.localPosition = KnobPosition;
-            return knob;
+
+            // Flame tongues round the burner, leaning out so a high flame licks past the pan's edge.
+            var flames = new Renderer[FlameCount];
+            var flameMaterial = PilotArt.EnsureUnlitMaterial("Flame", Color.white);
+            for (var i = 0; i < FlameCount; i++)
+            {
+                var flame = AddPart(hob, $"Flame_{i + 1}", "HobFlame", flameMaterial);
+                if (flame == null)
+                    return System.Array.Empty<Renderer>();
+                var angle = 360f * i / FlameCount;
+                var outward = Quaternion.Euler(0f, angle, 0f) * Vector3.forward;
+                flame.localPosition = new Vector3(0f, FlameBase, 0f) + outward * FlameRadius;
+                flame.localRotation = Quaternion.AngleAxis(FlameLean, Vector3.Cross(Vector3.up, outward));
+                var renderer = flame.GetComponent<Renderer>();
+                renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                flames[i] = renderer;
+            }
+            return flames;
         }
 
         /// <summary>The pan: a steel body (PanView still tints it with heat) and a wooden handle.</summary>

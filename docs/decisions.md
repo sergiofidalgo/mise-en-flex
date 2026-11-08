@@ -4,6 +4,18 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-08 — Notes on the overhaul: plain tops, a snug round bin, flames and a grate
+
+**Decision:**
+- **Countertops** are plain: one pale colour, no grain.
+- **The bin** is a round grey tub with a black bag over the rim, about 0.54 m across. It keeps its 1 m slot, so layout and gameplay are unchanged. Within the slot it slides to sit snug against whatever is beside it: a wall or another station, into the corner if there are two, and centred if it's boxed in on opposite sides (`SnugFit`). It re-checks every frame, so it follows when players rearrange the kitchen. Its collider still fills the old 0.7 m block.
+- **The gas hob** has a cast-iron grate whose tops are at the pan's resting height (0.91 m), over a small burner head. A ring of twelve flame tongues leans out from under the pan. They're off at zero heat, then grow, widen and flicker with the dial, going from blue at the very bottom to orange. At high heat they lick well past the pan's edge, so heat reads at a glance, like the user's reference.
+- **The chefs' player colour** is on the apron and neckerchief. The rest of the chef stays white jacket, dark trousers and toque, so co-op players stay easy to tell apart.
+
+**Reason:** The user's notes and reference images on the overhaul. Earlier the grate was left out because the old wide burner ring sat at the pan's height; a small burner head under the grate removes that clash.
+
+---
+
 ## 2026-11-08 — Art overhaul toward the vision image
 
 **Decision:** The scene is restyled toward the user's vision image, one step at a time:

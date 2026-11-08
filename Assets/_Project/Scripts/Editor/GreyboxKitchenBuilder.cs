@@ -604,8 +604,16 @@ namespace Game.Editor
 
             var bin = CreateStation<BinStation>(
                 "Bin", BinPosition, BinSize, BinHeight, GreyboxAssets.EnsureMaterial("Bin", BinColor), stations);
-            foreach (var part in KitchenwareArt.DressBin(bin.transform.Find("Body")))
+            // Smaller than its slot, it slides within it to sit snug against what's beside it (the
+            // user's note, 2026-11-08): its body hangs from a "Snug" frame the station moves, so the
+            // highlight's shake still works on the body itself.
+            var binBody = bin.transform.Find("Body");
+            var snug = new GameObject("Snug").transform;
+            snug.SetParent(bin.transform, false);
+            binBody.SetParent(snug, false);
+            foreach (var part in KitchenwareArt.DressBin(binBody))
                 AddToHighlight(bin, part);
+            SetReference(bin, "_snug", snug);
 
             var storage = new GameObject("Zone_Storage").transform;
             storage.SetParent(stations, false);
@@ -797,11 +805,12 @@ namespace Game.Editor
             hob.ItemAnchor.localPosition = new Vector3(0f, top + 0.01f, 0f);
 
             // The art pilot's model is a gas hob; induction stays greybox until it gets its own.
+            var flames = System.Array.Empty<Renderer>();
             if (!induction)
             {
                 PilotArt.TryUseMesh(hob.transform.Find("Body").gameObject, "SM_Hob", "HobBody");
                 PilotArt.TryUseMesh(burner, "SM_Hob", "HobBurner");
-                StyleTest.DressHob(hob.transform, burner); // the cartoony style test (decision 2026-11-08)
+                flames = StyleTest.DressHob(hob.transform, burner); // the cartoony style test (decision 2026-11-08)
             }
 
             var pips = new Renderer[HeatPipCount];
@@ -834,6 +843,10 @@ namespace Game.Editor
                 viewSo.FindProperty("_burnerOff").colorValue = InductionZoneOff;
                 viewSo.FindProperty("_burnerFull").colorValue = InductionZoneOn;
             }
+            var flameList = viewSo.FindProperty("_flames");
+            flameList.arraySize = flames.Length;
+            for (var i = 0; i < flames.Length; i++)
+                flameList.GetArrayElementAtIndex(i).objectReferenceValue = flames[i];
             var pipList = viewSo.FindProperty("_pips");
             pipList.arraySize = pips.Length;
             for (var i = 0; i < pips.Length; i++)

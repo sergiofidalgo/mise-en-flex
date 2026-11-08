@@ -137,14 +137,30 @@ def build_hob():
     add_box(bm, (0.02, 0.02, 0.012), (0.0, 0.055, 0.08))  # a pointer at the grip's front end
     dial = finish("HobDial", bm)
 
-    # The burner glows as one piece (HobView tints it): a fat rounded ring. Its surface stays below
-    # the pan's resting height of 0.91, so the pan never sinks into it.
+    # The burner head, small in the middle (HobView tints it with the heat), below the grate.
     bm = bmesh.new()
-    add_lathe(bm, [
-        (0.34, HOB_HEIGHT), (0.345, HOB_HEIGHT + 0.004), (0.335, HOB_HEIGHT + 0.009), (0.3, HOB_HEIGHT + 0.0095),
-        (0.235, HOB_HEIGHT + 0.009), (0.22, HOB_HEIGHT + 0.005), (0.2, HOB_HEIGHT + 0.003), (0.0, HOB_HEIGHT + 0.003),
-    ])
+    add_lathe(bm, [(0.0, HOB_HEIGHT), (0.1, HOB_HEIGHT), (0.1, HOB_HEIGHT + 0.003), (0.09, HOB_HEIGHT + 0.006),
+                   (0.03, HOB_HEIGHT + 0.007), (0.0, HOB_HEIGHT + 0.007)], segments=24)
     burner = finish("HobBurner", bm)
+
+    # The grate the pan rests on (the user's note, 2026-11-08): six cast-iron fingers round the
+    # burner and a ring joining them. Their tops are at the pan's resting height of 0.91.
+    bm = bmesh.new()
+    wire, rest = 0.007, HOB_HEIGHT + 0.01
+    for k in range(6):
+        a = 2 * math.pi * k / 6 + math.pi / 6
+        add_pipe(bm, [(0.12 * math.cos(a), 0.12 * math.sin(a), rest - wire), (0.36 * math.cos(a), 0.36 * math.sin(a), rest - wire)],
+                 radius=wire, segments=8)
+    add_pipe(bm, [(0.36 * math.cos(2 * math.pi * k / 24), 0.36 * math.sin(2 * math.pi * k / 24), rest - wire) for k in range(25)],
+             radius=wire, segments=8)
+    grate = finish("HobGrate", bm)
+
+    # One flame tongue, its origin at its base; the game rings the burner with them and grows them
+    # with the heat (HobView).
+    bm = bmesh.new()
+    add_lathe(bm, [(0.0, 0.0), (0.022, 0.01), (0.028, 0.03), (0.02, 0.06), (0.008, 0.09), (0.0, 0.1)], segments=12)
+    flame = finish("HobFlame", bm)
+    flame.location = (1.2, 0.0, 0.0)  # apart, for previews only
 
     # The oven door on the front (+Y, towards the camera), which says "range" at a glance: a
     # panel with a dark window and a long bar handle, all inside the footprint.
@@ -161,7 +177,7 @@ def build_hob():
     for x in (-0.27, 0.27):
         add_pipe(bm, [(x, front + 0.03, 0.62), (x, handle_y, 0.62)], radius=0.01, segments=8)
     handle = finish("HobHandle", bm)
-    return [body, top, dial, burner, door, window, handle]
+    return [body, top, dial, burner, door, window, handle, grate, flame]
 def build_pan():
     """Style test: mostly rim and handle. A shallow pan with a fat rolled rim and a short, stubby
     handle with a big ball on the end, towards the camera (+Y here)."""
@@ -529,20 +545,25 @@ def build_cabinet():
 
 
 def build_bin():
-    """A pedal bin (decision 2026-11-08, the art overhaul): a rounded enamel body, a lid with a
-    grip and a steel pedal at the front, inside the bin station's 0.7 m footprint and 0.8 m height."""
+    """A round kitchen bin (the user's note and references, 2026-11-08): a grey tub, a little wider
+    at the top, with ribs and two side handles, and a black bag folded over its rim. 0.54 m across,
+    so it sits snug against walls and stations within its 1 m slot (SnugFit)."""
+    bottom_r, top_r, height = 0.24, 0.26, 0.72
     bm = bmesh.new()
-    add_box(bm, (0.5, 0.5, 0.04), (0.0, 0.0, 0.02), bevel=0.012)  # foot
-    add_box(bm, (0.58, 0.58, 0.66), (0.0, 0.0, 0.04 + 0.33), bevel=0.06)
+    add_lathe(bm, [(0.0, 0.0), (bottom_r - 0.02, 0.0), (bottom_r, 0.02), (bottom_r, 0.3),
+                   (bottom_r + 0.01, 0.32), (top_r - 0.005, 0.62), (top_r, height - 0.04), (0.0, height - 0.04)], segments=32)
+    for k in range(6):  # ribs down the sides
+        a = 2 * math.pi * k / 6 + math.pi / 6
+        add_box(bm, (0.03, 0.03, 0.28), (bottom_r * math.cos(a), bottom_r * math.sin(a), 0.16), bevel=0.01)
+    for side in (-1.0, 1.0):  # handles
+        add_box(bm, (0.04, 0.14, 0.06), (side * (top_r + 0.025), 0.0, 0.56), bevel=0.015)
     body = finish("BinBody", bm)
-    bm = bmesh.new()
-    add_box(bm, (0.62, 0.62, 0.06), (0.0, 0.0, 0.73), bevel=0.028)
-    add_box(bm, (0.22, 0.05, 0.035), (0.0, 0.0, 0.775), bevel=0.012)  # grip
-    lid = finish("BinLid", bm)
-    bm = bmesh.new()
-    add_box(bm, (0.18, 0.07, 0.03), (0.0, 0.32, 0.05), bevel=0.01)
-    pedal = finish("BinPedal", bm)
-    return [body, lid, pedal]
+    bm = bmesh.new()  # the bag: folded over the rim, and sunk a little inside
+    add_lathe(bm, [(top_r - 0.02, height - 0.2), (top_r + 0.012, height - 0.12), (top_r + 0.022, height - 0.03),
+                   (top_r + 0.01, height), (top_r - 0.025, height - 0.005), (top_r - 0.04, height - 0.06),
+                   (0.0, height - 0.09)], segments=24)
+    bag = finish("BinBag", bm)
+    return [body, bag]
 
 
 SEAT_HEIGHT = 0.44  # the top of a chair or stool seat; must match the builder's ChairScale (0.22 * 2)

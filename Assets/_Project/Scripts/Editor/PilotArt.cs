@@ -67,6 +67,23 @@ namespace Game.Editor
             return material;
         }
 
+        /// <summary>
+        /// A plain URP Unlit material (MAT_Unlit_<paramref name="name"/>), for things that give off
+        /// their own light, such as flames; views set their colour. Created once.
+        /// </summary>
+        public static Material EnsureUnlitMaterial(string name, Color color)
+        {
+            var path = $"{MaterialsFolder}/MAT_Unlit_{name}.mat";
+            var material = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (material != null)
+                return material;
+
+            material = new Material(Shader.Find("Universal Render Pipeline/Unlit"));
+            material.SetColor(BaseColorId, color);
+            AssetDatabase.CreateAsset(material, path);
+            return material;
+        }
+
         /// <summary>The layered food material (MAT_Food_<paramref name="name"/>). Created once.</summary>
         public static Material EnsureLayeredFoodMaterial(string name, Color rawColor)
         {
