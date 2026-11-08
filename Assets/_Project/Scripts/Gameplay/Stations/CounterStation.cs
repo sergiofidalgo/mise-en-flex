@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Game.Simulation.Items;
 using UnityEngine;
+using Game.Gameplay.Saving;
 
 namespace Game.Gameplay.Stations
 {
@@ -11,7 +12,7 @@ namespace Game.Gameplay.Stations
     /// finished plate on it, Use rings the bell for it to go out. Cutting boards and knife racks are
     /// counter-sized pieces of their own (decision 2026-11-08), not things put on a counter.
     /// </summary>
-    public sealed class CounterStation : Interactable, IStationPrompt, IUsable, IToolStation
+    public sealed class CounterStation : Interactable, IStationPrompt, IUsable, IToolStation, ISavedContents
     {
         [Tooltip("The kitchen's first knife lies here at the start.")]
         [SerializeField] private bool _startsWithKnife;
@@ -46,6 +47,33 @@ namespace Game.Gameplay.Stations
                 Slot.Put(knife);
                 services.ItemViews.PlaceImmediately(knife, ItemAnchor);
             }
+        }
+
+        public IEnumerable<(int Slot, Item Item)> SavedItems
+        {
+            get
+            {
+                for (var i = 0; i < Slot.Below.Count; i++)
+                    yield return (i, Slot.Below[i]);
+                if (Slot.Current != null)
+                    yield return (Slot.Below.Count, Slot.Current);
+            }
+        }
+
+        // The kitchen's first knife was only for a new campaign: the save says where knives are now.
+        public void ClearForLoad()
+        {
+            while (Slot.CanTake)
+                _services.ItemViews.Release(Slot.Take());
+        }
+
+        public bool RestoreItem(int slot, Item item)
+        {
+            if (!Slot.CanAccept(item))
+                return false;
+            Slot.Put(item);
+            _services.ItemViews.PlaceImmediately(item, AnchorFor(item));
+            return true;
         }
 
         /// <summary>A plate in a pile sits on the one under it.</summary>

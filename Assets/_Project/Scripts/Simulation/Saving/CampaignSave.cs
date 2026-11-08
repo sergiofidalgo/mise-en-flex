@@ -1,0 +1,149 @@
+using System;
+using System.Collections.Generic;
+
+namespace Game.Simulation.Saving
+{
+    /// <summary>
+    /// Everything that lasts from one day to the next, written as Review starts (decision 2026-11-06).
+    /// Plain data with public fields so any JSON writer can handle it; the gameplay layer writes the
+    /// file. Every field has a default, so a file from an older version loads with sensible values
+    /// for what it didn't have, and <see cref="SaveMigration"/> fixes anything a default can't.
+    /// </summary>
+    [Serializable]
+    public sealed class CampaignSave
+    {
+        /// <summary>Bumped whenever the shape changes in a way a default can't cover.</summary>
+        public const int CurrentVersion = 1;
+
+        public int Version = CurrentVersion;
+
+        /// <summary>The day that was just played. Continue starts the morning after (decision 2026-11-08).</summary>
+        public int Day = 1;
+
+        /// <summary>Can be negative: money owed to the boss (decision 2026-11-08).</summary>
+        public float Balance;
+
+        /// <summary>Plates broken at the sink and not yet replaced.</summary>
+        public int BrokenPlates;
+
+        public List<StationRecord> Stations = new List<StationRecord>();
+
+        /// <summary>Everything lying around the kitchen, flattened: a pan's food points back at the pan.</summary>
+        public List<ItemRecord> Items = new List<ItemRecord>();
+
+        public List<StaffRecord> Staff = new List<StaffRecord>();
+
+        public List<ReviewRecord> Reviews = new List<ReviewRecord>();
+    }
+
+    /// <summary>One piece of furniture where it stands.</summary>
+    [Serializable]
+    public sealed class StationRecord
+    {
+        /// <summary>Its furniture catalogue id: rebuilt from the catalogue. Empty for pieces that aren't for sale.</summary>
+        public string FurnitureId = "";
+
+        /// <summary>For pieces that aren't for sale (the sink, the bin): which one in the scene it is.</summary>
+        public string SceneName = "";
+
+        public float X;
+        public float Z;
+        public float Degrees;
+
+        /// <summary>Chairs at a table.</summary>
+        public int Chairs;
+
+        /// <summary>Things counted rather than kept, such as what's in the bin.</summary>
+        public int Count;
+    }
+
+    public enum ItemKind
+    {
+        Plain,
+        Ingredient,
+        Pan,
+        Plate,
+        Knife,
+        Tray,
+        Container,
+    }
+
+    /// <summary>
+    /// An item and where it is: on a station (<see cref="Station"/>, in place <see cref="Slot"/>),
+    /// inside another item (<see cref="Parent"/>), or loose (both -1, e.g. it was in someone's hands).
+    /// Records come parents first, and a container's contents in the order they were put in.
+    /// </summary>
+    [Serializable]
+    public sealed class ItemRecord
+    {
+        public int Station = -1;
+        public int Slot;
+        public int Parent = -1;
+        public string TypeId = "";
+        public ItemKind Kind;
+
+        /// <summary>Plates.</summary>
+        public bool Dirty;
+
+        /// <summary>Pans: °C.</summary>
+        public float Temperature;
+
+        /// <summary>Only meaningful when <see cref="Kind"/> is <see cref="ItemKind.Ingredient"/>.</summary>
+        public IngredientState Ingredient = new IngredientState();
+    }
+
+    /// <summary>All of an ingredient's cooking state: enough to carry on exactly where it was.</summary>
+    [Serializable]
+    public sealed class IngredientState
+    {
+        public float[] Temperatures = new float[3];
+        public float[] PeakTemperatures = new float[3];
+        public float[] Browning = new float[2];
+        public float Freshness = 1f;
+        public float Seasoning;
+        public bool WasCut;
+        public float CutEvenness;
+        public bool SideBDown;
+        public bool Flipped;
+        public float SecondsOutOfPan;
+        public bool HasEnvironment;
+        public float EnvironmentTemperature;
+    }
+
+    [Serializable]
+    public sealed class StaffRecord
+    {
+        public string Name = "";
+        public int Role;
+        public string Description = "";
+        public float Skill;
+        public float Speed;
+        public float DailyWage;
+        public float Morale = -1f;
+    }
+
+    [Serializable]
+    public sealed class ReviewRecord
+    {
+        public int Day;
+        public float Stars;
+        public int Topic;
+        public string Line = "";
+    }
+
+    /// <summary>Brings a file from an older version up to date, one version at a time.</summary>
+    public static class SaveMigration
+    {
+        /// <returns>False if the file is from a newer version of the game, which can't be read safely.</returns>
+        public static bool Upgrade(CampaignSave save)
+        {
+            if (save == null || save.Version > CampaignSave.CurrentVersion)
+                return false;
+
+            // Each step takes version n to n + 1. None yet: version 1 is the first.
+            while (save.Version < CampaignSave.CurrentVersion)
+                save.Version++;
+            return true;
+        }
+    }
+}

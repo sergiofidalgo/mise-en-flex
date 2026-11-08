@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using Game.Simulation.Cooking;
 using Game.Simulation.Items;
 using UnityEngine;
+using Game.Gameplay.Saving;
 
 namespace Game.Gameplay.Stations
 {
@@ -11,7 +12,7 @@ namespace Game.Gameplay.Stations
     /// pieces a zone) or a pan on a whole zone, and takes the hotter piece off; X flips the hotter
     /// piece over onto the other zone, so they step across to follow it.
     /// </summary>
-    public sealed class GrillStation : Interactable, IUsable, IStationPrompt, IPlayerFocused
+    public sealed class GrillStation : Interactable, IUsable, IStationPrompt, IPlayerFocused, ISavedContents
     {
         [Tooltip("Where a pan stands on the hot zone, and on the cool zone.")]
         [SerializeField] private Transform _hotCentre;
@@ -47,6 +48,38 @@ namespace Game.Gameplay.Stations
         }
 
         public override void Retire(KitchenServices services) => _grill.Remove(services.Cooking);
+
+        // Slot 0 is the hot zone, 1 the cool one.
+        public IEnumerable<(int Slot, Item Item)> SavedItems
+        {
+            get
+            {
+                if (_grill == null)
+                    yield break;
+                var zones = new[] { _grill.Hot, _grill.Cool };
+                for (var i = 0; i < zones.Length; i++)
+                {
+                    if (zones[i].StandingPan != null)
+                        yield return (i, zones[i].StandingPan);
+                    foreach (var piece in zones[i].Grate.Contents)
+                        yield return (i, piece);
+                }
+            }
+        }
+
+        public void ClearForLoad()
+        {
+        }
+
+        public bool RestoreItem(int slot, Item item)
+        {
+            var zone = slot == 1 ? _grill.Cool : _grill.Hot;
+            if (!zone.CanAccept(item))
+                return false;
+            zone.Put(item);
+            RefreshViews(transform.position);
+            return true;
+        }
 
         /// <summary>The zone in front of this chef: whichever side of the grill's middle they're facing.</summary>
         public GrillZone ZoneFacing(PlayerInteractor player)

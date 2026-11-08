@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Game.Simulation.Items;
+using Game.Gameplay.Saving;
 
 namespace Game.Gameplay.Stations
 {
@@ -9,7 +10,7 @@ namespace Game.Gameplay.Stations
     /// put and the stick balances the point of the <see cref="WashGame"/> until the plate's done or
     /// they press Use again. One chef at a time, one plate at a time.
     /// </summary>
-    public sealed class SinkStation : Interactable, IUsable, IStationPrompt
+    public sealed class SinkStation : Interactable, IUsable, IStationPrompt, ISavedContents
     {
         private KitchenServices _services;
         private PlayerInteractor _washer;
@@ -32,6 +33,27 @@ namespace Game.Gameplay.Stations
             _services = services;
             Sink = new Sink();
             Sink.Received += HandleReceived;
+        }
+
+        public IEnumerable<(int Slot, Item Item)> SavedItems
+        {
+            get
+            {
+                if (Sink?.Washing != null)
+                    yield return (0, Sink.Washing);
+            }
+        }
+
+        public void ClearForLoad()
+        {
+        }
+
+        public bool RestoreItem(int slot, Item item)
+        {
+            if (!Sink.CanAccept(item))
+                return false;
+            Sink.Put(item);
+            return true;
         }
 
         private void OnDestroy()

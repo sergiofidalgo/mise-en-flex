@@ -5,6 +5,7 @@ using Game.Simulation.Cooking;
 using Game.Simulation.Items;
 using Game.Simulation.Storage;
 using UnityEngine;
+using Game.Gameplay.Saving;
 
 namespace Game.Gameplay.Stations
 {
@@ -15,7 +16,7 @@ namespace Game.Gameplay.Stations
     /// the menu loads onto the tray. Purchases arrive straight here (decision 2026-11-04): free
     /// each morning until shopping arrives in Phase 5.
     /// </summary>
-    public sealed class StorageStation : Interactable, IFaceButtonTarget, IStationPrompt, ISlotMenuStation
+    public sealed class StorageStation : Interactable, IFaceButtonTarget, IStationPrompt, ISlotMenuStation, ISavedContents
     {
         [Serializable]
         public sealed class SlotSetup
@@ -78,6 +79,31 @@ namespace Game.Gameplay.Stations
 
             _unit = new StorageUnit(temperature, slots);
             _container = new StoreBack(this);
+        }
+
+        public IEnumerable<(int Slot, Item Item)> SavedItems
+        {
+            get
+            {
+                for (var i = 0; i < _unit.Slots.Count; i++)
+                {
+                    foreach (var ingredient in _unit.Slots[i].Stock)
+                        yield return (i, ingredient);
+                }
+            }
+        }
+
+        public void ClearForLoad()
+        {
+        }
+
+        // Stock finds its own slot by type, oldest first, as it was saved.
+        public bool RestoreItem(int slot, Item item)
+        {
+            if (!_unit.CanAccept(item))
+                return false;
+            _unit.Put(item);
+            return true;
         }
 
         /// <summary>The morning delivery, up to each slot's capacity.</summary>

@@ -69,6 +69,9 @@ namespace Game.Gameplay
 
         public StaffRoster Staff { get; }
 
+        /// <summary>Reviews from earlier days, as saved. Today's are on <see cref="Service"/>.</summary>
+        public List<Game.Simulation.Saving.ReviewRecord> ReviewHistory { get; } = new List<Game.Simulation.Saving.ReviewRecord>();
+
         /// <summary>What says a plate on a counter is ready to go out.</summary>
         public ReadyBell Bell { get; } = new ReadyBell();
         public StaffConfig StaffConfig { get; }

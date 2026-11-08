@@ -99,6 +99,12 @@ namespace Game.Presentation.Hud
                 _prepStartedAt = Time.unscaledTime;
             }
 
+            if (_root.AwaitingLaunchChoice)
+            {
+                _card.Hide();
+                return;
+            }
+
             if (PlayerInput.all.Count == 0)
             {
                 _card.ShowAt(_joinText, Vector2.zero);

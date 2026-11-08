@@ -4,6 +4,50 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-08 — Saves: a title card, the morning after, everything as it lies
+
+**User's calls (Phase 5, milestone 1):**
+- **At launch with a saved campaign, a small title card asks first:** "Continue · Day N" or "New campaign". New campaign asks again, since there's only one campaign. Nobody can join until one is chosen. The boss's office replaces the card in Phase 6.
+- **Continue starts the morning after the saved day,** in Plan, with the Review already seen.
+- **Everything is kept as it lies:** food on counters, pans on hobs with what's in them, knives wherever they were put, dirty plates in the sink and on tables, stock in storage with its freshness. What was in a chef's hands goes on a free counter.
+
+**How it works (proposed while building; flagged for review):**
+- **The file is `campaign.json` in the persistent data folder.** It's written to a temporary file and then swapped in, so a crash mid-write never breaks the save. It holds:
+  - the day and the money (which can be negative);
+  - every station's position and angle, a table's chairs, and counted things such as clean plates and trays in their racks;
+  - every item with its full cooking state;
+  - the hired staff with their morale (fatigue rests overnight);
+  - all reviews so far;
+  - broken plates.
+- **Saved once the day's results are in,** after wages, energy and staff morale.
+- **A newer game's file is refused; an older one loads.** Missing fields take their defaults, and a numbered migration step covers anything a default can't. A file that can't be read starts a new campaign and logs a warning.
+- **New campaign moves the old file aside** (`campaign.previous.json`) instead of deleting it. Nothing reads it; it's a safety net.
+- **Quitting the built game in Plan, Prep or Service asks first:** today isn't saved. Stopping play mode in the Editor can't be caught, so it just loses the day.
+- **Continue reloads the scene with the save,** carried by a small static (`CampaignLaunch`), like the earlier rejoin exception. Play tests save into a throwaway folder, never the real campaign.
+
+**Not kept yet (TODOs):**
+- what a member of staff is carrying when the service ends;
+- cuts already made on a half-cut piece on the board;
+- hob dial settings (hobs start the morning off).
+
+The cookbook file comes with the cookbook in milestone 4.
+
+**Reason:** One clear save point once the day is decided, with nothing lost or duplicated, so the restaurant really grows from day to day.
+
+---
+
+## 2026-11-08 — Phase 5: walk-to vendors, free prices, debt below zero, dirt from what happened
+
+**User's calls (plan in `plans/phase-5.md`):**
+- **Ingredients are bought at street stalls players walk to,** through the front door, carrying crates back. Going out during service costs real time.
+- **Players set each dish's price freely,** in steps of 1, with a suggested price shown. Higher prices bring fewer customers, who expect more.
+- **Money can go below zero before the boss exists.** It shows as owed to him on the dashboard, with no consequences until Phase 6.
+- **Service dirt comes from what happened** (spills, burnt pans, customers eating, busy floors), so a chaotic service leaves a messier morning.
+
+**Reason:** Each keeps decisions in the players' hands and lets them learn by playing: shopping is a trip that costs time, the right price is found from reviews, and the morning's mess reflects the service.
+
+---
+
 ## 2026-11-08 — The current look is the reference for all future models and visual style
 
 **Decision:** (the user's words) The direction the art has taken as of today is good, and it rules future models and visual style. That means the stylized models, the three-band toon ramp, the soft screen-space ink (a darker shade of what's underneath, mostly silhouettes, no hull outlines), and the banded contact shadows as they stand on main. New assets match this look. Changes to it are the user's call, made by playing here. They aren't delegated to the Art Director or another project.

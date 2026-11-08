@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Game.Simulation.Items;
 using UnityEngine;
+using Game.Gameplay.Saving;
 
 namespace Game.Gameplay.Stations
 {
@@ -10,7 +11,7 @@ namespace Game.Gameplay.Stations
     /// tool slot (even while carrying food) and puts one back. Food can't go on it. It starts empty;
     /// knives are bought, and hang on a rack with room first.
     /// </summary>
-    public sealed class KnifeRackStation : Interactable, IToolStation, IStationPrompt
+    public sealed class KnifeRackStation : Interactable, IToolStation, IStationPrompt, ISavedContents
     {
         [Tooltip("Where each knife hangs, one per place; their number is how many it holds.")]
         [SerializeField] private Transform[] _places = System.Array.Empty<Transform>();
@@ -47,6 +48,42 @@ namespace Game.Gameplay.Stations
             base.Bind(services);
             _services = services;
             _held ??= new Knife[_places.Length];
+        }
+
+        public IEnumerable<(int Slot, Item Item)> SavedItems
+        {
+            get
+            {
+                for (var i = 0; i < _held.Length; i++)
+                {
+                    if (_held[i] != null)
+                        yield return (i, _held[i]);
+                }
+            }
+        }
+
+        public void ClearForLoad()
+        {
+            for (var i = 0; i < _held.Length; i++)
+            {
+                if (_held[i] == null)
+                    continue;
+                _services.ItemViews.Release(_held[i]);
+                _held[i] = null;
+            }
+        }
+
+        public bool RestoreItem(int slot, Item item)
+        {
+            if (!(item is Knife knife))
+                return false;
+            if (slot >= 0 && slot < _held.Length && _held[slot] == null)
+            {
+                _held[slot] = knife;
+                _services.ItemViews.PlaceImmediately(knife, _places[slot]);
+                return true;
+            }
+            return TryHang(knife, ItemAnchor.position);
         }
 
         public override Transform AnchorFor(Item item)

@@ -4,6 +4,7 @@ using Game.Simulation.Cooking;
 using Game.Simulation.Items;
 using Game.Simulation.Prep;
 using UnityEngine;
+using Game.Gameplay.Saving;
 
 namespace Game.Gameplay.Stations
 {
@@ -13,7 +14,7 @@ namespace Game.Gameplay.Stations
     /// and blocks the next one until someone moves it (decision 2026-11-04). It's built into a counter
     /// of its own (decision 2026-11-08): bought, placed, moved and sold as one piece.
     /// </summary>
-    public sealed class PrepStation : Interactable, IFaceButtonTarget, IUsable, IStationPrompt
+    public sealed class PrepStation : Interactable, IFaceButtonTarget, IUsable, IStationPrompt, ISavedContents
     {
         [Tooltip("Where the item on the cutting board sits.")]
         [SerializeField] private Transform _boardAnchor;
@@ -47,6 +48,29 @@ namespace Game.Gameplay.Stations
                 services.Tuning.ChopSweepDegrees);
             _counter.CutFinished += HandleCutFinished;
             _container = new PrepContainer(this);
+        }
+
+        public IEnumerable<(int Slot, Item Item)> SavedItems
+        {
+            get
+            {
+                if (_counter?.Current != null)
+                    yield return (0, _counter.Current);
+            }
+        }
+
+        public void ClearForLoad()
+        {
+        }
+
+        // TODO(Phase 5): cuts already made on a half-cut piece aren't saved; it comes back whole-board fresh.
+        public bool RestoreItem(int slot, Item item)
+        {
+            if (!_container.CanAccept(item))
+                return false;
+            _container.Put(item);
+            _services.ItemViews.PlaceImmediately(item, AnchorFor(item));
+            return true;
         }
 
         private void OnDestroy()

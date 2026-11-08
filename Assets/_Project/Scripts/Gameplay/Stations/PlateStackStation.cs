@@ -7,7 +7,7 @@ namespace Game.Gameplay.Stations
     /// <summary>
     /// The stack of clean plates. Limited: used plates come back through the sink.
     /// </summary>
-    public sealed class PlateStackStation : Interactable, IStationPrompt
+    public sealed class PlateStackStation : Interactable, IStationPrompt, Saving.ISavedCount
     {
         private KitchenServices _services;
 
@@ -22,6 +22,16 @@ namespace Game.Gameplay.Stations
             _services = services;
             Stack = new PlateStack(services.Equipment.PlateCount, services.Equipment.PlateCapacity, services.Equipment.CleanPileCapacity);
             Stack.Returned += HandleReturned;
+        }
+
+        public int SavedCount => Stack.Count;
+
+        public void RestoreCount(int count)
+        {
+            while (Stack.Count > count)
+                Stack.Take();
+            if (Stack.Count < count)
+                Stack.AddNew(count - Stack.Count, _services.Equipment.PlateCapacity);
         }
 
         private void OnDestroy()
