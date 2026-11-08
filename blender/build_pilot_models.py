@@ -380,6 +380,15 @@ def add_ball(bm, centre, radius, segments=16):
               segments=segments, centre=centre)
 
 
+def add_round_ball(bm, centre, radius, rings=12, segments=24):
+    """A smooth sphere, for big round shapes (a tree's crown). add_ball's five-point profile is
+    an octagon from the side, which shows on anything large."""
+    profile = [(radius * math.sin(math.pi * k / rings), -radius * math.cos(math.pi * k / rings)) for k in range(rings + 1)]
+    profile[0] = (0.0, -radius)
+    profile[-1] = (0.0, radius)
+    add_lathe(bm, profile, segments=segments, centre=centre)
+
+
 def build_chef():
     """A person-shaped chef (decision 2026-11-08, the art overhaul), chunky and readable from the
     camera: white jacket with buttons, dark trousers and shoes, skin-coloured head and hands with
@@ -1125,6 +1134,135 @@ def build_tray_rack():
     return [finish("TrayRackFrame", bm)]
 
 
+def add_extrude_yz(bm, profile, x0, x1):
+    """A shape drawn in (y, z), counter-clockwise seen from +x, extruded along x from x0 to x1."""
+    left = [bm.verts.new((x0, y, z)) for y, z in profile]
+    right = [bm.verts.new((x1, y, z)) for y, z in profile]
+    bm.faces.new(list(reversed(left)))
+    bm.faces.new(right)
+    n = len(profile)
+    for i in range(n):
+        j = (i + 1) % n
+        bm.faces.new([left[i], left[j], right[j], right[i]])
+
+
+def add_cylinder_y(bm, centre, radius, length, segments=16):
+    """A closed cylinder lying along y (an axle's direction), starting at centre and running +y."""
+    turn = Matrix.Rotation(math.radians(-90.0), 4, 'X')  # its z becomes +y
+    add_lathe(bm, [(0.0, 0.0), (radius, 0.0), (radius, length), (0.0, length)], segments=segments,
+              centre=centre, axis_matrix=turn)
+
+
+def build_city():
+    """The main menu's night city (the user's brief, 2026-11-08), in the kitchen's chunky toon style.
+    Building parts the menu builder stretches to each building: a bevelled block, a cornice for the
+    roofline, a window frame with a sill and a shopfront frame (their glass is the builder's glowing
+    quads), and a striped awning module. Street furniture at full size: a lantern lamppost, a
+    rounded cartoon car with lights, a tree and a roof water tower. Blender +y is the game's -z,
+    towards the camera: fronts face +y. Origins at the base."""
+    objects = []
+
+    bm = bmesh.new()  # a unit block, stretched to each building
+    add_box(bm, (1.0, 1.0, 1.0), (0.0, 0.0, 0.5), bevel=0.012)
+    objects.append(finish("CityBlock", bm))
+
+    bm = bmesh.new()  # the roofline's cornice, stretched over the top
+    add_box(bm, (1.0, 1.0, 0.35), (0.0, 0.0, 0.175), bevel=0.04)
+    add_box(bm, (0.96, 0.96, 0.12), (0.0, 0.0, -0.04), bevel=0.02)
+    objects.append(finish("CityCornice", bm))
+
+    bm = bmesh.new()  # a window's frame round a 0.9 x 1.2 m opening, standing out from the wall
+    w, h, bar, d = 0.9, 1.2, 0.12, 0.14
+    add_box(bm, (w + 2 * bar, d, bar), (0.0, d / 2.0, h / 2.0 + bar / 2.0), bevel=0.02)
+    add_box(bm, (w + 2 * bar, d, bar), (0.0, d / 2.0, -h / 2.0 - bar / 2.0), bevel=0.02)
+    add_box(bm, (bar, d, h), (w / 2.0 + bar / 2.0, d / 2.0, 0.0), bevel=0.02)
+    add_box(bm, (bar, d, h), (-w / 2.0 - bar / 2.0, d / 2.0, 0.0), bevel=0.02)
+    add_box(bm, (bar * 0.6, d * 0.6, h), (0.0, d * 0.3, 0.0), bevel=0.01)  # the mullion
+    objects.append(finish("CityWindowFrame", bm))
+    bm = bmesh.new()
+    add_box(bm, (w + 0.4, 0.28, 0.1), (0.0, 0.14, -h / 2.0 - bar - 0.05), bevel=0.025)
+    objects.append(finish("CityWindowSill", bm))
+
+    bm = bmesh.new()  # a shopfront's frame round a 2.4 x 1.8 m window, with a stall riser below
+    w, h, bar, d = 2.4, 1.8, 0.16, 0.16
+    add_box(bm, (w + 2 * bar, d, bar), (0.0, d / 2.0, h / 2.0 + bar / 2.0), bevel=0.025)
+    add_box(bm, (w + 2 * bar, d + 0.04, 0.5), (0.0, (d + 0.04) / 2.0, -h / 2.0 - 0.25), bevel=0.04)
+    add_box(bm, (bar, d, h), (w / 2.0 + bar / 2.0, d / 2.0, 0.0), bevel=0.025)
+    add_box(bm, (bar, d, h), (-w / 2.0 - bar / 2.0, d / 2.0, 0.0), bevel=0.025)
+    add_box(bm, (bar * 0.6, d * 0.6, h), (0.0, d * 0.3, 0.0), bevel=0.015)
+    objects.append(finish("CityShopFrame", bm))
+
+    # An awning module, 1 m wide, two stripes: sloping out from the wall with a flap at the front.
+    profile = [(0.0, 0.0), (0.0, -0.08), (1.04, -0.56), (1.04, -0.8), (1.1, -0.8), (1.1, -0.5)]
+    for name, x0, x1 in (("CityAwningA", -0.5, 0.0), ("CityAwningB", 0.0, 0.5)):
+        bm = bmesh.new()
+        add_extrude_yz(bm, profile, x0, x1)
+        objects.append(finish(name, bm))
+
+    # A lantern lamppost, 4.9 m: a stepped base, a slim post, a glowing glass lantern and a cap.
+    bm = bmesh.new()
+    add_lathe(bm, [(0.0, 0.0), (0.3, 0.0), (0.3, 0.16), (0.2, 0.28), (0.13, 0.55), (0.0, 0.55)], segments=16)
+    add_pipe(bm, [(0.0, 0.0, 0.5), (0.0, 0.0, 4.0)], radius=0.08, segments=10)
+    add_lathe(bm, [(0.0, 3.92), (0.2, 3.92), (0.2, 4.06), (0.0, 4.06)], segments=16)  # the collar
+    add_lathe(bm, [(0.0, 4.52), (0.36, 4.52), (0.3, 4.62), (0.06, 4.86), (0.0, 4.88)], segments=16)  # the cap
+    add_ball(bm, (0.0, 0.0, 4.95), 0.08, segments=10)
+    objects.append(finish("CityLampPost", bm))
+    bm = bmesh.new()
+    add_lathe(bm, [(0.0, 4.05), (0.17, 4.05), (0.26, 4.5), (0.0, 4.53)], segments=16)
+    objects.append(finish("CityLampGlass", bm))
+
+    # A rounded cartoon car, 4.2 m long, along x: body, cabin, glass, wheels and lights.
+    bm = bmesh.new()
+    add_box(bm, (4.2, 1.9, 0.78), (0.0, 0.0, 0.66), bevel=0.3)
+    add_box(bm, (2.2, 1.66, 0.72), (-0.25, 0.0, 1.28), bevel=0.24)
+    objects.append(finish("CityCarBody", bm))
+    bm = bmesh.new()
+    add_box(bm, (2.26, 1.72, 0.42), (-0.25, 0.0, 1.32), bevel=0.1)
+    objects.append(finish("CityCarGlass", bm))
+    bm = bmesh.new()
+    for x in (-1.35, 1.35):
+        add_cylinder_y(bm, (x, -0.99, 0.38), 0.38, 0.26)
+        add_cylinder_y(bm, (x, 0.73, 0.38), 0.38, 0.26)
+    objects.append(finish("CityCarWheels", bm))
+    bm = bmesh.new()
+    for y in (-0.6, 0.6):
+        add_ball(bm, (2.07, y, 0.72), 0.14, segments=12)
+    objects.append(finish("CityCarHeadlights", bm))
+    bm = bmesh.new()
+    for y in (-0.65, 0.65):
+        add_ball(bm, (-2.08, y, 0.74), 0.11, segments=10)
+    objects.append(finish("CityCarTaillights", bm))
+
+    # A street tree: a slim trunk and a cloud of round crowns.
+    bm = bmesh.new()
+    add_lathe(bm, [(0.0, 0.0), (0.24, 0.0), (0.17, 0.3), (0.13, 2.1), (0.0, 2.1)], segments=12)
+    objects.append(finish("CityTreeTrunk", bm))
+    bm = bmesh.new()
+    for centre, radius in (((0.0, 0.0, 2.8), 1.2), ((0.65, 0.3, 3.35), 0.9), ((-0.6, -0.25, 3.3), 0.85), ((0.1, -0.55, 3.75), 0.72)):
+        add_round_ball(bm, centre, radius)  # smooth, round crowns
+    objects.append(finish("CityTreeCrown", bm))
+
+    # A roof water tower: four legs, a wooden tank with two bands, and a cone roof.
+    bm = bmesh.new()
+    for sx in (-1.0, 1.0):
+        for sy in (-1.0, 1.0):
+            add_pipe(bm, [(sx * 0.85, sy * 0.85, 0.0), (sx * 0.7, sy * 0.7, 1.6)], radius=0.07, segments=8)
+    add_pipe(bm, [(-0.78, -0.78, 0.8), (0.78, 0.78, 0.8)], radius=0.04, segments=6)
+    add_pipe(bm, [(-0.78, 0.78, 0.8), (0.78, -0.78, 0.8)], radius=0.04, segments=6)
+    objects.append(finish("CityTowerLegs", bm))
+    bm = bmesh.new()
+    add_lathe(bm, [(0.0, 1.6), (1.0, 1.6), (1.06, 2.65), (0.0, 2.65)], segments=20)
+    objects.append(finish("CityTowerTank", bm))
+    bm = bmesh.new()
+    add_lathe(bm, [(0.0, 2.6), (1.18, 2.6), (1.12, 2.7), (0.0, 3.4)], segments=20)
+    for z in (1.85, 2.4):
+        r = 1.0 + 0.06 * (z - 1.6) / 1.05 + 0.025
+        add_pipe(bm, [(r * math.cos(2 * math.pi * k / 20), r * math.sin(2 * math.pi * k / 20), z) for k in range(21)],
+                 radius=0.03, segments=5)
+    objects.append(finish("CityTowerRoof", bm))
+    return objects
+
+
 def build_board():
     """A big, thick cutting board using most of its counter (the user's notes, 2026-11-08): a plain
     slab with rounded edges and a low, narrow lip round its top, a finished edge without the deep
@@ -1223,6 +1361,7 @@ def main():
         "SM_Tray.fbx": build_tray(),
         "SM_Container.fbx": build_container(),
         "SM_TrayRack.fbx": build_tray_rack(),
+        "SM_City.fbx": build_city(),
     }
     for filename, objects in models.items():
         export_fbx(objects, filename)

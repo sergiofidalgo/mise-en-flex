@@ -1612,3 +1612,9 @@ Enter also joins and submits. WASD no longer moves.
 **Cost:** We lose the 3–4 player couch-party audience that PlateUp and Overcooked serve. Revisit once the 2-player game is fun.
 
 **Implications:** Code shouldn't hard-code a limit of two where that's cheap to avoid (e.g. `PlayerInputManager` max players comes from config), but UI layout, camera framing and performance budgets are designed and tested for two.
+
+## 2026-11-08 — The main menu's night city is modelled in the kitchen's style
+
+**Decision:** The main menu backdrop is a modelled low night city (`SM_City.fbx`, built by `blender/build_pilot_models.py`) in the kitchen's toon look: bevelled blocks with cornices, framed lit windows with sills, shopfronts with striped awnings, roof water towers, lantern lampposts, rounded cars with head- and taillights, and round-crowned trees. `MainMenuBuilder` swaps the models onto its greybox pieces and keeps the primitives as a fallback when the FBX is missing. The menu UI and camera are unchanged.
+
+**Reason:** The user asked for the menu city to follow the kitchen's 3D toon style (chunky models, toon ramp, soft ink), matching their mockup: a skyline under stars, warm windows, and glowing city lights in the lower corners that show around the UI panels.

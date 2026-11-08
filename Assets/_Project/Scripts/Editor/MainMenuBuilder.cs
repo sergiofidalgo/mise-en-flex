@@ -12,8 +12,11 @@ namespace Game.Editor
 {
     /// <summary>
     /// Builds the main menu scene (decision 2026-11-08): the menu screen over a 3D night city in the
-    /// kitchen's toon style, from simple shapes until real models replace them. The city is seeded, so
-    /// every rebuild is the same. Menu: Tools/Game/Build Main Menu (Build Greybox Kitchen runs it too).
+    /// kitchen's toon style. With the city models (SM_City, from the Blender script) the buildings get
+    /// cornices, framed windows, shopfronts with awnings and roof water towers, and the street gets
+    /// lantern lamps, cartoon cars and trees; without them, simple shapes stand in. The city is
+    /// seeded, so every rebuild is the same. Menu: Tools/Game/Build Main Menu (Build Greybox Kitchen
+    /// runs it too).
     /// </summary>
     public static class MainMenuBuilder
     {
@@ -28,6 +31,19 @@ namespace Game.Editor
         private static readonly Color Moonlight = new Color(0.62f, 0.68f, 0.95f);
         private static readonly Color WindowLit = new Color(1f, 0.80f, 0.45f);
         private static readonly Color WindowDark = new Color(0.12f, 0.13f, 0.22f);
+
+        private const string CityModel = "SM_City";
+        private static bool Modelled => PilotArt.FindMesh(CityModel, "CityBlock") != null;
+
+        // Trim and street furniture, warm against the night blues.
+        private static readonly Color WindowTrim = new Color(0.8f, 0.74f, 0.64f);
+        private static readonly Color ShopTrim = new Color(0.34f, 0.21f, 0.14f);
+        private static readonly Color LampIron = new Color(0.12f, 0.16f, 0.14f);
+        private static readonly Color[] AwningColors =
+        {
+            new Color(0.78f, 0.22f, 0.18f), new Color(0.2f, 0.48f, 0.36f), new Color(0.22f, 0.32f, 0.58f), new Color(0.9f, 0.6f, 0.2f),
+        };
+        private static readonly Color AwningCream = new Color(0.93f, 0.88f, 0.78f);
 
         private static readonly Color[] BuildingColors =
         {
@@ -64,6 +80,7 @@ namespace Game.Editor
             var random = new System.Random(Seed);
             BuildStreet(city, random);
             BuildBlocks(city, random);
+            BuildForeground(city);
             BuildSky(city, random);
 
             var menu = new GameObject("MainMenu").AddComponent<MainMenu>();
@@ -100,23 +117,8 @@ namespace Game.Editor
             for (var x = -60f; x <= 60f; x += 6f)
                 Slab(street, "Line", line, new Vector3(x, 0.01f, -6f), new Vector3(2.4f, 0.02f, 0.2f));
 
-            var pole = Toon("NightLampPost", new Color(0.12f, 0.10f, 0.10f));
-            var glow = Unlit("NightLampGlow", WindowLit);
             for (var x = -27f; x <= 27f; x += 13.5f)
-            {
-                var lamp = new GameObject("Lamp").transform;
-                lamp.SetParent(street, false);
-                lamp.localPosition = new Vector3(x, 0f, 1.6f);
-                Shape(lamp, PrimitiveType.Cylinder, "Post", pole, new Vector3(0f, 2.2f, 0f), new Vector3(0.18f, 2.2f, 0.18f));
-                Shape(lamp, PrimitiveType.Sphere, "Bulb", glow, new Vector3(0f, 4.5f, 0f), Vector3.one * 0.55f);
-                var light = new GameObject("Light").AddComponent<Light>();
-                light.transform.SetParent(lamp, false);
-                light.transform.localPosition = new Vector3(0f, 4.2f, 0f);
-                light.type = LightType.Point;
-                light.color = WindowLit;
-                light.range = 9f;
-                light.intensity = 3f;
-            }
+                Lamp(street, new Vector3(x, 0f, 1.6f), 9f, 3f);
 
             Color[] paints = { new Color(0.62f, 0.20f, 0.18f), new Color(0.22f, 0.36f, 0.48f), new Color(0.78f, 0.70f, 0.58f), new Color(0.30f, 0.42f, 0.32f) };
             for (var i = 0; i < 5; i++)
@@ -125,9 +127,77 @@ namespace Game.Editor
                 car.SetParent(street, false);
                 car.localPosition = new Vector3((i < 2 ? -34f : 14f) + (i % 3) * 11f + (float)random.NextDouble() * 3f, 0f, i % 2 == 0 ? -3.8f : -8.2f);
                 var paint = Toon($"NightCar{i % paints.Length}", paints[i % paints.Length]);
+                var glass = Unlit("NightCarGlass", new Color(0.18f, 0.22f, 0.34f));
+                if (Modelled)
+                {
+                    // The two lanes drive opposite ways.
+                    car.localRotation = Quaternion.Euler(0f, i % 2 == 0 ? 0f : 180f, 0f);
+                    Model(car, "Body", "CityCarBody", paint, Vector3.zero);
+                    Model(car, "Glass", "CityCarGlass", glass, Vector3.zero);
+                    Model(car, "Wheels", "CityCarWheels", Toon("CityTyre", new Color(0.08f, 0.08f, 0.09f)), Vector3.zero);
+                    Model(car, "Headlights", "CityCarHeadlights", Unlit("CityHeadlight", new Color(1f, 0.95f, 0.75f)), Vector3.zero);
+                    Model(car, "Taillights", "CityCarTaillights", Unlit("CityTaillight", new Color(0.95f, 0.22f, 0.16f)), Vector3.zero);
+                    continue;
+                }
                 Shape(car, PrimitiveType.Cube, "Body", paint, new Vector3(0f, 0.65f, 0f), new Vector3(4.2f, 0.9f, 1.9f));
                 Shape(car, PrimitiveType.Cube, "Cabin", paint, new Vector3(-0.3f, 1.4f, 0f), new Vector3(2.2f, 0.7f, 1.7f));
-                Shape(car, PrimitiveType.Cube, "Glass", Unlit("NightCarGlass", new Color(0.18f, 0.22f, 0.34f)), new Vector3(-0.3f, 1.42f, 0f), new Vector3(2.25f, 0.5f, 1.72f));
+                Shape(car, PrimitiveType.Cube, "Glass", glass, new Vector3(-0.3f, 1.42f, 0f), new Vector3(2.25f, 0.5f, 1.72f));
+            }
+        }
+
+        // A street lamp at `at`, with a warm point light; the lantern model when there is one.
+        private static void Lamp(Transform parent, Vector3 at, float range, float intensity)
+        {
+            var lamp = new GameObject("Lamp").transform;
+            lamp.SetParent(parent, false);
+            lamp.localPosition = at;
+            var glow = Unlit("NightLampGlow", WindowLit);
+            var lightHeight = 4.2f;
+            if (Modelled)
+            {
+                Model(lamp, "Post", "CityLampPost", Toon("CityLampIron", LampIron), Vector3.zero);
+                Model(lamp, "Glass", "CityLampGlass", glow, Vector3.zero);
+                lightHeight = 4.3f;
+            }
+            else
+            {
+                Shape(lamp, PrimitiveType.Cylinder, "Post", Toon("NightLampPost", new Color(0.12f, 0.10f, 0.10f)), new Vector3(0f, 2.2f, 0f), new Vector3(0.18f, 2.2f, 0.18f));
+                Shape(lamp, PrimitiveType.Sphere, "Bulb", glow, new Vector3(0f, 4.5f, 0f), Vector3.one * 0.55f);
+            }
+            var light = new GameObject("Light").AddComponent<Light>();
+            light.transform.SetParent(lamp, false);
+            light.transform.localPosition = new Vector3(0f, lightHeight, 0f);
+            light.type = LightType.Point;
+            light.color = WindowLit;
+            light.range = range;
+            light.intensity = intensity;
+        }
+
+        // Nearest the camera, along the bottom of the screen below the menu's panels: trees along
+        // the near pavement, and glowing lamps in the lower corners (the user's mockup).
+        private static void BuildForeground(Transform city)
+        {
+            if (!Modelled)
+                return;
+            var near = new GameObject("Foreground").transform;
+            near.SetParent(city, false);
+            var trunk = Toon("CityTreeTrunk", new Color(0.32f, 0.22f, 0.15f));
+            var crown = Toon("CityTreeCrown", new Color(0.2f, 0.36f, 0.26f));
+            void Tree(Vector3 at, float size)
+            {
+                var tree = new GameObject("Tree").transform;
+                tree.SetParent(near, false);
+                tree.localPosition = at;
+                tree.localScale = Vector3.one * size;
+                Model(tree, "Trunk", "CityTreeTrunk", trunk, Vector3.zero);
+                Model(tree, "Crown", "CityTreeCrown", crown, Vector3.zero);
+            }
+            for (var x = -40.5f; x <= 40.5f; x += 13.5f)
+                Tree(new Vector3(x, 0f, -12.6f), 1f);
+            foreach (var side in new[] { -1f, 1f })
+            {
+                Lamp(near, new Vector3(side * 7.8f, 0f, -27f), 10f, 3.5f);
+                Tree(new Vector3(side * 12f, 0f, -21f), 1.15f);
             }
         }
 
@@ -153,21 +223,91 @@ namespace Game.Editor
                     var building = new GameObject("Building").transform;
                     building.SetParent(blocks, false);
                     building.localPosition = new Vector3(x + width / 2f, 0f, rows[row] + depth / 2f);
-                    Shape(building, PrimitiveType.Cube, "Body", Toon($"NightBuilding{System.Array.IndexOf(BuildingColors, colour)}", colour), new Vector3(0f, height / 2f, 0f), new Vector3(width, height, depth));
-                    Shape(building, PrimitiveType.Cube, "Cap", roof, new Vector3(0f, height + 0.15f, 0f), new Vector3(width + 0.4f, 0.3f, depth + 0.4f));
-                    if (random.NextDouble() < 0.3)
-                        Shape(building, PrimitiveType.Cylinder, "Tank", roof, new Vector3(width * 0.2f, height + 1.2f, 0f), new Vector3(1.6f, 1f, 1.6f));
+                    var wall = Toon($"NightBuilding{System.Array.IndexOf(BuildingColors, colour)}", colour);
+                    var tower = random.NextDouble() < 0.3;
+                    if (Modelled)
+                    {
+                        Model(building, "Body", "CityBlock", wall, Vector3.zero, new Vector3(width, height, depth));
+                        Model(building, "Cornice", "CityCornice", roof, new Vector3(0f, height, 0f), new Vector3(width + 0.5f, 1f, depth + 0.5f));
+                        if (tower)
+                            WaterTower(building, new Vector3(width * 0.2f, height + 0.35f, depth * 0.1f));
+                    }
+                    else
+                    {
+                        Shape(building, PrimitiveType.Cube, "Body", wall, new Vector3(0f, height / 2f, 0f), new Vector3(width, height, depth));
+                        Shape(building, PrimitiveType.Cube, "Cap", roof, new Vector3(0f, height + 0.15f, 0f), new Vector3(width + 0.4f, 0.3f, depth + 0.4f));
+                        if (tower)
+                            Shape(building, PrimitiveType.Cylinder, "Tank", roof, new Vector3(width * 0.2f, height + 1.2f, 0f), new Vector3(1.6f, 1f, 1.6f));
+                    }
 
-                    // Windows on the front, the side the camera sees; about four in ten lit.
+                    // The front row's ground floors are shops, with an awning over a glowing window.
+                    var firstFloor = 2f;
+                    if (Modelled && row == 0 && width > 6.5f && random.NextDouble() < 0.75)
+                    {
+                        Shopfront(building, width, depth, random);
+                        firstFloor = 4.2f;
+                    }
+
+                    // Windows on the front, the side the camera sees; about four in ten lit. The
+                    // nearer rows get frames and sills.
                     if (row < 3)
                     {
-                        for (var wy = 2f; wy < height - 1f; wy += 2.4f)
+                        for (var wy = firstFloor; wy < height - 1f; wy += 2.4f)
                         for (var wx = -width / 2f + 1.2f; wx < width / 2f - 0.8f; wx += 2f)
+                        {
+                            var at = new Vector3(wx + 0.4f, wy, -depth / 2f - 0.02f);
                             Shape(building, PrimitiveType.Quad, "Window", random.NextDouble() < 0.4 ? lit : dark,
-                                new Vector3(wx + 0.4f, wy, -depth / 2f - 0.02f), new Vector3(0.9f, 1.2f, 1f), Quaternion.identity);
+                                at, new Vector3(0.9f, 1.2f, 1f), Quaternion.identity);
+                            if (Modelled && row < 2)
+                            {
+                                var face = new Vector3(at.x, at.y, -depth / 2f);
+                                Model(building, "Frame", "CityWindowFrame", Toon("CityWindowTrim", WindowTrim), face);
+                                Model(building, "Sill", "CityWindowSill", Toon("CityWindowTrim", WindowTrim), face);
+                            }
+                        }
                     }
                     x += width + 0.6f + (float)random.NextDouble() * 1.5f;
                 }
+            }
+        }
+
+        // A water tower on a roof: legs, a wooden tank with bands, a cone roof.
+        private static void WaterTower(Transform building, Vector3 at)
+        {
+            var tower = new GameObject("WaterTower").transform;
+            tower.SetParent(building, false);
+            tower.localPosition = at;
+            var iron = Toon("CityTowerIron", new Color(0.15f, 0.13f, 0.16f));
+            Model(tower, "Legs", "CityTowerLegs", iron, Vector3.zero);
+            Model(tower, "Tank", "CityTowerTank", Toon("CityTowerWood", new Color(0.45f, 0.3f, 0.2f)), Vector3.zero);
+            Model(tower, "Roof", "CityTowerRoof", iron, Vector3.zero);
+        }
+
+        // A shopfront along a front-row building's ground floor: glowing windows in dark frames, and
+        // a striped awning over them in one of a few colours.
+        private static void Shopfront(Transform building, float width, float depth, System.Random random)
+        {
+            var front = -depth / 2f;
+            var trim = Toon("CityShopTrim", ShopTrim);
+            var glow = Unlit("NightShopGlow", new Color(1f, 0.86f, 0.55f));
+            var shops = Mathf.Max(1, Mathf.FloorToInt((width - 1f) / 3.1f));
+            var spacing = width / shops;
+            for (var i = 0; i < shops; i++)
+            {
+                var x = -width / 2f + spacing * (i + 0.5f);
+                Shape(building, PrimitiveType.Quad, "ShopWindow", glow, new Vector3(x, 1.55f, front - 0.02f), new Vector3(2.4f, 1.8f, 1f), Quaternion.identity);
+                Model(building, "ShopFrame", "CityShopFrame", trim, new Vector3(x, 1.55f, front));
+            }
+
+            var colour = random.Next(AwningColors.Length);
+            var stripe = Toon($"CityAwning{colour}", AwningColors[colour]);
+            var cream = Toon("CityAwningCream", AwningCream);
+            var modules = Mathf.FloorToInt(width - 0.6f);
+            for (var i = 0; i < modules; i++)
+            {
+                var at = new Vector3(-modules / 2f + i + 0.5f, 2.95f, front);
+                Model(building, "Awning", "CityAwningA", stripe, at);
+                Model(building, "Awning", "CityAwningB", cream, at);
             }
         }
 
@@ -183,6 +323,23 @@ namespace Game.Editor
                 var position = new Vector3(-170f + (float)random.NextDouble() * 340f, 40f + (float)random.NextDouble() * 110f, 200f);
                 Shape(sky, PrimitiveType.Quad, "Star", star, position, Vector3.one * (0.4f + (float)random.NextDouble() * 0.6f), Quaternion.identity);
             }
+        }
+
+        // A part of the city model, placed; null without the model.
+        private static GameObject Model(Transform parent, string name, string mesh, Material material, Vector3 position,
+            Vector3? scale = null, Quaternion? rotation = null)
+        {
+            var part = GreyboxAssets.CreatePrimitive(PrimitiveType.Cube, name, parent, material, keepCollider: false);
+            if (!PilotArt.TryUseMesh(part, CityModel, mesh))
+            {
+                Object.DestroyImmediate(part);
+                return null;
+            }
+            part.transform.localPosition = position;
+            part.transform.localRotation = rotation ?? Quaternion.identity;
+            part.transform.localScale = scale ?? Vector3.one;
+            part.isStatic = true;
+            return part;
         }
 
         private static void Slab(Transform parent, string name, Material material, Vector3 position, Vector3 size) =>
