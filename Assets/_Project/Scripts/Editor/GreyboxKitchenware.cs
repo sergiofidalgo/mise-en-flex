@@ -207,7 +207,9 @@ namespace Game.Editor
             body.transform.localPosition = new Vector3(0f, PlateThickness / 2f, 0f);
             KitchenwareArt.DressPlateItem(body); // the plate model and its gold rim, when modelled
 
-            var itemView = AddSlots(root, PlateSlots, PlateThickness);
+            // Food on a plate shows smaller than on its own, leaving the plate room to breathe and
+            // for a side, a garnish or a sauce (the user's note, 2026-11-08).
+            var itemView = AddSlots(root, PlateSlots, PlateThickness, ItemSizes.OnPlate);
             var view = new SerializedObject(root.AddComponent<PlateView>());
             view.FindProperty("_itemView").objectReferenceValue = itemView;
             view.FindProperty("_body").objectReferenceValue = body.GetComponent<Renderer>();

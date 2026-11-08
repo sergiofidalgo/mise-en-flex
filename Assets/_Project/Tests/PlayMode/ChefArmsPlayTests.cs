@@ -170,6 +170,32 @@ namespace Game.Tests.PlayMode
         }
 
         [UnityTest]
+        public IEnumerator APlatedSteakShowsSmallerThanOneOnItsOwn()
+        {
+            // The user's note (2026-11-08): plated food leaves the plate room to breathe.
+            yield return OpenKitchen();
+            var counters = _root.Services.Stations.All.OfType<CounterStation>().Where(c => c.Slot.Current == null).Take(2).ToArray();
+            var steakProperties = _root.Services.Catalog.Find("Steak").ToProperties();
+
+            var alone = _root.Services.Cooking.AddIngredient(steakProperties);
+            counters[0].Slot.Put(alone);
+            _root.Services.ItemViews.PlaceImmediately(alone, counters[0].AnchorFor(alone));
+
+            var plated = _root.Services.Cooking.AddIngredient(steakProperties);
+            var plate = new Plate(3);
+            plate.Put(plated);
+            counters[1].Slot.Put(plate);
+            _root.Services.ItemViews.PlaceImmediately(plate, counters[1].AnchorFor(plate));
+            yield return Wait(1.5f);
+
+            var aloneSize = ViewOf(alone).transform.lossyScale.x;
+            var platedSize = ViewOf(plated).transform.lossyScale.x;
+            Assert.That(platedSize, Is.LessThan(aloneSize * 0.95f), $"plated {platedSize:0.00} vs alone {aloneSize:0.00}");
+            Assert.That(platedSize / ViewOf(plate).transform.lossyScale.x, Is.EqualTo(0.6f * 1.15f).Within(0.05f),
+                "a steak takes 0.6 of its size on the plate");
+        }
+
+        [UnityTest]
         public IEnumerator APanIsCarriedByItsHandleWithBothHands()
         {
             yield return OpenKitchen();

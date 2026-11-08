@@ -56,6 +56,12 @@ The cookbook file comes with the cookbook in milestone 4.
 
 ---
 
+## 2026-11-08 — Plated food leaves the plate room to breathe
+
+**Decision:** (the user's note) Food on a plate shows at 0.6× its size, relative to the plate (`ItemSizes.OnPlate`). The steak can be big on its own on a counter (about 1.42×), but plated it is smaller (about 1.26×, some 60% of the plate across), leaving room round it for a side, a garnish or a sauce.
+
+---
+
 ## 2026-11-08 — Bug fixed: the fridge lid stood open at the start of the day
 
 **Decision:** (the user's bug report) The chest fridge's lid stood open from the start of the day until a player opened and closed it. Its "last held open" frame started at `int.MinValue`, and "frame now minus that" overflowed to a negative number, which read as "held open just now". It now starts at a plain negative frame. A play test checks every fridge lid is shut and flat after the kitchen opens.

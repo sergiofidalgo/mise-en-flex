@@ -16,6 +16,9 @@ namespace Game.Editor
         /// <summary>In a chef's hands, or the knife at the hip.</summary>
         public const float Carried = 1.3f;
 
+        /// <summary>On a plate, from the plate's size: plated food leaves room round it (the user's note).</summary>
+        public const float OnPlate = 0.6f;
+
         /// <summary>On the grill. Not in a pan, which the steak is made to fill.</summary>
         public const float Cooking = 1.15f;
     }
