@@ -35,14 +35,14 @@ namespace Game.Tests.EditMode
 
         private Ingredient Food(string typeId = "Steak") => _sim.AddIngredient(Properties(typeId));
 
-        private void Kitchen(float skill = 1f, float speed = 1f, int trays = 1, StaffSettings settings = null)
+        private void Kitchen(float skill = 1f, float speed = 1f, int trays = 1, StaffSettings settings = null, int binCapacity = int.MaxValue)
         {
             _sim = new CookingSimulation(22f);
             _counter = new ItemSlot();
             _fridge = new StorageUnit(4f, new StorageUnit.Slot(6), new StorageUnit.Slot(6));
             _board = new PrepCounter(whole => _sim.Transform(whole, Properties("DicedOnion")));
             _trays = new ItemRack(trays, () => new Tray(4, 1.5f), item => item is Tray tray && tray.IsEmpty);
-            _bin = new ItemSink();
+            _bin = new ItemSink(binCapacity);
             _binned = 0;
             _bin.Discarded += item =>
             {
@@ -304,6 +304,30 @@ namespace Game.Tests.EditMode
 
             Assert.That(_binned, Is.EqualTo(1));
             Assert.That(_job.Carried, Is.Null);
+        }
+
+        [Test]
+        public void WithTheBinFullTheyKeepHoldOfCutFood()
+        {
+            Kitchen(binCapacity: 1);
+            var container = SetOutContainer("DicedOnion", 1);
+            _fridge.Stock("Onion", () => _sim.AddIngredient(Properties("Onion", "DicedOnion")), 1);
+            _job.Tick(1f); _job.Arrived(); // storage
+            _job.Arrived(); // board
+            _job.Tick(1000f); // cut
+
+            container.Take();
+            _counter.Take();
+            _job.Arrived();
+            _job.Tick(1f);
+            Assert.That(_job.Task, Is.EqualTo(PrepTask.ToBin));
+
+            _bin.Put(Food()); // someone else fills it on the way
+            _job.Arrived();
+
+            Assert.That(_binned, Is.EqualTo(1));
+            Assert.That(_job.InHand, Is.Not.Null);
+            Assert.That(_job.InHand.TypeId, Is.EqualTo("DicedOnion"));
         }
 
         [Test]

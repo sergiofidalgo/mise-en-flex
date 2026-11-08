@@ -210,6 +210,51 @@ namespace Game.Tests.EditMode
         }
 
         [Test]
+        public void AFullBinRefusesMore()
+        {
+            var bin = new ItemSink(2);
+            bin.Put(NewSteak());
+            bin.Put(NewSteak());
+            var steak = NewSteak();
+            _hands.Put(steak);
+
+            Assert.That(bin.IsFull);
+            Assert.That(ItemTransfer.Interact(_hands, bin), Is.EqualTo(InteractionOutcome.Nothing));
+            Assert.That(_hands.Current, Is.SameAs(steak));
+        }
+
+        [Test]
+        public void ScrapingIntoANearlyFullBinKeepsWhatDoesntFit()
+        {
+            var bin = new ItemSink(2);
+            bin.Put(NewSteak());
+            var plate = new Plate(3);
+            plate.Put(NewSteak());
+            plate.Put(NewSteak());
+            _hands.Put(plate);
+
+            Assert.That(ItemTransfer.Interact(_hands, bin), Is.EqualTo(InteractionOutcome.Combined));
+            Assert.That(bin.Count, Is.EqualTo(2));
+            Assert.That(plate.Items, Has.Count.EqualTo(1));
+        }
+
+        [Test]
+        public void AnEmptiedBinTakesThingsAgain()
+        {
+            var bin = new ItemSink(1);
+            var emptied = 0;
+            bin.Emptied += () => emptied++;
+            bin.Put(NewSteak());
+
+            bin.Empty();
+
+            Assert.That(emptied, Is.EqualTo(1));
+            Assert.That(bin.Count, Is.EqualTo(0));
+            Assert.That(bin.Fill, Is.EqualTo(0f));
+            Assert.That(bin.CanAccept(NewSteak()));
+        }
+
+        [Test]
         public void EmptyPlateAtTheBinDoesNothing()
         {
             _hands.Put(new Plate(3));
