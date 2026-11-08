@@ -26,7 +26,7 @@ namespace Game.Editor
         // How far each container sits above the one it's nested in: its rim shows that much.
         private const float NestStep = 0.024f;
         // The idle stack shows bigger, using more of its counter and easy to spot (the user's notes, 2026-11-08).
-        private const float StackScale = 1.4f;
+        private const float StackScale = 1.6f;
         // The stack isn't tidy (the user's note, 2026-11-08): each pan is nudged and turned a little,
         // as if dropped back on the pile, rather than shaped exactly into the one below.
         private const float StackNudge = 0.022f;
