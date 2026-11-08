@@ -28,6 +28,12 @@ Key systems (see the design doc for detail):
 - **Realism dials** (separate settings): cooking precision, spoilage, customer patience, minigame complexity, hygiene.
 - **Co-op:** 1–2 local players (3–4 is a stretch goal, see `docs/decisions.md`). Xbox controllers over Bluetooth on macOS are the main input; the keyboard (arrows to move, W/A/D/X as the Y/X/B/A face buttons) is mainly for testing. Controls are rebindable in the in-game settings. Shared overhead camera; in planning, each player has their own cursor in a shared view.
 
+## Art direction
+
+- All visual decisions come from Art/Direction/art-bible.md. Read it before touching UI, materials, shaders, lighting or models. Never edit it; propose changes as a request instead.
+- Check Art/Direction/handoff/to-code/ for new task folders. Implement from SPEC.md, move assets into Assets/ where the spec says, then append "Implemented: <date>, <files touched>" to that SPEC.md.
+- When something needs art input, write Art/Direction/handoff/to-art/YYYY-MM-DD_short-name.md with the question, the files involved and a fresh screenshot (Game view, 1920x1080) saved alongside it.
+
 ## Tech stack
 
 - **Unity 6.3 LTS (6000.3.27f2)**, C#, **Universal Render Pipeline (URP)**, stylized look.
