@@ -29,19 +29,6 @@ namespace Game.Gameplay
         private PlanarMover _mover;
         private float _verticalSpeed;
         private float _floorHeight;
-
-        // A short shuffle the game makes for the chef, e.g. out of a fridge door's swing.
-        private Vector3? _stepTo;
-        private Vector3 _stepLookAt;
-        private float _stepSpeed;
-        private float _stepTimeLeft;
-
-        // A shuffle gives up after this long, e.g. if something it didn't expect is in the way.
-        private const float StepTimeout = 0.6f;
-        // Stick input beyond this takes over from a shuffle at once: the player is always in charge.
-        private const float StepCancelStick = 0.2f;
-        // Close enough to the spot to stop.
-        private const float StepArrived = 0.01f;
         private Vector3 _spawnPosition;
 
         public PlanarMover Mover => _mover;
@@ -69,25 +56,6 @@ namespace Game.Gameplay
             _controller.enabled = true;
             _verticalSpeed = GroundedDownwardSpeed;
             Physics.SyncTransforms();
-        }
-
-        /// <summary>
-        /// Shuffles the chef to <paramref name="to"/> at <paramref name="speed"/> m/s, turning to keep
-        /// facing <paramref name="lookAt"/>, unless that spot isn't free floor. Any stick input
-        /// cancels it.
-        /// </summary>
-        /// <returns>False if there's no free floor there, so the chef stays put.</returns>
-        public bool StepAside(Vector3 to, Vector3 lookAt, float speed)
-        {
-            var spot = new System.Numerics.Vector2(to.x, to.z);
-            var free = FindFreeSpot?.Invoke(spot);
-            if (free.HasValue && System.Numerics.Vector2.Distance(free.Value, spot) > 0.05f)
-                return false;
-            _stepTo = new Vector3(to.x, transform.position.y, to.z);
-            _stepLookAt = lookAt;
-            _stepSpeed = Mathf.Max(speed, 0.1f);
-            _stepTimeLeft = StepTimeout;
-            return true;
         }
 
         /// <summary>Moves the chef out from under anything just put where they stand, to the nearest free spot.</summary>
@@ -156,30 +124,9 @@ namespace Game.Gameplay
                 : _verticalSpeed + Physics.gravity.y * deltaTime;
 
             var velocity = _mover.Velocity;
-            var step = Step(stick, deltaTime);
-            Intent = new System.Numerics.Vector2(velocity.X * deltaTime + step.x, velocity.Y * deltaTime + step.z);
-            _controller.Move(new Vector3(velocity.X, _verticalSpeed, velocity.Y) * deltaTime + step);
+            Intent = new System.Numerics.Vector2(velocity.X, velocity.Y) * deltaTime;
+            _controller.Move(new Vector3(velocity.X, _verticalSpeed, velocity.Y) * deltaTime);
             transform.rotation = Quaternion.Euler(0f, _mover.FacingDegrees, 0f);
-        }
-
-        // This frame's part of a shuffle, if one's going, turning the chef to keep looking where it says.
-        private Vector3 Step(Vector2 stick, float deltaTime)
-        {
-            if (!_stepTo.HasValue)
-                return Vector3.zero;
-            _stepTimeLeft -= deltaTime;
-            var left = _stepTo.Value - transform.position;
-            left.y = 0f;
-            if (stick.magnitude > StepCancelStick || _stepTimeLeft <= 0f || left.magnitude <= StepArrived)
-            {
-                _stepTo = null;
-                return Vector3.zero;
-            }
-
-            var look = _stepLookAt - transform.position;
-            if (look.sqrMagnitude > 1e-4f)
-                _mover.TurnTowards(Mathf.Atan2(look.x, look.z) * Mathf.Rad2Deg, deltaTime);
-            return Vector3.ClampMagnitude(left, _stepSpeed * deltaTime);
         }
 
         // Back to the nearest free floor above where they fell, or to where they joined.

@@ -56,10 +56,6 @@ namespace Game.Simulation.Movement
             }
         }
 
-        /// <summary>Turns towards <paramref name="yawDegrees"/> at the usual turn speed, without moving: for when something other than the stick decides where to look.</summary>
-        public void TurnTowards(float yawDegrees, float deltaTime) =>
-            FacingDegrees = MoveTowardsAngle(FacingDegrees, yawDegrees, Settings.TurnSpeedDegrees * deltaTime);
-
         private static Vector2 MoveTowards(Vector2 current, Vector2 target, float maxDelta)
         {
             var delta = target - current;

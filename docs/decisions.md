@@ -4,6 +4,19 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-08 — The fridge has sliding glass panes
+
+**Decision (user's call, after play; details proposed):** the fridge's hinged door becomes two half-width glass panes on two tracks across its front, like a drinks fridge.
+- **The left pane runs on the back track, the right one in front.** Each covers half the opening plus a 4 cm overlap.
+- **Opening slides the half in front of the chef:** the left pane slides right behind the other, or the right pane slides left in front of it. The side is chosen when it opens from shut, by whoever opened it.
+- **It never leaves the fridge's width,** so walls, furniture and chefs can never be in its way.
+- **Motion:** 0.2 s to open and 0.25 s to close, eased in and out with no overshoot. A pane on a track glides and stops. The cold mist and the open and close sounds are unchanged. Tunable on `FridgeDoorView` (`_slide`, `_openSeconds`, `_closeSeconds`).
+- **Replaces** the 2026-11-07 hinged door: checking for room to swing, choosing a hinge side, and chefs stepping aside, along with the menu keeping its station while a chef shuffled. Also replaces "the door hinges on the left" in the tall-storage entry.
+
+**Reason:** a swinging door has to share floor with chefs, and moving them out of the way took control from the player. A sliding door needs no floor, so it works the same in every layout.
+
+---
+
 ## 2026-11-08 — The knife rack is a counter of its own
 
 **Decision (user's call, from playtest feedback):**

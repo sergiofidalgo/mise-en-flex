@@ -8,7 +8,7 @@ namespace Game.Editor
     /// <summary>
     /// The tall fridge and shelf: where their four slots are, and their models when those exist.
     /// Slots sit in two tiers of two seen from the front, Y and B on top, X and A below, so the
-    /// stock reads from the furniture itself. A fridge gets a glass door that opens, cold mist and
+    /// stock reads from the furniture itself. A fridge gets sliding glass panes, cold mist and
     /// a pale lining; a shelf gets sacks on its bottom board. Without the models it stays greybox.
     /// </summary>
     public static class StorageArt
@@ -30,8 +30,10 @@ namespace Game.Editor
         /// <summary>Height of a modelled basket, which food sits on.</summary>
         public const float BasketHeight = 0.03f;
 
-        // Where the door's hinge is; must match FRIDGE_HINGE in blender/build_pilot_models.py.
-        private static readonly Vector3 DoorHinge = new Vector3(-0.48f, 0.15f, -0.45f);
+        // Where each sliding pane's bottom centre sits, shut: the left on the back track, the right in
+        // front. Must match the FRIDGE_PANE_* and FRIDGE_*_TRACK values in blender/build_pilot_models.py.
+        public static readonly Vector3 LeftPaneShut = new Vector3(-0.22f, 0.15f, -0.458f);
+        public static readonly Vector3 RightPaneShut = new Vector3(0.22f, 0.15f, -0.482f);
         private static readonly Color LinerColor = new Color(0.9f, 0.94f, 0.97f);
         private static readonly Color GoodsColor = new Color(0.66f, 0.55f, 0.38f);
         private static readonly Color GlassColor = new Color(0.8f, 0.92f, 1f, 0.18f);
@@ -104,20 +106,9 @@ namespace Game.Editor
             CreatePart(station.transform, "Liner", FridgeModel, "FridgeLiner",
                 GreyboxAssets.EnsureMaterial("FridgeLiner", LinerColor), Vector3.zero);
 
-            // The door turns about its hinge; its frame and glass hang from it.
-            var door = new GameObject("Door").transform;
-            door.SetParent(station.transform, false);
-            door.localPosition = DoorHinge;
-            var frame = CreatePart(door, "Frame", FridgeModel, "FridgeDoorFrame", bodyMaterial, Vector3.zero);
-            var glass = CreatePart(door, "Glass", FridgeModel, "FridgeDoorGlass", PilotArt.EnsureGlassMaterial("FridgeGlass", GlassColor), Vector3.zero);
-            glass.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-
-            // The frame lights up with the body when the fridge is targeted.
-            var highlight = new SerializedObject(station.GetComponent<InteractableHighlightView>());
-            var renderers = highlight.FindProperty("_renderers");
-            renderers.arraySize++;
-            renderers.GetArrayElementAtIndex(renderers.arraySize - 1).objectReferenceValue = frame.GetComponent<Renderer>();
-            highlight.ApplyModifiedPropertiesWithoutUndo();
+            // Two sliding panes, each a frame around glass, on tracks across the front.
+            var left = BuildPane(station, "PaneLeft", "Left", LeftPaneShut, bodyMaterial);
+            var right = BuildPane(station, "PaneRight", "Right", RightPaneShut, bodyMaterial);
 
             var mist = GreyboxKitchenware.CreateParticles(station.transform, "ColdMist", MistPosition.y, MistRadius,
                 MistLifetime, MistSpeed, minSize: 0.12f, maxSize: 0.22f, growth: 2.2f, maxParticles: 40);
@@ -128,9 +119,28 @@ namespace Game.Editor
             main.gravityModifier = MistGravity; // cold air sinks
 
             var view = new SerializedObject(station.gameObject.AddComponent<FridgeDoorView>());
-            view.FindProperty("_door").objectReferenceValue = door;
+            view.FindProperty("_leftPane").objectReferenceValue = left;
+            view.FindProperty("_rightPane").objectReferenceValue = right;
             view.FindProperty("_mist").objectReferenceValue = mist;
             view.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        // A pane slides as a whole; its frame lights up with the body when the fridge is targeted.
+        private static Transform BuildPane(StorageStation station, string name, string side, Vector3 shut, Material bodyMaterial)
+        {
+            var pane = new GameObject(name).transform;
+            pane.SetParent(station.transform, false);
+            pane.localPosition = shut;
+            var frame = CreatePart(pane, "Frame", FridgeModel, $"FridgePane{side}Frame", bodyMaterial, Vector3.zero);
+            var glass = CreatePart(pane, "Glass", FridgeModel, $"FridgePane{side}Glass", PilotArt.EnsureGlassMaterial("FridgeGlass", GlassColor), Vector3.zero);
+            glass.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+
+            var highlight = new SerializedObject(station.GetComponent<InteractableHighlightView>());
+            var renderers = highlight.FindProperty("_renderers");
+            renderers.arraySize++;
+            renderers.GetArrayElementAtIndex(renderers.arraySize - 1).objectReferenceValue = frame.GetComponent<Renderer>();
+            highlight.ApplyModifiedPropertiesWithoutUndo();
+            return pane;
         }
 
         private static GameObject CreatePart(Transform parent, string name, string model, string mesh, Material material, Vector3 position)

@@ -66,23 +66,33 @@ namespace Game.Tests.EditMode
             Assert.That(bounds.max.z, Is.LessThanOrEqualTo(0.5f + Tolerance));
         }
 
-        [Test]
-        public void FridgeDoorIsAGlassPanelInAFrameThatOpensTowardsTheCamera()
+        [TestCase("Left")]
+        [TestCase("Right")]
+        public void FridgePaneIsGlassInAFrameAndStaysInsideTheFridge(string side)
         {
-            var bounds = Model("SM_Fridge", "FridgeDoorFrame").bounds;
-            Assert.That(bounds.min.x, Is.EqualTo(0f).Within(Tolerance), "The hinge is at the door's origin, on its left.");
-            Assert.That(bounds.max.x, Is.EqualTo(0.96f).Within(Tolerance));
-            Assert.That(bounds.max.z, Is.LessThanOrEqualTo(Tolerance), "The door sits in front of its hinge, towards the camera.");
+            var bounds = Model("SM_Fridge", $"FridgePane{side}Frame").bounds;
+            Assert.That(bounds.size.x, Is.EqualTo(0.48f).Within(Tolerance), "Half the opening, plus an overlap.");
+            Assert.That(bounds.min.y, Is.EqualTo(0f).Within(Tolerance), "Its origin is its bottom centre.");
+            Assert.That(bounds.center.x, Is.EqualTo(0f).Within(Tolerance));
 
-            var fridge = Prefab(FridgePath);
-            var door = fridge.transform.Find("Door");
-            Assert.That(door.localRotation, Is.EqualTo(Quaternion.identity), "Built shut.");
-            Assert.That(door.localPosition.x + bounds.max.x, Is.LessThanOrEqualTo(0.5f + Tolerance), "The shut door stays within the footprint.");
-            Assert.That(door.localPosition.z + bounds.min.z, Is.GreaterThanOrEqualTo(-0.5f - Tolerance));
+            var pane = Prefab(FridgePath).transform.Find($"Pane{side}");
+            Assert.That(Mathf.Abs(pane.localPosition.x) + bounds.extents.x, Is.LessThanOrEqualTo(0.5f + Tolerance), "Shut, it's inside the footprint.");
+            Assert.That(pane.localPosition.z + bounds.min.z, Is.GreaterThanOrEqualTo(-0.5f - Tolerance));
 
-            var glass = door.Find("Glass").GetComponent<Renderer>().sharedMaterial;
+            var glass = pane.Find("Glass").GetComponent<Renderer>().sharedMaterial;
             Assert.That(glass.renderQueue, Is.GreaterThanOrEqualTo(3000), "The glass is see-through.");
             Assert.That(glass.color.a, Is.LessThan(0.5f));
+        }
+
+        [Test]
+        public void ThePanesRunOnTwoTracksSoOneCanPassTheOther()
+        {
+            var fridge = Prefab(FridgePath).transform;
+            var left = fridge.Find("PaneLeft");
+            var right = fridge.Find("PaneRight");
+            var thickness = Model("SM_Fridge", "FridgePaneLeftFrame").bounds.size.z;
+            Assert.That(Mathf.Abs(left.localPosition.z - right.localPosition.z), Is.GreaterThan(thickness), "Apart by more than a pane's thickness.");
+            Assert.That(right.localPosition.z, Is.LessThan(left.localPosition.z), "The right pane is in front, towards the camera.");
         }
 
         [Test]
@@ -92,111 +102,55 @@ namespace Game.Tests.EditMode
             Assert.That(Prefab(ShelfPath).GetComponent<FridgeDoorView>(), Is.Null);
         }
 
-        [Test]
-        public void FreeAngleStopsAtTheFirstBlockedStep()
-        {
-            Assert.That(Swing.FreeAngle(105f, 5f, angle => false), Is.EqualTo(105f));
-            Assert.That(Swing.FreeAngle(105f, 5f, angle => angle >= 88f), Is.EqualTo(85f));
-            Assert.That(Swing.FreeAngle(105f, 5f, angle => true), Is.EqualTo(0f));
-        }
-
-        // The fridge's door on its floor: hinged at its front-left corner, 0.96 m long, opening to 105°.
-        private static readonly Vector2 LeftHinge = new Vector2(-0.48f, -0.45f);
-        private static readonly Vector2 RightHinge = new Vector2(0.48f, -0.45f);
-        private const float DoorLength = 0.96f;
-        private const float ChefReach = 0.45f; // body radius plus clearance
-
-        [Test]
-        public void AChefStandingInFrontIsInTheDoorsSwing()
-        {
-            var inFront = new Vector2(0f, -0.85f);
-            Assert.That(Swing.SweepTouches(LeftHinge, DoorLength, false, 105f, 5f, inFront, ChefReach), Is.True);
-            Assert.That(Swing.SweepTouches(RightHinge, DoorLength, true, 105f, 5f, inFront, ChefReach), Is.True);
-            Assert.That(Swing.SweepTouches(LeftHinge, DoorLength, false, 105f, 5f, new Vector2(0f, -2.5f), ChefReach), Is.False, "well back from it");
-        }
-
+        // The door opens the half in front of whoever opens it, by sliding one pane over the other,
+        // and never leaves the fridge's width (decision 2026-11-08).
         [TestCase(false)]
         [TestCase(true)]
-        public void SteppingAsideGoesPastTheFreeEdgeAndClearsTheSwing(bool hingedRight)
-        {
-            var hinge = hingedRight ? RightHinge : LeftHinge;
-            var spot = Swing.StepAsideSpot(hinge, hingedRight, new Vector2(0f, -0.85f), ChefReach);
-
-            Assert.That(Mathf.Sign(spot.x), Is.EqualTo(hingedRight ? -1f : 1f), "away from the hinge");
-            Assert.That(spot.y, Is.LessThanOrEqualTo(-0.85f), "never closer to the fridge than before");
-            Assert.That(spot.y, Is.EqualTo(hinge.y - ChefReach).Within(1e-4f), "a body's reach in front of the hinge line, no further");
-            Assert.That(Swing.SweepTouches(hinge, DoorLength, hingedRight, 105f, 5f, spot, ChefReach), Is.False);
-        }
-
-        // A fridge with boxes standing in for walls or furniture on either side of it.
-        private static (FridgeDoorView Door, GameObject[] Scenery) FridgeBetween(bool wallLeft, bool wallRight)
+        public void OpenTheDoorSlidesOnePaneOverTheOtherAndStaysInsideTheFridge(bool opensRight)
         {
             var fridge = (GameObject)PrefabUtility.InstantiatePrefab(Prefab(FridgePath));
-            fridge.transform.position = new Vector3(100f, 0f, 100f); // clear of anything open in the editor
-            var scenery = new System.Collections.Generic.List<GameObject> { fridge };
-            void Wall(float x)
-            {
-                var wall = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                wall.transform.position = new Vector3(100f + x, 1f, 100f - 0.5f);
-                wall.transform.localScale = new Vector3(0.2f, 2f, 3f);
-                scenery.Add(wall);
-            }
-            if (wallLeft)
-                Wall(-0.62f);
-            if (wallRight)
-                Wall(0.62f);
-            Physics.SyncTransforms();
-            return (fridge.GetComponent<FridgeDoorView>(), scenery.ToArray());
-        }
-
-        [Test]
-        public void FridgeDoorOpensFullyWithRoomOnItsHingeSide()
-        {
-            var (door, scenery) = FridgeBetween(wallLeft: false, wallRight: false);
             try
             {
-                door.FindRoomToOpen();
-                Assert.That(door.HingedRight, Is.False);
-                Assert.That(door.OpenLimit, Is.GreaterThan(100f));
+                var door = fridge.GetComponent<FridgeDoorView>();
+                var left = fridge.transform.Find("PaneLeft");
+                var right = fridge.transform.Find("PaneRight");
+                var leftShut = left.localPosition;
+                var rightShut = right.localPosition;
+                var halfWidth = Model("SM_Fridge", "FridgePaneLeftFrame").bounds.extents.x;
+
+                door.Show(1f, opensRight);
+
+                var moved = opensRight ? right : left;
+                var stayed = opensRight ? left : right;
+                Assert.That(stayed.localPosition, Is.EqualTo(opensRight ? leftShut : rightShut), "The other pane stays put.");
+                Assert.That(moved.localPosition.x, Is.EqualTo(stayed.localPosition.x).Within(0.05f), "It slides over the other.");
+                Assert.That(Mathf.Abs(moved.localPosition.x) + halfWidth, Is.LessThanOrEqualTo(0.5f + Tolerance), "Open, it's still inside the fridge.");
+                Assert.That(moved.localPosition.z, Is.EqualTo((opensRight ? rightShut : leftShut).z), "It stays on its track.");
+
+                door.Show(0f, opensRight);
+                Assert.That(left.localPosition, Is.EqualTo(leftShut));
+                Assert.That(right.localPosition, Is.EqualTo(rightShut));
             }
             finally
             {
-                foreach (var thing in scenery)
-                    Object.DestroyImmediate(thing);
+                Object.DestroyImmediate(fridge);
             }
         }
 
         [Test]
-        public void FridgeDoorHingesOnTheOtherSideOfAWall()
+        public void TheHalfThatOpensIsTheOneInFrontOfTheChef()
         {
-            var (door, scenery) = FridgeBetween(wallLeft: true, wallRight: false);
+            var fridge = (GameObject)PrefabUtility.InstantiatePrefab(Prefab(FridgePath));
             try
             {
-                door.FindRoomToOpen();
-                Assert.That(door.HingedRight, Is.True, "The wall on the left would stop it short of a right angle.");
-                Assert.That(door.OpenLimit, Is.GreaterThan(100f));
+                fridge.transform.SetPositionAndRotation(new Vector3(100f, 0f, 100f), Quaternion.Euler(0f, 90f, 0f));
+                var door = fridge.GetComponent<FridgeDoorView>();
+                Assert.That(door.OpensRightFor(fridge.transform.TransformPoint(new Vector3(0.3f, 0f, -0.9f))), Is.True);
+                Assert.That(door.OpensRightFor(fridge.transform.TransformPoint(new Vector3(-0.3f, 0f, -0.9f))), Is.False);
             }
             finally
             {
-                foreach (var thing in scenery)
-                    Object.DestroyImmediate(thing);
-            }
-        }
-
-        [Test]
-        public void FridgeDoorBoxedInStopsShortOfTheWall()
-        {
-            var (door, scenery) = FridgeBetween(wallLeft: true, wallRight: true);
-            try
-            {
-                door.FindRoomToOpen();
-                Assert.That(door.OpenLimit, Is.LessThan(95f), "It can't swing past the walls beside it.");
-                Assert.That(door.OpenLimit, Is.GreaterThan(45f), "It still opens enough to reach in.");
-            }
-            finally
-            {
-                foreach (var thing in scenery)
-                    Object.DestroyImmediate(thing);
+                Object.DestroyImmediate(fridge);
             }
         }
 

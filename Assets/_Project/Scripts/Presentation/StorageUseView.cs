@@ -4,14 +4,13 @@ using UnityEngine;
 namespace Game.Presentation
 {
     /// <summary>
-    /// Shows a chef using storage while its menu is open (RT held): a fridge's door opens, and at
+    /// Shows a chef using storage while its menu is open (RT held): a fridge's panes slide open, and at
     /// a shelf the chef bends at the waist to reach in.
     /// </summary>
     public sealed class StorageUseView : MonoBehaviour
     {
         [SerializeField] private PlayerInteractor _interactor;
 
-        private Game.Gameplay.PlayerMovement _movement;
         [Tooltip("The torso turns about this to bend forwards.")]
         [SerializeField] private Transform _waist;
 
@@ -21,13 +20,11 @@ namespace Game.Presentation
 
         private float _amount;
 
-        private void Awake() => _movement = _interactor != null ? _interactor.GetComponent<Game.Gameplay.PlayerMovement>() : null;
-
         private void Update()
         {
             var station = _interactor.IsSlotMenuOpen ? _interactor.Target as StorageStation : null;
             if (station != null && station.TryGetComponent<FridgeDoorView>(out var door))
-                door.KeepOpen(_movement);
+                door.KeepOpen(_interactor.transform);
 
             _amount = Swing.Step(_amount, station != null && !station.IsRefrigerated, _bendSeconds, _straightenSeconds, Time.deltaTime);
             Show(_amount);

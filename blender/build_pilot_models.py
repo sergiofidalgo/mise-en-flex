@@ -203,9 +203,16 @@ def build_steak():
 FRIDGE_HEIGHT = 1.8
 SHELF_HEIGHT = 1.5
 TIER_TOPS = (0.45, 1.05)
-# Where the fridge door's hinge is, in Blender coordinates: the game's (-0.48, 0.15, -0.45).
-# Must match StorageArt.DoorHinge. The door's meshes are built around their hinge.
-FRIDGE_HINGE = (0.48, 0.45, 0.15)
+# The fridge's two sliding glass panes (decision 2026-11-08), each half the opening plus an overlap,
+# on a track of its own across the front: the game's left pane on the back track, the right one in
+# front. Each pane's origin is its bottom centre, shut. Must match StorageArt's pane constants.
+FRIDGE_PANE_WIDTH = 0.48
+FRIDGE_PANE_HEIGHT = 1.55
+FRIDGE_PANE_THICKNESS = 0.018
+FRIDGE_PANE_BOTTOM = 0.15
+FRIDGE_PANE_X = 0.22  # either side of the middle
+FRIDGE_BACK_TRACK = 0.458  # towards the camera (+Y): the game's -Z
+FRIDGE_FRONT_TRACK = 0.482
 # The chef bends at the waist: the torso's origin is there. Must match the player builder.
 CHEF_WAIST = 0.85
 
@@ -227,28 +234,34 @@ def build_fridge():
         add_box(bm, (0.9, 0.8, 0.02), (0.0, 0.0, top - 0.01))
     liner = finish("FridgeLiner", bm)
 
-    # The door, around its hinge on the left as seen in the game: a frame and a glass panel.
-    # It's 0.035 thick and the handle adds 0.015, ending on the footprint's front edge.
-    width, height, bar = 0.96, 1.55, 0.07
-    bm = bmesh.new()
-    add_box(bm, (bar, 0.035, height), (-bar / 2.0, 0.0175, height / 2.0), bevel=0.008)
-    add_box(bm, (bar, 0.035, height), (-width + bar / 2.0, 0.0175, height / 2.0), bevel=0.008)
-    add_box(bm, (width - 2 * bar, 0.035, 0.1), (-width / 2.0, 0.0175, 0.05), bevel=0.008)
-    add_box(bm, (width - 2 * bar, 0.035, 0.1), (-width / 2.0, 0.0175, height - 0.05), bevel=0.008)
-    add_box(bm, (0.03, 0.015, 0.4), (-width + 0.1, 0.0425, height / 2.0), bevel=0.005)  # handle
-    frame = finish("FridgeDoorFrame", bm)
-    frame.location = FRIDGE_HINGE
+    # Two sliding panes, each a white frame around glass. Nothing sticks out of them, so one can
+    # pass the other; the wider outer stile is the grip. Both stay inside the fridge's width.
+    panes = []
+    for side, x, track in (("Left", FRIDGE_PANE_X, FRIDGE_BACK_TRACK), ("Right", -FRIDGE_PANE_X, FRIDGE_FRONT_TRACK)):
+        width, height, depth = FRIDGE_PANE_WIDTH, FRIDGE_PANE_HEIGHT, FRIDGE_PANE_THICKNESS
+        bar, grip = 0.05, 0.08
+        outer = 1.0 if x > 0.0 else -1.0  # towards the fridge's side, in Blender's x
+        bm = bmesh.new()
+        add_box(bm, (grip, depth, height), (outer * (width - grip) / 2.0, 0.0, height / 2.0), bevel=0.006)
+        add_box(bm, (bar, depth, height), (-outer * (width - bar) / 2.0, 0.0, height / 2.0), bevel=0.006)
+        inner = width - grip - bar
+        middle = outer * (bar - grip) / 2.0  # the gap between the grip and the inner bar
+        add_box(bm, (inner, depth, 0.1), (middle, 0.0, 0.05), bevel=0.006)
+        add_box(bm, (inner, depth, 0.1), (middle, 0.0, height - 0.05), bevel=0.006)
+        frame = finish(f"FridgePane{side}Frame", bm)
+        frame.location = (x, track, FRIDGE_PANE_BOTTOM)
 
-    bm = bmesh.new()
-    add_box(bm, (width - 2 * bar, 0.01, height - 0.2), (-width / 2.0, 0.0175, height / 2.0))
-    glass = finish("FridgeDoorGlass", bm)
-    glass.location = FRIDGE_HINGE
+        bm = bmesh.new()
+        add_box(bm, (inner, 0.006, height - 0.2), (middle, 0.0, height / 2.0))
+        glass = finish(f"FridgePane{side}Glass", bm)
+        glass.location = (x, track, FRIDGE_PANE_BOTTOM)
+        panes += [frame, glass]
 
     bm = bmesh.new()
     add_box(bm, (0.3, 0.24, 0.03), (0.0, 0.0, 0.015), bevel=0.006)
     basket = finish("FridgeBasket", bm)
     basket.location = (0.0, 0.28, TIER_TOPS[1])
-    return [body, liner, frame, glass, basket]
+    return [body, liner, *panes, basket]
 
 
 def build_shelf():
