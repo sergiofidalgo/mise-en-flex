@@ -136,7 +136,10 @@ namespace Game.Gameplay.Stations
             if (_interactables == null || IsBusy || IsManaging)
                 return;
 
-            SetTarget(FindTarget());
+            // While a storage menu is held, the chef stays on that station even if they shuffle
+            // aside (out of a fridge door's swing, say), as long as it's still in reach.
+            if (!(IsSlotMenuOpen && StillInReach(_target)))
+                SetTarget(FindTarget());
 
             // The triggers turn the heat of whatever hob the chef is facing.
             if (_target is IHeatControl heat && _heatDown != null)
@@ -167,6 +170,14 @@ namespace Game.Gameplay.Stations
             var best = InteractionTargeting.SelectBest(
                 origin, transform.eulerAngles.y, _candidatePositions, _services.Tuning.Targeting, currentIndex);
             return best >= 0 ? _interactables[best] : null;
+        }
+
+        private bool StillInReach(Interactable station)
+        {
+            var origin = new SimVector2(transform.position.x, transform.position.z);
+            var position = station.transform.position;
+            return SimVector2.Distance(origin, new SimVector2(position.x, position.z)) <= _services.Tuning.Targeting.Range
+                && _services.Building.CanReach(origin, station.Footprint);
         }
 
         private void SetTarget(Interactable next)

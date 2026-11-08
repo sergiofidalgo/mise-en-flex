@@ -10,6 +10,8 @@ namespace Game.Presentation
     public sealed class StorageUseView : MonoBehaviour
     {
         [SerializeField] private PlayerInteractor _interactor;
+
+        private Game.Gameplay.PlayerMovement _movement;
         [Tooltip("The torso turns about this to bend forwards.")]
         [SerializeField] private Transform _waist;
 
@@ -19,11 +21,13 @@ namespace Game.Presentation
 
         private float _amount;
 
+        private void Awake() => _movement = _interactor != null ? _interactor.GetComponent<Game.Gameplay.PlayerMovement>() : null;
+
         private void Update()
         {
             var station = _interactor.IsSlotMenuOpen ? _interactor.Target as StorageStation : null;
             if (station != null && station.TryGetComponent<FridgeDoorView>(out var door))
-                door.KeepOpen();
+                door.KeepOpen(_movement);
 
             _amount = Swing.Step(_amount, station != null && !station.IsRefrigerated, _bendSeconds, _straightenSeconds, Time.deltaTime);
             Show(_amount);

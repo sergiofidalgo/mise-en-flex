@@ -100,6 +100,34 @@ namespace Game.Tests.EditMode
             Assert.That(Swing.FreeAngle(105f, 5f, angle => true), Is.EqualTo(0f));
         }
 
+        // The fridge's door on its floor: hinged at its front-left corner, 0.96 m long, opening to 105°.
+        private static readonly Vector2 LeftHinge = new Vector2(-0.48f, -0.45f);
+        private static readonly Vector2 RightHinge = new Vector2(0.48f, -0.45f);
+        private const float DoorLength = 0.96f;
+        private const float ChefReach = 0.45f; // body radius plus clearance
+
+        [Test]
+        public void AChefStandingInFrontIsInTheDoorsSwing()
+        {
+            var inFront = new Vector2(0f, -0.85f);
+            Assert.That(Swing.SweepTouches(LeftHinge, DoorLength, false, 105f, 5f, inFront, ChefReach), Is.True);
+            Assert.That(Swing.SweepTouches(RightHinge, DoorLength, true, 105f, 5f, inFront, ChefReach), Is.True);
+            Assert.That(Swing.SweepTouches(LeftHinge, DoorLength, false, 105f, 5f, new Vector2(0f, -2.5f), ChefReach), Is.False, "well back from it");
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void SteppingAsideGoesPastTheFreeEdgeAndClearsTheSwing(bool hingedRight)
+        {
+            var hinge = hingedRight ? RightHinge : LeftHinge;
+            var spot = Swing.StepAsideSpot(hinge, hingedRight, new Vector2(0f, -0.85f), ChefReach);
+
+            Assert.That(Mathf.Sign(spot.x), Is.EqualTo(hingedRight ? -1f : 1f), "away from the hinge");
+            Assert.That(spot.y, Is.LessThanOrEqualTo(-0.85f), "never closer to the fridge than before");
+            Assert.That(spot.y, Is.EqualTo(hinge.y - ChefReach).Within(1e-4f), "a body's reach in front of the hinge line, no further");
+            Assert.That(Swing.SweepTouches(hinge, DoorLength, hingedRight, 105f, 5f, spot, ChefReach), Is.False);
+        }
+
         // A fridge with boxes standing in for walls or furniture on either side of it.
         private static (FridgeDoorView Door, GameObject[] Scenery) FridgeBetween(bool wallLeft, bool wallRight)
         {

@@ -36,6 +36,48 @@ namespace Game.Presentation
         }
 
         /// <summary>
+        /// Which way a door's free edge points, on the floor of the thing it's in (x right, y
+        /// forward), turned <paramref name="angle"/> degrees from shut. Shut, it runs across the
+        /// front; opening, its free edge swings out to the front (−y).
+        /// </summary>
+        public static Vector2 DoorDirection(float angle, bool hingedRight)
+        {
+            var radians = angle * Mathf.Deg2Rad;
+            return new Vector2((hingedRight ? -1f : 1f) * Mathf.Cos(radians), -Mathf.Sin(radians));
+        }
+
+        /// <summary>
+        /// True if a door of <paramref name="length"/> swinging open to <paramref name="maxAngle"/>
+        /// passes within <paramref name="radius"/> of <paramref name="centre"/> (someone standing there).
+        /// </summary>
+        public static bool SweepTouches(Vector2 hinge, float length, bool hingedRight, float maxAngle, float step, Vector2 centre, float radius)
+        {
+            step = Mathf.Max(step, 0.1f);
+            for (var angle = 0f; ; angle = Mathf.Min(angle + step, maxAngle))
+            {
+                var end = hinge + DoorDirection(angle, hingedRight) * length;
+                if (DistanceToSegment(centre, hinge, end) < radius)
+                    return true;
+                if (angle >= maxAngle)
+                    return false;
+            }
+        }
+
+        /// <summary>
+        /// Where someone at <paramref name="from"/> steps to, clear of a door's swing: just past the
+        /// edge away from the hinge, as far forward as they were (and at least clear of the front).
+        /// </summary>
+        public static Vector2 StepAsideSpot(Vector2 hinge, bool hingedRight, Vector2 from, float radius) =>
+            new Vector2((hingedRight ? -1f : 1f) * (Mathf.Abs(hinge.x) + radius), Mathf.Min(from.y, hinge.y - radius));
+
+        private static float DistanceToSegment(Vector2 point, Vector2 a, Vector2 b)
+        {
+            var ab = b - a;
+            var t = ab.sqrMagnitude > 1e-8f ? Mathf.Clamp01(Vector2.Dot(point - a, ab) / ab.sqrMagnitude) : 0f;
+            return Vector2.Distance(point, a + ab * t);
+        }
+
+        /// <summary>
         /// Ease-out with a small overshoot: fast at first, swinging slightly past 1 before settling,
         /// like a door thrown open. 0 and 1 map exactly to themselves.
         /// </summary>
