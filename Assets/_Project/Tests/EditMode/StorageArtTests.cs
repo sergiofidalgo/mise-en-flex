@@ -54,9 +54,9 @@ namespace Game.Tests.EditMode
             Assert.That(Swing.EaseOutBack(0.8f), Is.GreaterThan(1f));
         }
 
-        [TestCase("SM_Fridge", "FridgeBody", 1.8f)]
+        [TestCase("SM_Fridge", "FridgeBody", 0.9f)]
         [TestCase("SM_Shelf", "ShelfBody", 1.05f)]
-        public void StorageIsTallWithinItsFootprint(string model, string mesh, float height)
+        public void StorageStandsWithinItsFootprint(string model, string mesh, float height)
         {
             var bounds = Model(model, mesh).bounds;
             Assert.That(bounds.size.x, Is.EqualTo(1f).Within(Tolerance));
@@ -66,194 +66,6 @@ namespace Game.Tests.EditMode
             Assert.That(bounds.max.z, Is.LessThanOrEqualTo(0.5f + Tolerance));
         }
 
-        [TestCase("FrontDoor", "Left")]
-        [TestCase("FrontDoor", "Right")]
-        [TestCase("BackDoor", "Left")]
-        [TestCase("BackDoor", "Right")]
-        public void FridgePaneIsGlassInAFrameAndStaysInsideTheFridge(string door, string side)
-        {
-            var bounds = Model("SM_Fridge", $"FridgePane{side}Frame").bounds;
-            Assert.That(bounds.size.x, Is.EqualTo(0.48f).Within(Tolerance), "Half the opening, plus an overlap.");
-            Assert.That(bounds.min.y, Is.EqualTo(0f).Within(Tolerance), "Its origin is its bottom centre.");
-            Assert.That(bounds.center.x, Is.EqualTo(0f).Within(Tolerance));
-
-            var fridge = Prefab(FridgePath).transform;
-            var pane = fridge.Find($"{door}/Pane{side}");
-            var at = fridge.InverseTransformPoint(pane.position);
-            Assert.That(Mathf.Abs(at.x) + bounds.extents.x, Is.LessThanOrEqualTo(0.5f + Tolerance), "Shut, it's inside the footprint.");
-            Assert.That(Mathf.Abs(at.z) + bounds.extents.z, Is.LessThanOrEqualTo(0.5f + Tolerance));
-
-            var glass = pane.Find("Glass").GetComponent<Renderer>().sharedMaterial;
-            Assert.That(glass.renderQueue, Is.GreaterThanOrEqualTo(3000), "The glass is see-through.");
-            Assert.That(glass.color.a, Is.LessThan(0.5f));
-        }
-
-        [Test]
-        public void TheBackDoorIsTheFrontTurnedRound()
-        {
-            var fridge = Prefab(FridgePath).transform;
-            var front = fridge.Find("FrontDoor");
-            var back = fridge.Find("BackDoor");
-            Assert.That(fridge.InverseTransformPoint(front.Find("PaneRight").position).z, Is.LessThan(-0.4f), "The front door is at the front.");
-            Assert.That(fridge.InverseTransformPoint(back.Find("PaneRight").position).z, Is.GreaterThan(0.4f), "The back door is at the back.");
-            Assert.That(Quaternion.Angle(front.localRotation, back.localRotation), Is.EqualTo(180f).Within(0.1f));
-        }
-
-        [Test]
-        public void TheFridgeHasAGlassTop()
-        {
-            var bounds = Model("SM_Fridge", "FridgeGlass").bounds;
-            Assert.That(bounds.size.x, Is.GreaterThan(0.9f), "From side to side.");
-            Assert.That(bounds.max.y, Is.GreaterThan(1.7f), "Up to the top.");
-            var glass = Prefab(FridgePath).transform.Find("Glass").GetComponent<Renderer>().sharedMaterial;
-            Assert.That(glass.renderQueue, Is.GreaterThanOrEqualTo(3000), "See-through.");
-        }
-
-        // Each side is see-through (glass, or a door) unless it's against a wall and doesn't face the
-        // camera; furniture never makes it solid (decision 2026-11-08, revised after play).
-        private const string CounterPath = "Assets/_Project/Prefabs/Furniture/PF_Counter.prefab";
-
-        private static (GameObject Fridge, FridgeShellView Shell, GameObject[] Scenery) FridgeWith(params Vector3[] walls) =>
-            FridgeWith(walls, System.Array.Empty<Vector3>(), 0f);
-
-        private static (GameObject Fridge, FridgeShellView Shell, GameObject[] Scenery) FridgeWith(Vector3[] walls, Vector3[] counters, float turned)
-        {
-            var fridge = (GameObject)PrefabUtility.InstantiatePrefab(Prefab(FridgePath));
-            fridge.transform.SetPositionAndRotation(new Vector3(100f, 0f, 100f), Quaternion.Euler(0f, turned, 0f)); // clear of anything open in the editor
-            var scenery = new System.Collections.Generic.List<GameObject> { fridge };
-            foreach (var at in walls)
-            {
-                // A wall: part of the building, not furniture.
-                var wall = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                wall.transform.position = fridge.transform.position + at + Vector3.up * 0.5f;
-                wall.transform.localScale = new Vector3(1f, 1f, 1f);
-                scenery.Add(wall);
-            }
-            foreach (var at in counters)
-            {
-                var counter = (GameObject)PrefabUtility.InstantiatePrefab(Prefab(CounterPath));
-                counter.transform.position = fridge.transform.position + at;
-                scenery.Add(counter);
-            }
-            Physics.SyncTransforms();
-            var shell = fridge.GetComponent<FridgeShellView>();
-            shell.Refresh();
-            return (fridge, shell, scenery.ToArray());
-        }
-
-        private static void Clear(GameObject[] scenery)
-        {
-            foreach (var thing in scenery)
-                Object.DestroyImmediate(thing);
-        }
-
-        [Test]
-        public void InOpenFloorEverySideIsSeeThrough()
-        {
-            var (fridge, shell, scenery) = FridgeWith();
-            try
-            {
-                foreach (FridgeShellView.Facing facing in System.Enum.GetValues(typeof(FridgeShellView.Facing)))
-                    Assert.That(shell.IsOpen(facing), Is.True, facing.ToString());
-                Assert.That(fridge.transform.Find("LeftSide/Glass").gameObject.activeSelf, Is.True);
-                Assert.That(fridge.transform.Find("LeftSide/Solid").gameObject.activeSelf, Is.False);
-                Assert.That(fridge.transform.Find("BackDoor/PaneLeft").gameObject.activeSelf, Is.True);
-                Assert.That(fridge.transform.Find("BackDoor/Solid").gameObject.activeSelf, Is.False);
-            }
-            finally
-            {
-                Clear(scenery);
-            }
-        }
-
-        [Test]
-        public void SidesAgainstAWallAreSolid()
-        {
-            // Walls flush behind it and on its left.
-            var (fridge, shell, scenery) = FridgeWith(new Vector3(0f, 0f, 1f), new Vector3(-1f, 0f, 0f));
-            try
-            {
-                Assert.That(shell.IsOpen(FridgeShellView.Facing.Back), Is.False);
-                Assert.That(shell.IsOpen(FridgeShellView.Facing.Left), Is.False);
-                Assert.That(shell.IsOpen(FridgeShellView.Facing.Front), Is.True);
-                Assert.That(shell.IsOpen(FridgeShellView.Facing.Right), Is.True);
-                Assert.That(fridge.transform.Find("BackDoor/Solid").gameObject.activeSelf, Is.True);
-                Assert.That(fridge.transform.Find("BackDoor/PaneLeft").gameObject.activeSelf, Is.False);
-                Assert.That(fridge.transform.Find("LeftSide/Solid").gameObject.activeSelf, Is.True);
-                Assert.That(fridge.transform.Find("RightSide/Glass").gameObject.activeSelf, Is.True);
-
-                // Facing the solid back, a chef opens the front door instead.
-                var door = fridge.GetComponent<FridgeDoorView>();
-                Assert.That(door.OpensFor(fridge.transform.TransformPoint(new Vector3(0.6f, 0f, 0.2f))).Back, Is.False);
-            }
-            finally
-            {
-                Clear(scenery);
-            }
-        }
-
-        [Test]
-        public void CountersBesideItLeaveItGlass()
-        {
-            var (fridge, shell, scenery) = FridgeWith(System.Array.Empty<Vector3>(), new[] { new Vector3(-1f, 0f, 0f), new Vector3(1f, 0f, 0f) }, 0f);
-            try
-            {
-                Assert.That(shell.IsOpen(FridgeShellView.Facing.Left), Is.True, "it shows above the counter");
-                Assert.That(shell.IsOpen(FridgeShellView.Facing.Right), Is.True);
-            }
-            finally
-            {
-                Clear(scenery);
-            }
-        }
-
-        [Test]
-        public void AWallOnTheCameraSideLeavesItSeeThrough()
-        {
-            // Turned round, its back faces the camera (south), against a wall there.
-            var (fridge, shell, scenery) = FridgeWith(new[] { new Vector3(0f, 0f, -1f) }, System.Array.Empty<Vector3>(), 180f);
-            try
-            {
-                Assert.That(shell.IsOpen(FridgeShellView.Facing.Back), Is.True, "the camera looks over the wall into it");
-                Assert.That(fridge.transform.Find("BackDoor/PaneLeft").gameObject.activeSelf, Is.True);
-            }
-            finally
-            {
-                Clear(scenery);
-            }
-        }
-
-        [Test]
-        public void ItFollowsTheFridgeTurning()
-        {
-            // A block on its right; turned a quarter to face west, that block is behind it instead.
-            var (fridge, shell, scenery) = FridgeWith(new Vector3(1f, 0f, 0f));
-            try
-            {
-                Assert.That(shell.IsOpen(FridgeShellView.Facing.Right), Is.False);
-                fridge.transform.rotation = Quaternion.Euler(0f, 90f, 0f);
-                Physics.SyncTransforms();
-                shell.Refresh();
-                Assert.That(shell.IsOpen(FridgeShellView.Facing.Back), Is.False);
-                Assert.That(shell.IsOpen(FridgeShellView.Facing.Right), Is.True);
-            }
-            finally
-            {
-                Clear(scenery);
-            }
-        }
-
-        [Test]
-        public void ThePanesRunOnTwoTracksSoOneCanPassTheOther()
-        {
-            var door = Prefab(FridgePath).transform.Find("FrontDoor");
-            var left = door.Find("PaneLeft");
-            var right = door.Find("PaneRight");
-            var thickness = Model("SM_Fridge", "FridgePaneLeftFrame").bounds.size.z;
-            Assert.That(Mathf.Abs(left.localPosition.z - right.localPosition.z), Is.GreaterThan(thickness), "Apart by more than a pane's thickness.");
-            Assert.That(right.localPosition.z, Is.LessThan(left.localPosition.z), "The right pane is outside, towards whoever faces the door.");
-        }
-
         [Test]
         public void FridgeIsWiredToOpenAndShelfIsNot()
         {
@@ -261,40 +73,43 @@ namespace Game.Tests.EditMode
             Assert.That(Prefab(ShelfPath).GetComponent<FridgeDoorView>(), Is.Null);
         }
 
-        // The door on the opener's side opens the half in front of them, by sliding one pane over
-        // the other, and never leaves the fridge's width (decision 2026-11-08).
-        [TestCase(false, false)]
-        [TestCase(false, true)]
-        [TestCase(true, false)]
-        [TestCase(true, true)]
-        public void OpeningSlidesOnePaneOverTheOtherAndStaysInsideTheFridge(bool back, bool opensRight)
+        // The fridge is a chest at counter height with a glass lid (decision 2026-11-08).
+        [Test]
+        public void TheFridgeIsAChestWithAGlassLidHingedAtTheBack()
+        {
+            var fridge = Prefab(FridgePath).transform;
+            var lid = fridge.Find("Lid");
+            Assert.That(lid.localPosition.y, Is.EqualTo(0.9f).Within(Tolerance), "At counter height.");
+            Assert.That(lid.localPosition.z, Is.GreaterThan(0.4f), "Hinged along the back.");
+            Assert.That(lid.localRotation, Is.EqualTo(Quaternion.identity), "Built shut.");
+            var glass = lid.Find("Glass").GetComponent<Renderer>().sharedMaterial;
+            Assert.That(glass.renderQueue, Is.GreaterThanOrEqualTo(3000), "The lid is see-through.");
+            Assert.That(glass.color.a, Is.LessThan(0.5f));
+        }
+
+        [Test]
+        public void TheOpenLidRisesAndNeverLeavesTheFootprint()
         {
             var fridge = (GameObject)PrefabUtility.InstantiatePrefab(Prefab(FridgePath));
             try
             {
                 var view = fridge.GetComponent<FridgeDoorView>();
-                var door = fridge.transform.Find(back ? "BackDoor" : "FrontDoor");
-                var other = fridge.transform.Find(back ? "FrontDoor" : "BackDoor");
-                var left = door.Find("PaneLeft");
-                var right = door.Find("PaneRight");
-                var leftShut = left.localPosition;
-                var rightShut = right.localPosition;
-                var otherShut = other.Find("PaneRight").localPosition;
-                var halfWidth = Model("SM_Fridge", "FridgePaneLeftFrame").bounds.extents.x;
-
-                view.Show(1f, back, opensRight);
-
-                var moved = opensRight ? right : left;
-                var stayed = opensRight ? left : right;
-                Assert.That(stayed.localPosition, Is.EqualTo(opensRight ? leftShut : rightShut), "The other pane stays put.");
-                Assert.That(moved.localPosition.x, Is.EqualTo(stayed.localPosition.x).Within(0.05f), "It slides over the other.");
-                Assert.That(Mathf.Abs(moved.localPosition.x) + halfWidth, Is.LessThanOrEqualTo(0.5f + Tolerance), "Open, it's still inside the fridge.");
-                Assert.That(moved.localPosition.z, Is.EqualTo((opensRight ? rightShut : leftShut).z), "It stays on its track.");
-                Assert.That(other.Find("PaneRight").localPosition, Is.EqualTo(otherShut), "The other door stays shut.");
-
-                view.Show(0f, back, opensRight);
-                Assert.That(left.localPosition, Is.EqualTo(leftShut));
-                Assert.That(right.localPosition, Is.EqualTo(rightShut));
+                var frame = fridge.transform.Find("Lid/Frame").GetComponent<MeshFilter>().sharedMesh.bounds;
+                foreach (var amount in new[] { 0.25f, 0.5f, 0.7f, 0.85f, 1f })
+                {
+                    view.Show(amount);
+                    var lid = fridge.transform.Find("Lid/Frame");
+                    for (var corner = 0; corner < 8; corner++)
+                    {
+                        var local = frame.center + Vector3.Scale(frame.extents, new Vector3(
+                            (corner & 1) == 0 ? -1f : 1f, (corner & 2) == 0 ? -1f : 1f, (corner & 4) == 0 ? -1f : 1f));
+                        var inFridge = fridge.transform.InverseTransformPoint(lid.TransformPoint(local));
+                        Assert.That(Mathf.Abs(inFridge.x), Is.LessThanOrEqualTo(0.5f + Tolerance), $"at {amount}");
+                        Assert.That(Mathf.Abs(inFridge.z), Is.LessThanOrEqualTo(0.5f + Tolerance), $"at {amount}: past the back or front");
+                        Assert.That(inFridge.y, Is.GreaterThanOrEqualTo(0.9f - 0.05f), $"at {amount}: it rises");
+                    }
+                }
+                Assert.That(fridge.transform.Find("Lid").localEulerAngles.x, Is.GreaterThan(60f), "Open, it's well up.");
             }
             finally
             {
@@ -303,31 +118,26 @@ namespace Game.Tests.EditMode
         }
 
         [Test]
-        public void TheDoorAndHalfThatOpenAreTheOnesInFrontOfTheChef()
+        public void TheChestsFourSlotsSitOnOneLevelLikeTheFaceButtons()
         {
-            var fridge = (GameObject)PrefabUtility.InstantiatePrefab(Prefab(FridgePath));
-            try
-            {
-                fridge.transform.SetPositionAndRotation(new Vector3(100f, 0f, 100f), Quaternion.Euler(0f, 90f, 0f));
-                var door = fridge.GetComponent<FridgeDoorView>();
-                Vector3 At(float x, float z) => fridge.transform.TransformPoint(new Vector3(x, 0f, z));
-                Assert.That(door.OpensFor(At(0.3f, -0.9f)), Is.EqualTo((false, true)), "In front, on its right.");
-                Assert.That(door.OpensFor(At(-0.3f, -0.9f)), Is.EqualTo((false, false)), "In front, on its left.");
-                Assert.That(door.OpensFor(At(-0.3f, 0.9f)), Is.EqualTo((true, true)), "Behind: the fridge's left is on their right.");
-                Assert.That(door.OpensFor(At(0.3f, 0.9f)), Is.EqualTo((true, false)));
-            }
-            finally
-            {
-                Object.DestroyImmediate(fridge);
-            }
+            var fridge = Prefab(FridgePath);
+            var y = Slot(fridge, FaceButton.North);
+            var b = Slot(fridge, FaceButton.East);
+            var x = Slot(fridge, FaceButton.West);
+            var a = Slot(fridge, FaceButton.South);
+
+            Assert.That(new[] { b.y, x.y, a.y }, Is.All.EqualTo(y.y).Within(Tolerance), "One level.");
+            Assert.That(y.z, Is.GreaterThan(x.z), "Y and B at the back, X and A at the front.");
+            Assert.That(b.z, Is.GreaterThan(a.z));
+            Assert.That(y.x, Is.LessThan(b.x), "Y is on the left, B on the right.");
+            Assert.That(x.x, Is.LessThan(a.x), "X is on the left, A on the right.");
+            Assert.That(y.y, Is.LessThan(0.9f), "Inside, under the lid.");
         }
 
-        // Stock shows from any side, however the piece is turned (decision 2026-11-08).
-        [TestCase(FridgePath)]
-        [TestCase(ShelfPath)]
-        public void StockSitsInTheMiddleSoItShowsFromAnySide(string path)
+        [Test]
+        public void TheShelfsStockSitsInTheMiddleSoItShowsFromAnySide()
         {
-            var storage = Prefab(path);
+            var storage = Prefab(ShelfPath);
             foreach (FaceButton button in System.Enum.GetValues(typeof(FaceButton)))
                 Assert.That(Slot(storage, button).z, Is.EqualTo(0f).Within(Tolerance), button.ToString());
         }
@@ -340,11 +150,10 @@ namespace Game.Tests.EditMode
             Assert.That(bounds.center.z, Is.EqualTo(0f).Within(Tolerance), "Centred, the same from front and back.");
         }
 
-        [TestCase(FridgePath)]
-        [TestCase(ShelfPath)]
-        public void SlotsSitInTwoTiersWithYAndBOnTop(string path)
+        [Test]
+        public void TheShelfsSlotsSitInTwoTiersWithYAndBOnTop()
         {
-            var storage = Prefab(path);
+            var storage = Prefab(ShelfPath);
             var y = Slot(storage, FaceButton.North);
             var b = Slot(storage, FaceButton.East);
             var x = Slot(storage, FaceButton.West);

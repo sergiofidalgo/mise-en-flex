@@ -4,8 +4,8 @@ using UnityEngine;
 namespace Game.Presentation
 {
     /// <summary>
-    /// Shows a chef using storage while its menu is open (RT held): a fridge's panes slide open, and at
-    /// a shelf the chef bends at the waist to reach in.
+    /// Shows a chef using storage while its menu is open (RT held): they bend at the waist to reach
+    /// into the shelf or the chest fridge, whose lid lifts as well.
     /// </summary>
     public sealed class StorageUseView : MonoBehaviour
     {
@@ -26,7 +26,7 @@ namespace Game.Presentation
             if (station != null && station.TryGetComponent<FridgeDoorView>(out var door))
                 door.KeepOpen(_interactor.transform);
 
-            _amount = Swing.Step(_amount, station != null && !station.IsRefrigerated, _bendSeconds, _straightenSeconds, Time.deltaTime);
+            _amount = Swing.Step(_amount, station != null, _bendSeconds, _straightenSeconds, Time.deltaTime);
             Show(_amount);
         }
 

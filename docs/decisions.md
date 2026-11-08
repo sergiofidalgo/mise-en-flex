@@ -4,6 +4,19 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-08 — The fridge is a chest at counter height with a glass lid
+
+**Decision (user's call, after play; details proposed):** a tall fridge with two ingredients per shelf hid stock and blocked the view, so it becomes a chest fridge, like a counter.
+- **Counter height (0.9 m), with all four slots on one level,** the chest's floor at 0.7 m. They copy the face buttons' diamond seen from above: Y and B at the back, X and A at the front.
+- **A glass lid in a white frame covers it,** so the stock shows from above whichever way the chest is turned. The sides are solid white, with a pale lining inside.
+- **The lid lifts while RT is held:** hinged along the back, it opens to 75° in 0.25 s with a small overshoot, never past upright, and closes in 0.3 s. It stays over the chest's own footprint, so no wall, furniture or chef can be in its way. Being glass, it hides nothing even when it stands on the camera's side. Tunable on `FridgeDoorView` (`_openAngle`, `_openSeconds`, `_closeSeconds`, `_overshoot`). The cold air spills over the front edge as it opens.
+- **The chef bends at the waist to reach in,** as at the shelf.
+- **Replaces** the glass fridge from earlier today: its sliding doors front and back, its glass sides, and the rule making sides glass or solid. The shelf stays as it is (below). The 2026-11-07 entry's "tall storage in the back-left corner" now holds only for the shelf.
+
+**Reason:** one level under a glass top shows all four ingredients at once from the overhead camera, in any layout, and a lid that only rises can't clash with anything around it.
+
+---
+
 ## 2026-11-08 — Stock shows from any side: a glass fridge and an open shelf
 
 **Decision (user's call, details proposed):** players can turn storage any way, so what's in it should show from every angle.
