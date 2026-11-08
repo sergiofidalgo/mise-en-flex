@@ -103,6 +103,24 @@ namespace Game.Editor
             return material;
         }
 
+        /// <summary>The soft, additive gas flame material (MAT_FX_Flame, Game/FX/Flame). Created once.</summary>
+        public static Material EnsureFlameMaterial()
+        {
+            const string path = MaterialsFolder + "/MAT_FX_Flame.mat";
+            var material = AssetDatabase.LoadAssetAtPath<Material>(path);
+            var isNew = material == null;
+            if (isNew)
+                material = new Material(Shader.Find("Game/FX/Flame"));
+            // Not too bright, so the blue stays blue over the light steel rather than washing white.
+            material.SetFloat("_Intensity", 1.1f);
+            material.SetFloat("_EdgeSoftness", 2f);
+            if (isNew)
+                AssetDatabase.CreateAsset(material, path);
+            else
+                EditorUtility.SetDirty(material);
+            return material;
+        }
+
         /// <summary>The layered food material (MAT_Food_<paramref name="name"/>). Created once.</summary>
         public static Material EnsureLayeredFoodMaterial(string name, Color rawColor)
         {

@@ -4,6 +4,20 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-08 — Gas hob: fire is the only heat cue; soft gas flames; a grey knob with a red pointer
+
+**Decision:**
+- **Heat lights:** the gas hob has none; its heat shows only in its fire. The induction hob keeps its three heat lights, lit green, orange and red.
+- **The gas hob's top** has three greys: the rim lightest, the cooking surface a step darker, the grate almost black.
+- **The fire** is soft and see-through (`Game/FX/Flame`: additive, fading at its tip and silhouette), after the user's photo and reference image.
+  - 16 thin tongues in a ring at the pan's edge, so even a low flame peeks out from under the pan, with an inner ring of short blue cores.
+  - Blue at low and middling heat. Past about a third of the dial the tongues turn yellow at the base and orange at the tip, the orange glow and embers appear, and the cooking surface glows round the burner.
+- **The knob** is dark grey with a red pointer stripe, the only red part. Off, it points to the top of the hob; it turns clockwise through 270° to full heat, like a real gas knob.
+
+**Reason:** The user's notes on the hob, the fire references, and the knob being hard to pick out.
+
+---
+
 ## 2026-11-08 — A grate with presence, layered fire, and counters that join
 
 **Decision:**

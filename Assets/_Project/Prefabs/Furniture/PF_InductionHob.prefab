@@ -622,20 +622,29 @@ MonoBehaviour:
   _embers: []
   _puffRate: 70
   _emberRate: 12
-  _coreScale: 0.6
-  _coreLow: {r: 0.65, g: 0.85, b: 1, a: 1}
-  _coreHigh: {r: 1, g: 0.9, b: 0.5, a: 1}
-  _flameHeight: {x: 0.5, y: 2.6}
-  _flameWidth: {x: 0.8, y: 1.8}
+  _coreScale: 0.5
+  _coreLow: {r: 0.1, g: 0.3, b: 0.9, a: 1}
+  _coreHigh: {r: 0.15, g: 0.35, b: 1, a: 1}
+  _glow: []
+  _glowSize: {x: 0.5, y: 1}
+  _glowLow: {r: 0.25, g: 0.4, b: 1, a: 0.25}
+  _glowHigh: {r: 1, g: 0.5, b: 0.15, a: 0.8}
+  _flameHeight: {x: 0.7, y: 2.4}
+  _flameWidth: {x: 0.5, y: 0.95}
   _flicker: 0.18
   _flickerSpeed: 13
-  _flameLow: {r: 0.35, g: 0.6, b: 1, a: 1}
-  _flameHigh: {r: 1, g: 0.42, b: 0.04, a: 1}
+  _flameLow: {r: 0.1, g: 0.3, b: 1, a: 1}
+  _flameHigh: {r: 1, g: 0.78, b: 0.28, a: 1}
+  _tipLow: {r: 0.25, g: 0.3, b: 1, a: 1}
+  _tipHigh: {r: 1, g: 0.42, b: 0.06, a: 1}
   _knobTurn: 270
   _burnerOff: {r: 0.14, g: 0.14, b: 0.16, a: 1}
   _burnerFull: {r: 0.85, g: 0.08, b: 0.06, a: 1}
   _pipOff: {r: 0.12, g: 0.12, b: 0.13, a: 1}
-  _pipOn: {r: 1, g: 0.55, b: 0.1, a: 1}
+  _pipOn:
+  - {r: 0.3, g: 0.85, b: 0.3, a: 1}
+  - {r: 1, g: 0.6, b: 0.1, a: 1}
+  - {r: 0.95, g: 0.2, b: 0.15, a: 1}
 --- !u!1 &7244615190500708114
 GameObject:
   m_ObjectHideFlags: 0

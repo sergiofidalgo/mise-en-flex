@@ -814,8 +814,11 @@ namespace Game.Editor
                 fire = StyleTest.DressHob(hob.transform, burner); // the cartoony style test (decision 2026-11-08)
             }
 
-            var pips = new Renderer[HeatPipCount];
-            for (var i = 0; i < HeatPipCount; i++)
+            // Only the induction hob shows its heat in lights (green, orange, red); a gas hob's
+            // heat shows in its fire alone (the user's note, 2026-11-08).
+            var pipCount = induction ? HeatPipCount : 0;
+            var pips = new Renderer[pipCount];
+            for (var i = 0; i < pipCount; i++)
             {
                 var pip = GreyboxAssets.CreatePrimitive(
                     PrimitiveType.Cube, $"HeatPip_{i + 1}", hob.transform, GreyboxAssets.EnsureMaterial("HeatPip", Color.black), keepCollider: false);
@@ -848,6 +851,7 @@ namespace Game.Editor
             SetObjects(viewSo.FindProperty("_flameCores"), fire.Cores);
             SetObjects(viewSo.FindProperty("_puffs"), fire.Puffs);
             SetObjects(viewSo.FindProperty("_embers"), fire.Embers);
+            SetObjects(viewSo.FindProperty("_glow"), fire.Glow);
             var pipList = viewSo.FindProperty("_pips");
             pipList.arraySize = pips.Length;
             for (var i = 0; i < pips.Length; i++)

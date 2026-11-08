@@ -144,8 +144,12 @@ def build_hob():
     bm = bmesh.new()
     add_lathe(bm, [(0.075, 0.0), (0.075, 0.03), (0.06, 0.045), (0.0, 0.045)], segments=24)
     add_box(bm, (0.032, 0.13, 0.035), (0.0, 0.0, 0.06), bevel=0.012)  # the grip, across the knob
-    add_box(bm, (0.02, 0.02, 0.012), (0.0, 0.055, 0.08))  # a pointer at the grip's front end
     dial = finish("HobDial", bm)
+    # The pointer: a red stripe along the top of the grip, towards its back end, so when off it
+    # points to the top of the hob (the user's notes, 2026-11-08); the knob's one red part.
+    bm = bmesh.new()
+    add_box(bm, (0.018, 0.07, 0.006), (0.0, -0.025, 0.0805), bevel=0.002)
+    mark = finish("HobDialMark", bm)
 
     # The burner head on the tray (HobView tints it with the heat), under the grate.
     bm = bmesh.new()
@@ -200,7 +204,7 @@ def build_hob():
     for x in (-0.27, 0.27):
         add_pipe(bm, [(x, front + 0.03, 0.62), (x, handle_y, 0.62)], radius=0.01, segments=8)
     handle = finish("HobHandle", bm)
-    return [body, top, tray, dial, burner, door, window, handle, grate, flame]
+    return [body, top, tray, dial, mark, burner, door, window, handle, grate, flame]
 def build_pan():
     """Style test: mostly rim and handle. A shallow pan with a fat rolled rim and a short, stubby
     handle with a big ball on the end, towards the camera (+Y here)."""

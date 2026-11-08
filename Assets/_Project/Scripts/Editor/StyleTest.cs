@@ -18,14 +18,20 @@ namespace Game.Editor
         private static readonly Color HobSteel = new Color(0.78f, 0.8f, 0.83f);
         // A steel top a shade darker than the body, with a black knob and the dark pan standing out
         // on it; the oven door below has a smoked window and a chrome bar handle.
-        private static readonly Color HobTopSteel = new Color(0.68f, 0.7f, 0.74f);
-        private static readonly Color KnobBlack = new Color(0.13f, 0.13f, 0.14f);
+        private static readonly Color HobTopSteel = new Color(0.76f, 0.77f, 0.8f);
+        // A big dark-grey knob with a red pointer on top, so the control reads at a glance against
+        // the steel and the black grate (the user's notes, 2026-11-08).
+        private static readonly Color KnobGrey = new Color(0.3f, 0.31f, 0.34f);
+        private static readonly Color KnobRed = new Color(0.82f, 0.18f, 0.12f);
+        private const float KnobScale = 1.2f;
         private static readonly Color DoorSteel = new Color(0.64f, 0.66f, 0.7f);
         private static readonly Color WindowSmoked = new Color(0.15f, 0.16f, 0.19f);
         private static readonly Color Chrome = new Color(0.92f, 0.93f, 0.95f);
-        private static readonly Color CastIron = new Color(0.12f, 0.12f, 0.13f);
+        private static readonly Color CastIron = new Color(0.07f, 0.07f, 0.08f);
 
-        private static readonly Color TrayEnamel = new Color(0.14f, 0.14f, 0.16f);
+        // Three greys on the top (the user's note, 2026-11-08): the rim lightest, the cooking
+        // surface a step darker, the grate almost black.
+        private static readonly Color TrayEnamel = new Color(0.42f, 0.43f, 0.46f);
 
         /// <summary>The spill tray's top, where the burner and grate stand. Must match TRAY_TOP in blender/build_pilot_models.py.</summary>
         public const float TrayTop = 0.865f;
@@ -33,12 +39,13 @@ namespace Game.Editor
         // The flames (the user's notes, 2026-11-08): cartoon tongues leaning out from the burner so
         // a high flame licks past the pan's edge (0.22 m), and between them shorter, brighter cores,
         // so the fire has a hot heart; soft flame puffs and embers rise from it too.
-        private const int FlameCount = 12;
+        private const int FlameCount = 16;
+        private const float GlowLift = 0.003f;
         private const float FlameRadius = 0.2f;
         private const float FlameBase = TrayTop + 0.012f;
-        private const float FlameLean = 50f;
-        private const float CoreRadius = 0.19f;
-        private const float CoreLean = 45f;
+        private const float FlameLean = 35f;
+        private const float CoreRadius = 0.18f;
+        private const float CoreLean = 28f;
         private const float CoreScale = 0.6f;
         private const float FireRingRadius = 0.25f;
         private static readonly Color BurnerDark = new Color(0.08f, 0.08f, 0.09f);
@@ -86,6 +93,7 @@ namespace Game.Editor
             public Renderer[] Cores = System.Array.Empty<Renderer>();
             public ParticleSystem[] Puffs = System.Array.Empty<ParticleSystem>();
             public ParticleSystem[] Embers = System.Array.Empty<ParticleSystem>();
+            public Renderer[] Glow = System.Array.Empty<Renderer>();
         }
 
         /// <summary>
@@ -103,12 +111,16 @@ namespace Game.Editor
             AddPart(hob, "Window", "HobWindow", EnsureToonMaterial("HobWindow", WindowSmoked));
             AddPart(hob, "Handle", "HobHandle", EnsureToonMaterial("HobHandle", Chrome));
             AddPart(hob, "Grate", "HobGrate", EnsureToonMaterial("HobGrate", CastIron));
-            var knob = AddPart(hob, Game.Presentation.HobView.KnobName, "HobDial", EnsureToonMaterial("HobDial", KnobBlack));
+            var knob = AddPart(hob, Game.Presentation.HobView.KnobName, "HobDial", EnsureToonMaterial("HobDial", KnobGrey));
             if (knob != null)
+            {
                 knob.localPosition = KnobPosition;
+                knob.localScale = Vector3.one * KnobScale;
+                AddPart(knob, "Mark", "HobDialMark", EnsureToonMaterial("HobDialMark", KnobRed)); // turns with it
+            }
 
             var fire = new HobFire();
-            var flameMaterial = PilotArt.EnsureUnlitMaterial("Flame", Color.white);
+            var flameMaterial = PilotArt.EnsureFlameMaterial();
             var flames = Ring("Flame", FlameRadius, FlameLean, 0f, 1f);
             var cores = Ring("FlameCore", CoreRadius, CoreLean, 180f / FlameCount, CoreScale);
             if (flames == null || cores == null)
@@ -130,6 +142,16 @@ namespace Game.Editor
             noise.frequency = 1.5f;
             fire.Puffs = new[] { puffs };
             fire.Embers = new[] { embers };
+
+            // The fire's light on the cooking surface round the burner: a soft additive disc
+            // that grows and warms with the heat (the user's reference, 2026-11-08).
+            var glow = GreyboxAssets.CreatePrimitive(PrimitiveType.Quad, "FireGlow", hob, PilotArt.EnsureFireMaterial(), keepCollider: false);
+            glow.transform.localPosition = new Vector3(0f, TrayTop + GlowLift, 0f);
+            glow.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+            var glowRenderer = glow.GetComponent<Renderer>();
+            glowRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            glowRenderer.enabled = false; // lit by HobView once there's heat
+            fire.Glow = new[] { glowRenderer };
             return fire;
 
             Renderer[] Ring(string name, float radius, float lean, float turn, float scale)

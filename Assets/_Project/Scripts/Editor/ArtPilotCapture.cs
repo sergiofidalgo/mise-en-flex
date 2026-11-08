@@ -216,7 +216,10 @@ namespace Game.Editor
             var lit = Mathf.CeilToInt(dial * pips.arraySize - 0.001f);
             for (var i = 0; i < pips.arraySize; i++)
             {
-                var pipColor = so.FindProperty(i < lit ? "_pipOn" : "_pipOff").colorValue;
+                var lights = so.FindProperty("_pipOn");
+                var pipColor = i < lit
+                    ? lights.GetArrayElementAtIndex(Mathf.Min(i, lights.arraySize - 1)).colorValue
+                    : so.FindProperty("_pipOff").colorValue;
                 var pipName = ((Renderer)pips.GetArrayElementAtIndex(i).objectReferenceValue).name;
                 var pipBlock = new MaterialPropertyBlock();
                 pipBlock.SetColor("_BaseColor", pipColor);
@@ -227,13 +230,32 @@ namespace Game.Editor
             var height = so.FindProperty("_flameHeight").vector2Value;
             var width = so.FindProperty("_flameWidth").vector2Value;
             var warmth = HobView.FlameWarmth(dial);
-            ShowRing("_flames", 1f, Color.Lerp(so.FindProperty("_flameLow").colorValue, so.FindProperty("_flameHigh").colorValue, warmth));
+            var flameBase = Color.Lerp(so.FindProperty("_flameLow").colorValue, so.FindProperty("_flameHigh").colorValue, warmth);
+            ShowRing("_flames", 1f, flameBase, Color.Lerp(so.FindProperty("_tipLow").colorValue, so.FindProperty("_tipHigh").colorValue, warmth));
+            var coreLow = so.FindProperty("_coreLow").colorValue;
             ShowRing("_flameCores", so.FindProperty("_coreScale").floatValue,
-                Color.Lerp(so.FindProperty("_coreLow").colorValue, so.FindProperty("_coreHigh").colorValue, warmth));
+                Color.Lerp(coreLow, so.FindProperty("_coreHigh").colorValue, warmth), coreLow);
+
+            var glows = so.FindProperty("_glow");
+            var glowSize = Mathf.Lerp(so.FindProperty("_glowSize").vector2Value.x, so.FindProperty("_glowSize").vector2Value.y, dial);
+            for (var i = 0; i < glows.arraySize; i++)
+            {
+                var glow = hob.transform.Find(((Renderer)glows.GetArrayElementAtIndex(i).objectReferenceValue).name).GetComponent<Renderer>();
+                glow.enabled = dial > 0.001f;
+                glow.transform.localScale = new Vector3(glowSize, glowSize, 1f);
+                var glowBlock = new MaterialPropertyBlock();
+                glowBlock.SetColor("_BaseColor", Color.Lerp(so.FindProperty("_glowLow").colorValue, so.FindProperty("_glowHigh").colorValue, warmth));
+                glow.SetPropertyBlock(glowBlock);
+            }
+
+            // The knob turns with the heat, as HobView turns it.
+            var knob = hob.transform.Find(HobView.KnobName);
+            if (knob != null)
+                knob.localRotation = Quaternion.Euler(0f, dial * so.FindProperty("_knobTurn").floatValue, 0f);
 
             // Particles don't run outside Play mode: set their rate as HobView would and run them a while.
-            SimulateFire("_puffs", so.FindProperty("_puffRate").floatValue * dial);
-            SimulateFire("_embers", so.FindProperty("_emberRate").floatValue * dial * dial);
+            SimulateFire("_puffs", so.FindProperty("_puffRate").floatValue * dial * warmth);
+            SimulateFire("_embers", so.FindProperty("_emberRate").floatValue * dial * dial * warmth);
 
             void SimulateFire(string property, float rate)
             {
@@ -248,7 +270,7 @@ namespace Game.Editor
                 }
             }
 
-            void ShowRing(string property, float scale, Color color)
+            void ShowRing(string property, float scale, Color color, Color tip)
             {
                 var ring = so.FindProperty(property);
                 for (var i = 0; i < ring.arraySize; i++)
@@ -260,6 +282,7 @@ namespace Game.Editor
                     flame.transform.localScale = new Vector3(w, Mathf.Lerp(height.x, height.y, dial), w) * scale;
                     var flameBlock = new MaterialPropertyBlock();
                     flameBlock.SetColor("_BaseColor", color);
+                    flameBlock.SetColor("_TipColor", tip);
                     flame.SetPropertyBlock(flameBlock);
                 }
             }
