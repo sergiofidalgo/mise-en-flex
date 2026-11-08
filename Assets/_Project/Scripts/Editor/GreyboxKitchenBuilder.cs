@@ -79,6 +79,9 @@ namespace Game.Editor
         private const float FloorNorth = 2f;
         private const float FloorSouth = -7f;
         private const float DividingWallZ = -3f;
+        private const float PictureHeight = 0.78f;
+        private static readonly Color PictureSage = new Color(0.56f, 0.66f, 0.5f);
+        private static readonly Color PictureBlue = new Color(0.5f, 0.62f, 0.72f);
         private const float KitchenDoorThickness = 0.08f;
         private static readonly Color KitchenDoorColor = new Color(0.45f, 0.33f, 0.22f);
         private static readonly Vector3[] SpawnPositions = { new Vector3(-2.45f, 0f, -0.8f), new Vector3(2.45f, 0f, -0.8f) };
@@ -490,6 +493,12 @@ namespace Game.Editor
                 var wall = floorPlan.Walls[i];
                 CreateWall($"Wall_Inside_{i + 1}", new Vector3(wall.center.x, y, wall.center.y), new Vector3(wall.width, WallHeight, wall.height));
             }
+
+            // Pictures on the dining room's side walls, above the panelling (decision 2026-11-08).
+            var diningMiddle = (DividingWallZ + FloorSouth) / 2f;
+            var inside = halfWidth - WallThickness / 2f;
+            DiningArt.HangPicture(walls, "Picture_West", new Vector3(-inside, PictureHeight, diningMiddle), Vector3.right, PictureSage);
+            DiningArt.HangPicture(walls, "Picture_East", new Vector3(inside, PictureHeight, diningMiddle), Vector3.left, PictureBlue);
 
             // The door between the rooms: a panel on a hinge, swung by whoever comes near.
             var hinge = new GameObject("KitchenDoor").transform;
@@ -911,6 +920,7 @@ namespace Game.Editor
         {
             var table = CreateStation<TableStation>(
                 "PF_Table", Vector3.zero, CounterSize, TableHeight, GreyboxAssets.EnsureMaterial("Table", TableColor), null, TableFurniture);
+            DiningArt.DressTable(table.transform, bar: false);
             var directions = new[] { Vector3.back, Vector3.left, Vector3.right, Vector3.forward };
             AddChairs(table, TableHeight, directions, ChairDistance, TablePlateOffset);
             return table;
@@ -921,6 +931,9 @@ namespace Game.Editor
         {
             var table = CreateStation<TableStation>(
                 name, position, CounterSize, BarHeight, GreyboxAssets.EnsureMaterial("BarTable", BarColor), parent, BarFurniture, BarDepth);
+            var barTop = DiningArt.DressTable(table.transform, bar: true);
+            if (barTop != null)
+                AddToHighlight(table, barTop);
             AddChairs(table, BarHeight, new[] { Vector3.back }, BarDepth / 2f + BarChairGap, BarPlateOffset);
             return table;
         }
@@ -938,6 +951,8 @@ namespace Game.Editor
                 var chair = GreyboxAssets.CreatePrimitive(PrimitiveType.Cylinder, "Chair", seat, GreyboxAssets.EnsureMaterial("Stool", ChairColor), keepCollider: false);
                 chair.transform.localScale = ChairScale;
                 chair.transform.localPosition = new Vector3(0f, ChairScale.y, 0f);
+                // A chair facing the table, or a stool at the bar, the seat at the same height.
+                DiningArt.DressChair(chair, stool: height > TableHeight, directions[i]);
                 seat.gameObject.SetActive(i == 0);
 
                 var plate = new GameObject($"Plate_{i + 1}").transform;

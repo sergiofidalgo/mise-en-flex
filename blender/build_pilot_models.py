@@ -503,6 +503,72 @@ def build_bin():
     return [body, lid, pedal]
 
 
+SEAT_HEIGHT = 0.44  # the top of a chair or stool seat; must match the builder's ChairScale (0.22 * 2)
+
+
+def build_dining():
+    """The dining room's furniture (decision 2026-11-08, the art overhaul): a wooden table on four
+    legs, a panelled bar with its own top, a chair with a back (its front, towards the table, is -Y
+    here) and a round bar stool, plus a framed picture for the walls."""
+    objects = []
+
+    bm = bmesh.new()  # table: 1 m station, 0.75 m high
+    add_box(bm, (0.96, 0.96, 0.05), (0.0, 0.0, 0.725), bevel=0.016)
+    for x in (-0.38, 0.38):
+        for y in (-0.38, 0.38):
+            add_box(bm, (0.06, 0.06, 0.7), (x, y, 0.35), bevel=0.012)
+    for x in (-0.38, 0.38):
+        add_box(bm, (0.03, 0.7, 0.07), (x, 0.0, 0.65))
+    for y in (-0.38, 0.38):
+        add_box(bm, (0.7, 0.03, 0.07), (0.0, y, 0.65))
+    objects.append(finish("TableBody", bm))
+
+    bm = bmesh.new()  # bar: 1 m wide, 0.5 m deep, 1 m high; panels on the dining side (+Y)
+    add_box(bm, (0.98, 0.42, 0.93), (0.0, -0.02, 0.465), bevel=0.012)
+    for x in (-0.32, 0.0, 0.32):
+        add_box(bm, (0.26, 0.02, 0.62), (x, 0.2, 0.46), bevel=0.008)
+    add_box(bm, (0.94, 0.02, 0.06), (0.0, 0.2, 0.06))  # kick rail
+    objects.append(finish("BarBody", bm))
+    bm = bmesh.new()
+    add_box(bm, (1.0, 0.5, 0.05), (0.0, 0.0, 0.975), bevel=0.016)
+    objects.append(finish("BarTop", bm))
+
+    bm = bmesh.new()  # chair: seat at SEAT_HEIGHT, back on +Y (away from the table)
+    add_box(bm, (0.4, 0.4, 0.04), (0.0, 0.0, SEAT_HEIGHT - 0.02), bevel=0.012)
+    for x in (-0.17, 0.17):
+        for y in (-0.17, 0.17):
+            add_box(bm, (0.04, 0.04, SEAT_HEIGHT - 0.04), (x, y, (SEAT_HEIGHT - 0.04) / 2.0), bevel=0.008)
+    for x in (-0.17, 0.17):
+        add_box(bm, (0.04, 0.04, 0.42), (x, 0.17, SEAT_HEIGHT + 0.21), bevel=0.008)
+    add_box(bm, (0.38, 0.03, 0.16), (0.0, 0.17, SEAT_HEIGHT + 0.32), bevel=0.01)
+    objects.append(finish("DiningChair", bm))
+
+    bm = bmesh.new()  # stool: a round seat on four legs with a foot ring
+    add_lathe(bm, [(0.0, SEAT_HEIGHT - 0.05), (0.17, SEAT_HEIGHT - 0.05), (0.18, SEAT_HEIGHT - 0.03),
+                   (0.17, SEAT_HEIGHT), (0.0, SEAT_HEIGHT)], segments=20)
+    for k in range(4):
+        a = math.pi / 4 + k * math.pi / 2
+        add_pipe(bm, [(0.15 * math.cos(a), 0.15 * math.sin(a), 0.0),
+                      (0.11 * math.cos(a), 0.11 * math.sin(a), SEAT_HEIGHT - 0.05)], radius=0.018, segments=8)
+    ring = [(0.13 * math.cos(2 * math.pi * k / 16), 0.13 * math.sin(2 * math.pi * k / 16), 0.15) for k in range(17)]
+    add_pipe(bm, ring, radius=0.01, segments=6)
+    objects.append(finish("Stool", bm))
+
+    bm = bmesh.new()  # a framed picture, facing +Y, its origin at the middle of its back
+    for x in (-0.2, 0.2):
+        add_box(bm, (0.04, 0.03, 0.32), (x, 0.015, 0.0), bevel=0.006)
+    for z in (-0.14, 0.14):
+        add_box(bm, (0.44, 0.03, 0.04), (0.0, 0.015, z), bevel=0.006)
+    objects.append(finish("PictureFrame", bm))
+    bm = bmesh.new()
+    add_box(bm, (0.36, 0.01, 0.24), (0.0, 0.01, 0.0))
+    objects.append(finish("PictureCanvas", bm))
+
+    for i, obj in enumerate(objects):
+        obj.location = (1.2 * i, 0.0, 0.0)  # apart, for previews only
+    return objects
+
+
 def build_board():
     """A big, thick wooden cutting board using most of its counter, with fat rounded corners and a
     deep juice groove. The wood grain is drawn by its material (Game/Toon)."""
@@ -588,6 +654,7 @@ def main():
         "SM_Board.fbx": build_board(),
         "SM_Cabinet.fbx": build_cabinet(),
         "SM_Bin.fbx": build_bin(),
+        "SM_Dining.fbx": build_dining(),
     }
     for filename, objects in models.items():
         export_fbx(objects, filename)
