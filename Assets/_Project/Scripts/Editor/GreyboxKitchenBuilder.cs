@@ -280,6 +280,9 @@ namespace Game.Editor
             RenderLook.Apply(); // ink, ambient occlusion and shadows in the PC pipeline
             AssetDatabase.SaveAssets();
             Debug.Log($"[GreyboxKitchenBuilder] Built {PlayerPrefabPath}, ingredients and {ScenePath}.");
+
+            // The main menu comes first in a build and loads this kitchen (decision 2026-11-08).
+            MainMenuBuilder.Build();
         }
 
         private sealed class SceneAssets

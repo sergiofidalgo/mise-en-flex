@@ -47,7 +47,7 @@ namespace Game.Presentation.Menu
         [SerializeField] private string _kitchenScene = "Kitchen_Greybox";
 
         [Header("Look")]
-        [SerializeField] private Color _night = new Color(0.10f, 0.08f, 0.07f, 0.94f);
+        [SerializeField] private Color _night = new Color(0.10f, 0.08f, 0.07f, 1f);
         [SerializeField] private Color _paper = new Color(0.97f, 0.93f, 0.85f);
         [SerializeField] private Color _ink = new Color(0.16f, 0.12f, 0.09f);
         [SerializeField] private Color _muted = new Color(0.47f, 0.40f, 0.33f);
@@ -434,7 +434,9 @@ namespace Game.Presentation.Menu
 
             var photo = UiKit.Box(_style, card, "Photo", _soft, 0f, 0f, width, 250f, rounded: false);
             var picture = LoadPhoto(slot);
-            if (picture != null)
+            if (picture == null)
+                UiKit.Text(_style, photo, "None", "No photo yet: one is taken as each day closes", 19f, _muted, FontStyles.Italic, 24f, 100f, width - 48f, 60f).alignment = TextAlignmentOptions.Center;
+            else
             {
                 var image = new GameObject("Image", typeof(RectTransform), typeof(RawImage)).GetComponent<RawImage>();
                 image.transform.SetParent(photo, false);
@@ -497,7 +499,7 @@ namespace Game.Presentation.Menu
             const float height = 660f;
             var card = UiKit.Box(_style, _cards, $"Free{slot + 1}", new Color(1f, 1f, 1f, 0.02f), x, 24f, width, height);
             UiKit.Outline(_style, card, selected ? _gold : new Color(_muted.r, _muted.g, _muted.b, 0.5f), selected ? 5f : 3f);
-            UiKit.Text(_style, card, "Title", "Open a new restaurant", 28f, _gold, FontStyles.Bold, 10f, 300f, width - 20f, 40f).alignment = TextAlignmentOptions.Top;
+            UiKit.Text(_style, card, "Title", "Open a new restaurant", 24f, _gold, FontStyles.Bold, 10f, 300f, width - 20f, 40f).alignment = TextAlignmentOptions.Top;
             UiKit.Text(_style, card, "Free", $"Slot {slot + 1} is free", 20f, _muted, FontStyles.Italic, 10f, 346f, width - 20f, 30f).alignment = TextAlignmentOptions.Top;
             if (selected)
             {
@@ -565,11 +567,11 @@ namespace Game.Presentation.Menu
             _sticker.gameObject.SetActive(best != null);
             if (best == null)
                 return;
-            var card = UiKit.Box(_style, _sticker, "Sticker", _paper, 0f, 0f, 300f, 92f);
+            var card = UiKit.Box(_style, _sticker, "Sticker", _paper, 0f, 0f, 340f, 104f);
             UiKit.Box(_style, card, "Avatar", Color.HSVToRGB(Mathf.Abs(best.Guest.GetHashCode() % 360) / 360f, 0.3f, 0.75f), 16f, 20f, 50f, 50f, circle: true);
             UiKit.Text(_style, card, "Guest", $"<b>{best.Guest}</b>", 20f, _muted, FontStyles.Normal, 78f, 12f, 120f, 28f);
             UiKit.Stars(card, 190f, 16f, 16f, best.RatedStars, _gold, _muted);
-            UiKit.Text(_style, card, "Quote", best.Line, 22f, _ink, FontStyles.Bold, 78f, 42f, 210f, 44f);
+            UiKit.Text(_style, card, "Quote", best.Line, 19f, _ink, FontStyles.Bold, 78f, 40f, 250f, 58f);
         }
 
         private string Hints()
