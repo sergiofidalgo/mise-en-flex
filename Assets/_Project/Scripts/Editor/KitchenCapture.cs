@@ -30,7 +30,7 @@ namespace Game.Editor
         private static readonly Vector3 PlateRowStart = new Vector3(20f, 0f, 0f);
 
         // Stations to look at closely, by name in the scene.
-        private static readonly string[] CloseUps = { "Hob_01", "Sink", "PlateStack", "WallCounter_01", "CuttingBoard", "Fridge" };
+        private static readonly string[] CloseUps = { "Hob_01", "Sink", "PlateStack", "WallCounter_01", "CuttingBoard", "Fridge", "DiningFloor", "Wall_West" };
 
         [MenuItem("Tools/Game/Art/Capture Kitchen")]
         private static void CaptureFromMenu()
@@ -60,6 +60,8 @@ namespace Game.Editor
             camera.fieldOfView = FieldOfView;
             var target = new RenderTexture(Width, Height, 24, RenderTextureFormat.ARGB32, RenderTextureReadWrite.sRGB);
 
+            // A throwaway first frame: shader variants not compiled yet come out black in it.
+            Render(camera, target, new Vector3(0f, 0.9f, -1.5f), WholeKitchenHeight, null);
             Render(camera, target, new Vector3(0f, 0.9f, -1.5f), WholeKitchenHeight, Path.Combine(folder, "kitchen_whole.png"));
             Render(camera, target, new Vector3(0f, 0.9f, 0.3f), PlayHeight, Path.Combine(folder, "kitchen_play.png"));
             foreach (var name in CloseUps)
@@ -109,7 +111,8 @@ namespace Game.Editor
             image.ReadPixels(new Rect(0, 0, Width, Height), 0, 0);
             image.Apply();
             RenderTexture.active = previous;
-            File.WriteAllBytes(path, image.EncodeToPNG());
+            if (path != null)
+                File.WriteAllBytes(path, image.EncodeToPNG());
             UnityEngine.Object.DestroyImmediate(image);
         }
     }

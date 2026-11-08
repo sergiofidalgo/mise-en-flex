@@ -31,6 +31,67 @@ namespace Game.Editor
         private static readonly Color AmbientEquator = new Color(0.52f, 0.46f, 0.4f);
         private static readonly Color AmbientGround = new Color(0.3f, 0.25f, 0.21f);
 
+        private const string RoomShader = "Game/Room/Surface";
+
+        /// <summary>The kitchen floor: mid-tone warm grey tiles, a step lighter than the vision's slate.</summary>
+        public static Material KitchenFloor() => RoomMaterial("KitchenFloor", "TILES", m =>
+        {
+            m.SetColor("_BaseColor", new Color(0.53f, 0.49f, 0.45f));
+            m.SetColor("_SeamColor", new Color(0.38f, 0.34f, 0.3f));
+            m.SetFloat("_Size", 0.5f);
+            m.SetFloat("_SeamWidth", 0.014f);
+            m.SetFloat("_Variation", 0.06f);
+        });
+
+        /// <summary>The dining floor: honey-coloured planks along x.</summary>
+        public static Material DiningFloor() => RoomMaterial("DiningFloor", "PLANKS", m =>
+        {
+            m.SetColor("_BaseColor", new Color(0.68f, 0.46f, 0.28f));
+            m.SetColor("_SeamColor", new Color(0.36f, 0.22f, 0.13f));
+            m.SetFloat("_Size", 0.2f);
+            m.SetFloat("_Length", 1.6f);
+            m.SetFloat("_SeamWidth", 0.008f);
+            m.SetFloat("_Variation", 0.1f);
+            m.SetFloat("_Grain", 1f);
+        });
+
+        /// <summary>Walls: cream plaster over wood panelling, with a wooden rail and cap.</summary>
+        public static Material Wall() => RoomMaterial("Wall", "WALL", m =>
+        {
+            m.SetColor("_BaseColor", new Color(0.93f, 0.87f, 0.75f));
+            m.SetColor("_PanelColor", new Color(0.6f, 0.4f, 0.24f));
+            m.SetColor("_CapColor", new Color(0.44f, 0.28f, 0.17f));
+            m.SetColor("_SeamColor", new Color(0.33f, 0.21f, 0.13f));
+            m.SetFloat("_PanelHeight", 0.55f);
+            m.SetFloat("_PanelWidth", 0.3f);
+            m.SetFloat("_SeamWidth", 0.01f);
+            m.SetFloat("_Variation", 0.05f);
+            m.SetFloat("_Grain", 1f);
+        });
+
+        // A room material (MAT_Room_<name>), created or brought up to date with the given pattern.
+        private static Material RoomMaterial(string name, string pattern, System.Action<Material> set)
+        {
+            var path = $"{MaterialsFolder}/MAT_Room_{name}.mat";
+            var material = AssetDatabase.LoadAssetAtPath<Material>(path);
+            var isNew = material == null;
+            if (isNew)
+                material = new Material(Shader.Find(RoomShader));
+
+            var patterns = new[] { "TILES", "PLANKS", "WALL" };
+            foreach (var keyword in patterns)
+                material.DisableKeyword($"_PATTERN_{keyword}");
+            material.EnableKeyword($"_PATTERN_{pattern}");
+            material.SetFloat("_Pattern", System.Array.IndexOf(patterns, pattern));
+            set(material);
+
+            if (isNew)
+                AssetDatabase.CreateAsset(material, path);
+            else
+                EditorUtility.SetDirty(material);
+            return material;
+        }
+
         /// <summary>Sets the scene's sun and sky light. The scene must be the active one.</summary>
         public static void LightScene(Light sun)
         {

@@ -169,8 +169,6 @@ namespace Game.Editor
         // The pass along the front, facing the dining side: plates put here are served and scored.
         private static readonly Vector3[] BarTablePositions = { new Vector3(-1.6f, 0f, -3.35f), new Vector3(-0.6f, 0f, -3.35f), new Vector3(0.4f, 0f, -3.35f) };
 
-        // Strip in front of the pass marking where the dining room will be.
-        private static readonly Color DiningColor = new Color(0.55f, 0.45f, 0.40f);
 
         // One hob on the back wall, right of prep, with its burner ring and its own pan. More are bought.
         private static readonly Vector3[] HobPositions = { new Vector3(0.6f, 0f, 1.4f) };
@@ -223,9 +221,6 @@ namespace Game.Editor
         private const float BinSize = 0.7f;
         private const float BinHeight = 0.8f;
 
-        // Greybox palette: darker walls than floor so edges read from the overhead camera.
-        private static readonly Color FloorColor = new Color(0.62f, 0.63f, 0.66f);
-        private static readonly Color WallColor = new Color(0.30f, 0.33f, 0.40f);
         private static readonly Color NoseColor = new Color(0.20f, 0.20f, 0.22f);
 
         /// <summary>Rebuilds only the shop's furniture prefabs and catalog, leaving the scene as it is.</summary>
@@ -398,7 +393,7 @@ namespace Game.Editor
             floor.name = "Floor";
             floor.transform.localScale = new Vector3(FloorWidth / 10f, 1f, (FloorNorth - FloorSouth) / 10f); // plane is 10x10
             floor.transform.localPosition = new Vector3(0f, 0f, (FloorNorth + FloorSouth) / 2f);
-            floor.GetComponent<Renderer>().sharedMaterial = GreyboxAssets.EnsureMaterial("Floor", FloorColor);
+            floor.GetComponent<Renderer>().sharedMaterial = HouseStyle.KitchenFloor();
             BuildDiningFloor();
             BuildWalls(assets.FloorPlan);
             BuildStations();
@@ -470,7 +465,7 @@ namespace Game.Editor
             const float lift = 0.005f;
             var depth = DividingWallZ - FloorSouth;
             var floor = GreyboxAssets.CreatePrimitive(
-                PrimitiveType.Cube, "DiningFloor", null, GreyboxAssets.EnsureMaterial("Dining", DiningColor), keepCollider: false);
+                PrimitiveType.Cube, "DiningFloor", null, HouseStyle.DiningFloor(), keepCollider: false);
             floor.transform.localScale = new Vector3(FloorWidth, lift, depth);
             floor.transform.localPosition = new Vector3(0f, lift / 2f, FloorSouth + depth / 2f);
         }
@@ -479,7 +474,7 @@ namespace Game.Editor
         private static void BuildWalls(FloorPlanConfig floorPlan)
         {
             var walls = new GameObject("Walls").transform;
-            var material = GreyboxAssets.EnsureMaterial("Wall", WallColor);
+            var material = HouseStyle.Wall();
             var halfWidth = FloorWidth / 2f;
             var depth = FloorNorth - FloorSouth;
             var centreZ = (FloorNorth + FloorSouth) / 2f;
@@ -501,7 +496,7 @@ namespace Game.Editor
             hinge.SetParent(walls, false);
             hinge.localPosition = new Vector3(floorPlan.KitchenDoorHinge.x, 0f, floorPlan.KitchenDoorHinge.y);
             var panel = GreyboxAssets.CreatePrimitive(
-                PrimitiveType.Cube, "Panel", hinge, GreyboxAssets.EnsureMaterial("KitchenDoor", KitchenDoorColor), keepCollider: false);
+                PrimitiveType.Cube, "Panel", hinge, StyleTest.EnsureToonMaterial("KitchenDoor", KitchenDoorColor), keepCollider: false);
             panel.transform.localScale = new Vector3(floorPlan.KitchenDoorWidth, WallHeight, KitchenDoorThickness);
             panel.transform.localPosition = new Vector3(floorPlan.KitchenDoorWidth / 2f, y, 0f);
             var door = new SerializedObject(hinge.gameObject.AddComponent<SwingDoorView>());
