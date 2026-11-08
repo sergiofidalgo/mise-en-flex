@@ -1021,23 +1021,23 @@ def build_onion_cut():
 
 
 def build_board():
-    """A big, thick wooden cutting board using most of its counter, with fat rounded corners and a
-    deep juice groove. The wood grain is drawn by its material (Game/Toon)."""
-    width, depth, base, rise = 0.7, 0.55, 0.03, 0.01
-    # A thick rim standing proud of the cutting surface, so the board pops off the counter (the
-    # user's note, 2026-11-08); the cutting surface itself stays where items sit.
-    border, groove, rim = 0.065, 0.018, 0.025
+    """A big, thick cutting board using most of its counter (the user's notes, 2026-11-08): a plain
+    slab with rounded edges and a low, narrow lip round its top, a finished edge without the deep
+    rim and inset panel that read as a picture frame. Its top inside the lip is the cutting
+    surface. The wood's colour is its material's (Game/Toon), without a grain."""
+    width, depth, height = 0.88, 0.75, 0.07
+    lip, lip_height = 0.03, 0.008
     bm = bmesh.new()
-    add_box(bm, (width, depth, base), (0.0, 0.0, base / 2.0), bevel=0.03)
-    top = base + rim / 2.0
-    add_box(bm, (width - 0.03, border, rim), (0.0, depth / 2.0 - border / 2.0 - 0.015, top), bevel=0.008)
-    add_box(bm, (width - 0.03, border, rim), (0.0, -depth / 2.0 + border / 2.0 + 0.015, top), bevel=0.008)
-    add_box(bm, (border, depth - 0.03, rim), (width / 2.0 - border / 2.0 - 0.015, 0.0, top), bevel=0.008)
-    add_box(bm, (border, depth - 0.03, rim), (-width / 2.0 + border / 2.0 + 0.015, 0.0, top), bevel=0.008)
-    top = base + rise / 2.0
-    inset = border + 0.015 + groove
-    add_box(bm, (width - 2 * inset, depth - 2 * inset, rise), (0.0, 0.0, top), bevel=0.005)
+    add_box(bm, (width, depth, height), (0.0, 0.0, height / 2.0), bevel=0.025)
+    z = height + lip_height / 2.0 - 0.002  # sunk a little into the slab, so it joins without a seam
+    inset = 0.012
+    add_box(bm, (width - 2 * inset, lip, lip_height + 0.004), (0.0, depth / 2.0 - inset - lip / 2.0, z), bevel=0.004)
+    add_box(bm, (width - 2 * inset, lip, lip_height + 0.004), (0.0, -depth / 2.0 + inset + lip / 2.0, z), bevel=0.004)
+    add_box(bm, (lip, depth - 2 * inset, lip_height + 0.004), (width / 2.0 - inset - lip / 2.0, 0.0, z), bevel=0.004)
+    add_box(bm, (lip, depth - 2 * inset, lip_height + 0.004), (-width / 2.0 + inset + lip / 2.0, 0.0, z), bevel=0.004)
     return [finish("BoardBody", bm)]
+
+
 def export_fbx(objects, filename):
     bpy.ops.object.select_all(action='DESELECT')
     for obj in objects:

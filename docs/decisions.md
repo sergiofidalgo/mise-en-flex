@@ -21,6 +21,11 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 **To check by playing:** whether 1.4× on counters crowds the counters; the size easing when items fly between places; the new light direction across the whole kitchen and dining room.
 
+**Follow-up the same day** (the user's notes after seeing it):
+- **The cutting board** fills most of its counter (0.88 × 0.75 m) and is a thick (7 cm), plain slab with rounded edges and a low lip (3 cm wide, 8 mm proud). The walnut has no grain. The deep rim and inset panel read as a picture frame, and the grain was distracting. Food sits on the 7 cm cutting surface.
+- **Plates and prepared dishes on a counter** show 1.3× on top of the counter's 1.4×, about 0.58 m across, barely off centre (`CounterRestView._scale`). The plate rack stays 1.25×.
+- **Food on a counter sits a little off centre (up to 9 cm) and turned** (`CounterRestView`), differently on every counter. The spot and turn come from the counter's position and the food's kind, so they're steady, and a round onion faces every which way. This applies only directly on a counter: not in containers or on the board.
+
 ---
 
 ## 2026-11-08 — Softer ink: thinner, a shade of what's underneath, mostly silhouettes

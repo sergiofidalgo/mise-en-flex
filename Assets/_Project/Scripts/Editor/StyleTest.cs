@@ -52,9 +52,9 @@ namespace Game.Editor
         private static readonly Color PanSteel = new Color(0.32f, 0.36f, 0.44f);
         private static readonly Color HandleWood = new Color(0.55f, 0.33f, 0.18f);
         private static readonly Color HandleGrain = new Color(0.42f, 0.24f, 0.12f);
-        // Deep walnut, so the board stands out on the cream counter tops (the user's note, 2026-11-08).
-        private static readonly Color Bamboo = new Color(0.55f, 0.33f, 0.18f);
-        private static readonly Color BambooGrain = new Color(0.4f, 0.22f, 0.12f);
+        // Plain warm walnut, so the board stands out on the cream counter tops without a busy grain
+        // (the user's notes, 2026-11-08).
+        private static readonly Color BoardWood = new Color(0.58f, 0.36f, 0.2f);
 
         /// <summary>A Game/Toon material (MAT_Toon_<paramref name="name"/>), created once.</summary>
         public static Material EnsureToonMaterial(string name, Color color, Color? grain = null, float grainScale = 30f)
@@ -81,7 +81,7 @@ namespace Game.Editor
             return material;
         }
 
-        public static Material BoardMaterial() => EnsureToonMaterial("Board", Bamboo, BambooGrain, grainScale: 18f);
+        public static Material BoardMaterial() => EnsureToonMaterial("Board", BoardWood); // no grain
 
         // The heat knob sits on the control strip along the top's front, to the right, clear of
         // the grate and the pan's handle (decision 2026-11-08).

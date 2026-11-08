@@ -100,12 +100,12 @@ namespace Game.Tests.EditMode
         public void BoardKeepsItsSizeAndSitsOnItsCounter()
         {
             var board = Model("SM_Board", "BoardBody");
-            Assert.That(board.size.x, Is.EqualTo(0.7f).Within(Tolerance), "most of its 1 m counter");
-            Assert.That(board.size.z, Is.EqualTo(0.55f).Within(Tolerance));
-            // Its rim stands proud of the cutting surface (decision 2026-11-08): 5.5 cm to the rim's
-            // top, 4 cm to the cutting surface, where food sits.
-            const float cuttingSurface = 0.04f;
-            Assert.That(board.size.y, Is.EqualTo(0.055f).Within(Tolerance), "the rim's top");
+            Assert.That(board.size.x, Is.EqualTo(0.88f).Within(Tolerance), "most of its 1 m counter");
+            Assert.That(board.size.z, Is.EqualTo(0.75f).Within(Tolerance));
+            // A thick slab with a low lip (decision 2026-11-08): its 7 cm top is the cutting surface,
+            // where food sits, and the lip stands 8 mm above it.
+            const float cuttingSurface = 0.07f;
+            Assert.That(board.size.y, Is.EqualTo(cuttingSurface + 0.008f).Within(Tolerance), "the lip's top");
             Assert.That(board.min.y, Is.EqualTo(0f).Within(Tolerance));
 
             var counter = Prefab("Assets/_Project/Prefabs/Furniture/PF_CuttingBoard.prefab");

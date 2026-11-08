@@ -130,7 +130,9 @@ namespace Game.Editor
         // On the west wall, by prep: the back-left corner is the tall storage (decision 2026-11-07).
         private static readonly Vector3 KnifeCounterPosition = new Vector3(-3.4f, 0f, -0.6f);
         private static readonly Vector3 PrepCounterPosition = new Vector3(-1.4f, 0f, 1.4f);
-        private static readonly Vector3 CuttingBoardScale = new Vector3(0.7f, 0.04f, 0.55f); // the board model's size: most of its counter
+        // The board's size: most of its counter, and thick; its top is the cutting surface. Must
+        // match build_board() in the Blender script.
+        private static readonly Vector3 CuttingBoardScale = new Vector3(0.88f, 0.07f, 0.75f);
         private static readonly Color CuttingBoardColor = new Color(0.92f, 0.82f, 0.62f);
 
         // A knife rack: a block along the counter's back with knives standing in it, one per place.

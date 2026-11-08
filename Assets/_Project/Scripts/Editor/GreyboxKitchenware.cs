@@ -22,6 +22,8 @@ namespace Game.Editor
         private static readonly Vector3[] PanSlots = { Vector3.zero };
 
         private const float PlateDiameter = 0.32f;
+        // A plate on a counter on top of the counter's 1.4x: about 0.58 m across on a 1 m counter.
+        private const float PlateOnCounter = 1.3f;
         private const float PlateThickness = 0.015f;
         private static readonly Vector3[] PlateSlots =
         {
@@ -198,6 +200,13 @@ namespace Game.Editor
             view.FindProperty("_itemView").objectReferenceValue = itemView;
             view.FindProperty("_body").objectReferenceValue = body.GetComponent<Renderer>();
             view.ApplyModifiedPropertiesWithoutUndo();
+            // On a counter, a plate or a prepared dish shows bigger still, nearly filling it (the
+            // user's note, 2026-11-08), barely off centre.
+            var rest = new SerializedObject(root.AddComponent<CounterRestView>());
+            rest.FindProperty("_view").objectReferenceValue = itemView;
+            rest.FindProperty("_scale").floatValue = PlateOnCounter;
+            rest.FindProperty("_maxOffset").floatValue = 0.03f;
+            rest.ApplyModifiedPropertiesWithoutUndo();
             return Save(root, Plate.PlateTypeId);
         }
 

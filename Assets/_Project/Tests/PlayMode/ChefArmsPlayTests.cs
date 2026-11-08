@@ -101,6 +101,44 @@ namespace Game.Tests.PlayMode
         }
 
         [UnityTest]
+        public IEnumerator FoodSitsInADifferentSpotAndTurnOnEachCounter()
+        {
+            // Decision 2026-11-08: food on a counter sits a little off centre and turned, differently per counter.
+            yield return OpenKitchen();
+            var counters = _root.Services.Stations.All.OfType<CounterStation>().Where(c => c.Slot.Current == null).Take(2).ToArray();
+            Assert.That(counters.Length, Is.EqualTo(2), "two empty counters");
+            var views = new ItemView[2];
+            for (var i = 0; i < 2; i++)
+            {
+                var onion = _root.Services.Cooking.AddIngredient(_root.Services.Catalog.Find("Onion").ToProperties());
+                counters[i].Slot.Put(onion);
+                _root.Services.ItemViews.PlaceImmediately(onion, counters[i].AnchorFor(onion));
+                views[i] = ViewOf(onion);
+            }
+            yield return Wait(1.5f);
+
+            for (var i = 0; i < 2; i++)
+                Assert.That(views[i].transform.localPosition.magnitude, Is.LessThan(0.1f), "still on its counter");
+            var turns = Quaternion.Angle(views[0].transform.localRotation, views[1].transform.localRotation);
+            var spots = Vector3.Distance(views[0].transform.localPosition, views[1].transform.localPosition);
+            Assert.That(turns > 5f || spots > 0.01f, "the two sit differently (turn {0:0}°, spot {1:0.000} m apart)", turns, spots);
+        }
+
+        [UnityTest]
+        public IEnumerator APlateOnACounterShowsBiggerStill()
+        {
+            // Decision 2026-11-08: counters show things at 1.4x, and plates and dishes 1.3x on top of that.
+            yield return OpenKitchen();
+            var counter = _root.Services.Stations.All.OfType<CounterStation>().First(c => c.Slot.Current == null);
+            var plate = new Plate(3);
+            counter.Slot.Put(plate);
+            _root.Services.ItemViews.PlaceImmediately(plate, counter.AnchorFor(plate));
+            yield return Wait(1.5f);
+
+            Assert.That(ViewOf(plate).transform.lossyScale.x, Is.EqualTo(1.4f * 1.3f).Within(0.05f));
+        }
+
+        [UnityTest]
         public IEnumerator APanIsCarriedByItsHandleWithBothHands()
         {
             yield return OpenKitchen();

@@ -252,6 +252,11 @@ namespace Game.Editor
                 bandList.GetArrayElementAtIndex(i).objectReferenceValue = bands[i];
             so.ApplyModifiedPropertiesWithoutUndo();
 
+            // On a counter it sits a little off centre and turned, differently on each (decision 2026-11-08).
+            var rest = new SerializedObject(root.AddComponent<Game.Presentation.CounterRestView>());
+            rest.FindProperty("_view").objectReferenceValue = itemView;
+            rest.ApplyModifiedPropertiesWithoutUndo();
+
             root.transform.localScale = Vector3.one * type.ModelScale; // its size everywhere; anchors add theirs
             GreyboxAssets.EnsureFolder(PrefabFolder);
             var prefab = PrefabUtility.SaveAsPrefabAsset(root, $"{PrefabFolder}/PF_Item_{type.Id}.prefab");
