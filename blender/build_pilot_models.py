@@ -200,89 +200,63 @@ def build_steak():
 # Storage units are tall, with two tiers of two slots seen from the front, and the same 1 m
 # footprint as other stations. Slot positions live in StorageArt.SlotPosition; the models only
 # give the shelves those slots sit on, at heights 0.45 and 1.05.
-FRIDGE_HEIGHT = 1.8
+FRIDGE_HEIGHT = 0.9  # a chest at counter height (decision 2026-11-08)
 SHELF_HEIGHT = 1.05  # the upper tier's board is its top (decision 2026-11-08)
 TIER_TOPS = (0.45, 1.05)
-# The fridge's sliding glass panes (decision 2026-11-08), each half the opening plus an overlap,
-# on a track of its own across the front (and, turned round in the game, the back): the game's left pane on the back track, the right one in
-# front. Each pane's origin is its bottom centre, shut. Must match StorageArt's pane constants.
-FRIDGE_PANE_WIDTH = 0.48
-FRIDGE_PANE_HEIGHT = 1.55
-FRIDGE_PANE_THICKNESS = 0.018
-FRIDGE_PANE_BOTTOM = 0.15
-FRIDGE_PANE_X = 0.22  # either side of the middle
-FRIDGE_BACK_TRACK = 0.458  # towards the camera (+Y): the game's -Z
-FRIDGE_FRONT_TRACK = 0.482
+# The chest's four slots sit on one level, its floor, near the top so the stock shows through the
+# lid from the camera's 55° view on any side. Must match StorageArt.ChestFloor.
+FRIDGE_FLOOR = 0.7
+# The glass lid hinges along the back of the top, a little in from the edge, so even upright it
+# stays over the footprint; its meshes are built around that hinge, lying shut towards the front.
+# Must match StorageArt.LidHinge: the game's (0, 0.9, 0.44).
+FRIDGE_LID_HINGE = (0.0, -0.44, FRIDGE_HEIGHT)
 # The chef bends at the waist: the torso's origin is there. Must match the player builder.
 CHEF_WAIST = 0.85
 
 
 def build_fridge():
-    """An upright glass fridge (decision 2026-11-08): a white frame with glass sides, top and
-    shelves, and sliding glass panes front and back, so what's inside shows from any angle. The
-    panes are modelled once, for the front; the game turns a copy round for the back."""
-    # The frame: four corner posts, a solid plinth and a rim round the glass top.
+    """A chest fridge at counter height (decision 2026-11-08): a white box with a pale inside, four
+    baskets on one level near the top, and a glass lid in a white frame, so the stock shows from
+    above whichever way it's turned."""
+    wall = 0.04
     bm = bmesh.new()
+    add_box(bm, (0.96, 0.96, 0.12), (0.0, 0.0, 0.06), bevel=0.01)  # plinth
     for x in (-0.48, 0.48):
-        for y in (-0.43, 0.43):
-            add_box(bm, (0.04, 0.04, FRIDGE_HEIGHT), (x, y, FRIDGE_HEIGHT / 2.0), bevel=0.008)
-    add_box(bm, (1.0, 0.9, 0.15), (0.0, 0.0, 0.075), bevel=0.01)  # plinth
-    for y in (-0.43, 0.43):
-        add_box(bm, (1.0, 0.04, 0.1), (0.0, y, FRIDGE_HEIGHT - 0.05), bevel=0.008)
-    for x in (-0.48, 0.48):
-        add_box(bm, (0.04, 0.9, 0.1), (x, 0.0, FRIDGE_HEIGHT - 0.05), bevel=0.008)
+        add_box(bm, (wall, 1.0, FRIDGE_HEIGHT - 0.12), (x, 0.0, 0.12 + (FRIDGE_HEIGHT - 0.12) / 2.0), bevel=0.01)
+    for y in (-0.48, 0.48):
+        add_box(bm, (1.0, wall, FRIDGE_HEIGHT - 0.12), (0.0, y, 0.12 + (FRIDGE_HEIGHT - 0.12) / 2.0), bevel=0.01)
     body = finish("FridgeBody", bm)
 
-    # Always see-through: the top and the two shelves.
+    # The pale inside: a floor the baskets stand on, and walls down to it.
     bm = bmesh.new()
-    add_box(bm, (0.92, 0.82, 0.006), (0.0, 0.0, FRIDGE_HEIGHT - 0.05))
-    for top in TIER_TOPS:
-        add_box(bm, (0.9, 0.8, 0.01), (0.0, 0.0, top - 0.005))
-    glass_box = finish("FridgeGlass", bm)
+    add_box(bm, (0.92, 0.92, 0.02), (0.0, 0.0, FRIDGE_FLOOR - 0.01))
+    for x in (-0.455, 0.455):
+        add_box(bm, (0.01, 0.92, FRIDGE_HEIGHT - FRIDGE_FLOOR), (x, 0.0, (FRIDGE_HEIGHT + FRIDGE_FLOOR) / 2.0))
+    for y in (-0.455, 0.455):
+        add_box(bm, (0.92, 0.01, FRIDGE_HEIGHT - FRIDGE_FLOOR), (0.0, y, (FRIDGE_HEIGHT + FRIDGE_FLOOR) / 2.0))
+    liner = finish("FridgeLiner", bm)
 
-    # Each side is glass, or solid where it stands against something (decision 2026-11-08). Both
-    # are modelled for one side and one end, in place; the game turns copies round for the others.
-    # A side, on the game's left (Blender's +x), between the posts:
-    side_height = FRIDGE_HEIGHT - 0.25
+    # The lid: a frame round glass, lying shut over the top, towards the front from its hinge.
+    size, length, bar, depth = 0.96, 0.9, 0.06, 0.03
     bm = bmesh.new()
-    add_box(bm, (0.006, 0.82, side_height), (0.48, 0.0, 0.15 + side_height / 2.0))
-    side_glass = finish("FridgeSideGlass", bm)
-    bm = bmesh.new()
-    add_box(bm, (0.02, 0.82, side_height), (0.48, 0.0, 0.15 + side_height / 2.0))
-    side_panel = finish("FridgeSidePanel", bm)
-    # An end, at the front, filling the opening where the door would be:
-    bm = bmesh.new()
-    add_box(bm, (0.92, 0.02, FRIDGE_PANE_HEIGHT), (0.0, 0.46, FRIDGE_PANE_BOTTOM + FRIDGE_PANE_HEIGHT / 2.0))
-    end_panel = finish("FridgeEndPanel", bm)
-
-    # Two sliding panes, each a white frame around glass. Nothing sticks out of them, so one can
-    # pass the other; the wider outer stile is the grip. Both stay inside the fridge's width.
-    panes = []
-    for side, x, track in (("Left", FRIDGE_PANE_X, FRIDGE_BACK_TRACK), ("Right", -FRIDGE_PANE_X, FRIDGE_FRONT_TRACK)):
-        width, height, depth = FRIDGE_PANE_WIDTH, FRIDGE_PANE_HEIGHT, FRIDGE_PANE_THICKNESS
-        bar, grip = 0.05, 0.08
-        outer = 1.0 if x > 0.0 else -1.0  # towards the fridge's side, in Blender's x
-        bm = bmesh.new()
-        add_box(bm, (grip, depth, height), (outer * (width - grip) / 2.0, 0.0, height / 2.0), bevel=0.006)
-        add_box(bm, (bar, depth, height), (-outer * (width - bar) / 2.0, 0.0, height / 2.0), bevel=0.006)
-        inner = width - grip - bar
-        middle = outer * (bar - grip) / 2.0  # the gap between the grip and the inner bar
-        add_box(bm, (inner, depth, 0.1), (middle, 0.0, 0.05), bevel=0.006)
-        add_box(bm, (inner, depth, 0.1), (middle, 0.0, height - 0.05), bevel=0.006)
-        frame = finish(f"FridgePane{side}Frame", bm)
-        frame.location = (x, track, FRIDGE_PANE_BOTTOM)
-
-        bm = bmesh.new()
-        add_box(bm, (inner, 0.006, height - 0.2), (middle, 0.0, height / 2.0))
-        glass = finish(f"FridgePane{side}Glass", bm)
-        glass.location = (x, track, FRIDGE_PANE_BOTTOM)
-        panes += [frame, glass]
+    for x in (-(size - bar) / 2.0, (size - bar) / 2.0):
+        add_box(bm, (bar, length, depth), (x, length / 2.0, depth / 2.0), bevel=0.006)
+    for y in (bar / 2.0, length - bar / 2.0):
+        add_box(bm, (size - 2 * bar, bar, depth), (0.0, y, depth / 2.0), bevel=0.006)
+    add_box(bm, (0.3, 0.03, 0.02), (0.0, length - 0.015, depth + 0.01), bevel=0.006)  # handle, at the front
+    frame = finish("FridgeLidFrame", bm)
+    frame.location = FRIDGE_LID_HINGE
 
     bm = bmesh.new()
-    add_box(bm, (0.3, 0.24, 0.03), (0.0, 0.0, 0.015), bevel=0.006)
+    add_box(bm, (size - 2 * bar, length - 2 * bar, 0.008), (0.0, length / 2.0, depth / 2.0))
+    glass = finish("FridgeLidGlass", bm)
+    glass.location = FRIDGE_LID_HINGE
+
+    bm = bmesh.new()
+    add_box(bm, (0.36, 0.34, 0.03), (0.0, 0.0, 0.015), bevel=0.006)
     basket = finish("FridgeBasket", bm)
-    basket.location = (0.0, 0.0, TIER_TOPS[1])
-    return [body, glass_box, side_glass, side_panel, end_panel, *panes, basket]
+    basket.location = (0.22, 0.2, FRIDGE_FLOOR)
+    return [body, liner, frame, glass, basket]
 
 
 # The shelf's boards are shallow and centred, so what's on the lower tier isn't hidden under the
