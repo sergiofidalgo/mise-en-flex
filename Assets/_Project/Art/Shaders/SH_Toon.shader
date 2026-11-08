@@ -116,20 +116,6 @@ Shader "Game/Toon"
 
         Pass
         {
-            Name "Outline"
-            Tags { "LightMode" = "SRPDefaultUnlit" }
-            Cull Front
-            ZWrite On
-
-            HLSLPROGRAM
-            #pragma vertex ToonOutlineVertex
-            #pragma fragment ToonOutlineFragment
-            #include "ToonCommon.hlsl"
-            ENDHLSL
-        }
-
-        Pass
-        {
             Name "ShadowCaster"
             Tags { "LightMode" = "ShadowCaster" }
             ZWrite On

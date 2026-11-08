@@ -35,9 +35,6 @@ namespace Game.Editor
         // A soft blue line round a white plate, and a light steel rack (decision 2026-11-08).
         private static readonly Color RimColor = new Color(0.66f, 0.78f, 0.92f);
         private static readonly Color RackSteel = new Color(0.62f, 0.66f, 0.72f);
-        // Thin outlines on small things, so six plates and a wire rack don't turn into a tangle of black.
-        private const float PlateOutline = 0.0025f;
-        private const float WireOutline = 0.0012f;
         private static readonly Color SteelColor = new Color(0.74f, 0.76f, 0.8f);
         private static readonly Color SinkRimSteel = new Color(0.88f, 0.9f, 0.93f);
         private static readonly Color SinkBasinGrey = new Color(0.48f, 0.5f, 0.55f);
@@ -128,11 +125,11 @@ namespace Game.Editor
             if (!HasPlateModel)
                 return GreyboxKitchenware.CreatePlatePile(parent, baseHeight, count, color, materialName, offset);
 
-            var material = Outlined(EnsurePlateMaterial(), PlateOutline);
+            var material = EnsurePlateMaterial();
             if (layout == PlateLayout.Rack)
             {
                 var rack = CreatePart(parent, $"{materialName}Rack", RackModel, "PlateRack",
-                    Outlined(StyleTest.EnsureToonMaterial("PlateRack", RackSteel), WireOutline));
+                    StyleTest.EnsureToonMaterial("PlateRack", RackSteel));
                 rack.transform.localPosition = offset + Vector3.up * baseHeight;
             }
 
@@ -314,13 +311,6 @@ namespace Game.Editor
             board.GetComponent<Renderer>().sharedMaterial = StyleTest.BoardMaterial(); // wood grain, toon shaded
         }
 
-        private static Material Outlined(Material material, float width)
-        {
-            material.SetFloat("_OutlineWidth", width);
-            EditorUtility.SetDirty(material);
-            return material;
-        }
-
         /// <summary>The plate shader's material (MAT_Plate): clean, until a view makes it dirty.</summary>
         public static Material EnsurePlateMaterial()
         {
@@ -342,7 +332,7 @@ namespace Game.Editor
         }
 
         private static void AddRim(Transform plate) =>
-            CreatePart(plate, "Rim", PlateModel, "PlateRim", Outlined(StyleTest.EnsureToonMaterial("PlateRim", RimColor), PlateOutline));
+            CreatePart(plate, "Rim", PlateModel, "PlateRim", StyleTest.EnsureToonMaterial("PlateRim", RimColor));
 
         private static GameObject CreatePart(Transform parent, string name, string model, string mesh, Material material)
         {

@@ -12,7 +12,9 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 - **Silhouettes, not creases:** `_NormalThreshold` 1.1 (was 0.6), so cabinet doors, counter lips and plank grooves mostly stop inking.
 All of these are material properties on `MAT_Post_InkOutline`, set by `RenderLook`.
 
-**Open:** removing the old hull outlines, which were also approved. With the softer ink alone, the chef is barely outlined (white on white gives no line), so the user is asked whether to keep the hulls on the chef only.
+**Hull outlines removed everywhere** (the user's call, after being shown that the chef is barely outlined by the softer ink alone; keeping them on the chef only was the other option). The Outline passes are gone from `SH_Toon`, `SH_Plate` and `SH_FoodLayered`, along with their helpers in `ToonCommon.hlsl`, the per-material widths (thinner on plates and wires) and the debug toggle. Materials still carry `_OutlineColor` and `_OutlineWidth`, which nothing reads now; they can go in a later material clean-up.
+
+**To check by playing:** whether the chef stands out enough without its own outline.
 
 ---
 

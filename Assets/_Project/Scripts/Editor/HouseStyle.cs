@@ -14,9 +14,8 @@ namespace Game.Editor
     {
         private const string MaterialsFolder = "Assets/_Project/Art/Materials";
 
-        // Outlines: dark brown, and thin. Small things (plates, wires) set their own, thinner.
+        // The ink's house brown (RenderLook mixes a little of it into the screen-space outlines).
         public static readonly Color OutlineColor = new Color(0.2f, 0.13f, 0.09f);
-        public const float OutlineWidth = 0.0035f;
 
         // A sun from the top left, as in the vision image, only slightly warm (the user found the
         // scene too yellow, 2026-11-08), with soft, not-quite-black shadows.
@@ -121,9 +120,9 @@ namespace Game.Editor
         }
 
         /// <summary>
-        /// Gives every toon material the house outline colour, and caps outline widths at the house
-        /// width, leaving thinner ones as they are. The shadow side's colour is the toon ramp's in
-        /// ToonCommon.hlsl now (decision 2026-11-08); materials' _ShadowTint is no longer read.
+        /// Gives every toon material the house outline colour. Nothing draws it since the hull
+        /// outlines were removed (decision 2026-11-08), but materials keep the property; the shadow
+        /// side's colour is the toon ramp's in ToonCommon.hlsl.
         /// </summary>
         public static void ApplyToMaterials()
         {
@@ -134,8 +133,6 @@ namespace Game.Editor
                     continue;
 
                 material.SetColor("_OutlineColor", OutlineColor);
-                if (material.GetFloat("_OutlineWidth") > OutlineWidth)
-                    material.SetFloat("_OutlineWidth", OutlineWidth);
                 EditorUtility.SetDirty(material);
             }
         }
