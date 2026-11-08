@@ -166,7 +166,17 @@ namespace Game.Editor
                 PrimitiveType.Cube, "Body", root.transform, GreyboxAssets.EnsureMaterial("Tray", TrayColor), keepCollider: false);
             body.transform.localScale = TrayScale;
             body.transform.localPosition = new Vector3(0f, TrayScale.y / 2f, 0f);
-            AddSlots(root, TraySlots, TrayScale.y);
+            // The steel sheet tray (decision 2026-11-08); food sits on its floor.
+            var modelled = PanArt.DressTray(body);
+            var view = AddSlots(root, TraySlots, modelled ? PanArt.PanFloor : TrayScale.y);
+            // A tray already spans most of a counter, so there it keeps about its own size rather
+            // than the counter's 1.4x, centred and square.
+            var rest = new SerializedObject(root.AddComponent<CounterRestView>());
+            rest.FindProperty("_view").objectReferenceValue = view;
+            rest.FindProperty("_scale").floatValue = 0.75f;
+            rest.FindProperty("_maxOffset").floatValue = 0f;
+            rest.FindProperty("_maxTurn").floatValue = 0f;
+            rest.ApplyModifiedPropertiesWithoutUndo();
             return Save(root, Tray.TrayTypeId);
         }
 
@@ -177,12 +187,14 @@ namespace Game.Editor
                 PrimitiveType.Cube, "Body", root.transform, GreyboxAssets.EnsureMaterial("Container", ContainerColor), keepCollider: false);
             body.transform.localScale = ContainerScale;
             body.transform.localPosition = new Vector3(0f, ContainerScale.y / 2f, 0f);
+            // The steel gastronorm pan (decision 2026-11-08); portions pile up from its floor.
+            var modelled = PanArt.DressContainer(body);
 
             // Portions pile up in the middle: a full container reads as a heap, not six neat items.
             var slots = new Vector3[6];
             for (var i = 0; i < slots.Length; i++)
                 slots[i] = new Vector3(0f, i * ContainerPileStep, 0f);
-            AddSlots(root, slots, ContainerScale.y);
+            AddSlots(root, slots, modelled ? PanArt.PanFloor : ContainerScale.y);
             return Save(root, FoodContainer.ContainerTypeId);
         }
 

@@ -937,7 +937,14 @@ namespace Game.Editor
 
             var pile = new SerializedObject(rack.gameObject.AddComponent<PlatePileView>());
             pile.FindProperty("_station").objectReferenceValue = rack;
-            SetObjects(pile.FindProperty("_clean"), GreyboxKitchenware.CreatePlatePile(rack.transform, CounterHeight, discs, color, name, Vector3.zero));
+            // Trays stand on runners in a steel rack, containers nest in a stack (decision
+            // 2026-11-08); greybox discs without the models.
+            var pieces = kind == RackStation.RackKind.Trays
+                ? PanArt.TrayRack(rack.transform, CounterHeight)
+                : PanArt.ContainerStack(rack.transform, CounterHeight, discs);
+            if (pieces.Length == 0)
+                pieces = GreyboxKitchenware.CreatePlatePile(rack.transform, CounterHeight, discs, color, name, Vector3.zero);
+            SetObjects(pile.FindProperty("_clean"), pieces);
             pile.ApplyModifiedPropertiesWithoutUndo();
         }
 

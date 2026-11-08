@@ -1020,6 +1020,79 @@ def build_onion_cut():
     return [skin, face, rings_obj] + pieces
 
 
+def rounded_rect(bm, width, depth, radius, z, per_corner=4):
+    """A ring of vertices round a rounded rectangle, centred, at height z."""
+    radius = min(radius, width / 2.0 - 1e-4, depth / 2.0 - 1e-4)
+    hx, hy = width / 2.0 - radius, depth / 2.0 - radius
+    ring = []
+    for cx, cy, start in ((hx, hy, 0.0), (-hx, hy, 90.0), (-hx, -hy, 180.0), (hx, -hy, 270.0)):
+        for k in range(per_corner + 1):
+            a = math.radians(start + 90.0 * k / per_corner)
+            ring.append(bm.verts.new((cx + radius * math.cos(a), cy + radius * math.sin(a), z)))
+    return ring
+
+
+def add_steel_pan(bm, width, depth, height, taper, flange, wall=0.006, radius=0.03):
+    """A pressed steel pan (the user's references, 2026-11-08): a floor, walls leaning out by
+    `taper`, and a flat rim sticking out by `flange` all round, with thickness, so it reads from
+    above with its inside showing. Its footprint at the rim is width x depth; origin at its base."""
+    bottom_w, bottom_d = width - 2 * taper, depth - 2 * taper
+    rings = [
+        [bm.verts.new((0.0, 0.0, 0.0))],
+        rounded_rect(bm, bottom_w, bottom_d, radius - taper / 2, 0.0),
+        rounded_rect(bm, width, depth, radius, height),
+        rounded_rect(bm, width + 2 * flange, depth + 2 * flange, radius + flange, height),
+        rounded_rect(bm, width + 2 * flange, depth + 2 * flange, radius + flange, height + wall),
+        rounded_rect(bm, width - 2 * wall, depth - 2 * wall, radius - wall, height + wall),
+        rounded_rect(bm, bottom_w - 2 * wall, bottom_d - 2 * wall, radius - taper / 2 - wall, wall),
+        [bm.verts.new((0.0, 0.0, wall))],
+    ]
+    connect_rings(bm, rings)
+
+
+# A sheet tray and a gastronorm container, their footprints the items' (GreyboxKitchenware).
+TRAY_SIZE = (0.72, 0.56, 0.03)
+CONTAINER_SIZE = (0.5, 0.34, 0.1)
+# The tray rack's shelves: four trays, each on runners this far above the last.
+TRAY_RACK_LEVELS = (0.04, 0.14, 0.24, 0.34)
+TRAY_RACK_HEIGHT = 0.44
+
+
+def build_tray():
+    """A sheet tray: shallow, with a rolled-looking flat rim, like the user's reference."""
+    bm = bmesh.new()
+    add_steel_pan(bm, TRAY_SIZE[0], TRAY_SIZE[1], TRAY_SIZE[2], taper=0.012, flange=0.012, radius=0.04)
+    return [finish("TrayBody", bm)]
+
+
+def build_container():
+    """A gastronorm container: a deep, tapered steel pan with a flat rim, made to nest in a stack."""
+    bm = bmesh.new()
+    add_steel_pan(bm, CONTAINER_SIZE[0], CONTAINER_SIZE[1], CONTAINER_SIZE[2], taper=0.02, flange=0.018, radius=0.035)
+    return [finish("ContainerBody", bm)]
+
+
+def build_tray_rack():
+    """A steel rack the trays slide into from the front (the user's reference): square posts at
+    the corners, rails round the top, and a runner each side at every shelf."""
+    tube = 0.022
+    w = TRAY_SIZE[0] + 2 * 0.012 + 2 * tube + 0.01  # the tray and its rim, between the posts
+    d = TRAY_SIZE[1] + 2 * 0.012 + 0.02
+    bm = bmesh.new()
+    for sx in (-1.0, 1.0):
+        for sy in (-1.0, 1.0):
+            add_box(bm, (tube, tube, TRAY_RACK_HEIGHT), (sx * (w / 2 - tube / 2), sy * (d / 2 - tube / 2), TRAY_RACK_HEIGHT / 2), bevel=0.003)
+    for z in (TRAY_RACK_HEIGHT - tube / 2, tube / 2):
+        for sy in (-1.0, 1.0):
+            add_box(bm, (w, tube, tube), (0.0, sy * (d / 2 - tube / 2), z), bevel=0.003)
+        for sx in (-1.0, 1.0):
+            add_box(bm, (tube, d, tube), (sx * (w / 2 - tube / 2), 0.0, z), bevel=0.003)
+    for z in TRAY_RACK_LEVELS:  # runners the trays' rims rest on
+        for sx in (-1.0, 1.0):
+            add_box(bm, (0.018, d - 2 * tube, 0.008), (sx * (w / 2 - tube - 0.009), 0.0, z + TRAY_SIZE[2] - 0.004), bevel=0.002)
+    return [finish("TrayRackFrame", bm)]
+
+
 def build_board():
     """A big, thick cutting board using most of its counter (the user's notes, 2026-11-08): a plain
     slab with rounded edges and a low, narrow lip round its top, a finished edge without the deep
@@ -1115,6 +1188,9 @@ def main():
         "SM_DicedOnion.fbx": build_diced_onion(),
         "SM_OnionRings.fbx": build_onion_rings(),
         "SM_OnionCut.fbx": build_onion_cut(),
+        "SM_Tray.fbx": build_tray(),
+        "SM_Container.fbx": build_container(),
+        "SM_TrayRack.fbx": build_tray_rack(),
     }
     for filename, objects in models.items():
         export_fbx(objects, filename)
