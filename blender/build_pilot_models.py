@@ -871,11 +871,12 @@ def build_onion():
     """A cartoony onion (the user's references, 2026-11-08): a fat, coppery bulb drawn up into a
     pointed neck, a few fine darker stripes, a dry straw tuft at the neck and a little root tuft.
     It lies on its side with its neck tilted up, as onions do, so from the overhead camera it shows
-    an onion's teardrop rather than a round top (which read as a pumpkin). Parts are separate
-    meshes for their own colours; origin at its base."""
-    r, h = 0.15, 0.32
-    profile = [(0.0, 0.0), (0.05, 0.004), (0.11, 0.03), (r, 0.1), (r - 0.005, 0.16), (0.11, 0.22),
-               (0.05, 0.27), (0.02, 0.3), (0.0, h)]
+    an onion's teardrop rather than a round top (which read as a pumpkin). Still too pumpkin-like
+    (the user's note, 2026-11-08), so it's slimmer with a longer neck, and its stripes are few,
+    faint and uneven instead of even ribs from pole to pole. Parts are separate meshes for their
+    own colours; origin at its base."""
+    h = ONION_PROFILE[-1][1]
+    profile = ONION_PROFILE
     # On its side: the bulb's axis turned from up to along +x, then tilted up a little.
     lie = Matrix.Rotation(math.radians(72.0), 4, 'Y')
 
@@ -889,30 +890,37 @@ def build_onion():
     bmesh.ops.translate(bm, vec=(0.0, 0.0, lift), verts=bm.verts)
     body = finish("OnionBody", bm)
 
-    bm = bmesh.new()  # a few fine stripes from root to neck, following the bulb
-    for k in range(8):
-        a = 2 * math.pi * k / 8
-        pts = [((rad + 0.002) * math.cos(a), (rad + 0.002) * math.sin(a), z) for rad, z in profile[1:-1]]
-        add_pipe(bm, pts, radius=0.0018, segments=5)
+    bm = bmesh.new()  # a few faint papery lines, unevenly spaced and of different lengths
+    for a_deg, first, last in ((10, 2, 7), (95, 3, 8), (160, 2, 6), (230, 3, 7), (300, 2, 8)):
+        a = math.radians(a_deg)
+        pts = [((rad + 0.0015) * math.cos(a), (rad + 0.0015) * math.sin(a), z) for rad, z in profile[first:last]]
+        add_pipe(bm, pts, radius=0.0012, segments=5)
     place(bm, lift)
     lines = finish("OnionLines", bm)
 
-    bm = bmesh.new()  # the dry tuft at the neck, splaying out
+    bm = bmesh.new()  # the dry tuft at the neck: longer, splaying and curling out
     for k in range(6):
         a = 2 * math.pi * k / 6
-        add_pipe(bm, [(0.0, 0.0, h - 0.01), (0.025 * math.cos(a), 0.025 * math.sin(a), h + 0.06)], radius=0.006, segments=5)
+        add_pipe(bm, [(0.0, 0.0, h - 0.015), (0.015 * math.cos(a), 0.015 * math.sin(a), h + 0.045),
+                      (0.04 * math.cos(a + 0.4), 0.04 * math.sin(a + 0.4), h + 0.085)], radius=0.005, segments=5)
     place(bm, lift)
     tuft = finish("OnionTuft", bm)
 
-    bm = bmesh.new()  # the root tuft
+    bm = bmesh.new()  # the root plate and its wispy roots
     add_lathe(bm, [(0.0, 0.0), (0.03, 0.0), (0.035, 0.006), (0.0, 0.01)], segments=12, centre=(0.0, 0.0, -0.008))
+    for k in range(7):
+        a = 2 * math.pi * k / 7 + 0.3
+        add_pipe(bm, [(0.012 * math.cos(a), 0.012 * math.sin(a), -0.006),
+                      (0.035 * math.cos(a), 0.035 * math.sin(a), -0.03)], radius=0.003, segments=4)
     place(bm, lift)
     root = finish("OnionRoot", bm)
     return [body, lines, tuft, root]
 
 
-ONION_PROFILE = [(0.0, 0.0), (0.05, 0.004), (0.11, 0.03), (0.15, 0.1), (0.145, 0.16), (0.11, 0.22),
-                 (0.05, 0.27), (0.02, 0.3), (0.0, 0.32)]
+# An onion's side profile (radius, height): a slim teardrop drawn up into a long pointed neck,
+# shared by the whole onion and its halves.
+ONION_PROFILE = [(0.0, 0.0), (0.05, 0.004), (0.1, 0.03), (0.13, 0.09), (0.128, 0.15), (0.1, 0.21),
+                 (0.055, 0.26), (0.025, 0.31), (0.012, 0.34), (0.0, 0.36)]
 
 
 def onion_dice():

@@ -17,10 +17,11 @@ namespace Game.Editor
             {
                 ["Onion"] = new[]
                 {
-                    ("Body", "OnionBody", new Color(0.83f, 0.46f, 0.22f)),
-                    ("Lines", "OnionLines", new Color(0.6f, 0.29f, 0.13f)),
-                    ("Tuft", "OnionTuft", new Color(0.8f, 0.68f, 0.45f)),
-                    ("Root", "OnionRoot", new Color(0.42f, 0.31f, 0.2f)),
+                    // A muted copper-amber, not a pumpkin's orange (the user's note, 2026-11-08).
+                    ("Body", "OnionBody", new Color(0.74f, 0.5f, 0.28f)),
+                    ("Lines", "OnionLines", new Color(0.6f, 0.38f, 0.2f)),
+                    ("Tuft", "OnionTuft", new Color(0.84f, 0.72f, 0.5f)),
+                    ("Root", "OnionRoot", new Color(0.55f, 0.43f, 0.3f)),
                 },
                 // Cut onion: a heap of cream dice (decision 2026-11-08), browning as one as it cooks.
                 ["DicedOnion"] = new[] { ("Body", "DicedOnionBody", new Color(0.96f, 0.9f, 0.7f)) },

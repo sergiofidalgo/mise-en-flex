@@ -12,6 +12,17 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-08 — An onion that doesn't read as a pumpkin
+
+**Decision:** (the user's note) The onion was a bright orange ball with even dark ribs from pole to pole, a pumpkin's cues. Now it is:
+- a muted copper-amber;
+- a slimmer teardrop drawn up into a long pointed neck;
+- five faint, uneven papery lines of different lengths;
+- a longer curling dry tuft and wispy roots.
+The halves share its new profile, and its menu icon is re-rendered.
+
+---
+
 ## 2026-11-08 — A four-knife block with brass-collared slots
 
 **Decision:** (the user's notes) The knife block holds four knives, up from three, and is wider (0.46 m) to fit them. Each slot is a wider dark opening framed by a brass collar standing proud of the face. Knives in the block show 1.5× their size, with more of the bolster and blade out of the slot. A full slot shows a big handle, and an empty slot a dark opening in brass, so it's clear at a glance how many knives are there.
