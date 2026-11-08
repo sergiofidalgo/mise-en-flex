@@ -93,9 +93,24 @@ namespace Game.Editor
                 {
                     var trash = (Transform)new SerializedObject(fill).FindProperty("_trash").objectReferenceValue;
                     trash.GetComponent<Renderer>().enabled = true;
-                    trash.localPosition = new Vector3(0f, 0.35f, 0f);
+                    trash.localPosition = new Vector3(0f, 0.5f, 0f);
+                    var flies = (ParticleSystem)new SerializedObject(fill).FindProperty("_flies").objectReferenceValue;
+                    var buzz = flies.emission;
+                    buzz.rateOverTime = 3f;
+                    flies.Simulate(4f, true, true);
                 }
                 Render(camera, target, wash.transform.position + Vector3.up * 0.9f, CloseHeight, Path.Combine(folder, "close_Sink_washing.png"));
+            }
+
+            // The fridge just opened, fogging over (FridgeDoorView only runs in Play mode).
+            var fridge = UnityEngine.Object.FindFirstObjectByType<Game.Presentation.FridgeDoorView>();
+            if (fridge != null)
+            {
+                fridge.Show(1f);
+                var mist = (ParticleSystem)new SerializedObject(fridge).FindProperty("_mist").objectReferenceValue;
+                mist.Emit(40);
+                mist.Simulate(0.6f, true, false);
+                Render(camera, target, fridge.transform.position + Vector3.up * 0.9f, CloseHeight, Path.Combine(folder, "close_Fridge_open.png"));
             }
 
             // A row of plates outside the kitchen: clean, half washed, then dirty with different messes.

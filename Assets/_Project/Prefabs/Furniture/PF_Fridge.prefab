@@ -656,7 +656,7 @@ ParticleSystem:
     startLifetime:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 1.2
+      scalar: 1.8
       minScalar: 5
       maxCurve:
         serializedVersion: 2
@@ -709,7 +709,7 @@ ParticleSystem:
     startSpeed:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 0.3
+      scalar: 0.35
       minScalar: 5
       maxCurve:
         serializedVersion: 2
@@ -763,7 +763,7 @@ ParticleSystem:
       serializedVersion: 2
       minMaxState: 0
       minColor: {r: 1, g: 1, b: 1, a: 1}
-      maxColor: {r: 0.86, g: 0.94, b: 1, a: 0.55}
+      maxColor: {r: 0.62, g: 0.82, b: 1, a: 0.85}
       maxGradient:
         serializedVersion: 2
         key0: {r: 1, g: 1, b: 1, a: 1}
@@ -827,8 +827,8 @@ ParticleSystem:
     startSize:
       serializedVersion: 2
       minMaxState: 3
-      scalar: 0.22
-      minScalar: 0.12
+      scalar: 0.46
+      minScalar: 0.26
       maxCurve:
         serializedVersion: 2
         m_Curve:
@@ -1144,7 +1144,7 @@ ParticleSystem:
         m_RotationOrder: 4
     randomizeRotationDirection: 0
     gravitySource: 0
-    maxNumParticles: 40
+    maxNumParticles: 160
     customEmitterVelocity: {x: 0, y: 0, z: 0}
     size3D: 0
     rotation3D: 0
@@ -1529,15 +1529,15 @@ ParticleSystem:
           time: 0
           value: 1
           inSlope: 0
-          outSlope: 1.2
+          outSlope: 1.5
           tangentMode: 0
           weightedMode: 0
           inWeight: 0
           outWeight: 0
         - serializedVersion: 3
           time: 1
-          value: 2.2
-          inSlope: 1.2
+          value: 2.5
+          inSlope: 1.5
           outSlope: 0
           tangentMode: 0
           weightedMode: 0
@@ -5322,7 +5322,7 @@ ParticleSystemRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 4e9d5f2c3f6eb4e67a932a137fb99cc8, type: 2}
+  - {fileID: 2100000, guid: 3338eb3dd9ae24f448cd09991ebd2697, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -6371,7 +6371,8 @@ MonoBehaviour:
   _openSeconds: 0.25
   _closeSeconds: 0.3
   _overshoot: 1
-  _mistBurst: 14
+  _mistBurst: 40
+  _mistWhileOpen: 14
 --- !u!1 &7338713043707098060
 GameObject:
   m_ObjectHideFlags: 0

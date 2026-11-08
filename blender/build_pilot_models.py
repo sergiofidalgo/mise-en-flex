@@ -281,6 +281,8 @@ FRIDGE_FLOOR = 0.7
 # stays over the footprint; its meshes are built around that hinge, lying shut towards the front.
 # Must match StorageArt.LidHinge: the game's (0, 0.9, 0.44).
 FRIDGE_LID_HINGE = (0.0, -0.44, FRIDGE_HEIGHT)
+# Under a sink the cabinet's body stops here, below the basin; the sink's lip comes down to it.
+SINK_CABINET_TOP = 0.66
 # The range's spill tray, recessed under the rim; the burner and grate stand on it.
 # Must match StyleTest.TrayTop.
 TRAY_TOP = 0.865
@@ -493,7 +495,7 @@ def build_sink():
     add_box(bm, (2 * hole_x, 0.5 - hole_y, thickness), (0.0, -(0.5 + hole_y) / 2.0, z), bevel=0.014)
     add_box(bm, (1.0, 0.04, 0.1), (0.0, -0.48, top + 0.05), bevel=0.015)  # upstand along the back
     # A steel lip from the top down to the cabinet body below, so the sides stay closed.
-    lip_top, lip_bottom = top - thickness, 0.72
+    lip_top, lip_bottom = top - thickness, SINK_CABINET_TOP
     lip_z, lip_h = (lip_top + lip_bottom) / 2.0, lip_top - lip_bottom
     for y in (-0.46, 0.46):
         add_box(bm, (0.98, 0.02, lip_h), (0.0, y, lip_z))
@@ -509,17 +511,21 @@ def build_sink():
     add_pipe(bm, [(x, y, top + 0.004) for x, y in corners], radius=rim, segments=10)
     rim_mesh = finish("SinkRim", bm)
 
-    # The basin, 0.15 deep: the plate being washed sits on its floor at 0.75.
+    # The basin, deep enough to read from the camera (the user's note, 2026-11-08): its floor,
+    # where the plate being washed sits, at 0.68, and its walls darker than the floor (SinkBasinWall).
+    depth = 0.23
     bm = bmesh.new()
-    add_box(bm, (2 * hole_x, 2 * hole_y, 0.02), (0.0, 0.0, top - 0.16), bevel=0.006)
-    for y in (-hole_y, hole_y):
-        add_box(bm, (2 * hole_x, 0.02, 0.16), (0.0, y, top - 0.08))
-    for x in (-hole_x, hole_x):
-        add_box(bm, (0.02, 2 * hole_y, 0.16), (x, 0.0, top - 0.08))
+    add_box(bm, (2 * hole_x, 2 * hole_y, 0.02), (0.0, 0.0, top - depth - 0.01 + 0.01), bevel=0.006)
     basin = finish("SinkBasin", bm)
     bm = bmesh.new()
+    for y in (-hole_y, hole_y):
+        add_box(bm, (2 * hole_x, 0.02, depth), (0.0, y, top - depth / 2.0))
+    for x in (-hole_x, hole_x):
+        add_box(bm, (0.02, 2 * hole_y, depth), (x, 0.0, top - depth / 2.0))
+    basin_wall = finish("SinkBasinWall", bm)
+    bm = bmesh.new()
     add_lathe(bm, [(0.0, 0.0), (0.045, 0.0), (0.045, 0.004), (0.03, 0.006), (0.0, 0.006)], segments=20,
-              centre=(0.0, 0.0, top - 0.15))
+              centre=(0.0, 0.0, top - depth + 0.01))
     drain = finish("SinkDrain", bm)
 
     # A swan-neck tap rising from the middle of the back edge and arching forward over the basin,
@@ -536,7 +542,7 @@ def build_sink():
     add_lathe(bm, [(0.03, 0.0), (0.03, 0.025), (0.0, 0.025)], segments=16, centre=(0.0, -0.2, top + 0.18))  # nozzle
     add_pipe(bm, [(0.0, -0.4, top + 0.1), (0.0, -0.46, top + 0.17)], radius=0.013)  # lever, at the back
     tap = finish("SinkTap", bm)
-    return [body, rim_mesh, basin, drain, tap]
+    return [body, rim_mesh, basin, basin_wall, drain, tap]
 
 
 def build_cabinet():
@@ -612,7 +618,7 @@ def build_cabinet():
 
     # Under a sink the body stops lower, leaving room for the basin; the sink's lip closes the gap.
     bm = bmesh.new()
-    add_box(bm, (1.0, 0.94, 0.72 - kick), (0.0, 0.0, kick + (0.72 - kick) / 2.0))
+    add_box(bm, (1.0, 0.94, SINK_CABINET_TOP - kick), (0.0, 0.0, kick + (SINK_CABINET_TOP - kick) / 2.0))
     low = finish("CabinetBodyLow", bm)
     low.location = (1.2, 0.0, 0.0)  # apart, for previews only
     return [body, base, fronts, handles, low] + tops

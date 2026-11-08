@@ -133,8 +133,10 @@ namespace Game.Editor
             var puffs = GreyboxKitchenware.CreateParticles(hob, "FlamePuffs", FlameBase, FireRingRadius, lifetime: 0.35f,
                 speed: 0.7f, minSize: 0.07f, maxSize: 0.15f, growth: 0.3f, maxParticles: 120);
             Glow(puffs, new Color(1f, 0.85f, 0.35f), new Color(1f, 0.38f, 0.05f), new Color(0.75f, 0.12f, 0.03f));
-            var embers = GreyboxKitchenware.CreateParticles(hob, "Embers", FlameBase + 0.02f, FireRingRadius, lifetime: 1.3f,
-                speed: 0.8f, minSize: 0.02f, maxSize: 0.035f, growth: 0.4f, maxParticles: 60);
+            // Sparks: plenty of them, bright and big enough to see from the camera (the user's
+            // note, 2026-11-08), spat up and drifting off.
+            var embers = GreyboxKitchenware.CreateParticles(hob, "Embers", FlameBase + 0.02f, FireRingRadius, lifetime: 1.5f,
+                speed: 1.1f, minSize: 0.03f, maxSize: 0.05f, growth: 0.3f, maxParticles: 160);
             Glow(embers, new Color(1f, 0.8f, 0.3f), new Color(1f, 0.45f, 0.08f), new Color(0.9f, 0.2f, 0.04f));
             var noise = embers.noise;
             noise.enabled = true;

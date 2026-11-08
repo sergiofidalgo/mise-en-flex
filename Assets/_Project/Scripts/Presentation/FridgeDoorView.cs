@@ -4,8 +4,8 @@ using UnityEngine;
 namespace Game.Presentation
 {
     /// <summary>
-    /// Lifts a chest fridge's glass lid while anyone has its menu open (RT held), with a puff of
-    /// cold air as it opens (decision 2026-11-08). A chef's <see cref="StorageUseView"/> keeps it open
+    /// Lifts a chest fridge's glass lid while anyone has its menu open (RT held), with a cloud of
+    /// cold air as it opens that keeps spilling out while it's open (decision 2026-11-08). A chef's <see cref="StorageUseView"/> keeps it open
     /// each frame, so two players at one fridge keep it open until both let go. Opened and Closed are
     /// for sound.
     ///
@@ -25,8 +25,10 @@ namespace Game.Presentation
         [SerializeField, Min(0.01f)] private float _closeSeconds = 0.3f;
         [Tooltip("How far past open it swings before settling, as a fraction.")]
         [SerializeField, Range(0f, 2f)] private float _overshoot = 1f;
-        [Tooltip("Puffs of cold air when the lid opens.")]
-        [SerializeField, Min(0)] private int _mistBurst = 14;
+        [Tooltip("Puffs of cold air when the lid opens: a big, fun cloud (the user's note, 2026-11-08).")]
+        [SerializeField, Min(0)] private int _mistBurst = 40;
+        [Tooltip("Puffs a second that keep spilling out while it stays open.")]
+        [SerializeField, Min(0f)] private float _mistWhileOpen = 14f;
 
         private float _amount;
         private int _keptOpenOnFrame = int.MinValue;
@@ -46,6 +48,8 @@ namespace Game.Presentation
             if (open != IsOpen)
             {
                 IsOpen = open;
+                var spill = _mist.emission;
+                spill.rateOverTime = open ? _mistWhileOpen : 0f;
                 if (open)
                 {
                     _mist.Emit(_mistBurst);

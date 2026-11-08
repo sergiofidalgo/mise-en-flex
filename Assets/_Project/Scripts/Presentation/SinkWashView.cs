@@ -19,8 +19,8 @@ namespace Game.Presentation
 
         [Tooltip("Seconds the water keeps running after washing last moved on.")]
         [SerializeField, Min(0f)] private float _linger = 0.35f;
-        [SerializeField, Min(0f)] private float _splashRate = 45f;
-        [SerializeField, Min(0f)] private float _bubbleRate = 14f;
+        [SerializeField, Min(0f)] private float _splashRate = 80f;
+        [SerializeField, Min(0f)] private float _bubbleRate = 22f;
         [Tooltip("How much the stream wobbles in width, as a share of it.")]
         [SerializeField, Range(0f, 0.5f)] private float _wobble = 0.15f;
 

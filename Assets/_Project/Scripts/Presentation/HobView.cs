@@ -30,7 +30,7 @@ namespace Game.Presentation
         [Tooltip("Embers drifting off the fire; only at higher heat, more as it rises.")]
         [SerializeField] private ParticleSystem[] _embers = System.Array.Empty<ParticleSystem>();
         [SerializeField, Min(0f)] private float _puffRate = 70f;
-        [SerializeField, Min(0f)] private float _emberRate = 12f;
+        [SerializeField, Min(0f)] private float _emberRate = 40f;
         [Tooltip("A core's size relative to the tongues round it.")]
         [SerializeField, Range(0f, 1f)] private float _coreScale = 0.5f;
         [SerializeField] private Color _coreLow = new Color(0.1f, 0.3f, 0.9f);
@@ -123,7 +123,7 @@ namespace Game.Presentation
 
             // The orange glow and embers come with the orange tips, at high heat only.
             SetRate(_puffs, on ? _puffRate * dial * warmth : 0f);
-            SetRate(_embers, on ? _emberRate * dial * dial * warmth : 0f);
+            SetRate(_embers, on ? _emberRate * dial * warmth : 0f);
         }
 
         private void ShowRing(Renderer[] ring, bool on, float scale, float height, float width, Color color, Color tip, float beat)

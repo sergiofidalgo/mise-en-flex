@@ -158,6 +158,73 @@ namespace Game.Editor
             return material;
         }
 
+        /// <summary>
+        /// Soap bubbles (MAT_Particle_Bubble): a see-through disc with a bright rim and a highlight,
+        /// drawn into a small texture (TEX_Bubble), so a particle reads as a bubble, not a dot.
+        /// Particles tint it. Created once.
+        /// </summary>
+        public static Material EnsureBubbleMaterial()
+        {
+            const string path = MaterialsFolder + "/MAT_Particle_Bubble.mat";
+            var material = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (material != null)
+                return material;
+
+            material = new Material(GreyboxAssets.EnsureParticleMaterial("Smoke"));
+            material.SetTexture("_BaseMap", EnsureBubbleTexture());
+            AssetDatabase.CreateAsset(material, path);
+            return material;
+        }
+
+        /// <summary>
+        /// Cold fog (MAT_Particle_Mist): soft puffs that add their light over what's behind,
+        /// so they read as bright vapour. Alpha blending showed the particle texture's dark edges
+        /// as grey smudges. Created once.
+        /// </summary>
+        public static Material EnsureMistMaterial()
+        {
+            const string path = MaterialsFolder + "/MAT_Particle_Mist.mat";
+            var material = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (material != null)
+                return material;
+            material = new Material(GreyboxAssets.EnsureParticleMaterial("Smoke"));
+            material.SetFloat("_Blend", 1f); // premultiplied
+            material.SetFloat("_SrcBlend", (float)UnityEngine.Rendering.BlendMode.One);
+            material.SetFloat("_DstBlend", (float)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+            AssetDatabase.CreateAsset(material, path);
+            return material;
+        }
+
+        private static Texture2D EnsureBubbleTexture()
+        {
+            const string path = "Assets/_Project/Art/Textures/TEX_Bubble.asset";
+            var texture = AssetDatabase.LoadAssetAtPath<Texture2D>(path);
+            if (texture != null)
+                return texture;
+
+            GreyboxAssets.EnsureFolder("Assets/_Project/Art/Textures");
+            const int size = 64;
+            texture = new Texture2D(size, size, TextureFormat.RGBA32, true) { wrapMode = TextureWrapMode.Clamp };
+            for (var y = 0; y < size; y++)
+            {
+                for (var x = 0; x < size; x++)
+                {
+                    // -1..1 across the bubble.
+                    var px = (x + 0.5f) / size * 2f - 1f;
+                    var py = (y + 0.5f) / size * 2f - 1f;
+                    var r = Mathf.Sqrt(px * px + py * py);
+                    var rim = Mathf.Clamp01(1f - Mathf.Abs(r - 0.86f) / 0.1f);       // the bright edge
+                    var film = r < 0.86f ? 0.12f + 0.25f * r : 0f;                    // faint, thicker towards the edge
+                    var shine = Mathf.Clamp01(1f - Vector2.Distance(new Vector2(px, py), new Vector2(-0.38f, 0.4f)) / 0.2f);
+                    var alpha = r > 0.97f ? 0f : Mathf.Max(Mathf.Max(rim, film), shine);
+                    texture.SetPixel(x, y, new Color(1f, 1f, 1f, alpha));
+                }
+            }
+            texture.Apply();
+            AssetDatabase.CreateAsset(texture, path);
+            return texture;
+        }
+
         /// <summary>The layered food material (MAT_Food_<paramref name="name"/>). Created once.</summary>
         public static Material EnsureLayeredFoodMaterial(string name, Color rawColor)
         {

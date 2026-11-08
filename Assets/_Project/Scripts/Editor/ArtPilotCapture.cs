@@ -255,7 +255,7 @@ namespace Game.Editor
 
             // Particles don't run outside Play mode: set their rate as HobView would and run them a while.
             SimulateFire("_puffs", so.FindProperty("_puffRate").floatValue * dial * warmth);
-            SimulateFire("_embers", so.FindProperty("_emberRate").floatValue * dial * dial * warmth);
+            SimulateFire("_embers", so.FindProperty("_emberRate").floatValue * dial * warmth);
 
             void SimulateFire(string property, float rate)
             {

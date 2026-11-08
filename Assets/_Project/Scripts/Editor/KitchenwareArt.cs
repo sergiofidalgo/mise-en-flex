@@ -28,7 +28,7 @@ namespace Game.Editor
         private const float MessyNudge = 0.03f;
 
         /// <summary>The sink's basin floor, where dirty plates sit; must match build_sink().</summary>
-        public const float SinkBasinFloor = 0.75f;
+        public const float SinkBasinFloor = 0.68f;
         /// <summary>The basin's centre across the sink, in the game's x: one big basin, in the middle.</summary>
         public const float SinkBasinX = 0f;
 
@@ -41,6 +41,8 @@ namespace Game.Editor
         private static readonly Color SteelColor = new Color(0.74f, 0.76f, 0.8f);
         private static readonly Color SinkRimSteel = new Color(0.88f, 0.9f, 0.93f);
         private static readonly Color SinkBasinGrey = new Color(0.48f, 0.5f, 0.55f);
+        // The basin's walls darker than its floor and much darker than the rim, so the drop reads.
+        private static readonly Color SinkBasinWallGrey = new Color(0.33f, 0.35f, 0.39f);
         private static readonly Color SinkDrainDark = new Color(0.12f, 0.12f, 0.14f);
         private static readonly Color SinkChrome = new Color(0.93f, 0.95f, 0.98f);
 
@@ -49,9 +51,9 @@ namespace Game.Editor
         private const float NozzleHeight = 1.08f;
         private const float NozzleBack = 0.2f;
         private const float StreamWidth = 0.028f;
-        // The water in the basin: about half way up its 0.15 m, over the plate on its floor.
+        // The water in the basin: about half way up its 0.23 m, over the plate on its floor.
         // The basin's opening, from build_sink(): 0.76 by 0.64 m.
-        private const float WaterLevel = 0.82f;
+        private const float WaterLevel = 0.79f;
         private const float BasinWidth = 0.74f;
         private const float BasinDepth = 0.62f;
         private const string BinModel = "SM_Bin";
@@ -69,9 +71,38 @@ namespace Game.Editor
             if (trash == null)
                 return;
             trash.GetComponent<Renderer>().enabled = false; // empty to start
+
+            // Flies buzzing round it once it's getting full (the user's note, 2026-11-08): dark
+            // specks darting about over the rim.
+            var flies = GreyboxKitchenware.CreateParticles(body, "Flies", 0.92f, 0.14f, lifetime: 3f, speed: 0f,
+                minSize: 0.05f, maxSize: 0.065f, growth: 1f, maxParticles: 24);
+            var fliesMain = flies.main;
+            fliesMain.simulationSpace = ParticleSystemSimulationSpace.Local;
+            fliesMain.startColor = new Color(0.08f, 0.08f, 0.09f, 1f);
+            var fliesShape = flies.shape;
+            fliesShape.shapeType = ParticleSystemShapeType.Sphere;
+            fliesShape.radius = 0.14f;
+            // Circling the bin, with a jittery dart: they stay round it rather than wander off.
+            var circle = flies.velocityOverLifetime;
+            circle.enabled = true;
+            circle.space = ParticleSystemSimulationSpace.Local;
+            circle.orbitalY = new ParticleSystem.MinMaxCurve(3f, 6f);
+            var buzz = flies.noise;
+            buzz.enabled = true;
+            buzz.strength = 0.1f;
+            buzz.frequency = 3f;
+            buzz.scrollSpeed = 2f;
+            var steady = flies.colorOverLifetime;
+            var fade = new Gradient();
+            fade.SetKeys(new[] { new GradientColorKey(Color.white, 0f), new GradientColorKey(Color.white, 1f) },
+                new[] { new GradientAlphaKey(0f, 0f), new GradientAlphaKey(1f, 0.05f), new GradientAlphaKey(1f, 0.95f), new GradientAlphaKey(0f, 1f) });
+            steady.color = fade;
+
+
             var view = new SerializedObject(bin.gameObject.AddComponent<BinFillView>());
             view.FindProperty("_bin").objectReferenceValue = bin;
             view.FindProperty("_trash").objectReferenceValue = trash;
+            view.FindProperty("_flies").objectReferenceValue = flies;
             view.ApplyModifiedPropertiesWithoutUndo();
         }
 
@@ -160,6 +191,7 @@ namespace Game.Editor
                 return parts;
             Add("Rim", "SinkRim", SinkRimSteel);
             Add("Basin", "SinkBasin", SinkBasinGrey);
+            Add("BasinWall", "SinkBasinWall", SinkBasinWallGrey);
             Add("Drain", "SinkDrain", SinkDrainDark);
             Add("Tap", "SinkTap", SinkChrome);
             return parts;
@@ -200,25 +232,38 @@ namespace Game.Editor
             streamRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             streamRenderer.enabled = false; // runs only while washing (SinkWashView)
 
-            var splash = GreyboxKitchenware.CreateParticles(sink.transform, "Splash", WaterLevel, 0.03f,
-                lifetime: 0.35f, speed: 0.6f, minSize: 0.012f, maxSize: 0.025f, growth: 0.5f, maxParticles: 60);
+            // Splashes and bubbles are meant to be seen and enjoyed (the user's note, 2026-11-08):
+            // chunky droplets thrown well up, and big soap bubbles floating out of the sink.
+            var splash = GreyboxKitchenware.CreateParticles(sink.transform, "Splash", WaterLevel, 0.04f,
+                lifetime: 0.5f, speed: 1.3f, minSize: 0.03f, maxSize: 0.055f, growth: 0.6f, maxParticles: 120);
             splash.transform.localPosition = new Vector3(0f, WaterLevel, NozzleBack);
             var splashMain = splash.main;
-            splashMain.gravityModifier = 1.5f;
+            splashMain.gravityModifier = 2.5f;
             splashMain.simulationSpace = ParticleSystemSimulationSpace.Local;
             splashMain.startColor = new Color(0.8f, 0.92f, 1f, 0.9f);
             var splashShape = splash.shape;
-            splashShape.angle = 55f;
+            splashShape.angle = 60f;
 
-            // Soap bubbles floating on the water.
+            // Soap bubbles: shiny rings in pastel tints, rising off the water, wobbling as they
+            // drift, swelling a little and then popping.
             var bubbles = GreyboxKitchenware.CreateParticles(sink.transform, "Bubbles", WaterLevel + 0.005f, 0.22f,
-                lifetime: 1.6f, speed: 0.02f, minSize: 0.025f, maxSize: 0.06f, growth: 1.3f, maxParticles: 60);
+                lifetime: 2.2f, speed: 0.22f, minSize: 0.045f, maxSize: 0.11f, growth: 1f, maxParticles: 120);
             var bubblesMain = bubbles.main;
             bubblesMain.simulationSpace = ParticleSystemSimulationSpace.Local;
-            bubblesMain.startColor = new Color(0.95f, 0.98f, 1f, 0.85f);
+            bubblesMain.startColor = new ParticleSystem.MinMaxGradient(new Color(1f, 0.85f, 0.95f, 1f), new Color(0.8f, 0.95f, 1f, 1f));
             var bubbleNoise = bubbles.noise;
             bubbleNoise.enabled = true;
-            bubbleNoise.strength = 0.05f;
+            bubbleNoise.strength = 0.18f;
+            bubbleNoise.frequency = 1.2f;
+            var pop = bubbles.sizeOverLifetime;
+            pop.size = new ParticleSystem.MinMaxCurve(1f, new AnimationCurve(
+                new Keyframe(0f, 0.5f), new Keyframe(0.8f, 1f), new Keyframe(0.9f, 1.25f), new Keyframe(1f, 0f)));
+            var stay = bubbles.colorOverLifetime;
+            var visible = new Gradient();
+            visible.SetKeys(new[] { new GradientColorKey(Color.white, 0f), new GradientColorKey(Color.white, 1f) },
+                new[] { new GradientAlphaKey(0f, 0f), new GradientAlphaKey(1f, 0.08f), new GradientAlphaKey(1f, 0.9f), new GradientAlphaKey(0f, 1f) });
+            stay.color = visible;
+            bubbles.GetComponent<ParticleSystemRenderer>().sharedMaterial = PilotArt.EnsureBubbleMaterial();
 
             var view = new SerializedObject(sink.gameObject.AddComponent<SinkWashView>());
             view.FindProperty("_sink").objectReferenceValue = sink;
