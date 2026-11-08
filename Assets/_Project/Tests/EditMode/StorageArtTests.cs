@@ -199,6 +199,7 @@ namespace Game.Tests.EditMode
         {
             var legs = Model("SM_Chef", "ChefLegs").bounds;
             var torso = Model("SM_Chef", "ChefTorso").bounds;
+            var head = Model("SM_Chef", "ChefHead").bounds; // hangs from the waist too, and is the top
             Assert.That(legs.min.y, Is.EqualTo(0f).Within(Tolerance));
             Assert.That(legs.max.y, Is.GreaterThan(0.85f), "The legs reach past the waist, so no gap opens when bending.");
             Assert.That(torso.min.y, Is.LessThan(0f), "The torso's origin is the waist; it starts a little below.");
@@ -207,7 +208,7 @@ namespace Game.Tests.EditMode
             var waist = player.transform.Find("Visuals/Waist");
             Assert.That(waist, Is.Not.Null);
             Assert.That(waist.localPosition.y, Is.EqualTo(0.85f).Within(Tolerance));
-            Assert.That(waist.localPosition.y + torso.max.y, Is.EqualTo(1.7f).Within(0.01f), "The chef is as tall as before.");
+            Assert.That(waist.localPosition.y + Mathf.Max(torso.max.y, head.max.y), Is.EqualTo(1.7f).Within(0.01f), "The chef is as tall as before.");
             Assert.That(player.GetComponent<StorageUseView>(), Is.Not.Null);
         }
     }

@@ -315,28 +315,70 @@ def build_shelf():
     basket = finish("ShelfBasket", bm)
     basket.location = (0.0, 0.0, TIER_TOPS[1])
     return [body, goods, basket]
+def add_ball(bm, centre, radius, segments=16):
+    """A small sphere, for heads, hands, eyes and buttons."""
+    add_lathe(bm, [(0.0, -radius), (radius * 0.7, -radius * 0.7), (radius, 0.0), (radius * 0.7, radius * 0.7), (0.0, radius)],
+              segments=segments, centre=centre)
+
+
 def build_chef():
-    """A placeholder chef in two parts, so it can bend at the waist: a bean, wide at the bottom with
-    a round top, and a puffy white toque so a chef reads as a chef. Not final character art."""
-    bm = bmesh.new()
-    add_lathe(bm, [(0.0, 0.0), (0.3, 0.0), (0.36, 0.04), (0.38, 0.15), (0.37, 0.7),
-                   (0.32, 0.88), (0.18, 0.95), (0.0, 0.96)], segments=32)
-    legs = finish("ChefLegs", bm)
+    """A person-shaped chef (decision 2026-11-08, the art overhaul), chunky and readable from the
+    camera: white jacket with buttons, dark trousers and shoes, skin-coloured head and hands with
+    eyes and a nose, a toque, and an apron and neckerchief that the game tints in the player's
+    colour. It faces -Y here (the game's forward). Two frames, so it can bend at the waist: the
+    lower body's origin is the feet, the upper body's (and the hat's) is the waist."""
+    objects = []
 
-    # Its origin is the waist; it starts a little below, so no gap opens when it bends.
-    bm = bmesh.new()
-    add_lathe(bm, [(0.0, -0.05), (0.27, -0.05), (0.35, 0.0), (0.36, 0.1), (0.34, 0.5),
-                   (0.3, 0.66), (0.22, 0.77), (0.12, 0.83), (0.0, 0.85)], segments=32)
-    torso = finish("ChefTorso", bm)
-    torso.location = (0.0, 0.0, CHEF_WAIST)
+    # Lower body, from the feet.
+    bm = bmesh.new()  # trousers and shoes; the hips go up past the waist, so no gap opens when bending
+    for x in (-0.11, 0.11):
+        add_box(bm, (0.14, 0.24, 0.08), (x, -0.03, 0.04), bevel=0.03)
+        add_pipe(bm, [(x, 0.0, 0.09), (x, 0.0, 0.6)], radius=0.09, segments=12)  # its end ball rests on the floor
+    add_lathe(bm, [(0.0, 0.5), (0.25, 0.5), (0.26, 0.9), (0.0, 0.9)], segments=24)
+    objects.append(finish("ChefLegs", bm))
+    bm = bmesh.new()  # the jacket's skirt over the hips
+    add_lathe(bm, [(0.0, 0.48), (0.25, 0.48), (0.3, 0.53), (0.3, 0.92), (0.0, 0.92)], segments=28)
+    objects.append(finish("ChefSkirt", bm))
+    bm = bmesh.new()  # apron: a panel over the front and a band round the waist (player colour)
+    add_box(bm, (0.4, 0.03, 0.44), (0.0, -0.31, 0.68), bevel=0.012)
+    add_pipe(bm, [(0.305 * math.cos(2 * math.pi * k / 20), 0.305 * math.sin(2 * math.pi * k / 20), 0.88) for k in range(21)],
+             radius=0.016, segments=6)
+    objects.append(finish("ChefApron", bm))
 
-    # The toque: a band and a puffed top, sitting on the torso's crown. Origin at the waist too.
-    bm = bmesh.new()
-    add_lathe(bm, [(0.0, 0.76), (0.16, 0.76), (0.17, 0.86), (0.2, 0.9), (0.24, 0.98), (0.24, 1.05),
-                   (0.2, 1.1), (0.1, 1.13), (0.0, 1.135)], segments=32)
-    hat = finish("ChefHat", bm)
-    hat.location = (0.0, 0.0, CHEF_WAIST)
-    return [legs, torso, hat]
+    # Upper body, from the waist (CHEF_WAIST); the head's top is 0.85 above it, 1.7 m in all.
+    upper = []
+    bm = bmesh.new()  # jacket and sleeves
+    add_lathe(bm, [(0.0, -0.05), (0.27, -0.05), (0.29, 0.03), (0.29, 0.3), (0.26, 0.4), (0.16, 0.46),
+                   (0.08, 0.48), (0.0, 0.48)], segments=28)
+    for side in (-1.0, 1.0):
+        add_pipe(bm, [(side * 0.25, 0.0, 0.38), (side * 0.31, -0.02, 0.2), (side * 0.31, -0.04, 0.05)], radius=0.075, segments=12)
+    upper.append(finish("ChefTorso", bm))
+    bm = bmesh.new()  # head, nose and hands
+    add_ball(bm, (0.0, 0.0, 0.66), 0.19, segments=24)
+    add_ball(bm, (0.0, -0.19, 0.63), 0.035)
+    for side in (-1.0, 1.0):
+        add_ball(bm, (side * 0.31, -0.05, 0.0), 0.07)
+    upper.append(finish("ChefHead", bm))
+    bm = bmesh.new()  # eyes and jacket buttons
+    for side in (-1.0, 1.0):
+        add_ball(bm, (side * 0.07, -0.172, 0.69), 0.026, segments=10)
+        for z in (0.08, 0.18, 0.28):
+            add_ball(bm, (side * 0.08, -0.288, z), 0.018, segments=8)
+    upper.append(finish("ChefFace", bm))
+    bm = bmesh.new()  # neckerchief (player colour)
+    add_pipe(bm, [(0.11 * math.cos(2 * math.pi * k / 16), 0.11 * math.sin(2 * math.pi * k / 16), 0.47) for k in range(17)],
+             radius=0.04, segments=8)
+    add_box(bm, (0.08, 0.04, 0.08), (0.0, -0.13, 0.42), bevel=0.02)  # the knot
+    upper.append(finish("ChefScarf", bm))
+    bm = bmesh.new()  # the toque, its band over the top of the head
+    add_lathe(bm, [(0.0, 0.78), (0.16, 0.78), (0.17, 0.86), (0.21, 0.9), (0.25, 0.98), (0.25, 1.06),
+                   (0.2, 1.12), (0.1, 1.15), (0.0, 1.155)], segments=32)
+    upper.append(finish("ChefHat", bm))
+    for obj in upper:
+        obj.location = (0.0, 0.0, CHEF_WAIST)
+    return objects + upper
+
+
 # Kitchenware. A plate is 0.32 m across (GreyboxKitchenware.PlateDiameter); its origin is the
 # centre of its base. Food sits in its well at 0.012 m.
 PLATE_RADIUS = 0.16

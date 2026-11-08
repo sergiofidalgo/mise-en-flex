@@ -113,6 +113,9 @@ namespace Game.Editor
         // Where the chef bends; must match CHEF_WAIST in blender/build_pilot_models.py.
         private const float ChefWaistHeight = 0.85f;
         private static readonly Color ChefHatColor = new Color(0.97f, 0.97f, 0.95f);
+        private static readonly Color ChefTrousersColor = new Color(0.2f, 0.2f, 0.24f);
+        private static readonly Color ChefSkinColor = new Color(0.96f, 0.78f, 0.63f);
+        private static readonly Color ChefFaceColor = new Color(0.16f, 0.11f, 0.09f);
         // The knife sits at the chef's right side, so it reads separately from what's carried.
         private static readonly Vector3 ToolAnchorPosition = new Vector3(0.4f, 0.95f, 0.15f);
 
@@ -336,7 +339,7 @@ namespace Game.Editor
             var legs = GreyboxAssets.CreatePrimitive(PrimitiveType.Capsule, "Legs", visuals, null, keepCollider: false);
             legs.transform.localScale = halfScale;
             legs.transform.localPosition = new Vector3(0f, halfScale.y, 0f); // capsule is 2 units tall
-            PilotArt.TryUseMesh(legs, "SM_Chef", "ChefLegs");
+            var modelled = PilotArt.TryUseMesh(legs, "SM_Chef", "ChefLegs");
 
             var waist = new GameObject("Waist").transform;
             waist.SetParent(visuals, false);
@@ -346,17 +349,33 @@ namespace Game.Editor
             torso.transform.localPosition = new Vector3(0f, halfScale.y, 0f);
             PilotArt.TryUseMesh(torso, "SM_Chef", "ChefTorso");
 
-            // A white toque, so a chef reads as a chef; it bends with the torso. Only with the model.
-            var hat = GreyboxAssets.CreatePrimitive(PrimitiveType.Cube, "Hat", waist,
-                GreyboxAssets.EnsureMaterial("ChefHat", ChefHatColor), keepCollider: false);
-            if (!PilotArt.TryUseMesh(hat, "SM_Chef", "ChefHat"))
-                Object.DestroyImmediate(hat);
+            // The modelled chef (decision 2026-11-08, the art overhaul): white jacket and toque, dark
+            // trousers, a face, and an apron and neckerchief in the player's colour, so co-op
+            // players tell each other apart. Without the model, the capsules take the colour.
+            var tinted = new System.Collections.Generic.List<Renderer>();
+            if (modelled)
+            {
+                legs.GetComponent<Renderer>().sharedMaterial = StyleTest.EnsureToonMaterial("ChefTrousers", ChefTrousersColor);
+                torso.GetComponent<Renderer>().sharedMaterial = StyleTest.EnsureToonMaterial("ChefJacket", ChefHatColor);
+                AddChefPart(visuals, "Skirt", "ChefSkirt", StyleTest.EnsureToonMaterial("ChefJacket", ChefHatColor));
+                tinted.Add(AddChefPart(visuals, "Apron", "ChefApron", StyleTest.EnsureToonMaterial("ChefAccent", Color.white)));
+                AddChefPart(waist, "Head", "ChefHead", StyleTest.EnsureToonMaterial("ChefSkin", ChefSkinColor));
+                AddChefPart(waist, "Face", "ChefFace", StyleTest.EnsureToonMaterial("ChefFace", ChefFaceColor));
+                tinted.Add(AddChefPart(waist, "Scarf", "ChefScarf", StyleTest.EnsureToonMaterial("ChefAccent", Color.white)));
+                AddChefPart(waist, "Hat", "ChefHat", StyleTest.EnsureToonMaterial("ChefHat", ChefHatColor));
+                tinted.RemoveAll(renderer => renderer == null);
+            }
+            else
+            {
+                tinted.Add(legs.GetComponent<Renderer>());
+                tinted.Add(torso.GetComponent<Renderer>());
 
-            // A nose shows facing direction from the overhead camera; it bends with the torso.
-            var nose = GreyboxAssets.CreatePrimitive(
-                PrimitiveType.Cube, "Nose", waist, GreyboxAssets.EnsureMaterial("Nose", NoseColor), keepCollider: false);
-            nose.transform.localScale = NoseScale;
-            nose.transform.localPosition = new Vector3(0f, BodyScale.y * 1.5f - ChefWaistHeight, BodyScale.z * 0.5f);
+                // A nose shows facing direction from the overhead camera; it bends with the torso.
+                var nose = GreyboxAssets.CreatePrimitive(
+                    PrimitiveType.Cube, "Nose", waist, GreyboxAssets.EnsureMaterial("Nose", NoseColor), keepCollider: false);
+                nose.transform.localScale = NoseScale;
+                nose.transform.localPosition = new Vector3(0f, BodyScale.y * 1.5f - ChefWaistHeight, BodyScale.z * 0.5f);
+            }
 
             var use = new SerializedObject(root.AddComponent<StorageUseView>());
             use.FindProperty("_interactor").objectReferenceValue = interactor;
@@ -369,9 +388,9 @@ namespace Game.Editor
             so.FindProperty("_playerInput").objectReferenceValue = playerInput;
             so.FindProperty("_popTarget").objectReferenceValue = visuals;
             var renderers = so.FindProperty("_tintedRenderers");
-            renderers.arraySize = 2;
-            renderers.GetArrayElementAtIndex(0).objectReferenceValue = legs.GetComponent<Renderer>();
-            renderers.GetArrayElementAtIndex(1).objectReferenceValue = torso.GetComponent<Renderer>();
+            renderers.arraySize = tinted.Count;
+            for (var i = 0; i < tinted.Count; i++)
+                renderers.GetArrayElementAtIndex(i).objectReferenceValue = tinted[i];
             so.ApplyModifiedPropertiesWithoutUndo();
 
             var prefab = PrefabUtility.SaveAsPrefabAsset(root, PlayerPrefabPath);
@@ -729,6 +748,16 @@ namespace Game.Editor
 
             AddToHighlight(rack, block.GetComponent<Renderer>());
             return rack;
+        }
+
+        // A part of the modelled chef, under the given frame (feet or waist); null without the model.
+        private static Renderer AddChefPart(Transform parent, string name, string mesh, Material material)
+        {
+            var part = GreyboxAssets.CreatePrimitive(PrimitiveType.Cube, name, parent, material, keepCollider: false);
+            if (PilotArt.TryUseMesh(part, "SM_Chef", mesh))
+                return part.GetComponent<Renderer>();
+            Object.DestroyImmediate(part);
+            return null;
         }
 
         // A plain counter's body becomes the shared wooden cabinet (decision 2026-11-08), lighting up as one piece.
