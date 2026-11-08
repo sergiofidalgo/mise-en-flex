@@ -15,6 +15,10 @@ namespace Game.Presentation
         [SerializeField] private Renderer _body;
         [Tooltip("How dirty it looks when shown: 1 as a diner left it.")]
         [SerializeField, Range(0f, 1f)] private float _dirt = 1f;
+        [Tooltip("Leftover food on it (optional), which shrinks away as the plate is washed clean.")]
+        [SerializeField] private Transform _scraps;
+        [Tooltip("How clean it gets before the scraps are gone: they shrink over the first part of washing.")]
+        [SerializeField, Range(0.05f, 1f)] private float _scrapsGoneAt = 0.4f;
 
         private MaterialPropertyBlock _block;
         private float _seed;
@@ -46,6 +50,13 @@ namespace Game.Presentation
 
         private void Apply()
         {
+            if (_scraps != null)
+            {
+                // Washing takes the scraps first, then the grime (the user's note, 2026-11-08).
+                var left = Mathf.Clamp01((_dirt - (1f - _scrapsGoneAt)) / _scrapsGoneAt);
+                _scraps.localScale = Vector3.one * left;
+                _scraps.gameObject.SetActive(left > 0.01f);
+            }
             if (!HasGrime(_body))
                 return;
             _block ??= new MaterialPropertyBlock();

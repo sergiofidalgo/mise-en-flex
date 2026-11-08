@@ -12,6 +12,12 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-08 — The dirty plate in the sink leans out of the water, with scraps
+
+**Decision:** (the user's reference) The dirty plate in the sink is no longer flat under the water. It leans about 40° against the side by the tap, 1.2× its size, with its upper half out of the water. It carries leftover food: sauce smears, noodles, a green bit and a carrot. While it's washed, the scraps go first, shrinking away over the first 40% of the wash, and then the grime fades (`PlateGrime._scraps`).
+
+---
+
 ## 2026-11-08 — An onion that doesn't read as a pumpkin
 
 **Decision:** (the user's note) The onion was a bright orange ball with even dark ribs from pole to pole, a pumpkin's cues. Now it is:

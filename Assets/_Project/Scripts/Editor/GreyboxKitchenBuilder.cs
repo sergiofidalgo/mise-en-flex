@@ -645,9 +645,12 @@ namespace Game.Editor
                 AddToHighlight(sink, part);
             if (modelled)
                 KitchenwareArt.AddWashEffects(sink); // water and bubbles while it's in use
-            SetObjects(sinkPile.FindProperty("_dirty"), KitchenwareArt.CreatePlates(sink.transform,
+            var sinkPlates = KitchenwareArt.CreatePlates(sink.transform,
                 modelled ? KitchenwareArt.SinkBasinFloor : CounterHeight, 1, DirtyPlateColor, "DirtyPlate",
-                modelled ? new Vector3(KitchenwareArt.SinkBasinX, 0f, 0f) : Vector3.zero, KitchenwareArt.PlateLayout.Stack, dirty: true));
+                modelled ? new Vector3(KitchenwareArt.SinkBasinX, 0f, 0f) : Vector3.zero, KitchenwareArt.PlateLayout.Stack, dirty: true);
+            if (modelled && sinkPlates.Length > 0 && KitchenwareArt.HasPlateModel)
+                KitchenwareArt.LeanInSink(sinkPlates[0]); // propped up out of the water, with scraps on it
+            SetObjects(sinkPile.FindProperty("_dirty"), sinkPlates);
             sinkPile.ApplyModifiedPropertiesWithoutUndo();
 
             CreateRack("TrayRack", RackStation.RackKind.Trays, TrayRackPosition, 4, GreyboxKitchenware.TrayColor, stations);

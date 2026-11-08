@@ -318,6 +318,52 @@ namespace Game.Editor
             board.GetComponent<Renderer>().sharedMaterial = StyleTest.BoardMaterial(); // wood grain, toon shaded
         }
 
+        // The dirty plate in the sink leans against the back of the basin, a little big, its top half
+        // out of the water, with leftover food on it (the user's reference, 2026-11-08).
+        private const float SinkPlateLean = 40f;
+        private const float SinkPlateSize = 1.2f;
+        private static readonly Vector3 SinkPlateSpot = new Vector3(0f, 0.8f, 0.05f);
+        private const float ScrapSize = 1.4f; // chunky enough to read from the overhead camera
+        private static readonly (string Name, Color Color, Vector3 Size, Vector3 At, float Turn)[] Scraps =
+        {
+            ("Sauce", new Color(0.45f, 0.24f, 0.11f), new Vector3(0.11f, 0.008f, 0.07f), new Vector3(-0.03f, 0f, 0.02f), 20f),
+            ("Sauce", new Color(0.45f, 0.24f, 0.11f), new Vector3(0.05f, 0.008f, 0.04f), new Vector3(0.06f, 0f, -0.05f), 70f),
+            ("Noodle", new Color(0.95f, 0.85f, 0.55f), new Vector3(0.012f, 0.006f, 0.12f), new Vector3(0.02f, 0.006f, 0.04f), 35f),
+            ("Noodle", new Color(0.95f, 0.85f, 0.55f), new Vector3(0.012f, 0.006f, 0.1f), new Vector3(-0.05f, 0.006f, -0.02f), 110f),
+            ("Greens", new Color(0.4f, 0.62f, 0.26f), new Vector3(0.03f, 0.012f, 0.022f), new Vector3(0.07f, 0.006f, 0.05f), 0f),
+            ("Carrot", new Color(0.92f, 0.5f, 0.18f), new Vector3(0.025f, 0.014f, 0.025f), new Vector3(-0.07f, 0.008f, -0.07f), 45f),
+        };
+
+        /// <summary>
+        /// Poses the sink's dirty plate leaning in the basin, out of the water, and puts leftover food
+        /// on it that washes off first (<see cref="Game.Presentation.PlateGrime"/>).
+        /// </summary>
+        public static void LeanInSink(GameObject plate)
+        {
+            plate.transform.localPosition = SinkPlateSpot;
+            plate.transform.localRotation = Quaternion.Euler(SinkPlateLean, 0f, 0f); // its top towards the back, by the tap
+            plate.transform.localScale *= SinkPlateSize;
+
+            var scraps = new GameObject("Scraps").transform;
+            scraps.SetParent(plate.transform, false);
+            scraps.localPosition = Vector3.up * 0.014f; // on its surface
+            foreach (var (name, color, size, at, turn) in Scraps)
+            {
+                var bit = GreyboxAssets.CreatePrimitive(PrimitiveType.Sphere, name, scraps,
+                    StyleTest.EnsureToonMaterial($"Scrap{name}", color), keepCollider: false);
+                bit.transform.localPosition = at;
+                bit.transform.localRotation = Quaternion.Euler(0f, turn, 0f);
+                bit.transform.localScale = new Vector3(size.x * ScrapSize, size.y, size.z * ScrapSize);
+            }
+
+            if (plate.TryGetComponent<Game.Presentation.PlateGrime>(out var grime))
+            {
+                var so = new SerializedObject(grime);
+                so.FindProperty("_scraps").objectReferenceValue = scraps;
+                so.ApplyModifiedPropertiesWithoutUndo();
+            }
+        }
+
         /// <summary>The plate shader's material (MAT_Plate): clean, until a view makes it dirty.</summary>
         public static Material EnsurePlateMaterial()
         {
