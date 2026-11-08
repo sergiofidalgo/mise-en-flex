@@ -8,7 +8,11 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 **Decision (user's call, details proposed):** players can turn storage any way, so what's in it should show from every angle.
 - **The fridge has a glass top and glass shelves,** in a white frame of corner posts, a solid base and a rim round the top.
-- **Each of its four sides is see-through where it faces open floor, and solid where it's up against something** (user's call, after play). A wall or a piece of furniture within 0.2 m of a side makes it solid white (`_reach` and `_gap` on `FridgeShellView`). People and loose items don't count. It checks every frame, so it follows the layout as pieces move, even while the fridge is carried.
+- **Each of its four sides is see-through, unless it's right against a wall and doesn't face the camera** (user's call, revised after play). A wall within 0.2 m of a side makes it solid white (`_reach` and `_gap` on `FridgeShellView`).
+  - **Furniture never counts:** the fridge shows above a counter beside it. Neither do people or loose items.
+  - **The side facing the camera** (south, within 45°) **stays see-through even against a wall,** because the camera looks over the low walls into the fridge.
+  - It checks every frame, so it follows the layout as pieces move, even while the fridge is carried.
+  - The first version also made sides solid against furniture and against walls on the camera side. In play, that hid stock that should have shown.
   - **Open, the left and right sides are glass, and the front and back are sliding doors.** The back door is the front one turned round.
   - **A chef opens the door on their side,** and the half in front of them slides over the other, as before. If the door on their side is solid, the other one opens. The cold air puffs out of whichever door opened.
 - **The shelf is an open rack:** shallow boards 0.4 m deep (were 0.7 m), centred. The upper tier's board is its top, with no empty posts above it (user's call, after play), so it's 1.05 m tall (was 1.5 m). From the camera's 55° view, the upper board no longer hides what's on the lower tier.

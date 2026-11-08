@@ -109,19 +109,31 @@ namespace Game.Tests.EditMode
             Assert.That(glass.renderQueue, Is.GreaterThanOrEqualTo(3000), "See-through.");
         }
 
-        // Each side is glass (or a door) facing open floor, and solid against a wall or furniture
-        // (decision 2026-11-08).
-        private static (GameObject Fridge, FridgeShellView Shell, GameObject[] Scenery) FridgeWith(params Vector3[] blocks)
+        // Each side is see-through (glass, or a door) unless it's against a wall and doesn't face the
+        // camera; furniture never makes it solid (decision 2026-11-08, revised after play).
+        private const string CounterPath = "Assets/_Project/Prefabs/Furniture/PF_Counter.prefab";
+
+        private static (GameObject Fridge, FridgeShellView Shell, GameObject[] Scenery) FridgeWith(params Vector3[] walls) =>
+            FridgeWith(walls, System.Array.Empty<Vector3>(), 0f);
+
+        private static (GameObject Fridge, FridgeShellView Shell, GameObject[] Scenery) FridgeWith(Vector3[] walls, Vector3[] counters, float turned)
         {
             var fridge = (GameObject)PrefabUtility.InstantiatePrefab(Prefab(FridgePath));
-            fridge.transform.position = new Vector3(100f, 0f, 100f); // clear of anything open in the editor
+            fridge.transform.SetPositionAndRotation(new Vector3(100f, 0f, 100f), Quaternion.Euler(0f, turned, 0f)); // clear of anything open in the editor
             var scenery = new System.Collections.Generic.List<GameObject> { fridge };
-            foreach (var at in blocks)
+            foreach (var at in walls)
             {
-                var block = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                block.transform.position = fridge.transform.position + at + Vector3.up;
-                block.transform.localScale = new Vector3(1f, 2f, 1f);
-                scenery.Add(block);
+                // A wall: part of the building, not furniture.
+                var wall = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                wall.transform.position = fridge.transform.position + at + Vector3.up * 0.5f;
+                wall.transform.localScale = new Vector3(1f, 1f, 1f);
+                scenery.Add(wall);
+            }
+            foreach (var at in counters)
+            {
+                var counter = (GameObject)PrefabUtility.InstantiatePrefab(Prefab(CounterPath));
+                counter.transform.position = fridge.transform.position + at;
+                scenery.Add(counter);
             }
             Physics.SyncTransforms();
             var shell = fridge.GetComponent<FridgeShellView>();
@@ -155,9 +167,9 @@ namespace Game.Tests.EditMode
         }
 
         [Test]
-        public void SidesAgainstSomethingAreSolid()
+        public void SidesAgainstAWallAreSolid()
         {
-            // A wall-like block flush behind it, and a counter flush on its left.
+            // Walls flush behind it and on its left.
             var (fridge, shell, scenery) = FridgeWith(new Vector3(0f, 0f, 1f), new Vector3(-1f, 0f, 0f));
             try
             {
@@ -173,6 +185,37 @@ namespace Game.Tests.EditMode
                 // Facing the solid back, a chef opens the front door instead.
                 var door = fridge.GetComponent<FridgeDoorView>();
                 Assert.That(door.OpensFor(fridge.transform.TransformPoint(new Vector3(0.6f, 0f, 0.2f))).Back, Is.False);
+            }
+            finally
+            {
+                Clear(scenery);
+            }
+        }
+
+        [Test]
+        public void CountersBesideItLeaveItGlass()
+        {
+            var (fridge, shell, scenery) = FridgeWith(System.Array.Empty<Vector3>(), new[] { new Vector3(-1f, 0f, 0f), new Vector3(1f, 0f, 0f) }, 0f);
+            try
+            {
+                Assert.That(shell.IsOpen(FridgeShellView.Facing.Left), Is.True, "it shows above the counter");
+                Assert.That(shell.IsOpen(FridgeShellView.Facing.Right), Is.True);
+            }
+            finally
+            {
+                Clear(scenery);
+            }
+        }
+
+        [Test]
+        public void AWallOnTheCameraSideLeavesItSeeThrough()
+        {
+            // Turned round, its back faces the camera (south), against a wall there.
+            var (fridge, shell, scenery) = FridgeWith(new[] { new Vector3(0f, 0f, -1f) }, System.Array.Empty<Vector3>(), 180f);
+            try
+            {
+                Assert.That(shell.IsOpen(FridgeShellView.Facing.Back), Is.True, "the camera looks over the wall into it");
+                Assert.That(fridge.transform.Find("BackDoor/PaneLeft").gameObject.activeSelf, Is.True);
             }
             finally
             {

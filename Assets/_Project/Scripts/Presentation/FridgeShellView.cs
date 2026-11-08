@@ -1,15 +1,17 @@
 using System;
 using Game.Gameplay;
+using Game.Gameplay.Stations;
 using UnityEngine;
 
 namespace Game.Presentation
 {
     /// <summary>
     /// Makes each of a fridge's four sides glass or solid from what's around it (decision
-    /// 2026-11-08). A side right up against a wall or furniture is solid, since there's nothing to see
-    /// through it. One facing open floor is see-through: glass on the left and right, a sliding door
-    /// at the front and back. It looks again every frame, so it follows the layout as pieces move,
-    /// even while the fridge itself is being carried. People and loose items don't count.
+    /// 2026-11-08, revised after play). A side is solid only where it stands right against a wall,
+    /// and never on the side facing the camera, which looks over the low walls into the fridge.
+    /// Furniture doesn't count: the fridge shows above a counter beside it. A see-through side is
+    /// glass on the left and right, a sliding door at the front and back. It looks again every frame,
+    /// so it follows the layout as pieces move, even while the fridge itself is being carried.
     /// </summary>
     public sealed class FridgeShellView : MonoBehaviour
     {
@@ -41,6 +43,10 @@ namespace Game.Presentation
         [SerializeField, Range(0f, 0.1f)] private float _gap = 0.02f;
         [Tooltip("Half the fridge's footprint, in metres.")]
         [SerializeField, Min(0.1f)] private float _halfSize = 0.5f;
+        [Tooltip("Where the camera looks from, flat on the floor: the overhead camera faces north, from the south.")]
+        [SerializeField] private Vector3 _towardsCamera = Vector3.back;
+        [Tooltip("How squarely a side must face the camera to stay see-through against a wall: 0.7 is within 45°.")]
+        [SerializeField, Range(0f, 1f)] private float _facingCamera = 0.7f;
 
         private static readonly Collider[] Hits = new Collider[16];
         private bool _shown;
@@ -76,7 +82,8 @@ namespace Game.Presentation
         {
             if (side.Root == null)
                 return;
-            var open = !Against(side.Root.localRotation * side.Outward);
+            var outward = side.Root.localRotation * side.Outward;
+            var open = FacesCamera(outward) || !AgainstAWall(outward);
             if (!force && open == side.IsOpen)
                 return;
             side.IsOpen = open;
@@ -87,9 +94,18 @@ namespace Game.Presentation
                 side.Solid.SetActive(!open);
         }
 
-        // Is there a wall or furniture in a slab just beyond this side? The slab is narrower than the
-        // side and kept off the floor, so a diagonal neighbour's corner or the floor never counts.
-        private bool Against(Vector3 outward)
+        private bool FacesCamera(Vector3 outward)
+        {
+            var world = transform.TransformDirection(outward);
+            world.y = 0f;
+            var camera = _towardsCamera;
+            camera.y = 0f;
+            return Vector3.Dot(world.normalized, camera.normalized) >= _facingCamera;
+        }
+
+        // Is there a wall in a slab just beyond this side? The slab is narrower than the side and kept
+        // off the floor, so a diagonal neighbour's corner or the floor never counts.
+        private bool AgainstAWall(Vector3 outward)
         {
             var across = Vector3.Cross(Vector3.up, outward).normalized;
             var centre = outward * (_halfSize + _gap + _reach / 2f) + Vector3.up * 0.9f;
@@ -109,7 +125,9 @@ namespace Game.Presentation
                     continue; // people move: they don't make a wall
                 if (hit.attachedRigidbody != null && !hit.attachedRigidbody.isKinematic)
                     continue; // nor do loose items
-                return true;
+                if (hit.GetComponentInParent<Interactable>() != null)
+                    continue; // furniture: the fridge shows above a counter beside it
+                return true; // the building itself: a wall
             }
             return false;
         }

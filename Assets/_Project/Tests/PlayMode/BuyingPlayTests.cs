@@ -403,9 +403,9 @@ namespace Game.Tests.PlayMode
         }
 
         // The starting fridge stands in the back-left corner with the shelf beside it: solid against
-        // both walls and the shelf, a door towards the kitchen (decision 2026-11-08).
+        // both walls, glass beside the shelf, a door towards the kitchen (decision 2026-11-08).
         [UnityTest]
-        public IEnumerator TheStartingFridgeIsSolidWhereItsBoxedInAndOpenToTheKitchen()
+        public IEnumerator TheStartingFridgeIsSolidAgainstTheWallsAndOpenToTheKitchen()
         {
             yield return OpenKitchenWithCursor();
             yield return null;
@@ -414,7 +414,7 @@ namespace Game.Tests.PlayMode
             Assert.That(shell.IsOpen(Game.Presentation.FridgeShellView.Facing.Back), Is.False, "the back wall");
             Assert.That(shell.IsOpen(Game.Presentation.FridgeShellView.Facing.Left), Is.False, "the west wall");
             Assert.That(shell.IsOpen(Game.Presentation.FridgeShellView.Facing.Front), Is.True, "its door, to the kitchen");
-            Assert.That(shell.IsOpen(Game.Presentation.FridgeShellView.Facing.Right), Is.False, "the shelf beside it");
+            Assert.That(shell.IsOpen(Game.Presentation.FridgeShellView.Facing.Right), Is.True, "furniture beside it doesn't count");
         }
 
         private IEnumerator StandAt(Vector3 position)
