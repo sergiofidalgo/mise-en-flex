@@ -24,6 +24,9 @@ namespace Game.Tests.PlayMode
         // Between the island and the pass: the back-right gap is the tray rack's since 2026-11-07.
         private static readonly Vector2 OpenFloor = new Vector2(-0.4f, -2.0f);
 
+        // The second chef's spawn, across the kitchen from the bought grill.
+        private static readonly Vector3 OutOfTheGrillsWay = new Vector3(2.45f, 0f, -0.8f);
+
         private KitchenCompositionRoot _root;
         private LayoutEditor _editor;
         private LayoutEditor.Cursor _cursor;
@@ -183,6 +186,8 @@ namespace Game.Tests.PlayMode
         {
             yield return OpenKitchenWithCursor();
             Days.Receive(500f);
+            // The chef spawns 0.4 m from where the grill goes: closer than a body and its personal space.
+            yield return this.StandAt(OutOfTheGrillsWay); // "this.": one test has its own StandAt
             var grill = Buy<GrillStation>("grill", new Vector2(-1.5f, -1.7f));
             yield return null;
 
@@ -197,6 +202,8 @@ namespace Game.Tests.PlayMode
         {
             yield return OpenKitchenWithCursor();
             Days.Receive(500f);
+            // The chef spawns 0.4 m from where the grill goes: closer than a body and its personal space.
+            yield return this.StandAt(OutOfTheGrillsWay); // "this.": one test has its own StandAt
             var grill = Buy<GrillStation>("grill", new Vector2(-1.5f, -1.7f));
             _editor.Leave(_player);
             var chef = _player.GetComponent<PlayerInteractor>();
