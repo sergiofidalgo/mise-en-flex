@@ -4,6 +4,22 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-08 — Style test on the hob; notes on the sink, fridge, board, plates and rack
+
+**Decision (user's calls):**
+- **A style test before restyling everything.** The gas hob, its pan, the steak, plates and the board get toon shading: flat bands of light, a cool shadow tint, a soft rim light and a dark outline. They also get a bold palette, with a red enamel hob, a dark top, a cream dial and a teal oven window. The hob is reshaped: one huge dial and a big round oven window instead of three knobs and a door. The pan is mostly rim and a stubby ball-ended handle. Everything else keeps its current look until the direction is agreed.
+- **The sink's tap rises from the middle of its back edge** and arches forward over the basin, so water always comes from the back of the sink, whichever way it's turned. The sideways lever that read as a spout is now small, at the back.
+- **The fridge's four baskets are small and gathered in the middle,** so its stock shows from every side.
+- **The cutting board is big,** 0.7 × 0.55 m, using most of its counter, with wood grain drawn by its material.
+- **Dirty plates show a texture, not shapes:** short broken wipes, splatter, a faint tide mark, grease and crumbs, in dull browns and oranges. Solid stains could be mistaken for meat.
+- **Plates and the plate rack are toy-like and exaggerated:** a thick plate with a fat rolled rim, and a rack of fat round bars.
+
+**Reason:** the earlier pass was chunky but still realistic. Shading, outlines and colour do most of the cartoony work from the overhead camera, so they're tried on one station first.
+
+**Not verified:** how it reads in play. The grime is subtler than before, so check it from the game camera.
+
+---
+
 ## 2026-11-08 — A cartoony style for every model, and dirty plates that look dirty
 
 **Decision (user's calls):**

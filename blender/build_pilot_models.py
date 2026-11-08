@@ -68,6 +68,18 @@ def add_lathe(bm, profile, segments=LATHE_SEGMENTS, centre=(0.0, 0.0, 0.0), axis
     connect_rings(bm, rings)
 
 
+def add_pipe(bm, points, radius, segments=16):
+    """A round pipe through the points, with a ball at each joint so bends stay smooth."""
+    points = [Vector(p) for p in points]
+    for a, b in zip(points, points[1:]):
+        direction = b - a
+        rotation = direction.to_track_quat('Z', 'Y').to_matrix().to_4x4()
+        add_lathe(bm, [(radius, 0.0), (radius, direction.length)], segments=segments, centre=a, axis_matrix=rotation)
+    for joint in points:
+        add_lathe(bm, [(0.0, -radius), (radius * 0.7, -radius * 0.7), (radius, 0.0), (radius * 0.7, radius * 0.7), (0.0, radius)],
+                  segments=segments, centre=joint)
+
+
 def connect_rings(bm, rings):
     """Joins consecutive rings of vertices with quads, or triangles where a ring is one point."""
     for lower, upper in zip(rings, rings[1:]):
@@ -102,27 +114,32 @@ def finish(name, bm):
 
 
 def build_hob():
-    """A squat, chunky range: a thick rounded top, a fat oven door with a big bar handle, and
-    oversized knobs on the side facing the camera."""
+    """Style test (decision 2026-11-08): a toy-like range. A rounded body with one huge dial and a
+    big round oven window on the side facing the camera, under a thick dark top. Parts are separate
+    meshes so each gets its own flat colour."""
     bm = bmesh.new()
-    top_thickness = 0.09
     plinth = 0.08
-    add_box(bm, (1.0, 1.0, top_thickness), (0.0, 0.0, HOB_HEIGHT - top_thickness / 2.0), bevel=0.035)
-    carcass_height = HOB_HEIGHT - top_thickness - plinth
-    add_box(bm, (0.94, 0.9, carcass_height), (0.0, -0.05, plinth + carcass_height / 2.0), bevel=0.045)
-    add_box(bm, (0.84, 0.8, plinth), (0.0, -0.05, plinth / 2.0), bevel=0.02)
-    add_box(bm, (0.76, 0.05, 0.4), (0.0, 0.41, 0.36), bevel=0.03)  # oven door
-    add_lathe(bm, [(0.025, 0.0), (0.025, 0.56), (0.0, 0.56)], segments=16,
-              centre=(0.28, 0.465, 0.52), axis_matrix=Matrix.Rotation(math.radians(-90.0), 4, 'Y'))  # bar handle
-    for x in (-0.27, 0.27):  # the handle's posts
-        add_box(bm, (0.03, 0.04, 0.03), (x, 0.445, 0.52), bevel=0.01)
-
-    # Big knobs under the top's front edge, easy to read from above.
-    knob_axis = Matrix.Rotation(math.radians(-90.0), 4, 'X')
-    for x in (-0.28, 0.0, 0.28):
-        add_lathe(bm, [(0.075, 0.0), (0.075, 0.03), (0.065, 0.06), (0.0, 0.065)], segments=20,
-                  centre=(x, 0.43, 0.7), axis_matrix=knob_axis)
+    body_top = HOB_HEIGHT - 0.08
+    add_box(bm, (0.96, 0.92, body_top - plinth), (0.0, -0.04, plinth + (body_top - plinth) / 2.0), bevel=0.08)
+    add_box(bm, (0.8, 0.76, plinth), (0.0, -0.04, plinth / 2.0), bevel=0.03)
     body = finish("HobBody", bm)
+
+    bm = bmesh.new()
+    add_box(bm, (1.0, 1.0, 0.1), (0.0, 0.0, HOB_HEIGHT - 0.05), bevel=0.045)
+    top = finish("HobTop", bm)
+
+    # One huge dial, and a porthole: chunky details that read from the camera.
+    toward_camera = Matrix.Rotation(math.radians(-90.0), 4, 'X')
+    bm = bmesh.new()
+    add_lathe(bm, [(0.11, 0.0), (0.11, 0.035), (0.095, 0.06), (0.04, 0.065), (0.04, 0.1), (0.0, 0.1)],
+              segments=24, centre=(0.3, 0.42, 0.58), axis_matrix=toward_camera)
+    add_box(bm, (0.035, 0.03, 0.15), (0.3, 0.5, 0.58), bevel=0.012)  # the dial's grip
+    dial = finish("HobDial", bm)
+
+    bm = bmesh.new()
+    add_lathe(bm, [(0.2, 0.0), (0.2, 0.03), (0.17, 0.045), (0.0, 0.03)], segments=32,
+              centre=(-0.12, 0.42, 0.42), axis_matrix=toward_camera)
+    window = finish("HobWindow", bm)
 
     # The burner glows as one piece (HobView tints it): a fat rounded ring. Its surface stays below
     # the pan's resting height of 0.91, so the pan never sinks into it.
@@ -132,29 +149,21 @@ def build_hob():
         (0.235, HOB_HEIGHT + 0.009), (0.22, HOB_HEIGHT + 0.005), (0.2, HOB_HEIGHT + 0.003), (0.0, HOB_HEIGHT + 0.003),
     ])
     burner = finish("HobBurner", bm)
-    return [body, burner]
+    return [body, top, dial, window, burner]
 def build_pan():
-    """A chunky pan: a thick base, deep walls with a fat rolled rim, and a big handle with a round
-    end, towards the camera (+Y here)."""
+    """Style test: mostly rim and handle. A shallow pan with a fat rolled rim and a short, stubby
+    handle with a big ball on the end, towards the camera (+Y here)."""
     bm = bmesh.new()
     add_lathe(bm, [
-        (0.0, 0.0), (0.19, 0.0), (0.206, 0.012), (0.214, 0.05), (0.22, 0.082), (0.216, 0.094),
-        (0.202, 0.096), (0.192, 0.085), (0.188, PAN_FLOOR + 0.008), (0.18, PAN_FLOOR), (0.0, PAN_FLOOR),
+        (0.0, 0.0), (0.18, 0.0), (0.2, 0.014), (0.206, 0.05), (0.22, 0.072), (0.214, 0.09),
+        (0.196, 0.094), (0.184, 0.08), (0.18, PAN_FLOOR + 0.01), (0.17, PAN_FLOOR), (0.0, PAN_FLOOR),
     ])
     body = finish("PanBody", bm)
 
     bm = bmesh.new()
-    length = 0.25
-    start = 0.19  # overlaps the wall, so no gap shows
-    created = bmesh.ops.create_cube(bm, size=1.0)
-    for vert in created["verts"]:
-        along = vert.co.y + 0.5  # 0 at the pan, 1 at the far end
-        width = 0.055 + 0.02 * along  # widens towards the grip
-        vert.co = Vector((vert.co.x * width, start + along * length, 0.06 + vert.co.z * 0.04 + along * 0.02))
-    bmesh.ops.bevel(bm, geom=list(bm.edges), offset=0.016, segments=BEVEL_SEGMENTS, profile=0.5,
-                    affect='EDGES', clamp_overlap=True)
-    add_lathe(bm, [(0.0, -0.035), (0.03, -0.03), (0.042, 0.0), (0.03, 0.03), (0.0, 0.035)], segments=16,
-              centre=(0.0, start + length, 0.08))  # a round knob on the end
+    add_pipe(bm, [(0.0, 0.215, 0.082), (0.0, 0.3, 0.088)], radius=0.032)  # from the rim, not inside the pan
+    add_lathe(bm, [(0.0, -0.055), (0.04, -0.045), (0.055, 0.0), (0.04, 0.045), (0.0, 0.055)], segments=20,
+              centre=(0.0, 0.34, 0.09))  # the ball
     handle = finish("PanHandle", bm)
     return [body, handle]
 def steak_outline(angle):
@@ -261,9 +270,10 @@ def build_fridge():
     glass.location = FRIDGE_LID_HINGE
 
     bm = bmesh.new()
-    add_box(bm, (0.36, 0.34, 0.04), (0.0, 0.0, 0.02), bevel=0.014)
+    # Small, and gathered in the middle (StorageArt.SlotPosition), so stock shows from every side.
+    add_box(bm, (0.22, 0.2, 0.04), (0.0, 0.0, 0.02), bevel=0.014)
     basket = finish("FridgeBasket", bm)
-    basket.location = (0.22, 0.2, FRIDGE_FLOOR)
+    basket.location = (0.13, 0.12, FRIDGE_FLOOR)
     return [body, liner, frame, glass, basket]
 # The shelf's boards are shallow and centred, so what's on the lower tier isn't hidden under the
 # upper one from the camera's 55° view, whichever way the shelf is turned.
@@ -321,37 +331,42 @@ COUNTER_HEIGHT = 0.9
 
 
 def build_plate():
-    """A thick white plate with a deep well and a fat rolled rim (gold, its own mesh and colour)."""
+    """A toy-like plate: thick, with a deep well and a big rolled rim (gold, its own mesh)."""
     bm = bmesh.new()
     add_lathe(bm, [
-        (0.0, 0.0), (0.095, 0.0), (0.11, 0.006), (0.15, 0.022), (PLATE_RADIUS, 0.028), (PLATE_RADIUS, 0.031),
-        (0.15, 0.032), (0.112, 0.019), (0.1, 0.015), (0.0, 0.015),
+        (0.0, 0.0), (0.085, 0.0), (0.1, 0.008), (0.14, 0.026), (PLATE_RADIUS - 0.012, 0.03),
+        (0.13, 0.03), (0.1, 0.02), (0.088, 0.016), (0.0, 0.016),
     ])
     body = finish("PlateBody", bm)
 
+    # A fat ring round the edge: the rim's tube is 0.012 thick, its outside at the plate's radius.
     bm = bmesh.new()
-    add_lathe(bm, [(0.134, 0.027), (0.142, 0.034), (0.152, 0.035), (0.159, 0.03), (0.148, 0.026), (0.134, 0.027)])
+    ring_radius, tube = PLATE_RADIUS - 0.012, 0.012
+    profile = [(ring_radius + tube * math.cos(a), 0.03 + tube * math.sin(a))
+               for a in [2.0 * math.pi * i / 12 for i in range(13)]]
+    add_lathe(bm, profile)
     rim = finish("PlateRim", bm)
     return [body, rim]
-def add_rack(bm, length, width=0.38, height=0.22, wire=0.024):
-    """A chunky dish rack: a rounded arch at each end and fat rails along the bottom. Plates stand
-    in it facing the camera, one behind the other, from the back (Blender -Y) to the front (+Y)."""
+def add_rack(bm, length, width=0.42, height=0.24, wire=0.04):
+    """A chunky toy-like dish rack: fat round arches at each end and fat rails. Plates stand in it
+    facing the camera, one behind the other, from the back (Blender -Y) to the front (+Y)."""
     half_width = width / 2.0
     for y in (-length / 2.0, length / 2.0):
-        for x in (-half_width, half_width):
-            add_box(bm, (wire, wire, height), (x, y, height / 2.0), bevel=0.01)
-        add_box(bm, (width + wire, wire, wire), (0.0, y, height), bevel=0.01)
+        # The feet sit on the counter: the pipe's joints are balls, so they start a radius up.
+        add_pipe(bm, [(-half_width, y, wire / 2.0), (-half_width, y, height - half_width * 0.4),
+                      (-half_width * 0.6, y, height), (half_width * 0.6, y, height),
+                      (half_width, y, height - half_width * 0.4), (half_width, y, wire / 2.0)], radius=wire / 2.0, segments=12)
     for x in (-half_width, half_width):
-        add_box(bm, (wire, length + wire, wire), (x, 0.0, wire / 2.0), bevel=0.01)
+        add_pipe(bm, [(x, -length / 2.0, wire / 2.0), (x, length / 2.0, wire / 2.0)], radius=wire / 2.0, segments=12)
     for x in (-0.07, 0.07):  # the plates rest on these
-        add_box(bm, (wire, length, wire), (x, 0.0, 0.025), bevel=0.01)
+        add_pipe(bm, [(x, -length / 2.0, wire / 2.0), (x, length / 2.0, wire / 2.0)], radius=wire / 2.0, segments=12)
 def build_plate_racks():
     """A rack for the plate stack (six plates) and a short one for the sink's drainer."""
     bm = bmesh.new()
-    add_rack(bm, length=0.34)
+    add_rack(bm, length=0.4)
     long_rack = finish("PlateRack", bm)
     bm = bmesh.new()
-    add_rack(bm, length=0.16)
+    add_rack(bm, length=0.2)
     short_rack = finish("PlateRackShort", bm)
     short_rack.location = (0.6, 0.0, 0.0)  # apart from the long one, for previews only
     return [long_rack, short_rack]
@@ -378,13 +393,18 @@ def build_sink():
     for x in (-hole_x, hole_x):
         add_box(bm, (0.02, 2 * hole_y, 0.16), (x, 0.0, top - 0.08))
     add_lathe(bm, [(0.03, 0.0), (0.03, 0.2), (0.0, 0.2)], segments=12, centre=(0.0, 0.0, top - 0.36))  # drain
-    # An oversized swan-neck tap behind the basin.
-    add_lathe(bm, [(0.05, 0.0), (0.05, 0.03), (0.03, 0.05), (0.03, 0.36), (0.0, 0.36)],
-              segments=16, centre=(0.0, -0.4, top))
-    spout = Matrix.Rotation(math.radians(-90.0), 4, 'X')  # along +Y, towards the front
-    add_lathe(bm, [(0.028, 0.0), (0.028, 0.24), (0.0, 0.24)], segments=12, centre=(0.0, -0.4, top + 0.34), axis_matrix=spout)
-    add_box(bm, (0.05, 0.05, 0.08), (0.0, -0.16, top + 0.31), bevel=0.015)
-    add_box(bm, (0.14, 0.03, 0.03), (0.09, -0.4, top + 0.14), bevel=0.012)  # lever
+    # An oversized gooseneck tap: it rises from the middle of the back edge and arches forward over
+    # the basin, so water always comes from the back of the sink, whichever way it's turned.
+    add_lathe(bm, [(0.06, 0.0), (0.06, 0.03), (0.04, 0.05), (0.0, 0.05)], segments=20, centre=(0.0, -0.4, top))
+    arch_centre, arch_radius = Vector((0.0, -0.28, top + 0.3)), 0.12
+    neck = [(0.0, -0.4, top + 0.04)]
+    for i in range(9):
+        angle = math.pi * i / 8  # from the back, over the top, to the front
+        neck.append((0.0, arch_centre.y - arch_radius * math.cos(angle), arch_centre.z + arch_radius * math.sin(angle)))
+    neck.append((0.0, -0.16, top + 0.2))
+    add_pipe(bm, neck, radius=0.032)
+    add_lathe(bm, [(0.042, 0.0), (0.042, 0.03), (0.0, 0.03)], segments=16, centre=(0.0, -0.16, top + 0.18))  # nozzle
+    add_pipe(bm, [(0.0, -0.4, top + 0.12), (0.0, -0.47, top + 0.2)], radius=0.018)  # a small lever, at the back
     # Fat legs and a slatted bottom shelf.
     for x in (-0.46, 0.46):
         for y in (-0.46, 0.46):
@@ -397,18 +417,19 @@ def build_sink():
         add_box(bm, (0.92, 0.07, 0.03), (0.0, y, 0.15), bevel=0.01)
     return [finish("SinkBody", bm)]
 def build_board():
-    """A thick bamboo cutting board with fat rounded corners and a deep juice groove round its edge."""
-    width, depth, base, rise = 0.34, 0.28, 0.026, 0.009
-    border, groove = 0.026, 0.012
+    """A big, thick wooden cutting board using most of its counter, with fat rounded corners and a
+    deep juice groove. The wood grain is drawn by its material (Game/Toon)."""
+    width, depth, base, rise = 0.7, 0.55, 0.03, 0.01
+    border, groove = 0.045, 0.018
     bm = bmesh.new()
-    add_box(bm, (width, depth, base), (0.0, 0.0, base / 2.0), bevel=0.02)
+    add_box(bm, (width, depth, base), (0.0, 0.0, base / 2.0), bevel=0.03)
     top = base + rise / 2.0
-    add_box(bm, (width - 0.016, border, rise), (0.0, depth / 2.0 - border / 2.0 - 0.008, top), bevel=0.004)
-    add_box(bm, (width - 0.016, border, rise), (0.0, -depth / 2.0 + border / 2.0 + 0.008, top), bevel=0.004)
-    add_box(bm, (border, depth - 0.016, rise), (width / 2.0 - border / 2.0 - 0.008, 0.0, top), bevel=0.004)
-    add_box(bm, (border, depth - 0.016, rise), (-width / 2.0 + border / 2.0 + 0.008, 0.0, top), bevel=0.004)
-    inset = border + 0.008 + groove
-    add_box(bm, (width - 2 * inset, depth - 2 * inset, rise), (0.0, 0.0, top), bevel=0.004)
+    add_box(bm, (width - 0.03, border, rise), (0.0, depth / 2.0 - border / 2.0 - 0.015, top), bevel=0.005)
+    add_box(bm, (width - 0.03, border, rise), (0.0, -depth / 2.0 + border / 2.0 + 0.015, top), bevel=0.005)
+    add_box(bm, (border, depth - 0.03, rise), (width / 2.0 - border / 2.0 - 0.015, 0.0, top), bevel=0.005)
+    add_box(bm, (border, depth - 0.03, rise), (-width / 2.0 + border / 2.0 + 0.015, 0.0, top), bevel=0.005)
+    inset = border + 0.015 + groove
+    add_box(bm, (width - 2 * inset, depth - 2 * inset, rise), (0.0, 0.0, top), bevel=0.005)
     return [finish("BoardBody", bm)]
 def export_fbx(objects, filename):
     bpy.ops.object.select_all(action='DESELECT')

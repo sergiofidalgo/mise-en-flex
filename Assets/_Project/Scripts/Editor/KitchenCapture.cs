@@ -30,7 +30,7 @@ namespace Game.Editor
         private static readonly Vector3 PlateRowStart = new Vector3(20f, 0f, 0f);
 
         // Stations to look at closely, by name in the scene.
-        private static readonly string[] CloseUps = { "Sink", "PlateStack", "WallCounter_01", "BoardCounter", "CuttingBoard" };
+        private static readonly string[] CloseUps = { "Hob_01", "Sink", "PlateStack", "WallCounter_01", "CuttingBoard", "Fridge" };
 
         [MenuItem("Tools/Game/Art/Capture Kitchen")]
         private static void CaptureFromMenu()

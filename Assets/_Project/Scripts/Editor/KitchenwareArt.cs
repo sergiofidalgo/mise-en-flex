@@ -18,10 +18,10 @@ namespace Game.Editor
 
         // Must match PLATE_RADIUS in blender/build_pilot_models.py; the plate's origin is its base.
         private const float PlateRadius = 0.16f;
-        private const float PlateHeight = 0.035f;
+        private const float PlateHeight = 0.042f;
         // Plates in a rack stand one behind the other, resting on rails this high.
-        private const float RackSpacing = 0.055f;
-        private const float RackRailHeight = 0.037f;
+        private const float RackSpacing = 0.06f;
+        private const float RackRailHeight = 0.04f;
         // A loose pile is nudged and turned a little per plate, so it reads as dirty dishes.
         private const float MessyNudge = 0.03f;
 
@@ -33,7 +33,6 @@ namespace Game.Editor
         private static readonly Color RimColor = new Color(0.8f, 0.64f, 0.3f);
         private static readonly Color RackColor = new Color(0.08f, 0.08f, 0.09f);
         private static readonly Color SteelColor = new Color(0.72f, 0.74f, 0.77f);
-        private static readonly Color BambooColor = new Color(0.96f, 0.84f, 0.56f);
 
         public enum PlateLayout
         {
@@ -125,7 +124,7 @@ namespace Game.Editor
             if (!PilotArt.TryUseMesh(board, BoardModel, "BoardBody"))
                 return;
             board.transform.localPosition = Vector3.up * counterHeight;
-            board.GetComponent<Renderer>().sharedMaterial = GreyboxAssets.EnsureMaterial("Bamboo", BambooColor);
+            board.GetComponent<Renderer>().sharedMaterial = StyleTest.BoardMaterial(); // wood grain, toon shaded
         }
 
         /// <summary>The plate shader's material (MAT_Plate): clean, until a view makes it dirty.</summary>

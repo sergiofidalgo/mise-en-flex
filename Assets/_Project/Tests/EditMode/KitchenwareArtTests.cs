@@ -28,13 +28,16 @@ namespace Game.Tests.EditMode
         public void PlateIsTheGreyboxPlatesWidthWithItsOriginAtItsBase()
         {
             var body = Model("SM_Plate", "PlateBody");
-            Assert.That(body.size.x, Is.EqualTo(0.32f).Within(Tolerance));
-            Assert.That(body.size.z, Is.EqualTo(0.32f).Within(Tolerance));
-            Assert.That(body.min.y, Is.EqualTo(0f).Within(Tolerance));
-            Assert.That(body.max.y, Is.LessThanOrEqualTo(0.035f), "a thick, cartoony plate, but one a pile's step high");
-
             var rim = Model("SM_Plate", "PlateRim");
-            Assert.That(rim.size.x, Is.LessThanOrEqualTo(body.size.x + Tolerance), "The rim stays on the plate.");
+            // The fat rim is the plate's outside edge.
+            Assert.That(rim.size.x, Is.EqualTo(0.32f).Within(Tolerance));
+            Assert.That(rim.size.z, Is.EqualTo(0.32f).Within(Tolerance));
+            Assert.That(body.size.x, Is.LessThanOrEqualTo(0.32f));
+            Assert.That(body.min.y, Is.EqualTo(0f).Within(Tolerance));
+            Assert.That(body.max.y, Is.LessThanOrEqualTo(0.042f), "a thick, cartoony plate, but one a pile's step high");
+            Assert.That(Model("SM_Plate", "PlateRim").max.y, Is.LessThanOrEqualTo(0.042f + Tolerance), "piles sit rim on rim");
+
+
         }
 
         [Test]
@@ -50,7 +53,7 @@ namespace Game.Tests.EditMode
         public void PlateRackHoldsTheStacksSixPlatesAndFitsTheCounter()
         {
             var rack = Model("SM_PlateRack", "PlateRack");
-            Assert.That(rack.size.z, Is.GreaterThanOrEqualTo(5 * 0.055f), "Room for six plates, one behind the other.");
+            Assert.That(rack.size.z, Is.GreaterThanOrEqualTo(5 * 0.06f), "Room for six plates, one behind the other.");
             Assert.That(rack.size.x, Is.LessThan(1f));
             Assert.That(rack.min.y, Is.EqualTo(0f).Within(Tolerance));
         }
@@ -69,9 +72,9 @@ namespace Game.Tests.EditMode
         public void BoardKeepsItsSizeAndSitsOnItsCounter()
         {
             var board = Model("SM_Board", "BoardBody");
-            Assert.That(board.size.x, Is.EqualTo(0.34f).Within(Tolerance));
-            Assert.That(board.size.z, Is.EqualTo(0.28f).Within(Tolerance));
-            Assert.That(board.size.y, Is.EqualTo(0.035f).Within(Tolerance));
+            Assert.That(board.size.x, Is.EqualTo(0.7f).Within(Tolerance), "most of its 1 m counter");
+            Assert.That(board.size.z, Is.EqualTo(0.55f).Within(Tolerance));
+            Assert.That(board.size.y, Is.EqualTo(0.04f).Within(Tolerance));
             Assert.That(board.min.y, Is.EqualTo(0f).Within(Tolerance));
 
             var counter = Prefab("Assets/_Project/Prefabs/Furniture/PF_CuttingBoard.prefab");

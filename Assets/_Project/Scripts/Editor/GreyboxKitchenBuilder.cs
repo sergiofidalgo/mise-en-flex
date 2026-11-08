@@ -119,7 +119,7 @@ namespace Game.Editor
         // On the west wall, by prep: the back-left corner is the tall storage (decision 2026-11-07).
         private static readonly Vector3 KnifeCounterPosition = new Vector3(-3.4f, 0f, -0.6f);
         private static readonly Vector3 PrepCounterPosition = new Vector3(-1.4f, 0f, 1.4f);
-        private static readonly Vector3 CuttingBoardScale = new Vector3(0.34f, 0.035f, 0.28f); // the board model's size
+        private static readonly Vector3 CuttingBoardScale = new Vector3(0.7f, 0.04f, 0.55f); // the board model's size: most of its counter
         private static readonly Color CuttingBoardColor = new Color(0.92f, 0.82f, 0.62f);
 
         // A knife rack: a block along the counter's back with knives standing in it, one per place.
@@ -748,6 +748,7 @@ namespace Game.Editor
             {
                 PilotArt.TryUseMesh(hob.transform.Find("Body").gameObject, "SM_Hob", "HobBody");
                 PilotArt.TryUseMesh(burner, "SM_Hob", "HobBurner");
+                StyleTest.DressHob(hob.transform, burner); // the cartoony style test (decision 2026-11-08)
             }
 
             var pips = new Renderer[HeatPipCount];

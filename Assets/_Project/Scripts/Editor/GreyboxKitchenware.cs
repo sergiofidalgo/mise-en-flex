@@ -29,7 +29,6 @@ namespace Game.Editor
         };
 
         public static readonly Color PanColor = new Color(0.30f, 0.30f, 0.33f);
-        private static readonly Color PanHandleColor = new Color(0.16f, 0.11f, 0.08f);
         public static readonly Color PlateColor = new Color(0.95f, 0.95f, 0.93f);
 
         // Smoke: soft puffs that rise, spread and fade. Emission is driven at runtime by PanView.
@@ -57,7 +56,7 @@ namespace Game.Editor
             // PanView tints the body with heat, so the handle gets its own colour with the model.
             PilotArt.TryUseMesh(body, "SM_Pan", "PanBody");
             if (PilotArt.TryUseMesh(handle, "SM_Pan", "PanHandle"))
-                handle.GetComponent<Renderer>().sharedMaterial = GreyboxAssets.EnsureMaterial("PanHandle", PanHandleColor);
+                StyleTest.DressPan(body, handle); // the cartoony style test (decision 2026-11-08)
 
             var view = AddSlots(root, PanSlots, PanDepth);
             var smoke = CreateParticles(root.transform, "Smoke", PanDepth, PanDiameter * 0.3f,

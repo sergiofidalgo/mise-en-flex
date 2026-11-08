@@ -20,7 +20,7 @@ namespace Game.Gameplay.Stations
         [SerializeField, Min(1)] private int _dirtyPlates = 3;
 
         [Tooltip("Metres between plates in a pile; about a plate's height.")]
-        [SerializeField, Min(0f)] private float _pileStep = 0.035f;
+        [SerializeField, Min(0f)] private float _pileStep = 0.042f;
 
         private ItemSlot _slot;
         private CounterContainer _container;

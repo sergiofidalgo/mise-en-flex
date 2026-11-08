@@ -1,4 +1,4 @@
-// A plate that can be dirty: sauce smeared over it, greasy patches and crumbs, all drawn in
+// A plate that can be dirty: streaky smears, splatter, a tide mark, grease and crumbs, all drawn in
 // object space from _Seed so that no two dirty plates look alike. _Dirt goes from 0 (clean) to 1
 // (as left by a diner), so a plate in the sink can come clean as it's washed. The plate's origin
 // is the centre of its base and its radius is _Radius, so the grime stays on the plate.
@@ -6,6 +6,13 @@ Shader "Game/Kitchen/Plate"
 {
     Properties
     {
+        [Header(Toon)]
+        _ShadowTint("Shadow tint (multiplies the colour)", Color) = (0.62, 0.6, 0.78, 1)
+        _ToonEdge("Light edge", Range(-1, 1)) = 0.1
+        _ToonSoftness("Light edge softness", Range(0.001, 0.5)) = 0.04
+        _RimStrength("Rim light", Range(0, 1)) = 0.15
+        _OutlineColor("Outline", Color) = (0.12, 0.09, 0.1, 1)
+        _OutlineWidth("Outline width (m)", Range(0, 0.05)) = 0.005
         [MainColor] _BaseColor("Plate", Color) = (0.97, 0.97, 0.95, 1)
         _Smoothness("Smoothness", Range(0, 1)) = 0.65
         _Radius("Plate radius (m)", Float) = 0.17
@@ -13,8 +20,8 @@ Shader "Game/Kitchen/Plate"
         [Header(Grime)]
         _Dirt("Dirt (runtime: 0 clean, 1 dirty)", Range(0, 1)) = 0
         _Seed("Variation (runtime)", Float) = 0.5
-        _SauceRed("Sauce: tomato", Color) = (0.62, 0.12, 0.06, 1)
-        _SauceBrown("Sauce: gravy", Color) = (0.36, 0.2, 0.09, 1)
+        _SauceRed("Sauce: orange", Color) = (0.7, 0.4, 0.16, 1)
+        _SauceBrown("Sauce: brown", Color) = (0.46, 0.34, 0.22, 1)
         _GreaseColor("Grease", Color) = (0.86, 0.72, 0.38, 1)
         _CrumbColor("Crumbs", Color) = (0.3, 0.19, 0.1, 1)
         _SauceAmount("Sauce", Range(0, 1)) = 1
@@ -42,6 +49,12 @@ Shader "Game/Kitchen/Plate"
             float _SauceAmount;
             float _GreaseAmount;
             float _CrumbAmount;
+            half4 _ShadowTint;
+            float _ToonEdge;
+            float _ToonSoftness;
+            float _RimStrength;
+            half4 _OutlineColor;
+            float _OutlineWidth;
         CBUFFER_END
         ENDHLSL
 
@@ -62,6 +75,7 @@ Shader "Game/Kitchen/Plate"
             #pragma multi_compile_fog
 
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
+            #include "ToonCommon.hlsl"
 
             struct Attributes
             {
@@ -117,27 +131,35 @@ Shader "Game/Kitchen/Plate"
                 float2 p = positionOS.xz / _Radius;
                 float r = length(p);
                 float offset = _Seed * 41.0;
-                float wobble = ValueNoise(p * 5.0 + offset) - 0.5;
 
-                // Sauce: a puddle somewhere in the well, and a smear dragged away from it, like a
-                // fork's wipe. Both have ragged edges. Red or brown, by the seed.
-                float2 puddleCentre = (float2(Pick(1.0), Pick(2.0)) - 0.5) * 0.9;
-                float puddleSize = lerp(0.24, 0.4, Pick(5.0));
-                float puddle = 1.0 - smoothstep(puddleSize - 0.06, puddleSize, length(p - puddleCentre) + wobble * 0.3);
-                float smearAngle = Pick(3.0) * 6.2831853;
-                float2 along = float2(cos(smearAngle), sin(smearAngle));
-                float2 fromPuddle = p - puddleCentre;
-                float run = dot(fromPuddle, along);
-                float across = dot(fromPuddle, float2(-along.y, along.x)) + sin(run * 6.0 + offset) * 0.06;
-                float smear = (1.0 - smoothstep(0.09, 0.16, abs(across))) * smoothstep(0.0, 0.05, run)
-                    * (1.0 - smoothstep(0.45, 0.75, run + wobble * 0.3));
-                float sauce = saturate(max(puddle, smear * 0.85)) * (1.0 - smoothstep(0.82, 0.9, r)) * _SauceAmount;
+                // Smears: streaky wipes, as a fork or bread leaves them, in a few patches. Thin
+                // broken lines rather than solid shapes, so a dirty plate never reads as food.
+                float angle = Pick(3.0) * 6.2831853;
+                float2 along = float2(cos(angle), sin(angle));
+                float across = dot(p, float2(-along.y, along.x)) + (ValueNoise(p * 3.0 + offset) - 0.5) * 0.5;
+                float lines = abs(frac(across * 3.0 + ValueNoise(p * 2.0 + offset) * 0.4) - 0.5);
+                // Broken into short dabs along their length, so they read as wipes, not contour lines.
+                float dabs = smoothstep(0.45, 0.6, ValueNoise(float2(dot(p, along) * 6.0, across * 3.0) + offset + 17.0));
+                float streaks = (1.0 - smoothstep(0.05, 0.16, lines)) * dabs
+                    * smoothstep(0.4, 0.65, ValueNoise(p * 2.5 + offset + 5.0))
+                    * (1.0 - smoothstep(0.75, 0.88, r));
+
+                // Splatter: small drops, gathered in clusters.
+                float drops = smoothstep(0.82, 0.88, ValueNoise(p * 14.0 + offset + 9.0))
+                    * smoothstep(0.45, 0.7, ValueNoise(p * 3.0 + offset + 13.0)) * (1.0 - smoothstep(0.8, 0.9, r));
+
+                // A faint tide mark round the well.
+                float ringAt = lerp(0.55, 0.7, Pick(6.0));
+                float ring = (1.0 - smoothstep(0.0, 0.05, abs(r - ringAt + (ValueNoise(p * 4.0 + offset) - 0.5) * 0.06)))
+                    * smoothstep(0.3, 0.6, ValueNoise(p * 2.0 + offset + 21.0));
+
+                float sauce = saturate(max(max(streaks * 0.65, drops), ring * 0.45)) * _SauceAmount;
                 half3 sauceColor = lerp(_SauceRed.rgb, _SauceBrown.rgb, Pick(4.0));
 
                 // Grease: soft, see-through patches.
                 float grease = smoothstep(0.45, 0.7, ValueNoise(p * 2.2 + offset + 7.0)) * _GreaseAmount;
 
-                // Crumbs: a few clusters of specks, mostly in the well, rather than an even scatter.
+                // Crumbs: a few clusters of specks, mostly in the well.
                 float clusters = smoothstep(0.6, 0.8, ValueNoise(p * 3.0 + offset + 11.0));
                 float specks = smoothstep(0.86, 0.9, ValueNoise(p * 22.0 + offset + 3.0));
                 float crumbs = specks * clusters * (1.0 - smoothstep(0.6, 0.8, r)) * _CrumbAmount;
@@ -151,28 +173,24 @@ Shader "Game/Kitchen/Plate"
 
             half4 Fragment(Varyings input) : SV_Target
             {
-                InputData inputData = (InputData)0;
-                inputData.positionWS = input.positionWS;
-                inputData.positionCS = input.positionCS;
-                inputData.normalWS = normalize(input.normalWS);
-                inputData.viewDirectionWS = GetWorldSpaceNormalizeViewDir(input.positionWS);
-                inputData.shadowCoord = TransformWorldToShadowCoord(input.positionWS);
-                inputData.fogCoord = input.fogFactor;
-                inputData.bakedGI = SampleSH(inputData.normalWS);
-                inputData.normalizedScreenSpaceUV = GetNormalizedScreenSpaceUV(input.positionCS);
-                inputData.shadowMask = half4(1, 1, 1, 1);
-
-                SurfaceData surface = (SurfaceData)0;
-                surface.albedo = PlateColor(input.positionOS);
-                surface.smoothness = _Smoothness;
-                surface.occlusion = 1;
-                surface.alpha = 1;
-                surface.normalTS = half3(0, 0, 1);
-
-                half4 color = UniversalFragmentPBR(inputData, surface);
-                color.rgb = MixFog(color.rgb, inputData.fogCoord);
-                return color;
+                // Cartoony flat shading (ToonCommon.hlsl, decision 2026-11-08).
+                half3 color = ToonShade(PlateColor(input.positionOS), input.positionWS, input.normalWS, input.positionCS);
+                return half4(MixFog(color, input.fogFactor), 1);
             }
+            ENDHLSL
+        }
+
+        Pass
+        {
+            Name "Outline"
+            Tags { "LightMode" = "SRPDefaultUnlit" }
+            Cull Front
+            ZWrite On
+
+            HLSLPROGRAM
+            #pragma vertex ToonOutlineVertex
+            #pragma fragment ToonOutlineFragment
+            #include "ToonCommon.hlsl"
             ENDHLSL
         }
 

@@ -7,6 +7,13 @@ Shader "Game/Food/Layered"
 {
     Properties
     {
+        [Header(Toon)]
+        _ShadowTint("Shadow tint (multiplies the colour)", Color) = (0.62, 0.6, 0.78, 1)
+        _ToonEdge("Light edge", Range(-1, 1)) = 0.1
+        _ToonSoftness("Light edge softness", Range(0.001, 0.5)) = 0.04
+        _RimStrength("Rim light", Range(0, 1)) = 0.15
+        _OutlineColor("Outline", Color) = (0.12, 0.09, 0.1, 1)
+        _OutlineWidth("Outline width (m)", Range(0, 0.05)) = 0.005
         [MainColor] _BaseColor("Surface (driven at runtime; raw colour in the material)", Color) = (0.62, 0.12, 0.14, 1)
         _BandBottom("Band: bottom (runtime)", Color) = (0.62, 0.12, 0.14, 1)
         _BandCore("Band: core (runtime)", Color) = (0.62, 0.12, 0.14, 1)
@@ -63,6 +70,12 @@ Shader "Game/Food/Layered"
             half4 _CrustBottom;
             float _BrowningBottom;
             float _SearLine;
+            half4 _ShadowTint;
+            float _ToonEdge;
+            float _ToonSoftness;
+            float _RimStrength;
+            half4 _OutlineColor;
+            float _OutlineWidth;
         CBUFFER_END
         ENDHLSL
 
@@ -83,6 +96,7 @@ Shader "Game/Food/Layered"
             #pragma multi_compile_fog
 
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
+            #include "ToonCommon.hlsl"
 
             struct Attributes
             {
@@ -242,28 +256,24 @@ Shader "Game/Food/Layered"
 
             half4 Fragment(Varyings input) : SV_Target
             {
-                InputData inputData = (InputData)0;
-                inputData.positionWS = input.positionWS;
-                inputData.positionCS = input.positionCS;
-                inputData.normalWS = normalize(input.normalWS);
-                inputData.viewDirectionWS = GetWorldSpaceNormalizeViewDir(input.positionWS);
-                inputData.shadowCoord = TransformWorldToShadowCoord(input.positionWS);
-                inputData.fogCoord = input.fogFactor;
-                inputData.bakedGI = SampleSH(inputData.normalWS);
-                inputData.normalizedScreenSpaceUV = GetNormalizedScreenSpaceUV(input.positionCS);
-                inputData.shadowMask = half4(1, 1, 1, 1);
-
-                SurfaceData surface = (SurfaceData)0;
-                surface.albedo = FoodColor(input);
-                surface.smoothness = _Smoothness;
-                surface.occlusion = 1;
-                surface.alpha = 1;
-                surface.normalTS = half3(0, 0, 1);
-
-                half4 color = UniversalFragmentPBR(inputData, surface);
-                color.rgb = MixFog(color.rgb, inputData.fogCoord);
-                return color;
+                // Cartoony flat shading (ToonCommon.hlsl, decision 2026-11-08).
+                half3 color = ToonShade(FoodColor(input), input.positionWS, input.normalWS, input.positionCS);
+                return half4(MixFog(color, input.fogFactor), 1);
             }
+            ENDHLSL
+        }
+
+        Pass
+        {
+            Name "Outline"
+            Tags { "LightMode" = "SRPDefaultUnlit" }
+            Cull Front
+            ZWrite On
+
+            HLSLPROGRAM
+            #pragma vertex ToonOutlineVertex
+            #pragma fragment ToonOutlineFragment
+            #include "ToonCommon.hlsl"
             ENDHLSL
         }
 

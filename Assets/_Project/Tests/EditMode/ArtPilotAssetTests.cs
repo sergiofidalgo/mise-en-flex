@@ -171,11 +171,14 @@ namespace Game.Tests.EditMode
         [Test]
         public void HobFillsItsStationAndTheBurnerStaysBelowThePan()
         {
+            // The top is its own part (its own colour); together with the body it fills the station.
             var body = Model("SM_Hob", "HobBody").bounds;
+            var top = Model("SM_Hob", "HobTop").bounds;
             var burner = Model("SM_Hob", "HobBurner").bounds;
-            Assert.That(body.size.x, Is.EqualTo(1f).Within(Tolerance));
-            Assert.That(body.size.y, Is.EqualTo(0.9f).Within(Tolerance));
-            Assert.That(body.size.z, Is.EqualTo(1f).Within(Tolerance));
+            Assert.That(top.size.x, Is.EqualTo(1f).Within(Tolerance));
+            Assert.That(top.size.z, Is.EqualTo(1f).Within(Tolerance));
+            Assert.That(top.max.y, Is.EqualTo(0.9f).Within(Tolerance));
+            Assert.That(body.size.x, Is.LessThanOrEqualTo(1f + Tolerance));
             Assert.That(body.min.y, Is.EqualTo(0f).Within(Tolerance));
             Assert.That(burner.max.y, Is.LessThanOrEqualTo(0.91f), "The pan rests at 0.91 m.");
         }
