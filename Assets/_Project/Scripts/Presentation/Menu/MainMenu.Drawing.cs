@@ -168,7 +168,7 @@ namespace Game.Presentation.Menu
                     return _lastPlayed >= 0 ? $"{Name(_saves[_lastPlayed])} · Day {_saves[_lastPlayed].Day + 1}" : "";
                 case Item.NewCampaign:
                     var free = SaveSlots.FirstFree(_saves);
-                    return _lastPlayed < 0 ? "Open your first restaurant" : free >= 0 ? $"Open a new restaurant in slot {free + 1}" : "All three slots are taken";
+                    return _lastPlayed < 0 ? "Open your first restaurant" : free >= 0 ? $"Starts in slot {free + 1}" : "All three slots are taken";
                 case Item.Settings:
                     return "Cooking precision, spoilage, patience";
                 case Item.Credits:
@@ -311,7 +311,7 @@ namespace Game.Presentation.Menu
             {
                 var first = _lastPlayed < 0;
                 UiKit.Picture(_cards, "Polaroid", first ? _polaroidFirst : _polaroidNext, x + 62.5f, 398f, 184f, 186f);
-                UiKit.TextAt(_bold, _cards, "Title", "Open a new restaurant", 26.67f, focused ? _ink : _tan, centre, 616f, CardWidth, HorizontalAlignmentOptions.Center);
+                UiKit.TextAt(_bold, _cards, "Title", "Start a new campaign", 26.67f, focused ? _ink : _tan, centre, 616f, CardWidth, HorizontalAlignmentOptions.Center);
                 UiKit.TextAt(_serifItalic, _cards, "Free", $"Slot {slot + 1} is free", 20f, _tan, centre, 654f, CardWidth, HorizontalAlignmentOptions.Center);
                 var start = UiKit.TextAt(_semiBold, _cards, "Start", "Start", 18.67f, _tan, 0f, 702f, 100f);
                 var group = 29f + 9.4f + UiKit.Width(start);
