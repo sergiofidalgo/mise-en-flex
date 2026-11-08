@@ -36,7 +36,11 @@ Kinds of heat replaced equipment tiers (`decisions.md`, 2026-11-07). These need 
 - **Furniture in the way is the players' to deal with:** a wall can't go through an appliance, so they move appliances first to avoid clashes.
 - **Walls can run at 45°,** as furniture can turn by 45°, so rooms aren't limited to rectangles.
 
-**Still open:** whether reshaping takes time (only in Plan, or any time in management mode), how a wall at 45° meets the camera's framing and customers' and staff's routes, and whether there's a limit to how small a room can be (a kitchen too small for a hob, a dining room with no space for a table).
+- **Only in management mode,** like moving furniture.
+- **Every room is at least 4 × 4 floor slots** (4 × 4 m).
+- **The camera keeps its angle and behaviour whatever the layout.** Players see their layout from the same view as always and judge for themselves whether it plays well from there. That's deliberate: it's part of the choice, not something the camera adapts to.
+
+**Still open:** how 45° walls meet customers' and staff's routes, and what the camera's "kitchen faces the dining room to the south" assumption becomes when the kitchen is elsewhere (it keeps its angle; only what it frames needs the floor plan's data).
 
 ---
 
