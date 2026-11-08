@@ -165,6 +165,46 @@ namespace Game.Simulation.Cooking
             Freshness = Math.Max(0f, Freshness - amount);
         }
 
+        /// <summary>Its cooking state, for a save.</summary>
+        public Saving.IngredientState Capture() => new Saving.IngredientState
+        {
+            Temperatures = (float[])Temperatures.Clone(),
+            PeakTemperatures = (float[])_peakTemperatures.Clone(),
+            Browning = (float[])_browning.Clone(),
+            Freshness = Freshness,
+            Seasoning = Seasoning,
+            WasCut = CutEvenness.HasValue,
+            CutEvenness = CutEvenness ?? 0f,
+            SideBDown = DownSide == IngredientSide.B,
+            Flipped = HasBeenFlipped,
+            SecondsOutOfPan = SecondsOutOfPan,
+            HasEnvironment = EnvironmentTemperature.HasValue,
+            EnvironmentTemperature = EnvironmentTemperature ?? 0f,
+        };
+
+        /// <summary>Puts back the state from a save. Where it is (pan, plate) is set by putting it there.</summary>
+        public void Restore(Saving.IngredientState state)
+        {
+            Copy(state.Temperatures, Temperatures);
+            Copy(state.PeakTemperatures, _peakTemperatures);
+            Copy(state.Browning, _browning);
+            Freshness = state.Freshness;
+            Seasoning = state.Seasoning;
+            CutEvenness = state.WasCut ? state.CutEvenness : (float?)null;
+            DownSide = state.SideBDown ? IngredientSide.B : IngredientSide.A;
+            HasBeenFlipped = state.Flipped;
+            SecondsOutOfPan = state.SecondsOutOfPan;
+            EnvironmentTemperature = state.HasEnvironment ? state.EnvironmentTemperature : (float?)null;
+        }
+
+        // A short or missing array (an older save) leaves the rest as it was.
+        private static void Copy(float[] from, float[] to)
+        {
+            if (from == null)
+                return;
+            Array.Copy(from, to, Math.Min(from.Length, to.Length));
+        }
+
         internal void CopyStateFrom(Ingredient other)
         {
             var temperature = other.AverageTemperature;

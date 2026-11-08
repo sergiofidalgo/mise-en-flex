@@ -503,6 +503,7 @@ namespace Game.Editor
             rootSo.FindProperty("_serviceConfig").objectReferenceValue = assets.ServiceConfig;
             rootSo.FindProperty("_staffConfig").objectReferenceValue = assets.StaffConfig;
             rootSo.FindProperty("_floorPlan").objectReferenceValue = assets.FloorPlan;
+            rootSo.FindProperty("_furniture").objectReferenceValue = assets.Furniture;
             rootSo.FindProperty("_playerInputManager").objectReferenceValue = manager;
             rootSo.ApplyModifiedPropertiesWithoutUndo();
 

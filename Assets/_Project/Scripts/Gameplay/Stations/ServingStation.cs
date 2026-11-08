@@ -5,6 +5,7 @@ using Game.Simulation.Items;
 using Game.Simulation.Quality;
 using Game.Simulation.Service;
 using UnityEngine;
+using Game.Gameplay.Saving;
 
 namespace Game.Gameplay.Stations
 {
@@ -16,7 +17,7 @@ namespace Game.Gameplay.Stations
     /// someone clears it. The next customer can still sit and order, but that place can't be served
     /// until it's cleared (decisions 2026-11-04).
     /// </summary>
-    public abstract class ServingStation : Interactable, IStationPrompt
+    public abstract class ServingStation : Interactable, IStationPrompt, ISavedContents
     {
         /// <summary>One customer's place at this station.</summary>
         protected sealed class Place : IServingPlace
@@ -99,6 +100,36 @@ namespace Game.Gameplay.Stations
                 }
                 return null;
             }
+        }
+
+        public IEnumerable<(int Slot, Item Item)> SavedItems
+        {
+            get
+            {
+                for (var i = 0; i < _places.Count; i++)
+                {
+                    if (_places[i].Slot.Current != null)
+                        yield return (i, _places[i].Slot.Current);
+                }
+            }
+        }
+
+        public void ClearForLoad()
+        {
+        }
+
+        // Back at the same seat if it's still there: a dirty plate waits to be cleared, as it was left.
+        public bool RestoreItem(int slot, Item item)
+        {
+            if (!(item is Plate plate))
+                return false;
+            var place = slot >= 0 && slot < _places.Count && _places[slot].Slot.Current == null
+                ? _places[slot]
+                : _places.Find(p => p.Slot.Current == null);
+            if (place == null || !place.Slot.Restore(plate))
+                return false;
+            _services.ItemViews.PlaceImmediately(plate, AnchorFor(plate));
+            return true;
         }
 
         public override Transform AnchorFor(Item item)

@@ -61,6 +61,13 @@ namespace Game.Gameplay.Stations
             ArrangeChairs();
         }
 
+        /// <summary>Its chairs as they were saved.</summary>
+        public void RestoreChairs(int count)
+        {
+            _chairCount = System.Math.Max(1, count);
+            ArrangeChairs();
+        }
+
         public void RemoveChair()
         {
             _chairCount--;

@@ -70,5 +70,8 @@ namespace Game.Simulation.Items
 
         /// <summary>A plate broken somewhere: it's replaced with the others in the morning.</summary>
         public void CountBroken() => Broken++;
+
+        /// <summary>Broken plates from a save, still waiting to be replaced.</summary>
+        public void RestoreBroken(int count) => Broken = System.Math.Max(0, count);
     }
 }

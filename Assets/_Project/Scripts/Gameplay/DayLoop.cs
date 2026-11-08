@@ -40,6 +40,9 @@ namespace Game.Gameplay
                         services.Cooking.Hobs, services.Stations.All.Count(s => s is Game.Gameplay.Stations.GrillStation), services.Equipment.EnergyPrices);
                     days.FinishService(summary, services.Staff.TotalWages, _root.CloseKitchen(), energy);
                     _root.Services.Staff.EndDay(summary, _root.Services.StaffConfig.ToSettings());
+
+                    // Saved as Review starts, once the day's results are in (decision 2026-11-06).
+                    _root.SaveCampaign();
                 }
             }
             else

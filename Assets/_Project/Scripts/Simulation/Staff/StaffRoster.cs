@@ -37,6 +37,9 @@ namespace Game.Simulation.Staff
 
         public void Fire(StaffMember member) => _hired.Remove(member);
 
+        /// <summary>Someone already on the team, back from a save.</summary>
+        public void Restore(StaffMember member) => _hired.Add(member);
+
         /// <summary>Who quit at the end of the latest day.</summary>
         public IReadOnlyList<StaffMember> LastQuit { get; private set; } = Array.Empty<StaffMember>();
 

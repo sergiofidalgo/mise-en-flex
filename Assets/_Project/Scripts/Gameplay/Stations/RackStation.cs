@@ -5,7 +5,7 @@ using UnityEngine;
 namespace Game.Gameplay.Stations
 {
     /// <summary>Where the kitchen's empty trays or containers live.</summary>
-    public sealed class RackStation : Interactable, IStationPrompt
+    public sealed class RackStation : Interactable, IStationPrompt, Saving.ISavedCount
     {
         public enum RackKind
         {
@@ -16,6 +16,7 @@ namespace Game.Gameplay.Stations
         [SerializeField] private RackKind _kind;
 
         private KitchenServices _services;
+        private System.Func<Item> _create;
 
         public RackKind Kind => _kind;
 
@@ -29,10 +30,24 @@ namespace Game.Gameplay.Stations
         {
             _services = services;
             var equipment = services.Equipment;
+            _create = _kind == RackKind.Trays
+                ? () => new Tray(equipment.TrayCapacity, equipment.TrayFreshnessFactor)
+                : (System.Func<Item>)(() => new FoodContainer(equipment.ContainerCapacity, equipment.ContainerFreshnessFactor));
             Rack = _kind == RackKind.Trays
-                ? new ItemRack(equipment.TrayCount, () => new Tray(equipment.TrayCapacity, equipment.TrayFreshnessFactor), item => item is Tray tray && tray.IsEmpty)
-                : new ItemRack(equipment.ContainerCount, () => new FoodContainer(equipment.ContainerCapacity, equipment.ContainerFreshnessFactor), item => item is FoodContainer container && container.IsEmpty);
+                ? new ItemRack(equipment.TrayCount, _create, item => item is Tray tray && tray.IsEmpty)
+                : new ItemRack(equipment.ContainerCount, _create, item => item is FoodContainer container && container.IsEmpty);
             Rack.Returned += HandleReturned;
+        }
+
+        public int SavedCount => Rack.Count;
+
+        // The rest are wherever they were left, saved with what's in them.
+        public void RestoreCount(int count)
+        {
+            while (Rack.Count > count)
+                Rack.Take();
+            while (Rack.Count < count)
+                Rack.Put(_create());
         }
 
         private void OnDestroy()

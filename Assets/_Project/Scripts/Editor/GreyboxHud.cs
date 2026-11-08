@@ -138,6 +138,12 @@ namespace Game.Editor
             status.FindProperty("_settings").objectReferenceValue = settings;
             status.ApplyModifiedPropertiesWithoutUndo();
 
+            var campaign = new SerializedObject(hud.AddComponent<CampaignCardHud>());
+            campaign.FindProperty("_canvas").objectReferenceValue = hud.GetComponent<RectTransform>();
+            campaign.FindProperty("_style").objectReferenceValue = style;
+            campaign.FindProperty("_root").objectReferenceValue = root;
+            campaign.ApplyModifiedPropertiesWithoutUndo();
+
             var money = new SerializedObject(hud.AddComponent<MoneyHud>());
             money.FindProperty("_canvas").objectReferenceValue = hud.GetComponent<RectTransform>();
             money.FindProperty("_style").objectReferenceValue = style;

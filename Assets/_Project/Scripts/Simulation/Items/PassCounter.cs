@@ -50,6 +50,15 @@ namespace Game.Simulation.Items
             Placed?.Invoke(Current);
         }
 
+        /// <summary>A plate back from a save: one with food waiting, or a dirty one left to clear.</summary>
+        public bool Restore(Plate plate)
+        {
+            if (Current != null || plate == null)
+                return false;
+            Current = plate;
+            return true;
+        }
+
         /// <summary>A customer has started on the plate: it can't be taken back now.</summary>
         public void StartEating() => _beingEaten = true;
 

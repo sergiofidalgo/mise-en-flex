@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using Game.Simulation.Cooking;
 using Game.Simulation.Items;
 using UnityEngine;
+using Game.Gameplay.Saving;
 
 namespace Game.Gameplay.Stations
 {
@@ -11,7 +12,7 @@ namespace Game.Gameplay.Stations
     /// flips the food in the pan. On gas the triggers turn the dial smoothly; on induction each
     /// press is one step up or down (decision 2026-11-07).
     /// </summary>
-    public sealed class HobStation : Interactable, IUsable, IHeatControl, IStationPrompt
+    public sealed class HobStation : Interactable, IUsable, IHeatControl, IStationPrompt, ISavedContents
     {
         private static readonly string[] StepNames = { "off", "low", "medium", "high" };
 
@@ -55,6 +56,34 @@ namespace Game.Gameplay.Stations
             var pan = services.Cooking.AddPan(services.Equipment.Pan);
             _slot.Put(pan);
             services.ItemViews.PlaceImmediately(pan, ItemAnchor);
+        }
+
+        public IEnumerable<(int Slot, Item Item)> SavedItems
+        {
+            get
+            {
+                if (Hob?.Pan != null)
+                    yield return (0, Hob.Pan);
+            }
+        }
+
+        // The pan a new hob comes with: the save has its own pans, wherever they were left.
+        public void ClearForLoad()
+        {
+            if (Hob?.Pan == null)
+                return;
+            var pan = (Simulation.Cooking.Pan)_slot.Take();
+            _services.ItemViews.Release(pan);
+            _services.Cooking.Remove(pan);
+        }
+
+        public bool RestoreItem(int slot, Item item)
+        {
+            if (!_slot.CanAccept(item))
+                return false;
+            _slot.Put(item);
+            _services.ItemViews.PlaceImmediately(item, ItemAnchor);
+            return true;
         }
 
         public bool TryUse(PlayerInteractor player) => Hob != null && HobControls.TryFlip(Hob);

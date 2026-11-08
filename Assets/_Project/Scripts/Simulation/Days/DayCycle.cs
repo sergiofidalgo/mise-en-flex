@@ -32,7 +32,7 @@ namespace Game.Simulation.Days
 
     /// <summary>
     /// The restaurant's days: Plan → Prep → Service → Review, then the next day's Plan. Money
-    /// carries from day to day. Lasts for the session until saves arrive in Phase 5.
+    /// carries from day to day. Saved as Review starts.
     /// </summary>
     public sealed class DayCycle
     {
@@ -40,6 +40,10 @@ namespace Game.Simulation.Days
         {
             Balance = startingBalance;
         }
+
+        /// <summary>Carries on from a save: the morning after the day that was played (decision 2026-11-08).</summary>
+        public static DayCycle Continuing(int dayPlayed, float balance) =>
+            new DayCycle(balance) { Day = Math.Max(1, dayPlayed + 1) };
 
         public int Day { get; private set; } = 1;
 
