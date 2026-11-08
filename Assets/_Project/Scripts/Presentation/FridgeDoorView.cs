@@ -31,7 +31,10 @@ namespace Game.Presentation
         [SerializeField, Min(0f)] private float _mistWhileOpen;
 
         private float _amount;
-        private int _keptOpenOnFrame = int.MinValue;
+        // Never yet. Not int.MinValue: "frame now minus it" overflowed to a negative number, which
+        // read as "kept open just now", so the lid stood open from the start of the day until someone
+        // opened and closed it (the user's bug report, 2026-11-08).
+        private int _keptOpenOnFrame = -1000;
 
         public event Action Opened;
         public event Action Closed;
