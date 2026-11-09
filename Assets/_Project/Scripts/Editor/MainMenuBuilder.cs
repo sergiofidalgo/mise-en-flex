@@ -108,12 +108,8 @@ namespace Game.Editor
 
             EditorSceneManager.SaveScene(scene, ScenePath);
 
-            // The menu comes first in a build; the kitchen is loaded from it.
-            EditorBuildSettings.scenes = new[]
-            {
-                new EditorBuildSettingsScene(ScenePath, true),
-                new EditorBuildSettingsScene(KitchenScenePath, true),
-            };
+            // Builds boot into the office now, where the menu shows over the city (decision 2026-11-09).
+            BootOrder.Apply();
             AssetDatabase.SaveAssets();
             Debug.Log($"[MainMenuBuilder] Built {ScenePath}.");
         }

@@ -1,6 +1,6 @@
 # The opening — from launch to the office
 
-*Spec, 2026-11-09, from the user's outline and their answers. References: the skyline mockup (`10_menu_skyline.svg`), the main menu mockup (`Art/Direction/concepts/2026-11-08_main-menu_new-player.png`), `office-scene.md`. Steps 2–8 built in `Office_Greybox` (2026-11-09); the office isn't the boot scene yet.*
+*Spec, 2026-11-09, from the user's outline and their answers. References: the skyline mockup (`10_menu_skyline.svg`), the main menu mockup (`Art/Direction/concepts/2026-11-08_main-menu_new-player.png`), `office-scene.md`. Steps 2–9 built in `Office_Greybox`, the boot scene (2026-11-09).*
 
 The first half-minute takes players from the city's streets up the boss's tower and into his floor, in one unbroken camera move. The menu and the office become one place: the game happens in the glowing penthouse you see from the street.
 
@@ -44,7 +44,13 @@ The fly-through, the menu's resting shot and the office have to be one city:
 - **`MainMenu`** starts hidden in the office (`_startHidden`). When the office listens to `Launching`, the menu hands over instead of loading the kitchen.
 - **Captures:** *Tools/Game/Capture Office* renders `opening_flight_*` and `opening_climb_*` along the path.
 
-**Still to do:** the miniature table loads the kitchen once every joined player is at it; the office becomes the boot scene and the old `MainMenu` scene retires; the join slots still show while players are on the floor (proposed: hide after a few seconds once everyone who'll play is in).
+- **Leaving for the kitchen:** `MiniatureTable` in the back room. Once every joined player stands around the table, any of them presses A and the kitchen loads. A hint above the join slots counts who's there ("Everyone to the table: 2 of 3"), then shows "A Start the day".
+- **Boot order** (`BootOrder`, run by the office and menu builders): `Office_Greybox`, then `Kitchen_Greybox`. `MainMenu.unity` stays in the project for the menu's UI captures but isn't in builds.
+
+**Still to do:**
+- Players join again in the kitchen; carrying the office's players across, on the same controllers in the same order, is proposed.
+- The join slots stay on screen on the floor; proposed: hide them a few seconds after the last join.
+- Leaving cuts straight to the kitchen; a fade would be kinder.
 
 ## Open questions
 

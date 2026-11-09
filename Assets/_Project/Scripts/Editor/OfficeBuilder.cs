@@ -194,6 +194,7 @@ namespace Game.Editor
 
             GreyboxAssets.EnsureFolder(System.IO.Path.GetDirectoryName(ScenePath));
             EditorSceneManager.SaveScene(scene, ScenePath);
+            BootOrder.Apply(); // the office first in builds, then the kitchen
             AssetDatabase.SaveAssets();
             Debug.Log($"[OfficeBuilder] Built {ScenePath}.");
         }
@@ -629,6 +630,10 @@ namespace Game.Editor
             Block(room, "MiniatureTrim", Toon("OfficeBrass", Brass), centre + Vector3.up * 0.82f, new Vector3(5.1f, 0.05f, 3.3f));
             Cube(room, "MiniatureGround", Toon("OfficeMiniGround", new Color(0.18f, 0.2f, 0.28f)), centre + Vector3.up * 0.87f, new Vector3(4.8f, 0.02f, 3.0f));
             Miniature(room, centre + Vector3.up * 0.89f, new Vector2(4.6f, 2.8f));
+            // The way out: everyone around the table, then A starts the day (decision 2026-11-09).
+            var exit = new GameObject("MiniatureExit").AddComponent<Game.Gameplay.Office.MiniatureTable>();
+            exit.transform.SetParent(room, false);
+            exit.transform.position = centre;
             for (var i = 0; i < 2; i++)
             {
                 Block(room, "MapChest", Toon("OfficeWalnut", Walnut), new Vector3(17.0f, 0f, 4.6f + i * 1.6f), new Vector3(0.7f, 1.0f, 1.5f), collider: true);

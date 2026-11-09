@@ -14,7 +14,9 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 - The menu's controller joins as player 1 when the camera lands.
 - How it's built: `docs/opening-flow.md`.
 
-**Not yet:** the office isn't the boot scene (`MainMenu.unity` still is), and the miniature doesn't load the kitchen yet.
+**Also built:**
+- The office is the boot scene, followed by the kitchen; `MainMenu.unity` is out of builds.
+- The miniature table loads the kitchen once everyone is at it and someone presses A.
 
 ---
 

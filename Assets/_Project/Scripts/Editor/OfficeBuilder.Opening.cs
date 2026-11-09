@@ -78,6 +78,13 @@ namespace Game.Editor
             Poses(sequence.FindProperty("_flight"), FlightPoses);
             Poses(sequence.FindProperty("_climb"), ClimbPoses);
             sequence.ApplyModifiedPropertiesWithoutUndo();
+
+            // The miniature table's hint (built with the back room).
+            var table = Object.FindFirstObjectByType<Game.Gameplay.Office.MiniatureTable>();
+            var tableHud = new SerializedObject(opening.AddComponent<MiniatureHud>());
+            tableHud.FindProperty("_style").objectReferenceValue = style;
+            tableHud.FindProperty("_table").objectReferenceValue = table;
+            tableHud.ApplyModifiedPropertiesWithoutUndo();
         }
 
         private static void Poses(SerializedProperty list, CameraPose[] poses)
