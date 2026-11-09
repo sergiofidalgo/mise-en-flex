@@ -28,14 +28,12 @@ namespace Game.Presentation.Hud
 
         private WorldLabel _label;
         private ServiceSimulation _service;
-        private string _currency;
         private float _lastGain;
         private float _gainUntil;
 
         private void Start()
         {
             _service = _root.Services.Service;
-            _currency = _root.Services.ServiceConfig.Currency;
             _service.Paid += HandlePaid;
             _service.WalkedOut += HandleWalkedOut;
             _root.Services.ServiceReplaced += HandleServiceReplaced;
@@ -84,11 +82,10 @@ namespace Game.Presentation.Hud
                 _label.Hide();
                 return;
             }
-            var text = (_service.Money < 0f ? "-" : string.Empty) + $"{_currency}{Mathf.Abs(_service.Money):0}";
+            // In the player's language and currency (Locale).
+            var text = Game.Data.Locale.Money(_service.Money, Game.Data.MoneyStyle.Whole);
             if (Time.time < _gainUntil)
-                text += "  " + (_lastGain < 0f
-                    ? HudStyle.Colored($"-{_currency}{-_lastGain:0}", _lossColor)
-                    : HudStyle.Colored($"+{_currency}{_lastGain:0}", _gainColor));
+                text += "  " + HudStyle.Colored(Game.Data.Locale.Money(_lastGain, Game.Data.MoneyStyle.Whole, signed: true), _lastGain < 0f ? _lossColor : _gainColor);
             _label.ShowAt(text, new Vector2(_besideClock, _canvas.rect.height / 2f - _topMargin));
         }
     }

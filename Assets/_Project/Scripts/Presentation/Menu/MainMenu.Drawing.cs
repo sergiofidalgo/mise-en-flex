@@ -267,7 +267,7 @@ namespace Game.Presentation.Menu
 
             var style = string.IsNullOrEmpty(save.StyleName) ? _service.StyleName : save.StyleName;
             var area = string.IsNullOrEmpty(save.Area) ? _service.Area : save.Area;
-            UiKit.TextAt(_medium, _cards, "Info", $"€€ · {style} · {area}", 17f, _brown, left, 580f, 268f);
+            UiKit.TextAt(_medium, _cards, "Info", $"{Locale.PriceBand(2)} · {style} · {area}", 17f, _brown, left, 580f, 268f);
 
             var chipEnd = Chip($"Day {save.Day + 1}", _dayBack, _dayText, left, 598f);
             if (save.Balance < 0f)
@@ -516,8 +516,8 @@ namespace Game.Presentation.Menu
             label.lineSpacing = (pixels - natural) / label.fontSize * 100f;
         }
 
-        private string Money(float amount) =>
-            (amount < 0f ? "−" : "") + _service.Currency + Mathf.Abs(amount).ToString("#,0");
+        // In the player's language and currency (Locale), whole amounts on the cards.
+        private static string Money(float amount) => Locale.Money(amount, MoneyStyle.Whole);
 
         private static string PlayTime(float seconds)
         {

@@ -4,6 +4,19 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-09 — Currency follows the language
+
+**User's call:** dollars in English, and currencies follow the language.
+- **`Locale` holds the language and how money is written in it.**
+  - English: "$2,340.50", with the symbol first and a comma for thousands.
+  - Spanish: "2.340,50 €", with the symbol after a space and a dot for thousands.
+  - Negative amounts get a minus sign ("−$62.40"). Price bands follow the symbol too ("$$" or "€€").
+- **Amounts are the same numbers in every language,** with no exchange rate: a $24 steak is a 24 € steak.
+- **Everything that writes money goes through `Locale`:** the money HUD, review popups, the plan screen, the layout editor's prices, the Review dashboard, the main menu cards and the debug overlay. `ServiceConfig`'s fixed currency symbol is gone.
+- **Names and money share one language:** `GuestNames.Language` is `Locale.Language`. It's English until the game has a language setting (`ideas.md`, "Localising reviews and replies", and the plan for the whole game).
+
+---
+
 ## 2026-11-09 — Shorter replies; guest names that translate
 
 **User's call: replies shouldn't be unnecessarily long.**

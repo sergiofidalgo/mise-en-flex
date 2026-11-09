@@ -156,15 +156,14 @@ namespace Game.Presentation.Hud
         // Lists who works here and who could; the buttons are HiringMenu's.
         private string PlanText(DayCycle days)
         {
-            var currency = _root.Services.ServiceConfig.Currency;
             var staff = _root.Services.Staff;
             var plan = new StringBuilder();
             plan.AppendLine($"<b>Day {days.Day}: plan</b>");
-            plan.AppendLine($"Balance {FormatMoney(days.Balance, currency)}");
+            plan.AppendLine($"Balance {FormatMoney(days.Balance)}");
             plan.AppendLine();
 
             foreach (var member in staff.Hired)
-                plan.AppendLine($"{member.Name}, {RoleName(member.Role)}: {member.Description}, {Mood(member)}, {currency}{member.DailyWage:0}/day   {Button(PromptControl.East)} let go");
+                plan.AppendLine($"{member.Name}, {RoleName(member.Role)}: {member.Description}, {Mood(member)}, {FormatMoney(member.DailyWage)}/day   {Button(PromptControl.East)} let go");
             if (staff.Hired.Count > 0)
                 plan.AppendLine();
 
@@ -172,7 +171,7 @@ namespace Game.Presentation.Hud
             for (var i = 0; i < staff.Candidates.Count && i < HireButtons.Length; i++)
             {
                 var candidate = staff.Candidates[i];
-                var line = $"{Button(HireButtons[i])}  {candidate.Name}, {RoleName(candidate.Role)}: {candidate.Description}, {currency}{candidate.DailyWage:0}/day";
+                var line = $"{Button(HireButtons[i])}  {candidate.Name}, {RoleName(candidate.Role)}: {candidate.Description}, {FormatMoney(candidate.DailyWage)}/day";
                 plan.AppendLine(staff.CanHire(candidate, days.Balance) ? line : HudStyle.Colored(line, _waitingColor));
             }
             plan.AppendLine();
@@ -230,8 +229,8 @@ namespace Game.Presentation.Hud
             return _text.ToString().TrimEnd();
         }
 
-        private static string FormatMoney(float money, string currency) =>
-            (money < 0f ? "-" : string.Empty) + $"{currency}{Mathf.Abs(money):0}";
+        // In the player's language and currency (Locale).
+        private static string FormatMoney(float money) => Game.Data.Locale.Money(money, Game.Data.MoneyStyle.Whole);
 
         private string ClockText(ServiceSimulation service)
         {

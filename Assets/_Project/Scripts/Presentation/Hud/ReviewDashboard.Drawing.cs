@@ -171,7 +171,7 @@ namespace Game.Presentation.Hud
 
             var hours = Services.Service.Settings.DurationSeconds;
             var band = config.MainPrice < 15f ? 1 : config.MainPrice < 30f ? 2 : 3;
-            Label(Medium, _left, $"{new string(config.Currency[0], band)} · {config.StyleName} · Open {ClockAt(0f)}–{ClockAt(hours)}", 21.33f, _body, 120f, 673f, 600f);
+            Label(Medium, _left, $"{Game.Data.Locale.PriceBand(band)} · {config.StyleName} · Open {ClockAt(0f)}–{ClockAt(hours)}", 21.33f, _body, 120f, 673f, 600f);
 
             DrawChart();
         }
@@ -704,13 +704,13 @@ namespace Game.Presentation.Hud
                 var income = Ledger.IsIncome(line);
                 var amount = ledger.Of(line);
                 Label(Medium, _content, LineName(line), 21.33f, _ink, 790f, y, 300f);
-                Label(Bold, _content, (income ? "+" : "−") + Money(amount, true).TrimStart('−'), 21.33f, income ? _goodText : _badText, 1244f, y, 200f, HorizontalAlignmentOptions.Right);
+                Label(Bold, _content, Money(income ? amount : -amount, true, signed: true), 21.33f, income ? _goodText : _badText, 1244f, y, 200f, HorizontalAlignmentOptions.Right);
                 y += pitch;
             }
             UiKit.RoundBox(_content, "Rule", Hex(0xd9c39a), 790f, 470f, 455f, 2f, 0f);
             Label(Bold, _content, "Net today", 22.67f, _ink, 790f, 517f, 300f);
             var net = ledger.Net;
-            Label(ExtraBold, _content, (net >= 0f ? "+" : "") + Money(net, true), 32.67f, net < 0f ? _badText : _goodText, 1244f, 517f, 300f, HorizontalAlignmentOptions.Right, -0.5f);
+            Label(ExtraBold, _content, Money(net, true, signed: true), 32.67f, net < 0f ? _badText : _goodText, 1244f, 517f, 300f, HorizontalAlignmentOptions.Right, -0.5f);
 
             // The boss: the next fee, the days left as segments, and whether the money's there.
             const float bx = 1293f;

@@ -137,8 +137,6 @@ namespace Game.Data
         [Tooltip("…and after which they're fed up: curt, passive-aggressive, or rude.")]
         [SerializeField, Min(1)] private int _fedUpAfter = 6;
         [Header("Prices and payment")]
-        [Tooltip("Shown before amounts of money.")]
-        [SerializeField] private string _currency = "€";
         [SerializeField, Min(0f)] private float _mainPrice = 24f;
         [SerializeField, Min(0f)] private float _sidePrice = 4f;
         [Tooltip("Share of the price paid for a dish scoring 0; a score of 1 pays all of it.")]
@@ -243,7 +241,6 @@ namespace Game.Data
         }
 
         public float WalkSpeed => _walkSpeed;
-        public string Currency => _currency;
 
         /// <param name="day">The day number: each day gets its own customers, the same ones every time you replay it.</param>
         public ServiceSettings ToSettings(int day = 1) => new ServiceSettings

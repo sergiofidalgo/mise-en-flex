@@ -13,11 +13,12 @@ namespace Game.Data
     /// </summary>
     public static class GuestNames
     {
-        /// <summary>
-        /// The language names are shown in, by code ("en", "es"). A stand-in until the game has a
-        /// language setting (and Unity's Localization package); English until then.
-        /// </summary>
-        public static string Language { get; set; } = "en";
+        /// <summary>The language names are shown in: the game's (Locale), so names and money always agree.</summary>
+        public static string Language
+        {
+            get => Locale.Language;
+            set => Locale.Language = value;
+        }
 
         private static readonly Dictionary<string, string[]> Tables = new Dictionary<string, string[]>
         {

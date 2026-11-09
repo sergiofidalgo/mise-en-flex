@@ -151,7 +151,7 @@ namespace Game.Presentation
                 ServicePhase.Closed => Coloured("closed, finishing up", Warn),
                 _ => Coloured("finished", Dim),
             };
-            GUILayout.Label($"<b>Day {services.Days.Day} · {services.Days.Phase}</b>  balance {services.ServiceConfig.Currency}{services.Days.Balance:0}", _text);
+            GUILayout.Label($"<b>Day {services.Days.Day} · {services.Days.Phase}</b>  balance {Game.Data.Locale.Money(services.Days.Balance, Game.Data.MoneyStyle.Whole)}", _text);
             GUILayout.Label($"<b>{hours:00}:{minutes:00}</b>  {state}   {service.Elapsed / service.Settings.DurationSeconds:P0} through", _text);
 
             var counts = service.Customers.GroupBy(c => c.State).ToDictionary(g => g.Key, g => g.Count());
@@ -162,7 +162,7 @@ namespace Game.Presentation
                 $"eating {Count(CustomerState.Eating)}   queue {Count(CustomerState.Queueing)}   " +
                 $"served {Coloured(served.ToString(), Good)}   lost {Coloured(service.LostCovers.ToString(), service.LostCovers > 0 ? Bad : Dim)}" +
                 $" {Coloured($"({service.WalkOuts} walked out)", service.WalkOuts > 0 ? Bad : Dim)}", _text);
-            var currency = services.ServiceConfig.Currency;
+            var currency = Game.Data.Locale.CurrencySymbol;
             GUILayout.Label(
                 $"money {Coloured($"{currency}{service.Money:0}", service.Money < 0f ? Bad : Good)}   tips {currency}{service.Tips:0}   " +
                 $"walk-outs {Coloured($"-{currency}{service.WalkOutLosses:0}", service.WalkOutLosses > 0f ? Bad : Dim)}", _text);

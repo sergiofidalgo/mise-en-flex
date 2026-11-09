@@ -26,12 +26,12 @@ namespace Game.Presentation.Hud
 
         private readonly List<Popup> _popups = new List<Popup>();
         private ServiceSimulation _service;
-        private string _currency;
+        // In the player's language and currency (Locale).
+        private static string Money(float amount) => Game.Data.Locale.Money(amount, Game.Data.MoneyStyle.Whole);
 
         private void Start()
         {
             _service = _root.Services.Service;
-            _currency = _root.Services.ServiceConfig.Currency;
             _service.Reviewed += HandleReviewed;
             _root.Services.ServiceReplaced += HandleServiceReplaced;
         }
@@ -71,8 +71,8 @@ namespace Game.Presentation.Hud
         {
             var stars = HudStyle.Colored($"{review.Stars:0.#} stars", _style.RatingColor(review.Stars / 5f));
             var headline = review.Customer.Bill is Bill bill
-                ? $"{stars}  {_currency}{bill.Payment:0} + {_currency}{bill.Tip:0} tip"
-                : $"{stars}  {HudStyle.Colored($"walked out! -{_currency}{review.Customer.WalkOutPenalty:0}", _style.RatingColor(0f))}";
+                ? $"{stars}  {Money(bill.Payment)} + {Money(bill.Tip)} tip"
+                : $"{stars}  {HudStyle.Colored($"walked out! {Money(-review.Customer.WalkOutPenalty)}", _style.RatingColor(0f))}";
             return string.IsNullOrEmpty(review.Line) ? headline : $"{headline}\n\"{review.Line}\"";
         }
 

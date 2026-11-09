@@ -149,7 +149,8 @@ namespace Game.Presentation.Hud
             return text.ToString();
         }
 
-        private string Money(float amount) => $"{_root.Services.ServiceConfig.Currency}{amount:0}";
+        // In the player's language and currency (Locale).
+        private static string Money(float amount) => Game.Data.Locale.Money(amount, Game.Data.MoneyStyle.Whole);
 
         private static string Glyph(PromptControl control) =>
             $"[{HudStyle.Glyph(control, true)}]";

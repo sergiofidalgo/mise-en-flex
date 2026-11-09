@@ -309,9 +309,12 @@ namespace Game.Presentation.Hud
             return _selected >= 0 && _selected < list.Count ? list[_selected] : null;
         }
 
-        private string Money(float amount, bool cents = false) =>
-            (amount < 0f ? "−" : string.Empty) + Services.ServiceConfig.Currency
-            + Mathf.Abs(amount).ToString(cents || Mathf.Abs(Mathf.Abs(amount) - Mathf.Round(Mathf.Abs(amount))) > 0.004f ? "#,0.00" : "#,0");
+        // In the player's language and currency (Locale): "$2,340.50" in English, "2.340,50 €" in Spanish.
+        private static string Money(float amount, bool cents = false) =>
+            Money(amount, cents, false);
+
+        private static string Money(float amount, bool cents, bool signed) =>
+            Game.Data.Locale.Money(amount, cents ? Game.Data.MoneyStyle.Cents : Game.Data.MoneyStyle.Auto, signed);
 
         private string ClockAt(float serviceSeconds)
         {
