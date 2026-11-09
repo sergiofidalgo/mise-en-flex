@@ -918,6 +918,39 @@ def build_characters():
     add_loft(bm, path[1:], widths[1:], 0.012)
     swing("HatPlumedFeather", bm, (0.2, 0.1, 0.27))
 
+    # A feathered headdress (the user's call, 2026-11-09, after the concern was raised): a beaded
+    # browband in the player's colour, rosettes at the temples, and a fan of long feathers round
+    # the back that each sway (the game places the feather below on the band, many times over).
+    bm = bmesh.new()
+    add_lathe(bm, [(0.0, c + 0.1), (0.3, c + 0.1), (0.305, c + 0.12), (0.305, c + 0.22), (0.3, c + 0.24), (0.0, c + 0.24)],
+              segments=32)
+    part("HatHeaddressBand", bm, "waist", head=True)
+    bm = bmesh.new()  # a row of beads round the band
+    for k in range(18):
+        a = 2 * math.pi * k / 18
+        add_ball(bm, (0.31 * math.cos(a), 0.31 * math.sin(a), c + 0.17), 0.022, segments=8)
+    part("HatHeaddressBeads", bm, "waist", head=True)
+    bm = bmesh.new()  # a rosette over each temple
+    for side in (-1.0, 1.0):
+        add_ellipsoid(bm, (side * 0.315, -0.02, c + 0.17), (0.025, 0.075, 0.075), rings=6, segments=16)
+    part("HatHeaddressRosettes", bm, "waist", head=True)
+    s_head = CHAR_HEAD_SCALE
+    quill = [(0.0, 0.0, z * s_head) for z in (0.0, 0.06, 0.12)]
+    bm = bmesh.new()  # one feather, standing up from its foot (the origin), at the head's scale
+    add_pipe(bm, quill, radius=0.008 * s_head, segments=5)
+    steps = 10
+    path = [(0.0, 0.0, (0.08 + 0.3 * k / steps) * s_head) for k in range(steps + 1)]
+    widths = [0.045 * s_head * math.sin(math.pi * (0.15 + 0.85 * k / steps)) ** 0.5 for k in range(steps + 1)]
+    widths[0] = 0.0
+    add_loft(bm, path, widths, 0.008 * s_head)
+    part("HatHeaddressFeather", bm, "apart")
+    bm = bmesh.new()  # its dark tip
+    tip = [(0.0, 0.0, (0.36 + 0.1 * k / 5) * s_head) for k in range(6)]
+    tip_widths = [0.04 * s_head * (1.0 - k / 5) ** 0.6 for k in range(6)]
+    tip_widths[-1] = 0.0
+    add_loft(bm, tip, tip_widths, 0.009 * s_head)
+    part("HatHeaddressFeatherTip", bm, "apart")
+
     # A music note the headphones send floating up (a particle's mesh, about its middle).
     bm = bmesh.new()
     add_ellipsoid(bm, (0.0, 0.0, -0.035), (0.03, 0.02, 0.022), rings=6, segments=12)

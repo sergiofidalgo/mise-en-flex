@@ -111,6 +111,20 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-09 — A feathered headdress on the rail (the user's call)
+
+**User's call:** build the feathered war-bonnet-style headdress from the user's references, after the concern was raised twice: it's sacred regalia in Plains nations, and as a costume it's widely seen as disrespectful. This replaces the earlier proposal to offer only the plumed hat, which stays on the rail too.
+
+**Done:**
+- **"Feather headdress"** is an earned item, stylised in the game's look, with no other costume pieces:
+  - a beaded browband in the player's colour, with white beads all round and red rosettes over the temples;
+  - eleven long white feathers with dark tips, fanned round the back of the band and tipped slightly outwards, each swaying on its own spring (`HatSway`, stiffness varying a little).
+- It doesn't hide the hair, and it stays within the reach limit.
+
+**To revisit if needed:** if the game is shown publicly or reviewed for cultural content, this is the first item to look at.
+
+---
+
 ## 2026-11-09 — The tailor's room: ladders any player climbs, a tailor who measures, a busier room
 
 **The user's notes:**

@@ -283,6 +283,27 @@ namespace Game.Editor
                         Part(group, "HatCowboy", new Color(0.55f, 0.36f, 0.2f));
                         rig.Tinted.Add(Part(group, "HatCowboyBand", Color.white, "ChefAccent"));
                         break;
+                    case "headdress":
+                        // The user's call (2026-11-09, decisions.md): a beaded browband in the player's
+                        // colour, rosettes, and a fan of feathers round the back that each sway.
+                        rig.Tinted.Add(Part(group, "HatHeaddressBand", Color.white, "ChefAccent"));
+                        Part(group, "HatHeaddressBeads", new Color(0.95f, 0.94f, 0.9f));
+                        Part(group, "HatHeaddressRosettes", new Color(0.8f, 0.25f, 0.2f));
+                        const int feathers = 11;
+                        for (var f = 0; f < feathers; f++)
+                        {
+                            // Round the back of the band (Blender's angle from +x; the front, -90°, stays clear).
+                            var angle = Mathf.Lerp(-40f, 220f, f / (feathers - 1f)) * Mathf.Deg2Rad;
+                            var foot = new Vector3(0.29f * Mathf.Cos(angle), 0.29f * Mathf.Sin(angle), 0.22f);
+                            var outward = new Vector3(-Mathf.Cos(angle), 0f, -Mathf.Sin(angle)); // Blender x, y → the game's -x, -z
+                            var feather = Sway(group, "Feather", foot, 45f + f % 3 * 8f, 4f, 6f, 1.2f, 6f, 30f);
+                            // Width across the fan, tipped a little outwards.
+                            feather.localRotation = Quaternion.LookRotation(outward, Vector3.up) * Quaternion.Euler(14f, 0f, 0f);
+                            Part(feather, "HatHeaddressFeather", new Color(0.96f, 0.95f, 0.9f));
+                            Part(feather, "HatHeaddressFeatherTip", new Color(0.16f, 0.13f, 0.12f));
+                        }
+                        covers = false;
+                        break;
                     case "plumed":
                         Part(group, "HatPlumed", new Color(0.3f, 0.22f, 0.32f));
                         rig.Tinted.Add(Part(group, "HatPlumedBand", Color.white, "ChefAccent"));

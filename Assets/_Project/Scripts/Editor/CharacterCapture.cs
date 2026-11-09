@@ -170,6 +170,7 @@ namespace Game.Editor
                 new Game.Simulation.Characters.ChefLook { Hat = "straw", Face = "darkbun", Skin = "skin3", Outfit = "pastry" },
                 new Game.Simulation.Characters.ChefLook { Hat = "cowboy", Face = "moustache", Skin = "skin4", Outfit = "linecook" },
                 new Game.Simulation.Characters.ChefLook { Hat = "plumed", Face = "bun", Skin = "skin1", Outfit = "suit" },
+                new Game.Simulation.Characters.ChefLook { Hat = "headdress", Face = "crop", Skin = "skin5", Outfit = "whites" },
             };
             for (var i = 0; i < outfits.Length; i++)
             {

@@ -58,6 +58,7 @@ namespace Game.Simulation.Characters
                 new WardrobeItem("straw", "Straw hat", crazy: true),
                 new WardrobeItem("cowboy", "Cowboy hat", crazy: true),
                 new WardrobeItem("plumed", "Plumed hat", crazy: true),
+                new WardrobeItem("headdress", "Feather headdress", crazy: true),
             },
             // A face comes with its hair (the user's call): style and colour, nose, facial hair.
             [WardrobeModule.Face] = new[]
