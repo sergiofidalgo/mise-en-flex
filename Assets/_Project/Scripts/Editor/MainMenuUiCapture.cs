@@ -2,12 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using Game.Gameplay.Saving;
+using Game.Presentation.Hud;
 using Game.Presentation.Menu;
 using Game.Simulation.Saving;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
-using UnityEngine.Rendering.Universal;
 using Object = UnityEngine.Object;
 
 namespace Game.Editor
@@ -79,88 +79,18 @@ namespace Game.Editor
         {
             var previous = SaveFile.DirectoryOverride;
             SaveFile.DirectoryOverride = saves;
-            var camera = Camera.main;
             Canvas canvas = null;
-            Camera uiCamera = null;
             try
             {
-                var menu = Object.FindFirstObjectByType<MainMenu>();
-                canvas = menu.DrawForCapture(onCards, card);
-
-                // In the game the menu is an overlay drawn after the city's post-processing (the ink).
-                // Rendering it through the city's camera would ink its edges too, so: the city alone,
-                // then the UI through a bare camera, once over black and once over white. The two
-                // differ only where the UI is see-through, which gives its coverage for compositing.
-                canvas.enabled = false;
-                var city = Render(camera);
-                canvas.enabled = true;
-
-                uiCamera = new GameObject("CaptureUiCamera").AddComponent<Camera>();
-                uiCamera.cullingMask = 1 << LayerMask.NameToLayer("UI");
-                uiCamera.clearFlags = CameraClearFlags.SolidColor;
-                uiCamera.nearClipPlane = 0.01f;
-                uiCamera.farClipPlane = 10f;
-                var data = uiCamera.GetUniversalAdditionalCameraData();
-                data.renderPostProcessing = false;
-                data.antialiasing = AntialiasingMode.None;
-                canvas.gameObject.layer = LayerMask.NameToLayer("UI");
-                canvas.renderMode = RenderMode.ScreenSpaceCamera;
-                canvas.worldCamera = uiCamera;
-                canvas.planeDistance = 1f;
-
-                uiCamera.backgroundColor = new Color(0f, 0f, 0f, 1f);
-                var overBlack = Render(uiCamera);
-                uiCamera.backgroundColor = new Color(1f, 1f, 1f, 1f);
-                var overWhite = Render(uiCamera);
-
-                var result = new Color32[city.Length];
-                for (var i = 0; i < city.Length; i++)
-                {
-                    // Over black the UI gives colour × coverage; white shows through by (1 − coverage).
-                    var see = ((overWhite[i].r - overBlack[i].r) + (overWhite[i].g - overBlack[i].g) + (overWhite[i].b - overBlack[i].b)) / (3f * 255f);
-                    see = Mathf.Clamp01(see);
-                    result[i] = new Color32(
-                        (byte)Mathf.Clamp(overBlack[i].r + see * city[i].r, 0f, 255f),
-                        (byte)Mathf.Clamp(overBlack[i].g + see * city[i].g, 0f, 255f),
-                        (byte)Mathf.Clamp(overBlack[i].b + see * city[i].b, 0f, 255f),
-                        255);
-                }
-                var image = new Texture2D(Width, Height, TextureFormat.RGBA32, false);
-                image.SetPixels32(result);
-                image.Apply();
-                File.WriteAllBytes(file, image.EncodeToPNG());
-                Object.DestroyImmediate(image);
+                canvas = Object.FindFirstObjectByType<MainMenu>().DrawForCapture(onCards, card);
+                UiCapture.Save(Camera.main, canvas, file);
             }
             finally
             {
-                if (uiCamera != null)
-                    Object.DestroyImmediate(uiCamera.gameObject);
                 if (canvas != null)
                     Object.DestroyImmediate(canvas.gameObject);
                 SaveFile.DirectoryOverride = previous;
             }
-        }
-
-        private static Color32[] Render(Camera camera)
-        {
-            var target = new RenderTexture(Width, Height, 24, RenderTextureFormat.ARGB32, RenderTextureReadWrite.sRGB) { antiAliasing = 4 };
-            camera.targetTexture = target;
-            Canvas.ForceUpdateCanvases();
-            camera.Render(); // a throwaway frame: shader variants not compiled yet come out black in it
-            Canvas.ForceUpdateCanvases();
-            camera.Render();
-            var active = RenderTexture.active;
-            RenderTexture.active = target;
-            var image = new Texture2D(Width, Height, TextureFormat.RGBA32, false);
-            image.ReadPixels(new Rect(0, 0, Width, Height), 0, 0);
-            image.Apply();
-            RenderTexture.active = active;
-            camera.targetTexture = null;
-            var pixels = image.GetPixels32();
-            Object.DestroyImmediate(image);
-            target.Release();
-            Object.DestroyImmediate(target);
-            return pixels;
         }
 
         // The mockup's two restaurants: slot 1 last played yesterday, slot 2 on 2 November, slot 3 free.

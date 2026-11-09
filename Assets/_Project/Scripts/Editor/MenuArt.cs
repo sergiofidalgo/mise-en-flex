@@ -61,10 +61,40 @@ namespace Game.Editor
             return asset;
         }
 
-        /// <summary>A sprite from Art/UI/Menu, imported uncompressed with no mipmaps so UI stays sharp.</summary>
-        public static Sprite Sprite(string fileName)
+        public const string DashboardFolder = "Assets/_Project/Art/UI/Dashboard";
+        private const string HudStylePath = "Assets/_Project/Data/Settings/HudStyle.asset";
+
+        /// <summary>
+        /// Gives the HUD style the mockups' fonts and forkcast's art, so the Review dashboard picks
+        /// them up without rebuilding the kitchen scene. Batch: -executeMethod Game.Editor.MenuArt.ApplyUiArt
+        /// </summary>
+        [MenuItem("Tools/Game/Apply UI Art")]
+        public static void ApplyUiArt()
         {
-            var path = $"{SpriteFolder}/{fileName}.png";
+            var style = AssetDatabase.LoadAssetAtPath<Game.Presentation.Hud.HudStyle>(HudStylePath);
+            var so = new SerializedObject(style);
+            so.FindProperty("_medium").objectReferenceValue = Font("Inter-Medium");
+            so.FindProperty("_semiBold").objectReferenceValue = Font("Inter-SemiBold");
+            so.FindProperty("_bold").objectReferenceValue = Font("Inter-Bold");
+            so.FindProperty("_extraBold").objectReferenceValue = Font("Inter-ExtraBold");
+            so.FindProperty("_serifItalic").objectReferenceValue = Font("Lora-Italic");
+            so.FindProperty("_forkcastLogo").objectReferenceValue = Sprite("TEX_Dash_Logo", DashboardFolder);
+            so.FindProperty("_searchIcon").objectReferenceValue = Sprite("TEX_Dash_IconSearch", DashboardFolder);
+            so.FindProperty("_starFull").objectReferenceValue = Sprite("TEX_Dash_StarFull", DashboardFolder);
+            so.FindProperty("_starHalf").objectReferenceValue = Sprite("TEX_Dash_StarHalf", DashboardFolder);
+            so.FindProperty("_starEmpty").objectReferenceValue = Sprite("TEX_Dash_StarEmpty", DashboardFolder);
+            so.FindProperty("_warningIcon").objectReferenceValue = Sprite("TEX_Dash_Warning", DashboardFolder);
+            so.FindProperty("_replyMark").objectReferenceValue = Sprite("TEX_Dash_ReplyMark", DashboardFolder);
+            so.ApplyModifiedPropertiesWithoutUndo();
+            EditorUtility.SetDirty(style);
+            AssetDatabase.SaveAssets();
+            Debug.Log("[MenuArt] Applied the UI fonts and forkcast art to the HUD style.");
+        }
+
+        /// <summary>A sprite from Art/UI/Menu (or <paramref name="folder"/>), imported uncompressed with no mipmaps so UI stays sharp.</summary>
+        public static Sprite Sprite(string fileName, string folder = SpriteFolder)
+        {
+            var path = $"{folder}/{fileName}.png";
             if (AssetImporter.GetAtPath(path) is TextureImporter importer)
             {
                 var changed = importer.textureType != TextureImporterType.Sprite

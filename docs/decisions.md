@@ -4,6 +4,28 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-09 — The Review dashboard drawn to the Art Director's dashboard mockups
+
+**User's call:** the reply wheel keeps the game's three replies in the mockup's look: X Apologise, Y Thank, A Stand your ground, B Leave it (closes without replying). No effect chips: players still learn what replies do by playing. The mockup's Invite back and Defend, with their effects, aren't built.
+
+**Done:**
+- **Measured from the six dashboard SVGs** (overview, reviews, reply wheel, reply thread, menu, books), in Inter, Inter ExtraBold and Lora. The mockups' outlined half-stars, pink forkcast logo and icons are exported as sprites. The fonts and art hang off `HudStyle` (Tools/Game/Apply UI Art), so the kitchen scene needs no rebuild.
+- **Behaviour that changed with the look:**
+  - Reviews sort "needs attention first": walk-outs, then the lowest stars, by the guest's own stars, so a reply doesn't move a review.
+  - The Overview shows two reviews and a "N more reviews" bar.
+  - Tabs or the stick close the reply wheel and carry on.
+  - Replies name the guest ("Sorry, Inés. …").
+  - The Menu tab warns about a dish when two or more of its orders walked out today.
+  - Books shows the boss's fee as day segments, "Short by" or what's owed, and where the money went as two stacked bars. From day 3 a "How it's going" strip shows each day's net and the team's day.
+- **The backdrop is the photo taken at close, blurred and dimmed.** Before, it was a flat dim. The canvas scales with Expand, so 16:10 screens fit.
+
+**Flagged for review:**
+- The Reviews filter chips only show counts. The mockup gives no button to switch them.
+- The Menu warning adds "Guests wait longest for these." The mockup's tip about grill time only fits medium steaks.
+- With two or more cooks, who's ready shows at the left of the hint bar.
+
+---
+
 ## 2026-11-09 — The main menu drawn to the Art Director's v11 mockups
 
 **Done (the user asked for the menu to mirror the intended design):**

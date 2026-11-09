@@ -205,6 +205,23 @@ namespace Game.Presentation.Hud
             return x + 4f * pitch + size;
         }
 
+        // The mockups' avatar colours: soft, distinct, and the same for the same guest every time.
+        private static readonly Color[] AvatarColours =
+        {
+            new Color32(0x9f, 0xb5, 0x9a, 0xff), new Color32(0xb4, 0x9a, 0xcb, 0xff), new Color32(0xe3, 0xb9, 0xa0, 0xff),
+            new Color32(0xc4, 0xa0, 0x8f, 0xff), new Color32(0x8f, 0xa3, 0xc4, 0xff), new Color32(0xd9, 0xc2, 0x7e, 0xff),
+            new Color32(0x9c, 0xc3, 0xc0, 0xff), new Color32(0xd6, 0x9f, 0xa8, 0xff),
+        };
+
+        /// <summary>A guest's avatar colour, from their name (string hashes vary between runs, so it's computed here).</summary>
+        public static Color AvatarColour(string guest)
+        {
+            var hash = 0;
+            foreach (var c in guest ?? "")
+                hash = unchecked(hash * 31 + c);
+            return AvatarColours[(hash & 0x7fffffff) % AvatarColours.Length];
+        }
+
         public static void Fill(RectTransform rect)
         {
             rect.anchorMin = Vector2.zero;

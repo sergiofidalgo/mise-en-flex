@@ -289,7 +289,7 @@ namespace Game.Presentation.Menu
             var best = BestReview(save);
             if (best != null)
             {
-                UiKit.StrokedEllipse(_cards, "Avatar", AvatarColour(best.Guest), _ink, ThinStroke, x + 22f, 737f, 32f, 40f);
+                UiKit.StrokedEllipse(_cards, "Avatar", UiKit.AvatarColour(best.Guest), _ink, ThinStroke, x + 22f, 737f, 32f, 40f);
                 var guest = UiKit.TextAt(_bold, _cards, "Guest", best.Guest, 18f, _ink, x + 65f, 751f, 160f);
                 UiKit.StarRow(_cards, x + 65f + Mathf.Min(UiKit.Width(guest), 160f) + 7f, 738.5f, 13.5f, 15.9f, best.RatedStars, _gold, _starEmpty);
                 var quote = UiKit.TextAt(_serifItalic, _cards, "Quote", $"“{best.Line}”", 17.33f, _ink, x + 65f, 774f, 236f, lines: 2);
@@ -513,15 +513,6 @@ namespace Game.Presentation.Menu
             var face = label.font.faceInfo;
             var natural = face.lineHeight * label.fontSize / face.pointSize;
             label.lineSpacing = (pixels - natural) / label.fontSize * 100f;
-        }
-
-        private static Color AvatarColour(string guest)
-        {
-            // A soft colour that stays the same for the same guest (string hashes vary between runs).
-            var hash = 0;
-            foreach (var c in guest ?? "")
-                hash = hash * 31 + c;
-            return Color.HSVToRGB(Mathf.Abs(hash % 360) / 360f, 0.28f, 0.82f);
         }
 
         private string Money(float amount) =>

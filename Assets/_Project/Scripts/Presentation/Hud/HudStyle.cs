@@ -92,6 +92,36 @@ namespace Game.Presentation.Hud
         [SerializeField] private Sprite _circle;
         [SerializeField] private Sprite _rounded;
 
+        [Header("Type for screens drawn to a mockup (Inter and Lora, SIL Open Font License)")]
+        [SerializeField] private TMP_FontAsset _medium;
+        [SerializeField] private TMP_FontAsset _semiBold;
+        [SerializeField] private TMP_FontAsset _bold;
+        [SerializeField] private TMP_FontAsset _extraBold;
+        [SerializeField] private TMP_FontAsset _serifItalic;
+
+        [Header("forkcast art (exported from the dashboard mockups)")]
+        [SerializeField] private Sprite _forkcastLogo;
+        [SerializeField] private Sprite _searchIcon;
+        [SerializeField] private Sprite _starFull;
+        [SerializeField] private Sprite _starHalf;
+        [SerializeField] private Sprite _starEmpty;
+        [SerializeField] private Sprite _warningIcon;
+        [SerializeField] private Sprite _replyMark;
+
+        // Each falls back to the HUD font until Tools/Game/Apply UI Art has filled it in.
+        public TMP_FontAsset Medium => _medium != null ? _medium : _font;
+        public TMP_FontAsset SemiBold => _semiBold != null ? _semiBold : _font;
+        public TMP_FontAsset Bold => _bold != null ? _bold : _font;
+        public TMP_FontAsset ExtraBold => _extraBold != null ? _extraBold : Bold;
+        public TMP_FontAsset SerifItalic => _serifItalic != null ? _serifItalic : _font;
+        public Sprite ForkcastLogo => _forkcastLogo;
+        public Sprite SearchIcon => _searchIcon;
+        public Sprite StarFull => _starFull;
+        public Sprite StarHalf => _starHalf;
+        public Sprite StarEmpty => _starEmpty;
+        public Sprite WarningIcon => _warningIcon;
+        public Sprite ReplyMark => _replyMark;
+
         public TMP_FontAsset Font => _font;
         public float FontSize => _fontSize;
         public Color TextColor => _textColor;
