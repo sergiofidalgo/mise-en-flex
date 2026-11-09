@@ -39,12 +39,31 @@ namespace Game.Presentation
         private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
         private PlayerInput _player;
         private MaterialPropertyBlock _block;
+        private Vector3 _baseScale = Vector3.one;
+        private float _bounce = 1f; // 0 just tried something on, 1 settled
+        private const float BounceTime = 0.22f;
 
         /// <summary>What the chef shows now.</summary>
         public ChefLook Look { get; private set; } = new ChefLook();
 
+        /// <summary>A little squash and stretch, as the chef tries something on at the tailor.</summary>
+        public void TryOn() => _bounce = 0f;
+
+        private void Update()
+        {
+            if (_bounce >= 1f)
+                return;
+            _bounce = Mathf.Min(1f, _bounce + Time.deltaTime / BounceTime);
+            // Up and narrower, then back: a quick spring, eased out.
+            var s = Mathf.Sin(Mathf.PI * _bounce) * (1f - _bounce);
+            transform.localScale = Vector3.Scale(_baseScale, new Vector3(1f - 0.07f * s, 1f + 0.1f * s, 1f - 0.07f * s));
+            if (_bounce >= 1f)
+                transform.localScale = _baseScale;
+        }
+
         private void Start()
         {
+            _baseScale = transform.localScale;
             _player = GetComponentInParent<PlayerInput>();
             if (_player != null)
             {

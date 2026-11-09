@@ -12,20 +12,25 @@ using UnityEngine.UI;
 namespace Game.Presentation.Office
 {
     /// <summary>
-    /// The tailor's cards (decision 2026-11-09), one over each player at their plinth, in the house
-    /// HUD style. Standing on it: "A Dress up". Dressing: what's being changed (with a dot per
-    /// module), the item with arrows either side and its place in the list, a note when it's locked,
-    /// and the controls. Also dresses the chef in what's being browsed, and back in what they wear
-    /// when they step off. Cards stay fully on screen and only ever show Xbox controls.
+    /// The tailor's cards (decision 2026-11-09), one over each chef on a ladder, in the house HUD
+    /// style with the player's colour on the edge. At the foot of a ladder: "A Climb up". Dressing:
+    /// the section between LB and RB badges with a dot per section, the item between arrows with
+    /// its place in the list (or a note when it's locked), and B Done. Every press answers at once
+    /// (the user found the first version sluggish): the item pops, its arrow nudges, a new section
+    /// pops, and the chef bounces as they try something on. Also dresses the chef in what's being
+    /// browsed, and back in what they wear when they step off. Cards stay whole on screen and only
+    /// ever name Xbox controls.
     /// </summary>
     public sealed class TailorCardHud : MonoBehaviour
     {
-        private const float Width = 380f;
-        private const float DressingHeight = 196f;
+        private const float Width = 440f;
+        private const float DressingHeight = 214f;
         private const float PromptWidth = 220f;
         private const float PromptHeight = 64f;
         private const float Margin = 24f;
         private const float HeadHeight = 2.05f;
+        private const float Badge = 40f;
+        private const float PopTime = 0.16f;
 
         [SerializeField] private HudStyle _style;
         [SerializeField] private CoopSettings _coop;
@@ -38,20 +43,25 @@ namespace Game.Presentation.Office
         {
             public RectTransform Dressing;
             public RectTransform Prompt;
-            public TextMeshProUGUI Module;
+            public Image PromptEdge;
+            public Image DressingEdge;
+            public TextMeshProUGUI Section;
             public Image[] Dots;
             public TextMeshProUGUI Item;
+            public RectTransform Left;
+            public RectTransform Right;
             public TextMeshProUGUI Count;
             public TextMeshProUGUI Locked;
             public ChefWardrobe Wardrobe;
-            public int Slot = -1;
-            public Image PromptEdge;
-            public Image DressingEdge;
             public ChefLook Shown;
+            public int Slot = -1;
             public string Text;
+            public float ItemPop = 1f;     // 0 just changed, 1 settled
+            public float SectionPop = 1f;
+            public int Nudge;              // the arrow last pressed: -1, 0 or 1
         }
 
-        private static readonly string[] ModuleNames = { "Hat", "Face", "Skin", "Accessory", "Outfit" };
+        private static readonly string[] SectionNames = { "Hat", "Face", "Skin", "Accessory", "Outfit" };
 
         private void Awake()
         {
@@ -65,55 +75,83 @@ namespace Game.Presentation.Office
             scaler.referenceResolution = new Vector2(1920f, 1080f);
             scaler.matchWidthOrHeight = 0.5f;
             foreach (var plinth in _plinths)
-                if (plinth != null)
-                    _cards[plinth] = Build(plinth);
+            {
+                if (plinth == null)
+                    continue;
+                var card = Build();
+                _cards[plinth] = card;
+                plinth.Stepped += direction => HandleStepped(card, direction);
+            }
         }
 
-        private Card Build(TailorPlinth plinth)
+        private Card Build()
         {
-            var colour = Color.white; // set to the player's colour as they stand or dress (any player, any ladder)
             var card = new Card();
 
             card.Prompt = UiKit.Rect(_canvas.transform, "Prompt", 0f, 0f, PromptWidth, PromptHeight);
-            UiKit.StrokedBox(card.Prompt, "Back", _style.CardBackground, colour, 4f, 0f, 0f, PromptWidth, PromptHeight, 18f);
+            UiKit.StrokedBox(card.Prompt, "Back", _style.CardBackground, Color.white, 4f, 0f, 0f, PromptWidth, PromptHeight, 18f);
             card.PromptEdge = card.Prompt.Find("BackEdge").GetComponent<Image>();
-            Badge(card.Prompt, PromptControl.South, 16f, 14f);
-            UiKit.TextAt(_style.Bold, card.Prompt, "Label", Tr.Get("Climb up"), 28f, _style.TextColor, 70f, 43f, PromptWidth - 84f);
+            DrawBadge(card.Prompt, PromptControl.South, 16f, 12f, Badge);
+            UiKit.TextAt(_style.Bold, card.Prompt, "Label", Tr.Get("Climb up"), 28f, _style.TextColor, 68f, 43f, PromptWidth - 82f);
 
             card.Dressing = UiKit.Rect(_canvas.transform, "Dressing", 0f, 0f, Width, DressingHeight);
-            UiKit.StrokedBox(card.Dressing, "Back", _style.CardBackground, colour, 4f, 0f, 0f, Width, DressingHeight, 22f);
+            UiKit.StrokedBox(card.Dressing, "Back", _style.CardBackground, Color.white, 4f, 0f, 0f, Width, DressingHeight, 22f);
             card.DressingEdge = card.Dressing.Find("BackEdge").GetComponent<Image>();
-            card.Module = UiKit.TextAt(_style.Bold, card.Dressing, "Module", "", 28f, _style.TextColor, 22f, 40f, 200f);
-            card.Dots = new Image[ModuleNames.Length];
+
+            // The section, between the shoulder buttons that change it, and a dot for each.
+            DrawShoulder(card.Dressing, "LB", 16f, 14f);
+            DrawShoulder(card.Dressing, "RB", Width - 16f - 56f, 14f);
+            card.Section = UiKit.TextAt(_style.Bold, card.Dressing, "Section", "", 30f, _style.TextColor, Width / 2f, 44f, Width - 160f, HorizontalAlignmentOptions.Center);
+            card.Dots = new Image[SectionNames.Length];
             for (var i = 0; i < card.Dots.Length; i++)
-                card.Dots[i] = UiKit.Ellipse(card.Dressing, "Dot", Color.white, Width - 22f - (ModuleNames.Length - i) * 20f, 24f, 12f, 12f);
-            UiKit.TextAt(_style.DisplayFont, card.Dressing, "Left", "‹", 40f, _style.TextColor, 22f, 94f, 30f);
-            card.Item = UiKit.TextAt(_style.DisplayFont, card.Dressing, "Item", "", 34f, _style.TextColor, Width / 2f, 94f, Width - 110f, HorizontalAlignmentOptions.Center);
-            UiKit.TextAt(_style.DisplayFont, card.Dressing, "Right", "›", 40f, _style.TextColor, Width - 22f, 94f, 30f, HorizontalAlignmentOptions.Right);
-            card.Count = UiKit.TextAt(_style.Font, card.Dressing, "Count", "", 28f, _style.TextColor, Width / 2f, 128f, 200f, HorizontalAlignmentOptions.Center);
-            card.Locked = UiKit.TextAt(_style.Bold, card.Dressing, "Locked", Tr.Get("Locked: earn it first"), 28f, new Color(0.85f, 0.35f, 0.25f), Width / 2f, 128f, Width - 40f, HorizontalAlignmentOptions.Center);
-            Badge(card.Dressing, PromptControl.LeftStick, 22f, 146f);
-            UiKit.TextAt(_style.Font, card.Dressing, "Browse", Tr.Get("Browse"), 28f, _style.TextColor, 70f, 177f, 120f);
-            Badge(card.Dressing, PromptControl.East, Width / 2f + 20f, 146f);
-            UiKit.TextAt(_style.Font, card.Dressing, "Done", Tr.Get("Done"), 28f, _style.TextColor, Width / 2f + 68f, 177f, 120f);
+                card.Dots[i] = UiKit.Ellipse(card.Dressing, "Dot", Color.white, Width / 2f - 46f + i * 20f, 60f, 12f, 12f);
+
+            // The item, between arrows; the arrows nudge when pressed.
+            card.Left = UiKit.TextAt(_style.DisplayFont, card.Dressing, "Left", "‹", 44f, _style.TextColor, 26f, 124f, 30f).rectTransform;
+            card.Item = UiKit.TextAt(_style.DisplayFont, card.Dressing, "Item", "", 34f, _style.TextColor, Width / 2f, 122f, Width - 110f, HorizontalAlignmentOptions.Center);
+            card.Right = UiKit.TextAt(_style.DisplayFont, card.Dressing, "Right", "›", 44f, _style.TextColor, Width - 26f, 124f, 30f, HorizontalAlignmentOptions.Right).rectTransform;
+            card.Count = UiKit.TextAt(_style.Font, card.Dressing, "Count", "", 28f, _style.TextColor, Width / 2f, 158f, 200f, HorizontalAlignmentOptions.Center);
+            card.Locked = UiKit.TextAt(_style.Bold, card.Dressing, "Locked", Tr.Get("Locked: earn it first"), 28f, new Color(0.85f, 0.35f, 0.25f), Width / 2f, 158f, Width - 40f, HorizontalAlignmentOptions.Center);
+
+            DrawBadge(card.Dressing, PromptControl.East, Width - 150f, 168f, 36f);
+            UiKit.TextAt(_style.Font, card.Dressing, "Done", Tr.Get("Done"), 28f, _style.TextColor, Width - 106f, 196f, 100f);
 
             card.Prompt.gameObject.SetActive(false);
             card.Dressing.gameObject.SetActive(false);
             return card;
         }
 
-        // A round Xbox badge, as in the prompts (hints only ever name Xbox controls).
-        private void Badge(RectTransform parent, PromptControl control, float x, float y)
+        // A round Xbox face-button badge, as in the prompts.
+        private void DrawBadge(RectTransform parent, PromptControl control, float x, float y, float size)
         {
-            var size = 38f;
             UiKit.Box(_style, parent, "Badge", _style.BadgeColor(control, true), x, y, size, size, circle: true);
-            UiKit.TextAt(_style.DisplayFont, parent, "Glyph", HudStyle.Glyph(control, true), control == PromptControl.LeftStick ? 17f : 23f,
-                Color.white, x + size / 2f, y + size * 0.68f, size, HorizontalAlignmentOptions.Center);
+            UiKit.TextAt(_style.DisplayFont, parent, "Glyph", HudStyle.Glyph(control, true), size * 0.58f,
+                Color.white, x + size / 2f, y + size * 0.7f, size, HorizontalAlignmentOptions.Center);
+        }
+
+        // A bumper badge: a pill, in the triggers' colour, as the dashboard's tab hints.
+        private void DrawShoulder(RectTransform parent, string label, float x, float y)
+        {
+            UiKit.Box(_style, parent, label, _style.BadgeColor(PromptControl.Triggers, true), x, y, 56f, 36f);
+            UiKit.TextAt(_style.DisplayFont, parent, label + "Glyph", label, 20f, Color.white, x + 28f, y + 25f, 56f, HorizontalAlignmentOptions.Center);
+        }
+
+        private void HandleStepped(Card card, int direction)
+        {
+            if (direction == 0)
+                card.SectionPop = 0f;
+            else
+            {
+                card.ItemPop = 0f;
+                card.Nudge = direction;
+                card.Wardrobe?.TryOn();
+            }
         }
 
         private void LateUpdate()
         {
             var camera = Camera.main;
+            var dt = Time.unscaledDeltaTime;
             foreach (var pair in _cards)
             {
                 var plinth = pair.Key;
@@ -132,6 +170,7 @@ namespace Game.Presentation.Office
                         card.Wardrobe.Show(card.Shown);
                     }
                     Fill(card, session);
+                    Animate(card, dt);
                     Place(card.Dressing, camera, dresser.transform.position, Width, DressingHeight);
                     card.Dressing.gameObject.SetActive(true);
                     card.Prompt.gameObject.SetActive(false);
@@ -158,24 +197,39 @@ namespace Game.Presentation.Office
 
         private void Fill(Card card, TailorSession session)
         {
-            var module = (int)session.Module;
-            var item = session.Item;
+            var section = (int)session.Module;
             var name = session.Module == WardrobeModule.Skin
                 ? Tr.Format("Tone {n}", ("n", session.ItemIndex + 1))
-                : Tr.Get(item.Name);
-            var text = $"{module}|{name}|{session.ItemIndex}|{session.ItemLocked}";
+                : Tr.Get(session.Item.Name);
+            var text = $"{section}|{name}|{session.ItemIndex}|{session.ItemLocked}";
             if (text == card.Text)
                 return;
             card.Text = text;
-            card.Module.text = Tr.Get(ModuleNames[module]);
+            card.Section.text = Tr.Get(SectionNames[section]);
+            var dim = new Color(_style.TextColor.r, _style.TextColor.g, _style.TextColor.b, 0.25f);
             for (var i = 0; i < card.Dots.Length; i++)
-                card.Dots[i].color = i == module ? _style.TextColor : new Color(_style.TextColor.r, _style.TextColor.g, _style.TextColor.b, 0.25f);
+                card.Dots[i].color = i == section ? PlayerColour(card.Slot) : dim;
             card.Item.text = name;
             card.Item.alpha = session.ItemLocked ? _style.UnavailableOpacity : 1f;
             card.Count.text = $"{session.ItemIndex + 1} / {session.ItemCount}";
             card.Count.gameObject.SetActive(!session.ItemLocked);
             card.Locked.gameObject.SetActive(session.ItemLocked);
         }
+
+        // Quick pops so every press shows: the item swells and settles, its arrow kicks out, a new
+        // section swells. Short (0.16 s) so they never hold the next press back.
+        private static void Animate(Card card, float dt)
+        {
+            card.ItemPop = Mathf.Min(1f, card.ItemPop + dt / PopTime);
+            card.SectionPop = Mathf.Min(1f, card.SectionPop + dt / PopTime);
+            card.Item.rectTransform.localScale = Vector3.one * (1f + 0.18f * Bump(card.ItemPop));
+            card.Section.rectTransform.localScale = Vector3.one * (1f + 0.18f * Bump(card.SectionPop));
+            card.Left.localScale = Vector3.one * (card.Nudge < 0 ? 1f + 0.35f * Bump(card.ItemPop) : 1f);
+            card.Right.localScale = Vector3.one * (card.Nudge > 0 ? 1f + 0.35f * Bump(card.ItemPop) : 1f);
+        }
+
+        // 0 → 1 → 0 over the pop, fast in, eased out.
+        private static float Bump(float t) => t >= 1f ? 0f : Mathf.Sin(Mathf.PI * Mathf.Sqrt(t));
 
         // Above the chef's head, kept whole on screen (the HUD rule: nothing clipped by an edge).
         private void Place(RectTransform card, Camera camera, Vector3 feet, float width, float height)

@@ -173,6 +173,26 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-09 — The tailor's menu: LB/RB for sections, and no more sluggishness
+
+**The user's notes:** moving through sections should use RB/LB, and the menu felt sluggish.
+
+**Changed:**
+- **LB and RB change section** (hat, face, skin, accessory, outfit), using the `RotateLeft`/`RotateRight` actions the Review dashboard's tabs use (keyboard Z and C). The stick's up and down no longer do anything here.
+- **Items:** the stick or the D-pad, left or right. Move has no D-pad binding, so the ladder reads the player's gamepad D-pad directly.
+- **Faster:**
+  - a press steps at once with only a 40% lean (was 55%);
+  - holding repeats after 0.24 s (was 0.38) every 0.1 s, speeding up to every 0.05 s after a second (was 0.16).
+- **Every press answers:**
+  - the item swells and settles in 0.16 s, and the arrow on its side kicks;
+  - a new section's name swells, and its dot lights in the player's colour;
+  - the chef does a quick squash and stretch as they try something on (`ChefWardrobe.TryOn`).
+
+  None of it holds the next press back.
+- **The card:** LB and RB pills either side of the section name, a dot per section under it, the item between arrows with its place in the list (or "Locked: earn it first"), and B Done.
+
+---
+
 ## 2026-11-09 — A feathered headdress on the rail (the user's call)
 
 **User's call:** build the feathered war-bonnet-style headdress from the user's references, after the concern was raised twice: it's sacred regalia in Plains nations, and as a costume it's widely seen as disrespectful. This replaces the earlier proposal to offer only the plumed hat, which stays on the rail too.

@@ -11,14 +11,22 @@ namespace Game.Gameplay.Office
     /// presses A and hops up onto the top step, where they dress (their own slot's chef). The chef
     /// stops and faces the camera; the stick browses (up and down pick what to change, left and
     /// right the item); every change to what's worn saves at once, as everything done in the office
-    /// does. B hops back down. Locked items show while browsing but aren't kept. The tailor walks
+    /// does. LB and RB change what's being changed (hat, face, skin, accessory, outfit); the stick
+    /// or the D-pad, left and right, picks the item, at once on a press and quickly repeating while
+    /// held (the user found the first version sluggish). B hops back down. Locked items show while browsing but aren't kept. The tailor walks
     /// over to whoever has just climbed up (see TailorAttendant).
     /// </summary>
     public sealed class TailorPlinth : MonoBehaviour
     {
+        /// <summary>Raised after every step: +1/-1 for the item, 0 when the section changed. For feedback.</summary>
+        public event System.Action<int> Stepped;
+
         private const string InteractAction = "Interact";
         private const string BackAction = "ButtonB";
         private const string MoveAction = "Move";
+        // LB and RB (keyboard Z and C) change section, as tabs do on the Review dashboard.
+        private const string PreviousSectionAction = "RotateLeft";
+        private const string NextSectionAction = "RotateRight";
 
         [Tooltip("Where a chef stands to climb up: in front of the ladder, on the floor (local).")]
         [SerializeField] private Vector3 _foot = new Vector3(0f, 0f, -0.75f);
@@ -30,10 +38,11 @@ namespace Game.Gameplay.Office
         [SerializeField, Min(0.05f)] private float _hopTime = 0.3f;
         [SerializeField, Min(0f)] private float _hopHeight = 0.25f;
         [Tooltip("How far the stick must lean to step, from 0 to 1.")]
-        [SerializeField, Range(0.1f, 0.95f)] private float _threshold = 0.55f;
-        [Tooltip("Holding the stick steps again after this long (s), then every repeat (s).")]
-        [SerializeField, Min(0.05f)] private float _repeatDelay = 0.38f;
-        [SerializeField, Min(0.05f)] private float _repeatEvery = 0.16f;
+        [SerializeField, Range(0.1f, 0.95f)] private float _threshold = 0.4f;
+        [Tooltip("Holding steps again after this long (s), then every repeat (s), speeding up to the fastest after a second.")]
+        [SerializeField, Min(0.02f)] private float _repeatDelay = 0.24f;
+        [SerializeField, Min(0.02f)] private float _repeatEvery = 0.1f;
+        [SerializeField, Min(0.02f)] private float _repeatFastest = 0.05f;
         [Tooltip("The way the chef faces while dressing (degrees): 180 faces the camera.")]
         [SerializeField] private float _faceCamera = 180f;
 
@@ -92,7 +101,14 @@ namespace Game.Gameplay.Office
                 Close();
                 return;
             }
-            Browse(_dresser.actions[MoveAction].ReadValue<Vector2>());
+            if (Pressed(_dresser, PreviousSectionAction) || Pressed(_dresser, NextSectionAction))
+            {
+                Session.StepModule(Pressed(_dresser, NextSectionAction) ? 1 : -1);
+                _held = Vector2Int.zero;
+                Stepped?.Invoke(0);
+                return;
+            }
+            Browse(_dresser.actions[MoveAction].ReadValue<Vector2>().x + DPad(_dresser));
         }
 
         // After the chef's own movement: carry them through the hop.
@@ -162,12 +178,10 @@ namespace Game.Gameplay.Office
                 movement.FacingOverride = dressing ? _faceCamera : (float?)null;
         }
 
-        // One step per push, then repeating while held, like a menu.
-        private void Browse(Vector2 stick)
+        // One step per push, then repeating while held, faster the longer it's held, like a menu.
+        private void Browse(float x)
         {
-            var direction = Mathf.Abs(stick.y) >= Mathf.Abs(stick.x)
-                ? new Vector2Int(0, Mathf.Abs(stick.y) >= _threshold ? (int)Mathf.Sign(stick.y) : 0)
-                : new Vector2Int(Mathf.Abs(stick.x) >= _threshold ? (int)Mathf.Sign(stick.x) : 0, 0);
+            var direction = new Vector2Int(Mathf.Abs(x) >= _threshold ? (int)Mathf.Sign(x) : 0, 0);
             if (direction == Vector2Int.zero)
             {
                 _held = Vector2Int.zero;
@@ -178,23 +192,32 @@ namespace Game.Gameplay.Office
                 _held = direction;
                 _heldFor = 0f;
                 _nextRepeat = _repeatDelay;
-                Step(direction);
+                Step(direction.x);
                 return;
             }
             _heldFor += Time.deltaTime;
             if (_heldFor >= _nextRepeat)
             {
-                _nextRepeat += _repeatEvery;
-                Step(direction);
+                var speedUp = Mathf.Clamp01((_heldFor - _repeatDelay) / 1f);
+                _nextRepeat += Mathf.Lerp(_repeatEvery, _repeatFastest, speedUp);
+                Step(direction.x);
             }
         }
 
-        private void Step(Vector2Int direction)
+        private void Step(int direction)
         {
-            if (direction.y != 0)
-                Session.StepModule(-direction.y); // up is the one above on the card
-            else if (Session.StepItem(direction.x))
+            if (Session.StepItem(direction))
                 ChefProfileFile.SetLook(_dresser.playerIndex, Session.Worn);
+            Stepped?.Invoke(direction);
+        }
+
+        // The D-pad's left and right, which Move doesn't include: -1, 0 or 1.
+        private static float DPad(PlayerInput player)
+        {
+            foreach (var device in player.devices)
+                if (device is Gamepad pad)
+                    return pad.dpad.x.ReadValue();
+            return 0f;
         }
 
         // The nearest player at the ladder's foot who isn't already dressing on another ladder.
