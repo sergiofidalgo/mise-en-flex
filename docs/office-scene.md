@@ -8,9 +8,9 @@ Design references: `game-design.md` §15 (campaign, office, money trouble, endin
 
 ## 1. Vision and story
 
-The office is the **penthouse floor of the boss's skyscraper**, in the same night city the main menu flies over (`SM_City`). It is the game's lobby: players join here, change their look, buy restaurants, borrow money, practise, and come back between days.
+The office is the **penthouse floor of the boss's skyscraper**, in the same city the main menu flies over, built from its models (`SM_City`). It is the game's lobby: players join here, change their look, buy restaurants, borrow money, practise, and come back between days.
 
-**Mood: cozy money with a hint of menace.** Inside it's warm: lamplight, polished wood, brass trim, the kitchen's palette dressed up for an oligarch. Outside it's cold: a blue night city far below and a windy terrace. Players should feel welcome, but never quite at home. The money is his.
+**Mood: cozy money with a hint of menace.** Inside it's warm: lamplight, polished wood, brass trim, the kitchen's palette dressed up for an oligarch. Outside it's dusk: a warm brick-and-sandstone city a few storeys below, fading into a violet haze, and a windy terrace. Players should feel welcome, but never quite at home. The money is his.
 
 **What the place should say without text:**
 - The boss is rich and a little absurd: a helipad, a hall of trophies, a red carpet up to his door.
@@ -37,7 +37,7 @@ A **3 × 3 grid of rooms** with a terrace along the back, matching the user's dr
 | Rooms | Columns 11, 13 and 11 m wide; rows 9, 8 and 10 m deep (front to back) | Big enough to feel like walking through an office (user's note, 2026-11-09: the first greybox's 8 × 6 m rooms felt too small). The middle column and back row are the grandest |
 | Floor | 35 m × 27 m, plus a 6 m terrace | Each room still fits the follow camera (up to 22 m high) |
 | Doorways | 2 m gaps (3 m from reception to the guarded doors) | Two chefs pass without snagging; forgiving to walk through |
-| Walls | Outer back wall: low 1.0 m sill + glass to 2.4 m. All other walls 1.0 m with a trim cap | The dollhouse cut (art bible) applied to a whole floor: a tall interior wall would hide the room behind it from the overhead camera |
+| Walls | Outer walls on the sides and back: 2.8 m glass on a panelled sill, walnut mullions (user's note, 2026-11-09). The front: a 1.2 m glass parapet. Inner walls: 1.0 m, walnut panelling with a brass cap | A penthouse walled in glass, with the city showing on every side. The front stays low (the art bible's dollhouse cut) because the camera looks over it, and inner walls stay low so the camera sees into every room |
 
 **Connections:** reception opens to all three front-row rooms and to the guarded doors. The guarded doors open to the boss's office, the test kitchen and the hall of fame. Each side column also runs front to back: lounge → test kitchen → tailor, and accountant → hall of fame → back room. The three back rooms open onto the terrace, which runs the full width. *(The side columns' front-to-back doors were added in the greybox, 2026-11-09, so no room is a dead end.)*
 
@@ -98,7 +98,7 @@ An office kitchen with **bare-minimum appliances** where players can try things 
 - **Floors and walls:** the kitchen's room shader (planks, tiles, panelled walls), in office colours.
 - **Furniture:** copies of the kitchen's counters, hob, fridge, cutting board, knife rack, shelf, tables and bar tables with stools (visual only, their station scripts removed), and the dining chair and pictures.
 - **People:** the chef's model, recoloured and without the toque.
-- **City:** the night city's blocks, cornices, window frames, trees, lamp posts and water towers.
+- **City:** the menu city's blocks, cornices, window frames, sills, trees, lamp posts and water towers.
 
 Only what neither has comes from the new `SM_Office` model, built by the same Blender script (`-- --only SM_Office.fbx`): a bevelled block for simple shapes, sofa, armchair, executive desk, office chair, filing cabinet, potted plant, floor lamp, trophy, cowboy hat, tailor's plinth, clothes rail and jacket, umbrella, lounger and helicopter.
 
@@ -145,9 +145,9 @@ All models come from `blender/build_pilot_models.py` (generated, reviewable as t
 
 **Lighting:**
 - **Interior:** warm key `#FFD9A8`, as in the kitchen; brass and wood catch it.
-- **Exterior:** cool moonlight and −15% saturation through a local Volume, as the art bible sets for outside zones.
+- **Exterior:** the city is lit by the same toon light as the kitchen, in warm facade colours with a touch of the dusk violet in each. Linear fog (from 70 to 230 m, `Dusk` colour, also the camera's clear colour) fades it with distance, so the near roofs are detailed and the far city is quiet.
 - **Lamps:** desk lamps, a reception pendant and the miniature's spot as the only extra real-time lights.
-- **It's always night here.** Players visit between days, after Close.
+- **It's always dusk here.** Players visit between days, after Close. The kitchen's world is lit for dusk too (art bible), so the office matches it rather than being a night scene.
 
 **Small stories:**
 - A stack of unpaid invoices on the accountant's desk, with one restaurant's name on top (yours, when you're behind).

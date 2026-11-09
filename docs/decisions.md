@@ -277,6 +277,26 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-09 — The office in glass, over a city in the game's look
+
+**User's notes:** the outer city had little to do with the game's look and level of detail, especially next to the kitchen; the kitchen's wall and floor materials didn't suit the office; and the outer walls could be taller, with glass windows.
+
+**Done:**
+- **Outer walls:** 2.8 m glass on a panelled sill with walnut mullions, on the sides and back. The front is a 1.2 m glass parapet instead. A tall frame there ran across the front rooms in play view, since the camera looks over it (the art bible's dollhouse cut).
+- **Inner walls:** walnut panelling with a brass rail and cap, in the room shader, instead of the kitchen's cream plaster. Floors have less grain and softer seams.
+- **The city.** The city is rebuilt as the kitchen's world at dusk:
+  - warm brick, sandstone, cream, sage, slate and terracotta facades in the same toon light, with framed windows on the faces the camera sees;
+  - the nearest roofs, 9–22 m below the floor, carry the detail: water towers, air conditioners, lit skylights, stair huts, aerials, and roof gardens with trees, loungers and umbrellas;
+  - a plainer middle ring, and a skyline far behind;
+  - dark gravel roofs, so the office stays the brightest thing in frame;
+  - linear violet dusk fog, also the camera's clear colour, for depth.
+  The boss's tower is sandstone with framed windows.
+- **The office is lit for dusk rather than night,** like the kitchen's world. This replaces "always night" in `office-scene.md`.
+
+**Flagged for review:** the front parapet height, how close the near roofs are, and the fog distances.
+
+---
+
 ## 2026-11-09 — The boss's floor rebuilt from the kitchen's pieces, at office scale
 
 **User's notes on the first greybox:** some textures didn't work; they expected the 3D models we already have (chairs, kitchen appliances) to be reused; the quality should match the kitchen; and the rooms felt too small to feel like walking through an office. The draft was only a reference.

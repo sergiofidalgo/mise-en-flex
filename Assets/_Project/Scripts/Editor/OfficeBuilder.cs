@@ -46,13 +46,17 @@ namespace Game.Editor
         private static float South => RowEdges[0];
         private static float North => RowEdges[3];
 
-        // Walls as in the kitchen: 1.0 m, the house's panelled wall, so the camera sees into every
-        // room. The back wall is a panelled sill with glass above it, onto the terrace.
+        // Inner walls as in the kitchen, 1.0 m so the camera sees into every room, but panelled in
+        // walnut with a brass cap rather than the kitchen's cream plaster. Outer walls are glass.
         private const float WallHeight = 1f;
         private const float WallThickness = 0.2f;
         private const float DoorWidth = 2f;
         private const float SillHeight = 0.5f;
-        private const float GlassTop = 2.4f;
+        private const float OuterWallHeight = 2.8f;
+        private const float MullionSpacing = 2.2f;
+        // Fewer mullions along the front, which the camera looks through into the rooms.
+        private const float FrontMullionSpacing = 4.4f;
+        private const float FrontWallHeight = 1.2f;
         private const float PictureHeight = 0.78f; // the kitchen's, over the panelling
 
         // The elevator car, against the front wall in reception, its doors facing north.
@@ -82,12 +86,30 @@ namespace Game.Editor
         private static readonly Color Face = new Color(0.16f, 0.11f, 0.09f);
         private static readonly Color Plant = new Color(0.26f, 0.48f, 0.28f);
         private static readonly Color Terracotta = new Color(0.62f, 0.36f, 0.24f);
-        private static readonly Color Facade = new Color(0.17f, 0.21f, 0.36f);
-        private static readonly Color NightSky = new Color(0.07f, 0.08f, 0.16f);
         private static readonly Color WindowLit = new Color(1f, 0.80f, 0.45f);
         private static readonly Color WindowDark = new Color(0.12f, 0.13f, 0.22f);
         private static readonly Color LampWarm = new Color(1f, 0.85f, 0.66f);
         private static readonly Color Velvet = new Color(0.55f, 0.18f, 0.16f);
+
+        // The city at dusk (user's note, 2026-11-09): warm facades in the game's palette, faded with
+        // distance into a violet haze rather than a navy night.
+        private static readonly Color Dusk = new Color(0.36f, 0.31f, 0.42f);
+        private const float FogStart = 70f;
+        private const float FogEnd = 230f;
+        private const float CityDepth = 120f;
+        private static readonly Color[] FacadeColors =
+        {
+            new Color(0.58f, 0.32f, 0.25f), // brick
+            new Color(0.70f, 0.58f, 0.44f), // sandstone
+            new Color(0.80f, 0.73f, 0.61f), // cream
+            new Color(0.46f, 0.52f, 0.43f), // sage
+            new Color(0.40f, 0.45f, 0.55f), // slate
+            new Color(0.66f, 0.42f, 0.30f), // terracotta
+        };
+        private static readonly Color[] UmbrellaColors =
+        {
+            new Color(0.80f, 0.30f, 0.24f), new Color(0.18f, 0.40f, 0.32f), new Color(0.90f, 0.70f, 0.30f),
+        };
 
         private static readonly Color[] TowerColors =
         {
@@ -153,7 +175,7 @@ namespace Game.Editor
             camera.fieldOfView = 45f;
             camera.farClipPlane = 600f;
             camera.clearFlags = CameraClearFlags.SolidColor;
-            camera.backgroundColor = NightSky;
+            camera.backgroundColor = Dusk; // the haze, so the city fades into the sky
             HouseStyle.SmoothEdges(camera);
             camera.gameObject.AddComponent<AudioListener>();
             var follow = camera.gameObject.AddComponent<OfficeCamera>();
@@ -218,12 +240,16 @@ namespace Game.Editor
             var none = new float[0];
             float[] xs = ColumnEdges, zs = RowEdges;
 
-            // Outside: low walls at the front and sides; at the back, glass onto the terrace with
-            // doors from the tailor, the boss (beside his desk, not behind it) and the back room.
-            WallAlongX(walls, "Wall_South", South, West, East, none);
-            WallAlongZ(walls, "Wall_West", West, South, North, none);
-            WallAlongZ(walls, "Wall_East", East, South, North, none);
-            GlassAlongX(walls, "Wall_North", North, West, East, new[] { -15.5f, -4.5f, 12f });
+            // Outside (user's note, 2026-11-09): a penthouse is walled in glass. Tall windows on a
+            // panelled sill all round, so the city shows through on every side; the camera sees
+            // through the front one into the rooms. Doors onto the terrace from the tailor, the
+            // boss (beside his desk, not behind it) and the back room.
+            // The front is the exception: the camera looks over it, so a tall frame there would run
+            // across the front rooms. It's cut low (the art bible's dollhouse cut), glass on a sill.
+            Glass(walls, "Glass_South", new Vector3(West, 0f, South), new Vector3(East, 0f, South), none, FrontMullionSpacing, FrontWallHeight);
+            Glass(walls, "Glass_West", new Vector3(West, 0f, South), new Vector3(West, 0f, North), none, MullionSpacing);
+            Glass(walls, "Glass_East", new Vector3(East, 0f, South), new Vector3(East, 0f, North), none, MullionSpacing);
+            Glass(walls, "Glass_North", new Vector3(West, 0f, North), new Vector3(East, 0f, North), new[] { -15.5f, -4.5f, 12f }, MullionSpacing);
 
             // Between columns. The serving hatch from the test kitchen to the bodyguards is a gap
             // filled by a counter.
@@ -290,35 +316,42 @@ namespace Game.Editor
         {
             if (Mathf.Max(run.Size.x, run.Size.z) < 0.05f)
                 return;
-            Cube(wall, "Wall", HouseStyle.Wall(), run.Centre, new Vector3(run.Size.x, WallHeight, run.Size.z), collider: true);
+            Cube(wall, "Wall", OfficeWall(), run.Centre, new Vector3(run.Size.x, WallHeight, run.Size.z), collider: true);
         }
 
-        // The back wall: a panelled sill with glass above it, and a gap at each door onto the terrace.
-        private static void GlassAlongX(Transform parent, string name, float z, float x0, float x1, float[] doors)
+        // An outer wall: a panelled sill, glass up to a walnut head, and walnut mullions, with a gap
+        // at each door (positions along the wall's own axis).
+        private static void Glass(Transform parent, string name, Vector3 from, Vector3 to, float[] doors, float mullionSpacing, float height = OuterWallHeight)
         {
             var wall = new GameObject(name).transform;
             wall.SetParent(parent, false);
-            var glass = PilotArt.EnsureGlassMaterial("OfficeWindow", new Color(0.62f, 0.76f, 0.86f, 0.18f));
+            var glass = PilotArt.EnsureGlassMaterial("OfficeWindow", new Color(0.62f, 0.76f, 0.86f, 0.16f));
             var frame = Toon("OfficeWalnut", Walnut);
-            var start = x0;
+            var alongX = Mathf.Abs(to.x - from.x) > Mathf.Abs(to.z - from.z);
+            float a0 = alongX ? from.x : from.z, a1 = alongX ? to.x : to.z;
+            Vector3 At(float a) => alongX ? new Vector3(a, 0f, from.z) : new Vector3(from.x, 0f, a);
+            Vector3 Size(float length, float height, float thickness) => alongX ? new Vector3(length, height, thickness) : new Vector3(thickness, height, length);
             void Run(float a, float b)
             {
                 if (b - a < 0.05f)
                     return;
-                var centre = new Vector3((a + b) / 2f, 0f, z);
-                Cube(wall, "Sill", HouseStyle.Wall(), centre, new Vector3(b - a, SillHeight, WallThickness), collider: true);
-                Cube(wall, "Glass", glass, centre + Vector3.up * SillHeight, new Vector3(b - a, GlassTop - SillHeight, 0.04f), collider: true);
-                Block(wall, "Head", frame, centre + Vector3.up * GlassTop, new Vector3(b - a, 0.1f, WallThickness));
-                var panes = Mathf.Max(1, Mathf.RoundToInt((b - a) / 2.2f));
+                var centre = At((a + b) / 2f);
+                Cube(wall, "Sill", OfficeWall(), centre, Size(b - a, SillHeight, WallThickness), collider: true);
+                Cube(wall, "Glass", glass, centre + Vector3.up * SillHeight, Size(b - a, height - SillHeight - 0.12f, 0.04f), collider: true);
+                Block(wall, "Head", frame, centre + Vector3.up * (height - 0.12f), Size(b - a + 0.1f, 0.12f, WallThickness + 0.04f));
+                Block(wall, "SillCap", Toon("OfficeBrass", Brass), centre + Vector3.up * SillHeight, Size(b - a, 0.04f, WallThickness + 0.06f));
+                var panes = Mathf.Max(1, Mathf.RoundToInt((b - a) / mullionSpacing));
                 for (var i = 0; i <= panes; i++)
-                    Block(wall, "Mullion", frame, new Vector3(Mathf.Lerp(a, b, i / (float)panes), SillHeight, z), new Vector3(0.1f, GlassTop - SillHeight, WallThickness));
+                    Block(wall, "Mullion", frame, At(Mathf.Lerp(a, b, i / (float)panes)) + Vector3.up * SillHeight,
+                        Size(0.1f, height - SillHeight - 0.12f, WallThickness));
             }
+            var start = a0;
             foreach (var door in doors)
             {
                 Run(start, door - DoorWidth / 2f);
                 start = door + DoorWidth / 2f;
             }
-            Run(start, x1);
+            Run(start, a1);
         }
 
         private static void Railing(Transform parent, string name, Vector3 from, Vector3 to)
@@ -741,68 +774,193 @@ namespace Game.Editor
 
         // ---- The city below -----------------------------------------------------------------------
 
-        // The boss's tower under the floor, and the city around and below it in the night city's
-        // own models, so no void shows at any framing (art bible).
+        // The city round the boss's tower (user's note, 2026-11-09: the first one, flat navy boxes,
+        // had nothing to do with the game's look). Now it's the kitchen's world at dusk: warm brick,
+        // sandstone and cream buildings in the same toon light, framed windows, and the near roofs,
+        // the part the camera sees best, as busy as the kitchen with water towers, air conditioners,
+        // skylights and roof gardens. Distance fades into a violet dusk haze (fog), which gives
+        // depth and keeps the far city quiet. Three rings: near roofs a few storeys down in full
+        // detail, a middle ring lower and plainer, and a skyline of tall towers far behind.
         private static void BuildCity()
         {
-            var city = new GameObject("City").transform;
-            var lit = Unlit("OfficeWindowLit", WindowLit);
-            var darkWindow = Unlit("OfficeWindowDark", WindowDark);
-            var trim = Toon("CityWindowTrim", new Color(0.8f, 0.74f, 0.64f));
-            const float depthBelow = 160f;
+            RenderSettings.fog = true;
+            RenderSettings.fogMode = FogMode.Linear;
+            RenderSettings.fogColor = Dusk;
+            RenderSettings.fogStartDistance = FogStart;
+            RenderSettings.fogEndDistance = FogEnd;
 
+            var city = new GameObject("City").transform;
+            BossTower(city);
+
+            var placed = new List<Rect> { new Rect(West - 3f, South - 3f, East - West + 6f, TerraceNorth - South + 6f) };
+            var near = new GameObject("NearRoofs").transform;
+            near.SetParent(city, false);
+            Ring(near, placed, 26, 22f, 46f, -9f, -22f, detail: 2);
+            var middle = new GameObject("MiddleRing").transform;
+            middle.SetParent(city, false);
+            Ring(middle, placed, 34, 46f, 95f, -14f, -40f, detail: 1);
+            var skyline = new GameObject("Skyline").transform;
+            skyline.SetParent(city, false);
+            for (var i = 0; i < 16; i++)
+            {
+                var x = -110f + i * 14f + (float)_random.NextDouble() * 6f;
+                var z = 120f + (float)_random.NextDouble() * 40f;
+                Building(skyline, new Vector2(x, z), 10f + (float)_random.NextDouble() * 8f, 10f + (float)_random.NextDouble() * 8f,
+                    5f + (float)_random.NextDouble() * 35f, 0);
+            }
+        }
+
+        // Up to `count` buildings between `minDistance` and `maxDistance` from the floor's middle,
+        // roofs between `highRoof` and `lowRoof`, never overlapping each other or the tower.
+        private static void Ring(Transform parent, List<Rect> placed, int count, float minDistance, float maxDistance, float highRoof, float lowRoof, int detail)
+        {
+            var middle = new Vector2(0f, (South + TerraceNorth) / 2f);
+            for (int i = 0, tries = 0; i < count && tries < count * 30; tries++)
+            {
+                var angle = (float)_random.NextDouble() * Mathf.PI * 2f;
+                var distance = Mathf.Lerp(minDistance, maxDistance, (float)_random.NextDouble());
+                var at = middle + new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * distance;
+                var w = 9f + (float)_random.NextDouble() * 9f;
+                var d = 9f + (float)_random.NextDouble() * 9f;
+                var footprint = new Rect(at.x - w / 2f - 1.5f, at.y - d / 2f - 1.5f, w + 3f, d + 3f);
+                if (placed.Exists(r => r.Overlaps(footprint)))
+                    continue;
+                placed.Add(footprint);
+                Building(parent, at, w, d, Mathf.Lerp(highRoof, lowRoof, (float)_random.NextDouble()), detail);
+                i++;
+            }
+        }
+
+        // One building: a body down into the haze, a cornice, framed windows on the faces the camera
+        // sees (south, and the side towards the tower), and roof clutter for the near ones.
+        private static void Building(Transform parent, Vector2 at, float w, float d, float roof, int detail)
+        {
+            var building = new GameObject("Building").transform;
+            building.SetParent(parent, false);
+            building.localPosition = new Vector3(at.x, roof, at.y);
+            var c = _random.Next(FacadeColors.Length);
+            // A touch of the dusk in every facade, so the city sits behind the office, not level with it.
+            var wall = Toon($"OfficeFacade{c}", Color.Lerp(FacadeColors[c], Dusk, 0.18f));
+            var trim = Toon($"OfficeFacadeTrim{c}", Color.Lerp(FacadeColors[c], Cream, 0.55f));
+            var height = roof + CityDepth;
+            Model(building, "Body", CityModel, "CityBlock", wall, new Vector3(0f, -height, 0f), 0f, scale3: new Vector3(w, height, d));
+            // Roofs in a dark gravel tone: big pale roofs would outshine the office above them.
+            Model(building, "Cornice", CityModel, "CityCornice", Toon("OfficeRoofGravel", new Color(0.40f, 0.36f, 0.36f)), Vector3.zero, 0f, scale3: new Vector3(w + 0.5f, 1f, d + 0.5f));
+            if (detail == 0)
+            {
+                // The far skyline: a few lit windows only, the haze does the rest.
+                for (var y = -3f; y > -30f; y -= 3.4f)
+                for (var x = -w / 2f + 1.5f; x < w / 2f - 1f; x += 2.6f)
+                    if (_random.NextDouble() < 0.4)
+                        Shape(building, PrimitiveType.Quad, "Window", Unlit("OfficeWindowLit", WindowLit), new Vector3(x, y, -d / 2f - 0.03f), new Vector3(1f, 1.5f, 1f), Quaternion.identity);
+                return;
+            }
+
+            var rows = detail == 2 ? 6 : 4;
+            Windows(building, w, d, rows, trim, side: 0, framed: detail == 2); // the haze hides frames further out
+            // The side towards the tower, which the camera sees at an angle.
+            if (detail == 2 && Mathf.Abs(at.x) > 14f)
+                Windows(building, w, d, rows, trim, side: at.x > 0f ? -1 : 1, framed: true);
+            if (detail < 2)
+                return;
+
+            // Roof clutter, as busy as the kitchen's counters.
+            var roofProps = new GameObject("Roof").transform;
+            roofProps.SetParent(building, false);
+            var grey = Toon("OfficeRoofGrey", new Color(0.56f, 0.55f, 0.53f));
+            var kind = _random.NextDouble();
+            if (kind < 0.3)
+            {
+                // A roof garden: decking, planters with trees, a lounger and an umbrella.
+                Cube(roofProps, "Deck", Planks("OfficeDecking", new Color(0.45f, 0.38f, 0.32f), new Color(0.27f, 0.22f, 0.19f), 0.14f, 2.4f),
+                    new Vector3(0f, 0.02f, 0f), new Vector3(w * 0.7f, 0.02f, d * 0.6f));
+                Tree(roofProps, new Vector3(-w * 0.28f, 0f, d * 0.22f));
+                Tree(roofProps, new Vector3(w * 0.28f, 0f, d * 0.22f));
+                Model(roofProps, "Lounger", OfficeModel, "OfficeLoungerFrame", Toon("OfficeTeak", new Color(0.55f, 0.38f, 0.24f)), new Vector3(0f, 0f, -d * 0.1f), 180f);
+                Model(roofProps, "UmbrellaPole", OfficeModel, "OfficeUmbrellaPole", Toon("OfficeTeak", new Color(0.55f, 0.38f, 0.24f)), new Vector3(w * 0.15f, 0f, -d * 0.15f), 0f);
+                var u = _random.Next(UmbrellaColors.Length);
+                Model(roofProps, "UmbrellaCanopy", OfficeModel, "OfficeUmbrellaCanopy", Toon($"OfficeUmbrella{u}", UmbrellaColors[u]), new Vector3(w * 0.15f, 0f, -d * 0.15f), 22.5f);
+            }
+            else
+            {
+                if (kind < 0.65)
+                    WaterTower(roofProps, new Vector3(w * ((float)_random.NextDouble() - 0.5f) * 0.5f, 0.35f, d * 0.15f));
+                // Air conditioners: a box with a fan on top.
+                var units = 1 + _random.Next(3);
+                for (var k = 0; k < units; k++)
+                {
+                    var unit = new Vector3(-w * 0.3f + k * 1.6f, 0f, -d * 0.25f);
+                    Block(roofProps, "AirCon", grey, unit, new Vector3(1.2f, 0.7f, 0.9f));
+                    Shape(roofProps, PrimitiveType.Cylinder, "Fan", Toon("OfficeInk", Ink), unit + Vector3.up * 0.71f, new Vector3(0.6f, 0.01f, 0.6f));
+                }
+                // A skylight, lit from inside.
+                if (_random.NextDouble() < 0.6)
+                {
+                    var sky = new Vector3(w * 0.22f, 0f, -d * 0.05f);
+                    Block(roofProps, "SkylightFrame", trim, sky, new Vector3(1.8f, 0.3f, 1.2f));
+                    Cube(roofProps, "SkylightGlow", Unlit("OfficeWindowLit", WindowLit), sky + Vector3.up * 0.3f, new Vector3(1.5f, 0.01f, 0.9f));
+                }
+                // A stair hut and an aerial.
+                Block(roofProps, "StairHut", wall, new Vector3(-w * 0.25f, 0f, d * 0.25f), new Vector3(2.2f, 2.2f, 1.8f));
+                Block(roofProps, "StairHutRoof", trim, new Vector3(-w * 0.25f, 2.2f, d * 0.25f), new Vector3(2.4f, 0.12f, 2.0f));
+                if (_random.NextDouble() < 0.5)
+                    Shape(roofProps, PrimitiveType.Cylinder, "Aerial", Toon("OfficeInk", Ink), new Vector3(-w * 0.25f, 3.4f, d * 0.25f), new Vector3(0.05f, 1.2f, 0.05f));
+            }
+        }
+
+        // Framed, sill-ed windows in rows under the cornice, on the south face (side 0) or on the
+        // west (side −1) or east (side 1) face. About four in ten are lit.
+        private static void Windows(Transform building, float w, float d, int rows, Material trim, int side, bool framed)
+        {
+            var lit = Unlit("OfficeWindowLit", WindowLit);
+            var dark = Unlit("OfficeWindowDark", WindowDark);
+            var span = side == 0 ? w : d;
+            var turn = Quaternion.Euler(0f, side == 0 ? 0f : side * -90f, 0f);
+            for (var r = 0; r < rows; r++)
+            {
+                var y = -2.2f - r * 3.2f;
+                for (var a = -span / 2f + 1.4f; a < span / 2f - 0.9f; a += 2.3f)
+                {
+                    var face = side == 0 ? new Vector3(a + 0.4f, y, -d / 2f) : new Vector3(side * w / 2f, y, a + 0.4f);
+                    var outward = side == 0 ? Vector3.back : Vector3.right * side;
+                    Shape(building, PrimitiveType.Quad, "Window", _random.NextDouble() < 0.4 ? lit : dark, face + outward * 0.02f, new Vector3(0.9f, 1.2f, 1f), turn);
+                    if (!framed)
+                        continue;
+                    var frame = Model(building, "Frame", CityModel, "CityWindowFrame", trim, face, 0f);
+                    var sill = Model(building, "Sill", CityModel, "CityWindowSill", trim, face, 0f);
+                    if (frame != null) frame.transform.localRotation = turn;
+                    if (sill != null) sill.transform.localRotation = turn;
+                }
+            }
+        }
+
+        // The boss's own tower under the floor: sandstone with a brass cornice and framed windows.
+        private static void BossTower(Transform city)
+        {
             var tower = new GameObject("BossTower").transform;
             tower.SetParent(city, false);
             var width = East - West + 0.6f;
             var depth = TerraceNorth - South + 0.6f;
             var middle = (South + TerraceNorth) / 2f;
-            Cube(tower, "Body", Toon("OfficeFacade", Facade), new Vector3(0f, -depthBelow, middle), new Vector3(width, depthBelow - 0.8f, depth));
+            var stone = Toon("OfficeTowerStone", new Color(0.66f, 0.55f, 0.43f));
+            var trim = Toon("OfficeTowerTrim", new Color(0.86f, 0.80f, 0.68f));
+            Cube(tower, "Body", stone, new Vector3(0f, -CityDepth, middle), new Vector3(width, CityDepth - 0.8f, depth));
             Block(tower, "Cornice", Toon("OfficeBrass", Brass), new Vector3(0f, -1.3f, middle), new Vector3(width + 0.5f, 0.5f, depth + 0.5f));
             Block(tower, "CorniceDark", Toon("OfficeWalnut", Walnut), new Vector3(0f, -0.8f, middle), new Vector3(width + 0.3f, 0.4f, depth + 0.3f));
-            var front = South - 0.32f;
-            for (var y = -4f; y > -34f; y -= 3.2f)
-            for (var x = West + 1.4f; x < East - 1f; x += 2.4f)
-            {
-                Shape(tower, PrimitiveType.Quad, "Window", _random.NextDouble() < 0.45 ? lit : darkWindow, new Vector3(x, y, front - 0.02f), new Vector3(1.2f, 1.8f, 1f), Quaternion.identity);
-                if (y > -14f)
-                    Model(tower, "Frame", CityModel, "CityWindowFrame", trim, new Vector3(x, y, front), 0f);
-            }
-
-            // Neighbouring towers, in the menu's city models: roofs well below this one in front
-            // and to the sides, taller ones far behind for a skyline at the top of the frame.
-            var others = new GameObject("Towers").transform;
-            others.SetParent(city, false);
-            for (var i = 0; i < 50; i++)
-            {
-                var angle = (float)_random.NextDouble() * Mathf.PI * 2f;
-                var distance = 34f + (float)_random.NextDouble() * 70f;
-                var at = new Vector3(Mathf.Cos(angle) * distance, 0f, middle + Mathf.Sin(angle) * distance);
-                var behind = at.z > 50f;
-                var top = behind ? -25f + (float)_random.NextDouble() * 55f : -50f + (float)_random.NextDouble() * 38f;
-                var w = 9f + (float)_random.NextDouble() * 10f;
-                var d = 9f + (float)_random.NextDouble() * 10f;
-                var c = _random.Next(TowerColors.Length);
-                var building = new GameObject("Tower").transform;
-                building.SetParent(others, false);
-                building.localPosition = at + Vector3.up * -depthBelow;
-                var height = top + depthBelow;
-                Model(building, "Body", CityModel, "CityBlock", Toon($"OfficeTower{c}", TowerColors[c]), Vector3.zero, 0f, scale3: new Vector3(w, height, d));
-                Model(building, "Cornice", CityModel, "CityCornice", Toon("OfficeTowerRoof", new Color(0.14f, 0.13f, 0.18f)), new Vector3(0f, height, 0f), 0f, scale3: new Vector3(w + 0.5f, 1f, d + 0.5f));
-                if (_random.NextDouble() < 0.3)
-                    WaterTower(building, new Vector3(w * 0.2f, height + 0.35f, d * 0.1f));
-                for (var y = height - 2.5f; y > height - 16f; y -= 3.2f)
-                for (var x = -w / 2f + 1.2f; x < w / 2f - 0.8f; x += 2.2f)
-                    Shape(building, PrimitiveType.Quad, "Window", _random.NextDouble() < 0.35 ? lit : darkWindow,
-                        new Vector3(x + 0.4f, y, -d / 2f - 0.02f), new Vector3(1.1f, 1.6f, 1f), Quaternion.identity);
-            }
+            var body = new GameObject("Facade").transform;
+            body.SetParent(tower, false);
+            body.localPosition = new Vector3(0f, -1.6f, middle);
+            Windows(body, width, depth, 6, trim, side: 0, framed: true);
+            Windows(body, width, depth, 4, trim, side: -1, framed: true);
+            Windows(body, width, depth, 4, trim, side: 1, framed: true);
         }
 
-        private static void WaterTower(Transform building, Vector3 at)
+        private static void WaterTower(Transform parent, Vector3 at)
         {
             var iron = Toon("CityTowerIron", new Color(0.15f, 0.13f, 0.16f));
-            Model(building, "TowerLegs", CityModel, "CityTowerLegs", iron, at, 0f);
-            Model(building, "TowerTank", CityModel, "CityTowerTank", Toon("CityTowerWood", new Color(0.45f, 0.3f, 0.2f)), at, 0f);
-            Model(building, "TowerRoof", CityModel, "CityTowerRoof", iron, at, 0f);
+            Model(parent, "TowerLegs", CityModel, "CityTowerLegs", iron, at, 0f);
+            Model(parent, "TowerTank", CityModel, "CityTowerTank", Toon("CityTowerWood", new Color(0.45f, 0.3f, 0.2f)), at, 0f);
+            Model(parent, "TowerRoof", CityModel, "CityTowerRoof", iron, at, 0f);
         }
 
         // ---- People -------------------------------------------------------------------------------
@@ -1081,16 +1239,32 @@ namespace Game.Editor
 
         private static Material Toon(string name, Color color) => StyleTest.EnsureToonMaterial(name, color);
 
-        // Floors in the kitchen's room shader, at true size in world space.
+        // The office's panelling, in the kitchen's room shader: walnut boards nearly to the top, a
+        // brass rail and cap. Seen from above, the cap is what reads, so it outlines every room.
+        private static Material OfficeWall() => HouseStyle.RoomMaterial("OfficeWall", "WALL", m =>
+        {
+            m.SetColor("_BaseColor", new Color(0.86f, 0.80f, 0.70f));
+            m.SetColor("_PanelColor", new Color(0.40f, 0.26f, 0.17f));
+            m.SetColor("_CapColor", new Color(0.78f, 0.58f, 0.30f));
+            m.SetColor("_SeamColor", new Color(0.24f, 0.15f, 0.10f));
+            m.SetFloat("_PanelHeight", 0.86f);
+            m.SetFloat("_PanelWidth", 0.5f);
+            m.SetFloat("_SeamWidth", 0.012f);
+            m.SetFloat("_Variation", 0.04f);
+            m.SetFloat("_Grain", 0.5f);
+        });
+
+        // Floors in the kitchen's room shader, at true size in world space; calmer than the
+        // kitchen's (less grain, softer seams), as polished floors.
         private static Material Planks(string name, Color wood, Color seam, float width, float length) => HouseStyle.RoomMaterial(name, "PLANKS", m =>
         {
             m.SetColor("_BaseColor", wood);
             m.SetColor("_SeamColor", seam);
             m.SetFloat("_Size", width);
             m.SetFloat("_Length", length);
-            m.SetFloat("_SeamWidth", 0.008f);
-            m.SetFloat("_Variation", 0.08f);
-            m.SetFloat("_Grain", 1f);
+            m.SetFloat("_SeamWidth", 0.006f);
+            m.SetFloat("_Variation", 0.05f);
+            m.SetFloat("_Grain", 0.35f);
         });
 
         private static Material Tiles(string name, Color tile, Color seam, float size, float seamWidth = 0.012f) => HouseStyle.RoomMaterial(name, "TILES", m =>
