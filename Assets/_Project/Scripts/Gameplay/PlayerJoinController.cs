@@ -19,6 +19,11 @@ namespace Game.Gameplay
         private void Awake()
         {
             _manager = GetComponent<PlayerInputManager>();
+
+            // Players past the last spawn point would share one and start inside each other.
+            var spawns = _spawnPoints?.Length ?? 0;
+            if (spawns < _settings.MaxPlayers)
+                Debug.LogWarning($"{name}: {spawns} spawn points for up to {_settings.MaxPlayers} players. Rebuild the scene (Tools/Game/...) to get one each.", this);
         }
 
         private void OnEnable()
@@ -43,6 +48,11 @@ namespace Game.Gameplay
                 // CharacterControllers don't see transform teleports until physics syncs;
                 // without this the first Move() would snap the player back to the origin.
                 Physics.SyncTransforms();
+
+                // A rearranged kitchen can have furniture over a spawn point. Whichever of this and
+                // the composition root's binding runs second sees both the spot and the floor plan.
+                if (player.TryGetComponent(out PlayerMovement movement))
+                    movement.StepClear();
             }
 
             if (_manager.playerCount >= _settings.MaxPlayers)

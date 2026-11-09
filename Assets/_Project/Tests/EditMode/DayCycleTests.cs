@@ -115,6 +115,20 @@ namespace Game.Tests.EditMode
             Assert.That(ready.ReadyCount, Is.EqualTo(0));
         }
 
+        [Test]
+        public void FourPlayersAllHaveToBeReady()
+        {
+            // Up to four players (decision 2026-11-09): three ready isn't enough.
+            var ready = new ReadyCheck();
+            ready.Toggle(0);
+            ready.Toggle(1);
+            ready.Toggle(3);
+            Assert.That(ready.IsEveryoneReady(4), Is.False);
+
+            ready.Toggle(2);
+            Assert.That(ready.IsEveryoneReady(4));
+        }
+
         // Checks the seed rather than the arrivals: with jitter tuned to 0, arrivals rightly match.
         // TheSameSeedPlaysTheSameService covers a seed replaying the same service.
         [Test]

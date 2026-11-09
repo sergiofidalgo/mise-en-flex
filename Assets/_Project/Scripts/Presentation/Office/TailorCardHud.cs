@@ -18,8 +18,9 @@ namespace Game.Presentation.Office
     /// its place in the list (or a note when it's locked), and B Done. Every press answers at once
     /// (the user found the first version sluggish): the item pops, its arrow nudges, a new section
     /// pops, and the chef bounces as they try something on. Also dresses the chef in what's being
-    /// browsed, and back in what they wear when they step off. Cards stay whole on screen and only
-    /// ever name Xbox controls.
+    /// browsed, and back in what they wear when they step off. Cards stay whole on screen, never
+    /// overlap (four chefs on neighbouring ladders spread their cards apart) and only ever name Xbox
+    /// controls.
     /// </summary>
     public sealed class TailorCardHud : MonoBehaviour
     {
@@ -31,12 +32,16 @@ namespace Game.Presentation.Office
         private const float HeadHeight = 2.05f;
         private const float Badge = 40f;
         private const float PopTime = 0.16f;
+        private const float CardGap = 12f;
 
         [SerializeField] private HudStyle _style;
         [SerializeField] private CoopSettings _coop;
         [SerializeField] private TailorPlinth[] _plinths = System.Array.Empty<TailorPlinth>();
 
         private readonly Dictionary<TailorPlinth, Card> _cards = new Dictionary<TailorPlinth, Card>();
+        private readonly List<RectTransform> _placed = new List<RectTransform>();
+        private readonly List<float> _lefts = new List<float>();
+        private readonly List<float> _widths = new List<float>();
         private Canvas _canvas;
 
         private sealed class Card
@@ -152,6 +157,9 @@ namespace Game.Presentation.Office
         {
             var camera = Camera.main;
             var dt = Time.unscaledDeltaTime;
+            _placed.Clear();
+            _lefts.Clear();
+            _widths.Clear();
             foreach (var pair in _cards)
             {
                 var plinth = pair.Key;
@@ -191,6 +199,14 @@ namespace Game.Presentation.Office
                     Place(card.Prompt, camera, standing.transform.position, PromptWidth, PromptHeight);
                 }
             }
+
+            // The ladders stand in one row, so their cards share one: spread so none overlap.
+            if (_placed.Count < 2)
+                return;
+            var canvasWidth = ((RectTransform)_canvas.transform).sizeDelta.x;
+            HudRow.Spread(_lefts, _widths, CardGap, Margin, canvasWidth - Margin);
+            for (var i = 0; i < _placed.Count; i++)
+                _placed[i].anchoredPosition = new Vector2(_lefts[i], _placed[i].anchoredPosition.y);
         }
 
         private Color PlayerColour(int slot) => _coop != null && slot >= 0 ? _coop.GetPlayerColor(slot) : Color.white;
@@ -242,6 +258,9 @@ namespace Game.Presentation.Office
             var x = Mathf.Clamp(screen.x / scale - width / 2f, Margin, canvasSize.x - width - Margin);
             var y = Mathf.Clamp(canvasSize.y - screen.y / scale - height - 12f, Margin, canvasSize.y - height - Margin);
             card.anchoredPosition = new Vector2(x, -y);
+            _placed.Add(card);
+            _lefts.Add(x);
+            _widths.Add(width);
         }
     }
 }

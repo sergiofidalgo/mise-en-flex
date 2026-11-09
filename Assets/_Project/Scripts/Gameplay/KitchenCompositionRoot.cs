@@ -257,7 +257,10 @@ namespace Game.Gameplay
             if (player.TryGetComponent(out PlayerInteractor interactor))
                 interactor.Bind(Services.Stations.All, Services);
             if (player.TryGetComponent(out PlayerMovement movement))
+            {
                 movement.FindFreeSpot = point => Services.NewLayout().NearestFree(point);
+                movement.StepClear(); // off any furniture a saved layout put over their spawn point
+            }
         }
     }
 }

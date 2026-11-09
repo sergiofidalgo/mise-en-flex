@@ -85,12 +85,18 @@ namespace Game.Editor
         private static readonly Color PictureBlue = new Color(0.5f, 0.62f, 0.72f);
         private const float KitchenDoorThickness = 0.08f;
         private static readonly Color KitchenDoorColor = new Color(0.45f, 0.33f, 0.22f);
-        private static readonly Vector3[] SpawnPositions = { new Vector3(-2.45f, 0f, -0.8f), new Vector3(2.45f, 0f, -0.8f) };
+        // One per player, up to four (decision 2026-11-09): P1 and P2 beside the island's ends,
+        // P3 and P4 in the aisle in front of it, clear of the island, the plate stack and the door.
+        private static readonly Vector3[] SpawnPositions =
+        {
+            new Vector3(-2.45f, 0f, -0.8f), new Vector3(2.45f, 0f, -0.8f),
+            new Vector3(-1.0f, 0f, -1.75f), new Vector3(0.3f, 0f, -1.75f),
+        };
         private const float WallHeight = 1f;
         private const float WallThickness = 0.2f;
 
         // Fixed overhead camera (decision 2026-11-02): high and tilted so the whole kitchen
-        // and both players stay in view.
+        // and everyone in it stay in view.
         private static readonly Vector3 CameraPosition = new Vector3(0f, 11f, -8f);
         private static readonly Vector3 CameraEuler = new Vector3(55f, 0f, 0f);
         private const float CameraFieldOfView = 45f;

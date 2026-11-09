@@ -215,7 +215,7 @@ namespace Game.Editor
         /// <summary>
         /// The customers' archetypes (concept v9.2, section C): clothes, a prop, a hat and a walk tell
         /// them apart: the office worker strides briskly, the retiree ambles with small steps, the
-        /// gym-goer bounds, the date sways. Colours stay clear of the four player colours (orange, teal, raspberry, lime).
+        /// gym-goer bounds, the date sways. Colours stay clear of the four player colours (orange, teal, yellow, violet).
         /// </summary>
         public static IReadOnlyList<Look> CustomerLooks()
         {

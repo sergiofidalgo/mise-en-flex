@@ -12,18 +12,32 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 - `CLAUDE.md` and `game-design.md`: 1–4 players.
 - **The performance target** is now 60 fps on a MacBook with four players.
 
-**Not done yet:**
-- **The cap:** `CoopSettings._maxPlayers` is still 2, and `CoopSettingsTests.DefaultsToTwoPlayers` checks it.
-- **Raising it reaches across the game, mostly the kitchen:**
-  - framing four spread-out players (the kitchen's camera and its leash);
-  - per-player HUD (the ready strip, prompts and hints for four);
-  - room at the stations and the push between players;
-  - four Xbox controllers over Bluetooth on macOS;
-  - the layout editor's cursors;
-  - the tailor's per-player saves;
-  - performance.
+**Raised to four (2026-11-09).** `CoopSettings._maxPlayers` is 4 in code and in the asset. The test now checks for four, as the requirement changed. What a check of every two-player assumption found:
 
-  It's scoped as its own task.
+- **Player colours.** The old set failed colour blindness: under deuteranopia, orange and lime were nearly the same (ΔE about 9). P1 orange and P2 teal stay. **P3 is now yellow and P4 violet** (raspberry and lime before). This was checked by simulating protanopia, deuteranopia and tritanopia (Machado 2009). The closest pair is now orange and yellow, about ΔE 22 for a deuteranope, who tells them apart by lightness. Labels still say P1–P4 wherever colour alone would have to carry it. *Proposed, the user can overrule:* this changes the look of P3's and P4's band, neckerchief and apron.
+- **Kitchen spawn points.** There were only two, so P3 and P4 would have started inside P1 and P2. `GreyboxKitchenBuilder` now makes four: P3 and P4 go in the aisle in front of the island. **The saved kitchen scene still has two** until *Tools/Game/Build Greybox Kitchen* is run again. `PlayerJoinController` warns in the Console when a scene has fewer spawn points than players. A joining chef also steps off any furniture that a saved layout put over their spawn point.
+- **Prompt cards.** With three or four players at one station, the extra cards marched off to the right of it. They now fan out to either side: right, left, then further right.
+- **Tailor cards.** The ladders are about 1.8 m apart, so four 440 px dressing cards over neighbouring chefs overlapped. The cards now share one row and are spread so none overlap (`HudRow`), and the row stays on screen. Four dressing cards fit at 1920 px wide.
+- **Fine as they were:**
+  - The kitchen camera: four players can't spread wider than two at opposite corners, so neither the framing nor the 18 m "keep the kitchen" height changes.
+  - The office camera, for the same reason.
+  - The push between bodies: everyone against everyone, which is cheap at this size.
+  - The layout editor: one cursor per `PlayerInput`.
+  - Ready-up: everyone has to be ready, now tested with four.
+  - The ready strips on the Plan card, the Prep strip and the Review dashboard: four entries fit beside the hints.
+  - The tailor's saves: `ChefProfile` already kept four slots.
+  - The office elevator: its four spawn points fit the car, 0.6 m or more from every wall. The 3 m doorway lets the back row walk out between the front row.
+- **Performance.** A code check found nothing that grows badly with players. The layout cursors searched their frame's renderers every frame; they're now tinted once. **The real frame rate hasn't been measured:** that needs four chefs in the Editor with the Profiler.
+
+**To check by playing, with four real controllers:**
+- Four Xbox controllers over Bluetooth on macOS: that they all pair and stay connected.
+- The kitchen is 6.8 × 3.8 m, and the aisle behind the island is 0.9 m wide, room for one chef. It may jam with four. Is it fun-crowded or frustrating?
+- With four players, someone is out of the kitchen more often, so the camera spends more time on the wider shot and the chefs look smaller.
+- Four layout cursors close together: their labels can overlap, and only the frame shows whose is whose.
+
+**Not fixed (bigger than this task, noted in `ideas.md`):**
+- Players join each scene afresh, so `playerIndex` follows the order people press A in that scene. A player could be P3 in the office and P2 in the kitchen, with the other slot's colour and tailored look.
+- A controller that disconnects leaves its player in the game, so ready-up waits for them forever. It's the same with two players, but more likely with four.
 
 **Out of date:** `game-design.md` line 60 still speaks of "close-up panels" with two players, which the 2026-11-02 decision (no close-up panel) had already replaced.
 

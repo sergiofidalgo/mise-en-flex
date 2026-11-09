@@ -47,19 +47,22 @@ namespace Game.Presentation.Hud
                 {
                     view = (Instantiate(_framePrefab), WorldLabel.Create(_style, _canvas, $"LayoutCursor_P{cursor.Player.playerIndex + 1}", _padding, new Vector2(0.5f, 0f)));
                     _views[cursor.Player] = view;
+
+                    // Tinted once: a player's colour never changes. (Searching the frame's parts
+                    // every frame for up to four cursors only made garbage.)
+                    var color = _settings.GetPlayerColor(cursor.Player.playerIndex);
+                    foreach (var part in view.Frame.GetComponentsInChildren<Renderer>(true))
+                    {
+                        part.GetPropertyBlock(_block);
+                        _block.SetColor(BaseColorId, color);
+                        part.SetPropertyBlock(_block);
+                    }
                 }
 
                 // What's carried shows for itself, turning red where it can't go; the frame is for choosing.
                 view.Frame.SetActive(cursor.Held == null);
                 var position = cursor.Held != null ? cursor.Landing : cursor.Position;
-                var color = _settings.GetPlayerColor(cursor.Player.playerIndex);
                 view.Frame.transform.position = new Vector3(position.X, 0.02f, position.Y);
-                foreach (var part in view.Frame.GetComponentsInChildren<Renderer>())
-                {
-                    part.GetPropertyBlock(_block);
-                    _block.SetColor(BaseColorId, color);
-                    part.SetPropertyBlock(_block);
-                }
 
                 view.Label.Show(Text(cursor), new Vector3(position.X, _labelHeight, position.Y), camera, _canvas);
             }

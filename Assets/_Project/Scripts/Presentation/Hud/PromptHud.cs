@@ -10,8 +10,8 @@ namespace Game.Presentation.Hud
     /// <summary>
     /// Gives each player a prompt card and keeps it above the station they're facing, showing what
     /// each button does there (badge + short verb) in that player's colour, always as Xbox buttons
-    /// (decision 2026-11-04), whatever the player is using. Two
-    /// players at the same station get their cards side by side.
+    /// (decision 2026-11-04), whatever the player is using. Players
+    /// at the same station get their cards side by side, fanning out to either side of it.
     /// </summary>
     public sealed class PromptHud : MonoBehaviour
     {
@@ -95,7 +95,9 @@ namespace Game.Presentation.Hud
             return Mathf.Max(_anchorHeight, top + _aboveTallStation);
         }
 
-        // Bottom-centre of the card at the station; a second player on the same station sits to the right.
+        // Bottom-centre of the card at the station. With four players a station can have up to four
+        // cards: the second sits to the right, the third to the left, the fourth further right, so
+        // they stay around the station rather than marching off one side of the screen.
         private void Place(PromptCard card, Interactable station, Vector3 screen)
         {
             RectTransformUtility.ScreenPointToLocalPointInRectangle(_canvas, screen, null, out var local);
@@ -103,7 +105,7 @@ namespace Game.Presentation.Hud
             _sharing[station] = already + 1;
 
             var width = card.Rect.rect.width;
-            var offset = already == 0 ? 0f : (width + _sideBySideGap) * already;
+            var offset = (width + _sideBySideGap) * SideBySideSlot(already);
             var height = card.Rect.rect.height;
             var position = local + new Vector2(offset - width / 2f, 0f);
 
@@ -122,6 +124,9 @@ namespace Game.Presentation.Hud
             position.y = Mathf.Max(position.y, -_canvas.rect.height / 2f + _clearAtTheEdges);
             card.Rect.anchoredPosition = position;
         }
+
+        /// <summary>Where the nth card at one station sits, in card widths from the first: 0, +1, -1, +2, -2...</summary>
+        public static int SideBySideSlot(int nth) => nth % 2 == 1 ? (nth + 1) / 2 : -(nth / 2);
 
         private PromptCard CardFor(PlayerInput player)
         {
