@@ -103,6 +103,40 @@ namespace Game.Presentation.Office
             }
         }
 
+        /// <summary>
+        /// For a still picture outside Play mode (TailorCapture): shows dressing cards for the given
+        /// chefs as play would, docked, the chefs dressed in what they're browsing, and the portrait
+        /// cameras framed. The canvas draws through <paramref name="main"/>, so the picture includes
+        /// it. Returns the portrait cameras, to render before the main camera.
+        /// </summary>
+        public IReadOnlyList<Camera> PreviewDressing(
+            IReadOnlyList<(ChefWardrobe Wardrobe, Transform Chef, TailorSession Session, int Slot)> dressers, Camera main)
+        {
+            if (_canvas == null)
+                Awake();
+            _canvas.renderMode = RenderMode.ScreenSpaceCamera;
+            _canvas.worldCamera = main;
+            _canvas.planeDistance = 1f;
+            var cards = new List<Card>(_cards.Values);
+            var portraits = new List<Camera>();
+            for (var i = 0; i < dressers.Count && i < cards.Count; i++)
+            {
+                var (wardrobe, chef, session, slot) = dressers[i];
+                var card = cards[i];
+                card.Slot = slot;
+                card.DressingEdge.color = PlayerColour(slot);
+                card.Wardrobe = wardrobe;
+                wardrobe.Show(session.Preview);
+                Fill(card, session);
+                Frame(card, chef, (int)session.Module, 10f); // a long step: settled on the framing
+                Dock(card.Dressing, i);
+                card.Dressing.gameObject.SetActive(true);
+                portraits.Add(card.Portrait);
+            }
+            Canvas.ForceUpdateCanvases();
+            return portraits;
+        }
+
         private void OnDestroy()
         {
             foreach (var card in _cards.Values)
@@ -153,6 +187,11 @@ namespace Game.Presentation.Office
             // The item, between arrows; the arrows nudge when pressed.
             card.Left = UiKit.TextAt(_style.DisplayFont, rows, "Left", "‹", 44f, _style.TextColor, 26f, 124f, 30f).rectTransform;
             card.Item = UiKit.TextAt(_style.DisplayFont, rows, "Item", "", 34f, _style.TextColor, Width / 2f, 122f, Width - 110f, HorizontalAlignmentOptions.Center);
+            // Long names ("Feather headdress") shrink to fit rather than being cut, never below the
+            // HUD's 28 px minimum.
+            card.Item.enableAutoSizing = true;
+            card.Item.fontSizeMin = 28f;
+            card.Item.fontSizeMax = 34f;
             card.Right = UiKit.TextAt(_style.DisplayFont, rows, "Right", "›", 44f, _style.TextColor, Width - 26f, 124f, 30f, HorizontalAlignmentOptions.Right).rectTransform;
             card.Count = UiKit.TextAt(_style.Font, rows, "Count", "", 28f, _style.TextColor, Width / 2f, 158f, 200f, HorizontalAlignmentOptions.Center);
             card.Locked = UiKit.TextAt(_style.Bold, rows, "Locked", Tr.Get("Locked: earn it first"), 28f, new Color(0.85f, 0.35f, 0.25f), Width / 2f, 158f, Width - 40f, HorizontalAlignmentOptions.Center);
@@ -304,6 +343,8 @@ namespace Game.Presentation.Office
         private void Dock(RectTransform card, int index)
         {
             var canvasWidth = ((RectTransform)_canvas.transform).sizeDelta.x;
+            if (canvasWidth < 1f)
+                canvasWidth = 1920f; // the scaler hasn't sized the canvas yet (a still outside Play mode)
             var x = Mathf.Max(Margin, canvasWidth - Margin - Width - index * (Width + CardGap));
             card.anchoredPosition = new Vector2(x, -Margin);
         }
