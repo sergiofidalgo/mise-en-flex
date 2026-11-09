@@ -4,6 +4,29 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-09 — The opening: from the city's streets up to the boss's floor
+
+**User's outline and calls** (full spec: `docs/opening-flow.md`):
+- The first half-minute is one unbroken camera move:
+  - logos;
+  - a save notice;
+  - a fade;
+  - a fly-through of the city at night, in a park with people and birds;
+  - the camera stops on the boss's tower and the menu appears;
+  - after New campaign or Continue, the menu fades and the camera climbs to the office's wide shot;
+  - players join by pressing A and move freely.
+- **Logos** are an assumption to work out later.
+- **The bad-language disclaimer** gives way to a **save notice:** what the save icon means, and not to quit while it shows. A loading moment may follow it.
+- **Agreed:** the short fades, the 8–10 s skippable fly-through, the stop framing the tower, the menu's choices leading into the same climb, and the climb handing over to the office.
+- **The menu's city needs reworking with this in mind:** the boss's tower and the penthouse as built, a park at street level, one city seen from two heights.
+
+**Proposed, not yet answered:**
+- the menu's player joins as player 1 automatically;
+- two join slots rather than four;
+- the guided first day later starts at step 9.
+
+---
+
 ## 2026-11-09 — A control-glyph kit, apart from the game's look
 
 **User's call:** control indications get their own visual kit, easy to see apart from the game scene, drawn by Claude in code for now. The joystick is more stylised (after the user's reference), with an L on top and no ridged edges.
