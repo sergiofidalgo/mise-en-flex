@@ -33,8 +33,6 @@ namespace Game.Editor
         private const float CloseHeight = 3.2f;
         private const float BodyRadius = 0.35f;   // the player's capsule (GreyboxKitchenBuilder.CollisionRadius)
 
-        // Where a chef carries things, and how much bigger they show (GreyboxKitchenBuilder, ItemSizes).
-        private static readonly Vector3 CarryAnchor = new Vector3(0f, 1.05f, 0.5f);
         private static readonly Vector3 LineupStart = new Vector3(40f, 0f, 0f);
         private const float LineupSpacing = 0.95f;
 
@@ -126,6 +124,15 @@ namespace Game.Editor
                 Person(lineup[i].look, lineup[i].Item2, LineupStart + Vector3.right * (i * LineupSpacing), 180f, carry: false);
             var lineupMiddle = LineupStart + Vector3.right * ((lineup.Count - 1) * LineupSpacing / 2f);
 
+            // Mid-stride, side on and from the game camera: one of each, the left leg forward.
+            var strideRow = new Vector3(80f, 0f, 0f);
+            var striders = new[] { players[0], players[3], looks[0], looks[2], CharacterArt.Dishwasher() };
+            for (var i = 0; i < striders.Length; i++)
+            {
+                var strider = Person(striders[i], coop.GetPlayerColor(i % 4), strideRow + Vector3.right * (i * 1.1f), 90f, carry: false);
+                strider.Gait.Show(Mathf.PI / 2f, 1f);
+            }
+
             // The carry test: one chef with a plate in each of eight directions, at the game camera's
             // closest framing, to see where the big head and toque hide what's carried.
             var ring = new Vector3(60f, 0f, 0f);
@@ -157,6 +164,9 @@ namespace Game.Editor
             camera.transform.SetPositionAndRotation(LineupStart + new Vector3(0.5f, 1.0f, -3.4f), Quaternion.Euler(4f, 0f, 0f));
             Draw(camera, target, Path.Combine(folder, "chef_front_close.png"));
             Render(camera, target, ring + new Vector3(0f, 0.9f, 0f), PlayHeight, Path.Combine(folder, "carry_facings.png"));
+            Render(camera, target, strideRow + new Vector3(2.2f, 0.9f, 0f), CloseHeight + 0.6f, Path.Combine(folder, "walk_play.png"));
+            camera.transform.SetPositionAndRotation(strideRow + new Vector3(2.2f, 0.9f, -5.5f), Quaternion.Euler(3f, 0f, 0f));
+            Draw(camera, target, Path.Combine(folder, "walk_side.png"));
             for (var i = 0; i < bends.Count; i++)
                 Render(camera, target, bends[i] + new Vector3(0f, 0.9f, -0.5f), CloseHeight, Path.Combine(folder, $"bend_{i}.png"));
             // And from the side, alone, where clipping into the station shows.
@@ -198,7 +208,7 @@ namespace Game.Editor
 
         // A person standing at `at`, turned `facing` degrees, in `colour`; carrying a plate of steak
         // at the chef's carry point, both hands aimed at it as ChefArmsView does.
-        private static void Person(CharacterArt.Look look, Color colour, Vector3 at, float facing, bool carry)
+        private static CharacterArt.Rig Person(CharacterArt.Look look, Color colour, Vector3 at, float facing, bool carry)
         {
             var root = new GameObject(look.Name).transform;
             root.SetPositionAndRotation(new Vector3(at.x, 0f, at.z), Quaternion.Euler(0f, facing, 0f));
@@ -208,11 +218,11 @@ namespace Game.Editor
             foreach (var renderer in rig.Tinted)
                 renderer.SetPropertyBlock(block);
             if (!carry)
-                return;
+                return rig;
 
             var anchor = new GameObject("CarryAnchor").transform;
             anchor.SetParent(root, false);
-            anchor.localPosition = CarryAnchor;
+            anchor.localPosition = CharacterArt.CarryAnchor;
             anchor.localScale = Vector3.one * ItemSizes.Carried;
             var plate = Spawn(PlatePath, anchor);
             if (plate != null)
@@ -222,6 +232,7 @@ namespace Game.Editor
                 var towards = anchor.position + root.right * (side * 0.17f) - shoulder.position;
                 shoulder.rotation = Quaternion.FromToRotation(-root.up, towards.normalized) * root.rotation;
             }
+            return rig;
         }
 
         private static GameObject Spawn(string path, Transform parent)

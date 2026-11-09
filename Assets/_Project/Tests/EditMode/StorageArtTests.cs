@@ -197,25 +197,23 @@ namespace Game.Tests.EditMode
         [Test]
         public void ChefBendsAtTheWaist()
         {
-            // The v9.2 character (concept 2026-11-09): a lower waist, a big head and a toque on top.
+            // The kit's character (concepts v9.2 → v16, 2026-11-09): a big head and a short toque.
             // Must match CharacterArt.WaistHeight.
-            const float waistHeight = 0.45f;
-            var shoes = Model("SM_Characters", "CharShoes").bounds;
+            const float waistHeight = 0.65f;
             var hips = Model("SM_Characters", "CharHips").bounds;
             var torso = Model("SM_Characters", "CharTorso").bounds;
             var head = Model("SM_Characters", "CharHead").bounds; // hangs from the waist too
             var toque = Model("SM_Characters", "HatToque").bounds;
-            Assert.That(shoes.min.y, Is.EqualTo(0f).Within(Tolerance));
             Assert.That(hips.max.y, Is.GreaterThan(waistHeight), "The hips reach past the waist, so no gap opens when bending.");
             Assert.That(torso.min.y, Is.LessThan(0f), "The torso's origin is the waist; it starts a little below.");
 
             var player = Prefab("Assets/_Project/Prefabs/PF_Player.prefab");
-            var waist = player.transform.Find("Visuals/Waist");
+            var waist = player.transform.Find("Visuals/Figure/Waist");
             Assert.That(waist, Is.Not.Null);
             Assert.That(waist.localPosition.y, Is.EqualTo(waistHeight).Within(Tolerance));
-            // About as tall as the first chef with its toque (2.0 m), so camera framing still fits.
-            Assert.That(waist.localPosition.y + head.max.y, Is.EqualTo(1.64f).Within(0.01f), "The top of the head.");
-            Assert.That(waist.localPosition.y + toque.max.y, Is.InRange(1.85f, 2.0f), "The top of the toque.");
+            // A little shorter than the first chef with its toque (2.0 m), as in concept v16.
+            Assert.That(waist.localPosition.y + head.max.y, Is.EqualTo(1.63f).Within(0.01f), "The top of the head.");
+            Assert.That(waist.localPosition.y + toque.max.y, Is.InRange(1.7f, 1.85f), "The top of the toque.");
             Assert.That(player.GetComponent<StorageUseView>(), Is.Not.Null);
         }
     }

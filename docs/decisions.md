@@ -37,6 +37,21 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-09 — Characters toward v16 after the first playtest: smaller heads, longer legs that walk, hands on what's carried
+
+**The user's playtest of v9.2:** it was easy to lose track of what you're holding: things floated in front of the chef, and the hat seemed too big. Customers felt too big. Walking didn't show: the legs were too short and didn't move. The 20° storage bend was fine. The references were concept v16 (`Art/Direction/concepts/2026-11-09_character-system_v16_full-cast.png`): head and hat about 38%, slimmer, with visible legs.
+
+**Changed:**
+- **Proportions:** head and toque are now 38% of the height, down from 47%. The head is 0.54 m across instead of 0.62 m (head parts are authored once and scaled together, `CHAR_HEAD_SCALE`). The toque is a short, puffy mushroom. The body is slimmer (0.55 m across), and the waist sits at 0.65 m with legs below it. The top of the head is still 1.63 m; the toque reaches 1.78 m.
+- **Arms reach what's carried:** the arms are 0.42 m to the hand, and the carry point is at 1.0 m high and 0.5 m out (`CharacterArt.CarryAnchor`), so both hands are on the plate. `CharacterProportionTests.HandsReachWhatsCarried` checks it.
+- **Walking:** each leg hangs from its own hip. `WalkCycleView` swings the legs, bobs the upper body once a step and waddles a few degrees. The cycle advances with distance walked (1 m per two steps), so feet don't skate at any speed. A chef's arms (`ChefArmsView`) follow the same gait, swinging against the legs. Customers and staff swing their arms from the gait itself.
+- **Customers** are 90% of a chef's size (`CharacterArt.CustomerScale`).
+- **The storage bend** stays at 20°, which now has more room (up to about 32° would clear the shelf).
+
+**Still found:** facing straight away from the camera, the toque and head still hide what's carried. They hide less than before, and from 45° on it shows. The user will judge in play whether this still needs a fix (for example, an icon above the head).
+
+---
+
 ## 2026-11-09 — Characters v9.2 in the kitchen: big heads, barrel bodies, stubby legs (proportion greybox)
 
 **User's call:** test the concept sheet's proportions in the real kitchen first, in the scene's current look (toon ramp, soft ink, chunky bevelled shapes, decision 2026-11-08).

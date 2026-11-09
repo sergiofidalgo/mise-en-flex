@@ -20,6 +20,8 @@ namespace Game.Presentation
         [SerializeField] private PlayerInteractor _interactor;
         [SerializeField] private Transform _leftShoulder;
         [SerializeField] private Transform _rightShoulder;
+        [Tooltip("Optional: the legs' walk. When set, the arms swing in step with it, against the legs.")]
+        [SerializeField] private WalkCycleView _gait;
         [Tooltip("Where carried things are held; both hands grip either side of it.")]
         [SerializeField] private Transform _carryAnchor;
         [Tooltip("The knife's place; it rides in the belt or comes out at the board from here.")]
@@ -143,6 +145,12 @@ namespace Game.Presentation
             _speed = Mathf.Lerp(_speed, moved.magnitude / dt, 1f - Mathf.Exp(-10f * dt));
             _walking = Mathf.Clamp01(_speed / _fullSpeed);
             _phase += dt * _swingRate * _walking;
+            if (_gait != null)
+            {
+                // In step with the legs: each arm swings back as the leg on its side goes forward.
+                _phase = _gait.Phase;
+                _walking = _gait.Walking;
+            }
             _strokeAge += dt;
             if (_tossedPan != null)
             {

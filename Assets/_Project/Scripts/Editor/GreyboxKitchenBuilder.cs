@@ -333,7 +333,8 @@ namespace Game.Editor
 
             var carryAnchor = new GameObject("CarryAnchor").transform;
             carryAnchor.SetParent(root.transform, false);
-            carryAnchor.localPosition = CarryAnchorPosition;
+            // The character kit holds things where its arms reach (CharacterArt.CarryAnchor).
+            carryAnchor.localPosition = CharacterArt.Available ? CharacterArt.CarryAnchor : CarryAnchorPosition;
             // What a chef carries shows bigger than where it lies, so it reads at a glance
             // (the user's note, 2026-11-08); it's back to its size once put down.
             carryAnchor.localScale = Vector3.one * ItemSizes.Carried;
@@ -848,17 +849,17 @@ namespace Game.Editor
             return rack;
         }
 
-        // The v9.2 chef (concept 2026-11-09): big head, toque with the player's colour on its band,
+        // The kit's chef (concepts v9.2 → v16, 2026-11-09): big head, toque with the player's colour on its band,
         // apron and neckerchief, short arms that ChefArmsView aims, and the old chef's knife sheath
         // moved down to the barrel's hip. Returns the waist, which bends.
         private static Transform BuildCharacterChef(GameObject root, Transform visuals, PlayerInteractor interactor,
             Transform carryAnchor, Transform toolAnchor, out System.Collections.Generic.List<Renderer> tinted)
         {
-            var rig = CharacterArt.Build(visuals, CharacterArt.PlayerChef());
+            var rig = CharacterArt.Build(visuals, CharacterArt.PlayerChef(), swingArms: false);
             tinted = rig.Tinted;
 
             var belt = new GameObject("Belt").transform;
-            belt.SetParent(visuals, false);
+            belt.SetParent(rig.Figure, false);
             belt.localPosition = CharacterArt.SheathShift;
             var sheath = new[]
             {
@@ -872,6 +873,7 @@ namespace Game.Editor
             arms.FindProperty("_interactor").objectReferenceValue = interactor;
             arms.FindProperty("_leftShoulder").objectReferenceValue = rig.LeftShoulder;
             arms.FindProperty("_rightShoulder").objectReferenceValue = rig.RightShoulder;
+            arms.FindProperty("_gait").objectReferenceValue = rig.Gait;
             arms.FindProperty("_carryAnchor").objectReferenceValue = carryAnchor;
             arms.FindProperty("_toolAnchor").objectReferenceValue = toolAnchor;
             var sheathList = arms.FindProperty("_sheath");
