@@ -765,11 +765,12 @@ def build_characters():
     add_lathe(bm, [(0.0, c + 0.13), (0.29, c + 0.13), (0.3, c + 0.15), (0.3, c + 0.25), (0.29, c + 0.27), (0.0, c + 0.27)],
               segments=32)
     part("HatToqueBand", bm, "waist", head=True)
-    bm = bmesh.new()  # a cap's crown, sitting low on the head
+    bm = bmesh.new()  # a cap's crown, sitting low on the head, with the button on top
     add_ellipsoid(bm, (0.0, 0.02, c + 0.1), (0.33, 0.33, 0.27), rings=12, segments=24)
+    add_ball(bm, (0.0, 0.02, c + 0.37), 0.035, segments=10)
     part("HatCap", bm, "waist", head=True)
-    bm = bmesh.new()  # its peak: a rounded bill out over the eyes
-    add_ellipsoid(bm, (0.0, -0.27, c + 0.13), (0.17, 0.11, 0.02), rings=6, segments=24)
+    bm = bmesh.new()  # its peak: a big rounded bill out over the eyes, so a cap reads as one from above
+    add_ellipsoid(bm, (0.0, -0.29, c + 0.13), (0.2, 0.15, 0.022), rings=6, segments=24)
     part("HatCapPeak", bm, "waist", head=True)
     bm = bmesh.new()  # a bandana: a snug cover over the top and a knot at the back
     add_ellipsoid(bm, (0.0, 0.03, c + 0.08), (0.325, 0.33, 0.29), rings=12, segments=24)
@@ -822,17 +823,18 @@ def build_characters():
     add_lathe(bm, [(0.0, c + 0.15), (0.318, c + 0.15), (0.318, c + 0.25), (0.0, c + 0.25)], segments=32)
     part("HatCaptainBand", bm, "waist", head=True)
     bm = bmesh.new()  # its glossy black peak
-    add_ellipsoid(bm, (0.0, -0.27, c + 0.13), (0.19, 0.12, 0.022), rings=6, segments=24)
+    add_ellipsoid(bm, (0.0, -0.29, c + 0.13), (0.22, 0.15, 0.024), rings=6, segments=24)
     part("HatCaptainPeak", bm, "waist", head=True)
     bm = bmesh.new()  # gold braid round the band and across the peak, and an anchor badge
-    add_pipe(bm, [(0.322 * math.cos(2 * math.pi * k / 32), 0.322 * math.sin(2 * math.pi * k / 32), c + 0.25) for k in range(33)],
-             radius=0.014, segments=6)
-    add_pipe(bm, [(-0.15, -0.31, c + 0.16), (0.0, -0.36, c + 0.16), (0.15, -0.31, c + 0.16)], radius=0.012, segments=6)
-    ay = -0.355
-    add_pipe(bm, [(0.0, ay, c + 0.36), (0.0, ay, c + 0.27)], radius=0.011, segments=6)           # shank
-    add_pipe(bm, [(-0.035, ay, c + 0.34), (0.035, ay, c + 0.34)], radius=0.009, segments=6)      # stock
-    add_pipe(bm, [(-0.045, ay, c + 0.3), (-0.03, ay, c + 0.275), (0.0, ay, c + 0.268), (0.03, ay, c + 0.275), (0.045, ay, c + 0.3)],
-             radius=0.009, segments=6)                                                          # arms
+    add_pipe(bm, [(0.324 * math.cos(2 * math.pi * k / 32), 0.324 * math.sin(2 * math.pi * k / 32), c + 0.25) for k in range(33)],
+             radius=0.022, segments=6)
+    add_pipe(bm, [(-0.18, -0.33, c + 0.17), (0.0, -0.4, c + 0.17), (0.18, -0.33, c + 0.17)], radius=0.018, segments=6)
+    ay = -0.37  # a big anchor badge on the crown's front, leaning back with it so it shows from above
+    add_pipe(bm, [(0.0, ay, c + 0.395), (0.0, ay + 0.02, c + 0.27)], radius=0.016, segments=6)    # shank
+    add_ball(bm, (0.0, ay - 0.005, c + 0.405), 0.022, segments=8)                                # ring
+    add_pipe(bm, [(-0.055, ay + 0.004, c + 0.365), (0.055, ay + 0.004, c + 0.365)], radius=0.013, segments=6)  # stock
+    add_pipe(bm, [(-0.07, ay + 0.012, c + 0.31), (-0.045, ay + 0.018, c + 0.275), (0.0, ay + 0.02, c + 0.262),
+                  (0.045, ay + 0.018, c + 0.275), (0.07, ay + 0.012, c + 0.31)], radius=0.013, segments=6)  # arms
     part("HatCaptainBraid", bm, "waist", head=True)
 
     for k, name in enumerate(("HatPropellerPanelA", "HatPropellerPanelB", "HatPropellerPanelC", "HatPropellerPanelD")):
@@ -858,24 +860,37 @@ def build_characters():
     add_ball(bm, (0.0, 0.0, 0.0), 0.022 * s_head, segments=8)
     part("HatPropellerBlades", bm, "apart")
 
-    bm = bmesh.new()  # headphones: a padded band over the top, ear to ear
-    add_pipe(bm, [(0.34 * math.cos(math.pi * k / 16), 0.03, c + 0.34 * math.sin(math.pi * k / 16)) for k in range(17)],
-             radius=0.035, segments=8)
+    # Big DJ headphones (the user found the first ones looked broken: their band hugged the skull,
+    # so most hair swallowed it): a fat padded band arching clear of every hair style, afro
+    # included, down to big cups over the ears.
+    bm = bmesh.new()
+    add_pipe(bm, [(0.37 * math.cos(math.pi * k / 20), 0.03, c + 0.53 * math.sin(math.pi * k / 20)) for k in range(21)],
+             radius=0.045, segments=8)
+    for side in (-1.0, 1.0):  # the sliders, from the band's ends into the cups
+        add_box(bm, (0.04, 0.05, 0.12), (side * 0.37, 0.03, c + 0.02), bevel=0.012)
     part("HatHeadphonesBand", bm, "waist", head=True)
     bm = bmesh.new()  # big round ear cups (the player's colour)
     for side in (-1.0, 1.0):
-        add_ellipsoid(bm, (side * 0.335, 0.03, c - 0.02), (0.07, 0.12, 0.13), rings=8, segments=16)
+        add_ellipsoid(bm, (side * 0.355, 0.03, c - 0.03), (0.085, 0.14, 0.15), rings=8, segments=16)
     part("HatHeadphonesCups", bm, "waist", head=True)
+    bm = bmesh.new()  # dark cushions where the cups meet the head, so they read as headphones side on
+    for side in (-1.0, 1.0):
+        add_ellipsoid(bm, (side * 0.3, 0.03, c - 0.03), (0.03, 0.12, 0.13), rings=8, segments=16)
+    part("HatHeadphonesPads", bm, "waist", head=True)
 
     brim = CHAR_REACH / CHAR_HEAD_SCALE  # the widest brims keep the full reach
     # A cowboy hat (the user's idea, 2026-11-09): a dented crown and a brim curling up at the sides.
     bm = bmesh.new()
     add_lathe(bm, [(0.0, c + 0.16), (brim - 0.02, c + 0.16), (brim, c + 0.175), (brim - 0.02, c + 0.19), (0.3, c + 0.2),
                    (0.3, c + 0.36), (0.26, c + 0.43), (0.12, c + 0.45), (0.0, c + 0.41)], segments=40)
-    for v in bm.verts:  # the brim curls up at the sides, more the further out
+    for v in bm.verts:
         r = math.hypot(v.co.x, v.co.y)
-        if r > 0.3:
-            v.co.z += 0.16 * ((r - 0.3) / (brim - 0.3)) ** 2 * (v.co.x / r) ** 2
+        if r > 0.3:  # the brim curls up hard at the sides, more the further out
+            v.co.z += 0.26 * ((r - 0.3) / (brim - 0.3)) ** 2 * (v.co.x / r) ** 2
+        elif v.co.z > c + 0.3:  # the crown's crease down the middle, front to back, and pinches at the front
+            v.co.z -= 0.07 * math.exp(-(v.co.x / 0.07) ** 2) * min(1.0, (v.co.z - c - 0.3) / 0.12)
+            if v.co.y < 0.0:
+                v.co.x *= 1.0 - 0.25 * min(1.0, -v.co.y / 0.3) * min(1.0, (v.co.z - c - 0.3) / 0.12)
     part("HatCowboy", bm, "waist", head=True)
     bm = bmesh.new()  # its band (the player's colour)
     add_lathe(bm, [(0.0, c + 0.2), (0.305, c + 0.2), (0.305, c + 0.25), (0.0, c + 0.25)], segments=32)

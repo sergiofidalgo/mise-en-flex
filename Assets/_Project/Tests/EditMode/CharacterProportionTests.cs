@@ -39,7 +39,7 @@ namespace Game.Tests.EditMode
             "CharShirtV", "CharLapels", "CharVestV", "CharHood", "CharHoodiePocket", "CharTankShoulders", "CharEarpiece",
             "CharAviators", "CharAviatorFrames",
             "HatCrown", "HatCrownGems", "HatPartyCone", "HatPartyPompom", "HatCaptain", "HatCaptainBand", "HatCaptainPeak",
-            "HatCaptainBraid", "HatPropellerPanelA", "HatPropellerPeak", "HatHeadphonesBand", "HatHeadphonesCups", "HatStraw",
+            "HatCaptainBraid", "HatPropellerPanelA", "HatPropellerPeak", "HatHeadphonesBand", "HatHeadphonesCups", "HatHeadphonesPads", "HatStraw",
             "HatStrawStrap", "HatCowboy", "HatCowboyBand", "HatPlumed", "HatPlumedBand", "HatPartyStrap",
         };
 

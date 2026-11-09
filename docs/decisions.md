@@ -111,6 +111,22 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-09 — Hats that read from above, and headphones that work
+
+**The user's notes:** the headphones felt broken, and some hats were very hard to tell apart.
+
+**Changed:**
+- **Headphones:** the band hugged the skull, so most hair swallowed it and only the ear cups showed. Now they're big DJ headphones: a fat padded band arching clear of every hair style (afro included), sliders into big cups in the player's colour, and dark cushions. The notes are bigger and more frequent.
+- **A signature shape for each lookalike:**
+  - the bandana has white polka dots on the player's colour (a print on a tinted part, `PlayerPrint`), so it isn't a peakless cap;
+  - the cap has a bigger peak and a top button;
+  - the captain's hat has a bigger glossy peak, a thick gold braid and a large anchor badge that leans back with the crown;
+  - the cowboy hat has a creased, pinched crown and a brim curling up hard at the sides.
+- **Polka dots** no longer bunch into a star at the top of a dome: the way round scales with the distance from the axis (in `Game/Toon`).
+- `CharacterCapture` renders every hat on the same chef from the game camera, to judge them side by side.
+
+---
+
 ## 2026-11-09 — Hats that move, a cowboy hat, and a plumed hat instead of a headdress
 
 **The user's notes:**

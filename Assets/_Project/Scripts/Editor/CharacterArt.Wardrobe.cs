@@ -81,13 +81,13 @@ namespace Game.Editor
             main.loop = true;
             main.startLifetime = new ParticleSystem.MinMaxCurve(1.3f, 1.8f);
             main.startSpeed = new ParticleSystem.MinMaxCurve(0.3f, 0.45f);
-            main.startSize = new ParticleSystem.MinMaxCurve(0.9f, 1.25f);
+            main.startSize = new ParticleSystem.MinMaxCurve(1.5f, 1.9f); // big enough to read from the game camera
             main.startRotation = new ParticleSystem.MinMaxCurve(-0.3f, 0.3f);
             main.simulationSpace = ParticleSystemSimulationSpace.World; // they're left behind as the chef walks
             main.maxParticles = 8;
             main.playOnAwake = true;
             var emission = particles.emission;
-            emission.rateOverTime = 1.1f;
+            emission.rateOverTime = 1.8f;
             var shape = particles.shape;
             shape.shapeType = ParticleSystemShapeType.Cone;
             shape.angle = 18f;
@@ -225,7 +225,10 @@ namespace Game.Editor
                         rig.Tinted.Add(Part(group, "HatCapPeak", Color.white, "ChefAccent"));
                         break;
                     case "bandana":
-                        rig.Tinted.Add(Part(group, "HatBandana", Color.white, "ChefAccent"));
+                        // White polka dots on the player's colour, so it reads as a bandana, not a cap.
+                        var bandana = Part(group, "HatBandana", Color.white, "ChefAccent");
+                        bandana.sharedMaterial = PlayerPrint(3, Color.white, 16f);
+                        rig.Tinted.Add(bandana);
                         // Its tails flutter as the chef moves (the user's note, 2026-11-09).
                         rig.Tinted.Add(Part(Sway(group, "BandanaTails", new Vector3(0f, 0.31f, 0.04f), 90f, 6f, 12f, 1.5f, 6f, 45f),
                             "HatBandanaTails", Color.white, "ChefAccent"));
@@ -270,9 +273,10 @@ namespace Game.Editor
                     case "headphones":
                         Part(group, "HatHeadphonesBand", new Color(0.15f, 0.15f, 0.17f));
                         rig.Tinted.Add(Part(group, "HatHeadphonesCups", Color.white, "ChefAccent"));
+                        Part(group, "HatHeadphonesPads", new Color(0.15f, 0.15f, 0.17f));
                         // Music notes float up from each ear in the player's colour (the user's idea).
                         foreach (var side in new[] { -1f, 1f })
-                            rig.Tinted.Add(MusicNotes(group, HeadPoint(new Vector3(side * 0.37f, 0.03f, 0.02f)), side));
+                            rig.Tinted.Add(MusicNotes(group, HeadPoint(new Vector3(side * 0.42f, 0.03f, 0.05f)), side));
                         covers = false;
                         break;
                     case "cowboy":
@@ -362,6 +366,13 @@ namespace Game.Editor
             for (var i = 0; i < objects.Length; i++)
                 list.GetArrayElementAtIndex(i).objectReferenceValue = objects[i];
         }
+
+        /// <summary>
+        /// A white toon material printed with a pattern, for a part tinted in the player's colour:
+        /// the tint (a property block on _BaseColor) colours the cloth, and the print stays.
+        /// </summary>
+        private static Material PlayerPrint(int pattern, Color patternColour, float scale) =>
+            Patterned(Color.white, pattern, patternColour, scale);
 
         /// <summary>The house toon material printed with a cloth pattern (Game/Toon's _Pattern).</summary>
         public static Material Patterned(Color colour, int pattern, Color patternColour, float scale)

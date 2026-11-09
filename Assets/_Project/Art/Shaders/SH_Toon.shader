@@ -128,6 +128,10 @@ Shader "Game/Toon"
                     mask = saturate(0.55 * (Band(p.x, 0.32) + Band(p.y, 0.32)) + 0.45 * Band(p.x, 0.32) * Band(p.y, 0.32)); // plaid
                 else if (kind == 3)
                 {
+                    // Dots keep their spacing round narrower parts (a bandana's crown) instead of
+                    // bunching into a star at the top: the way round scales with the distance from
+                    // the axis. That leaves a seam at the back, where a knot or the hair hides it.
+                    p.x *= saturate(length(positionOS.xz) / 0.28);
                     float2 cell = frac(p + float2(0.5 * step(0.5, frac(p.y * 0.5)), 0.0)) - 0.5; // offset rows
                     float edge = fwidth(p.y) + 1e-4;
                     mask = 1.0 - smoothstep(0.2 - edge, 0.2 + edge, length(cell));   // polka dots

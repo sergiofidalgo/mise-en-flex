@@ -187,6 +187,24 @@ namespace Game.Editor
                     ((Renderer)tinted.GetArrayElementAtIndex(t).objectReferenceValue)?.SetPropertyBlock(tint);
             }
 
+            // Every hat on the same chef, in the rail's order, to judge from the game camera
+            // whether each reads as what it is.
+            var hatRow = new Vector3(100f, 0f, 60f);
+            var hats = Game.Simulation.Characters.Wardrobe.Options(Game.Simulation.Characters.WardrobeModule.Hat);
+            for (var i = 0; i < hats.Count; i++)
+            {
+                var chef = (GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>(PlayerPrefabPath));
+                chef.transform.SetPositionAndRotation(hatRow + new Vector3((i % 8) * 1.0f, 0f, -(i / 8) * 1.4f), Quaternion.Euler(0f, 160f, 0f));
+                chef.GetComponentInChildren<Game.Presentation.ChefWardrobe>(true).Show(new Game.Simulation.Characters.ChefLook { Hat = hats[i].Id });
+                foreach (var particles in chef.GetComponentsInChildren<ParticleSystem>())
+                    particles.Simulate(2.5f, true, true);
+                var tint = new MaterialPropertyBlock();
+                tint.SetColor("_BaseColor", coop.GetPlayerColor(i % 2));
+                var tinted = new SerializedObject(chef.GetComponent<Game.Presentation.PlayerVisual>()).FindProperty("_tintedRenderers");
+                for (var t = 0; t < tinted.arraySize; t++)
+                    ((Renderer)tinted.GetArrayElementAtIndex(t).objectReferenceValue)?.SetPropertyBlock(tint);
+            }
+
             var faces = new Vector3(100f, 0f, 20f);
             for (var i = 0; i < looks.Count * 2; i++)
                 Person(looks[i / 2], Color.white, faces + Vector3.right * (i * 0.8f), 180f, carry: false);
@@ -229,6 +247,8 @@ namespace Game.Editor
             camera.transform.SetPositionAndRotation(rail + new Vector3(5.7f, 1.1f, -12.4f), Quaternion.Euler(4f, 0f, 0f));
             Draw(camera, target, Path.Combine(folder, "tailor_rail_front.png"));
             Render(camera, target, rail + new Vector3(10.45f, 0.9f, 0f), CloseHeight + 0.4f, Path.Combine(folder, "tailor_rail_play.png"));
+            Render(camera, target, hatRow + new Vector3(3.5f, 0.9f, -0.7f), PlayHeight, Path.Combine(folder, "hats_play.png"));
+            Render(camera, target, hatRow + new Vector3(3.5f, 0.9f, -0.7f), CloseHeight + 1.6f, Path.Combine(folder, "hats_close.png"));
             camera.transform.SetPositionAndRotation(guards + new Vector3(0f, 1.3f, -3.2f), Quaternion.Euler(6f, 0f, 0f));
             Draw(camera, target, Path.Combine(folder, "bodyguards_front.png"));
             Render(camera, target, guards + new Vector3(0f, 0.9f, 0f), CloseHeight, Path.Combine(folder, "bodyguards_play.png"));
