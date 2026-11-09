@@ -25,6 +25,8 @@ namespace Game.Editor
         public const string StickPost = "TEX_Glyph_StickPost";  // the post, stretched and turned to show a tilt
         public const string StickCap = "TEX_Glyph_StickCap";    // the cap, moved to show a tilt; L or R on top
         public const string StickPlate = "TEX_Glyph_StickPlate"; // a cream plate the stick sits on, for dark backgrounds
+        public const string StickTopBase = "TEX_Glyph_StickTopBase"; // the stick seen from straight above, flat: its ring
+        public const string StickTopCap = "TEX_Glyph_StickTopCap";   // and its cap, which slides to show a push
 
         // The kit's palette: near-black outline, two dark greys for bodies, a lighter cap top.
         private static readonly Color Outline = new Color32(0x12, 0x13, 0x17, 0xFF);
@@ -51,8 +53,10 @@ namespace Game.Editor
             Save(StickPost, 80, 150, DrawStickPost);
             Save(StickCap, 260, 190, DrawStickCap);
             Save(StickPlate, 340, 190, DrawStickPlate);
+            Save(StickTopBase, 176, 176, DrawStickTopBase);
+            Save(StickTopCap, 112, 112, DrawStickTopCap);
             AssetDatabase.Refresh();
-            foreach (var name in new[] { Button, Bumper, Trigger, StickBase, StickPost, StickCap, StickPlate })
+            foreach (var name in new[] { Button, Bumper, Trigger, StickBase, StickPost, StickCap, StickPlate, StickTopBase, StickTopCap })
                 Import(name);
             Debug.Log($"[ControlGlyphArt] Drew the control glyphs into {Folder}.");
         }
@@ -108,6 +112,15 @@ namespace Game.Editor
                 Glyph(root, style, Trigger, "RT", Color.white, new Vector2(x0 + 470f, 140f), new Vector2(84f, 106f), 0.28f);
                 for (var p = 0; p < 3; p++)
                     Stick(root, style, new Vector2(x0 + p * 170f, -120f), 140f, new Vector2(p - 1, 0f) * 26f);
+                // The flat, top-down stick the wash game's cue uses, its cap pushed three ways.
+                for (var p = 0; p < 3; p++)
+                {
+                    var group = new GameObject("TopStick", typeof(RectTransform)).GetComponent<RectTransform>();
+                    group.SetParent(root, false);
+                    group.anchoredPosition = new Vector2(x0 + p * 130f, -330f);
+                    var cap = Game.Presentation.Hud.StickHintHud.CreateTopStick(group, 92f, Sprite(StickTopBase), Sprite(StickTopCap), style.DisplayFont);
+                    cap.anchoredPosition = new Vector2(p - 1, p == 1 ? 1 : 0) * 20f;
+                }
             }
 
             var path = Path.GetFullPath("Screenshots/control-glyphs.png");
@@ -215,6 +228,26 @@ namespace Game.Editor
             c.Layer(p => Ellipse(p, centre, rx, ry) - Line, Outline);
             c.Layer(p => Ellipse(p, centre, rx, ry), Cream);
             c.Layer(p => Math.Max(Ellipse(p, centre + new Vector2(-40f, 30f), 80f, 18f), Ellipse(p, centre, rx * 0.95f, ry * 0.9f)), new Color(1f, 1f, 1f, 0.35f), 4f);
+        }
+
+        // The flat, top-down stick (the user's call: a light tutorial cue, not hardware): a cream
+        // ring with a soft dark edge and a faint fill, no shading at all.
+        private static void DrawStickTopBase(Canvas c)
+        {
+            var centre = new Vector2(88f, 88f);
+            var soft = new Color(Outline.r, Outline.g, Outline.b, 0.5f);
+            // A faint fill inside, so the ring reads as one piece; then the ring, edged both sides.
+            c.Layer(p => Circle(p, centre, 62f), new Color(Cream.r, Cream.g, Cream.b, 0.16f), 1f);
+            c.Layer(p => Math.Max(Circle(p, centre, 80f), -Circle(p, centre, 60f)), soft);
+            c.Layer(p => Math.Max(Circle(p, centre, 75f), -Circle(p, centre, 65f)), Cream);
+        }
+
+        // Its cap: a cream disc with a soft dark edge; the L is set on it in the HUD font.
+        private static void DrawStickTopCap(Canvas c)
+        {
+            var centre = new Vector2(56f, 56f);
+            c.Layer(p => Circle(p, centre, 50f), new Color(Outline.r, Outline.g, Outline.b, 0.55f));
+            c.Layer(p => Circle(p, centre, 45f), Cream);
         }
 
         // The post, upright; the view stretches and turns it towards the cap.

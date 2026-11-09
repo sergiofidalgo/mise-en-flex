@@ -6,30 +6,30 @@ using UnityEngine.UI;
 namespace Game.Presentation.Hud
 {
     /// <summary>
-    /// The animated thumbstick that shows a stuck player which way to push (the wash game's soap,
-    /// decision 2026-11-09), drawn from the control-glyph kit: flat HUD art apart from the game's
-    /// look, never lit or hidden by the scene. It sits on a cream plate on the world point a view
-    /// asks for (the wash ring's rim, by the soap; the user's call) and stays on screen. The cap slides towards the way to push, the
-    /// post leans after it and the L rides on top, again and again, like a tutorial.
+    /// The cue that shows a stuck player which way to push (the wash game's soap, decision
+    /// 2026-11-09): a flat, top-down thumbstick from the control-glyph kit (a light ring and a cap
+    /// marked L), sitting in the centre of the wash ring where the soap has to go. The cap slides
+    /// the way to push and springs back, again and again. Light and flat on purpose (the user's
+    /// call: the three-quarter stick looked too strong), HUD art never lit or hidden by the scene.
+    /// The kit's three-quarter stick is kept for button prompts; its builder lives here too.
     /// </summary>
     public sealed class StickHintHud : MonoBehaviour
     {
         [SerializeField] private RectTransform _canvas;
         [SerializeField] private HudStyle _style;
-        [SerializeField] private Sprite _base;
-        [SerializeField] private Sprite _post;
-        [SerializeField] private Sprite _cap;
-        [Tooltip("The cream plate the stick sits on, so it reads on the ring's dark segments.")]
-        [SerializeField] private Sprite _plate;
+        [Tooltip("The flat stick's ring, seen from above.")]
+        [SerializeField] private Sprite _ring;
+        [Tooltip("The flat stick's cap, which slides to show the push.")]
+        [SerializeField] private Sprite _capTop;
 
-        [Tooltip("Canvas pixels: the glyph's width.")]
-        [SerializeField, Min(16f)] private float _size = 60f;
+        [Tooltip("Canvas pixels: the ring's width.")]
+        [SerializeField, Min(16f)] private float _size = 46f;
         [Tooltip("Canvas pixels the cap travels at the far end of a push.")]
-        [SerializeField, Min(0f)] private float _travel = 12f;
+        [SerializeField, Min(0f)] private float _travel = 10f;
         [Tooltip("Pushes per second.")]
         [SerializeField, Min(0f)] private float _pushes = 1.6f;
-        [Tooltip("Canvas pixels the glyph sits above the point it follows (on the ring's rim, the plate centres on it).")]
-        [SerializeField] private float _lift = 0f;
+        [Tooltip("How see-through the cue is at most, so the target shows through it.")]
+        [SerializeField, Range(0f, 1f)] private float _opacity = 0.9f;
 
         private readonly List<Hint> _hints = new List<Hint>();
         private readonly List<SinkWashRingView> _views = new List<SinkWashRingView>();
@@ -39,7 +39,6 @@ namespace Game.Presentation.Hud
         private sealed class Hint
         {
             public RectTransform Root;
-            public RectTransform Post;
             public RectTransform Cap;
             public CanvasGroup Group;
         }
@@ -69,7 +68,7 @@ namespace Game.Presentation.Hud
                 var hint = i < _hints.Count ? _hints[i] : Build();
                 var view = _views[i];
                 var amount = view != null ? view.HintAmount : 0f;
-                hint.Group.alpha = amount;
+                hint.Group.alpha = amount * _opacity;
                 hint.Root.gameObject.SetActive(amount > 0f);
                 if (amount <= 0f)
                     continue;
@@ -81,29 +80,59 @@ namespace Game.Presentation.Hud
 
         private void Place(Hint hint, SinkWashRingView view, Camera camera, float amount)
         {
-            var at = camera.WorldToScreenPoint(view.HintWorldPosition);
-            var to = camera.WorldToScreenPoint(view.HintWorldPosition + view.HintTowardsWorld);
+            // From the camera's viewport (fractions of its view) to the canvas, which covers it:
+            // the same whatever the window's or a capture's pixel size.
+            var at = camera.WorldToViewportPoint(view.HintWorldPosition);
+            var to = camera.WorldToViewportPoint(view.HintWorldPosition + view.HintTowardsWorld);
             if (at.z <= 0f)
             {
                 hint.Root.gameObject.SetActive(false);
                 return;
             }
-            RectTransformUtility.ScreenPointToLocalPointInRectangle(_canvas, at, null, out var local);
-            hint.Root.anchoredPosition = local + new Vector2(0f, _lift);
-            var pop = 1f + 0.12f * (1f - amount); // a little overshoot as it appears
-            hint.Root.localScale = Vector3.one * pop;
+            var canvasSize = _canvas.rect.size;
+            var local = Vector2.Scale((Vector2)at - new Vector2(0.5f, 0.5f), canvasSize);
+            hint.Root.anchoredPosition = local;
+            hint.Root.localScale = Vector3.one * (1f + 0.15f * (1f - amount)); // settles in as it appears
             HudBounds.KeepInside(hint.Root, _canvas, _style != null ? _style.ScreenMargin : 12f);
 
-            // Push, hold, let go: the cap eases out towards the way to go and springs back.
-            var direction = ((Vector2)(to - at)).normalized;
+            // Push, hold, let go: the cap eases out the way to go and springs back.
+            var direction = Vector2.Scale((Vector2)(to - at), canvasSize).normalized;
             var phase = Mathf.Repeat(Time.unscaledTime * _pushes, 1f);
             var push = _push ?? (phase < 0.45f ? Mathf.SmoothStep(0f, 1f, phase / 0.45f) : phase < 0.7f ? 1f : Mathf.SmoothStep(1f, 0f, (phase - 0.7f) / 0.3f));
-            var offset = direction * (_travel * push);
-            // On screen the stick is seen from above at a slant: sideways moves read fully, up and
-            // down a little less.
-            offset.y *= 0.7f;
+            hint.Cap.anchoredPosition = direction * (_travel * push);
+        }
 
-            Pose(hint.Post, hint.Cap, _size, offset);
+        private Hint Build()
+        {
+            var root = new GameObject("StickHint", typeof(RectTransform), typeof(CanvasGroup));
+            root.transform.SetParent(_canvas, false);
+            var rect = (RectTransform)root.transform;
+            rect.sizeDelta = new Vector2(_size, _size);
+            var group = root.GetComponent<CanvasGroup>();
+            group.blocksRaycasts = false;
+            group.interactable = false;
+            var cap = CreateTopStick(rect, _size, _ring, _capTop, _style != null ? _style.DisplayFont : null);
+            var hint = new Hint { Root = rect, Cap = cap, Group = group };
+            _hints.Add(hint);
+            return hint;
+        }
+
+        /// <summary>The flat, top-down stick under <paramref name="parent"/>; returns its cap. Shared with the kit's sheet.</summary>
+        public static RectTransform CreateTopStick(RectTransform parent, float size, Sprite ring, Sprite capSprite, TMP_FontAsset font, string letter = "L")
+        {
+            Image(parent, "Ring", ring, Vector2.zero, new Vector2(size, size));
+            var cap = Image(parent, "Cap", capSprite, Vector2.zero, new Vector2(size * 0.6f, size * 0.6f));
+            var label = new GameObject(letter, typeof(RectTransform)).AddComponent<TextMeshProUGUI>();
+            label.transform.SetParent(cap, false);
+            label.rectTransform.sizeDelta = new Vector2(size * 0.6f, size * 0.6f);
+            if (font != null)
+                label.font = font;
+            label.text = letter;
+            label.fontSize = size * 0.34f;
+            label.alignment = TextAlignmentOptions.Center;
+            label.color = new Color(0.16f, 0.15f, 0.17f);
+            label.raycastTarget = false;
+            return cap;
         }
 
         // Proportions of the stick glyph, as shares of its width, from the kit's sprites: the
@@ -158,23 +187,6 @@ namespace Game.Presentation.Hud
             label.raycastTarget = false;
             Pose(post, cap, size, Vector2.zero);
             return (post, cap);
-        }
-
-        private Hint Build()
-        {
-            var root = new GameObject("StickHint", typeof(RectTransform), typeof(CanvasGroup));
-            root.transform.SetParent(_canvas, false);
-            var rect = (RectTransform)root.transform;
-            rect.sizeDelta = new Vector2(_size, _size);
-            var group = root.GetComponent<CanvasGroup>();
-            group.blocksRaycasts = false;
-            group.interactable = false;
-
-            var (post, cap) = CreateStick(rect, _size, _base, _post, _cap, _style != null ? _style.DisplayFont : null, plate: _plate);
-
-            var hint = new Hint { Root = rect, Post = post, Cap = cap, Group = group };
-            _hints.Add(hint);
-            return hint;
         }
 
         private static RectTransform Image(RectTransform parent, string name, Sprite sprite, Vector2 position, Vector2 size)

@@ -120,20 +120,17 @@ namespace Game.Editor
         /// <summary>Adds the stick hint to a HUD canvas, drawing the control glyphs first if needed.</summary>
         public static void AddStickHint(GameObject hud, Game.Presentation.Hud.HudStyle style)
         {
-            if (AssetDatabase.LoadAssetAtPath<Sprite>($"{ControlGlyphArt.Folder}/{ControlGlyphArt.StickPlate}.png") == null)
+            if (AssetDatabase.LoadAssetAtPath<Sprite>($"{ControlGlyphArt.Folder}/{ControlGlyphArt.StickTopCap}.png") == null)
                 ControlGlyphArt.Build();
             if (!hud.TryGetComponent(out Game.Presentation.Hud.StickHintHud hint))
                 hint = hud.AddComponent<Game.Presentation.Hud.StickHintHud>();
             var so = new SerializedObject(hint);
             so.FindProperty("_canvas").objectReferenceValue = hud.GetComponent<RectTransform>();
             so.FindProperty("_style").objectReferenceValue = style;
-            so.FindProperty("_base").objectReferenceValue = ControlGlyphArt.Sprite(ControlGlyphArt.StickBase);
-            so.FindProperty("_post").objectReferenceValue = ControlGlyphArt.Sprite(ControlGlyphArt.StickPost);
-            so.FindProperty("_cap").objectReferenceValue = ControlGlyphArt.Sprite(ControlGlyphArt.StickCap);
-            so.FindProperty("_plate").objectReferenceValue = ControlGlyphArt.Sprite(ControlGlyphArt.StickPlate);
-            so.FindProperty("_lift").floatValue = 0f;
-            so.FindProperty("_size").floatValue = 60f;
-            so.FindProperty("_travel").floatValue = 12f;
+            so.FindProperty("_ring").objectReferenceValue = ControlGlyphArt.Sprite(ControlGlyphArt.StickTopBase);
+            so.FindProperty("_capTop").objectReferenceValue = ControlGlyphArt.Sprite(ControlGlyphArt.StickTopCap);
+            so.FindProperty("_size").floatValue = 46f;
+            so.FindProperty("_travel").floatValue = 10f;
             so.ApplyModifiedPropertiesWithoutUndo();
         }
 
@@ -278,8 +275,15 @@ namespace Game.Editor
                     var back = (PlayHeight - lookAt.y) / Mathf.Tan(Pitch * Mathf.Deg2Rad);
                     camera.transform.SetPositionAndRotation(new Vector3(lookAt.x, PlayHeight, lookAt.z - back), Quaternion.Euler(Pitch, 0f, 0f));
                     view.Preview(new Vector2(-0.62f, 0.35f), 0f, 0.3f, rim, 0f, true);
+                    // Place the hint inside the capture session, on the canvas as it's captured.
+                    using var session = Game.Presentation.Hud.UiCapture.Prepare(hud.GetComponent<Canvas>());
+                    // The canvas and the camera at the capture's size and shape before placing: in
+                    // batch mode the camera otherwise has the default window's 4:3.
+                    Canvas.ForceUpdateCanvases();
+                    camera.aspect = Width / (float)Height;
                     hud.Refresh(camera, 0.8f);
-                    Game.Presentation.Hud.UiCapture.Save(camera, hud.GetComponent<Canvas>(), Path.Combine(folder, $"wash_{(int)turn}deg_hint.png"));
+                    camera.ResetAspect();
+                    session.Save(camera, Path.Combine(folder, $"wash_{(int)turn}deg_hint.png"));
                 }
             }
 
