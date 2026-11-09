@@ -156,6 +156,17 @@ All models come from `blender/build_pilot_models.py` (generated, reviewable as t
 - Erased chefs' portraits gathering dust in the hall of fame.
 - The helicopter on the pad, rotor tied down. At the ending, it's gone.
 
+**Life (user's note, 2026-11-09: looking at the surroundings should bring joy):**
+- **Near roofs** each have one recognisable thing going on: a heliport with a helicopter warming up, roof gardens with twinkling pergola lights and a gardener, a yellow crane swinging its jib, a giant spinning steak sign, a pool with someone on a rubber ring, washing on a line.
+- **People** smoke on their roof decks.
+- **Birds:** pigeons wheel round the roofs and peck along the terrace rail; gulls circle high.
+- **A helicopter** laps the skyline.
+- **Windows** light up and go dark, and a few flicker with televisions.
+- **Lights:** red aviation lights blink on the tallest towers.
+- **The office's people** breathe, and the bodyguards glance about.
+
+All of it is driven by the `Ambience` components, which are pure functions of time.
+
 ## 6. Technical notes
 
 - **Building it:** the scene is built by an Editor menu item (`Tools/Game/Build Office Scene`), like `MainMenuBuilder`. No hand-edited `.unity` YAML.

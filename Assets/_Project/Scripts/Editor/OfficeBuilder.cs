@@ -24,7 +24,7 @@ namespace Game.Editor
     /// Blender script. Seeded, so every rebuild is the same. Menu: Tools/Game/Build Office. Needs
     /// PF_Player and the furniture prefabs (Build Greybox Kitchen).
     /// </summary>
-    public static class OfficeBuilder
+    public static partial class OfficeBuilder
     {
         public const string ScenePath = "Assets/_Project/Scenes/Office_Greybox.unity";
         private const string SettingsFolder = "Assets/_Project/Data/Settings";
@@ -154,6 +154,7 @@ namespace Game.Editor
             BuildAccountant(rooms);
             BuildTerrace(rooms);
             BuildCity();
+            AddLife(rooms); // OfficeBuilder.Life.cs: birds, rooftop life, windows, people's idles
 
             var players = new GameObject("Players");
             var manager = players.AddComponent<PlayerInputManager>();
@@ -512,7 +513,14 @@ namespace Game.Editor
                 Prop(room, "PF_Counter", new Vector3(4.5f + i, 0f, -7.6f), 0f);
             Shape(room, PrimitiveType.Sphere, "DeskBell", Toon("OfficeBellRed", new Color(0.8f, 0.2f, 0.18f)), new Vector3(5.0f, 0.98f, -7.75f), Vector3.one * 0.14f);
             Block(room, "Ledger", Toon("OfficeLedger", Burgundy), new Vector3(5.9f, 0.92f, -7.7f), new Vector3(0.42f, 0.06f, 0.3f));
-            Person(room, "Receptionist", new Vector3(5.5f, 0f, -6.7f), 180f, new Color(0.62f, 0.22f, 0.32f), Suit);
+            Person(room, "Receptionist", new Vector3(5.5f, 0f, -6.7f), 180f, new Color(0.5f, 0.2f, 0.3f), Suit, dress: look =>
+            {
+                look.Skin = CharacterArt.SkinTones[5];
+                look.HairStyle = CharacterArt.HairKind.Bun;
+                look.Hair = CharacterArt.DarkHair;
+                look.Glasses = true;
+                look.Garment = CharacterArt.Garment.Jacket;
+            });
 
             // The waiting area: a sofa and armchairs round a low table, under a floor lamp.
             Sofa(room, new Vector3(-5.6f, 0f, -6.0f), 180f, Velvet);
@@ -610,7 +618,18 @@ namespace Game.Editor
             }
             // The tailor's mannequin, wearing a chef's jacket a size too big (spec §5).
             Mannequin(room, new Vector3(-9.8f, 0f, 12.6f));
-            Person(room, "Tailor", new Vector3(-13.25f, 0f, 7.6f), 0f, new Color(0.35f, 0.30f, 0.45f), new Color(0.22f, 0.2f, 0.26f));
+            Person(room, "Tailor", new Vector3(-13.25f, 0f, 7.6f), 0f, new Color(0.35f, 0.30f, 0.45f), new Color(0.22f, 0.2f, 0.26f), dress: look =>
+            {
+                look.Skin = CharacterArt.SkinTones[1];
+                look.HairStyle = CharacterArt.HairKind.Fringe;
+                look.Hair = CharacterArt.GreyHair[1];
+                look.Moustache = true;
+                look.Glasses = true;
+                look.Tie = true;
+                look.TieColor = new Color(0.75f, 0.6f, 0.3f);
+                look.Garment = CharacterArt.Garment.Vest;
+                look.Under = CharacterArt.ShirtColours[3];
+            });
             var table = Prop(room, "PF_Table", new Vector3(-12.4f, 0f, 4.4f), 0f, keep: "Body");
             if (table != null)
                 table.transform.localScale = new Vector3(1.6f, 1f, 1f);
@@ -722,7 +741,19 @@ namespace Game.Editor
             for (var i = 0; i < 7; i++)
                 Block(room, "Invoice", Toon("OfficePaper", Cream), desk + new Vector3(-0.45f + i * 0.012f, 0.65f + i * 0.025f, 0f), new Vector3(0.34f, 0.02f, 0.26f));
             OfficeChair(room, desk + new Vector3(0f, 0f, 1.2f), 180f);
-            Person(room, "Accountant", desk + new Vector3(0f, 0f, 0.8f), 180f, new Color(0.40f, 0.38f, 0.30f), new Color(0.25f, 0.24f, 0.2f));
+            Person(room, "Accountant", desk + new Vector3(0f, 0f, 0.8f), 180f, new Color(0.40f, 0.38f, 0.30f), new Color(0.25f, 0.24f, 0.2f), dress: look =>
+            {
+                // Frames and a green visor (concept v16).
+                look.Skin = CharacterArt.SkinTones[0];
+                look.Hair = CharacterArt.NaturalHair[3];
+                look.Glasses = true;
+                look.Hat = CharacterArt.HatKind.Headband;
+                look.HatAccent = new Color(0.2f, 0.45f, 0.3f);
+                look.Tie = true;
+                look.TieColor = new Color(0.45f, 0.18f, 0.16f);
+                look.Garment = CharacterArt.Garment.Vest;
+                look.Under = CharacterArt.ShirtColours[1];
+            });
             foreach (var x in new[] { -0.6f, 0.6f })
                 Model(room, "VisitorChair", "SM_Dining", "DiningChair", Toon("OfficeVisitorChair", WoodMid), desk + new Vector3(x, 0f, -1.4f), 0f, collider: new Vector3(0.45f, 0.9f, 0.45f));
             for (var i = 0; i < 6; i++)
@@ -799,7 +830,7 @@ namespace Game.Editor
             var placed = new List<Rect> { new Rect(West - 3f, South - 3f, East - West + 6f, TerraceNorth - South + 6f) };
             var near = new GameObject("NearRoofs").transform;
             near.SetParent(city, false);
-            Ring(near, placed, 26, 22f, 46f, -9f, -22f, detail: 2);
+            Ring(near, placed, 26, 22f, 46f, -9f, -22f, detail: 2, specials: new Queue<string>(RooftopSpecials));
             var middle = new GameObject("MiddleRing").transform;
             middle.SetParent(city, false);
             Ring(middle, placed, 34, 46f, 95f, -14f, -40f, detail: 1);
@@ -816,7 +847,8 @@ namespace Game.Editor
 
         // Up to `count` buildings between `minDistance` and `maxDistance` from the floor's middle,
         // roofs between `highRoof` and `lowRoof`, never overlapping each other or the tower.
-        private static void Ring(Transform parent, List<Rect> placed, int count, float minDistance, float maxDistance, float highRoof, float lowRoof, int detail)
+        private static void Ring(Transform parent, List<Rect> placed, int count, float minDistance, float maxDistance, float highRoof, float lowRoof, int detail,
+            Queue<string> specials = null)
         {
             var middle = new Vector2(0f, (South + TerraceNorth) / 2f);
             for (int i = 0, tries = 0; i < count && tries < count * 30; tries++)
@@ -830,14 +862,15 @@ namespace Game.Editor
                 if (placed.Exists(r => r.Overlaps(footprint)))
                     continue;
                 placed.Add(footprint);
-                Building(parent, at, w, d, Mathf.Lerp(highRoof, lowRoof, (float)_random.NextDouble()), detail);
+                Building(parent, at, w, d, Mathf.Lerp(highRoof, lowRoof, (float)_random.NextDouble()), detail,
+                    specials != null && specials.Count > 0 ? specials.Dequeue() : null);
                 i++;
             }
         }
 
         // One building: a body down into the haze, a cornice, framed windows on the faces the camera
         // sees (south, and the side towards the tower), and roof clutter for the near ones.
-        private static void Building(Transform parent, Vector2 at, float w, float d, float roof, int detail)
+        private static void Building(Transform parent, Vector2 at, float w, float d, float roof, int detail, string special = null)
         {
             var building = new GameObject("Building").transform;
             building.SetParent(parent, false);
@@ -872,6 +905,12 @@ namespace Game.Editor
             var roofProps = new GameObject("Roof").transform;
             roofProps.SetParent(building, false);
             var grey = Toon("OfficeRoofGrey", new Color(0.56f, 0.55f, 0.53f));
+            if (special != null)
+            {
+                // One of the roofs with something to watch (OfficeBuilder.Life.cs).
+                SpecialRoof(special, roofProps, w, d, wall, trim);
+                return;
+            }
             var kind = _random.NextDouble();
             if (kind < 0.25)
             {
@@ -886,6 +925,9 @@ namespace Game.Editor
                     Block(roofProps, "Railing", rail, deck + new Vector3(0f, 0.95f, z), new Vector3(deckSize.x, 0.05f, 0.05f));
                 foreach (var x in new[] { -deckSize.x / 2f, deckSize.x / 2f })
                     Block(roofProps, "Railing", rail, deck + new Vector3(x, 0.95f, 0f), new Vector3(0.05f, 0.05f, deckSize.y));
+                // Often someone out for a smoke (OfficeBuilder.Life.cs).
+                if (_random.NextDouble() < 0.6)
+                    Smoker(roofProps, deck + new Vector3(-deckSize.x * 0.3f, 0f, -deckSize.y * 0.25f), (float)_random.NextDouble() * 360f);
                 for (var k = 0; k < 2; k++)
                 {
                     var table = deck + new Vector3((k - 0.5f) * deckSize.x * 0.45f, 0f, 0f);
@@ -927,6 +969,7 @@ namespace Game.Editor
                     var unit = new Vector3(-w * 0.3f + k * 1.6f, 0f, -d * 0.25f);
                     Block(roofProps, "AirCon", grey, unit, new Vector3(1.2f, 0.7f, 0.9f));
                     Shape(roofProps, PrimitiveType.Cylinder, "Fan", Toon("OfficeInk", Ink), unit + Vector3.up * 0.71f, new Vector3(0.6f, 0.01f, 0.6f));
+                    SpinningFan(roofProps, unit + Vector3.up * 0.73f);
                 }
                 // A skylight, lit from inside.
                 if (_random.NextDouble() < 0.6)
@@ -958,7 +1001,8 @@ namespace Game.Editor
                 {
                     var face = side == 0 ? new Vector3(a + 0.4f, y, -d / 2f) : new Vector3(side * w / 2f, y, a + 0.4f);
                     var outward = side == 0 ? Vector3.back : Vector3.right * side;
-                    Shape(building, PrimitiveType.Quad, "Window", _random.NextDouble() < 0.4 ? lit : dark, face + outward * 0.02f, new Vector3(0.9f, 1.2f, 1f), turn);
+                    var window = Shape(building, PrimitiveType.Quad, "Window", _random.NextDouble() < 0.4 ? lit : dark, face + outward * 0.02f, new Vector3(0.9f, 1.2f, 1f), turn);
+                    RegisterWindow(window);
                     if (!framed)
                         continue;
                     var frame = Model(building, "Frame", CityModel, "CityWindowFrame", trim, face, 0f);

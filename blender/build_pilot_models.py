@@ -528,6 +528,40 @@ def add_arc_panel(bm, radius, thickness, half_angle, z0, z1, segments=14):
     bm.faces.new(list(reversed(columns[-1])))
 
 
+# The torso's profile (radius by height above the waist), to lay garment details on its front.
+TORSO_PROFILE = [(-0.06, 0.265), (0.06, 0.275), (0.24, 0.27), (0.36, 0.245), (0.43, 0.18), (0.46, 0.09)]
+
+
+def torso_radius(z):
+    for (z0, r0), (z1, r1) in zip(TORSO_PROFILE, TORSO_PROFILE[1:]):
+        if z <= z1:
+            t = max(0.0, (z - z0) / (z1 - z0))
+            return r0 + (r1 - r0) * t
+    return TORSO_PROFILE[-1][1]
+
+
+def add_front_strip(bm, rows, lift=0.008, thickness=0.012):
+    """A thin piece lying on the torso's front: `rows` are (height, left x, right x) from the
+    bottom up, each laid on the surface `lift` out, `thickness` thick. For shirt fronts, lapels."""
+    def point(x, z, out):
+        r = torso_radius(z) + out
+        return (x, -math.sqrt(max(r * r - x * x, 1e-6)), z)
+    front, back = [], []
+    for z, x0, x1 in rows:
+        front.append([bm.verts.new(point(x, z, lift + thickness)) for x in (x0, (x0 + x1) / 2.0, x1)])
+        back.append([bm.verts.new(point(x, z, lift)) for x in (x0, (x0 + x1) / 2.0, x1)])
+    for layer in (front, back):
+        for a, b in zip(layer, layer[1:]):
+            for i in range(2):
+                bm.faces.new([a[i], a[i + 1], b[i + 1], b[i]])
+    for a, b in ((front[0], back[0]), (front[-1], back[-1])):
+        for i in range(2):
+            bm.faces.new([a[i], a[i + 1], b[i + 1], b[i]])
+    for i in (0, 2):
+        for k in range(len(rows) - 1):
+            bm.faces.new([front[k][i], front[k + 1][i], back[k + 1][i], back[k][i]])
+
+
 def head_surface(x, dz):
     """How far forward (Blender -Y) the authored head's surface is at a point `x` across and `dz`
     above its centre."""
@@ -590,8 +624,9 @@ def build_characters():
     add_box(bm, (0.09, 0.045, 0.09), (0.0, -0.15, 0.4), bevel=0.022)  # the knot
     part("CharScarf", bm, "waist")
     bm = bmesh.new()  # a tie, for suits
-    add_box(bm, (0.07, 0.03, 0.26), (0.0, -0.265, 0.25), bevel=0.012)
-    add_box(bm, (0.065, 0.035, 0.055), (0.0, -0.235, 0.41), bevel=0.012)  # the knot
+    # It sits proud of the shirt front an open jacket or vest shows (CharShirtV).
+    add_box(bm, (0.07, 0.03, 0.26), (0.0, -0.292, 0.25), bevel=0.012)
+    add_box(bm, (0.065, 0.035, 0.055), (0.0, -0.262, 0.41), bevel=0.012)  # the knot
     part("CharTie", bm, "waist")
     bm = bmesh.new()  # a camera on its strap, for the tourist
     add_box(bm, (0.15, 0.08, 0.1), (0.0, -0.29, 0.2), bevel=0.02)
@@ -714,6 +749,78 @@ def build_characters():
     add_ball(bm, (0.0, 0.0, -CHAR_ARM_LENGTH), 0.08, segments=16)
     add_ball(bm, (0.0, -0.06, -CHAR_ARM_LENGTH + 0.03), 0.034, segments=10)  # thumb, to the front
     part("CharHand", bm, "apart")
+
+    # ---- Garments (the user's note, 2026-11-09: jackets, vests, tank tops): what changes is the
+    # torso's colour, a front showing the shirt under it, and the sleeves.
+    def v_rows(bottom, top, half_width):
+        steps = 6
+        return [(bottom + (top - bottom) * k / steps, -max(0.004, half_width * k / steps), max(0.004, half_width * k / steps))
+                for k in range(steps + 1)]
+    bm = bmesh.new()  # an open jacket: the shirt in the V of its front
+    add_front_strip(bm, v_rows(0.14, 0.44, 0.1))
+    part("CharShirtV", bm, "waist")
+    bm = bmesh.new()  # the jacket's lapels along the V's edges
+    for side in (-1.0, 1.0):
+        rows = [(z, side * (w - 0.004) if side > 0 else -w - 0.035, side * (w + 0.035) if side > 0 else -(w - 0.004))
+                for z, _, w in v_rows(0.14, 0.44, 0.1)]
+        add_front_strip(bm, rows, lift=0.016, thickness=0.012)
+    part("CharLapels", bm, "waist")
+    bm = bmesh.new()  # a vest's deeper V, the shirt showing down to the belly
+    add_front_strip(bm, v_rows(0.22, 0.44, 0.09))
+    part("CharVestV", bm, "waist")
+    bm = bmesh.new()  # the vest's buttons, below the V
+    for z in (0.06, 0.13, 0.2):
+        add_ball(bm, (0.0, -torso_radius(z) - 0.012, z), 0.018, segments=8)
+    part("CharVestButtons", bm, "waist")
+    bm = bmesh.new()  # a hoodie's hood, bunched behind the neck
+    add_ellipsoid(bm, (0.0, 0.16, 0.42), (0.19, 0.11, 0.09), rings=8, segments=16)
+    part("CharHood", bm, "waist")
+    bm = bmesh.new()  # its front pocket
+    add_arc_panel(bm, 0.276, 0.018, math.radians(32.0), 0.02, 0.17)
+    part("CharHoodiePocket", bm, "waist")
+    bm = bmesh.new()  # its drawstrings
+    for x in (-0.045, 0.045):
+        add_pipe(bm, [(x, -0.2, 0.44), (x, -0.25, 0.35), (x * 1.2, -0.265, 0.27)], radius=0.009, segments=6)
+    part("CharHoodStrings", bm, "waist")
+    bm = bmesh.new()  # bare shoulders for a tank top, rounding out of the torso
+    for x in (-0.19, 0.19):
+        add_ellipsoid(bm, (x, 0.0, 0.37), (0.085, 0.12, 0.06), rings=8, segments=16)
+    part("CharTankShoulders", bm, "waist")
+    bm = bmesh.new()  # a bare arm, for a tank top: slimmer than a sleeve, down to the mitten
+    add_lathe(bm, [(0.0, 0.03), (0.05, 0.02), (0.06, -0.02), (0.055, -0.2), (0.05, -0.38), (0.0, -0.41)], segments=12)
+    part("CharArmBare", bm, "apart")
+
+    # ---- Bodyguards (the user's note): each wears his own shades, and a big coiled earpiece.
+    bm = bmesh.new()  # aviators: teardrop lenses
+    for x in (-0.115, 0.115):
+        add_ellipsoid(bm, (x, head_surface(x, 0.03) - 0.035, c + 0.025), (0.072, 0.014, 0.06), rings=6, segments=16)
+    part("CharAviators", bm, "waist", head=True)
+    bm = bmesh.new()  # their thin gold frames and a double bridge
+    for x in (-0.115, 0.115):
+        y = head_surface(x, 0.03) - 0.04
+        add_pipe(bm, [(x + 0.075 * math.cos(2 * math.pi * k / 16), y, c + 0.025 + 0.062 * math.sin(2 * math.pi * k / 16))
+                      for k in range(17)], radius=0.008, segments=6)
+    for dz in (0.06, 0.075):
+        add_pipe(bm, [(-0.045, head_surface(0.0, dz) - 0.04, c + dz), (0.045, head_surface(0.0, dz) - 0.04, c + dz)],
+                 radius=0.007, segments=6)
+    part("CharAviatorFrames", bm, "waist", head=True)
+    # The earpiece is laid out in the scaled head's own place (not scaled with it): a bud in the
+    # right ear and a fat coiled wire down into the collar, exaggerated so it reads from above.
+    s_ear = CHAR_HEAD_SCALE
+    ear = (-CHAR_HEAD_RADIUS * 0.97 * s_ear - 0.015, 0.02 * s_ear, c - 0.02 * s_ear)  # Blender -x: the right
+    bm = bmesh.new()
+    add_ball(bm, ear, 0.04, segments=12)
+    coil = []
+    top, bottom = ear[2] - 0.05, 0.4
+    turns = 7
+    for k in range(turns * 8 + 1):
+        t = k / (turns * 8)
+        angle = 2 * math.pi * turns * t
+        cx = ear[0] + (-0.17 - ear[0]) * t
+        cy = ear[1] + (0.08 - ear[1]) * t
+        coil.append((cx + 0.028 * math.cos(angle), cy + 0.028 * math.sin(angle), top + (bottom - top) * t))
+    add_pipe(bm, [(ear[0], ear[1], ear[2] - 0.03)] + coil, radius=0.011, segments=6)
+    part("CharEarpiece", bm, "waist")
 
     # ---- Customers' props (the user's note, 2026-11-09: each archetype has its own). Things held
     # hang from the right shoulder like the hand, so they swing with the arm; things worn are on
@@ -1746,6 +1853,38 @@ def build_office():
     add_box(bm, (5.2, 0.2, 0.04), (0.0, 0.0, 2.02), bevel=0.015)
     add_box(bm, (0.2, 5.2, 0.04), (0.0, 0.0, 2.06), bevel=0.015)
     objects.append(finish("OfficeHeliRotor", bm))
+
+    # A bird for the city's life (user's note, 2026-11-09): a plump pigeon, its origin at its
+    # feet, beak towards -Y (the game's forward). The builder makes gulls of it, bigger and white.
+    bm = bmesh.new()
+    add_lathe(bm, [(0.0, -0.13), (0.06, -0.1), (0.085, 0.0), (0.07, 0.1), (0.035, 0.17), (0.0, 0.2)], segments=16,
+              centre=(0.0, 0.0, 0.13), axis_matrix=Matrix.Rotation(math.radians(-90.0), 4, 'X'))
+    add_ball(bm, (0.0, -0.13, 0.21), 0.05, segments=12)  # head
+    for x in (-0.03, 0.03):
+        add_pipe(bm, [(x, 0.0, 0.0), (x, 0.0, 0.07)], radius=0.008, segments=6)  # legs
+    objects.append(finish("OfficeBirdBody", bm))
+    bm = bmesh.new()
+    add_prism(bm, [(-0.012, -0.17), (0.012, -0.17), (0.0, -0.215)], 0.195, 0.215)  # beak
+    objects.append(finish("OfficeBirdBeak", bm))
+    bm = bmesh.new()  # one wing, from its shoulder at the origin out along +X; the builder mirrors it
+    add_prism(bm, [(0.0, -0.06), (0.24, -0.02), (0.30, 0.03), (0.0, 0.07)], -0.008, 0.008)
+    objects.append(finish("OfficeBirdWing", bm))
+
+    # Three fan blades for the roof air conditioners, which spin.
+    bm = bmesh.new()
+    for k in range(3):
+        a = k * 2 * math.pi / 3
+        ca, sa = math.cos(a), math.sin(a)
+        blade = [(0.05, -0.05), (0.27, -0.07), (0.28, 0.06), (0.05, 0.04)]
+        add_prism(bm, [(x * ca - y * sa, x * sa + y * ca) for x, y in blade], 0.0, 0.02)
+    add_lathe(bm, [(0.0, 0.0), (0.07, 0.0), (0.07, 0.04), (0.0, 0.05)], segments=12)
+    objects.append(finish("OfficeFanBlades", bm))
+
+    # A windsock for the neighbour's heliport: a striped cone on a hoop, along +X from its mast.
+    bm = bmesh.new()
+    add_lathe(bm, [(0.0, 0.0), (0.16, 0.0), (0.16, 0.02), (0.07, 0.9), (0.0, 0.9)], segments=12,
+              axis_matrix=Matrix.Rotation(math.radians(90.0), 4, 'Y'))
+    objects.append(finish("OfficeWindsock", bm))
 
     for i, obj in enumerate(objects):
         obj.location = (obj.location.x + 2.6 * i, obj.location.y, obj.location.z)  # apart, for previews only

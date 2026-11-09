@@ -368,6 +368,43 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-09 — The city comes alive
+
+**User's note:** the city's details could be more exaggerated and diverse: another tower with a heliport, another with a garden, fun details that are easy to recognise and move. Animate the scene as much as possible, so that looking at the surroundings (entering the terrace, say) brings joy: birds, flickering windows, people smoking on their terraces.
+
+**Done** (`OfficeBuilder.Life.cs`, and the `Ambience` components in Presentation):
+- **Near roofs with one thing each going on:**
+  - a heliport with a red helicopter warming up (rotor turning), blinking pad lights and a swinging windsock;
+  - two roof gardens: lawn, flower beds, two small trees in big planters, a pergola of twinkling string lights, and a gardener bending to water;
+  - a yellow tower crane slowly swinging its jib, its load swaying, red lights at top and tip;
+  - a steakhouse's giant spinning steak sign ringed with chasing bulbs;
+  - a pool with someone drifting round on a rubber ring;
+  - two washing lines with sheets swaying and a smoker beside them.
+
+  The trees are only in the gardens' planters.
+- **Smokers on roof decks:** they raise the cigarette, hold it, and breathe out a puff as they lower it. The cigarette's ember glows and a thin wisp rises. They use the players' character kit, casually dressed.
+- **In the air:**
+  - pigeon flocks wheeling round the near roofs on either side;
+  - gulls circling high over the city;
+  - a blue helicopter lapping the skyline.
+- **On the boss's terrace:** pigeons along the glass rail and on his helipad, pecking now and then.
+- **Windows:** lights go on and off around the city, and about one window in 25 flickers blue with a television. Air-conditioner fans spin.
+- **The office's people:**
+  - everyone breathes, out of step;
+  - the bodyguards each glance along the room now and then, never together.
+- **Built on:** pure functions of time (`AmbientMotion`, tested), so everything is cheap, deterministic and never drifts.
+  - Moving things are kept out of static batching.
+  - Television windows use runtime copies of their material, so Play mode never edits assets.
+  - New Blender meshes: bird, beak, wing, fan blades, windsock.
+
+**Flagged for review:**
+- **The gardens have trees in planters,** after the earlier note against trees on flat roofs, because a garden was asked for.
+- **Gulls fly over the floor at 11 m.** They can cross the view of the back rooms.
+
+**Not checked:** how the motion feels in Play mode. Screenshots are stills.
+
+---
+
 ## 2026-11-09 — A wider centre; the tailor and the miniature through the boss
 
 **User's calls:**
