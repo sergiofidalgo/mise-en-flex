@@ -10,6 +10,24 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-09 — The boss's floor as a greybox
+
+**Done:** `Tools/Game/Build Office` (`OfficeBuilder`) builds `Office_Greybox.unity` to `docs/office-scene.md`: the nine rooms, terrace and helipad, the boss's tower and the night city below, with every room dressed in primitives in the toon materials (boss, bodyguards, receptionist, tailor, accountant, the miniature table, the cookbook lectern, and so on). Only walking and joining work.
+- **The elevator works.** Each join rings a new arrival bell (`SFX_Lift_Ding_01`, synthesized, lower and purer than the order bell) at once. The doors open 0.35 s later. They stay open while anyone is in the car or doorway, then close after 1.5 s. A join while they're open rings again and restarts the hold, and one while they're closing reopens them. Logic in `ElevatorDoors` (tested), timings in `ElevatorConfig`. A dial over the doors sweeps up to the floor, and a lamp lights while the car is here.
+- **The camera** (`OfficeCamera`): a wide shot of the whole floor before anyone joins, then it follows the players at the kitchen's 55° tilt, between 10 and 22 m up. It's a simpler cousin of the kitchen's `FramingCamera`, which depends on the kitchen's systems.
+
+**Proposed while building (flagged for review):**
+- Doors from lounge to test kitchen and from accountant to hall of fame, so no room is a dead end.
+- The elevator's door wall is 2.5 m, which briefly hides a chef stepping out.
+- The boss wears a camel suit and a white cowboy hat; the bodyguards wear sunglasses and red ties.
+- The test kitchen's floor is the kitchen's own tile rather than the draft's cream, which would swallow a white chef.
+
+**Not done:**
+- Room interactions (Phase 6), a "press A to join" hint, Blender models (art phase), and a cooler, desaturated exterior (art bible: a local Volume).
+- The office isn't reachable from the main menu yet: open the scene and press Play.
+
+---
+
 ## 2026-11-09 — The boss's floor
 
 **User's calls**, from their lo-fi floor plan; the full spec is `docs/office-scene.md`:

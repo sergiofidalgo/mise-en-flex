@@ -294,6 +294,30 @@ def fridge_close(rng, wobble):
     return finish(mix(swing, body), 0.6, fade_out=0.02)
 
 
+def lift_ding(rng, base):
+    """An elevator's arrival bell: one round, soft-edged ding with a long, warm ring. Lower and
+    purer than the order bell (a struck chime bar, nearly harmonic), so the two never get confused."""
+    length = 2.2
+    partials = [(1.0, 1.9, 1.0), (2.0, 1.1, 0.28), (3.0, 0.6, 0.1), (4.16, 0.35, 0.05)]
+    layers = [mode(base * ratio, ring, length, gain, rng.uniform(0, 6.28)) for ratio, ring, gain in partials]
+    layers.append(mode(base * 1.003, 1.6, length, 0.35))
+    # A felt hammer: a dull, short knock rather than a metal tick.
+    layers.append(scaled(decay(biquad(noise(rng, 0.02), "low", 1200), 0.01), 0.25))
+    return finish(mix(*layers), 0.8, fade_out=0.05)
+
+
+def lift_doors(rng):
+    """Elevator doors sliding: a smooth rolling hush swelling and fading, a low motor hum under it,
+    and a soft bump where the panels stop."""
+    seconds = 0.65
+    hush = biquad(noise(rng, seconds), "band", 700, 0.5)
+    n = len(hush)
+    hush = [x * math.sin(math.pi * i / n) ** 1.2 * 0.5 for i, x in enumerate(hush)]
+    hum = [math.sin(2 * math.pi * 92 * i / RATE) * 0.25 * math.sin(math.pi * i / n) for i in range(n)]
+    bump = [0.0] * int((seconds - 0.05) * RATE) + scaled(mode(110, 0.08, 0.25, 1.0), 0.35)
+    return finish(mix(hush, hum, bump), 0.45, fade_out=0.03)
+
+
 def main():
     rng = random.Random(20261107)
     write("SFX_Bell_01", bell(rng, 2350))
@@ -325,6 +349,8 @@ def main():
     write("SFX_Fridge_Open_02", fridge_open(rng, 0.95))
     write("SFX_Fridge_Close_01", fridge_close(rng, 1.0))
     write("SFX_Fridge_Close_02", fridge_close(rng, 1.05))
+    write("SFX_Lift_Ding_01", lift_ding(rng, 1318.5))
+    write("SFX_Lift_Doors_01", lift_doors(rng))
 
 
 if __name__ == "__main__":

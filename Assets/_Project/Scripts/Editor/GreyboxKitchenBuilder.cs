@@ -1164,7 +1164,7 @@ namespace Game.Editor
 
         // The importer stores an InputActionReference sub-asset per action; using it keeps
         // the scene's join action pointing at the asset instead of a serialized copy.
-        private static InputActionReference LoadActionReference(string mapAndAction)
+        internal static InputActionReference LoadActionReference(string mapAndAction)
         {
             var action = LoadControls().FindAction(mapAndAction, throwIfNotFound: true);
             var reference = AssetDatabase.LoadAllAssetsAtPath(ControlsPath)

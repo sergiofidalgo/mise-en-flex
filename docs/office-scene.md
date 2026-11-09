@@ -1,6 +1,6 @@
 # The boss's office — scene spec
 
-*Draft 2026-11-09, from the user's lo-fi floor plan (`Art/Direction/concepts/2026-11-08_boss-floor_full-plan.png`, `…_boss-office.png`). Not yet reviewed by the Art Director: check with them before the art phase (user's call, 2026-11-09). Gameplay is Phase 6; this spec sets the space so that work has somewhere to land.*
+*Greybox built 2026-11-09: `Tools/Game/Build Office` → `Assets/_Project/Scenes/Office_Greybox.unity` (`OfficeBuilder`). Draft 2026-11-09, from the user's lo-fi floor plan (`Art/Direction/concepts/2026-11-08_boss-floor_full-plan.png`, `…_boss-office.png`). Not yet reviewed by the Art Director: check with them before the art phase (user's call, 2026-11-09). Gameplay is Phase 6; this spec sets the space so that work has somewhere to land.*
 
 Design references: `game-design.md` §15 (campaign, office, money trouble, ending), `art-bible.md` (palette, rendering, world & scenography). Decisions: `decisions.md`, 2026-11-09 "The boss's floor".
 
@@ -39,7 +39,7 @@ A **3 × 3 grid of rooms** with a terrace along the back, matching the user's dr
 | Doorways | 1.6 m gaps, centred on shared walls | Two chefs pass without snagging; forgiving to walk through |
 | Walls | Outer back wall: low 1.0 m sill + glass to 2.4 m. All other walls 1.0 m with a trim cap | The dollhouse cut (art bible) applied to a whole floor: a tall interior wall would hide the room behind it from the overhead camera |
 
-**Connections:** reception opens to all three front-row rooms and to the guarded doors. The guarded doors open to the boss's office, the test kitchen and the hall of fame. The tailor connects to the test kitchen and the terrace, the back room to the hall of fame and the terrace, and the boss's office to the terrace. The terrace runs the full width behind the back row.
+**Connections:** reception opens to all three front-row rooms and to the guarded doors. The guarded doors open to the boss's office, the test kitchen and the hall of fame. Each side column also runs front to back: lounge → test kitchen → tailor, and accountant → hall of fame → back room. The three back rooms open onto the terrace, which runs the full width. *(The side columns' front-to-back doors were added in the greybox, 2026-11-09, so no room is a dead end.)*
 
 **Walking distances:** most trips start at the elevator (front centre). The miniature, the tailor and the boss are each two rooms away, about 12–14 m. At the chef's walking pace that's a few seconds, which is acceptable on a between-days visit. If playtests show it drags, the first fix is wider doorways and diagonal shortcuts, not moving rooms.
 
@@ -76,6 +76,7 @@ One big elevator, not four. It replaces the four coloured lifts in the draft.
 - **Coming back:** arriving from a restaurant is the same ring and doors, with every chef stepping out together.
 - **Feedback:** a floor-indicator dial above the doors sweeps up as a chef arrives; the bell is the loudest sound on the floor, so a join never goes unnoticed.
 - **Size:** 3.2 m wide inside, so four chefs fit (3–4 players is a stretch goal) and nobody blocks the doors.
+- **Height:** the door wall is 2.5 m (doors 2.0 m) so the dial and lamp sit above the doors on the car's side, which is the side the camera sees. It hides about 1.75 m of reception just outside the doors, so a chef stepping out is briefly behind it. If that feels wrong in play, the fix is a lower wall with the dial on top.
 
 ### The test kitchen (user's call, 2026-11-09)
 
