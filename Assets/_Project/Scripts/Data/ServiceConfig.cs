@@ -135,8 +135,10 @@ namespace Game.Data
         [Tooltip("First names for guests in the review listing.")]
         [SerializeField] private string[] _guestFirstNames =
         {
-            "Inés", "Tomáš", "Pavla", "Marco", "Aiko", "Lena", "Omar", "Sofia", "Jonas", "Nadia",
-            "Pedro", "Hana", "Luca", "Maya", "Viktor", "Elif", "Rosa", "Kofi", "Ana", "Felix",
+            // An American neighbourhood's diners (the setting, art bible 2026-11-08).
+            "Mike", "Jessica", "Tyler", "Ashley", "Brandon", "Megan", "Chris", "Lauren", "Dave", "Brittany",
+            "Jamal", "Keisha", "Carlos", "Maria", "Tony", "Gina", "Bobby", "Linda", "Hank", "Dolores",
+            "Trey", "Destiny", "Luis", "Priya", "Kenny", "Shawna", "Earl", "Becky", "Kevin", "Tamika",
         };
 
         [Header("Prices and payment")]
@@ -226,7 +228,7 @@ namespace Game.Data
         public Game.Simulation.Service.ReplySettings ToReplySettings() =>
             new Game.Simulation.Service.ReplySettings { FittingNudge = _replyNudge, PoorNudge = _replyNudge };
 
-        /// <summary>A guest's name for the listing, e.g. "Inés R.": the same guest gets the same name.</summary>
+        /// <summary>A guest's name for the listing, e.g. "Megan R.": the same guest gets the same name.</summary>
         public string GuestName(int customerId, int day)
         {
             if (_guestFirstNames == null || _guestFirstNames.Length == 0)

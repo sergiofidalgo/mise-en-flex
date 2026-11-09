@@ -45,7 +45,7 @@ namespace Game.Editor
             var memory = new LineMemory();
             var random = new System.Random(2611);
             var topics = (ReviewTopic[])Enum.GetValues(typeof(ReviewTopic));
-            string[] names = { "Inés", "Marco", "Pavla", "Aiko", "Tomáš", "Dolores", "Kwame", "Bea" };
+            string[] names = { "Megan", "Tony", "Destiny", "Hank", "Priya", "Bobby", "Keisha", "Earl" };
             string[] doneness = { "rare", "medium rare", "medium", "well done" };
 
             var book = new GuestBook { ReturnShare = 0.5f };

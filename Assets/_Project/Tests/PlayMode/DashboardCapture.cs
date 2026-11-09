@@ -40,11 +40,11 @@ namespace Game.Tests.PlayMode
             Assert.That(days.Phase, Is.EqualTo(DayPhase.Service));
             days.Charge(LedgerLine.Ingredients, 114f);
             var day = days.Day;
-            Add(services, day, "Inés R.", "steak, medium", 19, 12, 0f, ReviewTopic.WalkedOut, "Gave up and left hungry.", walkedOut: true);
-            Add(services, day, "Marco L.", "steak, medium", 19, 35, 0f, ReviewTopic.WalkedOut, "Left before my steak came.", walkedOut: true);
-            Add(services, day, "Pavla K.", "steak, rare", 19, 31, 2f, ReviewTopic.SlowService, "Took forever.", paid: 20f);
-            Add(services, day, "Aiko S.", "steak, medium rare", 18, 40, 3.5f, ReviewTopic.Decent, "Good, not great.", paid: 24f, tip: 2f);
-            Add(services, day, "Tomáš B.", "steak, well done", 19, 20, 4.5f, ReviewTopic.Praise, "Best steak on the block.", paid: 24f, tip: 6f);
+            Add(services, day, "Megan R.", "steak, medium", 19, 12, 0f, ReviewTopic.WalkedOut, "Gave up and left hungry.", walkedOut: true);
+            Add(services, day, "Tony L.", "steak, medium", 19, 35, 0f, ReviewTopic.WalkedOut, "Left before my steak came.", walkedOut: true);
+            Add(services, day, "Destiny K.", "steak, rare", 19, 31, 2f, ReviewTopic.SlowService, "Took forever.", paid: 20f);
+            Add(services, day, "Carlos S.", "steak, medium rare", 18, 40, 3.5f, ReviewTopic.Decent, "Good, not great.", paid: 24f, tip: 2f);
+            Add(services, day, "Hank B.", "steak, well done", 19, 20, 4.5f, ReviewTopic.Praise, "Best steak on the block.", paid: 24f, tip: 6f);
             days.FinishService(Summary(served: 3, walkOuts: 2, payments: 68f, tips: 8f, walkOutLosses: 24f));
             for (var i = 0; i < 5; i++)
                 yield return null;
@@ -59,7 +59,7 @@ namespace Game.Tests.PlayMode
             yield return Shoot(dashboard, 1, 0, false, Path.Combine(folder, "dashboard_filter_walkouts.png"), 1, true);
             yield return Shoot(dashboard, 2, 0, false, Path.Combine(folder, "dashboard_menu.png"));
             yield return Shoot(dashboard, 3, 0, false, Path.Combine(folder, "dashboard_books.png"));
-            root.ReplyTo(services.ReviewHistory.First(r => r.Guest == "Inés R."), ReviewReply.Apologise);
+            root.ReplyTo(services.ReviewHistory.First(r => r.Guest == "Megan R."), ReviewReply.Apologise);
             yield return Shoot(dashboard, 1, 0, false, Path.Combine(folder, "dashboard_reply_thread.png"));
             Debug.Log($"[DashboardCapture] Saved screenshots to {folder}");
         }
