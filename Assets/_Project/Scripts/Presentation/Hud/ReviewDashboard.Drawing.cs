@@ -416,9 +416,9 @@ namespace Game.Presentation.Hud
             return x + width;
         }
 
-        // A reply adds the owner's line; the guest's answer, when there is one, adds another.
+        // A reply adds the owner's line under the review: one reply per review.
         private float CardHeight(ReviewRecord review, bool overview) =>
-            (overview ? 118f : 110f) + (review.Reply >= 0 ? 68f : 0f) + (review.Reply >= 0 && !string.IsNullOrEmpty(review.Answer) ? 42f : 0f);
+            (overview ? 118f : 110f) + (review.Reply >= 0 ? 68f : 0f);
 
         // One review card at y; returns its bottom.
         private float ReviewCard(Transform parent, ReviewRecord review, float y, bool selected, bool overview)
@@ -434,6 +434,11 @@ namespace Game.Presentation.Hud
             var meta = (string.IsNullOrEmpty(review.Order) ? "" : $"· {review.Order} ") + $"· {ClockAt(review.ArrivedAt)}";
             if (review.Day != Services.Days.Day)
                 meta += $" · day {review.Day}";
+            // A guest who's posted before (decision 2026-11-09).
+            if (review.Visit == 2)
+                meta += " · back again";
+            else if (review.Visit > 2)
+                meta += $" · visit {review.Visit}";
             Label(Medium, parent, meta, 19f, _muted, 857f + UiKit.Width(name) + 12f, nameBase, 420f);
             var quote = Label(Serif, parent, $"“{review.Line}”", overview ? 30.33f : 26f, _ink, 857f, y + (overview ? 77f : 69f), 640f);
             quote.textWrappingMode = TextWrappingModes.NoWrap;
@@ -464,24 +469,13 @@ namespace Game.Presentation.Hud
             if (review.Reply >= 0)
             {
                 var top = y + 107f;
-                var answered = !string.IsNullOrEmpty(review.Answer);
-                UiKit.RoundBox(parent, "Thread", _gold, 856f, top, 3f, answered ? 96f : 54f, 0f);
+                UiKit.RoundBox(parent, "Thread", _gold, 856f, top, 3f, 54f, 0f);
                 UiKit.Picture(parent, "Mark", _style.ReplyMark, 876f, top + 4f, 14f, 18f);
                 var owner = Label(Bold, parent, Services.ServiceConfig.RestaurantName, 16.67f, _wellLight, 897f, top + 18f, 300f);
                 Label(Medium, parent, review.Day == Services.Days.Day ? "· owner · just now" : "· owner", 16.67f, _quiet, 897f + UiKit.Width(owner) + 7f, top + 18f, 300f);
                 // Replies from before replies were written per review fall back to the fixed lines.
                 var reply = string.IsNullOrEmpty(review.ReplyText) ? ReplyText(review) : review.ReplyText;
                 Label(Medium, parent, reply, 21.33f, _ink, 877f, top + 45f, 860f);
-                if (answered)
-                {
-                    // The guest's answer, which tells players how the reply landed (decision 2026-11-09).
-                    UiKit.StrokedEllipse(parent, "AnswerAvatar", UiKit.AvatarColour(review.Guest), _ink, 2f, 877f, top + 67f, 18f, 22f);
-                    var guest = Label(Bold, parent, review.Guest, 17.33f, _ink, 904f, top + 84f, 200f);
-                    var answer = Label(Serif, parent, $"“{review.Answer}”", 19f, _body, 904f + UiKit.Width(guest) + 10f, top + 84f, 640f);
-                    answer.textWrappingMode = TextWrappingModes.NoWrap;
-                    var likes = review.Likes == 1 ? "1 like" : $"{review.Likes} likes";
-                    Label(Bold, parent, likes, 16.67f, review.Likes >= 3 ? Hex(0xe8476a) : _quiet, 1776f, top + 84f, 160f, HorizontalAlignmentOptions.Right);
-                }
             }
             return y + height;
         }

@@ -1,0 +1,115 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using Game.Simulation.Saving;
+
+namespace Game.Simulation.Service
+{
+    /// <summary>What a guest remembers of their last visit: what they wrote and how the owner answered.</summary>
+    public enum GuestMemory
+    {
+        /// <summary>They complained (or walked out) and the owner apologised.</summary>
+        Apologised,
+        /// <summary>They complained and nobody answered.</summary>
+        Ignored,
+        /// <summary>They complained and got thanked or argued with.</summary>
+        Dismissed,
+        /// <summary>They praised it and were thanked.</summary>
+        Thanked,
+        /// <summary>They praised it and got no reply, or an odd one.</summary>
+        Unthanked,
+    }
+
+    /// <summary>A guest who has posted before and might come back.</summary>
+    public sealed class KnownGuest
+    {
+        public string Name = "";
+        public Persona Persona;
+        public int LastDay;
+        public int Visits;
+        public GuestMemory Memory;
+    }
+
+    /// <summary>
+    /// The guests who have posted before (ideas.md and decisions, 2026-11-09). Only reviewers are
+    /// known, so the book is rebuilt from the review history and needs no save of its own. How
+    /// likely each is to return follows how they were treated: an apology that fits brings people
+    /// back, being ignored less so, being brushed off least. Players aren't told; they see who
+    /// comes back and what they say (learn by playing).
+    /// </summary>
+    public sealed class GuestBook
+    {
+        private readonly List<KnownGuest> _guests = new List<KnownGuest>();
+
+        /// <summary>Chance a reviewing guest is someone who's been before, when anyone might return.</summary>
+        public float ReturnShare { get; set; } = 0.3f;
+
+        /// <summary>How willing each memory makes a guest to come back, by <see cref="GuestMemory"/> order.</summary>
+        public float[] Willingness { get; set; } = { 3f, 1f, 0.3f, 2f, 1.2f };
+
+        /// <summary>How much likelier a returning guest is to post than a first-timer.</summary>
+        public float PostBoost { get; set; } = 1.5f;
+
+        public IReadOnlyList<KnownGuest> Guests => _guests;
+
+        /// <summary>Everyone who posted before today, as of their latest review.</summary>
+        public void Rebuild(IEnumerable<ReviewRecord> history, int today)
+        {
+            _guests.Clear();
+            foreach (var visits in history.Where(r => r.Day < today && !string.IsNullOrEmpty(r.Guest)).GroupBy(r => r.Guest))
+            {
+                var last = visits.OrderBy(r => r.Day).ThenBy(r => r.ArrivedAt).Last();
+                _guests.Add(new KnownGuest
+                {
+                    Name = last.Guest,
+                    Persona = (Persona)last.Persona,
+                    LastDay = last.Day,
+                    Visits = visits.Count(),
+                    Memory = MemoryOf(last),
+                });
+            }
+        }
+
+        /// <summary>
+        /// Someone who's been before, drawn by how willing they are to return, or null. Each comes
+        /// back at most once a day: a drawn guest leaves the book until it's rebuilt.
+        /// </summary>
+        public KnownGuest Draw(Random random)
+        {
+            if (_guests.Count == 0 || random.NextDouble() >= ReturnShare)
+                return null;
+            var total = _guests.Sum(Weight);
+            if (total <= 0f)
+                return null;
+            var roll = (float)random.NextDouble() * total;
+            foreach (var guest in _guests)
+            {
+                roll -= Weight(guest);
+                if (roll <= 0f)
+                {
+                    _guests.Remove(guest);
+                    return guest;
+                }
+            }
+            return null;
+        }
+
+        private float Weight(KnownGuest guest)
+        {
+            var index = (int)guest.Memory;
+            return Willingness != null && index < Willingness.Length ? Math.Max(0f, Willingness[index]) : 1f;
+        }
+
+        public static GuestMemory MemoryOf(ReviewRecord review)
+        {
+            var topic = (ReviewTopic)review.Topic;
+            if (ReviewReplies.IsComplaint(topic))
+            {
+                if (review.Reply < 0)
+                    return GuestMemory.Ignored;
+                return (ReviewReply)review.Reply == ReviewReply.Apologise ? GuestMemory.Apologised : GuestMemory.Dismissed;
+            }
+            return review.Reply >= 0 && (ReviewReply)review.Reply == ReviewReply.Thank ? GuestMemory.Thanked : GuestMemory.Unthanked;
+        }
+    }
+}

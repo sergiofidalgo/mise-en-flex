@@ -12,8 +12,8 @@ Ideas worth keeping that aren't decided or scheduled yet. When one is accepted, 
 
 **Replies hint at their effect in the thread (user's direction, 2026-11-09).** There are no effect chips; the thread itself tells players what a reply did:
 - **The owner's reply is written for the review it answers.** Apologising for slow service reads differently from apologising for a burnt steak, and standing your ground on a walk-out reads as defensive.
-- **The guest answers back, in the thread.** A reply that fits gets a warm answer ("Fair. I'll give you another go."). One that doesn't gets a dry one ("Thanks for the essay. Still burnt."). A like count shows how the room took it. That's the hint: no numbers, but players can read the effect.
-- **Returning guests remember.** A guest who was apologised to comes back and mentions it, in a later review.
+- **One reply per review** (user's call, 2026-11-09): no answers from the guest under it.
+- **Returning guests remember.** A guest who was apologised to comes back and mentions it, in a later review. *Built 2026-11-09 (`decisions.md`).*
 
 **Variety, built up in layers:**
 1. **Facts from the actual service.** The wait in minutes, the doneness asked for and served, how cold it was, the time they left, what the person at the next table had. These make a line feel on-point, not canned ("Waited 23 minutes for a medium. Left at 19:35.").

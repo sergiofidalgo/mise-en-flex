@@ -4,6 +4,21 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-09 — One reply per review, and returning guests who remember
+
+**User's call: one reply per review, not a conversation.** The owner's reply sits under the review. Its words show what kind of reply it is: an apology sounds sorry, thanks sounds grateful (or tone-deaf, to a complaint), and digging in sounds proud. The guest's answers and the likes are gone, from the data, the writer, the dashboard and the save. This supersedes those parts of the two entries below.
+
+**Returning guests (user's choice of next step), built:**
+- **Who returns:** only guests who have posted before, since reviews are how the game knows them. The guest book (`GuestBook`) is rebuilt each day from the review history, so it needs no save of its own.
+- **When:** a reviewing guest is someone who's been before 30% of the time, when anyone might come back. Each returns at most once a day.
+- **Who comes back depends on how they were treated last time.** A fitting reply to a complaint (an apology) weighs 3. No reply weighs 1, and a dismissive reply (thanks or standing your ground) weighs 0.3. Thanks for praise weighs 2, and no thanks 1.2. This is the reply's real effect: players see who comes back and what they say (learn by playing).
+- **What they write remembers it:** lines per memory, for a better or worse night ("Came back after the apology. Glad I did." against "Still no reply. Still not right."). There's a generic set for every memory and the grill's own. They keep their name and kind of guest, and they're 1.5× likelier to post.
+- **On the dashboard,** their review's details end "back again", or "visit N" from the third.
+
+**Proposed while building (flagged for review):** every number above (30%, the weights, 1.5×) is on `ServiceConfig` → Reviews, a first guess to tune in play. A new guest's generated name can match a known guest's by chance, and they'd then be counted as the same person. That's rare, and left for now.
+
+---
+
 ## 2026-11-09 — Not every guest posts a review; the grill's full voice
 
 **User's call:** like in real life, a guest can leave happy or disappointed without posting about it.
@@ -15,20 +30,20 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 **The grill voice, written in full** (`ReviewVoiceDefaults.Grill`):
 - About 130 lines, with every complaint type covered by at least two.
-- Each kind of guest has its own lines and answers.
+- Each kind of guest has its own lines.
 - Every reply combination is written to read as what it is.
 - Hashtags for influencers.
 
 **Writing rules the code now enforces** (`VoiceFitTests`):
 - A review line fits one line of the card: 44 characters with the longest facts filled in.
 - An influencer's hashtag is only added when it still fits.
-- Replies fit 72 characters and answers 60.
+- Replies fit 72 characters.
 - Every fact a line names is one the writer knows.
 - A line starting with a fact gets a capital.
 
 **Doneness complaints have their own reply group,** so replies naming the order ("you asked for medium rare…") answer only under- and overcooked reviews. Other food complaints get general food replies.
 
-**Tools/Game/Write Review Samples** writes a sample week (each guest, their review, all three replies and the answers) to `Screenshots/ReviewSamples.md`, for reading the writing as players will meet it.
+**Tools/Game/Write Review Samples** writes a sample week (each guest, their review, a reply or none, and returning guests) to `Screenshots/ReviewSamples.md`, for reading the writing as players will meet it.
 
 ---
 

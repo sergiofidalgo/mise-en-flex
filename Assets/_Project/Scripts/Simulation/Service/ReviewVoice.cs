@@ -50,9 +50,10 @@ namespace Game.Simulation.Service
         public string Style { get; set; } = "";
         public Dictionary<ReviewTopic, List<VoiceLine>> Lines { get; set; } = new Dictionary<ReviewTopic, List<VoiceLine>>();
         public Dictionary<(ReviewReply, TopicGroup), List<string>> Replies { get; set; } = new Dictionary<(ReviewReply, TopicGroup), List<string>>();
-        public List<VoiceLine> WarmAnswers { get; set; } = new List<VoiceLine>();
-        public List<VoiceLine> DryAnswers { get; set; } = new List<VoiceLine>();
         public List<string> Hashtags { get; set; } = new List<string>();
+
+        /// <summary>What a returning guest writes, by what they remember and whether tonight went better.</summary>
+        public Dictionary<(GuestMemory, bool), List<VoiceLine>> ReturnLines { get; set; } = new Dictionary<(GuestMemory, bool), List<VoiceLine>>();
 
         /// <summary>How often each persona visits, by <see cref="Persona"/> order; empty means regulars only.</summary>
         public float[] PersonaWeights { get; set; } = new float[0];
@@ -71,21 +72,6 @@ namespace Game.Simulation.Service
 
         /// <summary>Minutes waited, or 0 when not worth mentioning.</summary>
         public int WaitMinutes;
-    }
-
-    /// <summary>An owner's reply under a review and the guest's answer to it.</summary>
-    public readonly struct ReplyThread
-    {
-        public ReplyThread(string owner, string answer, int likes)
-        {
-            Owner = owner;
-            Answer = answer;
-            Likes = likes;
-        }
-
-        public string Owner { get; }
-        public string Answer { get; }
-        public int Likes { get; }
     }
 
     /// <summary>
@@ -146,8 +132,8 @@ namespace Game.Simulation.Service
 
     /// <summary>
     /// Writes what guests and owners say from a style's voice and the generic one: lines that fit the
-    /// facts, never the same words twice in a while, and replies the guest answers according to
-    /// whether they fit (decision 2026-11-09: the thread hints at a reply's effect, not chips).
+    /// facts and never the same words twice in a while, owners' replies written for what the review
+    /// was about, and returning guests' lines that remember how they were treated.
     /// </summary>
     public static class ReviewVoices
     {
@@ -157,7 +143,6 @@ namespace Game.Simulation.Service
         /// </summary>
         public const int MaxReviewLength = 44;
         public const int MaxReplyLength = 72;
-        public const int MaxAnswerLength = 60;
 
         private static readonly string[] Placeholders = { "{main}", "{side}", "{ordered}", "{got}", "{name}", "{restaurant}", "{left}", "{wait}" };
 
@@ -206,25 +191,29 @@ namespace Game.Simulation.Service
         }
 
         /// <summary>
-        /// The owner's reply, written for what the review was about, and the guest's answer: warm when
-        /// the reply fits, dry when it doesn't, with likes to match. An influencer's thread draws more.
+        /// A returning guest's line, which remembers the last visit: how they were treated, and
+        /// whether tonight was better (praise or decent) or not. Empty when neither voice has one.
         /// </summary>
-        public static ReplyThread Reply(ReviewReply reply, ReviewTopic topic, bool fits, Persona persona, ReviewFacts facts, Voice style, Voice generic, LineMemory memory, Random random)
+        public static string ReturnLine(GuestMemory memory, ReviewTopic topic, Persona persona, ReviewFacts facts, Voice style, Voice generic, LineMemory used, Random random)
+        {
+            var key = (memory, !ReviewReplies.IsComplaint(topic));
+            IEnumerable<VoiceLine> Of(Voice voice) =>
+                voice != null && voice.ReturnLines.TryGetValue(key, out var lines) ? lines.Where(l => l.Suits(persona)) : Enumerable.Empty<VoiceLine>();
+            return Pick(Of(style).Concat(Of(generic)), facts, used, random);
+        }
+
+        /// <summary>
+        /// The owner's reply, written in the style's voice for what the review was about. One reply per
+        /// review (user's call, 2026-11-09): its words show what kind of reply it is.
+        /// </summary>
+        public static string Reply(ReviewReply reply, ReviewTopic topic, ReviewFacts facts, Voice style, Voice generic, LineMemory memory, Random random)
         {
             var group = GroupOf(topic);
-            var key = (reply, group);
-            var owners = RepliesFor(style, key).Concat(RepliesFor(generic, key));
+            var owners = RepliesFor(style, (reply, group)).Concat(RepliesFor(generic, (reply, group)));
             // A doneness complaint is also about the food, so the food replies answer it too.
             if (group == TopicGroup.Doneness)
                 owners = owners.Concat(RepliesFor(style, (reply, TopicGroup.Food))).Concat(RepliesFor(generic, (reply, TopicGroup.Food)));
-            var ownerLines = owners.Select(t => new VoiceLine(t));
-            var owner = Pick(ownerLines, facts, memory, random);
-            var answers = Answers(style, generic, fits).Where(a => a.Suits(persona));
-            var answer = Pick(answers, facts, memory, random);
-            var likes = fits ? random.Next(3, 15) : random.Next(0, 3);
-            if (persona == Persona.Influencer)
-                likes *= 4;
-            return new ReplyThread(owner, answer, likes);
+            return Pick(owners.Select(t => new VoiceLine(t)), facts, memory, random);
         }
 
         /// <summary>Fills in the facts: {main}, {side}, {ordered}, {got}, {name}, {restaurant}, {left} and {wait}.</summary>
@@ -295,11 +284,5 @@ namespace Game.Simulation.Service
 
         private static IEnumerable<string> RepliesFor(Voice voice, (ReviewReply, TopicGroup) key) =>
             voice != null && voice.Replies.TryGetValue(key, out var lines) ? lines : Enumerable.Empty<string>();
-
-        private static IEnumerable<VoiceLine> Answers(Voice style, Voice generic, bool warm)
-        {
-            IEnumerable<VoiceLine> Of(Voice voice) => voice == null ? Enumerable.Empty<VoiceLine>() : warm ? voice.WarmAnswers : voice.DryAnswers;
-            return Of(style).Concat(Of(generic)).Where(a => a != null);
-        }
     }
 }

@@ -40,15 +40,29 @@ namespace Game.Tests.EditMode
         }
 
         [Test]
-        public void RepliesAndAnswersFit()
+        public void RepliesFit()
         {
-            var voices = Voices().ToList();
-            var replies = voices.SelectMany(v => v.Replies.Values.SelectMany(r => r)).Select(t => ReviewVoices.Fill(t, Long))
+            var replies = Voices().SelectMany(v => v.Replies.Values.SelectMany(r => r)).Select(t => ReviewVoices.Fill(t, Long))
                 .Where(t => t.Length > ReviewVoices.MaxReplyLength).ToList();
-            var answers = voices.SelectMany(v => v.WarmAnswers.Concat(v.DryAnswers)).Select(a => ReviewVoices.Fill(a.Text, Long))
-                .Where(t => t.Length > ReviewVoices.MaxAnswerLength).ToList();
             Assert.That(replies, Is.Empty, string.Join("\n", replies));
-            Assert.That(answers, Is.Empty, string.Join("\n", answers));
+        }
+
+        [Test]
+        public void ReturningGuestsLinesFitOnOneLine()
+        {
+            var tooLong = Voices().SelectMany(v => v.ReturnLines.Values.SelectMany(l => l))
+                .Select(l => ReviewVoices.Fill(l.Text, Long))
+                .Where(t => t.Length > ReviewVoices.MaxReviewLength).ToList();
+            Assert.That(tooLong, Is.Empty, string.Join("\n", tooLong));
+        }
+
+        [Test]
+        public void EveryMemoryHasALineForABetterAndAWorseNight()
+        {
+            var generic = Voices().First();
+            foreach (GuestMemory memory in System.Enum.GetValues(typeof(GuestMemory)))
+            foreach (var better in new[] { true, false })
+                Assert.That(generic.ReturnLines.TryGetValue((memory, better), out var lines) && lines.Any(l => l.Only == null), Is.True, $"a generic line for {memory}, {(better ? "better" : "worse")}");
         }
 
         [Test]
@@ -57,7 +71,7 @@ namespace Game.Tests.EditMode
             var voices = Voices().ToList();
             var all = voices.SelectMany(v => v.Lines.Values.SelectMany(l => l).Select(l => l.Text)
                 .Concat(v.Replies.Values.SelectMany(r => r))
-                .Concat(v.WarmAnswers.Concat(v.DryAnswers).Select(a => a.Text)));
+                .Concat(v.ReturnLines.Values.SelectMany(l => l).Select(l => l.Text)));
             var unknown = all.Select(t => ReviewVoices.Fill(t, Long)).Where(t => t.Contains("{") || t.Contains("}")).ToList();
             Assert.That(unknown, Is.Empty, string.Join("\n", unknown));
         }
@@ -71,11 +85,6 @@ namespace Game.Tests.EditMode
             foreach (ReviewReply reply in System.Enum.GetValues(typeof(ReviewReply)))
             foreach (TopicGroup group in System.Enum.GetValues(typeof(TopicGroup)))
                 Assert.That(grill.Replies.ContainsKey((reply, group)), Is.True, $"a grill reply for {reply} to {group}");
-            foreach (Persona persona in System.Enum.GetValues(typeof(Persona)))
-            {
-                Assert.That(grill.WarmAnswers.Any(a => a.Only == persona), Is.True, $"a warm answer from a {persona}");
-                Assert.That(grill.DryAnswers.Any(a => a.Only == persona), Is.True, $"a dry answer from a {persona}");
-            }
         }
 
         [Test]

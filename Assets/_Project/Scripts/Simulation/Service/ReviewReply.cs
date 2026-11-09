@@ -47,12 +47,11 @@ namespace Game.Simulation.Service
         }
 
         /// <summary>
-        /// Writes the reply as posted, in the style's voice and about what the review said, and the
-        /// guest's answer: warm if the reply fits, dry if not, with likes to match. The thread is how
-        /// players read what a reply did (decision 2026-11-09). The same review and reply always give
-        /// the same words.
+        /// Writes the reply as posted, in the style's voice and about what the review said: one reply
+        /// per review, whose words show what kind of reply it is (decision 2026-11-09). The same review
+        /// and reply always give the same words.
         /// </summary>
-        public static void WriteThread(ReviewRecord review, ReviewReply reply, Voice style, Voice generic, LineMemory memory, string restaurant)
+        public static void WriteReply(ReviewRecord review, ReviewReply reply, Voice style, Voice generic, LineMemory memory, string restaurant)
         {
             var order = (review.Order ?? "").Split(',');
             var facts = new ReviewFacts
@@ -63,11 +62,7 @@ namespace Game.Simulation.Service
                 Restaurant = restaurant ?? "",
             };
             var seed = unchecked(review.Day * 7919 + StableHash(review.Guest) * 31 + (int)reply);
-            var topic = (ReviewTopic)review.Topic;
-            var thread = ReviewVoices.Reply(reply, topic, Fits(reply, topic), (Persona)review.Persona, facts, style, generic, memory, new System.Random(seed));
-            review.ReplyText = thread.Owner;
-            review.Answer = thread.Answer;
-            review.Likes = thread.Likes;
+            review.ReplyText = ReviewVoices.Reply(reply, (ReviewTopic)review.Topic, facts, style, generic, memory, new System.Random(seed));
         }
 
         // string.GetHashCode differs between runs; this doesn't.

@@ -12,8 +12,8 @@ namespace Game.Editor
 {
     /// <summary>
     /// Writes a sample of what a restaurant's voice produces, to read the writing as players will
-    /// meet it: a week of reviews from its mix of guests, each with a reply that fits and one that
-    /// doesn't, and the guest's answer. Menu: Tools/Game/Write Review Samples.
+    /// meet it: a week of reviews from its mix of guests, each with a reply (or none), and guests
+    /// coming back remembering how they were treated. Menu: Tools/Game/Write Review Samples.
     /// Batch: -executeMethod Game.Editor.ReviewVoiceSamples.WriteFromCommandLine [-samplesOut file]
     /// </summary>
     public static class ReviewVoiceSamples
@@ -48,36 +48,54 @@ namespace Game.Editor
             string[] names = { "Inés", "Marco", "Pavla", "Aiko", "Tomáš", "Dolores", "Kwame", "Bea" };
             string[] doneness = { "rare", "medium rare", "medium", "well done" };
 
+            var book = new GuestBook { ReturnShare = 0.5f };
+            var posted = new System.Collections.Generic.List<ReviewRecord>();
+            var replies = (ReviewReply[])Enum.GetValues(typeof(ReviewReply));
+
             var text = new StringBuilder();
             text.AppendLine($"# Review samples: {config.StyleName} ({config.RestaurantName})");
             text.AppendLine();
-            text.AppendLine("A week of guests from this style's mix. Each review shows a reply that fits and one that doesn't, with the guest's answer. Not every guest posts: the chance is shown with each one.");
+            text.AppendLine("A week of reviews from this style's guests, each with the reply the owner posted (picked at random here, or none). Guests who were treated well come back more often, and remember it. Not every guest posts: the chance is shown with each one.");
             for (var day = 1; day <= 7; day++)
             {
+                book.Rebuild(posted, day);
                 text.AppendLine();
                 text.AppendLine($"## Day {day}");
                 for (var i = 0; i < 5; i++)
                 {
                     var topic = topics[random.Next(topics.Length)];
-                    var persona = ReviewVoices.PickPersona(style, generic, random);
+                    var returning = book.Draw(random);
+                    var persona = returning?.Persona ?? ReviewVoices.PickPersona(style, generic, random);
                     var ordered = doneness[random.Next(doneness.Length)];
                     var got = topic == ReviewTopic.Undercooked ? "rare" : topic == ReviewTopic.Overcooked ? "well done" : ordered;
+                    var name = returning?.Name ?? $"{names[random.Next(names.Length)]} {(char)('A' + random.Next(26))}.";
                     var facts = new ReviewFacts
                     {
-                        Main = "steak", Side = "onions", Ordered = ordered, Got = got, Name = names[random.Next(names.Length)],
+                        Main = "steak", Side = "onions", Ordered = ordered, Got = got, Name = name.Split(' ')[0],
                         Restaurant = config.RestaurantName, LeftAt = $"19:{random.Next(10, 59)}", WaitMinutes = random.Next(18, 40),
                     };
-                    var line = ReviewVoices.Line(topic, persona, facts, style, generic, memory, random);
+                    var line = returning != null
+                        ? ReviewVoices.ReturnLine(returning.Memory, topic, persona, facts, style, generic, memory, random)
+                        : ReviewVoices.Line(topic, persona, facts, style, generic, memory, random);
                     var chance = settings.ShareChance(topic, persona);
+                    var back = returning != null ? $" · **back** (visit {returning.Visits + 1}, remembers: {returning.Memory})" : "";
                     text.AppendLine();
-                    text.AppendLine($"**{facts.Name}** · {persona.ToString().ToLowerInvariant()} · {topic} · posts {chance:P0}");
+                    text.AppendLine($"**{name}** · {persona.ToString().ToLowerInvariant()} · {topic} · posts {chance:P0}{back}");
                     text.AppendLine($"> “{line}”");
-                    foreach (var reply in (ReviewReply[])Enum.GetValues(typeof(ReviewReply)))
+
+                    var record = new ReviewRecord { Day = day, Guest = name, Topic = (int)topic, Persona = (int)persona, Order = $"steak, {ordered}" };
+                    var pick = random.Next(replies.Length + 1);
+                    if (pick < replies.Length)
                     {
-                        var fits = ReviewReplies.Fits(reply, topic);
-                        var thread = ReviewVoices.Reply(reply, topic, fits, persona, facts, style, generic, memory, random);
-                        text.AppendLine($">  ↳ *{reply}* ({(fits ? "fits" : "doesn't fit")}): {thread.Owner}  ·  {facts.Name}: “{thread.Answer}” · {thread.Likes} like{(thread.Likes == 1 ? "" : "s")}");
+                        record.Reply = (int)replies[pick];
+                        ReviewReplies.WriteReply(record, replies[pick], style, generic, memory, config.RestaurantName);
+                        text.AppendLine($">  ↳ *{replies[pick]}* ({(ReviewReplies.Fits(replies[pick], topic) ? "fits" : "doesn't fit")}): {record.ReplyText}");
                     }
+                    else
+                    {
+                        text.AppendLine(">  ↳ *no reply*");
+                    }
+                    posted.Add(record);
                 }
             }
             Directory.CreateDirectory(Path.GetDirectoryName(file));

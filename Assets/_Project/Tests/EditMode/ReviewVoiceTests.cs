@@ -86,25 +86,21 @@ namespace Game.Tests.EditMode
         }
 
         [Test]
-        public void AReplyThatFitsGetsAWarmAnswerAndLikes()
+        public void AReplyIsWrittenForWhatTheReviewWasAbout()
         {
             var voice = new Voice
             {
                 Replies = new Dictionary<(ReviewReply, TopicGroup), List<string>>
                 {
-                    [(ReviewReply.Apologise, TopicGroup.Wait)] = new List<string> { "Sorry, {name}." },
+                    [(ReviewReply.Apologise, TopicGroup.Wait)] = new List<string> { "Sorry about the wait, {name}." },
+                    [(ReviewReply.Apologise, TopicGroup.Food)] = new List<string> { "Sorry about the {main}, {name}." },
+                    [(ReviewReply.Apologise, TopicGroup.Doneness)] = new List<string> { "You asked for {ordered}, {name}." },
                 },
-                WarmAnswers = new List<VoiceLine> { new VoiceLine("Fair enough.") },
-                DryAnswers = new List<VoiceLine> { new VoiceLine("Wow. Okay.") },
             };
-            var warm = ReviewVoices.Reply(ReviewReply.Apologise, ReviewTopic.WalkedOut, true, Persona.Regular, Steak(), voice, null, null, new Random(3));
-            Assert.That(warm.Owner, Is.EqualTo("Sorry, Inés."), "written for what the review was about");
-            Assert.That(warm.Answer, Is.EqualTo("Fair enough."));
-            Assert.That(warm.Likes, Is.GreaterThanOrEqualTo(3));
-
-            var dry = ReviewVoices.Reply(ReviewReply.Apologise, ReviewTopic.WalkedOut, false, Persona.Regular, Steak(), voice, null, null, new Random(3));
-            Assert.That(dry.Answer, Is.EqualTo("Wow. Okay."));
-            Assert.That(dry.Likes, Is.LessThan(3));
+            Assert.That(ReviewVoices.Reply(ReviewReply.Apologise, ReviewTopic.WalkedOut, Steak(), voice, null, null, new Random(3)), Is.EqualTo("Sorry about the wait, Inés."));
+            Assert.That(ReviewVoices.Reply(ReviewReply.Apologise, ReviewTopic.Burnt, Steak(), voice, null, null, new Random(3)), Is.EqualTo("Sorry about the steak, Inés."), "only doneness replies name the order");
+            var doneness = Enumerable.Range(0, 10).Select(seed => ReviewVoices.Reply(ReviewReply.Apologise, ReviewTopic.Overcooked, Steak(), voice, null, null, new Random(seed))).Distinct().ToList();
+            Assert.That(doneness, Is.EquivalentTo(new[] { "You asked for medium, Inés.", "Sorry about the steak, Inés." }), "a doneness complaint can also get a food reply");
         }
 
         [Test]
@@ -114,14 +110,87 @@ namespace Game.Tests.EditMode
             ReviewRecord Review() => new ReviewRecord { Day = 1, Guest = "Inés R.", Order = "steak, medium", Topic = (int)ReviewTopic.WalkedOut, WalkedOut = true };
             var first = Review();
             var second = Review();
-            ReviewReplies.WriteThread(first, ReviewReply.Apologise, config.StyleVoice(), config.GenericVoice(), null, "The Copper Pan");
-            ReviewReplies.WriteThread(second, ReviewReply.Apologise, config.StyleVoice(), config.GenericVoice(), null, "The Copper Pan");
+            ReviewReplies.WriteReply(first, ReviewReply.Apologise, config.StyleVoice(), config.GenericVoice(), null, "The Copper Pan");
+            ReviewReplies.WriteReply(second, ReviewReply.Apologise, config.StyleVoice(), config.GenericVoice(), null, "The Copper Pan");
             Assert.That(first.ReplyText, Is.Not.Empty);
-            Assert.That(first.Answer, Is.Not.Empty);
             Assert.That(second.ReplyText, Is.EqualTo(first.ReplyText));
-            Assert.That(second.Answer, Is.EqualTo(first.Answer));
             Assert.That(first.ReplyText, Does.Not.Contain("{"), "every fact filled in");
             UnityEngine.Object.DestroyImmediate(config);
+        }
+
+        // ---- Returning guests ----
+
+        private static ReviewRecord Posted(string guest, int day, ReviewTopic topic, int reply = -1, Persona persona = Persona.Regular) =>
+            new ReviewRecord { Guest = guest, Day = day, Topic = (int)topic, Reply = reply, Persona = (int)persona };
+
+        [Test]
+        public void GuestsRememberHowTheyWereTreated()
+        {
+            Assert.That(GuestBook.MemoryOf(Posted("A", 1, ReviewTopic.Burnt, (int)ReviewReply.Apologise)), Is.EqualTo(GuestMemory.Apologised));
+            Assert.That(GuestBook.MemoryOf(Posted("A", 1, ReviewTopic.WalkedOut)), Is.EqualTo(GuestMemory.Ignored));
+            Assert.That(GuestBook.MemoryOf(Posted("A", 1, ReviewTopic.Cold, (int)ReviewReply.StandYourGround)), Is.EqualTo(GuestMemory.Dismissed));
+            Assert.That(GuestBook.MemoryOf(Posted("A", 1, ReviewTopic.Praise, (int)ReviewReply.Thank)), Is.EqualTo(GuestMemory.Thanked));
+            Assert.That(GuestBook.MemoryOf(Posted("A", 1, ReviewTopic.Praise, (int)ReviewReply.Apologise)), Is.EqualTo(GuestMemory.Unthanked));
+        }
+
+        [Test]
+        public void TheBookKnowsEarlierDaysOnlyAndEachGuestOnce()
+        {
+            var book = new GuestBook();
+            book.Rebuild(new[]
+            {
+                Posted("Inés R.", 1, ReviewTopic.WalkedOut, persona: Persona.Critic),
+                Posted("Inés R.", 2, ReviewTopic.Praise, (int)ReviewReply.Thank, Persona.Critic),
+                Posted("Marco L.", 3, ReviewTopic.Burnt),
+            }, today: 3);
+            Assert.That(book.Guests.Count, Is.EqualTo(1), "today's guests aren't back yet");
+            var ines = book.Guests[0];
+            Assert.That(ines.Visits, Is.EqualTo(2));
+            Assert.That(ines.Memory, Is.EqualTo(GuestMemory.Thanked), "as of their latest review");
+            Assert.That(ines.Persona, Is.EqualTo(Persona.Critic));
+
+            book.ReturnShare = 1f;
+            Assert.That(book.Draw(new Random(1))?.Name, Is.EqualTo("Inés R."));
+            Assert.That(book.Draw(new Random(1)), Is.Null, "once a day");
+        }
+
+        [Test]
+        public void AnApologyBringsGuestsBackMoreThanDismissingThem()
+        {
+            var history = new List<ReviewRecord>();
+            for (var i = 0; i < 50; i++)
+            {
+                history.Add(Posted($"Sorry {i}", 1, ReviewTopic.Burnt, (int)ReviewReply.Apologise));
+                history.Add(Posted($"Smug {i}", 1, ReviewTopic.Burnt, (int)ReviewReply.StandYourGround));
+            }
+            int apologised = 0, dismissed = 0;
+            var random = new Random(5);
+            for (var day = 0; day < 200; day++)
+            {
+                var book = new GuestBook { ReturnShare = 1f };
+                book.Rebuild(history, 2);
+                var guest = book.Draw(random);
+                if (guest.Memory == GuestMemory.Apologised)
+                    apologised++;
+                else
+                    dismissed++;
+            }
+            Assert.That(apologised, Is.GreaterThan(dismissed * 4), "willingness 3 against 0.3");
+        }
+
+        [Test]
+        public void AReturningGuestRemembersTheirLastVisit()
+        {
+            var voice = new Voice
+            {
+                ReturnLines = new Dictionary<(GuestMemory, bool), List<VoiceLine>>
+                {
+                    [(GuestMemory.Apologised, true)] = new List<VoiceLine> { new VoiceLine("Came back after the apology. Glad I did.") },
+                    [(GuestMemory.Apologised, false)] = new List<VoiceLine> { new VoiceLine("Came back after the apology. Same again.") },
+                },
+            };
+            Assert.That(ReviewVoices.ReturnLine(GuestMemory.Apologised, ReviewTopic.Praise, Persona.Regular, Steak(), voice, null, null, new Random(1)), Does.Contain("Glad"));
+            Assert.That(ReviewVoices.ReturnLine(GuestMemory.Apologised, ReviewTopic.Burnt, Persona.Regular, Steak(), voice, null, null, new Random(1)), Does.Contain("Same again"));
         }
 
         [Test]

@@ -198,11 +198,8 @@ namespace Game.Simulation.Saving
         /// <summary>The owner's reply as posted; empty for a reply from before replies were written per review.</summary>
         public string ReplyText = "";
 
-        /// <summary>The guest's answer to the reply: warm if it fit, dry if not.</summary>
-        public string Answer = "";
-
-        /// <summary>Likes on the reply thread.</summary>
-        public int Likes;
+        /// <summary>Which visit this was for the guest: 1 (or 0, in older saves) the first.</summary>
+        public int Visit;
     }
 
     /// <summary>Brings a file from an older version up to date, one version at a time.</summary>

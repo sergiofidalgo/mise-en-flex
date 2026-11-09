@@ -28,13 +28,14 @@ namespace Game.Simulation.Service
     /// <summary>One customer's review.</summary>
     public sealed class Review
     {
-        public Review(Customer customer, float stars, ReviewTopic topic, string line, Persona persona = Persona.Regular)
+        public Review(Customer customer, float stars, ReviewTopic topic, string line, Persona persona = Persona.Regular, KnownGuest returning = null)
         {
             Customer = customer;
             Stars = stars;
             Topic = topic;
             Line = line;
             Persona = persona;
+            Returning = returning;
         }
 
         public Customer Customer { get; }
@@ -44,6 +45,9 @@ namespace Game.Simulation.Service
 
         /// <summary>Who wrote it, which shapes how they write and how they take a reply.</summary>
         public Persona Persona { get; }
+
+        /// <summary>The guest who came back, if this is someone who has posted before; null for a first visit.</summary>
+        public KnownGuest Returning { get; }
     }
 
     /// <summary>Tuning and text for reviews. Filled from the ServiceConfig asset.</summary>
@@ -75,6 +79,9 @@ namespace Game.Simulation.Service
 
         /// <summary>Lines used lately, kept with the campaign so words don't repeat across days.</summary>
         public LineMemory Memory { get; set; }
+
+        /// <summary>Guests who posted before and might come back; null for none (ideas.md, 2026-11-09).</summary>
+        public GuestBook Guests { get; set; }
 
         public string Restaurant { get; set; } = "";
 
@@ -146,17 +153,28 @@ namespace Game.Simulation.Service
             var stars = customer.Satisfaction == null ? settings.WalkOutStars : customer.Satisfaction.Stars;
             var topic = customer.Satisfaction == null ? ReviewTopic.WalkedOut : ChooseTopic(customer.Satisfaction, customer.PatienceWhenServed ?? 1f, settings);
             var voiced = settings.Style != null || settings.Generic != null;
-            var persona = voiced ? ReviewVoices.PickPersona(settings.Style, settings.Generic, random) : Persona.Regular;
+            // Sometimes it's someone who's been before, and who they are carries over.
+            var returning = voiced ? settings.Guests?.Draw(random) : null;
+            var persona = returning?.Persona ?? (voiced ? ReviewVoices.PickPersona(settings.Style, settings.Generic, random) : Persona.Regular);
             // The dice are only rolled when someone might stay quiet, so settings where everyone
-            // posts give the same reviews as before.
+            // posts give the same reviews as before. A returning guest has more to say.
             var chance = settings.ShareChance(topic, persona);
+            if (returning != null)
+                chance = Math.Min(1f, chance * settings.Guests.PostBoost);
             if (chance < 1f && random.NextDouble() >= chance)
                 return null;
             if (!voiced)
                 return new Review(customer, stars, topic, Line(topic, customer, settings, random));
 
+            if (returning != null)
+            {
+                var back = ReviewVoices.ReturnLine(returning.Memory, topic, persona, Facts(customer, settings), settings.Style, settings.Generic, settings.Memory, random);
+                if (back.Length > 0)
+                    return new Review(customer, stars, topic, back, persona, returning);
+            }
+
             var line = ReviewVoices.Line(topic, persona, Facts(customer, settings), settings.Style, settings.Generic, settings.Memory, random);
-            return new Review(customer, stars, topic, line.Length > 0 ? line : Line(topic, customer, settings, random), persona);
+            return new Review(customer, stars, topic, line.Length > 0 ? line : Line(topic, customer, settings, random), persona, returning);
         }
 
         /// <summary>What a review can mention about this visit.</summary>

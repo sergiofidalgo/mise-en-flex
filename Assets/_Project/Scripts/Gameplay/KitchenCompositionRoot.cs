@@ -65,6 +65,8 @@ namespace Game.Gameplay
 
             if (save != null)
                 CampaignSnapshot.RestoreContents(save, placed, Services);
+            // Who might come back today, now the history is loaded.
+            Services.Service.Settings.Reviews.Guests?.Rebuild(Services.ReviewHistory, days.Day);
         }
 
         // Review and reply lines used lately, across days and sessions, so words don't repeat.
@@ -82,8 +84,8 @@ namespace Game.Gameplay
         {
             if (!ReviewReplies.Reply(review, reply, _serviceConfig.ToReplySettings()))
                 return false;
-            // Written for this review in the style's voice, with the guest's answer (decision 2026-11-09).
-            ReviewReplies.WriteThread(review, reply, _serviceConfig.StyleVoice(), _serviceConfig.GenericVoice(), _reviewLines, _serviceConfig.RestaurantName);
+            // Written for this review in the style's voice (decision 2026-11-09).
+            ReviewReplies.WriteReply(review, reply, _serviceConfig.StyleVoice(), _serviceConfig.GenericVoice(), _reviewLines, _serviceConfig.RestaurantName);
             SaveCampaign();
             return true;
         }
@@ -175,6 +177,9 @@ namespace Game.Gameplay
         {
             var settings = _serviceConfig.ToSettings(day);
             settings.Reviews.Memory = _reviewLines;
+            // Guests who posted on earlier days might come back (built again once a save is loaded).
+            if (Services != null)
+                settings.Reviews.Guests?.Rebuild(Services.ReviewHistory, day);
             return new ServiceSimulation(settings, 0, _realism.CustomerPatience); // seats open with the doors
         }
 

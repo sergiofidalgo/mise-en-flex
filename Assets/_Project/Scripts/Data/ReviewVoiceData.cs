@@ -20,7 +20,7 @@ namespace Game.Data
 
     /// <summary>
     /// How a kind of restaurant is talked about (ideas.md, 2026-11-09): what its guests write, how its
-    /// owner replies, how guests answer, who comes, and its hashtags. Used together with the generic
+    /// owner replies, who comes, what returning guests write, and its hashtags. Used together with the generic
     /// voice, so a style only needs what's its own. {main}, {side}, {ordered}, {got}, {name},
     /// {restaurant}, {left} and {wait} are filled in; a line naming a fact that isn't known is skipped.
     /// </summary>
@@ -71,19 +71,27 @@ namespace Game.Data
         }
 
         [Serializable]
-        public sealed class Answers
+        public sealed class Returns
         {
+            [Tooltip("How they were treated last time.")]
+            [SerializeField] private GuestMemory _remembers;
+            [Tooltip("Tonight went well (praise or decent) rather than badly.")]
+            [SerializeField] private bool _better;
             [SerializeField] private Who _who;
             [SerializeField, TextArea] private string[] _lines;
 
-            public Answers() { }
+            public Returns() { }
 
-            public Answers(Who who, params string[] lines)
+            public Returns(GuestMemory remembers, bool better, Who who, params string[] lines)
             {
+                _remembers = remembers;
+                _better = better;
                 _who = who;
                 _lines = lines;
             }
 
+            public GuestMemory Remembers => _remembers;
+            public bool Better => _better;
             public Who Who => _who;
             public string[] Text => _lines ?? new string[0];
         }
@@ -95,24 +103,27 @@ namespace Game.Data
         [SerializeField] private Lines[] _reviews;
         [Tooltip("The owner's replies, by reply and what the review is about. Each should read as what it is: an apology, thanks, or digging in.")]
         [SerializeField] private Replies[] _replies;
-        [Tooltip("A guest answering a reply that fits.")]
-        [SerializeField] private Answers[] _warmAnswers;
-        [Tooltip("A guest answering a reply that doesn't.")]
-        [SerializeField] private Answers[] _dryAnswers;
         [Tooltip("Influencers end their reviews with one.")]
         [SerializeField] private string[] _hashtags;
+        [Tooltip("What a returning guest writes, remembering how they were treated last time.")]
+        [SerializeField] private Returns[] _returns;
 
         public ReviewVoiceData() { }
 
-        public ReviewVoiceData(string[] styles, float[] guests, Lines[] reviews, Replies[] replies, Answers[] warm, Answers[] dry, string[] hashtags)
+        public ReviewVoiceData(string[] styles, float[] guests, Lines[] reviews, Replies[] replies, string[] hashtags)
         {
             _styles = styles;
             _guests = guests;
             _reviews = reviews;
             _replies = replies;
-            _warmAnswers = warm;
-            _dryAnswers = dry;
             _hashtags = hashtags;
+        }
+
+        /// <summary>Adds what returning guests write (kept out of the constructor, which lists first visits).</summary>
+        public ReviewVoiceData WithReturns(params Returns[] returns)
+        {
+            _returns = returns;
+            return this;
         }
 
         public bool IsGeneric => _styles == null || _styles.Length == 0;
@@ -142,8 +153,13 @@ namespace Game.Data
                     voice.Replies[key] = list = new List<string>();
                 list.AddRange(group.Text);
             }
-            voice.WarmAnswers = (_warmAnswers ?? new Answers[0]).SelectMany(a => a.Text.Select(t => new VoiceLine(t, Persona(a.Who)))).ToList();
-            voice.DryAnswers = (_dryAnswers ?? new Answers[0]).SelectMany(a => a.Text.Select(t => new VoiceLine(t, Persona(a.Who)))).ToList();
+            foreach (var group in _returns ?? new Returns[0])
+            {
+                var key = (group.Remembers, group.Better);
+                if (!voice.ReturnLines.TryGetValue(key, out var list))
+                    voice.ReturnLines[key] = list = new List<VoiceLine>();
+                list.AddRange(group.Text.Select(t => new VoiceLine(t, Persona(group.Who))));
+            }
             return voice;
         }
 
@@ -208,21 +224,18 @@ namespace Game.Data
                     "We know.",
                     "As expected."),
             },
-            new[]
-            {
-                new ReviewVoiceData.Answers(Who.Anyone, "Fair enough. I'll give you another go.", "Okay, that's actually nice of you.", "Respect for replying.", "Appreciated. See you soon."),
-                new ReviewVoiceData.Answers(Who.Critic, "A gracious reply. Noted."),
-                new ReviewVoiceData.Answers(Who.Influencer, "Love the energy. Reposting."),
-                new ReviewVoiceData.Answers(Who.Local, "Alright. I'll be back Thursday, as usual."),
-            },
-            new[]
-            {
-                new ReviewVoiceData.Answers(Who.Anyone, "Thanks for the essay. Still hungry.", "Copy-paste reply, nice.", "Wow. Okay.", "That's not an answer."),
-                new ReviewVoiceData.Answers(Who.Critic, "Defensiveness is not a seasoning."),
-                new ReviewVoiceData.Answers(Who.Influencer, "Screenshotted. For the group chat."),
-                new ReviewVoiceData.Answers(Who.Tourist, "Glad we're only here for the week."),
-            },
-            new[] { "#foodie", "#datenight", "#eatlocal" });
+            new[] { "#foodie", "#datenight", "#eatlocal" })
+            .WithReturns(
+                B(GuestMemory.Apologised, true, Who.Anyone, "Came back after the apology. Glad I did.", "Gave you a second chance. You took it."),
+                B(GuestMemory.Apologised, false, Who.Anyone, "Came back after the apology. Same again.", "Second chance, same {main}. Hmm."),
+                B(GuestMemory.Ignored, true, Who.Anyone, "Back again, quietly. Better this time.", "Nobody answered me. The {main} did."),
+                B(GuestMemory.Ignored, false, Who.Anyone, "Still no reply. Still not right.", "Back for round two. Lost again."),
+                B(GuestMemory.Dismissed, true, Who.Anyone, "Despite that reply, it was good.", "Ignored the attitude. Liked the {main}."),
+                B(GuestMemory.Dismissed, false, Who.Anyone, "Came back to be sure. I was right.", "Still bad. Still smug, I bet."),
+                B(GuestMemory.Thanked, true, Who.Anyone, "Back as promised. Still great.", "Back again. Still the best."),
+                B(GuestMemory.Thanked, false, Who.Anyone, "Came back for the magic. Didn't find it.", "Not like last time. Off night?"),
+                B(GuestMemory.Unthanked, true, Who.Anyone, "Loved it twice now.", "Back again. Still great. Say hi sometime."),
+                B(GuestMemory.Unthanked, false, Who.Anyone, "Loved it last time. Not tonight."));
 
         // The grill: a steakhouse on a residential street. Its guests talk crust, pink and smoke; its
         // owner talks fire. Lines fit the dashboard: about 44 characters for a review (hashtag
@@ -361,32 +374,27 @@ namespace Game.Data
                     "Naturally.",
                     "Tell your friends. Or don't. We're full anyway."),
             },
-            new[]
-            {
-                A(Who.Anyone, "Fair. Save me a seat by the grill.", "Okay. I'll give the {main} another shot.", "Classy reply. See you Friday."),
-                A(Who.Regular, "That's why I keep coming back."),
-                A(Who.Foodie, "Respect. Back soon for the {ordered}."),
-                A(Who.Influencer, "Okay, this reply is a vibe. Reposting."),
-                A(Who.Critic, "Gracious. I'll revisit."),
-                A(Who.Tourist, "Sweet! Next time we're passing through."),
-                A(Who.Local, "Fine. Usual table, usual order."),
-            },
-            new[]
-            {
-                A(Who.Anyone, "Cool reply. Still hungry.", "Did a bot write this?", "This is why it's not three stars."),
-                A(Who.Regular, "Wow. After all these Fridays?"),
-                A(Who.Foodie, "Doneness is not a matter of opinion."),
-                A(Who.Influencer, "Screenshotted. For my followers."),
-                A(Who.Critic, "Defensiveness: the house special."),
-                A(Who.Tourist, "Next time we'll try the diner."),
-                A(Who.Local, "Telling the whole street."),
-            },
-            new[] { "#steaknight", "#medrare", "#grillgoals", "#meatsweats", "#crustgoals", "#fridaygrill" });
+            new[] { "#steaknight", "#medrare", "#grillgoals", "#meatsweats", "#crustgoals", "#fridaygrill" })
+            .WithReturns(
+                B(GuestMemory.Apologised, true, Who.Anyone, "They said sorry. Then they grilled it right.", "Apology accepted. {ordered}, nailed."),
+                B(GuestMemory.Apologised, true, Who.Influencer, "Redemption arc: complete."),
+                B(GuestMemory.Apologised, false, Who.Anyone, "Two apologies, zero good steaks."),
+                B(GuestMemory.Ignored, true, Who.Anyone, "No reply, but the {main} said sorry."),
+                B(GuestMemory.Ignored, false, Who.Anyone, "Back again. Grill still sulking."),
+                B(GuestMemory.Ignored, false, Who.Local, "The whole street knows. Still no reply."),
+                B(GuestMemory.Dismissed, true, Who.Anyone, "Smug reply. Good {main}. Annoying."),
+                B(GuestMemory.Dismissed, false, Who.Anyone, "Came back to prove a point. Proved it."),
+                B(GuestMemory.Dismissed, false, Who.Critic, "A second visit confirms the first."),
+                B(GuestMemory.Thanked, true, Who.Anyone, "Back for the crust. Crust delivered."),
+                B(GuestMemory.Thanked, true, Who.Regular, "Usual table, usual {ordered}, usual joy."),
+                B(GuestMemory.Thanked, false, Who.Anyone, "Last time: magic. Tonight: grill fail."),
+                B(GuestMemory.Unthanked, true, Who.Anyone, "Second great {main}. Third on Friday."),
+                B(GuestMemory.Unthanked, false, Who.Anyone, "Was my favorite. Was."));
 
         private static ReviewVoiceData.Lines L(ReviewTopic topic, Who who, params string[] lines) => new ReviewVoiceData.Lines(topic, who, lines);
 
         private static ReviewVoiceData.Replies R(ReviewReply reply, TopicGroup about, params string[] lines) => new ReviewVoiceData.Replies(reply, about, lines);
 
-        private static ReviewVoiceData.Answers A(Who who, params string[] lines) => new ReviewVoiceData.Answers(who, lines);
+        private static ReviewVoiceData.Returns B(GuestMemory remembers, bool better, Who who, params string[] lines) => new ReviewVoiceData.Returns(remembers, better, who, lines);
     }
 }
