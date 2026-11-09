@@ -124,7 +124,8 @@ namespace Game.Editor
             flips.FindProperty("_root").objectReferenceValue = root;
             flips.ApplyModifiedPropertiesWithoutUndo();
 
-            // The washing game is drawn on the sink's water (WashRing), not on this canvas.
+            // The washing game is drawn on the sink (WashRing); its stick hint is HUD art, here.
+            WashRing.AddStickHint(hud, style);
 
             var status = new SerializedObject(hud.AddComponent<ServiceStatusHud>());
             status.FindProperty("_canvas").objectReferenceValue = hud.GetComponent<RectTransform>();

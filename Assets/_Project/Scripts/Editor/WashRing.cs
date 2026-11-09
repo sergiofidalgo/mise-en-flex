@@ -63,19 +63,6 @@ namespace Game.Editor
             return material;
         }
 
-        private const string IconPath = "Assets/_Project/Art/Materials/MAT_FX_TutorialIcon.mat";
-
-        /// <summary>The tutorial glyph material (Game/UI/TutorialIcon) for the stick hint.</summary>
-        public static Material EnsureIconMaterial()
-        {
-            var material = AssetDatabase.LoadAssetAtPath<Material>(IconPath);
-            if (material != null)
-                return material;
-            material = new Material(Shader.Find("Game/UI/TutorialIcon"));
-            AssetDatabase.CreateAsset(material, IconPath);
-            return material;
-        }
-
         public static Material EnsureMaterial()
         {
             var material = AssetDatabase.LoadAssetAtPath<Material>(MaterialPath);
@@ -127,9 +114,23 @@ namespace Game.Editor
             view.FindProperty("_settings").objectReferenceValue = settings;
             view.FindProperty("_ring").objectReferenceValue = renderer;
             view.FindProperty("_toon").objectReferenceValue = EnsureToonMaterial();
-            view.FindProperty("_icon").objectReferenceValue = EnsureIconMaterial();
-            view.FindProperty("_stickFont").objectReferenceValue = MenuArt.Font(HudType.DisplayFont);
             view.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        /// <summary>Adds the stick hint to a HUD canvas, drawing the control glyphs first if needed.</summary>
+        public static void AddStickHint(GameObject hud, Game.Presentation.Hud.HudStyle style)
+        {
+            if (AssetDatabase.LoadAssetAtPath<Sprite>($"{ControlGlyphArt.Folder}/{ControlGlyphArt.StickCap}.png") == null)
+                ControlGlyphArt.Build();
+            if (!hud.TryGetComponent(out Game.Presentation.Hud.StickHintHud hint))
+                hint = hud.AddComponent<Game.Presentation.Hud.StickHintHud>();
+            var so = new SerializedObject(hint);
+            so.FindProperty("_canvas").objectReferenceValue = hud.GetComponent<RectTransform>();
+            so.FindProperty("_style").objectReferenceValue = style;
+            so.FindProperty("_base").objectReferenceValue = ControlGlyphArt.Sprite(ControlGlyphArt.StickBase);
+            so.FindProperty("_post").objectReferenceValue = ControlGlyphArt.Sprite(ControlGlyphArt.StickPost);
+            so.FindProperty("_cap").objectReferenceValue = ControlGlyphArt.Sprite(ControlGlyphArt.StickCap);
+            so.ApplyModifiedPropertiesWithoutUndo();
         }
 
         public static CoopSettings FindSettings()
@@ -157,12 +158,17 @@ namespace Game.Editor
                 {
                     var so = new SerializedObject(view);
                     so.FindProperty("_toon").objectReferenceValue = EnsureToonMaterial();
-                    so.FindProperty("_icon").objectReferenceValue = EnsureIconMaterial();
-                    so.FindProperty("_stickFont").objectReferenceValue = MenuArt.Font(HudType.DisplayFont);
                     so.ApplyModifiedPropertiesWithoutUndo();
                     count++;
                 }
                 EditorSceneManager.MarkSceneDirty(sink.gameObject.scene);
+            }
+
+            // The stick hint lives on the HUD canvas (the control-glyph kit).
+            foreach (var prompts in Object.FindObjectsByType<Game.Presentation.Hud.PromptHud>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            {
+                AddStickHint(prompts.gameObject, GreyboxHud.EnsureStyle());
+                EditorSceneManager.MarkSceneDirty(prompts.gameObject.scene);
             }
 
             // The old circle above the chef: its script is gone, so remove what's left of it.
@@ -255,6 +261,24 @@ namespace Game.Editor
                 }
                 Render(camera, target, sink.transform.position + new Vector3(-1.5f, 0.9f, -0.5f), PlayHeight, Path.Combine(folder, $"wash_{(int)turn}deg_play.png"));
             }
+            // The stick hint is HUD art: composite the HUD over the scene for a stuck player.
+            var hud = Object.FindFirstObjectByType<Game.Presentation.Hud.StickHintHud>();
+            if (hud != null)
+            {
+                foreach (var turn in turns)
+                {
+                    sink.transform.rotation = start * Quaternion.Euler(0f, turn, 0f);
+                    var front = -sink.transform.forward;
+                    chef.transform.SetPositionAndRotation(sink.transform.position + front * StandDistance, Quaternion.LookRotation(-front, Vector3.up));
+                    var lookAt = sink.transform.position + new Vector3(-1.5f, 0.9f, -0.5f);
+                    var back = (PlayHeight - lookAt.y) / Mathf.Tan(Pitch * Mathf.Deg2Rad);
+                    camera.transform.SetPositionAndRotation(new Vector3(lookAt.x, PlayHeight, lookAt.z - back), Quaternion.Euler(Pitch, 0f, 0f));
+                    view.Preview(new Vector2(-0.62f, 0.35f), 0f, 0.3f, rim, 0f, true);
+                    hud.Refresh(camera, 0.8f);
+                    Game.Presentation.Hud.UiCapture.Save(camera, hud.GetComponent<Canvas>(), Path.Combine(folder, $"wash_{(int)turn}deg_hint.png"));
+                }
+            }
+
             sink.transform.rotation = start;
             view.EndPreview();
             Object.DestroyImmediate(chef);

@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using Game.Data;
 using Game.Gameplay.Stations;
-using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.Rendering;
@@ -14,7 +13,8 @@ namespace Game.Presentation
     /// the washer's colour that light up with the plate's progress, a raised target in the centre
     /// whose segments fill green while the soap is held there, and a soap bar the stick balances,
     /// bobbing, leaning as it slides and shaking when it's far off. When the player seems stuck,
-    /// an animated thumbstick beside the soap tilts the way to push. The pieces use
+    /// it asks for the stick hint (<see cref="Hud.StickHintHud"/>, flat HUD art from the control
+    /// glyph kit) beside the soap, pointing the way to push. The pieces use
     /// <c>Game/ToonOnTop</c>, drawn over whatever is in front of them (the chef, the tap) in a fixed
     /// order, and sit level with the basin's rim. The plate in the basin tips towards the soap.
     /// Everything turns with the camera, never the sink: pushing the stick up moves the soap, and
@@ -37,7 +37,6 @@ namespace Game.Presentation
         private const int TargetOrder = 1;
         private const int SoapOrder = 2;
         private const int BubbleOrder = 3;
-        private const int StickOrder = 4; // its parts, base upwards, from here
 
         [SerializeField] private SinkStation _sink;
         [SerializeField] private CoopSettings _settings;
@@ -45,10 +44,6 @@ namespace Game.Presentation
         [SerializeField] private Renderer _ring;
         [Tooltip("Toon material for the kit's pieces; each gets its colour per renderer.")]
         [SerializeField] private Material _toon;
-        [Tooltip("Tutorial glyph material for the stick hint: its own fixed light and outline, the same in every scene.")]
-        [SerializeField] private Material _icon;
-        [Tooltip("Font for the L on the stick: the HUD's display face, a fixed atlas.")]
-        [SerializeField] private TMP_FontAsset _stickFont;
 
         [Header("Look")]
         [Tooltip("Height of the rim's segments and of the soap's float, in kit units (the rim is 0.84 from the centre).")]
@@ -89,10 +84,6 @@ namespace Game.Presentation
         [SerializeField, Min(0f)] private float _hintDelay = 0.6f;
         [Tooltip("How closely the stick must point at the centre to count as pushing the right way (cosine).")]
         [SerializeField, Range(-1f, 1f)] private float _rightWay = 0.5f;
-        [SerializeField, Range(0f, 60f)] private float _hintTilt = 28f;
-        [SerializeField, Min(0f)] private float _hintPushes = 1.6f;
-        [Tooltip("The hint's size, in kit units per its own unit.")]
-        [SerializeField, Min(0.1f)] private float _hintSize = 1.3f;
 
         private MaterialPropertyBlock _block;
         // The plate shown in the basin, found among the sink's children (DirtyPlate…): the kit's
@@ -106,9 +97,19 @@ namespace Game.Presentation
         private Transform _soap;
         private Renderer _soapRenderer;
         private readonly List<Transform> _bubbles = new List<Transform>();
-        private Transform _hint;
-        private Transform _hintCap;
         private float _hintShown;
+        private float _hintAmount;
+        private Vector3 _hintWorld;
+        private Vector3 _hintTowards;
+
+        /// <summary>0..1: how much the stick hint shows (it fades in when the player seems stuck).</summary>
+        public float HintAmount => _root != null && _root.gameObject.activeSelf ? _hintAmount : 0f;
+
+        /// <summary>Where the stick hint goes, in the world: beside the soap.</summary>
+        public Vector3 HintWorldPosition => _hintWorld;
+
+        /// <summary>A short world vector from the hint towards the way to push (the centre).</summary>
+        public Vector3 HintTowardsWorld => _hintTowards;
         private float _stuckFor;
 
         private float _fade;
@@ -251,21 +252,12 @@ namespace Game.Presentation
                 _bubbles[i].localPosition = _soap.localPosition + new Vector3(Mathf.Sin(angle) * 0.3f, 0.05f + 0.04f * Mathf.Sin(Time.time * 5f + i), Mathf.Cos(angle) * 0.3f);
             }
 
-            // The stick hint: beside the soap on its far side from the centre, so it never hides
-            // the soap or the way in, its cap tipping towards the centre, again and again.
-            _hint.gameObject.SetActive(hint > 0f);
-            if (hint > 0f)
-            {
-                var outward = _shownPoint.sqrMagnitude > 1e-4f ? _shownPoint.normalized : Vector2.up;
-                _hint.localPosition = _soap.localPosition + new Vector3(outward.x * 0.34f, 0.04f, outward.y * 0.34f);
-                // Pops in, then breathes a little, like a tutorial prompt.
-                _hint.localScale = Vector3.one * (_hintSize * EaseOutBack(hint) * (1f + 0.04f * Mathf.Sin(Time.time * 5f)));
-                var toCentre = -_shownPoint;
-                var direction = toCentre.sqrMagnitude > 1e-4f ? new Vector3(toCentre.x, 0f, toCentre.y).normalized : Vector3.forward;
-                var axis = Vector3.Cross(Vector3.up, direction);
-                var push = Mathf.Clamp01(Mathf.Sin(Time.time * _hintPushes * 2f * Mathf.PI) * 1.4f);
-                _hintCap.localRotation = Quaternion.AngleAxis(_hintTilt * push, axis);
-            }
+            // Where the stick hint (StickHintHud, flat HUD art) shows: beside the soap on its far
+            // side from the centre, so it never hides the soap or the way in, pointing inwards.
+            var outward = _shownPoint.sqrMagnitude > 1e-4f ? _shownPoint.normalized : Vector2.up;
+            _hintWorld = _root.TransformPoint(_soap.localPosition + new Vector3(outward.x * 0.3f, 0f, outward.y * 0.3f));
+            _hintTowards = _root.TransformDirection(new Vector3(-outward.x, 0f, -outward.y)) * 0.1f;
+            _hintAmount = hint;
         }
 
         private void Paint(Renderer renderer, Color color)
@@ -315,79 +307,6 @@ namespace Game.Presentation
                 _bubbles.Add(bubble.transform);
             }
 
-            BuildStick();
-            _hint.gameObject.SetActive(false);
-        }
-
-        // A thumbstick as on the pad, styled as a tutorial glyph (the user's requests): a domed
-        // base with a collar, a short shaft, and a rounded cap with a grippy rim round a lighter
-        // dished top marked L. Its own material keeps it the same in every scene (fixed light,
-        // its own outline). The shaft and cap pivot at the base, like the real thing. Kit units;
-        // drawn base upwards.
-        private void BuildStick()
-        {
-            var baseDark = new Color(0.15f, 0.16f, 0.19f);
-            var collarGrey = new Color(0.26f, 0.27f, 0.31f);
-            var capGrey = new Color(0.44f, 0.45f, 0.5f);
-            var rimGrey = new Color(0.3f, 0.31f, 0.36f);
-            var dishGrey = new Color(0.62f, 0.63f, 0.68f);
-            var order = StickOrder;
-
-            _hint = new GameObject("StickHint") { hideFlags = HideFlags.DontSave }.transform;
-            _hint.SetParent(_root, false);
-
-            var dome = Primitive("StickBase", PrimitiveType.Sphere, _hint, order++, _icon);
-            dome.transform.localScale = new Vector3(0.3f, 0.1f, 0.3f);
-            Paint(dome, baseDark);
-            var collar = Piece("StickCollar", StationKitMeshes.RingSector(0.05f, 0.095f, 0f, Mathf.PI * 2f, 0.035f, 0.012f, 32), _hint, order++, _icon);
-            collar.transform.localPosition = new Vector3(0f, 0.02f, 0f);
-            Paint(collar, collarGrey);
-
-            _hintCap = new GameObject("StickPivot") { hideFlags = HideFlags.DontSave }.transform;
-            _hintCap.SetParent(_hint, false);
-            _hintCap.localPosition = new Vector3(0f, 0.04f, 0f);
-
-            var shaft = Primitive("StickShaft", PrimitiveType.Cylinder, _hintCap, order++, _icon);
-            shaft.transform.localPosition = new Vector3(0f, 0.05f, 0f);
-            shaft.transform.localScale = new Vector3(0.07f, 0.05f, 0.07f); // a cylinder is 2 tall
-            Paint(shaft, collarGrey);
-
-            // The cap: a disc with a rounded (bevelled) edge.
-            var cap = Piece("StickCap", StationKitMeshes.RingSector(0.0005f, 0.13f, 0f, Mathf.PI * 2f, 0.05f, 0.022f, 40), _hintCap, order++, _icon);
-            cap.transform.localPosition = new Vector3(0f, 0.09f, 0f);
-            Paint(cap, capGrey);
-
-            // The grippy rim: a ring of small raised blocks round the top.
-            for (var i = 0; i < 16; i++)
-            {
-                var a0 = (i + 0.12f) * Mathf.PI * 2f / 16f;
-                var a1 = (i + 0.88f) * Mathf.PI * 2f / 16f;
-                var rim = Piece("StickGrip", StationKitMeshes.RingSector(0.092f, 0.122f, a0, a1, 0.018f, 0.006f), _hintCap, order, _icon);
-                rim.transform.localPosition = new Vector3(0f, 0.14f, 0f);
-                Paint(rim, rimGrey);
-            }
-            order++;
-
-            // The dish in the middle of the top, lighter, with the L on it.
-            var dish = Piece("StickDish", StationKitMeshes.RingSector(0.0005f, 0.085f, 0f, Mathf.PI * 2f, 0.004f, 0.002f, 32), _hintCap, order++, _icon);
-            dish.transform.localPosition = new Vector3(0f, 0.14f, 0f);
-            Paint(dish, dishGrey);
-
-            var label = new GameObject("L") { hideFlags = HideFlags.DontSave }.AddComponent<TextMeshPro>();
-            label.transform.SetParent(_hintCap, false);
-            label.transform.localPosition = new Vector3(0f, 0.146f, 0f);
-            label.transform.localRotation = Quaternion.Euler(90f, 0f, 0f); // flat on the top, upright on screen
-            if (_stickFont != null)
-                label.font = _stickFont;
-            label.text = "L";
-            label.fontSize = 1.1f;
-            label.fontStyle = FontStyles.Bold;
-            label.alignment = TextAlignmentOptions.Center;
-            label.color = baseDark;
-            label.rectTransform.sizeDelta = new Vector2(0.16f, 0.16f);
-            // Over everything, like the rest of the glyph: TextMeshPro reads its depth test from here.
-            label.fontMaterial.SetFloat("unity_GUIZTestMode", (float)CompareFunction.Always);
-            label.renderer.sortingOrder = order;
         }
 
         private Renderer Piece(string pieceName, Mesh mesh, Transform parent, int order, Material material = null)

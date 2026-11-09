@@ -4,6 +4,18 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-09 — A control-glyph kit, apart from the game's look
+
+**User's call:** control indications get their own visual kit, easy to see apart from the game scene, drawn by Claude in code for now. The joystick is more stylised (after the user's reference), with an L on top and no ridged edges.
+
+- **The kit** (`ControlGlyphArt`, sprites in `Art/UI/Controls`): flat HUD art like a pad's own glyphs. Dark glossy bodies, a thick near-black outline, a soft shadow; symbols in the HUD display face on top, so one body serves every button. Face buttons keep the official Xbox colour on the letter (art bible). Bodies: round button (A B X Y), bumper pill (LB RB), trigger (LT RT), and the stick from three-quarters in three parts (well, post, cap). Drawn from signed distance shapes at 4×; the Art Director can replace the PNGs without code changes.
+- **Never part of the scene:** glyphs are screen-space UI, never lit, shaded or hidden by the world; one that points at something follows it on screen and stays inside the screen.
+- **The stick hint** is now `StickHintHud` on the HUD: the cap slides towards the way to push, the post leans after it, push-hold-release, over and over. The 3D thumbstick and its `Game/UI/TutorialIcon` shader are gone.
+- **Sheet:** `ControlGlyphArt.CaptureSheet` renders the kit on a dark and a light half (`Screenshots/control-glyphs.png`).
+- **Next:** move the prompt badges (`ButtonBadge`) and the bottom hint bar onto the kit, and add the D-pad, Menu/View, right stick and the press, hold and rotate animations.
+
+---
+
 ## 2026-11-09 — The wash game in 3D, a tutorial stick, no card, and 3 centrings a plate
 
 **User's calls, after playing the flat ring:** it looked too flat for the scene; the card ("LS center the soap", "X stop washing") should go, with an animated joystick showing the movement instead, and X or B to leave; the stick should look like a real thumbstick with an L on top, styled as a scene-agnostic tutorial glyph; a plate takes 3 touches of the centre, not 4.
