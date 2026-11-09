@@ -7,8 +7,9 @@ namespace Game.Gameplay.Office
     /// <summary>
     /// The city miniature in the boss's back room, the way out of the office (decision 2026-11-09,
     /// simple miniature): once every joined player stands around the table, any of them presses A
-    /// and the day starts in the kitchen. The campaign was already chosen in the menu
-    /// (CampaignLaunch). Choosing among restaurants on the miniature comes with the campaign (Phase 6).
+    /// and the day starts in the kitchen, with the same players on the same controllers
+    /// (PlayerRoster). The campaign was already chosen in the menu (CampaignLaunch). Choosing among
+    /// restaurants on the miniature comes with the campaign (Phase 6).
     /// </summary>
     public sealed class MiniatureTable : MonoBehaviour
     {
@@ -46,6 +47,7 @@ namespace Game.Gameplay.Office
                     continue;
                 _leaving = true;
                 Leaving?.Invoke();
+                PlayerRoster.CarryEveryone(); // the same players walk into the kitchen
                 SceneManager.LoadScene(_kitchenScene);
                 return;
             }

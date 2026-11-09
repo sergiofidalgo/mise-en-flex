@@ -44,11 +44,10 @@ The fly-through, the menu's resting shot and the office have to be one city:
 - **`MainMenu`** starts hidden in the office (`_startHidden`). When the office listens to `Launching`, the menu hands over instead of loading the kitchen.
 - **Captures:** *Tools/Game/Capture Office* renders `opening_flight_*` and `opening_climb_*` along the path.
 
-- **Leaving for the kitchen:** `MiniatureTable` in the back room. Once every joined player stands around the table, any of them presses A and the kitchen loads. A hint above the join slots counts who's there ("Everyone to the table: 2 of 3"), then shows "A Start the day".
+- **Leaving for the kitchen:** `MiniatureTable` in the back room. Once every joined player stands around the table, any of them presses A and the kitchen loads. A hint above the join slots counts who's there ("Everyone to the table: 2 of 3"), then shows "A Start the day". The players walk into the kitchen as they are, on the same controllers and in the same order, so the same colours and chefs, without joining again (`PlayerRoster`, user's call 2026-11-09). A player whose controller went away on the way joins as usual.
 - **Boot order** (`BootOrder`, run by the office and menu builders): `Office_Greybox`, then `Kitchen_Greybox`. `MainMenu.unity` stays in the project for the menu's UI captures but isn't in builds.
 
 **Still to do:**
-- Players join again in the kitchen; carrying the office's players across, on the same controllers in the same order, is proposed.
 - The join slots stay on screen on the floor; proposed: hide them a few seconds after the last join.
 - Leaving cuts straight to the kitchen; a fade would be kinder.
 

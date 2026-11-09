@@ -38,6 +38,18 @@ namespace Game.Gameplay
             _manager.onPlayerLeft -= HandlePlayerLeft;
         }
 
+        // Players who came from the last scene (the office) join again at once, on their own
+        // controllers and in their old order, after every scene object has subscribed (OnEnable).
+        private void Start()
+        {
+            foreach (var seat in PlayerRoster.Take())
+            {
+                if (_manager.playerCount >= _settings.MaxPlayers)
+                    break;
+                _manager.JoinPlayer(-1, -1, seat.Scheme, seat.Devices);
+            }
+        }
+
         private void HandlePlayerJoined(PlayerInput player)
         {
             if (_spawnPoints != null && _spawnPoints.Length > 0)

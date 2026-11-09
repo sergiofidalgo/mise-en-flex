@@ -17,6 +17,7 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 **Also built:**
 - The office is the boot scene, followed by the kitchen; `MainMenu.unity` is out of builds.
 - The miniature table loads the kitchen once everyone is at it and someone presses A.
+- **The office's players carry into the kitchen** (user's call): same controllers, same order, no joining again.
 
 ---
 
