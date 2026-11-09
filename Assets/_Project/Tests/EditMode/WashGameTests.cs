@@ -60,7 +60,8 @@ namespace Game.Tests.EditMode
             for (var seed = 0; seed < 10; seed++)
             {
                 var plates = Plates(RealSettings, (point, velocity) => Clamp(-point - velocity * 0.35f), 30f, seed);
-                Assert.That(plates, Is.GreaterThan(5f), $"seed {seed}: under 6 s a plate");
+                // Holding the centre, then three corrections (2026-11-09): about 5 s a plate.
+                Assert.That(plates, Is.GreaterThan(4f), $"seed {seed}: under 7.5 s a plate");
             }
         }
 
@@ -98,6 +99,82 @@ namespace Game.Tests.EditMode
 
             settings.StartRadius = 0.7f;
             Assert.That(new WashGame(settings, 1).Rate, Is.EqualTo(0f));
+        }
+
+        // A calm, still point in the centre with no drift: only the rules act on it.
+        private static WashGameSettings StillSettings => new WashGameSettings
+        {
+            Nudge = 0f, Instability = 0f, Damping = 6f, StartRadius = 0f, HoldSeconds = 0.3f, Corrections = 3, PushSpeed = 3.5f,
+        };
+
+        [Test]
+        public void HoldingTheCentreScrubsAPartThenPushesThePointAway()
+        {
+            var game = new WashGame(StillSettings, 1);
+            var pushes = 0;
+            game.Pushed += _ => pushes++;
+            var washed = 0f;
+            for (var i = 0; i < 15; i++) // 0.25 s
+                washed += game.Tick(Frame, Vector2.Zero);
+            Assert.That(washed, Is.EqualTo(0f), "not held long enough yet");
+
+            for (var i = 0; i < 6; i++) // past 0.3 s
+                washed += game.Tick(Frame, Vector2.Zero);
+            Assert.That(washed, Is.EqualTo(0.25f).Within(1e-5f), "one of four parts");
+            Assert.That(pushes, Is.EqualTo(1));
+            for (var i = 0; i < 30; i++)
+                game.Tick(Frame, Vector2.Zero);
+            Assert.That(game.Point.Length(), Is.GreaterThan(game.GoodRadius), "kicked out of the centre");
+        }
+
+        [Test]
+        public void PassingThroughTheCentreDoesntCount()
+        {
+            var settings = StillSettings;
+            settings.StartRadius = 0.9f;
+            settings.Damping = 0f;
+            var game = new WashGame(settings, 3);
+            var washed = 0f;
+            // Fling it straight across: it crosses the centre in well under the hold time.
+            var across = -Vector2.Normalize(game.Point);
+            for (var t = 0f; t < 1f; t += Frame)
+                washed += game.Tick(Frame, across);
+            Assert.That(washed, Is.EqualTo(0f));
+        }
+
+        [Test]
+        public void APlateTakesTheCentringPlusThreeCorrectionsFromEverySide()
+        {
+            // An ideal hand pulls the point straight back to the centre.
+            var game = new WashGame(StillSettings, 7);
+            var directions = new List<Vector2>();
+            game.Pushed += directions.Add;
+            var washed = 0f;
+            for (var t = 0f; t < 20f && washed < 1f - 1e-4f; t += Frame)
+                washed += game.Tick(Frame, Clamp(-game.Point * 4f));
+
+            Assert.That(washed, Is.EqualTo(1f).Within(1e-4f), "a whole plate");
+            Assert.That(game.StagesDone, Is.EqualTo(4), "first centring and three corrections");
+            Assert.That(directions.Count, Is.EqualTo(3), "no push after the last one");
+            // Evenly spread with a little randomness: each push at least 80° from the others.
+            for (var i = 0; i < directions.Count; i++)
+            for (var j = i + 1; j < directions.Count; j++)
+            {
+                var angle = Math.Acos(Math.Clamp(Vector2.Dot(directions[i], directions[j]), -1f, 1f)) * 180.0 / Math.PI;
+                Assert.That(angle, Is.GreaterThan(80.0), $"pushes {i} and {j}");
+            }
+        }
+
+        [Test]
+        public void LeavingTheCentreStartsTheHoldAgain()
+        {
+            var game = new WashGame(StillSettings, 1);
+            for (var t = 0f; t < 0.2f; t += Frame)
+                game.Tick(Frame, Vector2.Zero);
+            Assert.That(game.HoldFraction, Is.GreaterThan(0.5f));
+            for (var i = 0; i < 40; i++)
+                game.Tick(Frame, new Vector2(1f, 0f));
+            Assert.That(game.HoldFraction, Is.EqualTo(0f));
         }
 
         [Test]

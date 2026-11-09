@@ -50,6 +50,8 @@ namespace Game.Simulation.Items
             Received?.Invoke(Washing);
         }
 
+        private const float FinishTolerance = 1e-4f;
+
         /// <summary>Adds to the plate's progress.</summary>
         /// <returns>The plate, clean and out of the sink, if this finished it; otherwise null.</returns>
         public Plate Wash(float amount)
@@ -58,7 +60,8 @@ namespace Game.Simulation.Items
                 return null;
 
             WashProgress += amount;
-            if (WashProgress < 1f)
+            // A hair under 1 counts: equal shares (a third, three times) can sum just short of it.
+            if (WashProgress < 1f - FinishTolerance)
                 return null;
 
             WashProgress = 0f;

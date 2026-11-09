@@ -8,7 +8,7 @@ namespace Game.Presentation
     /// <summary>
     /// The washing game drawn on the sink's water instead of above the chef (decision 2026-11-09:
     /// the station is the interface). A flat quad just over the water carries the whole game in
-    /// <c>Game/FX/WashRing</c>: the suds patch to aim for, the point the stick balances, and a
+    /// <c>Game/FX/WashRing</c>: the centre to hold the soap in (its arc fills while held), the point the stick balances, and a
     /// chunky rim in the washer's colour that lights up segment by segment with the plate's progress.
     /// The plate in the basin tips towards the point, so the balancing reads as the plate itself
     /// wobbling (the user's idea); the ring pulses while washing well and pops when a plate's done.
@@ -25,6 +25,7 @@ namespace Game.Presentation
         private static readonly int FadeId = Shader.PropertyToID("_Fade");
         private static readonly int RimColorId = Shader.PropertyToID("_RimColor");
         private static readonly int FlashId = Shader.PropertyToID("_Flash");
+        private static readonly int HoldId = Shader.PropertyToID("_Hold");
 
         private const string PlatePrefix = "DirtyPlate";
 
@@ -118,6 +119,7 @@ namespace Game.Presentation
                 _block.SetFloat(RateId, game.Rate);
                 _block.SetFloat(GoodRadiusId, game.GoodRadius);
                 _block.SetFloat(OkRadiusId, game.OkRadius);
+                _block.SetFloat(HoldId, game.HoldFraction);
             }
             TiltPlate(washing, dt);
 
@@ -197,6 +199,7 @@ namespace Game.Presentation
             _block.SetColor(RimColorId, rim);
             _block.SetFloat(FadeId, 1f);
             _block.SetFloat(FlashId, 0f);
+            _block.SetFloat(HoldId, rate >= 1f ? 0.6f : 0f);
             _ring.SetPropertyBlock(_block);
             _ring.enabled = true;
             if (_plate != null)

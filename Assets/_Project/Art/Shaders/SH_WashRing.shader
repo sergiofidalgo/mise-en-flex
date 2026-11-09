@@ -1,11 +1,12 @@
 // The washing game drawn on the sink's water (decision 2026-11-09: the station is the interface).
 // One flat quad, everything drawn from its UVs so it stays crisp at any size:
 //  - a faint dark disc that separates the game from the water,
-//  - a soap-suds patch in the middle where washing goes at full speed (_GoodRadius),
-//    and a dashed circle where it stops (_OkRadius),
-//  - a rim in the washing player's colour that fills clockwise with the plate's progress,
-//  - the point the player balances: a soap bar that glows with suds when it's washing well
-//    and gets a broken red ring when it isn't (shape as well as colour, for colour-blind players).
+//  - the centre to hold the soap in (_GoodRadius): a pale disc with a white ring whose arc
+//    fills while it's held (_Hold),
+//  - a chunky segmented rim in the washing player's colour that lights up with the plate's progress,
+//  - the point the player balances: a soap bar with a suds halo in the centre and a broken red
+//    ring away from it (shape as well as colour, for colour-blind players), and chevrons from it
+//    towards the centre while it's off.
 // The view turns the quad so UV up is screen up, which keeps the stick and the drawing in step
 // whatever way the sink faces. Depth-tested like any object: a chef in front hides it.
 Shader "Game/FX/WashRing"
@@ -27,7 +28,9 @@ Shader "Game/FX/WashRing"
         _Segments("Rim segments", Range(4, 32)) = 16
         _PointRadius("Point radius", Range(0.02, 0.3)) = 0.2
         _Flash("Plate-done flash", Range(0, 1)) = 0
-        _InkColor("Ink (outlines)", Color) = (0.227, 0.141, 0.078, 1)
+        _Hold("Held in the centre", Range(0, 1)) = 0
+        _InkColor("Outline colour", Color) = (0.227, 0.141, 0.078, 1)
+        _OutlineStrength("Outline strength (width and opacity)", Range(0, 1)) = 1
     }
 
     SubShader
@@ -62,8 +65,10 @@ Shader "Game/FX/WashRing"
                 float _RimWidth;
                 float _PointRadius;
                 half4 _InkColor;
+                float _OutlineStrength;
                 float _Segments;
                 float _Flash;
+                float _Hold;
             CBUFFER_END
 
             struct Attributes
@@ -122,35 +127,19 @@ Shader "Game/FX/WashRing"
                 // Backing: a soft dark disc out to the rim, so the game reads on bright water.
                 Over(acc, half3(0.05, 0.07, 0.10), 0.4 * Disc(r, scale));
 
-                // Suds patch: a cluster of wobbling bubbles filling the full-speed zone, white with
-                // an Ink silhouette so it reads on the water and on the white plate beneath it.
-                float2 q = p / scale;
-                float suds = 0.0;
-                float sudsEdge = 0.0;
-                [unroll] for (int i = 0; i < 7; i++)
-                {
-                    float a = i * 2.39996 + t * 0.6;             // golden-angle spread, slowly turning
-                    float rr = _GoodRadius * (i == 0 ? 0.0 : 0.62);
-                    float2 c = float2(sin(a), cos(a)) * rr;
-                    float br = _GoodRadius * (i == 0 ? 0.55 : 0.42) * (1.0 + 0.06 * sin(t * 3.0 + i));
-                    float d = length(q - c);
-                    suds = max(suds, Disc(d, br));
-                    sudsEdge = max(sudsEdge, Disc(d, br + 0.06));
-                }
-                Over(acc, _InkColor.rgb, sudsEdge);
-                Over(acc, _SudsColor.rgb, 0.9 * suds);
-                // A glint on each side of the patch, so it reads as soap rather than a white blob.
-                Over(acc, _GoodColor.rgb, 0.35 * suds * smoothstep(0.0, 1.0, -q.y / max(_GoodRadius, 1e-3)));
-
-                // Where washing stops: a dashed Ink circle.
-                float dashes = step(0.45, frac(turn * 16.0));
-                Over(acc, _InkColor.rgb, 0.85 * dashes * Band(r - _OkRadius * scale, 0.02));
+                // Centre target: a pale disc, a white ring at its edge, and an arc in the good colour
+                // that fills clockwise while the soap is held there (_Hold), so "stay here" reads.
+                float gr = _GoodRadius * scale;
+                Over(acc, _SudsColor.rgb, 0.14 * Disc(r, gr));
+                Over(acc, _InkColor.rgb, _OutlineStrength * Band(r - gr, 0.02 + 0.014 * _OutlineStrength));
+                Over(acc, _SudsColor.rgb, 0.9 * Band(r - gr, 0.018));
+                Over(acc, _GoodColor.rgb, Band(r - gr, 0.026) * step(turn, _Hold) * step(1e-3, _Hold));
 
                 // Rim, arcade style: a thick Ink-outlined track cut into chunky segments that light
                 // up in the washer's colour as the plate's progress reaches them. Lit segments are
                 // two-tone (lighter on their outer half) so they read as raised, toy-like blocks.
                 float rimHalf = _RimWidth * 0.5;
-                Over(acc, _InkColor.rgb, Band(r - scale, rimHalf + 0.035));
+                Over(acc, _InkColor.rgb, saturate(0.4 + _OutlineStrength) * Band(r - scale, rimHalf + 0.035 * _OutlineStrength));
                 float segment = frac(turn * _Segments);
                 float segAa = fwidth(turn * _Segments);
                 float gap = 0.09; // share of each segment left as a gap
@@ -187,7 +176,7 @@ Shader "Game/FX/WashRing"
                         float within = 1.0 - smoothstep(half_, half_ + 0.01, abs(b));
                         float ends = smoothstep(0.0, 0.2, s) * (1.0 - smoothstep(0.75, 1.0, s));
                         float alpha = show * within * ends;
-                        Over(acc, _InkColor.rgb, alpha * Band(arm, 0.032));
+                        Over(acc, _InkColor.rgb, alpha * _OutlineStrength * Band(arm, 0.016 + 0.016 * _OutlineStrength));
                         Over(acc, half3(1, 1, 1), alpha * Band(arm, 0.016));
                     }
                 }
@@ -204,7 +193,7 @@ Shader "Game/FX/WashRing"
                 float spin = frac(atan2(dpp.x, dpp.y) / (2.0 * PI) + t * 0.5);
                 float broken = Band(dp - _PointRadius * 1.65, 0.022) * step(0.5, frac(spin * 4.0)) * (1.0 - smoothstep(0.05, 0.3, _Rate));
                 Over(acc, _BadColor.rgb, broken);
-                Over(acc, _InkColor.rgb, Disc(dp, _PointRadius + 0.06));
+                Over(acc, _InkColor.rgb, _OutlineStrength * Disc(dp, _PointRadius + 0.035 + 0.025 * _OutlineStrength));
                 Over(acc, half3(1, 1, 1), Disc(dp, _PointRadius + 0.035));
                 Over(acc, pointColor, Disc(dp, _PointRadius));
                 // A shine at its top left, so it reads as a glossy soap bar rather than a dot.

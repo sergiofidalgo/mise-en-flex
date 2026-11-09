@@ -4,6 +4,20 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-09 — Washing: hold the centre, then correct three pushes
+
+**User's call:** a plate is washed by bringing the soap to the centre and steadying it there; the game then pushes it off in a random direction to be corrected, three times, so every plate gets tilted every way. The ring keeps its size with a soft outline and thicker segments, and the suds cloud in the middle goes.
+
+- **The rule (`WashGame`):** hold the point in the centre (`GoodRadius`, 0.25 of the circle) for **0.3 s**; flicking through doesn't count, and leaving starts the hold again. Each hold scrubs an equal share of the plate. After the first and each following hold, the point is kicked off at **3.5** circle radii a second, **3 times** per plate, so a plate takes 4 holds. The kicks are spaced evenly round the circle from a random start, each within **20°** of its spot, so they always come from three different sides.
+- **The drift is gentler** (proposed, since the pushes now bring the challenge): instability 3.2 (was 4.5), nudge 1.0 (was 1.6). Doing nothing still never cleans a plate.
+- **Measured with simulated hands, not real ones:** a steady hand with a 0.15 s reaction takes about 5 s a plate (it was under 4 s); slamming the stick about never holds the centre long enough.
+- **The look:** the centre is a pale disc with a white ring, and an arc in the good colour fills round it while the soap is held, so "stay here" reads. Segments are thicker (rim width 0.19, was 0.07). The outline is a soft deep blue at 40% strength instead of Ink. The rim's segments light up a quarter at a time.
+- **Not yet:** stopping mid-plate and starting again keeps the sink's progress but restarts the pushes, so that plate may finish with fewer than three. Tunable in `TuningConfig` (Washing by hand).
+
+**Reason:** the user wanted washing to feel like steadying a plate that keeps getting knocked, and to know each plate was turned every way.
+
+---
+
 ## 2026-11-09 — The station is the interface; washing moves onto the sink's water
 
 **User's call:** minigames are drawn on their appliance, not over the chef, and every mechanic and its interface must read at any of the 8 rotations the layout editor allows, with the chef on any side. The sink goes first. After the first captures: bolder and more arcade-like, the plate tilting with the point, and a cue that the stick moves it.

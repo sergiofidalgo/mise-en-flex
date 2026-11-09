@@ -83,17 +83,23 @@ namespace Game.Data
         [Tooltip("Acceleration at full stick: high, so small movements shift the point a lot.")]
         [SerializeField, Min(0f)] private float _washStick = 10f;
         [Tooltip("How hard the point runs away from the centre, per unit of distance.")]
-        [SerializeField, Min(0f)] private float _washInstability = 4.5f;
+        [SerializeField, Min(0f)] private float _washInstability = 3.2f;
         [Tooltip("How fast the point's speed dies away, per second. Higher means less inertia.")]
         [SerializeField, Min(0f)] private float _washDamping = 4.2f;
         [Tooltip("Size of the random nudge. Keep below instability × ok radius, or doing nothing could clean a plate.")]
-        [SerializeField, Min(0f)] private float _washNudge = 1.6f;
-        [Tooltip("Fraction of the circle within which washing goes at full speed.")]
+        [SerializeField, Min(0f)] private float _washNudge = 1.0f;
+        [Tooltip("Fraction of the circle: the centre the point must be held in.")]
         [SerializeField, Range(0f, 1f)] private float _washGoodRadius = 0.25f;
-        [Tooltip("Fraction of the circle beyond which nothing gets clean.")]
+        [Tooltip("Fraction of the circle: how far out the point still shows as close (its colour).")]
         [SerializeField, Range(0f, 1f)] private float _washOkRadius = 0.55f;
-        [Tooltip("Real seconds of full-speed washing per plate.")]
-        [SerializeField, Min(0.1f)] private float _washSecondsPerPlate = 2.5f;
+        [Tooltip("Seconds the point must stay in the centre for it to count; passing through doesn't.")]
+        [SerializeField, Min(0f)] private float _washHoldSeconds = 0.3f;
+        [Tooltip("Pushes to correct per plate after the first centring (decision 2026-11-09: 3).")]
+        [SerializeField, Min(0)] private int _washCorrections = 3;
+        [Tooltip("How hard each push kicks the point away (circle radii per second).")]
+        [SerializeField, Min(0f)] private float _washPushSpeed = 3.5f;
+        [Tooltip("Random spread, degrees either way, around pushes spaced evenly round the circle.")]
+        [SerializeField, Range(0f, 60f)] private float _washPushSpread = 20f;
 
         [Header("Flip gauge")]
         [Tooltip("Browning of the side facing down where the gauge's green band starts (around 1 is a good crust).")]
@@ -115,7 +121,10 @@ namespace Game.Data
             Nudge = _washNudge,
             GoodRadius = _washGoodRadius,
             OkRadius = _washOkRadius,
-            SecondsPerPlate = _washSecondsPerPlate,
+            HoldSeconds = _washHoldSeconds,
+            Corrections = _washCorrections,
+            PushSpeed = _washPushSpeed,
+            PushSpreadDegrees = _washPushSpread,
         };
 
         public FlipGaugeSettings FlipGauge => new FlipGaugeSettings { GoodFrom = _flipGoodFrom, GoodTo = _flipGoodTo, WarnFrom = _burnWarningFrom };
