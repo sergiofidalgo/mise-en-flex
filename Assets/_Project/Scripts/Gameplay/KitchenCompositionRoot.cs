@@ -65,6 +65,9 @@ namespace Game.Gameplay
 
             if (save != null)
                 CampaignSnapshot.RestoreContents(save, placed, Services);
+            // Reviews saved as English sentences are traced to their templates once, to show in any
+            // language; the next save keeps what was found (decision 2026-11-09).
+            ReviewTextRecovery.Recover(Services.ReviewHistory, _serviceConfig.StyleVoice(), _serviceConfig.GenericVoice());
             // Who might come back today, now the history is loaded.
             Services.Service.Settings.Reviews.Guests?.Rebuild(Services.ReviewHistory, days.Day);
         }

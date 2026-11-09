@@ -204,6 +204,19 @@ namespace Game.Simulation.Saving
         /// <summary>The owner's reply as posted; empty for a reply from before replies were written per review.</summary>
         public string ReplyText = "";
 
+        /// <summary>
+        /// The templates the review's line was written from, in order (decision 2026-11-09): with
+        /// <see cref="Facts"/>, the line is written again in the player's language when shown. Empty
+        /// for lines that couldn't be traced, which show <see cref="Line"/> as saved.
+        /// </summary>
+        public List<string> LineParts = new List<string>();
+
+        /// <summary>The templates the owner's reply was written from: its greeting, heart and sign-off.</summary>
+        public List<string> ReplyParts = new List<string>();
+
+        /// <summary>The facts the review and reply were filled with, in English.</summary>
+        public Service.ReviewFacts Facts = new Service.ReviewFacts();
+
         /// <summary>The owner's mood when they replied (a <see cref="Service.OwnerMood"/>): 0, fresh, for older saves.</summary>
         public int ReplyMood;
 

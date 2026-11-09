@@ -95,7 +95,11 @@ namespace Game.Simulation.Service
         public float[] PersonaWeights { get; set; } = new float[0];
     }
 
-    /// <summary>The facts of one visit that lines can mention. Empty ones rule out the lines that need them.</summary>
+    /// <summary>
+    /// The facts of one visit that lines can mention. Empty ones rule out the lines that need them.
+    /// Saved with each review, in English (dish and doneness words translate when shown).
+    /// </summary>
+    [Serializable]
     public sealed class ReviewFacts
     {
         public string Main = "";
@@ -108,6 +112,33 @@ namespace Game.Simulation.Service
 
         /// <summary>Minutes waited, or 0 when not worth mentioning.</summary>
         public int WaitMinutes;
+    }
+
+    /// <summary>
+    /// What was said: the text, and the templates it was written from (decision 2026-11-09). Saves
+    /// keep the templates and the facts, so the sentence can be written again in any language.
+    /// </summary>
+    public sealed class Said
+    {
+        public static readonly Said Nothing = new Said(new List<string>(), "");
+
+        private Said(List<string> templates, string text)
+        {
+            Templates = templates;
+            Text = text;
+        }
+
+        /// <summary>The templates, each a sentence (or a hashtag), in the order they're joined.</summary>
+        public IReadOnlyList<string> Templates { get; }
+
+        /// <summary>The templates filled in and joined: the English sentence.</summary>
+        public string Text { get; }
+
+        public static Said Of(IEnumerable<string> templates, ReviewFacts facts)
+        {
+            var list = templates.Where(t => !string.IsNullOrEmpty(t)).ToList();
+            return new Said(list, string.Join(" ", list.Select(t => ReviewVoices.Fill(t, facts))));
+        }
     }
 
     /// <summary>
@@ -218,31 +249,42 @@ namespace Game.Simulation.Service
         }
 
         /// <summary>A review line, or empty when neither voice has one that fits.</summary>
-        public static string Line(ReviewTopic topic, Persona persona, ReviewFacts facts, Voice style, Voice generic, LineMemory memory, Random random)
+        public static string Line(ReviewTopic topic, Persona persona, ReviewFacts facts, Voice style, Voice generic, LineMemory memory, Random random) =>
+            SayLine(topic, persona, facts, style, generic, memory, random).Text;
+
+        /// <summary>A review line and the template(s) it came from: the line, and an influencer's hashtag.</summary>
+        public static Said SayLine(ReviewTopic topic, Persona persona, ReviewFacts facts, Voice style, Voice generic, LineMemory memory, Random random)
         {
             var candidates = LinesFor(style, topic, persona).Concat(LinesFor(generic, topic, persona));
-            var line = Pick(candidates, facts, memory, random);
-            if (line.Length > 0 && persona == Persona.Influencer)
+            var template = PickTemplate(candidates, facts, memory, random);
+            if (template.Length == 0)
+                return Said.Nothing;
+            var parts = new List<string> { template };
+            if (persona == Persona.Influencer)
             {
                 // Only a hashtag that still fits on the card's one line.
+                var length = Fill(template, facts).Length;
                 var tags = ((style?.Hashtags.Count > 0 ? style.Hashtags : generic?.Hashtags) ?? new List<string>())
-                    .Where(t => line.Length + 1 + t.Length <= MaxReviewLength).ToList();
+                    .Where(t => length + 1 + t.Length <= MaxReviewLength).ToList();
                 if (tags.Count > 0)
-                    line += " " + tags[random.Next(tags.Count)];
+                    parts.Add(tags[random.Next(tags.Count)]);
             }
-            return line;
+            return Said.Of(parts, facts);
         }
 
         /// <summary>
         /// A returning guest's line, which remembers the last visit: how they were treated, and
         /// whether tonight was better (praise or decent) or not. Empty when neither voice has one.
         /// </summary>
-        public static string ReturnLine(GuestMemory memory, ReviewTopic topic, Persona persona, ReviewFacts facts, Voice style, Voice generic, LineMemory used, Random random)
+        public static string ReturnLine(GuestMemory memory, ReviewTopic topic, Persona persona, ReviewFacts facts, Voice style, Voice generic, LineMemory used, Random random) =>
+            SayReturn(memory, topic, persona, facts, style, generic, used, random).Text;
+
+        public static Said SayReturn(GuestMemory memory, ReviewTopic topic, Persona persona, ReviewFacts facts, Voice style, Voice generic, LineMemory used, Random random)
         {
             var key = (memory, !ReviewReplies.IsComplaint(topic));
             IEnumerable<VoiceLine> Of(Voice voice) =>
                 voice != null && voice.ReturnLines.TryGetValue(key, out var lines) ? lines.Where(l => l.Suits(persona)) : Enumerable.Empty<VoiceLine>();
-            return Pick(Of(style).Concat(Of(generic)), facts, used, random);
+            return Said.Of(new[] { PickTemplate(Of(style).Concat(Of(generic)), facts, used, random) }, facts);
         }
 
         /// <summary>
@@ -250,14 +292,17 @@ namespace Game.Simulation.Service
         /// review (user's call, 2026-11-09): its words show what kind of reply it is.
         /// </summary>
         public static string Reply(ReviewReply reply, ReviewTopic topic, ReviewFacts facts, Voice style, Voice generic, LineMemory memory, Random random) =>
-            Reply(reply, topic, facts, OwnerMood.Fresh, style, generic, memory, random);
+            SayReply(reply, topic, facts, OwnerMood.Fresh, style, generic, memory, random).Text;
+
+        public static string Reply(ReviewReply reply, ReviewTopic topic, ReviewFacts facts, OwnerMood mood, Voice style, Voice generic, LineMemory memory, Random random) =>
+            SayReply(reply, topic, facts, mood, style, generic, memory, random).Text;
 
         /// <summary>
         /// A reply of varying length (user's call, 2026-11-09: short at times, fuller at others):
-        /// a one-line reply, or an opener, a body and a closer put together, up to two lines. The
-        /// owner's mood colours it: tired and fed-up owners reach for their own lines.
+        /// a one-line reply, or an opener, a body and a closer put together. The owner's mood
+        /// colours it: tired and fed-up owners reach for their own lines.
         /// </summary>
-        public static string Reply(ReviewReply reply, ReviewTopic topic, ReviewFacts facts, OwnerMood mood, Voice style, Voice generic, LineMemory memory, Random random)
+        public static Said SayReply(ReviewReply reply, ReviewTopic topic, ReviewFacts facts, OwnerMood mood, Voice style, Voice generic, LineMemory memory, Random random)
         {
             var group = GroupOf(topic);
             // How long: often a one-liner, usually two parts, rarely all three (user's call,
@@ -276,10 +321,10 @@ namespace Game.Simulation.Service
                 {
                     var whole = Whole(reply, group, facts, style, generic, memory, random);
                     if (whole.Length > 0)
-                        return whole;
+                        return Said.Of(new[] { whole }, facts);
                 }
                 var alone = Part(reply, group, ReplyPart.Body, mood, facts, style, generic, memory, random);
-                return alone.Length > 0 ? alone : Whole(reply, group, facts, style, generic, memory, random);
+                return Said.Of(new[] { alone.Length > 0 ? alone : Whole(reply, group, facts, style, generic, memory, random) }, facts);
             }
 
             var full = shape >= 1.0 - longShare;
@@ -288,16 +333,16 @@ namespace Game.Simulation.Service
             var opener = withOpener ? Part(reply, group, ReplyPart.Opener, mood, facts, style, generic, memory, random) : "";
             var body = Part(reply, group, ReplyPart.Body, mood, facts, style, generic, memory, random);
             if (body.Length == 0)
-                return Whole(reply, group, facts, style, generic, memory, random);
+                return Said.Of(new[] { Whole(reply, group, facts, style, generic, memory, random) }, facts);
             var closer = full || !withOpener ? Part(reply, group, ReplyPart.Closer, mood, facts, style, generic, memory, random) : "";
 
             // Too long: the greeting goes first (the reply says more without it), then the sign-off.
-            var text = Join(opener, body, closer);
-            if (text.Length > MaxComposedReplyLength)
-                text = Join("", body, closer);
-            if (text.Length > MaxComposedReplyLength)
-                text = body;
-            return text;
+            var said = Said.Of(new[] { opener, body, closer }, facts);
+            if (said.Text.Length > MaxComposedReplyLength)
+                said = Said.Of(new[] { body, closer }, facts);
+            if (said.Text.Length > MaxComposedReplyLength)
+                said = Said.Of(new[] { body }, facts);
+            return said;
         }
 
         /// <summary>
@@ -310,19 +355,18 @@ namespace Game.Simulation.Service
             return strain >= fedUpAfter ? OwnerMood.FedUp : strain >= tiredAfter ? OwnerMood.Tired : OwnerMood.Fresh;
         }
 
-        private static string Join(params string[] parts) => string.Join(" ", parts.Where(p => !string.IsNullOrEmpty(p)));
-
+        // A one-line reply's template.
         private static string Whole(ReviewReply reply, TopicGroup group, ReviewFacts facts, Voice style, Voice generic, LineMemory memory, Random random)
         {
             var owners = RepliesFor(style, (reply, group)).Concat(RepliesFor(generic, (reply, group)));
             // A doneness complaint is also about the food, so the food replies answer it too.
             if (group == TopicGroup.Doneness)
                 owners = owners.Concat(RepliesFor(style, (reply, TopicGroup.Food))).Concat(RepliesFor(generic, (reply, TopicGroup.Food)));
-            return Pick(owners.Select(t => new VoiceLine(t)), facts, memory, random);
+            return PickTemplate(owners.Select(t => new VoiceLine(t)), facts, memory, random);
         }
 
-        // One part, from both voices. A tired or fed-up owner reaches for that mood's lines two
-        // times in three when there are any; otherwise the lines for any mood.
+        // One part's template, from both voices. A tired or fed-up owner reaches for that mood's
+        // lines two times in three when there are any; otherwise the lines for any mood.
         private static string Part(ReviewReply reply, TopicGroup group, ReplyPart part, OwnerMood mood, ReviewFacts facts, Voice style, Voice generic, LineMemory memory, Random random)
         {
             IEnumerable<MoodLine> Of(Voice voice, TopicGroup about) =>
@@ -334,8 +378,8 @@ namespace Game.Simulation.Service
             var moody = list.Where(l => l.Only == mood && mood != OwnerMood.Fresh).ToList();
             var plain = list.Where(l => l.Only == null || l.Only == OwnerMood.Fresh && mood == OwnerMood.Fresh).ToList();
             var chosen = moody.Count > 0 && (plain.Count == 0 || random.NextDouble() < 0.67) ? moody : plain;
-            var picked = Pick(chosen.Select(l => new VoiceLine(l.Text)), facts, memory, random);
-            return picked.Length > 0 || chosen == plain ? picked : Pick(plain.Select(l => new VoiceLine(l.Text)), facts, memory, random);
+            var picked = PickTemplate(chosen.Select(l => new VoiceLine(l.Text)), facts, memory, random);
+            return picked.Length > 0 || chosen == plain ? picked : PickTemplate(plain.Select(l => new VoiceLine(l.Text)), facts, memory, random);
         }
 
         /// <summary>Fills in the facts: {main}, {side}, {ordered}, {got}, {name}, {restaurant}, {left} and {wait}.</summary>
@@ -379,7 +423,8 @@ namespace Game.Simulation.Service
 
         // Lines not used lately first, at random among them; if every one was used, the one used longest ago.
         // Lines that mention a fact are favoured twice over, because they're the ones that feel on-point.
-        private static string Pick(IEnumerable<VoiceLine> candidates, ReviewFacts facts, LineMemory memory, Random random)
+        // Returns the template, unfilled: what's saved, so it can be written in any language later.
+        private static string PickTemplate(IEnumerable<VoiceLine> candidates, ReviewFacts facts, LineMemory memory, Random random)
         {
             var usable = candidates.Where(c => !string.IsNullOrEmpty(c.Text) && CanFill(c.Text, facts)).Select(c => c.Text).Distinct().ToList();
             if (usable.Count == 0)
@@ -396,7 +441,7 @@ namespace Game.Simulation.Service
                 chosen = usable.OrderByDescending(t => memory.Age(t)).First();
             }
             memory?.Use(chosen);
-            return Fill(chosen, facts);
+            return chosen;
         }
 
         private static bool Specific(string text) => Placeholders.Any(text.Contains);

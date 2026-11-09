@@ -96,6 +96,12 @@ namespace Game.Presentation.Menu
         {
             _saves = SaveSlots.ReadAll();
             _lastPlayed = SaveSlots.LastPlayed(_saves);
+            // Reviews saved as English sentences are traced to their templates, to show in any language.
+            foreach (var save in _saves)
+            {
+                if (save != null)
+                    Game.Simulation.Service.ReviewTextRecovery.Recover(save.Reviews, _service.StyleVoice(), _service.GenericVoice());
+            }
             _dirty = true;
         }
 

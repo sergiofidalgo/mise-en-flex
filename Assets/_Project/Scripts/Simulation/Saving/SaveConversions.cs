@@ -1,3 +1,4 @@
+using System.Linq;
 using Game.Simulation.Service;
 using Game.Simulation.Staff;
 
@@ -48,6 +49,8 @@ namespace Game.Simulation.Saving
                 Tip = customer?.Bill?.Tip ?? 0f,
                 Penalty = customer?.WalkOutPenalty ?? 0f,
                 Persona = (int)review.Persona,
+                LineParts = review.Templates.ToList(),
+                Facts = review.Facts,
                 Visit = review.Returning != null ? review.Returning.Visits + 1 : 1,
             };
         }

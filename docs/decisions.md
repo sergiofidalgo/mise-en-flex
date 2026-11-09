@@ -4,6 +4,22 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-09 — Reviews are written when shown, so a language switch rewrites them all
+
+**User's call:** changing language mid-campaign must localise everything, old reviews included, automatically. This is step 1 of the plan (`ideas.md`, "Localising reviews and replies").
+- **Saves keep what was said, not the sentence.** Each review saves the templates its line was written from (`LineParts`: the line, and an influencer's hashtag) and the templates of the owner's reply (`ReplyParts`: greeting, heart, sign-off), plus the facts that filled them (`Facts`: dish, side, doneness ordered and served, wait, time left, restaurant). The guest's name comes from their name slot.
+- **The key is the English template itself,** the way gettext works. Translators map English templates to their language (`Translations`, empty until step 3). Rewording an English line never breaks an old save, which keeps the old template and still reads in English.
+- **`ReviewText` writes each line and reply when it's shown,** in `Locale.Language`. Templates, dish and doneness words come from that language's table, and the guest's name from their slot. Anything without a translation shows in English. The dashboard (quotes, replies, orders, the Menu tab's dishes), the main menu's best review and the in-service review popup all use it.
+- **Existing saves upgrade themselves.** `ReviewTextRecovery` turns each template into a pattern, finds the one a saved English sentence came from, and recovers its facts from the words: "31 minutes, no steak. Left at 20:05. #medrare" gives back the template, 31, 20:05, steak and the hashtag. Replies built from parts are traced part by part.
+  - It runs when the kitchen loads a campaign and when the menu reads the slots. The next save keeps what it found, and reviews already traced are left alone.
+  - Lines from before the voices (the first fixed replies) can't be traced and show as saved.
+  - `ReviewTextTests` checks every template in the grill and generic voices traces back to the same sentence.
+- **The English and the old sentence are still saved** (`Line`, `ReplyText`) as a fallback, and for anything reading saves directly.
+
+**Not yet:** UI strings (labels, hints, the Menu warning, "Guests mention" topics) are step 2, with Unity's Localization package and a language setting. The voices' translations are step 3.
+
+---
+
 ## 2026-11-09 — Currency follows the language
 
 **User's call:** dollars in English, and currencies follow the language.

@@ -73,7 +73,8 @@ namespace Game.Presentation.Hud
             var headline = review.Customer.Bill is Bill bill
                 ? $"{stars}  {Money(bill.Payment)} + {Money(bill.Tip)} tip"
                 : $"{stars}  {HudStyle.Colored($"walked out! {Money(-review.Customer.WalkOutPenalty)}", _style.RatingColor(0f))}";
-            return string.IsNullOrEmpty(review.Line) ? headline : $"{headline}\n\"{review.Line}\"";
+            var line = Game.Data.ReviewText.Line(review);
+            return string.IsNullOrEmpty(line) ? headline : $"{headline}\n\"{line}\"";
         }
 
         private void LateUpdate()

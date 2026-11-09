@@ -60,17 +60,30 @@ namespace Game.Simulation.Service
         /// <param name="name">The guest's first name as the player sees it (their language's); their saved name if null.</param>
         public static void WriteReply(ReviewRecord review, ReviewReply reply, Voice style, Voice generic, LineMemory memory, string restaurant, OwnerMood mood = OwnerMood.Fresh, string name = null)
         {
+            var facts = FactsFor(review, restaurant);
+            facts.Name = name ?? (review.Guest ?? "").Split(' ')[0];
+            var seed = unchecked(review.Day * 7919 + StableHash(review.Guest) * 31 + (int)reply);
+            var said = ReviewVoices.SayReply(reply, (ReviewTopic)review.Topic, facts, mood, style, generic, memory, new System.Random(seed));
+            review.ReplyText = said.Text;
+            review.ReplyParts = said.Templates.ToList();
+            review.ReplyMood = (int)mood;
+        }
+
+        // The review's own facts when it has them; for older reviews, what its order says.
+        private static ReviewFacts FactsFor(ReviewRecord review, string restaurant)
+        {
+            var saved = review.Facts;
             var order = (review.Order ?? "").Split(',');
-            var facts = new ReviewFacts
+            return new ReviewFacts
             {
-                Main = order[0].Trim(),
-                Ordered = order.Length > 1 ? order[1].Trim() : "",
-                Name = name ?? (review.Guest ?? "").Split(' ')[0],
+                Main = !string.IsNullOrEmpty(saved?.Main) ? saved.Main : order[0].Trim(),
+                Side = saved?.Side ?? "",
+                Ordered = !string.IsNullOrEmpty(saved?.Ordered) ? saved.Ordered : order.Length > 1 ? order[1].Trim() : "",
+                Got = saved?.Got ?? "",
+                LeftAt = saved?.LeftAt ?? "",
+                WaitMinutes = saved?.WaitMinutes ?? 0,
                 Restaurant = restaurant ?? "",
             };
-            var seed = unchecked(review.Day * 7919 + StableHash(review.Guest) * 31 + (int)reply);
-            review.ReplyText = ReviewVoices.Reply(reply, (ReviewTopic)review.Topic, facts, mood, style, generic, memory, new System.Random(seed));
-            review.ReplyMood = (int)mood;
         }
 
         // string.GetHashCode differs between runs; this doesn't.

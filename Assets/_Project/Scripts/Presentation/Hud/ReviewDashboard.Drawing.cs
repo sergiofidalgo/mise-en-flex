@@ -446,8 +446,12 @@ namespace Game.Presentation.Hud
         }
 
         // Replies from before replies were written per review fall back to the fixed lines.
-        private string ShownReply(ReviewRecord review) =>
-            string.IsNullOrEmpty(review.ReplyText) ? ReplyText(review) : review.ReplyText;
+        // Written in the player's language from its templates (decision 2026-11-09).
+        private string ShownReply(ReviewRecord review)
+        {
+            var written = Game.Data.ReviewText.Reply(review);
+            return string.IsNullOrEmpty(written) ? ReplyText(review) : written;
+        }
 
         // One review card at y; returns its bottom.
         private float ReviewCard(Transform parent, ReviewRecord review, float y, bool selected, bool overview)
@@ -461,7 +465,7 @@ namespace Game.Presentation.Hud
             var nameBase = y + (overview ? 38f : 34f);
             // In the player's language: the guest's name slot looked up there (decision 2026-11-09).
             var name = Label(Bold, parent, Game.Data.GuestNames.Display(review), 20f, _ink, 857f, nameBase, 300f);
-            var meta = (string.IsNullOrEmpty(review.Order) ? "" : $"· {review.Order} ") + $"· {ClockAt(review.ArrivedAt)}";
+            var meta = (string.IsNullOrEmpty(review.Order) ? "" : $"· {Game.Data.ReviewText.Order(review.Order)} ") + $"· {ClockAt(review.ArrivedAt)}";
             if (review.Day != Services.Days.Day)
                 meta += $" · day {review.Day}";
             // A guest who's posted before (decision 2026-11-09).
@@ -470,7 +474,8 @@ namespace Game.Presentation.Hud
             else if (review.Visit > 2)
                 meta += $" · visit {review.Visit}";
             Label(Medium, parent, meta, 19f, _muted, 857f + UiKit.Width(name) + 12f, nameBase, 420f);
-            var quote = Label(Serif, parent, $"“{review.Line}”", overview ? 30.33f : 26f, _ink, 857f, y + (overview ? 77f : 69f), 640f);
+            // Written in the player's language from its templates and facts (decision 2026-11-09).
+            var quote = Label(Serif, parent, $"“{Game.Data.ReviewText.Line(review)}”", overview ? 30.33f : 26f, _ink, 857f, y + (overview ? 77f : 69f), 640f);
             quote.textWrappingMode = TextWrappingModes.NoWrap;
 
             // Right: the rating, then what it paid or cost, and Reply while it's unanswered.
@@ -627,7 +632,7 @@ namespace Game.Presentation.Hud
                         UiKit.RoundBox(_content, "AlarmTop", _alarm, RightX, y, RightWidth, rowHeight / 2f, 0f);
                 }
                 UiKit.RoundBox(_content, "Line", Alpha(_paper, 0.8f), RightX, y, RightWidth, 2f, 0f);
-                var name = Label(Bold, _content, dish.Name, 22.67f, _ink, 790f, y + 40f, 330f);
+                var name = Label(Bold, _content, Game.Data.ReviewText.Order(dish.Name), 22.67f, _ink, 790f, y + 40f, 330f);
                 if (walked > 0)
                     Pill(_content, walked == 1 ? "1 walk-out" : $"{walked} walk-outs", Bold, 14f, _bad, Color.white, 790f + UiKit.Width(name) + 14f, y + 21f, 23f, 9f, 16.5f);
                 Label(Medium, _content, $"{dish.Today.Count}", 22.67f, _ink, 1134f, y + 40f, 100f);

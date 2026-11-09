@@ -38,6 +38,19 @@ namespace Game.Simulation.Service
             Returning = returning;
         }
 
+        public Review(Customer customer, float stars, ReviewTopic topic, Said said, ReviewFacts facts, Persona persona, KnownGuest returning)
+            : this(customer, stars, topic, said.Text, persona, returning)
+        {
+            Templates = said.Templates;
+            Facts = facts;
+        }
+
+        /// <summary>The templates the line was written from (empty for the fixed lines), saved so it can be shown in any language.</summary>
+        public IReadOnlyList<string> Templates { get; } = new List<string>();
+
+        /// <summary>The facts the line was filled with.</summary>
+        public ReviewFacts Facts { get; } = new ReviewFacts();
+
         public Customer Customer { get; }
         public float Stars { get; }
         public ReviewTopic Topic { get; }
@@ -168,13 +181,17 @@ namespace Game.Simulation.Service
 
             if (returning != null)
             {
-                var back = ReviewVoices.ReturnLine(returning.Memory, topic, persona, Facts(customer, settings), settings.Style, settings.Generic, settings.Memory, random);
-                if (back.Length > 0)
-                    return new Review(customer, stars, topic, back, persona, returning);
+                var facts = Facts(customer, settings);
+                var back = ReviewVoices.SayReturn(returning.Memory, topic, persona, facts, settings.Style, settings.Generic, settings.Memory, random);
+                if (back.Text.Length > 0)
+                    return new Review(customer, stars, topic, back, facts, persona, returning);
             }
 
-            var line = ReviewVoices.Line(topic, persona, Facts(customer, settings), settings.Style, settings.Generic, settings.Memory, random);
-            return new Review(customer, stars, topic, line.Length > 0 ? line : Line(topic, customer, settings, random), persona, returning);
+            var visit = Facts(customer, settings);
+            var said = ReviewVoices.SayLine(topic, persona, visit, settings.Style, settings.Generic, settings.Memory, random);
+            return said.Text.Length > 0
+                ? new Review(customer, stars, topic, said, visit, persona, returning)
+                : new Review(customer, stars, topic, Line(topic, customer, settings, random), persona, returning);
         }
 
         /// <summary>What a review can mention about this visit.</summary>
