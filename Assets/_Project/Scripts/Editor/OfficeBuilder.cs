@@ -869,17 +869,48 @@ namespace Game.Editor
             roofProps.SetParent(building, false);
             var grey = Toon("OfficeRoofGrey", new Color(0.56f, 0.55f, 0.53f));
             var kind = _random.NextDouble();
-            if (kind < 0.3)
+            if (kind < 0.25)
             {
-                // A roof garden: decking, planters with trees, a lounger and an umbrella.
+                // A roof deck, as on real roofs: decking behind a railing, a couple of tables
+                // under umbrellas and low planter boxes of shrubs. No trees: they don't grow on roofs.
+                var deck = new Vector3(w * 0.12f, 0f, 0f);
+                var deckSize = new Vector2(w * 0.55f, d * 0.55f);
                 Cube(roofProps, "Deck", Planks("OfficeDecking", new Color(0.45f, 0.38f, 0.32f), new Color(0.27f, 0.22f, 0.19f), 0.14f, 2.4f),
-                    new Vector3(0f, 0.02f, 0f), new Vector3(w * 0.7f, 0.02f, d * 0.6f));
-                Tree(roofProps, new Vector3(-w * 0.28f, 0f, d * 0.22f));
-                Tree(roofProps, new Vector3(w * 0.28f, 0f, d * 0.22f));
-                Model(roofProps, "Lounger", OfficeModel, "OfficeLoungerFrame", Toon("OfficeTeak", new Color(0.55f, 0.38f, 0.24f)), new Vector3(0f, 0f, -d * 0.1f), 180f);
-                Model(roofProps, "UmbrellaPole", OfficeModel, "OfficeUmbrellaPole", Toon("OfficeTeak", new Color(0.55f, 0.38f, 0.24f)), new Vector3(w * 0.15f, 0f, -d * 0.15f), 0f);
-                var u = _random.Next(UmbrellaColors.Length);
-                Model(roofProps, "UmbrellaCanopy", OfficeModel, "OfficeUmbrellaCanopy", Toon($"OfficeUmbrella{u}", UmbrellaColors[u]), new Vector3(w * 0.15f, 0f, -d * 0.15f), 22.5f);
+                    deck + Vector3.up * 0.02f, new Vector3(deckSize.x, 0.02f, deckSize.y));
+                var rail = Toon("OfficeRoofRail", new Color(0.24f, 0.24f, 0.26f));
+                foreach (var z in new[] { -deckSize.y / 2f, deckSize.y / 2f })
+                    Block(roofProps, "Railing", rail, deck + new Vector3(0f, 0.95f, z), new Vector3(deckSize.x, 0.05f, 0.05f));
+                foreach (var x in new[] { -deckSize.x / 2f, deckSize.x / 2f })
+                    Block(roofProps, "Railing", rail, deck + new Vector3(x, 0.95f, 0f), new Vector3(0.05f, 0.05f, deckSize.y));
+                for (var k = 0; k < 2; k++)
+                {
+                    var table = deck + new Vector3((k - 0.5f) * deckSize.x * 0.45f, 0f, 0f);
+                    var u = _random.Next(UmbrellaColors.Length);
+                    Model(roofProps, "UmbrellaPole", OfficeModel, "OfficeUmbrellaPole", Toon("OfficeTeak", new Color(0.55f, 0.38f, 0.24f)), table, 0f);
+                    Model(roofProps, "UmbrellaCanopy", OfficeModel, "OfficeUmbrellaCanopy", Toon($"OfficeUmbrella{u}", UmbrellaColors[u]), table, 22.5f);
+                }
+                foreach (var x in new[] { -0.4f, 0f, 0.4f })
+                {
+                    var box = deck + new Vector3(x * deckSize.x, 0f, deckSize.y / 2f - 0.4f);
+                    Block(roofProps, "PlanterBox", Toon("OfficeTeak", new Color(0.55f, 0.38f, 0.24f)), box, new Vector3(1.4f, 0.45f, 0.5f));
+                    Block(roofProps, "Shrubs", Toon("OfficePlant", Plant), box + Vector3.up * 0.45f, new Vector3(1.3f, 0.3f, 0.42f));
+                }
+            }
+            else if (kind < 0.45)
+            {
+                // Solar panels in rows, tilted to the south.
+                var navy = Toon("OfficeSolar", new Color(0.16f, 0.22f, 0.36f));
+                var frameGrey = Toon("OfficeRoofGrey", new Color(0.56f, 0.55f, 0.53f));
+                for (var r = 0; r < 3; r++)
+                for (var k = 0; k < 3; k++)
+                {
+                    var spot = new Vector3(-w * 0.25f + k * 2.0f, 0.3f, -d * 0.2f + r * 1.8f);
+                    var panel = Block(roofProps, "SolarPanel", navy, spot, new Vector3(1.8f, 0.05f, 1.1f));
+                    if (panel != null) panel.transform.localRotation = Quaternion.Euler(-25f, 0f, 0f);
+                    Block(roofProps, "SolarLeg", frameGrey, spot + new Vector3(0f, -0.3f, 0.3f), new Vector3(1.6f, 0.45f, 0.06f));
+                }
+                Block(roofProps, "StairHut", wall, new Vector3(w * 0.3f, 0f, d * 0.3f), new Vector3(2.2f, 2.2f, 1.8f));
+                Block(roofProps, "StairHutRoof", trim, new Vector3(w * 0.3f, 2.2f, d * 0.3f), new Vector3(2.4f, 0.12f, 2.0f));
             }
             else
             {
@@ -934,7 +965,10 @@ namespace Game.Editor
             }
         }
 
-        // The boss's own tower under the floor: sandstone with a brass cornice and framed windows.
+        // The boss's own tower under the floor (user's note, 2026-11-09: if the penthouse is glass
+        // on all four sides, so is the rest of the tower). A curtain wall: on every floor a band of
+        // tinted glass between bronze mullions, over a sandstone spandrel, with some offices lit
+        // behind the glass. The camera sees the front and, at an angle, both sides.
         private static void BossTower(Transform city)
         {
             var tower = new GameObject("BossTower").transform;
@@ -942,17 +976,42 @@ namespace Game.Editor
             var width = East - West + 0.6f;
             var depth = TerraceNorth - South + 0.6f;
             var middle = (South + TerraceNorth) / 2f;
-            var stone = Toon("OfficeTowerStone", new Color(0.66f, 0.55f, 0.43f));
-            var trim = Toon("OfficeTowerTrim", new Color(0.86f, 0.80f, 0.68f));
-            Cube(tower, "Body", stone, new Vector3(0f, -CityDepth, middle), new Vector3(width, CityDepth - 0.8f, depth));
+            var spandrel = Toon("OfficeTowerStone", new Color(0.66f, 0.55f, 0.43f));
+            var glass = Toon("OfficeTowerGlass", new Color(0.33f, 0.42f, 0.52f));
+            var bronze = Toon("OfficeTowerBronze", new Color(0.45f, 0.32f, 0.2f));
+            var lit = Unlit("OfficeWindowLit", WindowLit);
+            // The core, set back behind the facade, so nothing shows between the bands.
+            Cube(tower, "Core", glass, new Vector3(0f, -CityDepth, middle), new Vector3(width - 0.2f, CityDepth - 0.8f, depth - 0.2f));
             Block(tower, "Cornice", Toon("OfficeBrass", Brass), new Vector3(0f, -1.3f, middle), new Vector3(width + 0.5f, 0.5f, depth + 0.5f));
             Block(tower, "CorniceDark", Toon("OfficeWalnut", Walnut), new Vector3(0f, -0.8f, middle), new Vector3(width + 0.3f, 0.4f, depth + 0.3f));
-            var body = new GameObject("Facade").transform;
-            body.SetParent(tower, false);
-            body.localPosition = new Vector3(0f, -1.6f, middle);
-            Windows(body, width, depth, 6, trim, side: 0, framed: true);
-            Windows(body, width, depth, 4, trim, side: -1, framed: true);
-            Windows(body, width, depth, 4, trim, side: 1, framed: true);
+
+            const float storey = 3.4f;
+            const float bay = 2.2f;
+            for (var f = 0; f < 9; f++)
+            {
+                var top = -1.4f - f * storey;
+                // A sandstone spandrel band round all four sides at each floor's slab.
+                Block(tower, "Spandrel", spandrel, new Vector3(0f, top - 0.9f, middle), new Vector3(width + 0.12f, 0.9f, depth + 0.12f));
+                foreach (var side in new[] { 0, -1, 1 })
+                {
+                    var span = side == 0 ? width : depth;
+                    for (var a = -span / 2f + bay; a < span / 2f - 0.5f; a += bay)
+                    {
+                        var face = side == 0 ? new Vector3(a, 0f, middle - depth / 2f) : new Vector3(side * width / 2f, 0f, middle + a);
+                        var mullion = side == 0 ? new Vector3(0.12f, storey - 0.9f, 0.12f) : new Vector3(0.12f, storey - 0.9f, 0.12f);
+                        Block(tower, "Mullion", bronze, face + Vector3.up * (top - storey), mullion);
+                        // Some offices still lit behind the glass.
+                        if (_random.NextDouble() < 0.3)
+                        {
+                            var outward = side == 0 ? Vector3.back : Vector3.right * side;
+                            var along = side == 0 ? Vector3.right : Vector3.forward;
+                            var turn = Quaternion.Euler(0f, side == 0 ? 0f : side * -90f, 0f);
+                            Shape(tower, PrimitiveType.Quad, "LitOffice", lit, face + along * (bay / 2f) + outward * 0.02f + Vector3.up * (top - 0.9f - (storey - 0.9f) / 2f),
+                                new Vector3(bay - 0.3f, storey - 1.3f, 1f), turn);
+                        }
+                    }
+                }
+            }
         }
 
         private static void WaterTower(Transform parent, Vector3 at)

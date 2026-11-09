@@ -309,6 +309,22 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-09 — A glass tower, and roofs as real roofs
+
+**User's notes:** if the penthouse is glass on all four sides, so should the floors below it be; and trees on flat roofs looked wrong.
+
+**Done:**
+- **The boss's tower is a glass curtain wall all the way down.** On every floor, tinted glass sits between bronze mullions over a sandstone spandrel band, with some offices lit behind it. It replaces the sandstone block with punched windows.
+- **No trees on the neighbouring roofs.** A roof now carries one of these:
+  - a railed roof deck with tables under umbrellas and low planter boxes of shrubs;
+  - rows of solar panels;
+  - a water tower;
+  - the usual air conditioners, skylights, stair huts and aerials.
+
+  The boss's own terrace keeps its trees in big planters, as a luxury penthouse would.
+
+---
+
 ## 2026-11-09 — The office in glass, over a city in the game's look
 
 **User's notes:** the outer city had little to do with the game's look and level of detail, especially next to the kitchen; the kitchen's wall and floor materials didn't suit the office; and the outer walls could be taller, with glass windows.

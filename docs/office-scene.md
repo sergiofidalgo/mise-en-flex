@@ -10,7 +10,7 @@ Design references: `game-design.md` §15 (campaign, office, money trouble, endin
 
 The office is the **penthouse floor of the boss's skyscraper**, in the same city the main menu flies over, built from its models (`SM_City`). It is the game's lobby: players join here, change their look, buy restaurants, borrow money, practise, and come back between days.
 
-**Mood: cozy money with a hint of menace.** Inside it's warm: lamplight, polished wood, brass trim, the kitchen's palette dressed up for an oligarch. Outside it's dusk: a warm brick-and-sandstone city a few storeys below, fading into a violet haze, and a windy terrace. Players should feel welcome, but never quite at home. The money is his.
+**Mood: cozy money with a hint of menace.** Inside it's warm: lamplight, polished wood, brass trim, the kitchen's palette dressed up for an oligarch. Outside it's dusk: the boss's tower is glass all the way down, over a warm brick-and-sandstone city a few storeys below that fades into a violet haze, and a windy terrace. Players should feel welcome, but never quite at home. The money is his.
 
 **What the place should say without text:**
 - The boss is rich and a little absurd: a helipad, a hall of trophies, a red carpet up to his door.
