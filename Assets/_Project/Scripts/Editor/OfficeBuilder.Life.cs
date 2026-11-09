@@ -43,11 +43,12 @@ namespace Game.Editor
 
         // ---- Hooks from the main builder ------------------------------------------------------------
 
-        // A city window: most switch on and off now and then; a few are televisions.
-        private static void RegisterWindow(GameObject window)
+        // A city window: its glass painted with a room behind it (WindowArt); most switch on and
+        // off now and then; a few are televisions. True when it's lit.
+        private static bool RegisterWindow(GameObject window)
         {
             if (window == null)
-                return;
+                return false;
             if (_windowsFor != _random)
             {
                 // A new build: forget the last one's windows.
@@ -61,11 +62,24 @@ namespace Game.Editor
             {
                 renderer.sharedMaterial = Unlit("OfficeWindowTv", new Color(0.45f, 0.6f, 0.9f));
                 _televisions.Add(renderer);
+                return true;
             }
-            else
-            {
-                _cityWindows.Add(renderer);
-            }
+            _cityWindows.Add(renderer);
+            var lit = renderer.sharedMaterial != Unlit("OfficeWindowDark", WindowDark);
+            var lits = WindowArt.LitWindows();
+            renderer.sharedMaterial = lit ? lits[_random.Next(lits.Length)] : WindowArt.DarkWindow();
+            return lit;
+        }
+
+        // Someone who walks past this lit window now and then (WindowSilhouette): a cut-out figure
+        // just inside the glass, its feet at the sill.
+        private static void PassingSilhouette(GameObject window)
+        {
+            var figure = GreyboxAssets.CreatePrimitive(PrimitiveType.Quad, "Silhouette", window.transform, WindowArt.Silhouette(), keepCollider: false);
+            figure.transform.localPosition = new Vector3(0f, -0.12f, -0.002f);
+            figure.transform.localScale = new Vector3(0.45f, 0.76f, 1f);
+            figure.AddComponent<WindowSilhouette>().Set(0.45f, 2.5f + (float)_random.NextDouble() * 2.5f, new Vector2(3f, 14f), _random.Next());
+            figure.isStatic = false;
         }
 
         // Three blades over an air conditioner's fan, turning.
@@ -655,7 +669,7 @@ namespace Game.Editor
             life.SetParent(city, false);
 
             // Windows switching on and off, and the televisions.
-            city.gameObject.AddComponent<WindowFlicker>().Set(_cityWindows.ToArray(), Unlit("OfficeWindowLit", WindowLit), Unlit("OfficeWindowDark", WindowDark), _televisions.ToArray());
+            city.gameObject.AddComponent<WindowFlicker>().Set(_cityWindows.ToArray(), WindowArt.LitWindows(), WindowArt.DarkWindow(), _televisions.ToArray());
 
             // Pigeons wheeling round the near roofs on either side, gulls circling high over the city.
             Flock(life, new Vector3(-30f, -5f, 2f), new Vector2(10f, 7f), 8, 13f, gull: false);

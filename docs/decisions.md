@@ -481,6 +481,31 @@ The plan is in `plans/tailor.md`.
 
 ---
 
+## 2026-11-09 — Windows with rooms behind them, people passing, brighter rooms
+
+**User's notes:**
+- The city's windows lacked a natural light texture.
+- Some office rooms were too dark.
+- People passing behind windows would bring the life discussed earlier.
+
+**Done:**
+- **Painted window glass** (`WindowArt`), generated textures, six lit kinds of room behind the glass:
+  - a lamp's warm glow between curtains;
+  - blinds two-thirds down;
+  - an office with ceiling panels and monitors;
+  - a hanging lamp;
+  - a plant on the sill;
+  - one lamp lit in a corner.
+
+  Dark windows hold the night sky's blue with a streak of reflection. A window that lights up takes a kind at random. The boss's tower shows offices.
+- **People passing** (`WindowSilhouette`): about one lit window in five on the near buildings has someone who now and then walks across it. The wall hides them as they come in and go out, cropped to the glass, then nobody for a while. Only visible in Play mode.
+- **Brighter rooms,** keeping the personalities:
+  - a soft fill light in every room in its own tone (welcoming reception, kept-dim guarded doors, firelit boss, showroom tailor, fluorescent test kitchen, dark-blue miniature room, museum hall, cosy lounge, greenish accountant);
+  - a stronger moon and ambient;
+  - lamp strength raised from 2.5 to 3.
+
+---
+
 ## 2026-11-09 — The office at night, each room lit its own way
 
 **User's notes:** the scene looked flat. It happens at night, so play with light sources outside and inside the office, giving each room its own personality. It's fine for lamps to light shapes naturally, disregarding the toon finish.

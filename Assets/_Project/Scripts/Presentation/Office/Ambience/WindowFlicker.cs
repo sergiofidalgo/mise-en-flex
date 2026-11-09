@@ -11,7 +11,8 @@ namespace Game.Presentation.Office.Ambience
     public sealed class WindowFlicker : MonoBehaviour
     {
         [SerializeField] private Renderer[] _windows = System.Array.Empty<Renderer>();
-        [SerializeField] private Material _lit;
+        [Tooltip("Lit windows, one per kind of room behind them (WindowArt); a window that lights up takes one at random.")]
+        [SerializeField] private Material[] _lits = System.Array.Empty<Material>();
         [SerializeField] private Material _dark;
         [Tooltip("Windows with a television on; each gets its own flicker.")]
         [SerializeField] private Renderer[] _televisions = System.Array.Empty<Renderer>();
@@ -29,8 +30,8 @@ namespace Game.Presentation.Office.Ambience
         private float _nextWindow;
         private float _nextTelevision;
 
-        public void Set(Renderer[] windows, Material lit, Material dark, Renderer[] televisions) =>
-            (_windows, _lit, _dark, _televisions) = (windows, lit, dark, televisions);
+        public void Set(Renderer[] windows, Material[] lits, Material dark, Renderer[] televisions) =>
+            (_windows, _lits, _dark, _televisions) = (windows, lits, dark, televisions);
 
         private void Awake()
         {
@@ -57,8 +58,8 @@ namespace Game.Presentation.Office.Ambience
             {
                 _nextWindow = Time.time + _interval * (0.5f + (float)_random.NextDouble());
                 var window = _windows[_random.Next(_windows.Length)];
-                if (window != null)
-                    window.sharedMaterial = window.sharedMaterial == _lit ? _dark : _lit;
+                if (window != null && _lits.Length > 0)
+                    window.sharedMaterial = window.sharedMaterial == _dark ? _lits[_random.Next(_lits.Length)] : _dark;
             }
             if (Time.time >= _nextTelevision)
             {

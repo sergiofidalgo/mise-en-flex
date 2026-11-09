@@ -28,10 +28,11 @@ namespace Game.Editor
         private static void NightLighting(Light sun, Camera camera)
         {
             sun.color = Moon;
-            sun.intensity = 0.5f;
+            // Bright enough that no corner goes black (user's note, 2026-11-09: some rooms too dark).
+            sun.intensity = 0.75f;
             sun.shadowStrength = 0.6f;
             RenderSettings.ambientMode = AmbientMode.Trilight;
-            RenderSettings.ambientSkyColor = new Color(0.16f, 0.18f, 0.32f);
+            RenderSettings.ambientSkyColor = new Color(0.22f, 0.24f, 0.4f);
             RenderSettings.ambientEquatorColor = new Color(0.1f, 0.1f, 0.18f);
             RenderSettings.ambientGroundColor = new Color(0.05f, 0.05f, 0.08f);
             RenderSettings.fogColor = Night;
@@ -39,7 +40,7 @@ namespace Game.Editor
             // Lamps fall off with the square of distance, so ceiling lights 3-4 m up need a strong
             // hand; 2.5 lets intensities stay readable numbers per lamp.
             var lighting = new UnityEditor.SerializedObject(new GameObject("OfficeLighting").AddComponent<OfficeLighting>());
-            lighting.FindProperty("_localLights").floatValue = 2.5f;
+            lighting.FindProperty("_localLights").floatValue = 3f;
             lighting.ApplyModifiedPropertiesWithoutUndo();
         }
 
@@ -48,6 +49,18 @@ namespace Game.Editor
         {
             var lights = new GameObject("RoomLights").transform;
             lights.SetParent(rooms, false);
+
+            // A broad, soft fill in every room, in the room's own tone, so nothing is lost in the
+            // dark and the lamps below are the accents (user's note, 2026-11-09: some rooms too dark).
+            RoomFill(lights, 1, 0, Incandescent, 3.2f);              // reception: welcoming
+            RoomFill(lights, 1, 1, new Color(0.8f, 0.7f, 0.65f), 1.6f); // guarded doors: kept dim
+            RoomFill(lights, 1, 2, Candle, 2.4f);                    // the boss: firelit
+            RoomFill(lights, 0, 2, Showroom, 2.8f);                  // tailor: a showroom
+            RoomFill(lights, 0, 1, CoolWhite, 3.2f);                 // test kitchen: fluorescent
+            RoomFill(lights, 2, 2, new Color(0.55f, 0.7f, 1f), 1.6f); // miniature: dark, blue
+            RoomFill(lights, 2, 1, Incandescent, 2.2f);              // hall of fame: a museum
+            RoomFill(lights, 0, 0, Candle, 3.6f);                    // lounge: cosy
+            RoomFill(lights, 2, 0, new Color(0.85f, 0.95f, 0.85f), 2.4f); // accountant: greenish tube light
 
             // Reception: warm and welcoming, four pendants over the lobby.
             foreach (var x in new[] { -4.5f, 4.5f })
@@ -93,6 +106,14 @@ namespace Game.Editor
 
             // The terrace: string lights along the rail (the lamp posts light themselves).
             TerraceStringLights(rooms.Find("Terrace"), lights);
+        }
+
+        // A room's fill: high over its middle, reaching its corners.
+        private static void RoomFill(Transform lights, int column, int row, Color color, float intensity)
+        {
+            var centre = RoomCentre(column, row);
+            var size = RoomSize(column, row);
+            Point(lights, "RoomFill", new Vector3(centre.x, 4.5f, centre.y), color, Mathf.Max(size.x, size.y) * 0.85f, intensity);
         }
 
         // ---- Fixtures ----------------------------------------------------------------------------

@@ -928,7 +928,9 @@ namespace Game.Editor
                     var face = side == 0 ? new Vector3(a + 0.4f, y, -d / 2f) : new Vector3(side * w / 2f, y, a + 0.4f);
                     var outward = side == 0 ? Vector3.back : Vector3.right * side;
                     var window = Shape(building, PrimitiveType.Quad, "Window", _random.NextDouble() < 0.4 ? lit : dark, face + outward * 0.02f, new Vector3(0.9f, 1.2f, 1f), turn);
-                    RegisterWindow(window);
+                    // Now and then, someone walking past behind a lit window (user's note, 2026-11-09).
+                    if (RegisterWindow(window) && framed && _random.NextDouble() < 0.18)
+                        PassingSilhouette(window);
                     if (!framed)
                         continue;
                     var frame = Model(building, "Frame", CityModel, "CityWindowFrame", trim, face, 0f);
@@ -953,7 +955,7 @@ namespace Game.Editor
             var spandrel = Toon("OfficeTowerStone", new Color(0.66f, 0.55f, 0.43f));
             var glass = Toon("OfficeTowerGlass", new Color(0.33f, 0.42f, 0.52f));
             var bronze = Toon("OfficeTowerBronze", new Color(0.45f, 0.32f, 0.2f));
-            var lit = Unlit("OfficeWindowLit", WindowLit);
+            var lit = WindowArt.LitWindows()[2]; // offices, behind the curtain wall
             // The core, set back behind the facade, so nothing shows between the bands.
             Cube(tower, "Core", glass, new Vector3(0f, -CityDepth, middle), new Vector3(width - 0.2f, CityDepth - 0.8f, depth - 0.2f));
             Block(tower, "Cornice", Toon("OfficeBrass", Brass), new Vector3(0f, -1.3f, middle), new Vector3(width + 0.5f, 0.5f, depth + 0.5f));
