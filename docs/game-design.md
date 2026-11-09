@@ -33,11 +33,11 @@ Every feature must serve at least one.
 
 ## 2. Players and platform
 
-- **1–2 local players** (decision 2026-11-02). 3–4 players is a stretch goal.
+- **1–4 local players** (decision 2026-11-09; it was 1–2, with 3–4 a stretch goal).
 - macOS (Apple Silicon) first. Default: player 1 on keyboard, player 2 on an Xbox controller over Bluetooth. Every action has both bindings, and all controls can be rebound from a Controls screen in the settings.
 - Movement is snappy (full speed in about 0.08 s), with no dash for now. **Interact** (A) picks up and places; **Use** (X) works a station or enters its close-up. The keyboard mirrors the face buttons as W/A/D/X with arrow keys to move, and is mainly for testing.
 - Join by pressing a button (drop-in during Plan/Prep). **Open:** can a second player join mid-service?
-- Performance target: steady 60 fps on a MacBook with two players, including both close-up views.
+- Performance target: steady 60 fps on a MacBook with four players.
 
 **Open:** how solo play scales. A solo player can't be in two places, so either service pacing scales with player count, or solo players lean on staff earlier. Recommendation: scale customer arrival rate and patience via tuning per player count, and keep staff as an option rather than a requirement.
 

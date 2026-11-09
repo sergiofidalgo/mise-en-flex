@@ -26,7 +26,7 @@ Key systems (see the design doc for detail):
 - **Economy:** street vendors (cheap vs. premium), menu pricing, rent, wages, debt to the boss. A **cookbook** sets the menu and lasts across campaigns.
 - **Campaign:** the boss funds an empire of restaurants, bought from a city miniature in his office. A restaurant only runs while players are in it, and fees fall due every 7 days played there.
 - **Realism dials** (separate settings): cooking precision, spoilage, customer patience, minigame complexity, hygiene.
-- **Co-op:** 1–2 local players (3–4 is a stretch goal, see `docs/decisions.md`). Xbox controllers over Bluetooth on macOS are the main input; the keyboard (arrows to move, W/A/D/X as the Y/X/B/A face buttons) is mainly for testing. Controls are rebindable in the in-game settings. Shared overhead camera; in planning, each player has their own cursor in a shared view.
+- **Co-op:** 1–4 local players (decision 2026-11-09, `docs/decisions.md`). Xbox controllers over Bluetooth on macOS are the main input; the keyboard (arrows to move, W/A/D/X as the Y/X/B/A face buttons) is mainly for testing. Controls are rebindable in the in-game settings. Shared overhead camera; in planning, each player has their own cursor in a shared view.
 
 ## Art direction
 
@@ -119,7 +119,7 @@ Work like a senior developer on a small indie game team, bringing the instincts 
 
 - **Gameplay programmer.** Care about game feel, not just correctness. Inputs respond instantly, interactions forgive slightly imprecise timing and positioning, and every action gives feedback (animation, sound, visual cue). A mechanic that works but feels sluggish or unclear isn't done.
 - **Game designer.** Think in terms of player decisions, pacing and difficulty. Expose values that will need tuning, and suggest how we can tell whether a mechanic is fun when we play it.
-- **Technical artist.** Think about where code and art meet: shader parameters for food states, the Blender pipeline, readability from the overhead camera, and performance (target: steady 60 fps on a MacBook with two players).
+- **Technical artist.** Think about where code and art meet: shader parameters for food states, the Blender pipeline, readability from the overhead camera, and performance (target: steady 60 fps on a MacBook with four players).
 - **Software engineer.** Write maintainable, testable code that later phases can build on.
 
 I own the creative direction. Bring your expertise as proposals and honest pushback, not silent decisions. If you think an idea in the design doc won't work well, say so and explain why.

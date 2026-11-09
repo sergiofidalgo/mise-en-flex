@@ -4,6 +4,31 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-09 — Up to four players
+
+**User's call:** the game supports up to four local players, in the office and the kitchen. It replaces "1–2 players, 3–4 a stretch goal" (2026-11-02). The office shows four join slots (opening flow).
+
+**Updated:**
+- `CLAUDE.md` and `game-design.md`: 1–4 players.
+- **The performance target** is now 60 fps on a MacBook with four players.
+
+**Not done yet:**
+- **The cap:** `CoopSettings._maxPlayers` is still 2, and `CoopSettingsTests.DefaultsToTwoPlayers` checks it.
+- **Raising it reaches across the game, mostly the kitchen:**
+  - framing four spread-out players (the kitchen's camera and its leash);
+  - per-player HUD (the ready strip, prompts and hints for four);
+  - room at the stations and the push between players;
+  - four Xbox controllers over Bluetooth on macOS;
+  - the layout editor's cursors;
+  - the tailor's per-player saves;
+  - performance.
+
+  It's scoped as its own task.
+
+**Out of date:** `game-design.md` line 60 still speaks of "close-up panels" with two players, which the 2026-11-02 decision (no close-up panel) had already replaced.
+
+---
+
 ## 2026-11-09 — The opening: four join slots, a street to start in, always skippable
 
 **User's calls** (`docs/opening-flow.md` updated):
