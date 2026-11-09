@@ -70,6 +70,38 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-09 — Patterned clothes, and the office's people on the players' body
+
+**The user's call:** customers always wore plain colours and should get patterns too. The office's people should follow the new characters.
+
+**Decision:**
+- **Cloth patterns in `Game/Toon`:** `_Pattern` picks one of stripes, plaid, polka dots, pinstripes or gingham, in `_PatternColor` at `_PatternScale` repeats per metre.
+  - They're drawn in object space, wrapped round the body's vertical axis with a whole number of repeats, so there's no seam and no UVs are needed.
+  - The edges are crisp and eased over a pixel, flat like the toon bands.
+  - Like the wood grain, they change nothing for materials that leave them off.
+- **Patterns are part of the roll** (`Variation.Patterns`, `PatternColours`, `PatternScale`):
+
+  | Archetype | Patterns |
+  |---|---|
+  | Regular | mostly a flannel plaid |
+  | Office worker | plain or pinstripes |
+  | Date night | plain or polka dots |
+  | Tourist | breton stripes, gingham or plain |
+  | Retiree | sometimes gingham |
+  | Gym-goer | sometimes sporty stripes |
+
+  The pattern covers the top, the sleeves and a dress. A different pattern also counts as a different person in the no-repeat check.
+- **The office's people use `CharacterArt`:**
+  - the receptionist, with a bun and glasses;
+  - the tailor, grey, with moustache, glasses and a gold tie;
+  - the accountant, ginger, with frames and a green visor;
+  - the bodyguards, same suit, sunglasses and red tie, one bald and one cropped;
+  - the boss, grey, with a moustache, a big nose and the camel suit. His cowboy hat is scaled to the new head (about its centre) and the bolo moved to the new collar.
+
+  The tailor's mannequin wears the kit's barrel jacket. Without the kit, the old chef model stands in as before.
+
+---
+
 ## 2026-11-09 — Customers are rolled people, with their archetype's props
 
 **The user's playtest:** two customers came in looking exactly the same. Each archetype should have its own props (a cane for the retiree, a backpack or leather bag for the office worker), with as much variety as fits.

@@ -1,6 +1,8 @@
 // A flat-coloured cartoony surface with an outline (see ToonCommon.hlsl). _BaseColor can be set
 // per renderer by views (heat, highlights), as with URP Lit. With _WoodGrain above 0 it draws
-// bands of wood grain along the object's x, in _GrainColor, for boards and handles.
+// bands of wood grain along the object's x, in _GrainColor, for boards and handles. With _Pattern
+// above 0 it prints a cloth pattern in _PatternColor (stripes, plaid, dots, pinstripes, gingham),
+// wrapped round the object's vertical axis, for people's clothes; views set it per renderer.
 Shader "Game/Toon"
 {
     Properties
@@ -17,6 +19,11 @@ Shader "Game/Toon"
         _WoodGrain("Wood grain (0 off)", Range(0, 1)) = 0
         _GrainColor("Grain", Color) = (0.62, 0.4, 0.2, 1)
         _GrainScale("Grain bands per metre", Float) = 30
+
+        [Header(Cloth pattern)]
+        _Pattern("Pattern (0 plain, 1 stripes, 2 plaid, 3 dots, 4 pinstripes, 5 gingham)", Float) = 0
+        _PatternColor("Pattern colour", Color) = (0.15, 0.12, 0.12, 1)
+        _PatternScale("Pattern repeats per metre", Float) = 12
     }
 
     SubShader
@@ -37,6 +44,9 @@ Shader "Game/Toon"
             float _WoodGrain;
             half4 _GrainColor;
             float _GrainScale;
+            float _Pattern;
+            half4 _PatternColor;
+            float _PatternScale;
         CBUFFER_END
         ENDHLSL
 
@@ -92,10 +102,44 @@ Shader "Game/Toon"
                     lerp(Hash(cell + float2(0, 1)), Hash(cell + float2(1, 1)), f.x), f.y);
             }
 
+            // How much of a band, `width` of each repeat wide and centred on the half, covers `v`:
+            // crisp like the toon bands, but eased over a pixel so it doesn't shimmer.
+            float Band(float v, float width)
+            {
+                float edge = fwidth(v) + 1e-4;
+                float d = abs(frac(v) - 0.5);
+                return 1.0 - smoothstep(width * 0.5 - edge, width * 0.5 + edge, d);
+            }
+
+            // A cloth pattern printed round the body: x runs round the vertical axis (a whole number
+            // of repeats, so there's no seam at the back), y up it. Flat colours, like everything else.
+            half3 Cloth(float3 positionOS)
+            {
+                float around = max(1.0, round(1.76 * _PatternScale)); // about a 0.28 m-radius body
+                float2 p = float2(atan2(positionOS.x, positionOS.z) / 6.2831853 * around, positionOS.y * _PatternScale);
+                int kind = (int)round(_Pattern);
+                float mask = 0.0;
+                if (kind == 1)
+                    mask = Band(p.y, 0.5);                                   // stripes, like a breton
+                else if (kind == 2)
+                    mask = saturate(0.55 * (Band(p.x, 0.32) + Band(p.y, 0.32)) + 0.45 * Band(p.x, 0.32) * Band(p.y, 0.32)); // plaid
+                else if (kind == 3)
+                {
+                    float2 cell = frac(p + float2(0.5 * step(0.5, frac(p.y * 0.5)), 0.0)) - 0.5; // offset rows
+                    float edge = fwidth(p.y) + 1e-4;
+                    mask = 1.0 - smoothstep(0.2 - edge, 0.2 + edge, length(cell));   // polka dots
+                }
+                else if (kind == 4)
+                    mask = Band(p.x, 0.14);                                  // pinstripes
+                else if (kind == 5)
+                    mask = 0.5 * (Band(p.x, 0.5) + Band(p.y, 0.5));          // gingham
+                return lerp(_BaseColor.rgb, _PatternColor.rgb, mask);
+            }
+
             half3 Albedo(float3 positionOS)
             {
                 if (_WoodGrain <= 0.0)
-                    return _BaseColor.rgb;
+                    return _Pattern > 0.5 ? Cloth(positionOS) : _BaseColor.rgb;
 
                 // Grain runs along x: wavy bands across z, bent by noise so they read as wood, with
                 // the odd darker streak. Flat bands, to suit the cartoony shading.

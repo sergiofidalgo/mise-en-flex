@@ -508,7 +508,13 @@ namespace Game.Editor
                 Prop(room, "PF_Counter", new Vector3(2.8f + i, 0f, -7.6f), 0f);
             Shape(room, PrimitiveType.Sphere, "DeskBell", Toon("OfficeBellRed", new Color(0.8f, 0.2f, 0.18f)), new Vector3(3.3f, 0.98f, -7.75f), Vector3.one * 0.14f);
             Block(room, "Ledger", Toon("OfficeLedger", Burgundy), new Vector3(4.2f, 0.92f, -7.7f), new Vector3(0.42f, 0.06f, 0.3f));
-            Person(room, "Receptionist", new Vector3(3.8f, 0f, -6.7f), 180f, new Color(0.62f, 0.22f, 0.32f), Suit);
+            Person(room, "Receptionist", new Vector3(3.8f, 0f, -6.7f), 180f, new Color(0.5f, 0.2f, 0.3f), Suit, dress: look =>
+            {
+                look.Skin = CharacterArt.SkinTones[5];
+                look.HairStyle = CharacterArt.HairKind.Bun;
+                look.Hair = CharacterArt.DarkHair;
+                look.Glasses = true;
+            });
 
             Armchair(room, new Vector3(-5.4f, 0f, -8.0f), 90f, Velvet);
             Armchair(room, new Vector3(-5.4f, 0f, -9.6f), 90f, Velvet);
@@ -599,7 +605,16 @@ namespace Game.Editor
             }
             // The tailor's mannequin, wearing a chef's jacket a size too big (spec §5).
             Mannequin(room, new Vector3(-7.4f, 0f, 12.4f));
-            Person(room, "Tailor", new Vector3(-12f, 0f, 7.4f), 0f, new Color(0.35f, 0.30f, 0.45f), new Color(0.22f, 0.2f, 0.26f));
+            Person(room, "Tailor", new Vector3(-12f, 0f, 7.4f), 0f, new Color(0.35f, 0.30f, 0.45f), new Color(0.22f, 0.2f, 0.26f), dress: look =>
+            {
+                look.Skin = CharacterArt.SkinTones[1];
+                look.HairStyle = CharacterArt.HairKind.Fringe;
+                look.Hair = CharacterArt.GreyHair[1];
+                look.Moustache = true;
+                look.Glasses = true;
+                look.Tie = true;
+                look.TieColor = new Color(0.75f, 0.6f, 0.3f);
+            });
             var table = Prop(room, "PF_Table", new Vector3(-8.2f, 0f, 5.2f), 0f, keep: "Body");
             if (table != null)
                 table.transform.localScale = new Vector3(1.6f, 1f, 1f);
@@ -717,7 +732,17 @@ namespace Game.Editor
             for (var i = 0; i < 7; i++)
                 Block(room, "Invoice", Toon("OfficePaper", Cream), desk + new Vector3(-0.45f + i * 0.012f, 0.65f + i * 0.025f, 0f), new Vector3(0.34f, 0.02f, 0.26f));
             OfficeChair(room, desk + new Vector3(0f, 0f, 1.2f), 180f);
-            Person(room, "Accountant", desk + new Vector3(0f, 0f, 0.8f), 180f, new Color(0.40f, 0.38f, 0.30f), new Color(0.25f, 0.24f, 0.2f));
+            Person(room, "Accountant", desk + new Vector3(0f, 0f, 0.8f), 180f, new Color(0.40f, 0.38f, 0.30f), new Color(0.25f, 0.24f, 0.2f), dress: look =>
+            {
+                // Frames and a green visor (concept v16).
+                look.Skin = CharacterArt.SkinTones[0];
+                look.Hair = CharacterArt.NaturalHair[3];
+                look.Glasses = true;
+                look.Hat = CharacterArt.HatKind.Headband;
+                look.HatAccent = new Color(0.2f, 0.45f, 0.3f);
+                look.Tie = true;
+                look.TieColor = new Color(0.45f, 0.18f, 0.16f);
+            });
             foreach (var x in new[] { -0.6f, 0.6f })
                 Model(room, "VisitorChair", "SM_Dining", "DiningChair", Toon("OfficeVisitorChair", WoodMid), desk + new Vector3(x, 0f, -1.4f), 0f, collider: new Vector3(0.45f, 0.9f, 0.45f));
             for (var i = 0; i < 6; i++)
@@ -1024,27 +1049,34 @@ namespace Game.Editor
 
         // ---- People -------------------------------------------------------------------------------
 
-        // A person made of the chef's model, so everyone on the floor belongs with the players:
-        // the jacket in `top`, trousers in `bottom`, no toque, apron or neckerchief.
-        private static Transform Person(Transform parent, string name, Vector3 at, float facing, Color top, Color bottom, float scale = 1f)
+        // A person made of the players' own character kit (CharacterArt), so everyone on the floor
+        // belongs with the players: the top in `top`, trousers in `bottom`, and `dress` for their
+        // face, hair and the rest. Without the kit, the first modelled chef stands in.
+        private static Transform Person(Transform parent, string name, Vector3 at, float facing, Color top, Color bottom,
+            float scale = 1f, System.Action<CharacterArt.Look> dress = null)
         {
             var person = new GameObject(name).transform;
             person.SetParent(parent, false);
             person.localPosition = at;
             person.localRotation = Quaternion.Euler(0f, facing, 0f);
             person.localScale = Vector3.one * scale;
-            var jacket = Toon($"OfficeJacket_{name}", top);
-            Model(person, "Legs", ChefModel, "ChefLegs", Toon($"OfficeTrousers_{name}", bottom), Vector3.zero, 0f);
-            Model(person, "Skirt", ChefModel, "ChefSkirt", jacket, Vector3.zero, 0f);
-            var waist = new Vector3(0f, ChefWaist, 0f);
-            Model(person, "Torso", ChefModel, "ChefTorso", jacket, waist, 0f);
-            Model(person, "Head", ChefModel, "ChefHead", Toon("OfficeSkin", Skin), waist, 0f);
-            Model(person, "Face", ChefModel, "ChefFace", Toon("OfficeFace", Face), waist, 0f);
-            foreach (var side in new[] { -1f, 1f })
+            var look = new CharacterArt.Look { Name = name, Top = top, Bottom = bottom, Skin = Skin };
+            dress?.Invoke(look);
+            if (CharacterArt.Build(person, look) == null)
             {
-                var shoulder = waist + new Vector3(side * ChefShoulderWidth, ChefShoulderHeight, 0f);
-                Model(person, "Arm", ChefModel, "ChefArm", jacket, shoulder, 0f);
-                Model(person, "Hand", ChefModel, "ChefHand", Toon("OfficeSkin", Skin), shoulder, 0f);
+                var jacket = Toon($"OfficeJacket_{name}", top);
+                Model(person, "Legs", ChefModel, "ChefLegs", Toon($"OfficeTrousers_{name}", bottom), Vector3.zero, 0f);
+                Model(person, "Skirt", ChefModel, "ChefSkirt", jacket, Vector3.zero, 0f);
+                var waist = new Vector3(0f, ChefWaist, 0f);
+                Model(person, "Torso", ChefModel, "ChefTorso", jacket, waist, 0f);
+                Model(person, "Head", ChefModel, "ChefHead", Toon("OfficeSkin", Skin), waist, 0f);
+                Model(person, "Face", ChefModel, "ChefFace", Toon("OfficeFace", Face), waist, 0f);
+                foreach (var side in new[] { -1f, 1f })
+                {
+                    var shoulder = waist + new Vector3(side * ChefShoulderWidth, ChefShoulderHeight, 0f);
+                    Model(person, "Arm", ChefModel, "ChefArm", jacket, shoulder, 0f);
+                    Model(person, "Hand", ChefModel, "ChefHand", Toon("OfficeSkin", Skin), shoulder, 0f);
+                }
             }
             var body = person.gameObject.AddComponent<CapsuleCollider>();
             body.center = new Vector3(0f, 0.85f, 0f);
@@ -1055,22 +1087,45 @@ namespace Game.Editor
 
         private static void Bodyguard(Transform parent, string name, Vector3 at)
         {
-            var guard = Person(parent, name, at, 180f, Suit, Suit, 1.12f);
-            var waist = new Vector3(0f, ChefWaist, 0f);
-            Block(guard, "Sunglasses", Toon("OfficeInk", Ink), waist + new Vector3(0f, 0.665f, 0.17f), new Vector3(0.3f, 0.06f, 0.06f));
-            Block(guard, "Tie", Toon("OfficeBellRed", new Color(0.8f, 0.2f, 0.18f)), waist + new Vector3(0f, 0.12f, 0.28f), new Vector3(0.08f, 0.32f, 0.03f));
+            // Same suit, same shades, same red tie; one bald, one cropped (concept v16).
+            Person(parent, name, at, 180f, Suit, Suit, 1.12f, look =>
+            {
+                look.Build = 1.15f;
+                look.Sunglasses = true;
+                look.Tie = true;
+                look.TieColor = new Color(0.8f, 0.2f, 0.18f);
+                look.Skin = name.EndsWith("_L") ? CharacterArt.SkinTones[4] : CharacterArt.SkinTones[7];
+                look.HairStyle = name.EndsWith("_L") ? CharacterArt.HairKind.Bald : CharacterArt.HairKind.Crop;
+                look.Hair = CharacterArt.DarkHair;
+            });
         }
 
         // The boss: a big man in a camel suit, bolo tie and white cowboy hat, behind his desk.
         private static void Boss(Transform parent, Vector3 at)
         {
-            var boss = Person(parent, "Boss", at, 180f, new Color(0.72f, 0.52f, 0.30f), new Color(0.42f, 0.30f, 0.2f), 1.22f);
-            var waist = new Vector3(0f, ChefWaist, 0f);
+            var boss = Person(parent, "Boss", at, 180f, new Color(0.72f, 0.52f, 0.30f), new Color(0.42f, 0.30f, 0.2f), 1.22f, look =>
+            {
+                look.Build = 1.15f;
+                look.Skin = CharacterArt.SkinTones[2];
+                look.HairStyle = CharacterArt.HairKind.Fringe;
+                look.Hair = CharacterArt.GreyHair[1];
+                look.Moustache = true;
+                look.Nose = CharacterArt.NoseKind.Big;
+            });
             var hat = Toon("OfficeHat", Cream);
-            Model(boss, "HatBrim", OfficeModel, "OfficeHatBrim", hat, waist, 0f);
-            Model(boss, "HatCrown", OfficeModel, "OfficeHatCrown", hat, waist, 0f);
-            Model(boss, "HatBand", OfficeModel, "OfficeHatBand", Toon("OfficeWalnut", Walnut), waist, 0f);
-            Block(boss, "Bolo", Toon("OfficeBrass", Brass), waist + new Vector3(0f, 0.36f, 0.27f), new Vector3(0.08f, 0.08f, 0.03f));
+            // The hat was made for the first chef's head (0.19 m, its centre 0.66 m above a 0.85 m
+            // waist): scale it to the kit's head (0.27 m, its centre at 1.36 m) about that centre.
+            const float oldHeadCentre = 0.66f, oldHeadRadius = 0.19f, newHeadRadius = 0.27f, newHeadCentre = 1.36f;
+            var hatScale = CharacterArt.Available ? newHeadRadius / oldHeadRadius : 1f;
+            var hatAt = CharacterArt.Available
+                ? new Vector3(0f, newHeadCentre - hatScale * oldHeadCentre, 0f)
+                : new Vector3(0f, ChefWaist, 0f);
+            Model(boss, "HatBrim", OfficeModel, "OfficeHatBrim", hat, hatAt, 0f, scale: hatScale);
+            Model(boss, "HatCrown", OfficeModel, "OfficeHatCrown", hat, hatAt, 0f, scale: hatScale);
+            Model(boss, "HatBand", OfficeModel, "OfficeHatBand", Toon("OfficeWalnut", Walnut), hatAt, 0f, scale: hatScale);
+            // A bolo tie at the collar.
+            var bolo = CharacterArt.Available ? new Vector3(0f, 1.0f, 0.33f) : new Vector3(0f, ChefWaist + 0.36f, 0.27f);
+            Block(boss, "Bolo", Toon("OfficeBrass", Brass), bolo, new Vector3(0.08f, 0.08f, 0.03f));
         }
 
         // The tailor's mannequin: the chef's own jacket on a stand, a size too big.
@@ -1083,8 +1138,18 @@ namespace Game.Editor
             var white = Toon("ChefJacket", new Color(0.97f, 0.97f, 0.95f));
             Shape(dummy, PrimitiveType.Cylinder, "Stand", Toon("OfficeWalnut", Walnut), new Vector3(0f, 0.45f, 0f), new Vector3(0.06f, 0.45f, 0.06f));
             Shape(dummy, PrimitiveType.Cylinder, "Foot", Toon("OfficeWalnut", Walnut), new Vector3(0f, 0.02f, 0f), new Vector3(0.5f, 0.02f, 0.5f));
-            Model(dummy, "Torso", ChefModel, "ChefTorso", white, new Vector3(0f, ChefWaist, 0f), 0f, scale: 1.18f);
-            Model(dummy, "Skirt", ChefModel, "ChefSkirt", white, new Vector3(0f, -0.1f, 0f), 0f, scale: 1.18f);
+            if (CharacterArt.Available)
+            {
+                // The kit's barrel jacket, its buttons and the hips under it, on the stand.
+                Model(dummy, "Torso", CharacterArt.Model, "CharTorso", white, new Vector3(0f, 0.78f, 0f), 0f, scale: 1.18f);
+                Model(dummy, "Buttons", CharacterArt.Model, "CharButtons", Toon("OfficeInk", Ink), new Vector3(0f, 0.78f, 0f), 0f, scale: 1.18f);
+                Model(dummy, "Skirt", CharacterArt.Model, "CharHips", white, new Vector3(0f, -0.06f, 0f), 0f, scale: 1.18f);
+            }
+            else
+            {
+                Model(dummy, "Torso", ChefModel, "ChefTorso", white, new Vector3(0f, ChefWaist, 0f), 0f, scale: 1.18f);
+                Model(dummy, "Skirt", ChefModel, "ChefSkirt", white, new Vector3(0f, -0.1f, 0f), 0f, scale: 1.18f);
+            }
             var collider = dummy.gameObject.AddComponent<CapsuleCollider>();
             collider.center = new Vector3(0f, 0.85f, 0f);
             collider.height = 1.7f;

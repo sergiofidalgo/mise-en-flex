@@ -64,6 +64,11 @@ namespace Game.Editor
             public Color[] Hairs = NaturalHair;
             /// <summary>Shades of the archetype's clothes; never a player colour.</summary>
             public Color[] Tops = System.Array.Empty<Color>();
+            /// <summary>Cloth patterns for the top (Game/Toon's _Pattern; 0 is plain, listed to weight it).</summary>
+            public int[] Patterns = { 0 };
+            public Color[] PatternColours = System.Array.Empty<Color>();
+            /// <summary>Pattern repeats per metre.</summary>
+            public float PatternScale = 10f;
             public float BigNose = 0.5f;
             public float Glasses;
             public float Sunglasses;
@@ -199,6 +204,8 @@ namespace Game.Editor
                     Hair = new Color(0.45f, 0.42f, 0.4f), HairStyle = HairKind.Crop, Moustache = true, Nose = NoseKind.Big,
                     Waddle = 2f,
                     Vary = new Variation { Hairs = GreyHair.Concat(NaturalHair.Take(3)).ToArray(), Moustache = 0.6f, Glasses = 0.2f,
+                        Patterns = new[] { 2, 2, 2, 0 }, PatternScale = 9f, // a flannel's plaid
+                        PatternColours = new[] { new Color(0.12f, 0.1f, 0.1f), new Color(0.9f, 0.86f, 0.78f) },
                         Tops = new[] { new Color(0.62f, 0.2f, 0.16f), new Color(0.24f, 0.36f, 0.24f), new Color(0.25f, 0.3f, 0.45f), new Color(0.5f, 0.38f, 0.22f) },
                         Props = new[] { PropKind.Newspaper }, NoProp = 0.5f } },
                 new Look { Name = "Office", Skin = new Color(0.55f, 0.36f, 0.24f), Top = new Color(0.27f, 0.29f, 0.34f),
@@ -206,12 +213,15 @@ namespace Game.Editor
                     Tie = true, TieColor = new Color(0.2f, 0.32f, 0.6f),
                     Pace = 1.15f, Stride = 1.1f, Waddle = 0.6f,
                     Vary = new Variation { HairStyles = new[] { HairKind.Crop, HairKind.Bun, HairKind.Bald }, Glasses = 0.35f, Moustache = 0.15f,
+                        Patterns = new[] { 0, 0, 4 }, PatternScale = 14f, PatternColours = new[] { new Color(0.7f, 0.7f, 0.72f) },
                         Tops = new[] { new Color(0.27f, 0.29f, 0.34f), new Color(0.2f, 0.24f, 0.38f), new Color(0.45f, 0.46f, 0.48f), new Color(0.36f, 0.28f, 0.22f) },
                         Props = new[] { PropKind.Satchel, PropKind.Backpack }, NoProp = 0.25f } },
                 new Look { Name = "DateNight", Skin = new Color(0.98f, 0.83f, 0.7f), Top = new Color(0.5f, 0.12f, 0.2f),
                     Bottom = new Color(0.98f, 0.83f, 0.7f), Dress = true, Hair = new Color(0.85f, 0.7f, 0.42f), HairStyle = HairKind.Bun,
                     Pace = 0.95f, Stride = 0.75f, LegSwing = 16f, Waddle = 2.5f,
                     Vary = new Variation { HairStyles = new[] { HairKind.Bun, HairKind.Crop, HairKind.Afro }, Glasses = 0.1f,
+                        Patterns = new[] { 0, 3, 3 }, PatternScale = 10f,
+                        PatternColours = new[] { new Color(0.95f, 0.92f, 0.85f), new Color(0.12f, 0.1f, 0.1f) },
                         Tops = new[] { new Color(0.5f, 0.12f, 0.2f), new Color(0.18f, 0.2f, 0.4f), new Color(0.12f, 0.36f, 0.28f), new Color(0.16f, 0.15f, 0.17f) },
                         Props = new[] { PropKind.Handbag }, NoProp = 0.3f } },
                 new Look { Name = "Tourist", Skin = new Color(0.86f, 0.62f, 0.45f), Top = new Color(0.88f, 0.9f, 0.95f),
@@ -219,6 +229,8 @@ namespace Game.Editor
                     HatAccent = new Color(0.2f, 0.27f, 0.5f), Hair = new Color(0.4f, 0.26f, 0.15f), Camera = true,
                     Pace = 0.85f, Stride = 0.9f, Waddle = 2f,
                     Vary = new Variation { Sunglasses = 0.4f,
+                        Patterns = new[] { 1, 1, 5, 0 }, PatternScale = 10f, // a breton, or gingham
+                        PatternColours = new[] { new Color(0.2f, 0.25f, 0.5f), new Color(0.6f, 0.18f, 0.15f) },
                         Tops = new[] { new Color(0.88f, 0.9f, 0.95f), new Color(0.7f, 0.8f, 0.92f), new Color(0.95f, 0.9f, 0.65f) },
                         Props = new[] { PropKind.Backpack }, NoProp = 0.5f } },
                 new Look { Name = "Retiree", Skin = new Color(0.94f, 0.76f, 0.64f), Top = new Color(0.7f, 0.6f, 0.45f),
@@ -227,6 +239,8 @@ namespace Game.Editor
                     Pace = 0.7f, Stride = 0.65f, LegSwing = 14f, Waddle = 2.5f, Bob = 0.01f,
                     Vary = new Variation { HairStyles = new[] { HairKind.Fringe, HairKind.Bald, HairKind.Crop }, Hairs = GreyHair,
                         Skins = SkinTones, Glasses = 0.7f, Moustache = 0.4f, BigNose = 0.7f,
+                        Patterns = new[] { 0, 0, 5 }, PatternScale = 8f,
+                        PatternColours = new[] { new Color(0.9f, 0.86f, 0.78f), new Color(0.35f, 0.25f, 0.18f) },
                         Tops = new[] { new Color(0.7f, 0.6f, 0.45f), new Color(0.45f, 0.45f, 0.3f), new Color(0.45f, 0.52f, 0.62f), new Color(0.45f, 0.2f, 0.2f) },
                         Props = new[] { PropKind.Cane }, NoProp = 0.2f } },
                 new Look { Name = "Gym", Skin = new Color(0.36f, 0.22f, 0.15f), Top = new Color(0.22f, 0.3f, 0.5f),
@@ -235,6 +249,7 @@ namespace Game.Editor
                     Pace = 1.25f, Stride = 1.25f, LegSwing = 30f, Waddle = 0.8f, Bob = 0.03f,
                     // No afro: it would cover the headband, the gym-goer's trademark.
                     Vary = new Variation { HairStyles = new[] { HairKind.Crop, HairKind.Bun, HairKind.Bald }, BigNose = 0.3f,
+                        Patterns = new[] { 0, 1 }, PatternScale = 6f, PatternColours = new[] { new Color(0.95f, 0.95f, 0.92f) },
                         Tops = new[] { new Color(0.22f, 0.3f, 0.5f), new Color(0.25f, 0.25f, 0.28f), new Color(0.55f, 0.15f, 0.15f), new Color(0.4f, 0.25f, 0.55f) },
                         Props = new[] { PropKind.Bottle }, NoProp = 0.2f } },
             };
@@ -434,6 +449,24 @@ namespace Game.Editor
                 for (var j = 0; j < palettes[i].Colours.Length; j++)
                     colours.GetArrayElementAtIndex(j).colorValue = palettes[i].Colours[j];
             }
+            // The clothes' pattern, on the same parts as their shade.
+            var patternList = roll.FindProperty("_patterns");
+            patternList.arraySize = 1;
+            var patterned = patternList.GetArrayElementAtIndex(0);
+            var clothes = Named("CharTorso", "CharHips", "CharDress", "CharArm");
+            var patternRenderers = patterned.FindPropertyRelative("Renderers");
+            patternRenderers.arraySize = clothes.Length;
+            for (var j = 0; j < clothes.Length; j++)
+                patternRenderers.GetArrayElementAtIndex(j).objectReferenceValue = clothes[j];
+            var kinds = patterned.FindPropertyRelative("Kinds");
+            kinds.arraySize = look.Vary.Patterns.Length;
+            for (var j = 0; j < look.Vary.Patterns.Length; j++)
+                kinds.GetArrayElementAtIndex(j).intValue = look.Vary.Patterns[j];
+            var patternColours = patterned.FindPropertyRelative("Colours");
+            patternColours.arraySize = look.Vary.PatternColours.Length;
+            for (var j = 0; j < look.Vary.PatternColours.Length; j++)
+                patternColours.GetArrayElementAtIndex(j).colorValue = look.Vary.PatternColours[j];
+            patterned.FindPropertyRelative("Scale").floatValue = look.Vary.PatternScale;
             roll.ApplyModifiedPropertiesWithoutUndo();
             rig.Roll = rig.Figure.GetComponent<Game.Presentation.CharacterRoll>();
         }

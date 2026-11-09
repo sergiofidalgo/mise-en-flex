@@ -7,8 +7,8 @@ namespace Game.Presentation
     /// <summary>
     /// Rolls the person inside a customer's archetype as they appear (concept v9.2: "the archetype
     /// is the clothes, the person is rolled"; the user's playtest found two identical customers):
-    /// skin tone, hair style and colour, the shade of their clothes, nose, glasses or a moustache,
-    /// and the archetype's props. Every option is already built on the body; this shows one of
+    /// skin tone, hair style and colour, the shade and pattern of their clothes, nose, glasses or
+    /// a moustache, and the archetype's props. Every option is already built on the body; this shows one of
     /// each and recolours by property block. Two people in the room at once never roll exactly
     /// the same. Cosmetic only.
     /// </summary>
@@ -32,13 +32,28 @@ namespace Game.Presentation
             public Color[] Colours;
         }
 
+        /// <summary>A cloth pattern for a set of parts (their clothes), printed by the toon shader.</summary>
+        [Serializable]
+        public struct Pattern
+        {
+            public Renderer[] Renderers;
+            [Tooltip("Game/Toon's _Pattern: 0 plain, 1 stripes, 2 plaid, 3 dots, 4 pinstripes, 5 gingham. List one twice to make it likelier.")]
+            public int[] Kinds;
+            public Color[] Colours;
+            [Min(0.1f)] public float Scale;
+        }
+
         [Tooltip("The archetype, so only people of the same archetype count as repeats.")]
         [SerializeField] private string _archetype = "";
         [SerializeField] private Choice[] _choices = Array.Empty<Choice>();
         [SerializeField] private Palette[] _palettes = Array.Empty<Palette>();
+        [SerializeField] private Pattern[] _patterns = Array.Empty<Pattern>();
 
         private const int Attempts = 24;
         private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
+        private static readonly int PatternId = Shader.PropertyToID("_Pattern");
+        private static readonly int PatternColorId = Shader.PropertyToID("_PatternColor");
+        private static readonly int PatternScaleId = Shader.PropertyToID("_PatternScale");
         // Who's in the room now, as archetype and rolled choices, so a new arrival can avoid them.
         private static readonly HashSet<int> InRoom = new HashSet<int>();
         private int _rolled;
@@ -97,6 +112,27 @@ namespace Game.Presentation
                         continue;
                     renderer.GetPropertyBlock(block);
                     block.SetColor(BaseColorId, palette.Colours[pick]);
+                    renderer.SetPropertyBlock(block);
+                }
+            }
+
+            foreach (var pattern in _patterns)
+            {
+                if (pattern.Kinds.Length == 0)
+                    continue;
+                var kind = pattern.Kinds[random.Next(pattern.Kinds.Length)];
+                var colour = pattern.Colours.Length > 0 ? random.Next(pattern.Colours.Length) : 0;
+                key = key * 31 + kind;
+                key = key * 31 + (kind == 0 ? 0 : colour);
+                foreach (var renderer in pattern.Renderers)
+                {
+                    if (renderer == null)
+                        continue;
+                    renderer.GetPropertyBlock(block);
+                    block.SetFloat(PatternId, kind);
+                    if (pattern.Colours.Length > 0)
+                        block.SetColor(PatternColorId, pattern.Colours[colour]);
+                    block.SetFloat(PatternScaleId, pattern.Scale);
                     renderer.SetPropertyBlock(block);
                 }
             }
