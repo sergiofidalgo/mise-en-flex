@@ -4,6 +4,20 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-09 — The opening runs in the office scene
+
+**User's call:** the street, the menu and the floor are one scene, the office's, rather than a menu scene handing over to the office (recommended for one unbroken camera move with nothing to load). Leaving for the kitchen stays simple: every joined player at the miniature table, then A.
+
+**Built:**
+- The save notice shows on first launch only.
+- The fly-through is about 9 s and skippable with A every time; the climb takes 5 s.
+- The menu's controller joins as player 1 when the camera lands.
+- How it's built: `docs/opening-flow.md`.
+
+**Not yet:** the office isn't the boot scene (`MainMenu.unity` still is), and the miniature doesn't load the kitchen yet.
+
+---
+
 ## 2026-11-09 — Up to four players
 
 **User's call:** the game supports up to four local players, in the office and the kitchen. It replaces "1–2 players, 3–4 a stretch goal" (2026-11-02). The office shows four join slots (opening flow).

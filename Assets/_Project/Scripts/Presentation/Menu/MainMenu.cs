@@ -45,6 +45,8 @@ namespace Game.Presentation.Menu
         [SerializeField] private RealismSettings _realism;
         [SerializeField] private ServiceConfig _service;
         [SerializeField] private string _kitchenScene = "Kitchen_Greybox";
+        [Tooltip("Start hidden and ignoring input, for a scene that shows the menu when it's ready (the office's opening, docs/opening-flow.md).")]
+        [SerializeField] private bool _startHidden;
 
         [Header("Feel")]
         [SerializeField, Range(0.1f, 1f)] private float _stickThreshold = 0.5f;
@@ -65,6 +67,18 @@ namespace Game.Presentation.Menu
         private int _settingRow;
         private float _nextStep;
         private bool _dirty = true;
+        private bool _shown = true;
+        private CanvasGroup _group;
+
+        /// <summary>
+        /// Raised with the save slot and whether it's continuing, when a scene takes over what happens
+        /// after a campaign is chosen (the office's opening climbs to the floor). With no listener, the
+        /// menu loads the kitchen as before.
+        /// </summary>
+        public event System.Action<int, bool> Launching;
+
+        /// <summary>The controller (or keyboard) that last pressed a button in the menu: the opening joins it as player 1.</summary>
+        public static InputDevice LastDevice { get; private set; }
 
         private void Start()
         {
@@ -73,6 +87,22 @@ namespace Game.Presentation.Menu
             ReadSlots();
             _item = _lastPlayed >= 0 ? Item.Continue : Item.NewCampaign;
             Build();
+            if (_startHidden)
+                SetShown(false, 0f);
+        }
+
+        /// <summary>
+        /// Shows or hides the menu: <paramref name="alpha"/> fades it, and while hidden it ignores input.
+        /// </summary>
+        public void SetShown(bool shown, float alpha)
+        {
+            _shown = shown;
+            if (_canvas == null)
+                return;
+            if (_group == null)
+                _group = _canvas.gameObject.AddComponent<CanvasGroup>();
+            _group.alpha = alpha;
+            _group.blocksRaycasts = shown;
         }
 
         /// <summary>
@@ -118,6 +148,8 @@ namespace Game.Presentation.Menu
 
         private void Update()
         {
+            if (!_shown)
+                return;
             ReadInput();
             if (!_dirty)
                 return;
@@ -259,6 +291,12 @@ namespace Game.Presentation.Menu
                 CampaignLaunch.Continue(slot);
             else
                 CampaignLaunch.StartNew(slot);
+            if (Launching != null)
+            {
+                _shown = false;
+                Launching(slot, continuing);
+                return;
+            }
             SceneManager.LoadScene(_kitchenScene);
         }
 
@@ -319,17 +357,23 @@ namespace Game.Presentation.Menu
             {
                 var button = face == Face.South ? pad.buttonSouth : face == Face.East ? pad.buttonEast : pad.buttonNorth;
                 if (button.wasPressedThisFrame)
+                {
+                    LastDevice = pad;
                     return true;
+                }
             }
             var keyboard = Keyboard.current;
             if (keyboard == null)
                 return false;
-            return face switch
+            var pressed = face switch
             {
                 Face.South => keyboard.xKey.wasPressedThisFrame || keyboard.enterKey.wasPressedThisFrame,
                 Face.East => keyboard.dKey.wasPressedThisFrame || keyboard.escapeKey.wasPressedThisFrame,
                 _ => keyboard.wKey.wasPressedThisFrame,
             };
+            if (pressed)
+                LastDevice = keyboard;
+            return pressed;
         }
 
         private static Vector2 Stick()

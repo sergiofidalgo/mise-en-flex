@@ -190,6 +190,7 @@ namespace Game.Editor
             framing.ApplyModifiedPropertiesWithoutUndo();
             camera.transform.SetPositionAndRotation(follow.Wanted(), Quaternion.Euler(55f, 0f, 0f));
             NightLighting(sun, camera); // the moon, the night haze, lamps on (OfficeBuilder.Lighting.cs)
+            AddOpening(camera, follow, manager, coop); // OfficeBuilder.Opening.cs: street, menu, climb, join
 
             GreyboxAssets.EnsureFolder(System.IO.Path.GetDirectoryName(ScenePath));
             EditorSceneManager.SaveScene(scene, ScenePath);

@@ -63,8 +63,46 @@ namespace Game.Editor
             // The opening's street, 120 m below the floor: looking along it, and up at the tower.
             Render(camera, new Vector3(40f, -118.2f, -24f), Quaternion.Euler(4f, -90f, 0f), Path.Combine(folder, "street_along.png"));
             Render(camera, new Vector3(14f, -116.5f, -36f), Quaternion.Euler(-12f, -20f, 0f), Path.Combine(folder, "street_lobby.png"));
-            Render(camera, new Vector3(32f, -70f, -95f), Quaternion.Euler(-14f, -16f, 0f), Path.Combine(folder, "street_menu_stop.png"));
+            OpeningFrames(camera, folder);
             Debug.Log($"[OfficeCapture] Saved to {folder}");
+        }
+
+        // The opening's flight and climb, sampled along the scene's own path, in the street's thinner haze.
+        private static void OpeningFrames(Camera camera, string folder)
+        {
+            var sequence = UnityEngine.Object.FindFirstObjectByType<OpeningSequence>();
+            if (sequence == null)
+                return;
+            var so = new SerializedObject(sequence);
+            var flight = ReadPoses(so.FindProperty("_flight"));
+            var climb = ReadPoses(so.FindProperty("_climb"));
+            var fog = so.FindProperty("_streetFog").vector2Value;
+            var officeFog = new Vector2(RenderSettings.fogStartDistance, RenderSettings.fogEndDistance);
+            RenderSettings.fogStartDistance = fog.x;
+            RenderSettings.fogEndDistance = fog.y;
+            foreach (var t in new[] { 0f, 0.25f, 0.4f, 0.5f, 0.6f, 0.75f, 0.875f, 1f })
+            {
+                var pose = OpeningPath.Sample(flight, t);
+                Render(camera, pose.Position, pose.Rotation, Path.Combine(folder, $"opening_flight_{Mathf.RoundToInt(t * 100):000}.png"));
+            }
+            var path = new CameraPose[climb.Length + 1];
+            path[0] = flight[flight.Length - 1];
+            climb.CopyTo(path, 1);
+            for (var i = 1; i < path.Length; i++)
+                Render(camera, path[i].Position, path[i].Rotation, Path.Combine(folder, $"opening_climb_{i}.png"));
+            RenderSettings.fogStartDistance = officeFog.x;
+            RenderSettings.fogEndDistance = officeFog.y;
+        }
+
+        private static CameraPose[] ReadPoses(SerializedProperty list)
+        {
+            var poses = new CameraPose[list.arraySize];
+            for (var i = 0; i < poses.Length; i++)
+            {
+                var item = list.GetArrayElementAtIndex(i);
+                poses[i] = new CameraPose(item.FindPropertyRelative("Position").vector3Value, item.FindPropertyRelative("Target").vector3Value);
+            }
+            return poses;
         }
 
         private static void Render(Camera camera, Vector3 position, Quaternion rotation, string file)

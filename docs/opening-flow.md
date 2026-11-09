@@ -1,6 +1,6 @@
 # The opening — from launch to the office
 
-*Spec, 2026-11-09, from the user's outline and their answers. References: the skyline mockup (`10_menu_skyline.svg`), the main menu mockup (`Art/Direction/concepts/2026-11-08_main-menu_new-player.png`), `office-scene.md`. Not built yet.*
+*Spec, 2026-11-09, from the user's outline and their answers. References: the skyline mockup (`10_menu_skyline.svg`), the main menu mockup (`Art/Direction/concepts/2026-11-08_main-menu_new-player.png`), `office-scene.md`. Steps 2–8 built in `Office_Greybox` (2026-11-09); the office isn't the boot scene yet.*
 
 The first half-minute takes players from the city's streets up the boss's tower and into his floor, in one unbroken camera move. The menu and the office become one place: the game happens in the glowing penthouse you see from the street.
 
@@ -33,14 +33,21 @@ The fly-through, the menu's resting shot and the office have to be one city:
 
 ## The hand-over (step 7)
 
-The menu and the office are separate scenes. Proposed:
-1. **Load early:** while the menu is up, the office loads additively in the background, so it's ready when New campaign or Continue is chosen.
-2. **Climb the tower:** the camera rises up the tower's curtain wall. A short whoosh past the glass hides the moment the office's camera takes over.
-3. **Unload:** the menu scene is unloaded once the office's camera has taken over.
-4. **Land on the wide shot:** the office camera's pre-join wide shot is the landing, so the first thing players see is the whole floor and the elevator they'll come out of.
+**One scene** (user, 2026-11-09): the office scene holds the street, the menu and the floor, so there's nothing to load between them. The climb runs from wherever the camera is drifting at the stop, up the tower's glass, and turns onto the office camera's pre-join wide shot. The first thing players see is the whole floor and the elevator they'll come out of.
+
+## How it's built (2026-11-09)
+
+- **`OpeningSequence`** (Presentation/Office) runs the steps: save notice (first launch only, a `PlayerPrefs` flag; A skips it) → 0.5 s fade in → the flight, 9 s, eased (A skips, every time) → the menu fades in over a slow drift → the climb, 5 s → land. On landing the follow camera takes over, joining opens, and the menu's controller joins as player 1.
+- **The camera path** is a Catmull-Rom curve through poses set in `OfficeBuilder.Opening.cs` (`OpeningPath`, tested). The flight: the street at eye height, rising out of it while looking up the tower into the sky, back over the shops' roofs into the open corridor, then the stop.
+- **The haze** is thinner (90–360 m) in the street and over the menu, and eases back to the office's on the climb, so the tower reads from the street.
+- **`OpeningHud`**: the black veil for fades, the save card (turning icon and two lines), "A Skip" bottom right, and the four join slots in player colours along the bottom.
+- **`MainMenu`** starts hidden in the office (`_startHidden`). When the office listens to `Launching`, the menu hands over instead of loading the kitchen.
+- **Captures:** *Tools/Game/Capture Office* renders `opening_flight_*` and `opening_climb_*` along the path.
+
+**Still to do:** the miniature table loads the kitchen once every joined player is at it; the office becomes the boot scene and the old `MainMenu` scene retires; the join slots still show while players are on the floor (proposed: hide after a few seconds once everyone who'll play is in).
 
 ## Open questions
 
 1. **Logos:** which, and how long. Later.
 2. **Content note:** is there one, beside the save notice? Is there bad language in reviews at all, and would a "clean reviews" setting suit?
-3. **Loading state:** a loading moment may be needed after the save card or the climb if the office isn't ready (user's note). The save icon could double as the loading indicator.
+3. **Loading state:** a loading moment may be needed after the save card if the office scene takes a while to load (user's note). The save icon could double as the loading indicator. With one scene there's no load between the menu and the floor.
