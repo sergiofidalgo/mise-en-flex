@@ -178,7 +178,8 @@ namespace Game.Editor
             var chef = (GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/_Project/Prefabs/PF_Player.prefab"));
             Debug.Log($"[WashRing] Sink at {sink.transform.position}, forward {sink.transform.forward}.");
 
-            var turns = new[] { 0f, 45f };
+            // -90 turns the sink so the chef stands between it and the camera, back to the camera.
+            var turns = new[] { 0f, 45f, -90f };
             var states = new[] { ("good", new Vector2(0.08f, 0.05f), 1f, 0.6f), ("bad", new Vector2(-0.62f, 0.35f), 0f, 0.3f) };
             var start = sink.transform.rotation;
             Render(camera, target, sink.transform.position + Vector3.up * 0.9f, CloseHeight, null); // warm-up frame
@@ -276,12 +277,15 @@ namespace Game.Editor
             Debug.Log($"[WashRing] Variants captured to {folder}.");
         }
 
-        private static Texture2D RenderImage(Camera camera, RenderTexture target, Vector3 lookAt, float height)
+        private static Texture2D RenderImage(Camera camera, RenderTexture target, Vector3 lookAt, float height, bool faceCamera = true)
         {
             var back = (height - lookAt.y) / Mathf.Tan(Pitch * Mathf.Deg2Rad);
             camera.transform.SetPositionAndRotation(new Vector3(lookAt.x, height, lookAt.z - back), Quaternion.Euler(Pitch, 0f, 0f));
-            foreach (var view in Object.FindObjectsByType<SinkWashRingView>(FindObjectsSortMode.None))
-                view.FaceCamera();
+            if (faceCamera)
+            {
+                foreach (var view in Object.FindObjectsByType<SinkWashRingView>(FindObjectsSortMode.None))
+                    view.FaceCamera();
+            }
             camera.targetTexture = target;
             var request = new RenderPipeline.StandardRequest { destination = target };
             if (RenderPipeline.SupportsRenderRequest(camera, request))

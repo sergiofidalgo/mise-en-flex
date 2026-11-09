@@ -8,7 +8,8 @@
 //    ring away from it (shape as well as colour, for colour-blind players), and chevrons from it
 //    towards the centre while it's off.
 // The view turns the quad so UV up is screen up, which keeps the stick and the drawing in step
-// whatever way the sink faces. Depth-tested like any object: a chef in front hides it.
+// whatever way the sink faces. Not depth-tested: it shows over a chef standing in front of the
+// sink, so the game stays readable with their back to the camera.
 Shader "Game/FX/WashRing"
 {
     Properties
@@ -43,6 +44,9 @@ Shader "Game/FX/WashRing"
             Tags { "LightMode" = "UniversalForward" }
             Blend SrcAlpha OneMinusSrcAlpha
             ZWrite Off
+            // Drawn over whatever is in front, the washing chef above all (the user's call,
+            // 2026-11-09): a chef with their back to the camera would otherwise hide the game.
+            ZTest Always
             Cull Off
 
             HLSLPROGRAM
@@ -125,7 +129,8 @@ Shader "Game/FX/WashRing"
                 half4 acc = half4(0, 0, 0, 0);
 
                 // Backing: a soft dark disc out to the rim, so the game reads on bright water.
-                Over(acc, half3(0.05, 0.07, 0.10), 0.4 * Disc(r, scale));
+                // Light, since over the chef's toque it would read as a grey patch.
+                Over(acc, half3(0.05, 0.07, 0.10), 0.2 * Disc(r, scale));
 
                 // Centre target: a pale disc, a white ring at its edge, and an arc in the good colour
                 // that fills clockwise while the soap is held there (_Hold), so "stay here" reads.

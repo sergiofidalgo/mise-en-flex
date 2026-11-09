@@ -4,6 +4,19 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-09 — The wash ring is drawn over the chef
+
+**User's call (from a mockup):** with the chef's back to the camera, their toque hid most of the ring, centre included (captured with the sink turned −90°). The ring is now drawn over whatever stands in front of it, the washing chef above all, instead of being moved off the water or the chef faded.
+
+- **Scope:** station rings only (`Game/FX/WashRing` ignores depth). This is a deliberate exception to 2026-11-07, which stopped the hob's heat pips drawing over things in front of them; the pips are unchanged. The sink is always in the play area, so in practice only people and the tap come between it and the camera.
+- The dark backing under the ring is lighter (20%, was 40%), as over the toque it read as a grey patch.
+- The station-is-the-interface rule (above) changes accordingly: a station's ring stays readable over the chef using it.
+- Considered and dropped: centring the ring on the tap's base (the tap covers the centre and half the ring leaves the basin), shifting it back in the basin, standing it up at the tap, fading the chef, and the chef stepping aside.
+
+**Reason:** the game must read from any side of the sink, at any of the layout editor's rotations.
+
+---
+
 ## 2026-11-09 — Washing: hold the centre, then correct three pushes
 
 **User's call:** a plate is washed by bringing the soap to the centre and steadying it there; the game then pushes it off in a random direction to be corrected, three times, so every plate gets tilted every way. The ring keeps its size with a soft outline and thicker segments, and the suds cloud in the middle goes.
