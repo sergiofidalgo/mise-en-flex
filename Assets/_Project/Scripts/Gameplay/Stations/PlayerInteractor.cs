@@ -96,7 +96,7 @@ namespace Game.Gameplay.Stations
         /// <summary>True while the Review dashboard is up: the chef waits.</summary>
         public bool IsReviewing => _services != null && _services.Days.Phase == DayPhase.Review;
 
-        public bool CanAct => _services != null && !IsManaging &&
+        public bool CanAct => _services != null && !IsManaging && !_services.Paused &&
             (_services.Days.Phase == DayPhase.Prep || _services.Days.Phase == DayPhase.Service);
 
         /// <summary>
@@ -149,7 +149,7 @@ namespace Game.Gameplay.Stations
 
         private void Update()
         {
-            if (_interactables == null || IsBusy || IsManaging)
+            if (_interactables == null || IsBusy || IsManaging || _services.Paused)
                 return;
 
             SetTarget(FindTarget());

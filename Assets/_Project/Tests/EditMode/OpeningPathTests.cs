@@ -35,6 +35,30 @@ namespace Game.Tests.EditMode
         }
 
         [Test]
+        public void EvenSamplingKeepsOnePaceThroughLongAndShortStretches()
+        {
+            var uneven = new[]
+            {
+                new CameraPose(new Vector3(0f, 0f, 0f), Vector3.forward),
+                new CameraPose(new Vector3(0f, 0f, 90f), Vector3.forward),
+                new CameraPose(new Vector3(0f, 0f, 100f), Vector3.forward),
+            };
+            // 90 m then 10 m: nine tenths of the way along is the middle pose.
+            Assert.That(Vector3.Distance(OpeningPath.SampleEven(uneven, 0.9f).Position, uneven[1].Position), Is.LessThan(1e-3f));
+            float slowest = float.MaxValue, fastest = 0f;
+            var last = OpeningPath.SampleEven(uneven, 0f).Position;
+            for (var t = 0.02f; t <= 1.0001f; t += 0.02f)
+            {
+                var now = OpeningPath.SampleEven(uneven, t).Position;
+                var step = Vector3.Distance(now, last);
+                slowest = Mathf.Min(slowest, step);
+                fastest = Mathf.Max(fastest, step);
+                last = now;
+            }
+            Assert.That(fastest / slowest, Is.LessThan(3f), "no sudden dash or crawl");
+        }
+
+        [Test]
         public void EasesInAndOut()
         {
             Assert.That(OpeningPath.Ease(0f), Is.EqualTo(0f));

@@ -89,6 +89,26 @@ namespace Game.Presentation.Office.Ambience
             return (0f, false);
         }
 
+        /// <summary>
+        /// A camera flash going off (the avenue's selfies and photographers): once in each
+        /// <paramref name="period"/> seconds, at a different moment each time, a bright pop that dies
+        /// away in a fifth of a second; about one in three is a phone's double flash. 0 between.
+        /// </summary>
+        public static float Flash(float time, float period, float seed)
+        {
+            period = Mathf.Max(period, 1f);
+            var cycle = Mathf.FloorToInt(time / period);
+            var into = time - cycle * period;
+            var start = Hash01(cycle, seed) * (period - 0.6f);
+            var pop = Pop(into - start);
+            if (Hash01(cycle + 7, seed + 3f) < 0.35f)
+                pop = Mathf.Max(pop, Pop(into - start - 0.28f)); // the photo after the pre-flash
+            return pop;
+        }
+
+        // A flash from its first instant: full at once, fading over about 0.2 s.
+        private static float Pop(float since) => since < 0f || since > 0.22f ? 0f : Mathf.Exp(-since / 0.05f);
+
         // A repeatable 0–1 from a whole number and a seed.
         private static float Hash01(int n, float seed)
         {

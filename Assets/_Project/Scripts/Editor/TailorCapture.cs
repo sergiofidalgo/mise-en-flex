@@ -15,10 +15,10 @@ using UnityEngine.Rendering;
 namespace Game.Editor
 {
     /// <summary>
-    /// A still of the tailor's room as four players dress at once (the user asked to see it): four
-    /// chefs on the ladders, each browsing a different section, their cards docked top right with
-    /// their portraits, and the tailor measuring one of them. Staged by hand, as the cards and the
-    /// tailor only run in Play mode. Nothing is saved to the scene.
+    /// A still of the tailor's room with the player bar in every state (the user asked to see it):
+    /// players 1 and 2 dressing on ladders (their cards grown), player 3 joined and standing at a
+    /// ladder's foot (a compact card), player 4's slot empty (translucent), and the tailor measuring
+    /// player 2. Staged by hand, as the bar and the tailor only run in Play mode. Nothing is saved.
     /// Batch mode: -executeMethod Game.Editor.TailorCapture.CaptureFromCommandLine -captureFolder &lt;folder&gt;
     /// </summary>
     public static class TailorCapture
@@ -56,37 +56,43 @@ namespace Game.Editor
             EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
             var coop = AssetDatabase.LoadAssetAtPath<CoopSettings>(CoopSettingsPath);
             var ladders = UnityEngine.Object.FindObjectsByType<TailorPlinth>(FindObjectsSortMode.None).OrderBy(l => l.transform.position.x).ToList();
-            var hud = UnityEngine.Object.FindFirstObjectByType<TailorCardHud>();
+            var hud = UnityEngine.Object.FindFirstObjectByType<PlayerBarHud>();
             if (ladders.Count == 0 || hud == null)
                 throw new InvalidOperationException("No tailor in the office: run Tools/Game/Build Office.");
 
-            // Four chefs, each browsing a different section; one is looking at a locked hat.
+            // Three players: two dressing (one looking at a locked hat), one just standing at a foot.
             var stagings = new[]
             {
-                (Look: new ChefLook { Hat = "toque", Face = "crop", Skin = "skin1", Outfit = "whites" }, Section: WardrobeModule.Hat, Browse: "headdress"),
-                (Look: new ChefLook { Hat = "cap", Face = "afro", Skin = "skin6", Outfit = "linecook", Accessory = "glasses" }, Section: WardrobeModule.Outfit, Browse: "wok"),
-                (Look: new ChefLook { Hat = "bandana", Face = "ginger", Skin = "skin0", Outfit = "pastry" }, Section: WardrobeModule.Accessory, Browse: "aviators"),
-                (Look: new ChefLook { Hat = "headband", Face = "darkbun", Skin = "skin4", Outfit = "whites" }, Section: WardrobeModule.Face, Browse: "moustache"),
+                (Look: new ChefLook { Hat = "toque", Face = "crop", Skin = "skin1", Outfit = "whites" }, Dressing: true, Section: WardrobeModule.Hat, Browse: "headdress"),
+                (Look: new ChefLook { Hat = "cap", Face = "afro", Skin = "skin6", Outfit = "linecook", Accessory = "glasses" }, Dressing: true, Section: WardrobeModule.Outfit, Browse: "wok"),
+                (Look: new ChefLook { Hat = "bandana", Face = "ginger", Skin = "skin0", Outfit = "pastry" }, Dressing: false, Section: WardrobeModule.Hat, Browse: ""),
             };
-            var dressers = new List<(ChefWardrobe, Transform, TailorSession, int)>();
+            var staged = new Dictionary<int, (Transform, TailorSession)>();
             var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(PlayerPrefabPath);
             for (var i = 0; i < stagings.Length && i < ladders.Count; i++)
             {
-                var (look, section, browse) = stagings[i];
+                var (look, dressing, section, browse) = stagings[i];
                 var chef = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
-                chef.transform.SetPositionAndRotation(ladders[i].TopPoint, Quaternion.Euler(0f, 180f, 0f));
+                chef.transform.SetPositionAndRotation(dressing ? ladders[i].TopPoint : ladders[i].FootPoint, Quaternion.Euler(0f, 180f, 0f));
                 var tint = new MaterialPropertyBlock();
                 tint.SetColor("_BaseColor", coop.GetPlayerColor(i));
                 var tinted = new SerializedObject(chef.GetComponent<PlayerVisual>()).FindProperty("_tintedRenderers");
                 for (var t = 0; t < tinted.arraySize; t++)
                     ((Renderer)tinted.GetArrayElementAtIndex(t).objectReferenceValue)?.SetPropertyBlock(tint);
 
+                var wardrobe = chef.GetComponentInChildren<ChefWardrobe>(true);
+                if (!dressing)
+                {
+                    wardrobe.Show(look);
+                    staged[i] = (chef.transform, null);
+                    continue;
+                }
                 var session = new TailorSession(look, Array.Empty<string>());
                 while (session.Module != section)
                     session.StepModule(1);
                 for (var step = 0; step < 20 && session.Preview.Get(section) != browse; step++)
                     session.StepItem(1);
-                dressers.Add((chef.GetComponentInChildren<ChefWardrobe>(true), chef.transform, session, i));
+                staged[i] = (chef.transform, session);
             }
 
             // The tailor beside the second ladder, facing its chef, as if measuring.
@@ -112,14 +118,14 @@ namespace Game.Editor
             var target = new RenderTexture(Width, Height, 24, RenderTextureFormat.ARGB32, RenderTextureReadWrite.sRGB) { antiAliasing = 4 };
             camera.targetTexture = target;
 
-            var portraits = hud.PreviewDressing(dressers, camera);
+            var portraits = hud.PreviewBar(staged, camera);
             for (var pass = 0; pass < 2; pass++) // the first frame compiles shaders
             {
                 foreach (var portrait in portraits)
                     Draw(portrait, portrait.targetTexture);
                 Draw(camera, target);
             }
-            Save(target, Path.Combine(folder, "tailor_four_dressing.png"));
+            Save(target, Path.Combine(folder, "tailor_player_bar.png"));
 
             target.Release();
             UnityEngine.Object.DestroyImmediate(camera.gameObject);

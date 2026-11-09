@@ -32,6 +32,7 @@ namespace Game.Editor
         private const string SfxFolder = "Assets/_Project/Audio/SFX";
         private const string OfficeModel = "SM_Office";
         private const string CityModel = "SM_City";
+        private const string CarsModel = "SM_Cars";
         private const string ChefModel = "SM_Chef";
         private const int Seed = 2611_09;
 
@@ -191,6 +192,7 @@ namespace Game.Editor
             framing.ApplyModifiedPropertiesWithoutUndo();
             camera.transform.SetPositionAndRotation(follow.Wanted(), Quaternion.Euler(55f, 0f, 0f));
             NightLighting(sun, camera); // the moon, the night haze, lamps on (OfficeBuilder.Lighting.cs)
+            NightSky(camera); // OfficeBuilder.Sky.cs: stars, the moon, clouds, planes
             AddOpening(camera, follow, manager, coop); // OfficeBuilder.Opening.cs: street, menu, climb, join
 
             GreyboxAssets.EnsureFolder(System.IO.Path.GetDirectoryName(ScenePath));
@@ -795,7 +797,7 @@ namespace Game.Editor
             var city = new GameObject("City").transform;
             BossTower(city);
 
-            var placed = new List<Rect> { new Rect(West - 3f, South - 3f, East - West + 6f, TerraceNorth - South + 6f), StreetBounds, OpeningCorridor };
+            var placed = new List<Rect> { new Rect(West - 3f, South - 3f, East - West + 6f, TerraceNorth - South + 6f), StreetBounds, AvenueBounds };
             BuildStreet(city); // OfficeBuilder.Street.cs: the street at the tower's foot, where the opening starts
             var near = new GameObject("NearRoofs").transform;
             near.SetParent(city, false);
@@ -909,56 +911,6 @@ namespace Game.Editor
                     var sill = Model(building, "Sill", CityModel, "CityWindowSill", trim, face, 0f);
                     if (frame != null) frame.transform.localRotation = turn;
                     if (sill != null) sill.transform.localRotation = turn;
-                }
-            }
-        }
-
-        // The boss's own tower under the floor (user's note, 2026-11-09: if the penthouse is glass
-        // on all four sides, so is the rest of the tower). A curtain wall: on every floor a band of
-        // tinted glass between bronze mullions, over a sandstone spandrel, with some offices lit
-        // behind the glass. The camera sees the front and, at an angle, both sides.
-        private static void BossTower(Transform city)
-        {
-            var tower = new GameObject("BossTower").transform;
-            tower.SetParent(city, false);
-            var width = East - West + 0.6f;
-            var depth = TerraceNorth - South + 0.6f;
-            var middle = (South + TerraceNorth) / 2f;
-            var spandrel = Toon("OfficeTowerStone", new Color(0.66f, 0.55f, 0.43f));
-            var bronze = Toon("OfficeTowerBronze", new Color(0.45f, 0.32f, 0.2f));
-            var lit = WindowArt.LitWindows()[2]; // offices, behind the curtain wall
-            // The core, set back behind the modelled top floors, and the curtain wall all the way down
-            // to the street (the opening climbs it): a painted, tiled facade with lit offices.
-            var core = Cube(tower, "Core", WindowArt.TowerCurtain(), new Vector3(0f, -CityDepth, middle), new Vector3(width - 0.2f, CityDepth - 0.8f, depth - 0.2f));
-            core.GetComponent<Renderer>().sharedMaterial.SetTextureScale("_BaseMap", new Vector2((width - 0.2f) / (8f * 2.2f), (CityDepth - 0.8f) / (8f * 3.4f)));
-            Block(tower, "Cornice", Toon("OfficeBrass", Brass), new Vector3(0f, -1.3f, middle), new Vector3(width + 0.5f, 0.5f, depth + 0.5f));
-            Block(tower, "CorniceDark", Toon("OfficeWalnut", Walnut), new Vector3(0f, -0.8f, middle), new Vector3(width + 0.3f, 0.4f, depth + 0.3f));
-
-            const float storey = 3.4f;
-            const float bay = 2.2f;
-            for (var f = 0; f < 9; f++)
-            {
-                var top = -1.4f - f * storey;
-                // A sandstone spandrel band round all four sides at each floor's slab.
-                Block(tower, "Spandrel", spandrel, new Vector3(0f, top - 0.9f, middle), new Vector3(width + 0.12f, 0.9f, depth + 0.12f));
-                foreach (var side in new[] { 0, -1, 1 })
-                {
-                    var span = side == 0 ? width : depth;
-                    for (var a = -span / 2f + bay; a < span / 2f - 0.5f; a += bay)
-                    {
-                        var face = side == 0 ? new Vector3(a, 0f, middle - depth / 2f) : new Vector3(side * width / 2f, 0f, middle + a);
-                        var mullion = side == 0 ? new Vector3(0.12f, storey - 0.9f, 0.12f) : new Vector3(0.12f, storey - 0.9f, 0.12f);
-                        Block(tower, "Mullion", bronze, face + Vector3.up * (top - storey), mullion);
-                        // Some offices still lit behind the glass.
-                        if (_random.NextDouble() < 0.3)
-                        {
-                            var outward = side == 0 ? Vector3.back : Vector3.right * side;
-                            var along = side == 0 ? Vector3.right : Vector3.forward;
-                            var turn = Quaternion.Euler(0f, side == 0 ? 0f : side * -90f, 0f);
-                            Shape(tower, PrimitiveType.Quad, "LitOffice", lit, face + along * (bay / 2f) + outward * 0.02f + Vector3.up * (top - 0.9f - (storey - 0.9f) / 2f),
-                                new Vector3(bay - 0.3f, storey - 1.3f, 1f), turn);
-                        }
-                    }
                 }
             }
         }

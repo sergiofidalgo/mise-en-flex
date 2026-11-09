@@ -216,5 +216,19 @@ namespace Game.Simulation.Days
         public void Clear() => _ready.Clear();
 
         public bool IsEveryoneReady(int playerCount) => playerCount > 0 && _ready.Count >= playerCount;
+
+        /// <summary>
+        /// Whether everyone here is ready: only these players count, so one whose controller is
+        /// lost doesn't hold the day up (decision 2026-11-09). Nobody here is never ready.
+        /// </summary>
+        public bool IsEveryoneReady(IReadOnlyCollection<int> present)
+        {
+            if (present.Count == 0)
+                return false;
+            foreach (var player in present)
+                if (!_ready.Contains(player))
+                    return false;
+            return true;
+        }
     }
 }

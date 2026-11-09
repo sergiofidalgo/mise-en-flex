@@ -14,7 +14,7 @@ The first half-minute takes players from the city's streets up the boss's tower 
 | 4 | **The fly-through**: the camera starts low in a busy street at night and rises through the city: clutter, movement, details, graffiti, people walking, birds, lit windows and people passing behind them | Agreed; starts in a street, not a park (user, 2026-11-09). 8–10 s. Uses the office's `Ambience` life (walkers, flocks, windows, silhouettes). **Skippable every time** with A, which jumps to step 5 (user, 2026-11-09). |
 | 5 | **The stop**: the camera eases to rest with the boss's tower framed on the left, the sign hanging in front of its spire, and the menu fades in | Agreed. The framing of the main menu mockup. The lit penthouse is the teaser. |
 | 6 | **The menu**: New campaign or Continue (Free kitchen fades to the kitchen) | Agreed. The menu's city needs reworking with this in mind (user, 2026-11-09): see *The city* below. |
-| 7 | **The climb**: the menu fades out, the camera rises up the tower's glass and lands on the office's wide shot, looking at the elevator | Agreed. See *The hand-over* below. |
+| 7 | **The climb**: the menu fades out, the camera carries on up the avenue, rises up the tower's glass beside the glass lift with a chef riding up in it, and tips over onto the office's wide shot, looking at the elevator | Agreed. See *The hand-over* below. |
 | 8 | **Joining**: a hint to press A; each join rings the elevator and a chef steps out | **Four join slots** (user, 2026-11-09). Whoever drove the menu is already player 1 on that controller, so they don't press A twice; the other three press A (user left it to us, 2026-11-09). |
 | 9 | **Free play** on the floor | Proposed. Later, the guided first day (Phase 8) starts here: the boss's call or a first task. |
 
@@ -23,11 +23,16 @@ The first half-minute takes players from the city's streets up the boss's tower 
 ## The city
 
 The fly-through, the menu's resting shot and the office have to be one city:
-- **The same tower:** the boss's tower, with the penthouse floor as built in `Office_Greybox`, a lit band at the top and a spire, stands where the menu's camera can frame it.
-- **A street to start in** (user, 2026-11-09), dense with clutter, movement and detail, built from the city kit and the office's `Ambience` life:
+- **The avenue** (the user's diagram, 2026-11-09): a straight road running south from the tower's street, shops on both sides, the tower standing at its end. The camera comes in at the far end, glides up the middle of the road at eye height and stops in the road with the tower straight ahead.
+- **The same tower:** the boss's tower, with the penthouse floor as built in `Office_Greybox`. It's glass all the way down, every floor lit alike, in the city's own style: a stone podium, stone piers, ledges, bronze mullions and louvred plant floors. A glass lift runs up its front.
+- **The sky** (user, 2026-11-09: "the sky is super important too"): stars that twinkle, a big moon with a halo in the open sky beside the tower's top, slow clouds silvered near the moon, and airliners crossing high over the city, blinking.
+- **Hustle all along the avenue** (user, 2026-11-09), dense with clutter, movement and detail, built from the city kit and the office's `Ambience` life:
   - **clutter:** parked cars and scooters, bins and bin bags, newspaper boxes, fire hydrants, café tables, crates;
   - **movement:** people walking and waiting, a delivery rider, cars passing with their lights, pigeons, steam from a manhole;
   - **detail:** shop awnings and lit shopfronts, neon signs, fire escapes, string lights, posters;
+  - **signs:** blade signs over the sidewalks, with neon words (BAR, NOODLES, HOTEL...) or lit boxes with a logo (a ramen bowl, a cocktail, a slice...); wall neon with made-up shop names and icons, its colour washing the wall; "OPEN" and "WE'RE OPEN" in the shop windows;
+  - **people:** every 24 m a moment: a selfie, a portrait on a phone, friends chatting, a queue behind a rope, a tourist photographing the tower; flashes going off; a food market on a little square; twice as many walkers;
+  - **cars:** sedans, hatchbacks, taxis and vans (`SM_Cars`), the moving ones lighting the road ahead;
   - **graffiti:** tags and murals on shutters and side walls, painted textures in the game's colours, never real-world logos or words that read as brands.
 - **The office's city** (the near roofs and their life) and the menu's city become one layout seen from two heights, not two different cities.
 
@@ -37,9 +42,10 @@ The fly-through, the menu's resting shot and the office have to be one city:
 
 ## How it's built (2026-11-09)
 
-- **`OpeningSequence`** (Presentation/Office) runs the steps: save notice (first launch only, a `PlayerPrefs` flag; A skips it) → 0.5 s fade in → the flight, 9 s, eased (A skips, every time) → the menu fades in over a slow drift → the climb, 5 s → land. On landing the follow camera takes over, joining opens, and the menu's controller joins as player 1.
-- **The camera path** is a Catmull-Rom curve through poses set in `OfficeBuilder.Opening.cs` (`OpeningPath`, tested). The flight: the street at eye height, rising out of it while looking up the tower into the sky, back over the shops' roofs into the open corridor, then the stop.
-- **The haze** is thinner (90–360 m) in the street and over the menu, and eases back to the office's on the climb, so the tower reads from the street.
+- **`OpeningSequence`** (Presentation/Office) runs the steps: save notice (first launch only, a `PlayerPrefs` flag; A skips it) → 0.5 s fade in → the flight, 15 s, eased (A skips, every time) → the menu fades in over a slow drift → the climb, 13 s → land. The user found the first version (9 s and 5 s) rushed. On landing the follow camera takes over, joining opens, the menu's controller joins as player 1, the lift's chef has gone in (the empty cab sinks back down), and the street level switches off, since nobody sees it from the floor.
+- **The camera path** is a centripetal Catmull-Rom curve through poses set in `OfficeBuilder.Opening.cs` (`OpeningPath`, tested). It's sampled by distance, so the pace is even however far apart the poses are. The flight runs up the avenue at eye height. The climb continues up the avenue, crosses the tower's street, and goes up the face to the top.
+- **The lift** (`OpeningElevator`) rides just above the camera's height on the climb, so the chef stays in frame.
+- **The haze** is thinner (170–650 m) in the street and over the menu, and eases back to the office's on the climb, so the tower reads from the street.
 - **`OpeningHud`**: the black veil for fades, the save card (turning icon and two lines), "A Skip" bottom right, and the four join slots in player colours along the bottom.
 - **`MainMenu`** starts hidden in the office (`_startHidden`). When the office listens to `Launching`, the menu hands over instead of loading the kitchen.
 - **Captures:** *Tools/Game/Capture Office* renders `opening_flight_*` and `opening_climb_*` along the path.

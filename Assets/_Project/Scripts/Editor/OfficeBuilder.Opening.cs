@@ -15,25 +15,33 @@ namespace Game.Editor
     /// </summary>
     public static partial class OfficeBuilder
     {
-        // From the street at the tower's foot (OfficeBuilder.Street.cs) up past the rooftops; the
-        // last pose is the stop, with the tower on the left third and its lit floor in frame.
+        // The user's diagram (2026-11-09): in at the far end of the avenue at eye height, gliding
+        // up the middle of the road (clear of both traffic lanes) through its hustle, to stop in the
+        // road with the tower straight ahead at the avenue's end and the menu over it. The last pose
+        // is the stop. Heights are above the street (OfficeBuilder.Street.cs, 120 m below the floor).
         private static readonly CameraPose[] FlightPoses =
         {
-            new CameraPose(new Vector3(42f, -118.4f, -23.5f), new Vector3(0f, -118f, -23.5f)),
-            new CameraPose(new Vector3(22f, -116.8f, -25f), new Vector3(-10f, -116f, -21f)),
-            // Rising out of the street, looking up the tower's glass into the sky...
-            new CameraPose(new Vector3(8f, -110f, -26f), new Vector3(-2f, -60f, -12f)),
-            // ...then back over the shops' roofs, into the open corridor (OpeningCorridor), the city opening up.
-            new CameraPose(new Vector3(34f, -80f, -80f), new Vector3(8f, -35f, -6f)),
-            new CameraPose(new Vector3(48f, -42f, -118f), new Vector3(14f, -14f, 2f)),
+            StreetPose(0.6f, 2.0f, -296f, 0.5f, 2.6f, -256f),
+            StreetPose(0.4f, 2.4f, -262f, 0.2f, 4.0f, -215f),
+            StreetPose(0.2f, 3.6f, -232f, 0f, 14f, -150f),
+            // The stop: a little above the crowd, looking up the avenue to the top of the tower.
+            StreetPose(0f, 6f, -205f, 0f, 34.7f, -105f),
         };
 
-        // Up the glass towards the floor, before the turn onto the follow camera's wide shot.
+        // After the menu: on up the avenue and over the tower's street, then up its glass, floor by
+        // floor, to the top, where the camera tips over onto the floor's wide shot (the landing is
+        // added by OpeningSequence: the follow camera's own view).
         private static readonly CameraPose[] ClimbPoses =
         {
-            new CameraPose(new Vector3(20f, -30f, -60f), new Vector3(0f, -10f, -12f)),
-            new CameraPose(new Vector3(6f, -6f, -30f), new Vector3(0f, 0f, -8f)),
+            StreetPose(0f, 9f, -130f, 0f, 60f, -14f),
+            StreetPose(0f, 14f, -50f, 0f, 70f, -14f),
+            StreetPose(0f, 30f, -30f, 0f, 38f, TowerFace),
+            StreetPose(0f, 80f, -29f, 0f, 84f, TowerFace),
+            StreetPose(0f, 110f, -29f, 0f, 116f, TowerFace),
         };
+
+        private static CameraPose StreetPose(float x, float height, float z, float tx, float targetHeight, float tz) =>
+            new CameraPose(new Vector3(x, -CityDepth + height, z), new Vector3(tx, -CityDepth + targetHeight, tz));
 
         private static void AddOpening(Camera camera, OfficeCamera follow, PlayerInputManager manager, CoopSettings coop)
         {
@@ -75,6 +83,8 @@ namespace Game.Editor
             sequence.FindProperty("_menu").objectReferenceValue = menu;
             sequence.FindProperty("_players").objectReferenceValue = manager;
             sequence.FindProperty("_hud").objectReferenceValue = hud;
+            sequence.FindProperty("_elevator").objectReferenceValue = Object.FindFirstObjectByType<OpeningElevator>();
+            sequence.FindProperty("_streetLevel").objectReferenceValue = GameObject.Find("City/Street");
             Poses(sequence.FindProperty("_flight"), FlightPoses);
             Poses(sequence.FindProperty("_climb"), ClimbPoses);
             sequence.ApplyModifiedPropertiesWithoutUndo();

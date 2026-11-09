@@ -877,7 +877,7 @@ namespace Game.Presentation.Hud
         {
             var canReply = !_choosingReply && SelectedReview() is ReviewRecord selected && selected.Reply < 0;
             var filtering = _tab == Tab.Reviews && _onFilters;
-            var state = $"{canReply}|{filtering}|{Services.Days.Day}|" + string.Join(",", PlayerInput.all.Select(p => $"{p.playerIndex}:{_dayLoop.Ready.IsReady(p.playerIndex)}"));
+            var state = $"{canReply}|{filtering}|{Services.Days.Day}|" + string.Join(",", PlayerInput.all.Select(p => $"{p.playerIndex}:{_dayLoop.Ready.IsReady(p.playerIndex)}:{_dayLoop.ControllerPause.IsLost(p.playerIndex)}"));
             if (state == _hintsShown)
                 return;
             _hintsShown = state;
@@ -922,9 +922,12 @@ namespace Game.Presentation.Hud
                 foreach (var player in PlayerInput.all.OrderBy(p => p.playerIndex))
                 {
                     var ready = _dayLoop.Ready.IsReady(player.playerIndex);
+                    var lost = _dayLoop.ControllerPause.IsLost(player.playerIndex); // not waited for
                     var colour = _settings.GetPlayerColor(player.playerIndex);
                     UiKit.Ellipse(_hints, "Cook", ready ? colour : Alpha(colour, 0.35f), x, 978f, 20f, 20f);
-                    var label = Label(SemiBold, _hints, ready ? Tr.Format("P{player} ready", ("player", player.playerIndex + 1)) : $"P{player.playerIndex + 1}", 19.5f, ready ? _wellLight : _quiet, x + 28f, 995f, 160f);
+                    var text = lost ? Tr.Format("P{player} controller lost", ("player", player.playerIndex + 1))
+                        : ready ? Tr.Format("P{player} ready", ("player", player.playerIndex + 1)) : $"P{player.playerIndex + 1}";
+                    var label = Label(SemiBold, _hints, text, 19.5f, ready ? _wellLight : _quiet, x + 28f, 995f, 220f);
                     x += 28f + UiKit.Width(label) + 24f;
                 }
             }

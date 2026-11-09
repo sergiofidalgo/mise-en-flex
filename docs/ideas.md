@@ -366,12 +366,3 @@ To work out when we get there: what scorching and spilling cost (quality, lost f
 ## Prefabs for the office's city (proposed 2026-11-09)
 
 *From the office's rooftop detail.* The office scene file is about 23 MB because every roof's machinery, window frame and person is written into it as separate objects. Making the roof kit (plant room, air conditioner, stack, vents, dish), the special roofs and the people into prefabs would shrink the scene to references, and make each piece editable in one place. Worth doing before the art phase or if the scene gets slow to open.
-
-
-## The same player slot in every scene (proposed 2026-11-09)
-
-*From raising the cap to four players.* Players join each scene afresh (office, kitchen), so `playerIndex` follows the order people press A in that scene. With four players, someone who was P3 in the office can easily become P2 in the kitchen, and take P2's colour and tailored look. Remembering each controller's slot (by device) from the office and rejoining it in the same slot would keep a player's colour and chef the same all day. It touches the join flow in every scene, so it's its own task.
-
-## A controller that drops out (proposed 2026-11-09)
-
-*From raising the cap to four players.* A Bluetooth controller that disconnects leaves its chef in the game, and the ready-up waits for them forever. With four controllers on macOS that's likely to happen. Options: pause with a "reconnect P3" card, or skip a missing player in the ready check after a few seconds. Needs the user's call on how it should feel.

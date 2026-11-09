@@ -1785,6 +1785,107 @@ def add_cylinder_y(bm, centre, radius, length, segments=16):
               centre=centre, axis_matrix=turn)
 
 
+def add_profile_y(bm, profile, half_width, y_centre=0.0):
+    """A side profile, (x, z) points going round counter-clockwise seen from -y, extruded across y
+    from y_centre - half_width to y_centre + half_width. Convex profiles only (one face per side)."""
+    near = [bm.verts.new((x, y_centre - half_width, z)) for x, z in profile]
+    far = [bm.verts.new((x, y_centre + half_width, z)) for x, z in profile]
+    bm.faces.new(near)
+    bm.faces.new(list(reversed(far)))
+    n = len(profile)
+    for i in range(n):
+        j = (i + 1) % n
+        bm.faces.new([near[i], far[i], far[j], near[j]])
+
+
+# The street's cars (user's note, 2026-11-09: "the cars could be a little more refined"): four
+# kinds in the same chunky toon style, along x with the front at +x like the old city car, origin
+# on the ground under the middle. Each is split by colour: Body (the paint), Glass, Trim (bumpers,
+# grille, arches, handles, window frames), Tyres, Hubs, Headlights, Taillights; the taxi has a Sign.
+CAR_KINDS = {
+    # length, width, deck height, cabin profile (x, z) from the deck up, wheel x positions
+    "Sedan": (4.5, 1.84, 1.02, [(-1.55, 1.02), (0.95, 1.02), (0.3, 1.58), (-0.95, 1.58), (-1.4, 1.2)], (-1.45, 1.4)),
+    "Taxi": (4.6, 1.86, 1.02, [(-1.55, 1.02), (1.0, 1.02), (0.35, 1.6), (-0.95, 1.6), (-1.4, 1.2)], (-1.5, 1.45)),
+    "Hatch": (3.9, 1.78, 1.0, [(-1.85, 1.0), (0.75, 1.0), (0.15, 1.6), (-1.75, 1.6), (-1.88, 1.25)], (-1.25, 1.2)),
+    "Van": (4.9, 1.98, 1.0, [(-2.4, 1.0), (1.35, 1.0), (0.75, 2.1), (-2.4, 2.1)], (-1.6, 1.55)),
+}
+
+
+def build_cars():
+    objects = []
+    for kind, (length, width, deck, cabin, wheels) in CAR_KINDS.items():
+        half = length / 2.0
+        body = bmesh.new()
+        # The lower body: a rounded slab from the sills to the shoulder line.
+        add_box(body, (length, width, deck - 0.32), (0.0, 0.0, 0.32 + (deck - 0.32) / 2.0), bevel=0.16)
+        # The cabin's pillars and roof: the cabin profile, a touch narrower, over the glass.
+        roof = [(x, z) for x, z in cabin]
+        add_profile_y(body, roof, width / 2.0 - 0.14)
+        # Mirrors at the front of the doors.
+        front_pillar = max(x for x, z in cabin if z <= deck + 0.01)
+        for side in (-1.0, 1.0):
+            add_box(body, (0.16, 0.18, 0.12), (front_pillar - 0.2, side * (width / 2.0 + 0.06), deck + 0.14), bevel=0.04)
+        objects.append(finish(f"Car{kind}Body", body))
+
+        # The glass: the cabin profile shrunk inside its pillars and stood a little proud of the
+        # sides and screens, so it shows as windows framed by the paint.
+        glass = bmesh.new()
+        cx = sum(x for x, z in cabin) / len(cabin)
+        cz = sum(z for x, z in cabin) / len(cabin)
+        inset = [(cx + (x - cx) * 0.94, cz + (z - cz) * 0.86 + 0.03) for x, z in cabin]
+        add_profile_y(glass, inset, width / 2.0 - 0.1)
+        objects.append(finish(f"Car{kind}Glass", glass))
+
+        trim = bmesh.new()
+        # Bumpers, front and back, wrapping a little round the corners.
+        for x in (half - 0.02, -half + 0.02):
+            add_box(trim, (0.24, width + 0.04, 0.24), (x, 0.0, 0.46), bevel=0.08)
+        # The grille between the headlights, and a pillar between the side windows.
+        add_box(trim, (0.06, width * 0.42, 0.2), (half + 0.01, 0.0, deck - 0.24), bevel=0.02)
+        add_box(trim, (0.12, width - 0.2, (max(z for x, z in cabin) - deck) * 0.75), (cx + 0.05, 0.0, deck + (max(z for x, z in cabin) - deck) * 0.45), bevel=0.02)
+        # Wheel arches: dark rings on the body sides round each wheel.
+        for x in wheels:
+            for side in (-1.0, 1.0):
+                add_cylinder_y(trim, (x, side * (width / 2.0) - (0.02 if side > 0 else 0.0), 0.4), 0.48, 0.02, segments=20)
+        # Door handles and a sill line.
+        for side in (-1.0, 1.0):
+            for x in (cx + 0.55, cx - 0.55) if kind != "Van" else (cx + 0.9,):
+                add_box(trim, (0.2, 0.04, 0.05), (x, side * (width / 2.0 + 0.01), deck - 0.12))
+            add_box(trim, (length - 1.2, 0.04, 0.06), (0.0, side * (width / 2.0 + 0.005), 0.36))
+        if kind == "Taxi":
+            for side in (-1.0, 1.0):  # the checker band along the doors
+                for k in range(10):
+                    add_box(trim, (0.16, 0.03, 0.08), (-1.3 + k * 0.32, side * (width / 2.0 + 0.012), deck - 0.3 + (k % 2) * 0.08))
+        objects.append(finish(f"Car{kind}Trim", trim))
+
+        tyres = bmesh.new()
+        hubs = bmesh.new()
+        for x in wheels:
+            for side in (-1.0, 1.0):
+                start = side * (width / 2.0) - (0.26 if side > 0 else 0.0) + (0.02 * side)
+                add_cylinder_y(tyres, (x, start, 0.38), 0.38, 0.24, segments=20)
+                hub_start = start - 0.01 if side < 0 else start + 0.01
+                add_cylinder_y(hubs, (x, hub_start, 0.38), 0.21, 0.26, segments=14)
+        objects.append(finish(f"Car{kind}Tyres", tyres))
+        objects.append(finish(f"Car{kind}Hubs", hubs))
+
+        lights = bmesh.new()
+        for y in (-1.0, 1.0):
+            add_ellipsoid(lights, (half - 0.02, y * width * 0.33, deck - 0.2), (0.06, 0.17, 0.11))
+        objects.append(finish(f"Car{kind}Headlights", lights))
+        tail = bmesh.new()
+        for y in (-1.0, 1.0):
+            add_box(tail, (0.06, 0.34, 0.16), (-half - 0.01, y * width * 0.34, deck - 0.2), bevel=0.02)
+        objects.append(finish(f"Car{kind}Taillights", tail))
+
+        if kind == "Taxi":
+            sign = bmesh.new()
+            top = max(z for x, z in cabin)
+            add_box(sign, (0.42, 0.9, 0.22), (cx, 0.0, top + 0.11), bevel=0.05)
+            objects.append(finish("CarTaxiSign", sign))
+    return objects
+
+
 def build_city():
     """The main menu's night city (the user's brief, 2026-11-08), in the kitchen's chunky toon style.
     Building parts the menu builder stretches to each building: a bevelled block, a cornice for the
@@ -2234,6 +2335,7 @@ def main():
         "SM_Container.fbx": build_container(),
         "SM_TrayRack.fbx": build_tray_rack(),
         "SM_City.fbx": build_city(),
+        "SM_Cars.fbx": build_cars(),
         "SM_Office.fbx": build_office(),
     }
     args = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []

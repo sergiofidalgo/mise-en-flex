@@ -61,7 +61,8 @@ namespace Game.Tests.PlayMode
             Assert.That(counter.TryExchangeTool(_chef), Is.True);
             yield return Wait(1.5f);
 
-            var anchor = _player.transform.Find("ToolAnchor");
+            // The anchor rides on the chef's figure since f762075, so it moves with the walk.
+            var anchor = _player.GetComponentsInChildren<Transform>(true).Single(t => t.name == "ToolAnchor");
             var view = ViewOf(knife);
             Assert.That(view.transform.parent, Is.SameAs(anchor));
             Assert.That(view.transform.position.y, Is.LessThan(anchor.position.y - 0.05f), "down at the belt, not up in the hand");

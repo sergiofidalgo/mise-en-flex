@@ -82,14 +82,35 @@ namespace Game.Editor
             RenderSettings.fogEndDistance = fog.y;
             foreach (var t in new[] { 0f, 0.25f, 0.4f, 0.5f, 0.6f, 0.75f, 0.875f, 1f })
             {
-                var pose = OpeningPath.Sample(flight, t);
+                var pose = OpeningPath.SampleEven(flight, t);
                 Render(camera, pose.Position, pose.Rotation, Path.Combine(folder, $"opening_flight_{Mathf.RoundToInt(t * 100):000}.png"));
             }
             var path = new CameraPose[climb.Length + 1];
             path[0] = flight[flight.Length - 1];
             climb.CopyTo(path, 1);
+            // The glass lift rides with the camera on the climb (OpeningElevator): put the cab where it would be.
+            var lift = UnityEngine.Object.FindFirstObjectByType<OpeningElevator>();
+            var liftSo = lift != null ? new SerializedObject(lift) : null;
+            void PlaceCab(float cameraHeight)
+            {
+                if (liftSo == null)
+                    return;
+                var cab = (Transform)liftSo.FindProperty("_cab").objectReferenceValue;
+                var y = Mathf.Clamp(cameraHeight + liftSo.FindProperty("_lead").floatValue, liftSo.FindProperty("_bottom").floatValue, liftSo.FindProperty("_top").floatValue);
+                cab.position = new Vector3(cab.position.x, y, cab.position.z);
+            }
             for (var i = 1; i < path.Length; i++)
+            {
+                PlaceCab(path[i].Position.y);
                 Render(camera, path[i].Position, path[i].Rotation, Path.Combine(folder, $"opening_climb_{i}.png"));
+            }
+            // Halfway between climb poses too, where the curve bends.
+            for (var i = 1; i <= 4; i++)
+            {
+                var pose = OpeningPath.SampleEven(path, i / 5f);
+                PlaceCab(pose.Position.y);
+                Render(camera, pose.Position, pose.Rotation, Path.Combine(folder, $"opening_climbing_{i * 20:000}.png"));
+            }
             RenderSettings.fogStartDistance = officeFog.x;
             RenderSettings.fogEndDistance = officeFog.y;
         }

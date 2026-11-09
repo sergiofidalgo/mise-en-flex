@@ -4,6 +4,22 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-10 — The opening runs up an avenue to the tower
+
+**User's notes (2026-11-09):**
+- From the user's diagram: the camera comes up an avenue that ends at the tower, stops in the road for the menu, then climbs the tower's face (user's choice of "up the face" over "over and down").
+- The movement was rushed, so the flight is now 15 s and the climb 13 s, at an even pace.
+- The floors weren't lit the same way. Every floor is now built and lit alike, and the tower is more detailed, in the city's style.
+- The whole street should hustle: signs, neon, a food market, portraits and selfies with flashes, crowds, and more refined cars.
+- A glass lift on the tower's front, with a chef riding up as the camera climbs.
+- The sky matters: stars, the moon, clouds and planes.
+
+**Reason:** the opening's first seconds sell the game's tone; the user wants the city to feel alive and the tower to be the destination all along.
+
+**Technical:** the street level switches off once the camera lands, so it costs nothing during play (the 60 fps budget with four players). How it's built: `docs/opening-flow.md`.
+
+---
+
 ## 2026-11-09 — The opening runs in the office scene
 
 **User's call:** the street, the menu and the floor are one scene, the office's, rather than a menu scene handing over to the office (recommended for one unbroken camera move with nothing to load). Leaving for the kitchen stays simple: every joined player at the miniature table, then A.
@@ -18,6 +34,28 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 - The office is the boot scene, followed by the kitchen; `MainMenu.unity` is out of builds.
 - The miniature table loads the kitchen once everyone is at it and someone presses A.
 - **The office's players carry into the kitchen** (user's call): same controllers, same order, no joining again.
+
+---
+
+## 2026-11-09 — A lost controller pauses the service
+
+**User's call** (of three options: pause in service only, always pause, never pause):
+- **During service,** a lost controller (battery, Bluetooth) stops the game. A card names who's missing: "Paused: P3, reconnect your controller". It adds "Press Menu to carry on without them" while someone is still playing.
+  - The game picks up as soon as the controller is back, on the same chef.
+  - If the others carry on without them, the game isn't paused again for that player until they come back and drop out again.
+- **In Plan, Prep and Review nothing pauses.** The ready-up leaves the missing player out, and the strip shows "P3 controller lost".
+
+**How:**
+- `ControllerPause` (Simulation, tested) holds the rule.
+- `DayLoop` feeds it each frame. While it waits, `DayLoop` sets the time scale to 0 and `KitchenServices.Paused`. The time scale stops the simulation, customers, staff and chefs. The flag stops the interactor's instant actions (pick up, use, heat). The Input System pairs the controller again by itself when it comes back.
+- `ReadyCheck.IsEveryoneReady` now takes the players who are present, rather than a count.
+
+**Also: slots across scenes.** The office already hands its players to the kitchen (`PlayerRoster`, earlier today). They now rejoin at their own index, not the next free one. So if P2's controller is off, P3 stays P3 and keeps P3's colour and chef, and P2 takes the free slot back by pressing A.
+
+**Not covered:**
+- Sound keeps playing while paused, so a pan's sizzle loops on.
+- There's no pause in the office.
+- A keyboard player can't be "lost".
 
 ---
 
@@ -52,9 +90,7 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 - With four players, someone is out of the kitchen more often, so the camera spends more time on the wider shot and the chefs look smaller.
 - Four layout cursors close together: their labels can overlap, and only the frame shows whose is whose.
 
-**Not fixed (bigger than this task, noted in `ideas.md`):**
-- Players join each scene afresh, so `playerIndex` follows the order people press A in that scene. A player could be P3 in the office and P2 in the kitchen, with the other slot's colour and tailored look.
-- A controller that disconnects leaves its player in the game, so ready-up waits for them forever. It's the same with two players, but more likely with four.
+**Fixed afterwards:** players keeping their slot across scenes, and lost controllers (see "A lost controller pauses the service").
 
 **Out of date:** `game-design.md` line 60 still speaks of "close-up panels" with two players, which the 2026-11-02 decision (no close-up panel) had already replaced.
 
@@ -226,6 +262,21 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 - **Build:** each guard has his own turning frame (`OfficeBuilder.Guards.cs`), so the glance (an `Oscillate` on the person) and the stare don't fight over one transform.
 
 **Not checked in play:** the split and the turning speeds; tune `_turnSpeed` and `_relaxSpeed` on the watcher.
+
+---
+
+## 2026-11-09 — A permanent player bar in the office; the dressing card grows out of it
+
+**Decision:** The office has a player bar, always on screen: one card per player slot, docked in slot order from the top-left corner. It replaces the tailor's separate dressing cards, which the user found too big and wanted on the left.
+- **Empty slot:** the slot's number with "A Join", on a translucent card (40% opacity). Translucent was the user's call.
+- **Joined:** a compact 210 × 108 card in the player's colour, with a live portrait of their chef's head and "P1"–"P4". It shows from the moment they appear in the elevator. Compact portraits redraw six times a second to keep four of them cheap.
+- **Dressing at the tailor:** that player's card grows into the 340-wide dressing card (portrait framed by section, LB/RB, item, B Done), and shrinks back when they step off. The cards to its right slide along.
+- **Size:** compact, the bar fits inside the office camera's reserved top band (15% of the screen), so the camera is unchanged. Four players dressing at once still takes about 75% of the width.
+- **"A Climb up"** stays over the chef at a ladder's foot.
+
+**Reason:** the user wanted the cards to be there permanently, smaller and less disturbing, and suggested they also show who has joined.
+
+**Not yet:** the bar is in the office only. Whether the kitchen gets one too is still to be decided.
 
 ---
 

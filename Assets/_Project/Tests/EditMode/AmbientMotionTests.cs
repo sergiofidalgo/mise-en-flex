@@ -124,5 +124,38 @@ namespace Game.Tests.EditMode
             Assert.That(a.z, Is.GreaterThan(0f));
             Assert.That(b.z, Is.LessThan(0f));
         }
+    
+        [Test]
+        public void FlashPopsOncePerPeriodAndIsDarkBetween()
+        {
+            var pops = 0;
+            var lit = 0;
+            var was = false;
+            for (var t = 0f; t < 6f; t += 0.002f)
+            {
+                var b = AmbientMotion.Flash(t, 6f, 2f);
+                Assert.That(b, Is.InRange(0f, 1f));
+                var on = b > 0.3f;
+                if (on && !was) pops++;
+                was = on;
+                if (b > 0.05f) lit++;
+            }
+            Assert.That(pops, Is.InRange(1, 2), "one pop, or a pre-flash and the photo");
+            Assert.That(lit * 0.002f, Is.LessThan(0.6f), "dark for most of the period");
+        }
+
+        [Test]
+        public void FlashGoesOffAtDifferentMomentsEachPeriod()
+        {
+            float FirstPop(float from)
+            {
+                for (var t = from; t < from + 6f; t += 0.002f)
+                    if (AmbientMotion.Flash(t, 6f, 2f) > 0.3f)
+                        return t - from;
+                return -1f;
+            }
+            Assert.That(FirstPop(0f), Is.GreaterThanOrEqualTo(0f));
+            Assert.That(FirstPop(6f), Is.Not.EqualTo(FirstPop(0f)).Within(0.05f));
+        }
     }
 }

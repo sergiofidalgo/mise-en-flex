@@ -48,6 +48,9 @@ namespace Game.Presentation.Hud
         [SerializeField] private string _readyText = "Press Menu when ready";
         [SerializeField] private string _playerReadyText = "READY";
         [SerializeField] private string _playerWaitingText = "not ready";
+        [SerializeField] private string _playerLostText = "controller lost";
+        [SerializeField] private string _pausedText = "Paused: {players}, reconnect your controller";
+        [SerializeField] private string _carryOnText = "Press Menu to carry on without them";
         [SerializeField] private Color _waitingColor = new Color(0.60f, 0.62f, 0.66f);
         [SerializeField] private string _lastOrdersText = "Last orders";
         [SerializeField] private string _closedText = "Closed: finish up";
@@ -115,6 +118,13 @@ namespace Game.Presentation.Hud
             {
                 _card.Hide();
                 _strip.Hide();
+                return;
+            }
+
+            // A lost controller during service: everything waits, and this says why and what to do.
+            if (days.Phase == DayPhase.Service && _dayLoop.ControllerPause.Paused)
+            {
+                _card.ShowAt(PausedText(), Vector2.zero);
                 return;
             }
 
@@ -218,12 +228,27 @@ namespace Game.Presentation.Hud
         private string WithReady(string text) =>
             PlayerInput.all.Count <= 1 ? $"{text}\n{Tr.Get(_readyText)}" : $"{text}\n{Tr.Get(_readyText)}\n{ReadyLine()}";
 
+        private string PausedText()
+        {
+            var waiting = _dayLoop.ControllerPause.WaitingFor;
+            var names = string.Join(", ", waiting.Select(index => HudStyle.Colored($"P{index + 1}", _settings.GetPlayerColor(index))));
+            var text = $"<b>{Tr.Format(_pausedText, ("players", names))}</b>";
+            // Only someone still playing can carry on, so with nobody left the second line would lie.
+            return waiting.Count < PlayerInput.all.Count ? $"{text}\n{Tr.Get(_carryOnText)}" : text;
+        }
+
         private string ReadyLine()
         {
             _text.Clear();
             foreach (var player in PlayerInput.all.OrderBy(p => p.playerIndex))
             {
                 var name = $"P{player.playerIndex + 1}";
+                if (_dayLoop.ControllerPause.IsLost(player.playerIndex))
+                {
+                    // Not waited for: the day moves on without them.
+                    _text.Append(HudStyle.Colored($"{name} {Tr.Get(_playerLostText)}", _badColor) + "   ");
+                    continue;
+                }
                 _text.Append(_dayLoop.Ready.IsReady(player.playerIndex)
                     ? $"<b>{HudStyle.Colored($"{name} {Tr.Get(_playerReadyText)}", _settings.GetPlayerColor(player.playerIndex))}</b>   "
                     : HudStyle.Colored($"{name} {Tr.Get(_playerWaitingText)}", _waitingColor) + "   ");

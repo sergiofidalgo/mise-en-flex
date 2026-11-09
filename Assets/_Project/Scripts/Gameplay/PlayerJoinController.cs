@@ -39,14 +39,16 @@ namespace Game.Gameplay
         }
 
         // Players who came from the last scene (the office) join again at once, on their own
-        // controllers and in their old order, after every scene object has subscribed (OnEnable).
+        // controllers and in their own slots, after every scene object has subscribed (OnEnable).
+        // The slot is given, not taken in order: with P2's controller gone, P3 must stay P3 (their
+        // colour and chef), and P2 takes the free slot back when they press A.
         private void Start()
         {
             foreach (var seat in PlayerRoster.Take())
             {
                 if (_manager.playerCount >= _settings.MaxPlayers)
                     break;
-                _manager.JoinPlayer(-1, -1, seat.Scheme, seat.Devices);
+                _manager.JoinPlayer(seat.Index, -1, seat.Scheme, seat.Devices);
             }
         }
 

@@ -50,6 +50,12 @@ namespace Game.Gameplay
 
         public CookingSimulation Cooking { get; }
 
+        /// <summary>
+        /// Set while the service waits for a player's lost controller (decision 2026-11-09): time
+        /// stands still and no chef can act, so nobody gains or loses while a friend reconnects.
+        /// </summary>
+        public bool Paused { get; set; }
+
         /// <summary>Reads the hobs once a day for the energy bill.</summary>
         public EnergyMeter Energy { get; } = new EnergyMeter();
         public ItemViewRegistry ItemViews { get; }

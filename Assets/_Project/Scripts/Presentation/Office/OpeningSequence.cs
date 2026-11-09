@@ -6,9 +6,10 @@ namespace Game.Presentation.Office
 {
     /// <summary>
     /// The first half-minute (docs/opening-flow.md; decisions 2026-11-09): the save notice on first
-    /// launch, a fade into the street at the foot of the boss's tower, the camera's flight up through
-    /// the city to rest on the tower (A skips it, every time), the main menu, and once a campaign is
-    /// chosen the climb up the tower's glass to the floor's wide shot. Then the follow camera takes
+    /// launch, a fade into the street at the foot of the boss's tower, the camera's glide up the avenue
+    /// to rest in the road with the tower ahead (A skips it, every time), the main menu, and once a
+    /// campaign is chosen the climb: on up the avenue, up the tower's glass, over onto the floor's
+    /// wide shot (the user's diagram, 2026-11-09). Then the follow camera takes
     /// over, joining opens, and the player who chose in the menu is already in as player 1.
     /// </summary>
     public sealed class OpeningSequence : MonoBehaviour
@@ -22,6 +23,10 @@ namespace Game.Presentation.Office
         [SerializeField] private MainMenu _menu;
         [SerializeField] private PlayerInputManager _players;
         [SerializeField] private OpeningHud _hud;
+        [Tooltip("The glass lift on the tower's front, which rides up with the camera on the climb; optional.")]
+        [SerializeField] private OpeningElevator _elevator;
+        [Tooltip("The street and avenue 120 m below, with all their people, cars and lights: switched off once the camera lands, as nobody sees them from the floor (the 60 fps budget with four players).")]
+        [SerializeField] private GameObject _streetLevel;
         [Tooltip("The flight from the street to the stop where the menu shows; the last pose is the stop.")]
         [SerializeField] private CameraPose[] _flight = System.Array.Empty<CameraPose>();
         [Tooltip("Through these from the stop, then onto the floor's wide shot.")]
@@ -30,13 +35,15 @@ namespace Game.Presentation.Office
         [Header("Timing (seconds)")]
         [SerializeField, Min(0.5f)] private float _saveNotice = 3.5f;
         [SerializeField, Min(0.05f)] private float _fade = 0.5f;
-        [SerializeField, Min(1f)] private float _flightSeconds = 9f;
-        [SerializeField, Min(1f)] private float _climbSeconds = 5f;
+        [SerializeField, Min(1f)] private float _flightSeconds = 15f;
+        [SerializeField, Min(1f)] private float _climbSeconds = 13f;
+        [Tooltip("How far through the climb (0–1) the camera starts turning from the tower's glass onto the floor's view.")]
+        [SerializeField, Range(0.5f, 0.98f)] private float _turnFrom = 0.86f;
         [SerializeField, Min(0.05f)] private float _menuFade = 0.45f;
 
         [Header("Haze")]
         [Tooltip("Fog distances during the flight and the menu, thinner so the tower shows from the street.")]
-        [SerializeField] private Vector2 _streetFog = new Vector2(90f, 360f);
+        [SerializeField] private Vector2 _streetFog = new Vector2(170f, 650f);
 
         private Stage _stage;
         private float _clock;
@@ -52,7 +59,7 @@ namespace Game.Presentation.Office
                 _follow.enabled = false;
             _players.DisableJoining();
             _menu.Launching += HandleLaunching;
-            Place(OpeningPath.Sample(_flight, 0f), null);
+            Place(OpeningPath.SampleEven(_flight, 0f), null);
         }
 
         private void OnDestroy()
@@ -120,18 +127,20 @@ namespace Game.Presentation.Office
                     _menu.SetShown(false, 1f - Mathf.Clamp01(_clock / _menuFade));
                     var t = Mathf.Clamp01(_clock / _climbSeconds);
                     var eased = OpeningPath.Ease(t);
-                    var pose = OpeningPath.Sample(_climbPath, eased);
-                    // The last stretch turns to the floor's own view, looking down at the follow camera's angle.
-                    var turn = Mathf.Clamp01((eased - 0.7f) / 0.3f);
+                    var pose = OpeningPath.SampleEven(_climbPath, eased);
+                    // Over the top of the glass, the camera tips onto the floor's own view, looking down at the follow camera's angle.
+                    var turn = Mathf.Clamp01((eased - _turnFrom) / (1f - _turnFrom));
                     Place(pose, Quaternion.Slerp(pose.Rotation, _landingRotation, OpeningPath.Ease(turn)));
                     SetFog(eased);
+                    if (_elevator != null)
+                        _elevator.Track(_camera.transform.position.y);
                     if (t >= 1f)
                         Land();
                     break;
             }
         }
 
-        private void Fly(float time) => Place(OpeningPath.Sample(_flight, OpeningPath.Ease(time / _flightSeconds)), null);
+        private void Fly(float time) => Place(OpeningPath.SampleEven(_flight, OpeningPath.Ease(time / _flightSeconds)), null);
 
         private void HandleLaunching(int slot, bool continuing)
         {
@@ -153,6 +162,10 @@ namespace Game.Presentation.Office
             _menu.SetShown(false, 0f);
             SetFog(1f);
             _follow.enabled = true;
+            if (_elevator != null)
+                _elevator.Release();
+            if (_streetLevel != null)
+                _streetLevel.SetActive(false);
             _players.EnableJoining();
             _hud.JoinShown = true;
             _players.onPlayerJoined += HandleJoined;

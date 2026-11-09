@@ -198,7 +198,7 @@ namespace Game.Editor
             attendant.FindProperty("_home").vector3Value = TailorHome;
             attendant.ApplyModifiedPropertiesWithoutUndo();
 
-            var hud = new SerializedObject(new GameObject("TailorHud").AddComponent<TailorCardHud>());
+            var hud = new SerializedObject(new GameObject("PlayerBar").AddComponent<PlayerBarHud>());
             hud.FindProperty("_style").objectReferenceValue = AssetDatabase.LoadAssetAtPath<HudStyle>(SettingsFolder + "/HudStyle.asset");
             hud.FindProperty("_coop").objectReferenceValue = GreyboxAssets.EnsureAsset<CoopSettings>(SettingsFolder + "/CoopSettings.asset");
             var plinths = hud.FindProperty("_plinths");
