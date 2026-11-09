@@ -46,7 +46,7 @@ A **3 × 3 grid of rooms** with a terrace along the back, matching the user's dr
 ### The camera
 
 - **On arrival, and before anyone joins:** a wide establishing shot of the whole floor, as in the draft. Same rule as the kitchen: "before anyone joins, the whole restaurant shows" (decision 2026-11-07).
-- **Once someone joins:** the kitchen's follow camera, with the same easing, leash and framing. The chef stays ≥ 100 px tall at 1080p (art bible). At the full-floor view a chef is about 40 px, so it's a shot, not a play view.
+- **Once someone joins:** it follows the players at the kitchen's tilt, zooming out as they spread apart until both fit, up to 55 m (user's note, 2026-11-09). The office has no leash, so the kitchen's 100 px chef rule gives way when players split up; together, the chef stays large.
 - **Interiors aren't cut by the camera:** the 1.0 m walls handle it, so nothing needs to fade.
 
 ## 3. Rooms

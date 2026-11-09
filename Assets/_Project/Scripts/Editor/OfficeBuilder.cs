@@ -898,92 +898,19 @@ namespace Game.Editor
             // The side towards the tower, which the camera sees at an angle.
             if (detail == 2 && Mathf.Abs(at.x) > 14f)
                 Windows(building, w, d, rows, trim, side: at.x > 0f ? -1 : 1, framed: true);
+            // Every roof is gravel inside a parapet, as real flat roofs are (OfficeBuilder.Life.cs).
+            var roofProps = RoofShell(building, w, d, trim);
             if (detail < 2)
+            {
+                SimpleRoof(roofProps, w, d, wall, trim);
                 return;
+            }
 
-            // Roof clutter, as busy as the kitchen's counters.
-            var roofProps = new GameObject("Roof").transform;
-            roofProps.SetParent(building, false);
-            var grey = Toon("OfficeRoofGrey", new Color(0.56f, 0.55f, 0.53f));
-            if (special != null)
-            {
-                // One of the roofs with something to watch (OfficeBuilder.Life.cs).
-                SpecialRoof(special, roofProps, w, d, wall, trim);
-                return;
-            }
-            var kind = _random.NextDouble();
-            if (kind < 0.25)
-            {
-                // A roof deck, as on real roofs: decking behind a railing, a couple of tables
-                // under umbrellas and low planter boxes of shrubs. No trees: they don't grow on roofs.
-                var deck = new Vector3(w * 0.12f, 0f, 0f);
-                var deckSize = new Vector2(w * 0.55f, d * 0.55f);
-                Cube(roofProps, "Deck", Planks("OfficeDecking", new Color(0.45f, 0.38f, 0.32f), new Color(0.27f, 0.22f, 0.19f), 0.14f, 2.4f),
-                    deck + Vector3.up * 0.02f, new Vector3(deckSize.x, 0.02f, deckSize.y));
-                var rail = Toon("OfficeRoofRail", new Color(0.24f, 0.24f, 0.26f));
-                foreach (var z in new[] { -deckSize.y / 2f, deckSize.y / 2f })
-                    Block(roofProps, "Railing", rail, deck + new Vector3(0f, 0.95f, z), new Vector3(deckSize.x, 0.05f, 0.05f));
-                foreach (var x in new[] { -deckSize.x / 2f, deckSize.x / 2f })
-                    Block(roofProps, "Railing", rail, deck + new Vector3(x, 0.95f, 0f), new Vector3(0.05f, 0.05f, deckSize.y));
-                // Often someone out for a smoke (OfficeBuilder.Life.cs).
-                if (_random.NextDouble() < 0.6)
-                    Smoker(roofProps, deck + new Vector3(-deckSize.x * 0.3f, 0f, -deckSize.y * 0.25f), (float)_random.NextDouble() * 360f);
-                for (var k = 0; k < 2; k++)
-                {
-                    var table = deck + new Vector3((k - 0.5f) * deckSize.x * 0.45f, 0f, 0f);
-                    var u = _random.Next(UmbrellaColors.Length);
-                    Model(roofProps, "UmbrellaPole", OfficeModel, "OfficeUmbrellaPole", Toon("OfficeTeak", new Color(0.55f, 0.38f, 0.24f)), table, 0f);
-                    Model(roofProps, "UmbrellaCanopy", OfficeModel, "OfficeUmbrellaCanopy", Toon($"OfficeUmbrella{u}", UmbrellaColors[u]), table, 22.5f);
-                }
-                foreach (var x in new[] { -0.4f, 0f, 0.4f })
-                {
-                    var box = deck + new Vector3(x * deckSize.x, 0f, deckSize.y / 2f - 0.4f);
-                    Block(roofProps, "PlanterBox", Toon("OfficeTeak", new Color(0.55f, 0.38f, 0.24f)), box, new Vector3(1.4f, 0.45f, 0.5f));
-                    Block(roofProps, "Shrubs", Toon("OfficePlant", Plant), box + Vector3.up * 0.45f, new Vector3(1.3f, 0.3f, 0.42f));
-                }
-            }
-            else if (kind < 0.45)
-            {
-                // Solar panels in rows, tilted to the south.
-                var navy = Toon("OfficeSolar", new Color(0.16f, 0.22f, 0.36f));
-                var frameGrey = Toon("OfficeRoofGrey", new Color(0.56f, 0.55f, 0.53f));
-                for (var r = 0; r < 3; r++)
-                for (var k = 0; k < 3; k++)
-                {
-                    var spot = new Vector3(-w * 0.25f + k * 2.0f, 0.3f, -d * 0.2f + r * 1.8f);
-                    var panel = Block(roofProps, "SolarPanel", navy, spot, new Vector3(1.8f, 0.05f, 1.1f));
-                    if (panel != null) panel.transform.localRotation = Quaternion.Euler(-25f, 0f, 0f);
-                    Block(roofProps, "SolarLeg", frameGrey, spot + new Vector3(0f, -0.3f, 0.3f), new Vector3(1.6f, 0.45f, 0.06f));
-                }
-                Block(roofProps, "StairHut", wall, new Vector3(w * 0.3f, 0f, d * 0.3f), new Vector3(2.2f, 2.2f, 1.8f));
-                Block(roofProps, "StairHutRoof", trim, new Vector3(w * 0.3f, 2.2f, d * 0.3f), new Vector3(2.4f, 0.12f, 2.0f));
-            }
-            else
-            {
-                if (kind < 0.65)
-                    WaterTower(roofProps, new Vector3(w * ((float)_random.NextDouble() - 0.5f) * 0.5f, 0.35f, d * 0.15f));
-                // Air conditioners: a box with a fan on top.
-                var units = 1 + _random.Next(3);
-                for (var k = 0; k < units; k++)
-                {
-                    var unit = new Vector3(-w * 0.3f + k * 1.6f, 0f, -d * 0.25f);
-                    Block(roofProps, "AirCon", grey, unit, new Vector3(1.2f, 0.7f, 0.9f));
-                    Shape(roofProps, PrimitiveType.Cylinder, "Fan", Toon("OfficeInk", Ink), unit + Vector3.up * 0.71f, new Vector3(0.6f, 0.01f, 0.6f));
-                    SpinningFan(roofProps, unit + Vector3.up * 0.73f);
-                }
-                // A skylight, lit from inside.
-                if (_random.NextDouble() < 0.6)
-                {
-                    var sky = new Vector3(w * 0.22f, 0f, -d * 0.05f);
-                    Block(roofProps, "SkylightFrame", trim, sky, new Vector3(1.8f, 0.3f, 1.2f));
-                    Cube(roofProps, "SkylightGlow", Unlit("OfficeWindowLit", WindowLit), sky + Vector3.up * 0.3f, new Vector3(1.5f, 0.01f, 0.9f));
-                }
-                // A stair hut and an aerial.
-                Block(roofProps, "StairHut", wall, new Vector3(-w * 0.25f, 0f, d * 0.25f), new Vector3(2.2f, 2.2f, 1.8f));
-                Block(roofProps, "StairHutRoof", trim, new Vector3(-w * 0.25f, 2.2f, d * 0.25f), new Vector3(2.4f, 0.12f, 2.0f));
-                if (_random.NextDouble() < 0.5)
-                    Shape(roofProps, PrimitiveType.Cylinder, "Aerial", Toon("OfficeInk", Ink), new Vector3(-w * 0.25f, 3.4f, d * 0.25f), new Vector3(0.05f, 1.2f, 0.05f));
-            }
+            // The near roofs, the ones the camera sees best: machinery round the edges, much of it
+            // moving, and in the middle either one of the special stories or an ordinary use.
+            RoofKit(roofProps, w, d, wall, trim);
+            if (special == null || SpecialRoof(special, roofProps, w, d, wall, trim))
+                CentrePiece(roofProps, w, d, wall, trim);
         }
 
         // Framed, sill-ed windows in rows under the cornice, on the south face (side 0) or on the

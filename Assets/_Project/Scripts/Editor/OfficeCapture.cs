@@ -55,6 +55,11 @@ namespace Game.Editor
             var back = 1f / Mathf.Tan(Tilt * Mathf.Deg2Rad);
             foreach (var (name, target, height) in Shots)
                 Render(camera, new Vector3(target.x, height, target.y - height * back), rotation, Path.Combine(folder, name + ".png"));
+            // Two players far apart (the elevator and the terrace): the follow camera must fit both.
+            var spread = new System.Collections.Generic.List<System.Numerics.Vector2> { new System.Numerics.Vector2(0f, -12f), new System.Numerics.Vector2(9f, 18f) };
+            var fit = Game.Simulation.Movement.CameraFraming.Fit(spread, Tilt, camera.fieldOfView, camera.aspect, 3f, 10f, 55f, screenTop: 0.15f,
+                buildingMin: new System.Numerics.Vector2(-17.5f, -13.5f), buildingMax: new System.Numerics.Vector2(17.5f, 19.5f));
+            Render(camera, new Vector3(fit.X, fit.Y, fit.Z), rotation, Path.Combine(folder, "office_two_players.png"));
             Debug.Log($"[OfficeCapture] Saved to {folder}");
         }
 

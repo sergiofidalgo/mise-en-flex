@@ -405,6 +405,34 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-09 — The camera fits spread-out players; roofs with real detail
+
+**User's notes:** with two players far apart, the camera didn't fit them, and it should zoom out to. The rooftops were too simple and unrealistic, lacked detail, and didn't feel alive.
+
+**Done:**
+- **The office camera zooms out until both players fit,** up to 55 m (it stopped at 22 m before). The kitchen's 100 px chef rule gives way when players split up, since the office has no leash. A capture of two players at the elevator and on the terrace checks it.
+- **Every roof** is gravel inside a parapet with a coping stone, at the cornice's real top. Props used to sit 0.35 m into it.
+- **Near roofs carry machinery round their edges, much of it moving:**
+  - a plant room with a door and louvres, sometimes with a mast and a blinking light;
+  - air conditioners with spinning fans, grilles and a duct;
+  - an exhaust stack breathing steam;
+  - turbine vents turning;
+  - a satellite dish, a hatch, and a pipe run on supports;
+  - sometimes an engineer in a hard hat working at a unit.
+- **The middle of each near roof** is a deck with a smoker, solar panels, a water tower or a lit skylight, or one of the stories. New stories:
+  - a billboard with a giant bobbing burger, chasing bulbs and floodlights;
+  - a basketball court with one player dribbling and one guarding;
+  - a pigeon keeper waving a flag at their flock;
+  - window cleaners riding a gondola up and down a facade.
+- **The middle ring** gets a plant room and a unit or a tank.
+- **The crane's mast** is capped so it always swings below the penthouse floor.
+
+**Not checked:** how it all moves in Play mode.
+
+**Size:** the scene file is now about 23 MB. Making the roof kit into prefabs would shrink it (`ideas.md`).
+
+---
+
 ## 2026-11-09 — The city comes alive
 
 **User's note:** the city's details could be more exaggerated and diverse: another tower with a heliport, another with a garden, fun details that are easy to recognise and move. Animate the scene as much as possible, so that looking at the surroundings (entering the terrace, say) brings joy: birds, flickering windows, people smoking on their terraces.

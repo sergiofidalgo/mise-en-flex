@@ -362,3 +362,9 @@ To work out when we get there: which campaign's restaurants it offers (with thre
 *Proposed 2026-11-09, from the user's minigame mockup.* At a wok or saucepan, the chef locks to the station the way washing does, and the stick circles the pan to chase a puck drawn round it (the station is the interface, decision 2026-11-09). Too slow scorches, too fast spills, so the craft is a steady rhythm. The lock and the camera-relative stick already work at the sink.
 
 To work out when we get there: what scorching and spilling cost (quality, lost food, a mess to clean), whether it suits the wok cuisine's signature mechanic, and how it reads with a second player at the next station.
+
+To work out when we get there: what scorching and spilling cost (quality, lost food, a mess to clean), whether it suits the wok cuisine's signature mechanic, and how it reads with a second player at the next station.
+
+## Prefabs for the office's city (proposed 2026-11-09)
+
+*From the office's rooftop detail.* The office scene file is about 23 MB because every roof's machinery, window frame and person is written into it as separate objects. Making the roof kit (plant room, air conditioner, stack, vents, dish), the special roofs and the people into prefabs would shrink the scene to references, and make each piece editable in one place. Worth doing before the art phase or if the scene gets slow to open.

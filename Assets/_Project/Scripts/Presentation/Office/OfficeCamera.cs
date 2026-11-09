@@ -24,8 +24,10 @@ namespace Game.Presentation.Office
         [SerializeField, Min(0f)] private float _margin = 3f;
         [Tooltip("Closest the camera comes, in metres up: keeps a chef from filling the screen.")]
         [SerializeField, Min(1f)] private float _minHeight = 10f;
-        [Tooltip("Farthest it goes while following. At the kitchen's 100 px chef rule, about 22 m.")]
-        [SerializeField, Min(1f)] private float _maxHeight = 22f;
+        [Tooltip("Farthest it goes while following: far enough that two players at opposite corners of the floor both " +
+                 "stay in view (user's note, 2026-11-09). The office has no leash, unlike the kitchen, so the kitchen's " +
+                 "100 px chef rule (about 22 m) gives way here when players split up.")]
+        [SerializeField, Min(1f)] private float _maxHeight = 55f;
         [Tooltip("Farthest it goes for the wide shot of the whole floor.")]
         [SerializeField, Min(1f)] private float _wideMaxHeight = 60f;
         [Tooltip("Metres kept around the whole floor in the wide shot, so the terrace and helipad aren't cropped.")]
