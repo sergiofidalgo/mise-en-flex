@@ -26,8 +26,11 @@ namespace Game.Editor
         // 0.67 m across: a little over the 0.62 m deep basin, which the user wanted for
         // visibility (2026-11-09). It's drawn over everything, so the overhang shows on the rim.
         private const float Size = 0.8f;
-        // Metres above the water, so the ring never z-fights it.
-        private const float AboveWater = 0.004f;
+        // Metres up from the sink's base: just over the basin's rim (floor 0.68 + depth 0.23, from
+        // build_sink()). At water level the ring sat 12 cm below the opening players see, and the
+        // 55° camera showed it shifted towards the camera and off centre; drawn over everything,
+        // it can sit level with the rim, where it lines up with the opening.
+        private const float RingHeight = 0.915f;
 
         [MenuItem("Tools/Game/Apply Wash Ring")]
         public static void ApplyFromMenu()
@@ -74,7 +77,7 @@ namespace Game.Editor
             }
 
             var ring = GreyboxAssets.CreatePrimitive(PrimitiveType.Quad, RingName, sink.transform, EnsureMaterial(), keepCollider: false);
-            ring.transform.localPosition = water.localPosition + Vector3.up * AboveWater;
+            ring.transform.localPosition = new Vector3(water.localPosition.x, RingHeight, water.localPosition.z);
             ring.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
             ring.transform.localScale = new Vector3(Size, Size, 1f) * InverseScale(sink.transform);
             var renderer = ring.GetComponent<Renderer>();
@@ -106,7 +109,10 @@ namespace Game.Editor
                 // A ring made at an older size takes the current one.
                 var existing = sink.transform.Find(RingName);
                 if (existing != null)
+                {
                     existing.localScale = new Vector3(Size, Size, 1f) * InverseScale(sink.transform);
+                    existing.localPosition = new Vector3(existing.localPosition.x, RingHeight, existing.localPosition.z);
+                }
                 if (sink.GetComponent<SinkWashRingView>() != null)
                     count++;
                 EditorSceneManager.MarkSceneDirty(sink.gameObject.scene);
