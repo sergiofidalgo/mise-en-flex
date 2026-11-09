@@ -467,6 +467,7 @@ namespace Game.Editor
             var light = new GameObject("Directional Light").AddComponent<Light>();
             light.type = LightType.Directional;
             HouseStyle.LightScene(light); // also aims it
+            KitchenLighting.Add(); // gentle, even lamps (decision 2026-11-09)
 
             var camera = new GameObject("Main Camera").AddComponent<Camera>();
             camera.tag = "MainCamera";

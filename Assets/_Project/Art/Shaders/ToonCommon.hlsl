@@ -29,7 +29,8 @@ half3 ToonRamp(float value)
 
 // Point and spot lights (decision 2026-11-09, the office at night: lamps give each room its
 // own light). Off unless a scene turns them on: _GameLocalLights is a global the scene sets
-// (OfficeLighting); unset, it is 0, so the kitchen looks exactly as before. Lamps light the
+// (LampLighting); unset, it is 0. The office leans on its lamps; the kitchen only warms with
+// a few gentle ones (decision 2026-11-09). Lamps light the
 // shapes naturally, a smooth falloff rather than toon bands (the user's call, 2026-11-09), and
 // wrap a little round the sides facing away, as a room's bounce light would.
 float _GameLocalLights;

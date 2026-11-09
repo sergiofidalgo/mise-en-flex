@@ -509,6 +509,30 @@ The plan is in `plans/tailor.md`.
 
 ---
 
+## 2026-11-09 — Softer office contrast; gentle lamps in the kitchen
+
+**User's notes:** the office's dramatic lighting is liked but too much at times, and there's too much contrast next to the kitchen, which is mostly flat. The kitchen should get some light sources too, but without strong light and shadow contrast. Strong contrast belongs only to specific areas of the office.
+
+**Done:**
+- **The office is softer:**
+  - a brighter moon and night ambient;
+  - every room's fill up by a third;
+  - the spotlights at 60% of their strength;
+  - the desk lamp and fire a little lower.
+
+  Rooms keep their personalities, but the pools of light no longer go to near-black around them.
+- **The kitchen gets lamps** (`KitchenLighting`, called by the kitchen builder):
+  - three broad, overlapping ceiling lights over the kitchen and two pendants over the dining room;
+  - four brass sconces on the dining room's side walls with small, soft washes;
+  - the grill's glow now counts too.
+
+  Lamp strength is 1.4, against the office's 3, so they warm the scene evenly rather than lighting spots.
+- **`OfficeLighting` is now `LampLighting`** (in `Game.Presentation`), used by both scenes.
+
+**Not committed:** the regenerated kitchen scene, main menu and furniture prefabs. Another session's uncommitted builds of those were already in the working tree. **Build Greybox Kitchen** brings the lamps in, and the next commit of the kitchen scene will carry them.
+
+---
+
 ## 2026-11-09 — Windows with rooms behind them, people passing, brighter rooms
 
 **User's notes:**
