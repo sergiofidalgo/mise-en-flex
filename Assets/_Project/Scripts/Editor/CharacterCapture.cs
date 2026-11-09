@@ -133,6 +133,15 @@ namespace Game.Editor
                 strider.Gait.Show(Mathf.PI / 2f, 1f);
             }
 
+            // Variety: six of each archetype from above, and two of each front on, each rolled.
+            var crowd = new Vector3(100f, 0f, 0f);
+            for (var row = 0; row < looks.Count; row++)
+                for (var column = 0; column < 6; column++)
+                    Person(looks[row], Color.white, crowd + new Vector3(column * 0.85f, 0f, -row * 1.0f), 180f, carry: false);
+            var faces = new Vector3(100f, 0f, 20f);
+            for (var i = 0; i < looks.Count * 2; i++)
+                Person(looks[i / 2], Color.white, faces + Vector3.right * (i * 0.8f), 180f, carry: false);
+
             // The carry test: one chef with a plate in each of eight directions, at the game camera's
             // closest framing, to see where the big head and toque hide what's carried.
             var ring = new Vector3(60f, 0f, 0f);
@@ -165,6 +174,9 @@ namespace Game.Editor
             Draw(camera, target, Path.Combine(folder, "chef_front_close.png"));
             Render(camera, target, ring + new Vector3(0f, 0.9f, 0f), PlayHeight, Path.Combine(folder, "carry_facings.png"));
             Render(camera, target, strideRow + new Vector3(2.2f, 0.9f, 0f), CloseHeight + 0.6f, Path.Combine(folder, "walk_play.png"));
+            Render(camera, target, crowd + new Vector3(2.1f, 0.9f, -2.5f), PlayHeight, Path.Combine(folder, "variety_play.png"));
+            camera.transform.SetPositionAndRotation(faces + new Vector3(4.4f, 1.0f, -7.5f), Quaternion.Euler(4f, 0f, 0f));
+            Draw(camera, target, Path.Combine(folder, "variety_front.png"));
             camera.transform.SetPositionAndRotation(strideRow + new Vector3(2.2f, 0.9f, -5.5f), Quaternion.Euler(3f, 0f, 0f));
             Draw(camera, target, Path.Combine(folder, "walk_side.png"));
             for (var i = 0; i < bends.Count; i++)
@@ -213,6 +225,10 @@ namespace Game.Editor
             var root = new GameObject(look.Name).transform;
             root.SetPositionAndRotation(new Vector3(at.x, 0f, at.z), Quaternion.Euler(0f, facing, 0f));
             var rig = CharacterArt.Build(root, look);
+            // A customer's person is rolled as they appear in play; here, from where they stand, so
+            // the pictures are the same each time.
+            if (rig.Roll != null)
+                rig.Roll.Roll(new System.Random(Mathf.RoundToInt(at.x * 97f + at.z * 13f)));
             var block = new MaterialPropertyBlock();
             block.SetColor("_BaseColor", colour);
             foreach (var renderer in rig.Tinted)

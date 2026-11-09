@@ -35,6 +35,7 @@ namespace Game.Tests.EditMode
             "HairBack", "HairCrop", "HairAfro", "HairBun", "HairFringe",
             "HatToque", "HatToqueBand", "HatCap", "HatCapPeak", "HatBandana", "HatHeadband", "HatHorns",
             "HatSunHat", "HatSunHatBand",
+            "PropBackpack", "PropSatchel",
         };
 
         private static Mesh Part(string name)

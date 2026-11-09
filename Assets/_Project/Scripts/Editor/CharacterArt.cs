@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using UnityEditor;
 using UnityEngine;
 
@@ -50,6 +51,58 @@ namespace Game.Editor
         public enum HatKind { None, Toque, Cap, Bandana, Headband, Horns, SunHat }
         public enum HairKind { Bald, Fringe, Crop, Bun, Afro }
         public enum NoseKind { Button, Big }
+        public enum PropKind { Cane, Bottle, Newspaper, Handbag, Backpack, Satchel }
+
+        /// <summary>
+        /// What can change from one person to the next within an archetype (concept v9.2: "the
+        /// person is rolled"). Everything listed is built on the body; <c>CharacterRoll</c> picks.
+        /// </summary>
+        public sealed class Variation
+        {
+            public Color[] Skins = SkinTones;
+            public HairKind[] HairStyles = { HairKind.Crop };
+            public Color[] Hairs = NaturalHair;
+            /// <summary>Shades of the archetype's clothes; never a player colour.</summary>
+            public Color[] Tops = System.Array.Empty<Color>();
+            public float BigNose = 0.5f;
+            public float Glasses;
+            public float Sunglasses;
+            public float Moustache;
+            /// <summary>The archetype's props, one of which they may carry.</summary>
+            public PropKind[] Props = System.Array.Empty<PropKind>();
+            public float NoProp = 0.3f;
+        }
+
+        /// <summary>Eight skin tones, from very light to deep, each checked under the toon ramp.</summary>
+        public static readonly Color[] SkinTones =
+        {
+            new Color(0.98f, 0.85f, 0.74f), new Color(0.96f, 0.78f, 0.63f), new Color(0.9f, 0.68f, 0.52f),
+            new Color(0.82f, 0.58f, 0.42f), new Color(0.68f, 0.45f, 0.3f), new Color(0.55f, 0.36f, 0.24f),
+            new Color(0.45f, 0.29f, 0.2f), new Color(0.36f, 0.22f, 0.15f),
+        };
+
+        /// <summary>Natural hair colours, darkest a warm brown rather than black (<see cref="DarkHair"/>).</summary>
+        public static readonly Color[] NaturalHair =
+        {
+            new Color(0.2f, 0.13f, 0.09f), new Color(0.3f, 0.19f, 0.12f), new Color(0.45f, 0.28f, 0.15f),
+            new Color(0.62f, 0.3f, 0.14f), new Color(0.85f, 0.7f, 0.42f),
+        };
+
+        public static readonly Color[] GreyHair =
+        {
+            new Color(0.85f, 0.85f, 0.83f), new Color(0.62f, 0.6f, 0.58f), new Color(0.45f, 0.42f, 0.4f),
+        };
+
+        private static readonly Dictionary<PropKind, (string Mesh, Color Colour, bool Held)[]> PropParts =
+            new Dictionary<PropKind, (string, Color, bool)[]>
+            {
+                [PropKind.Cane] = new[] { ("PropCane", new Color(0.36f, 0.22f, 0.12f), true) },
+                [PropKind.Bottle] = new[] { ("PropBottle", new Color(0.92f, 0.94f, 0.95f), true), ("PropBottleCap", new Color(0.25f, 0.45f, 0.75f), true) },
+                [PropKind.Newspaper] = new[] { ("PropNewspaper", new Color(0.9f, 0.87f, 0.78f), true) },
+                [PropKind.Handbag] = new[] { ("PropHandbag", new Color(0.2f, 0.15f, 0.13f), true) },
+                [PropKind.Backpack] = new[] { ("PropBackpack", new Color(0.32f, 0.36f, 0.27f), false) },
+                [PropKind.Satchel] = new[] { ("PropSatchel", new Color(0.45f, 0.27f, 0.15f), false) },
+            };
 
         /// <summary>One person's choices. A null colour on a coloured part means "the player's colour".</summary>
         public sealed class Look
@@ -86,6 +139,11 @@ namespace Game.Editor
             public float Waddle = 1.5f;
             /// <summary>How far the body rises each step, in metres.</summary>
             public float Bob = 0.02f;
+
+            /// <summary>Who this can be, for customers; null for a fixed look.</summary>
+            public Variation Vary;
+
+            public Look Clone() => (Look)MemberwiseClone();
         }
 
         public sealed class Rig
@@ -99,6 +157,8 @@ namespace Game.Editor
             public Transform RightHip;
             /// <summary>The walk, which ChefArmsView follows for a chef's arm swing.</summary>
             public Game.Presentation.WalkCycleView Gait;
+            /// <summary>Rolls the person, for customers; null for a fixed look.</summary>
+            public Game.Presentation.CharacterRoll Roll;
             /// <summary>Parts that take the player's colour (<c>PlayerVisual</c>).</summary>
             public readonly List<Renderer> Tinted = new List<Renderer>();
         }
@@ -137,26 +197,46 @@ namespace Game.Editor
                 new Look { Name = "Regular", Top = new Color(0.62f, 0.2f, 0.16f), Bottom = new Color(0.2f, 0.27f, 0.42f),
                     Hat = HatKind.Cap, HatColor = new Color(0.55f, 0.18f, 0.15f), HatAccent = new Color(0.92f, 0.88f, 0.8f),
                     Hair = new Color(0.45f, 0.42f, 0.4f), HairStyle = HairKind.Crop, Moustache = true, Nose = NoseKind.Big,
-                    Waddle = 2f },
+                    Waddle = 2f,
+                    Vary = new Variation { Hairs = GreyHair.Concat(NaturalHair.Take(3)).ToArray(), Moustache = 0.6f, Glasses = 0.2f,
+                        Tops = new[] { new Color(0.62f, 0.2f, 0.16f), new Color(0.24f, 0.36f, 0.24f), new Color(0.25f, 0.3f, 0.45f), new Color(0.5f, 0.38f, 0.22f) },
+                        Props = new[] { PropKind.Newspaper }, NoProp = 0.5f } },
                 new Look { Name = "Office", Skin = new Color(0.55f, 0.36f, 0.24f), Top = new Color(0.27f, 0.29f, 0.34f),
                     Bottom = new Color(0.22f, 0.23f, 0.27f), Hair = CharacterArt.DarkHair, HairStyle = HairKind.Crop,
                     Tie = true, TieColor = new Color(0.2f, 0.32f, 0.6f),
-                    Pace = 1.15f, Stride = 1.1f, Waddle = 0.6f },
+                    Pace = 1.15f, Stride = 1.1f, Waddle = 0.6f,
+                    Vary = new Variation { HairStyles = new[] { HairKind.Crop, HairKind.Bun, HairKind.Bald }, Glasses = 0.35f, Moustache = 0.15f,
+                        Tops = new[] { new Color(0.27f, 0.29f, 0.34f), new Color(0.2f, 0.24f, 0.38f), new Color(0.45f, 0.46f, 0.48f), new Color(0.36f, 0.28f, 0.22f) },
+                        Props = new[] { PropKind.Satchel, PropKind.Backpack }, NoProp = 0.25f } },
                 new Look { Name = "DateNight", Skin = new Color(0.98f, 0.83f, 0.7f), Top = new Color(0.5f, 0.12f, 0.2f),
                     Bottom = new Color(0.98f, 0.83f, 0.7f), Dress = true, Hair = new Color(0.85f, 0.7f, 0.42f), HairStyle = HairKind.Bun,
-                    Pace = 0.95f, Stride = 0.75f, LegSwing = 16f, Waddle = 2.5f },
+                    Pace = 0.95f, Stride = 0.75f, LegSwing = 16f, Waddle = 2.5f,
+                    Vary = new Variation { HairStyles = new[] { HairKind.Bun, HairKind.Crop, HairKind.Afro }, Glasses = 0.1f,
+                        Tops = new[] { new Color(0.5f, 0.12f, 0.2f), new Color(0.18f, 0.2f, 0.4f), new Color(0.12f, 0.36f, 0.28f), new Color(0.16f, 0.15f, 0.17f) },
+                        Props = new[] { PropKind.Handbag }, NoProp = 0.3f } },
                 new Look { Name = "Tourist", Skin = new Color(0.86f, 0.62f, 0.45f), Top = new Color(0.88f, 0.9f, 0.95f),
                     Bottom = new Color(0.82f, 0.74f, 0.55f), Hat = HatKind.SunHat, HatColor = new Color(0.9f, 0.82f, 0.6f),
                     HatAccent = new Color(0.2f, 0.27f, 0.5f), Hair = new Color(0.4f, 0.26f, 0.15f), Camera = true,
-                    Pace = 0.85f, Stride = 0.9f, Waddle = 2f },
+                    Pace = 0.85f, Stride = 0.9f, Waddle = 2f,
+                    Vary = new Variation { Sunglasses = 0.4f,
+                        Tops = new[] { new Color(0.88f, 0.9f, 0.95f), new Color(0.7f, 0.8f, 0.92f), new Color(0.95f, 0.9f, 0.65f) },
+                        Props = new[] { PropKind.Backpack }, NoProp = 0.5f } },
                 new Look { Name = "Retiree", Skin = new Color(0.94f, 0.76f, 0.64f), Top = new Color(0.7f, 0.6f, 0.45f),
                     Bottom = new Color(0.4f, 0.36f, 0.32f), Hair = new Color(0.85f, 0.85f, 0.83f), HairStyle = HairKind.Fringe,
                     Glasses = true, Nose = NoseKind.Big,
-                    Pace = 0.7f, Stride = 0.65f, LegSwing = 14f, Waddle = 2.5f, Bob = 0.01f },
+                    Pace = 0.7f, Stride = 0.65f, LegSwing = 14f, Waddle = 2.5f, Bob = 0.01f,
+                    Vary = new Variation { HairStyles = new[] { HairKind.Fringe, HairKind.Bald, HairKind.Crop }, Hairs = GreyHair,
+                        Skins = SkinTones, Glasses = 0.7f, Moustache = 0.4f, BigNose = 0.7f,
+                        Tops = new[] { new Color(0.7f, 0.6f, 0.45f), new Color(0.45f, 0.45f, 0.3f), new Color(0.45f, 0.52f, 0.62f), new Color(0.45f, 0.2f, 0.2f) },
+                        Props = new[] { PropKind.Cane }, NoProp = 0.2f } },
                 new Look { Name = "Gym", Skin = new Color(0.36f, 0.22f, 0.15f), Top = new Color(0.22f, 0.3f, 0.5f),
                     Bottom = new Color(0.18f, 0.18f, 0.2f), Hat = HatKind.Headband, HatAccent = new Color(0.95f, 0.95f, 0.92f),
-                    Hair = CharacterArt.DarkHair, HairStyle = HairKind.Afro, Build = 1.08f,
-                    Pace = 1.25f, Stride = 1.25f, LegSwing = 30f, Waddle = 0.8f, Bob = 0.03f },
+                    Hair = CharacterArt.DarkHair, HairStyle = HairKind.Crop, Build = 1.08f,
+                    Pace = 1.25f, Stride = 1.25f, LegSwing = 30f, Waddle = 0.8f, Bob = 0.03f,
+                    // No afro: it would cover the headband, the gym-goer's trademark.
+                    Vary = new Variation { HairStyles = new[] { HairKind.Crop, HairKind.Bun, HairKind.Bald }, BigNose = 0.3f,
+                        Tops = new[] { new Color(0.22f, 0.3f, 0.5f), new Color(0.25f, 0.25f, 0.28f), new Color(0.55f, 0.15f, 0.15f), new Color(0.4f, 0.25f, 0.55f) },
+                        Props = new[] { PropKind.Bottle }, NoProp = 0.2f } },
             };
             // A little smaller than the chefs (the user's playtest: customers felt too big), so the
             // players stay the biggest, clearest people in the room.
@@ -217,25 +297,78 @@ namespace Game.Editor
                 Coloured(rig, rig.Waist, "CharScarf", look.Accent);
 
             // The head and everything on it: the same size whatever the build.
+            var vary = look.Vary;
+            var choices = new List<(string Name, GameObject[] Options, float None)>();
             Part(rig.Waist, "CharHead", look.Skin);
-            Part(rig.Waist, look.Nose == NoseKind.Big ? "CharNoseBig" : "CharNoseButton", look.Skin);
+            if (vary == null)
+                Part(rig.Waist, look.Nose == NoseKind.Big ? "CharNoseBig" : "CharNoseButton", look.Skin);
+            else
+            {
+                // Both noses, one shown (a coin weighted by BigNose: the big one is listed BigNose
+                // of the time as the second of two options, so roughly that share).
+                var button = Part(rig.Waist, "CharNoseButton", look.Skin).gameObject;
+                var big = Part(rig.Waist, "CharNoseBig", look.Skin).gameObject;
+                choices.Add(("Nose", vary.BigNose >= 0.5f ? new[] { button, big, big } : new[] { button, button, big }, 0f));
+            }
             Part(rig.Waist, "CharEyes", Ink);
             Part(rig.Waist, "CharEyeShine", Shine);
             Part(rig.Waist, "CharSmile", Ink);
             if (!look.Sunglasses)
                 Part(rig.Waist, "CharBrows", look.Hair);
-            if (look.Moustache)
-                Part(rig.Waist, "CharMoustache", look.Hair);
-            if (look.Glasses)
-                Part(rig.Waist, "CharGlasses", Ink);
-            if (look.Sunglasses)
-                Part(rig.Waist, "CharSunglasses", Ink);
-            Hair(rig.Waist, look);
+            if (vary == null)
+            {
+                if (look.Moustache)
+                    Part(rig.Waist, "CharMoustache", look.Hair);
+                if (look.Glasses)
+                    Part(rig.Waist, "CharGlasses", Ink);
+                if (look.Sunglasses)
+                    Part(rig.Waist, "CharSunglasses", Ink);
+                Hair(rig.Waist, look);
+            }
+            else
+            {
+                if (vary.Moustache > 0f)
+                    choices.Add(("Moustache", new[] { Part(rig.Waist, "CharMoustache", look.Hair).gameObject }, 1f - vary.Moustache));
+                var eyewear = new List<GameObject>();
+                if (vary.Glasses > 0f)
+                    eyewear.Add(Part(rig.Waist, "CharGlasses", Ink).gameObject);
+                if (vary.Sunglasses > 0f)
+                    eyewear.Add(Part(rig.Waist, "CharSunglasses", Ink).gameObject);
+                if (eyewear.Count > 0)
+                    choices.Add(("Eyewear", eyewear.ToArray(), Mathf.Clamp01(1f - vary.Glasses - vary.Sunglasses)));
+                // Each hair style the archetype allows, in its own group, one shown.
+                var styles = new List<GameObject>();
+                foreach (var style in vary.HairStyles)
+                {
+                    var group = Frame(rig.Waist, "Hair_" + style, Vector3.zero, Vector3.one);
+                    var styled = look.Clone();
+                    styled.HairStyle = style;
+                    Hair(group, styled);
+                    styles.Add(group.gameObject);
+                }
+                choices.Add(("Hair", styles.ToArray(), 0f));
+            }
             Hat(rig, look);
 
             // Arms: a short sleeve and a mitten on each shoulder, which turn as ChefArmsView aims them.
             rig.LeftShoulder = Arm(rig.Waist, "Shoulder_L", -Shoulder.x * look.Build, look);
             rig.RightShoulder = Arm(rig.Waist, "Shoulder_R", Shoulder.x * look.Build, look);
+
+            if (vary != null)
+            {
+                // The archetype's props: held ones in the right hand, worn ones on the body.
+                var props = new List<GameObject>();
+                foreach (var kind in vary.Props)
+                {
+                    var group = Frame(PropParts[kind][0].Held ? rig.RightShoulder : body, "Prop_" + kind, Vector3.zero, Vector3.one);
+                    foreach (var (mesh, colour, _) in PropParts[kind])
+                        Part(group, mesh, colour);
+                    props.Add(group.gameObject);
+                }
+                if (props.Count > 0)
+                    choices.Add(("Prop", props.ToArray(), vary.NoProp));
+                AddRoll(rig, look, choices);
+            }
 
             // The walk: legs, a bob of the upper body and a waddle; the arms too unless a chef's
             // ChefArmsView poses them (it follows this gait).
@@ -253,6 +386,56 @@ namespace Game.Editor
             gait.FindProperty("_bobHeight").floatValue = look.Bob;
             gait.ApplyModifiedPropertiesWithoutUndo();
             return rig;
+        }
+
+        // The roll: the choices built above, and colours for every skin, hair and clothes part.
+        private static void AddRoll(Rig rig, Look look, List<(string Name, GameObject[] Options, float None)> choices)
+        {
+            var all = rig.Figure.GetComponentsInChildren<Renderer>(includeInactive: true);
+            Renderer[] Named(params string[] names) =>
+                all.Where(r => names.Contains(r.gameObject.name) || names.Any(n => n.EndsWith("*") && r.gameObject.name.StartsWith(n.TrimEnd('*')))).ToArray();
+            var skin = Named("CharHead", "CharNoseButton", "CharNoseBig", "CharHand").ToList();
+            if (look.Dress)
+                skin.AddRange(Named("CharLeg")); // bare legs under a dress
+            var palettes = new List<(string Name, Renderer[] Renderers, Color[] Colours)>
+            {
+                ("Skin", skin.ToArray(), look.Vary.Skins),
+                ("Hair", Named("CharBrows", "CharMoustache", "Hair*"), look.Vary.Hairs),
+            };
+            if (look.Vary.Tops.Length > 0)
+                palettes.Add(("Top", Named("CharTorso", "CharHips", "CharDress", "CharArm"), look.Vary.Tops));
+
+            var roll = new SerializedObject(rig.Figure.gameObject.AddComponent<Game.Presentation.CharacterRoll>());
+            roll.FindProperty("_archetype").stringValue = look.Name;
+            var choiceList = roll.FindProperty("_choices");
+            choiceList.arraySize = choices.Count;
+            for (var i = 0; i < choices.Count; i++)
+            {
+                var element = choiceList.GetArrayElementAtIndex(i);
+                element.FindPropertyRelative("Name").stringValue = choices[i].Name;
+                element.FindPropertyRelative("NoneChance").floatValue = choices[i].None;
+                var options = element.FindPropertyRelative("Options");
+                options.arraySize = choices[i].Options.Length;
+                for (var j = 0; j < choices[i].Options.Length; j++)
+                    options.GetArrayElementAtIndex(j).objectReferenceValue = choices[i].Options[j];
+            }
+            var paletteList = roll.FindProperty("_palettes");
+            paletteList.arraySize = palettes.Count;
+            for (var i = 0; i < palettes.Count; i++)
+            {
+                var element = paletteList.GetArrayElementAtIndex(i);
+                element.FindPropertyRelative("Name").stringValue = palettes[i].Name;
+                var renderers = element.FindPropertyRelative("Renderers");
+                renderers.arraySize = palettes[i].Renderers.Length;
+                for (var j = 0; j < palettes[i].Renderers.Length; j++)
+                    renderers.GetArrayElementAtIndex(j).objectReferenceValue = palettes[i].Renderers[j];
+                var colours = element.FindPropertyRelative("Colours");
+                colours.arraySize = palettes[i].Colours.Length;
+                for (var j = 0; j < palettes[i].Colours.Length; j++)
+                    colours.GetArrayElementAtIndex(j).colorValue = palettes[i].Colours[j];
+            }
+            roll.ApplyModifiedPropertiesWithoutUndo();
+            rig.Roll = rig.Figure.GetComponent<Game.Presentation.CharacterRoll>();
         }
 
         private static Transform Leg(Transform figure, string name, float x, Look look)

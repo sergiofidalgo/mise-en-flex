@@ -56,18 +56,37 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
-## 2026-11-09 — Characters toward v16 after the first playtest: smaller heads, longer legs that walk, hands on what's carried
+## 2026-11-09 — Customers are rolled people, with their archetype's props
 
-**The user's playtest of v9.2:** it was easy to lose track of what you're holding: things floated in front of the chef, and the hat seemed too big. Customers felt too big. Walking didn't show: the legs were too short and didn't move. The 20° storage bend was fine. The references were concept v16 (`Art/Direction/concepts/2026-11-09_character-system_v16_full-cast.png`): head and hat about 38%, slimmer, with visible legs.
+**The user's playtest:** two customers came in looking exactly the same. Each archetype should have its own props (a cane for the retiree, a backpack or leather bag for the office worker), with as much variety as fits.
 
-**Changed:**
-- **Proportions:** head and toque are now 38% of the height, down from 47%. The head is 0.54 m across instead of 0.62 m (head parts are authored once and scaled together, `CHAR_HEAD_SCALE`). The toque is a short, puffy mushroom. The body is slimmer (0.55 m across), and the waist sits at 0.65 m with legs below it. The top of the head is still 1.63 m; the toque reaches 1.78 m.
-- **Arms reach what's carried:** the arms are 0.42 m to the hand, and the carry point is at 1.0 m high and 0.5 m out (`CharacterArt.CarryAnchor`), so both hands are on the plate. `CharacterProportionTests.HandsReachWhatsCarried` checks it.
-- **Walking:** each leg hangs from its own hip. `WalkCycleView` swings the legs, bobs the upper body once a step and waddles a few degrees. The cycle advances with distance walked (1 m per two steps), so feet don't skate at any speed. A chef's arms (`ChefArmsView`) follow the same gait, swinging against the legs. Customers and staff swing their arms from the gait itself.
-- **Customers** are 90% of a chef's size (`CharacterArt.CustomerScale`).
-- **The storage bend** stays at 20°, which now has more room (up to about 32° would clear the shelf).
+**Decision:**
+- **The archetype is the clothes; the person is rolled** (concept v9.2). When a customer appears, `CharacterRoll` picks the following within their archetype (`CharacterArt.Variation`):
+  - one of eight skin tones;
+  - a hair style the archetype allows, and a natural or grey colour;
+  - a shade of their clothes, never a player colour;
+  - a nose;
+  - glasses or sunglasses, and a moustache, each by chance;
+  - one of the archetype's props, or none.
+- **No two people in the room are identical:** a new customer re-rolls (up to 24 times) if they'd exactly match someone already there.
+- **Every option is built on the body and shown or hidden.** Colours are set by property block. There are no extra prefabs.
+- **Props** (new meshes in `SM_Characters`):
 
-**Still found:** facing straight away from the camera, the toque and head still hide what's carried. They hide less than before, and from 45° on it shows. The user will judge in play whether this still needs a fix (for example, an icon above the head).
+  | Archetype | Prop | Chance |
+  |---|---|---|
+  | Retiree | walking cane, held in the hand | 80% |
+  | Office worker | leather satchel across the body, or a backpack | 75% |
+  | Date night | handbag | 70% |
+  | Gym-goer | water bottle | 80% |
+  | Regular | rolled newspaper | 50% |
+  | Tourist | backpack (plus the camera) | 50% |
+
+  Held props swing with the arm. Worn props stay within the 0.38 m reach.
+- **Gym-goers don't get an afro,** because it would hide the headband, their trademark.
+
+**Cost:** recoloured parts leave the SRP batcher (they use per-renderer properties). With up to about 20 customers that's fine; check it in the Profiler if crowds grow.
+
+---
 
 ## 2026-11-09 — A calmer walk, a walk per customer, a smaller toque, and a flip you can see
 
@@ -87,6 +106,19 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 - **The flip:** the pan lifts 25 cm (was 12) and tips 35° (was 18). The food jumps 40 cm out of the pan or off the grill, turning a full somersault, and lands as the pan settles. A flip lasts 0.6 s (was 0.4). The hand at a grill flicks twice as high. This is presentation only: when the food turns over in the simulation is unchanged.
 
 ---
+
+## 2026-11-09 — Characters toward v16 after the first playtest: smaller heads, longer legs that walk, hands on what's carried
+
+**The user's playtest of v9.2:** it was easy to lose track of what you're holding: things floated in front of the chef, and the hat seemed too big. Customers felt too big. Walking didn't show: the legs were too short and didn't move. The 20° storage bend was fine. The references were concept v16 (`Art/Direction/concepts/2026-11-09_character-system_v16_full-cast.png`): head and hat about 38%, slimmer, with visible legs.
+
+**Changed:**
+- **Proportions:** head and toque are now 38% of the height, down from 47%. The head is 0.54 m across instead of 0.62 m (head parts are authored once and scaled together, `CHAR_HEAD_SCALE`). The toque is a short, puffy mushroom. The body is slimmer (0.55 m across), and the waist sits at 0.65 m with legs below it. The top of the head is still 1.63 m; the toque reaches 1.78 m.
+- **Arms reach what's carried:** the arms are 0.42 m to the hand, and the carry point is at 1.0 m high and 0.5 m out (`CharacterArt.CarryAnchor`), so both hands are on the plate. `CharacterProportionTests.HandsReachWhatsCarried` checks it.
+- **Walking:** each leg hangs from its own hip. `WalkCycleView` swings the legs, bobs the upper body once a step and waddles a few degrees. The cycle advances with distance walked (1 m per two steps), so feet don't skate at any speed. A chef's arms (`ChefArmsView`) follow the same gait, swinging against the legs. Customers and staff swing their arms from the gait itself.
+- **Customers** are 90% of a chef's size (`CharacterArt.CustomerScale`).
+- **The storage bend** stays at 20°, which now has more room (up to about 32° would clear the shelf).
+
+**Still found:** facing straight away from the camera, the toque and head still hide what's carried. They hide less than before, and from 45° on it shows. The user will judge in play whether this still needs a fix (for example, an icon above the head).
 
 ---
 

@@ -714,6 +714,46 @@ def build_characters():
     add_ball(bm, (0.0, 0.0, -CHAR_ARM_LENGTH), 0.08, segments=16)
     add_ball(bm, (0.0, -0.06, -CHAR_ARM_LENGTH + 0.03), 0.034, segments=10)  # thumb, to the front
     part("CharHand", bm, "apart")
+
+    # ---- Customers' props (the user's note, 2026-11-09: each archetype has its own). Things held
+    # hang from the right shoulder like the hand, so they swing with the arm; things worn are on
+    # the body, from the waist.
+    hand = -CHAR_ARM_LENGTH
+    shoulder_height = CHAR_WAIST + CHAR_SHOULDER[1]
+    bm = bmesh.new()  # a walking cane: a crook in the hand, the shaft down to the floor
+    add_pipe(bm, [(0.0, -0.04, hand + 0.02), (0.0, -0.06, -shoulder_height + 0.02)], radius=0.022, segments=8)
+    add_pipe(bm, [(0.0, -0.04, hand + 0.02), (0.0, -0.04, hand + 0.1), (0.0, 0.03, hand + 0.13), (0.0, 0.09, hand + 0.09)],
+             radius=0.022, segments=8)
+    add_ball(bm, (0.0, -0.06, -shoulder_height + 0.02), 0.03, segments=8)  # the rubber tip
+    part("PropCane", bm, "apart")
+    bm = bmesh.new()  # a water bottle, gripped upright
+    add_lathe(bm, [(0.0, hand - 0.11), (0.042, hand - 0.11), (0.045, hand - 0.08), (0.045, hand + 0.08), (0.03, hand + 0.11),
+                   (0.0, hand + 0.11)], segments=16, centre=(0.0, -0.06, 0.0))
+    part("PropBottle", bm, "apart")
+    bm = bmesh.new()  # its cap
+    add_lathe(bm, [(0.0, hand + 0.1), (0.028, hand + 0.1), (0.028, hand + 0.15), (0.0, hand + 0.15)], segments=12,
+              centre=(0.0, -0.06, 0.0))
+    part("PropBottleCap", bm, "apart")
+    bm = bmesh.new()  # a rolled newspaper, held like a baton
+    add_lathe(bm, [(0.0, -0.17), (0.04, -0.17), (0.045, 0.0), (0.04, 0.17), (0.0, 0.17)], segments=12,
+              centre=(0.0, -0.04, hand), axis_matrix=Matrix.Rotation(math.radians(90.0), 4, 'X'))
+    part("PropNewspaper", bm, "apart")
+    bm = bmesh.new()  # a handbag hanging from the hand by its handle
+    add_box(bm, (0.17, 0.07, 0.13), (0.0, 0.0, hand - 0.17), bevel=0.025)
+    add_pipe(bm, [(-0.05, 0.0, hand - 0.1), (-0.04, 0.0, hand - 0.03), (0.04, 0.0, hand - 0.03), (0.05, 0.0, hand - 0.1)],
+             radius=0.012, segments=6)
+    part("PropHandbag", bm, "apart")
+    bm = bmesh.new()  # a backpack on the back, with straps over the shoulders
+    add_box(bm, (0.26, 0.1, 0.32), (0.0, 0.3, 0.24), bevel=0.04)
+    add_box(bm, (0.2, 0.04, 0.12), (0.0, 0.35, 0.14), bevel=0.02)  # the front pocket
+    for x in (-0.12, 0.12):
+        add_pipe(bm, [(x, 0.28, 0.38), (x, 0.1, 0.48), (x, -0.12, 0.45), (x * 1.08, -0.25, 0.3)], radius=0.02, segments=6)
+    part("PropBackpack", bm, "waist")
+    bm = bmesh.new()  # a leather satchel at the left hip, its strap across the body
+    add_box(bm, (0.08, 0.26, 0.2), (-0.31, 0.0, 0.02), bevel=0.025)
+    add_pipe(bm, [(-0.29, -0.08, 0.1), (0.0, -0.29, 0.25), (0.17, -0.16, 0.43)], radius=0.016, segments=6)
+    add_pipe(bm, [(-0.29, 0.08, 0.1), (0.0, 0.29, 0.25), (0.17, 0.16, 0.43)], radius=0.016, segments=6)
+    part("PropSatchel", bm, "waist")
     return objects
 
 
