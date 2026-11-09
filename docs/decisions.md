@@ -25,7 +25,7 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 - **No card while washing.** X or B stops (B did nothing while busy before; `PlayerInteractor.BackOut`).
 - **The stick hint** appears beside the soap, on its far side from the centre, when it's been off target for 0.6 s with the stick not pushing towards the centre (not moving it counts), and tips towards the centre until the player does. A domed base with a collar, a short shaft, a rounded cap with a grippy rim and a dished top marked L (Fredoka). `Game/UI/TutorialIcon` gives it a fixed light and its own outline, so it looks the same in every scene and at every hour.
 - **3 centrings a plate** (`Corrections` 2): the plate starts tipped to one side and the two pushes go to the other two, about 120° apart (±20°), so it's still tipped every way. A steady simulated hand takes about 3.7 s a plate.
-- **Known issue:** with the sink turned 45°, the tap still draws over part of the ring in captures, though nothing found explains it (see `ideas.md`).
+- **The tap may cover the ring** (the user's call, after it showed in captures with the sink turned 45°): it's the one thing allowed in front, so the ring still reads as sitting in the sink.
 
 ---
 
