@@ -228,5 +228,22 @@ namespace Game.Tests.EditMode
                 Assert.That(reviews.ShareChance(topic, Persona.Regular), Is.LessThan(1f), $"a regular doesn't always post about {topic}");
             UnityEngine.Object.DestroyImmediate(config);
         }
+
+        [Test]
+        public void ARudeReplyCostsReturnVisits()
+        {
+            var book = new GuestBook();
+            var polite = new KnownGuest { Memory = GuestMemory.Apologised, ReplyMood = OwnerMood.Fresh };
+            var weary = new KnownGuest { Memory = GuestMemory.Apologised, ReplyMood = OwnerMood.Tired };
+            var rude = new KnownGuest { Memory = GuestMemory.Apologised, ReplyMood = OwnerMood.FedUp };
+            Assert.That(book.Weight(weary), Is.LessThan(book.Weight(polite)));
+            Assert.That(book.Weight(rude), Is.LessThan(book.Weight(weary)));
+            Assert.That(book.Weight(rude), Is.GreaterThan(book.Weight(new KnownGuest { Memory = GuestMemory.Ignored })), "a fed-up apology still beats silence");
+
+            var record = Posted("Tony L.", 1, ReviewTopic.Burnt, (int)ReviewReply.Apologise);
+            record.ReplyMood = (int)OwnerMood.FedUp;
+            book.Rebuild(new[] { record }, today: 2);
+            Assert.That(book.Guests[0].ReplyMood, Is.EqualTo(OwnerMood.FedUp), "remembered from the save");
+        }
     }
 }

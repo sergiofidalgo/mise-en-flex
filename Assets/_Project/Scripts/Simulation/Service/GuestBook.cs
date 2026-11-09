@@ -28,14 +28,17 @@ namespace Game.Simulation.Service
         public int LastDay;
         public int Visits;
         public GuestMemory Memory;
+
+        /// <summary>The owner's mood in the reply they got, if they got one.</summary>
+        public OwnerMood ReplyMood;
     }
 
     /// <summary>
     /// The guests who have posted before (ideas.md and decisions, 2026-11-09). Only reviewers are
     /// known, so the book is rebuilt from the review history and needs no save of its own. How
     /// likely each is to return follows how they were treated: an apology that fits brings people
-    /// back, being ignored less so, being brushed off least. Players aren't told; they see who
-    /// comes back and what they say (learn by playing).
+    /// back, being ignored less so, being brushed off least, and a reply written tired or fed up
+    /// puts people off. Players aren't told; they see who comes back and what they say.
     /// </summary>
     public sealed class GuestBook
     {
@@ -46,6 +49,12 @@ namespace Game.Simulation.Service
 
         /// <summary>How willing each memory makes a guest to come back, by <see cref="GuestMemory"/> order.</summary>
         public float[] Willingness { get; set; } = { 3f, 1f, 0.3f, 2f, 1.2f };
+
+        /// <summary>
+        /// How a reply's mood changes a guest's willingness to return, by <see cref="OwnerMood"/> order:
+        /// a weary reply puts people off a little, a rude one a lot (user's call, 2026-11-09).
+        /// </summary>
+        public float[] MoodWillingness { get; set; } = { 1f, 0.8f, 0.4f };
 
         /// <summary>How much likelier a returning guest is to post than a first-timer.</summary>
         public float PostBoost { get; set; } = 1.5f;
@@ -66,6 +75,7 @@ namespace Game.Simulation.Service
                     LastDay = last.Day,
                     Visits = visits.Count(),
                     Memory = MemoryOf(last),
+                    ReplyMood = last.Reply >= 0 ? (OwnerMood)last.ReplyMood : OwnerMood.Fresh,
                 });
             }
         }
@@ -94,10 +104,13 @@ namespace Game.Simulation.Service
             return null;
         }
 
-        private float Weight(KnownGuest guest)
+        // How willing they are: what they remember, times how the reply sounded.
+        public float Weight(KnownGuest guest)
         {
             var index = (int)guest.Memory;
-            return Willingness != null && index < Willingness.Length ? Math.Max(0f, Willingness[index]) : 1f;
+            var willing = Willingness != null && index < Willingness.Length ? Math.Max(0f, Willingness[index]) : 1f;
+            var mood = (int)guest.ReplyMood;
+            return willing * (MoodWillingness != null && mood < MoodWillingness.Length ? Math.Max(0f, MoodWillingness[mood]) : 1f);
         }
 
         public static GuestMemory MemoryOf(ReviewRecord review)

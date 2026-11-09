@@ -191,6 +191,8 @@ namespace Game.Data
         [SerializeField, Range(0f, 1f)] private float _returnShare = 0.3f;
         [Tooltip("How willing a guest is to come back after: an apology to their complaint, no reply, a dismissive reply, thanks for their praise, no thanks.")]
         [SerializeField] private float[] _returnWillingness = { 3f, 1f, 0.3f, 2f, 1.2f };
+        [Tooltip("How willing a guest is to return after a reply written fresh, tired or fed up: rude replies cost return visits (2026-11-09).")]
+        [SerializeField] private float[] _returnAfterMood = { 1f, 0.8f, 0.4f };
         [Tooltip("How much likelier a returning guest is to post than a first-timer.")]
         [SerializeField, Min(0f)] private float _returnPostBoost = 1.5f;
         [Tooltip("What customers say. {ordered}, {got}, {main} and {side} are filled in.")]
@@ -285,7 +287,7 @@ namespace Game.Data
                 ComplaintShare = _shareWhenComplaining,
                 WalkOutShare = _shareWhenWalkedOut,
                 PersonaShare = _personaShare,
-                Guests = new GuestBook { ReturnShare = _returnShare, Willingness = _returnWillingness, PostBoost = _returnPostBoost },
+                Guests = new GuestBook { ReturnShare = _returnShare, Willingness = _returnWillingness, MoodWillingness = _returnAfterMood, PostBoost = _returnPostBoost },
             },
         };
 

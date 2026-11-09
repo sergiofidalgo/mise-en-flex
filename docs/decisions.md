@@ -28,7 +28,7 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 - **The no-repeat memory grew from 80 to 200 lines**, about a month of reviews and replies built from parts.
 - **The dashboard measures each reply's wrapped height,** and its card grows by a line when it needs two.
 
-**Flagged for review:** the mood only changes the words, not what a reply does. A fed-up apology still counts as an apology. Whether rudeness should cost something (fewer returning guests, a rating dip) is open. The metric targets and the mood thresholds are first guesses.
+**User's call: rudeness costs return visits.** Each reply's mood is saved with its review (`ReviewRecord.ReplyMood`). A guest's willingness to come back is multiplied by it: ×0.8 after a tired reply and ×0.4 after a fed-up one (`ServiceConfig` → Return After Mood). A fed-up apology still beats silence, just. A reply's rating nudge is unchanged. The metric targets and the mood thresholds are first guesses.
 
 ---
 

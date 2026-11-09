@@ -69,6 +69,7 @@ namespace Game.Simulation.Service
             };
             var seed = unchecked(review.Day * 7919 + StableHash(review.Guest) * 31 + (int)reply);
             review.ReplyText = ReviewVoices.Reply(reply, (ReviewTopic)review.Topic, facts, mood, style, generic, memory, new System.Random(seed));
+            review.ReplyMood = (int)mood;
         }
 
         // string.GetHashCode differs between runs; this doesn't.

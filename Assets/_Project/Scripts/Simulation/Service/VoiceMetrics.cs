@@ -113,6 +113,7 @@ namespace Game.Simulation.Service
                         var mood = ReviewVoices.MoodAfter(repliesToday, walkOutsToday, tiredAfter, fedUpAfter);
                         record.Reply = (int)reply;
                         record.ReplyText = ReviewVoices.Reply(reply, topic, facts, mood, style, generic, memory, random);
+                        record.ReplyMood = (int)mood;
                         report.Replies.Add((day, record.ReplyText));
                         repliesToday++;
                     }

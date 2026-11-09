@@ -198,6 +198,9 @@ namespace Game.Simulation.Saving
         /// <summary>The owner's reply as posted; empty for a reply from before replies were written per review.</summary>
         public string ReplyText = "";
 
+        /// <summary>The owner's mood when they replied (a <see cref="Service.OwnerMood"/>): 0, fresh, for older saves.</summary>
+        public int ReplyMood;
+
         /// <summary>Which visit this was for the guest: 1 (or 0, in older saves) the first.</summary>
         public int Visit;
     }
