@@ -464,6 +464,41 @@ The plan is in `plans/tailor.md`.
 
 ---
 
+## 2026-11-09 — The office at night, each room lit its own way
+
+**User's notes:** the scene looked flat. It happens at night, so play with light sources outside and inside the office, giving each room its own personality. It's fine for lamps to light shapes naturally, disregarding the toon finish.
+
+**Done:**
+- **The toon shading takes lamps.** It ignored point and spot lights until now: only the sun lit anything. `ToonCommon.hlsl` gains `LocalLights`: a smooth, natural falloff that wraps a little round the sides facing away. It's added to the toon and room surfaces through URP's Forward+ light loop.
+  - It's gated by a global, `_GameLocalLights`, which the office's `OfficeLighting` sets. Unset, it's 0, so the kitchen looks exactly as before (checked in a capture).
+- **Night:**
+  - a low, cool moon instead of the sun;
+  - a dim blue ambient;
+  - a deep blue haze and sky, so the far city fades into the dark while its windows glow.
+- **Each room's light:**
+  - **reception:** warm pendants;
+  - **guarded doors:** amber sconces and a cold spot on the bodyguards;
+  - **the boss's office:** a golden desk lamp, amber floor lamps, and a new fireplace that flickers;
+  - **the tailor:** showroom spots on the plinths;
+  - **the test kitchen:** fluorescent tubes, one faulty;
+  - **the miniature room:** a spot on the table and a blue glow off the model city;
+  - **the hall of fame:** museum spots;
+  - **the lounge:** floor lamps and a new television flickering blue;
+  - **the accountant:** a green banker's lamp under a stuttering tube;
+  - **the terrace:** string lights along the rail.
+- **Floor lamps and lamp posts** light themselves.
+- **In the city:** the pool glows, the billboard is floodlit, the steak sign, pergolas and decks glow warm, the heliport has a pad light, and the crane has a floodlight.
+- **`FlickerLight`** drives the fire, the television and the faulty tubes, with the maths in `AmbientMotion` (tested).
+
+**Moved:** the boss's sofa moved back to make room for the fireplace.
+
+**Flagged for review:**
+- **Strength:** lamp strength is set to 2.5 (`OfficeLighting`).
+- **Readability:** the darkest corners need checking with chefs in them, in Play mode.
+- **Phase:** this replaces "always dusk" from earlier today.
+
+---
+
 ## 2026-11-09 — The camera fits spread-out players; roofs with real detail
 
 **User's notes:** with two players far apart, the camera didn't fit them, and it should zoom out to. The rooftops were too simple and unrealistic, lacked detail, and didn't feel alive.

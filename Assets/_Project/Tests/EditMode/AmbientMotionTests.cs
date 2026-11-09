@@ -56,6 +56,44 @@ namespace Game.Tests.EditMode
         }
 
         [Test]
+        public void FireIsRestlessButNeverOut()
+        {
+            var min = float.MaxValue;
+            var max = float.MinValue;
+            for (var t = 0f; t < 30f; t += 0.05f)
+            {
+                var f = AmbientMotion.Fire(t, 3f);
+                min = Mathf.Min(min, f);
+                max = Mathf.Max(max, f);
+            }
+            Assert.That(min, Is.GreaterThanOrEqualTo(0.65f));
+            Assert.That(max, Is.LessThanOrEqualTo(1.15f));
+            Assert.That(max - min, Is.GreaterThan(0.1f), "it moves");
+        }
+
+        [Test]
+        public void TelevisionHoldsEachShotThenJumps()
+        {
+            Assert.That(AmbientMotion.Television(1.01f, 0.2f, 1f), Is.EqualTo(AmbientMotion.Television(1.19f, 0.2f, 1f)));
+            for (var t = 0f; t < 10f; t += 0.2f)
+            {
+                var b = AmbientMotion.Television(t, 0.2f, 1f);
+                Assert.That(b, Is.InRange(0.35f, 1f));
+            }
+        }
+
+        [Test]
+        public void FaultyTubeIsMostlyOnButStutters()
+        {
+            int on = 0, samples = 0;
+            for (var t = 0f; t < 120f; t += 0.01f, samples++)
+                if (AmbientMotion.FaultyOn(t, 6f, 2f))
+                    on++;
+            Assert.That(on / (float)samples, Is.GreaterThan(0.85f), "mostly on");
+            Assert.That(on, Is.LessThan(samples), "but it does go off");
+        }
+
+        [Test]
         public void ClockwiseGoesTheOtherWay()
         {
             var a = AmbientMotion.Loop(Vector3.zero, Vector2.one, 0f, 1f, 8f, 0f, false);

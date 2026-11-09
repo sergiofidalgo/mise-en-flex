@@ -155,6 +155,7 @@ namespace Game.Editor
             BuildTerrace(rooms);
             BuildCity();
             AddLife(rooms); // OfficeBuilder.Life.cs: birds, rooftop life, windows, people's idles
+            LightRooms(rooms); // OfficeBuilder.Lighting.cs: each room's lamps
             AddTailor(rooms); // OfficeBuilder.Tailor.cs: the plinths dress their players
 
             var players = new GameObject("Players");
@@ -188,6 +189,7 @@ namespace Game.Editor
             framing.FindProperty("_floorMax").vector2Value = new Vector2(East, TerraceNorth);
             framing.ApplyModifiedPropertiesWithoutUndo();
             camera.transform.SetPositionAndRotation(follow.Wanted(), Quaternion.Euler(55f, 0f, 0f));
+            NightLighting(sun, camera); // the moon, the night haze, lamps on (OfficeBuilder.Lighting.cs)
 
             GreyboxAssets.EnsureFolder(System.IO.Path.GetDirectoryName(ScenePath));
             EditorSceneManager.SaveScene(scene, ScenePath);
@@ -534,8 +536,6 @@ namespace Game.Editor
                 PottedPlant(room, at, 1f);
             HangPicture(room, new Vector3(-9f, PictureHeight, -10.6f), Vector3.right, new Color(0.56f, 0.66f, 0.5f));
             HangPicture(room, new Vector3(9f, PictureHeight, -10.6f), Vector3.left, new Color(0.5f, 0.62f, 0.72f));
-            Lamp(room, "PendantWest", new Vector3(-5f, 3.4f, -8f), 8f, 1.4f);
-            Lamp(room, "PendantEast", new Vector3(5f, 3.4f, -8f), 8f, 1.4f);
         }
 
         // The guarded doors, 18 × 8 m: the bodyguards' post in front of the boss's door, with seats
@@ -576,13 +576,13 @@ namespace Game.Editor
             Boss(room, new Vector3(0f, 0f, 11.45f));
             Armchair(room, new Vector3(-1.2f, 0f, 8.6f), 0f, new Color(0.52f, 0.16f, 0.16f));
             Armchair(room, new Vector3(1.2f, 0f, 8.6f), 0f, new Color(0.52f, 0.16f, 0.16f));
-            Lamp(room, "DeskLight", new Vector3(0.7f, 2.2f, 10.0f), 7f, 3.2f);
 
             // A sitting corner on the left, his books and his safe on the right; the doors to the
             // tailor and the miniature (z = 6) are kept clear.
-            Sofa(room, new Vector3(-7.4f, 0f, 10.2f), 90f, Leather);
-            Block(room, "CoffeeTable", Toon("OfficeWalnut", Walnut), new Vector3(-6.0f, 0f, 10.2f), new Vector3(0.9f, 0.42f, 1.6f), collider: true);
-            Model(room, "Decanter", OfficeModel, "OfficeTrophy", PilotArt.EnsureGlassMaterial("OfficeDecanter", new Color(0.7f, 0.45f, 0.2f, 0.7f)), new Vector3(-6.0f, 0.42f, 9.8f), 0f, scale: 0.6f);
+            // (Further back than the door to the tailor, beside the fireplace: OfficeBuilder.Lighting.cs.)
+            Sofa(room, new Vector3(-7.4f, 0f, 11.5f), 90f, Leather);
+            Block(room, "CoffeeTable", Toon("OfficeWalnut", Walnut), new Vector3(-6.0f, 0f, 11.5f), new Vector3(0.9f, 0.42f, 1.6f), collider: true);
+            Model(room, "Decanter", OfficeModel, "OfficeTrophy", PilotArt.EnsureGlassMaterial("OfficeDecanter", new Color(0.7f, 0.45f, 0.2f, 0.7f)), new Vector3(-6.0f, 0.42f, 11.1f), 0f, scale: 0.6f);
             for (var i = 0; i < 2; i++)
                 Bookcase(room, new Vector3(8.6f, 0f, 9.4f + i * 1.9f), -90f);
             Block(room, "Safe", Toon("OfficeSafe", new Color(0.24f, 0.25f, 0.28f)), new Vector3(8.3f, 0f, 4.3f), new Vector3(0.9f, 1.0f, 0.8f), collider: true);
@@ -666,7 +666,6 @@ namespace Game.Editor
             Block(room, "MiniatureTrim", Toon("OfficeBrass", Brass), centre + Vector3.up * 0.82f, new Vector3(5.1f, 0.05f, 3.3f));
             Cube(room, "MiniatureGround", Toon("OfficeMiniGround", new Color(0.18f, 0.2f, 0.28f)), centre + Vector3.up * 0.87f, new Vector3(4.8f, 0.02f, 3.0f));
             Miniature(room, centre + Vector3.up * 0.89f, new Vector2(4.6f, 2.8f));
-            Lamp(room, "MiniatureLight", centre + new Vector3(0f, 3.2f, -0.6f), 7f, 3f);
             for (var i = 0; i < 2; i++)
             {
                 Block(room, "MapChest", Toon("OfficeWalnut", Walnut), new Vector3(17.0f, 0f, 4.6f + i * 1.6f), new Vector3(0.7f, 1.0f, 1.5f), collider: true);
@@ -726,7 +725,6 @@ namespace Game.Editor
             FloorLamp(room, new Vector3(-16.9f, 0f, -12.9f));
             PottedPlant(room, new Vector3(-9.6f, 0f, -12.9f), 1.2f);
             PottedPlant(room, new Vector3(-9.6f, 0f, -5.2f), 1.0f);
-            Lamp(room, "LoungeLamp", new Vector3(-13.6f, 3f, -9.6f), 7f, 1.2f);
         }
 
         // The accountant, 8.5 × 9 m: also for fun (decision 2026-11-09); the books stay on the dashboard.
@@ -1146,6 +1144,7 @@ namespace Game.Editor
         {
             Model(parent, "LampStand", OfficeModel, "OfficeLampStand", Toon("OfficeBrass", Brass), at, 0f, collider: new Vector3(0.36f, 1.6f, 0.36f));
             Model(parent, "LampShade", OfficeModel, "OfficeLampShade", Unlit("OfficeLampGlow", new Color(1f, 0.86f, 0.55f)), at, 0f);
+            Point(parent, "FloorLampLight", at + Vector3.up * 1.45f, Incandescent, 4.5f, 1.8f);
         }
 
         private static void Bookcase(Transform parent, Vector3 at, float facing)
@@ -1192,6 +1191,7 @@ namespace Game.Editor
         {
             Model(parent, "LampPost", CityModel, "CityLampPost", Toon("CityLampIron", new Color(0.12f, 0.16f, 0.14f)), at, 0f, scale: 0.7f, collider: new Vector3(0.3f, 4f, 0.3f));
             Model(parent, "LampGlass", CityModel, "CityLampGlass", Unlit("OfficeLampGlow", new Color(1f, 0.86f, 0.55f)), at, 0f, scale: 0.7f);
+            Point(parent, "LampPostLight", at + Vector3.up * 2.9f, Incandescent, 7f, 2.5f);
         }
 
         // The city on the miniature table: the night city's blocks at about 1/60, with streets,
@@ -1250,18 +1250,6 @@ namespace Game.Editor
             foreach (var t in copy.GetComponentsInChildren<Transform>(true))
                 t.gameObject.isStatic = true;
             return copy;
-        }
-
-        private static void Lamp(Transform parent, string name, Vector3 at, float range, float intensity)
-        {
-            var light = new GameObject(name).AddComponent<Light>();
-            light.transform.SetParent(parent, false);
-            light.transform.localPosition = at;
-            light.type = LightType.Point;
-            light.color = LampWarm;
-            light.range = range;
-            light.intensity = intensity;
-            light.shadows = LightShadows.None;
         }
 
         // ---- Meshes and materials ------------------------------------------------------------------

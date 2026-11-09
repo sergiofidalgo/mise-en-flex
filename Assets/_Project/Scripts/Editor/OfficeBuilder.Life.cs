@@ -171,6 +171,7 @@ namespace Game.Editor
                 var a = k * Mathf.PI / 4f;
                 AviationLight(roof, new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a)) * (size / 2f), 1.2f, k / 8f, green: true);
             }
+            Glow(roof, new Vector3(0f, 3f, 0f), new Color(0.9f, 0.95f, 1f), 7f, 2f);
             var heli = Helicopter(roof, "ParkedHelicopter", new Color(0.82f, 0.22f, 0.18f), rotorSpeed: 280f);
             heli.localPosition = new Vector3(0.3f, 0.05f, 0f);
             heli.localRotation = Quaternion.Euler(0f, 200f, 0f);
@@ -215,6 +216,7 @@ namespace Game.Editor
                 TwinklingBulb(roof, bulb, new Vector3(x, 2.32f, z), 2f + (float)_random.NextDouble() * 2f, 0.6f + (float)_random.NextDouble() * 0.3f);
             }
             Block(roof, "Table", teak, new Vector3(0f, 0f, 0.2f), new Vector3(1.2f, 0.72f, 0.8f));
+            Glow(roof, new Vector3(0f, 2.1f, 0.2f), Bulb, 5f, 2f);
 
             // The gardener, bending to water the beds now and then.
             var gardener = Person(roof, "Gardener", new Vector3(-0.3f * w + 1.2f, 0f, -d * 0.12f), 180f, new Color(0.35f, 0.5f, 0.3f), new Color(0.3f, 0.26f, 0.2f));
@@ -250,6 +252,7 @@ namespace Game.Editor
             Block(hook, "Cable", Toon("OfficeInk", Ink), new Vector3(0f, -6f, 0f), new Vector3(0.05f, 6f, 0.05f));
             Block(hook, "Load", Toon("OfficeTeak", new Color(0.55f, 0.38f, 0.24f)), new Vector3(0f, -6.9f, 0f), new Vector3(1.4f, 0.9f, 1.0f));
             Wobble(hook.gameObject, Oscillate.Shape.Wave, Vector3.zero, new Vector3(4f, 0f, 3f), 3.2f);
+            Spot(slew, "CraneFlood", new Vector3(10f, -0.5f, 0f), Vector3.zero, CoolWhite, 14f, 50f, 4f);
             AviationLight(slew, new Vector3(16f, 0.4f, 0f), 1.5f, 0f);
             AviationLight(slew, new Vector3(0f, 1.9f, 0f), 1.5f, 0.5f);
             Wobble(slew.gameObject, Oscillate.Shape.Wave, Vector3.zero, new Vector3(0f, 55f, 0f), 34f);
@@ -280,6 +283,7 @@ namespace Game.Editor
                 ChaseBulb(turn, bulb, new Vector3(Mathf.Cos(a) * 1.9f, Mathf.Sin(a) * 1.9f, 0.25f), (float)i / bulbs);
             }
             Block(roof, "SignBase", Toon("OfficeWalnut", Walnut), Vector3.zero, new Vector3(1.4f, 0.4f, 1.4f));
+            Glow(roof, new Vector3(0f, 6.2f, -1.8f), Bulb, 6f, 3f);
         }
 
         // A pool, someone drifting round it on a rubber ring, loungers and an umbrella.
@@ -287,7 +291,9 @@ namespace Game.Editor
         {
             var pool = new Vector2(w * 0.55f, d * 0.45f);
             Block(roof, "PoolEdge", Toon("OfficePoolEdge", new Color(0.92f, 0.9f, 0.84f)), new Vector3(0f, 0f, -d * 0.05f), new Vector3(pool.x + 0.6f, 0.35f, pool.y + 0.6f));
-            Cube(roof, "Water", Toon("OfficePoolWater", new Color(0.35f, 0.72f, 0.82f)), new Vector3(0f, 0.36f, -d * 0.05f), new Vector3(pool.x, 0.01f, pool.y));
+            // Lit from under the water at night: it glows.
+            Cube(roof, "Water", Unlit("OfficePoolWater", new Color(0.3f, 0.78f, 0.9f)), new Vector3(0f, 0.36f, -d * 0.05f), new Vector3(pool.x, 0.01f, pool.y));
+            Glow(roof, new Vector3(0f, 1.2f, -d * 0.05f), new Color(0.35f, 0.85f, 1f), 7f, 2.5f);
             var floater = new GameObject("Floater").transform;
             floater.SetParent(roof, false);
             floater.gameObject.AddComponent<FlyLoop>().Set(new Vector3(0f, 0.37f, -d * 0.05f), pool * 0.3f, 0.03f, 26f, (float)_random.NextDouble(), false, 0f);
@@ -446,6 +452,7 @@ namespace Game.Editor
                     Block(roof, "Shrubs", Toon("OfficePlant", Plant), box + Vector3.up * 0.45f, new Vector3(1.1f, 0.3f, 0.38f));
                 }
                 Smoker(roof, deck + new Vector3(-deckSize.x * 0.25f, 0f, -deckSize.y * 0.15f), (float)_random.NextDouble() * 360f);
+                Glow(roof, deck + new Vector3(deckSize.x * 0.2f, 2f, 0f), Bulb, 5f, 1.6f);
             }
             else if (kind < 0.6)
             {
@@ -562,6 +569,7 @@ namespace Game.Editor
                 ChaseBulb(roof, bulb, board + new Vector3(3.1f, -y, -0.08f), (float)index++ / total);
                 ChaseBulb(roof, bulb, board + new Vector3(-3.1f, y, -0.08f), (float)index++ / total);
             }
+            Spot(roof, "BillboardFlood", board + new Vector3(0f, -1.6f, -2.2f), new Vector3(-60f, 0f, 0f), Showroom, 7f, 70f, 6f);
             foreach (var x in new[] { -1.8f, 1.8f })
                 Shape(roof, PrimitiveType.Cylinder, "Floodlight", Unlit("OfficeLampGlow", new Color(1f, 0.86f, 0.55f)), board + new Vector3(x, -1.7f, -0.7f), new Vector3(0.3f, 0.12f, 0.3f), Quaternion.Euler(-60f, 0f, 0f));
         }

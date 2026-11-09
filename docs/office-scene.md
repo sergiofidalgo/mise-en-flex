@@ -147,7 +147,18 @@ All models come from `blender/build_pilot_models.py` (generated, reviewable as t
 - **Interior:** warm key `#FFD9A8`, as in the kitchen; brass and wood catch it.
 - **Exterior:** the city is lit by the same toon light as the kitchen, in warm facade colours with a touch of the dusk violet in each. Linear fog (from 70 to 230 m, `Dusk` colour, also the camera's clear colour) fades it with distance, so the near roofs are detailed and the far city is quiet.
 - **Lamps:** desk lamps, a reception pendant and the miniature's spot as the only extra real-time lights.
-- **It's always dusk here.** Players visit between days, after Close. The kitchen's world is lit for dusk too (art bible), so the office matches it rather than being a night scene.
+- **It's night here (user's note, 2026-11-09).** A low, cool moon replaces the sun, the city fades into a deep blue haze, and lamps do the work. Each room has its own light:
+  - **Reception:** warm, welcoming pendants.
+  - **Guarded doors:** dim and watchful, amber sconces at the columns and a cold light on the bodyguards.
+  - **Boss's office:** a golden desk-lamp pool, amber floor lamps, a flickering fireplace.
+  - **Tailor:** showroom spots on each plinth.
+  - **Test kitchen:** cold fluorescent tubes, one failing.
+  - **Miniature room:** dark, one spot on the table and the model city's blue glow.
+  - **Hall of fame:** museum spots on the trophies, the cookbook and the portraits.
+  - **Lounge:** cosy floor lamps and a television's flickering blue.
+  - **Accountant:** a green banker's lamp under a stuttering tube.
+  - **Terrace:** string lights along the rail and lit lamp posts.
+- **Lamps light surfaces naturally,** not in toon bands (user's call). The shared toon shading takes point and spot lights only when a scene turns them on (`OfficeLighting`), so the kitchen is unchanged.
 
 **Small stories:**
 - A stack of unpaid invoices on the accountant's desk, with one restaurant's name on top (yours, when you're behind).

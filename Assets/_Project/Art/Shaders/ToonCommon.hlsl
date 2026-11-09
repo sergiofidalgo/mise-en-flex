@@ -27,6 +27,34 @@ half3 ToonRamp(float value)
     return lerp(lerp(RampShadow, RampMid, toMid), RampLit, toLit);
 }
 
+// Point and spot lights (decision 2026-11-09, the office at night: lamps give each room its
+// own light). Off unless a scene turns them on: _GameLocalLights is a global the scene sets
+// (OfficeLighting); unset, it is 0, so the kitchen looks exactly as before. Lamps light the
+// shapes naturally, a smooth falloff rather than toon bands (the user's call, 2026-11-09), and
+// wrap a little round the sides facing away, as a room's bounce light would.
+float _GameLocalLights;
+
+half3 LocalLights(half3 albedo, float3 positionWS, float3 normalWS, float4 positionCS)
+{
+#if defined(_ADDITIONAL_LIGHTS) || USE_CLUSTER_LIGHT_LOOP
+    if (_GameLocalLights <= 0.0)
+        return half3(0, 0, 0);
+    InputData inputData = (InputData)0;
+    inputData.positionWS = positionWS;
+    inputData.normalizedScreenSpaceUV = GetNormalizedScreenSpaceUV(positionCS);
+    half3 sum = half3(0, 0, 0);
+    uint lightsCount = GetAdditionalLightsCount();
+    LIGHT_LOOP_BEGIN(lightsCount)
+        Light light = GetAdditionalLight(lightIndex, positionWS);
+        half wrap = saturate(dot(normalWS, light.direction) * 0.7 + 0.3);
+        sum += light.color * (light.distanceAttenuation * wrap);
+    LIGHT_LOOP_END
+    return albedo * sum * _GameLocalLights;
+#else
+    return half3(0, 0, 0);
+#endif
+}
+
 half3 ToonShade(half3 albedo, float3 positionWS, float3 normalWS, float4 positionCS)
 {
     normalWS = normalize(normalWS);
@@ -57,7 +85,7 @@ half3 ToonShade(half3 albedo, float3 positionWS, float3 normalWS, float4 positio
     float lit = smoothstep(RampLitEdge - RampSoftness, RampLitEdge + RampSoftness, value);
     float3 toCamera = GetWorldSpaceNormalizeViewDir(positionWS);
     float rim = pow(saturate(1.0 - dot(normalWS, toCamera)), 4.0) * _RimStrength * lit;
-    return color + rim;
+    return color + rim + LocalLights(albedo, positionWS, normalWS, positionCS);
 }
 
 #endif
