@@ -24,8 +24,12 @@ namespace Game.Presentation.Office
     /// </summary>
     public sealed class TailorCardHud : MonoBehaviour
     {
-        private const float Width = 440f;
-        private const float DressingHeight = 214f;
+        // Dressing cards dock in a row from the top-right corner (the user's note, 2026-11-09), so a
+        // chef across the room is still easy to follow: four use about 85% of the screen's width.
+        private const float Width = 400f;
+        private const float PortraitHeight = 290f;
+        private const float RowsHeight = 214f;
+        private const float DressingHeight = PortraitHeight + RowsHeight;
         private const float PromptWidth = 220f;
         private const float PromptHeight = 64f;
         private const float Margin = 24f;
@@ -64,7 +68,17 @@ namespace Game.Presentation.Office
             public float ItemPop = 1f;     // 0 just changed, 1 settled
             public float SectionPop = 1f;
             public int Nudge;              // the arrow last pressed: -1, 0 or 1
+            public Camera Portrait;        // a little camera in front of the chef, showing what they try on
+            public float Height = 1.45f;   // its framing now, eased towards the section's
+            public float Distance = 1.4f;
         }
+
+        // How the portrait frames each section, from the chef's feet: the head for hats, faces and
+        // accessories, the upper body for skin, the whole chef for outfits.
+        private static readonly (float Height, float Distance)[] Framing =
+        {
+            (1.5f, 1.45f), (1.38f, 1.05f), (1.15f, 1.8f), (1.38f, 1.05f), (0.95f, 2.7f),
+        };
 
         private static readonly string[] SectionNames = { "Hat", "Face", "Skin", "Accessory", "Outfit" };
 
@@ -89,6 +103,13 @@ namespace Game.Presentation.Office
             }
         }
 
+        private void OnDestroy()
+        {
+            foreach (var card in _cards.Values)
+                if (card.Portrait != null && card.Portrait.targetTexture != null)
+                    card.Portrait.targetTexture.Release();
+        }
+
         private Card Build()
         {
             var card = new Card();
@@ -103,23 +124,41 @@ namespace Game.Presentation.Office
             UiKit.StrokedBox(card.Dressing, "Back", _style.CardBackground, Color.white, 4f, 0f, 0f, Width, DressingHeight, 22f);
             card.DressingEdge = card.Dressing.Find("BackEdge").GetComponent<Image>();
 
+            // The portrait: what a little camera in front of the chef sees, so what's being tried on
+            // shows even when the chef is across the room.
+            var texture = new RenderTexture(512, 360, 24) { name = "TailorPortrait", antiAliasing = 4 };
+            var picture = UiKit.Rect(card.Dressing, "Portrait", 14f, 14f, Width - 28f, PortraitHeight - 14f).gameObject.AddComponent<RawImage>();
+            picture.texture = texture;
+            picture.raycastTarget = false;
+            card.Portrait = new GameObject("TailorPortraitCamera").AddComponent<Camera>();
+            card.Portrait.transform.SetParent(transform, false);
+            card.Portrait.targetTexture = texture;
+            card.Portrait.fieldOfView = 32f;
+            card.Portrait.nearClipPlane = 0.1f;
+            card.Portrait.farClipPlane = 30f;
+            card.Portrait.clearFlags = CameraClearFlags.SolidColor;
+            card.Portrait.backgroundColor = _style.CardBackground;
+            card.Portrait.enabled = false;
+
+            var rows = UiKit.Rect(card.Dressing, "Rows", 0f, PortraitHeight, Width, RowsHeight);
+
             // The section, between the shoulder buttons that change it, and a dot for each.
-            DrawShoulder(card.Dressing, "LB", 16f, 14f);
-            DrawShoulder(card.Dressing, "RB", Width - 16f - 56f, 14f);
-            card.Section = UiKit.TextAt(_style.Bold, card.Dressing, "Section", "", 30f, _style.TextColor, Width / 2f, 44f, Width - 160f, HorizontalAlignmentOptions.Center);
+            DrawShoulder(rows, "LB", 16f, 14f);
+            DrawShoulder(rows, "RB", Width - 16f - 56f, 14f);
+            card.Section = UiKit.TextAt(_style.Bold, rows, "Section", "", 30f, _style.TextColor, Width / 2f, 44f, Width - 160f, HorizontalAlignmentOptions.Center);
             card.Dots = new Image[SectionNames.Length];
             for (var i = 0; i < card.Dots.Length; i++)
-                card.Dots[i] = UiKit.Ellipse(card.Dressing, "Dot", Color.white, Width / 2f - 46f + i * 20f, 60f, 12f, 12f);
+                card.Dots[i] = UiKit.Ellipse(rows, "Dot", Color.white, Width / 2f - 46f + i * 20f, 60f, 12f, 12f);
 
             // The item, between arrows; the arrows nudge when pressed.
-            card.Left = UiKit.TextAt(_style.DisplayFont, card.Dressing, "Left", "‹", 44f, _style.TextColor, 26f, 124f, 30f).rectTransform;
-            card.Item = UiKit.TextAt(_style.DisplayFont, card.Dressing, "Item", "", 34f, _style.TextColor, Width / 2f, 122f, Width - 110f, HorizontalAlignmentOptions.Center);
-            card.Right = UiKit.TextAt(_style.DisplayFont, card.Dressing, "Right", "›", 44f, _style.TextColor, Width - 26f, 124f, 30f, HorizontalAlignmentOptions.Right).rectTransform;
-            card.Count = UiKit.TextAt(_style.Font, card.Dressing, "Count", "", 28f, _style.TextColor, Width / 2f, 158f, 200f, HorizontalAlignmentOptions.Center);
-            card.Locked = UiKit.TextAt(_style.Bold, card.Dressing, "Locked", Tr.Get("Locked: earn it first"), 28f, new Color(0.85f, 0.35f, 0.25f), Width / 2f, 158f, Width - 40f, HorizontalAlignmentOptions.Center);
+            card.Left = UiKit.TextAt(_style.DisplayFont, rows, "Left", "‹", 44f, _style.TextColor, 26f, 124f, 30f).rectTransform;
+            card.Item = UiKit.TextAt(_style.DisplayFont, rows, "Item", "", 34f, _style.TextColor, Width / 2f, 122f, Width - 110f, HorizontalAlignmentOptions.Center);
+            card.Right = UiKit.TextAt(_style.DisplayFont, rows, "Right", "›", 44f, _style.TextColor, Width - 26f, 124f, 30f, HorizontalAlignmentOptions.Right).rectTransform;
+            card.Count = UiKit.TextAt(_style.Font, rows, "Count", "", 28f, _style.TextColor, Width / 2f, 158f, 200f, HorizontalAlignmentOptions.Center);
+            card.Locked = UiKit.TextAt(_style.Bold, rows, "Locked", Tr.Get("Locked: earn it first"), 28f, new Color(0.85f, 0.35f, 0.25f), Width / 2f, 158f, Width - 40f, HorizontalAlignmentOptions.Center);
 
-            DrawBadge(card.Dressing, PromptControl.East, Width - 150f, 168f, 36f);
-            UiKit.TextAt(_style.Font, card.Dressing, "Done", Tr.Get("Done"), 28f, _style.TextColor, Width - 106f, 196f, 100f);
+            DrawBadge(rows, PromptControl.East, Width - 150f, 168f, 36f);
+            UiKit.TextAt(_style.Font, rows, "Done", Tr.Get("Done"), 28f, _style.TextColor, Width - 106f, 196f, 100f);
 
             card.Prompt.gameObject.SetActive(false);
             card.Dressing.gameObject.SetActive(false);
@@ -160,7 +199,8 @@ namespace Game.Presentation.Office
             _placed.Clear();
             _lefts.Clear();
             _widths.Clear();
-            foreach (var pair in _cards)
+            var docked = 0;
+            foreach (var pair in Docking())
             {
                 var plinth = pair.Key;
                 var card = pair.Value;
@@ -179,12 +219,14 @@ namespace Game.Presentation.Office
                     }
                     Fill(card, session);
                     Animate(card, dt);
-                    Place(card.Dressing, camera, dresser.transform.position, Width, DressingHeight);
+                    Frame(card, dresser.transform, (int)session.Module, dt);
+                    Dock(card.Dressing, docked++);
                     card.Dressing.gameObject.SetActive(true);
                     card.Prompt.gameObject.SetActive(false);
                     continue;
                 }
 
+                card.Portrait.enabled = false;
                 // Stepped off: back in what's worn, which drops a locked item still being looked at.
                 if (card.Shown != null && card.Wardrobe != null && card.Slot >= 0)
                     card.Wardrobe.Show(ChefProfileFile.Current.Look(card.Slot));
@@ -200,7 +242,7 @@ namespace Game.Presentation.Office
                 }
             }
 
-            // The ladders stand in one row, so their cards share one: spread so none overlap.
+            // The prompts at the ladders' feet share one row: spread so none overlap.
             if (_placed.Count < 2)
                 return;
             var canvasWidth = ((RectTransform)_canvas.transform).sizeDelta.x;
@@ -246,6 +288,39 @@ namespace Game.Presentation.Office
 
         // 0 → 1 → 0 over the pop, fast in, eased out.
         private static float Bump(float t) => t >= 1f ? 0f : Mathf.Sin(Mathf.PI * Mathf.Sqrt(t));
+
+        // The cards in docking order: dressers first by player slot (Player 1 nearest the corner),
+        // then the rest, whose prompts follow their chefs.
+        private IEnumerable<KeyValuePair<TailorPlinth, Card>> Docking()
+        {
+            var list = new List<KeyValuePair<TailorPlinth, Card>>(_cards);
+            list.Sort((a, b) => Key(a.Key).CompareTo(Key(b.Key)));
+            return list;
+
+            static int Key(TailorPlinth plinth) => plinth.Dresser != null ? plinth.DresserSlot : 100;
+        }
+
+        // The n-th dressing card from the top-right corner, leftwards, whole on screen.
+        private void Dock(RectTransform card, int index)
+        {
+            var canvasWidth = ((RectTransform)_canvas.transform).sizeDelta.x;
+            var x = Mathf.Max(Margin, canvasWidth - Margin - Width - index * (Width + CardGap));
+            card.anchoredPosition = new Vector2(x, -Margin);
+        }
+
+        // Points the portrait camera at the chef from in front, easing to the section's framing.
+        private static void Frame(Card card, Transform chef, int section, float dt)
+        {
+            var (height, distance) = Framing[Mathf.Clamp(section, 0, Framing.Length - 1)];
+            var ease = 1f - Mathf.Exp(-10f * dt);
+            card.Height = Mathf.Lerp(card.Height, height, ease);
+            card.Distance = Mathf.Lerp(card.Distance, distance, ease);
+            var front = Vector3.ProjectOnPlane(chef.forward, Vector3.up).normalized;
+            var target = chef.position + Vector3.up * card.Height;
+            card.Portrait.transform.SetPositionAndRotation(target + front * card.Distance + Vector3.up * 0.12f,
+                Quaternion.LookRotation(target - (target + front * card.Distance + Vector3.up * 0.12f), Vector3.up));
+            card.Portrait.enabled = true;
+        }
 
         // Above the chef's head, kept whole on screen (the HUD rule: nothing clipped by an edge).
         private void Place(RectTransform card, Camera camera, Vector3 feet, float width, float height)

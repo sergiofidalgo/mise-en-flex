@@ -204,6 +204,20 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-09 — Tailor cards docked top right, with a live portrait of the chef
+
+**The user's notes:**
+- Show a thumbnail of what's selected, so it can be seen even when the players are far apart.
+- Dock the menus top right; four players dressing at once should use about 80% of the screen.
+
+**Done:**
+- **Each dressing card has a live portrait:** a small camera in front of the chef renders into the top of the card (512 × 360, in the game's look with its ink and lighting). It eases between framings by section: the head for hats, faces and accessories, the upper body for skin, the whole chef for outfits. The camera runs only while that chef is dressing.
+- **Dressing cards dock in a row from the top-right corner,** in player-slot order, Player 1 nearest the corner. Each is 400 × 504 with a 12 px gap, so four use about 88% of the width and under half the height. The "A Climb up" prompts still sit over their chefs, spread so they never overlap (`HudRow`).
+
+**Watch:** four portrait cameras running at once is the costliest case; check the frame rate with four players dressing.
+
+---
+
 ## 2026-11-09 — The tailor's menu: LB/RB for sections, and no more sluggishness
 
 **The user's notes:** moving through sections should use RB/LB, and the menu felt sluggish.
