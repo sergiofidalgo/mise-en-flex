@@ -4,6 +4,20 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-09 — The opening: four join slots, a street to start in, always skippable
+
+**User's calls** (`docs/opening-flow.md` updated):
+- **Four join slots** in the office.
+- **The menu's player joins automatically as player 1** (left to us): nobody presses A twice.
+- **The fly-through starts in a street,** not a park, full of clutter, movement, details and graffiti.
+- **It's skippable every time.**
+
+**Where this leaves the docs:**
+- **Four players is now a goal, at least for joining the office.** `CLAUDE.md` and `game-design.md` still call 3–4 players a stretch goal.
+- **`CoopSettings._maxPlayers` is 2.** Raising it reaches the kitchen too: camera framing, controller support and space at the stations. That needs its own decision.
+
+---
+
 ## 2026-11-09 — The opening: from the city's streets up to the boss's floor
 
 **User's outline and calls** (full spec: `docs/opening-flow.md`):
