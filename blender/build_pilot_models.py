@@ -1993,6 +1993,112 @@ def build_city():
         add_pipe(bm, [(r * math.cos(2 * math.pi * k / 20), r * math.sin(2 * math.pi * k / 20), z) for k in range(21)],
                  radius=0.03, segments=5)
     objects.append(finish("CityTowerRoof", bm))
+    objects += build_plaza()
+    return objects
+
+
+def add_lathe_wedge(bm, profile, a0, a1, steps=3):
+    """A closed slice of a lathe between angles a0 and a1 (radians): a parasol's stripe."""
+    rings = []
+    for k in range(steps + 1):
+        a = a0 + (a1 - a0) * k / steps
+        rings.append([bm.verts.new((r * math.cos(a), r * math.sin(a), z)) for r, z in profile])
+    n = len(profile)
+    for ring, nxt in zip(rings, rings[1:]):
+        for i in range(n):
+            j = (i + 1) % n
+            bm.faces.new([ring[i], ring[j], nxt[j], nxt[i]])
+    bm.faces.new(rings[0])
+    bm.faces.new(list(reversed(rings[-1])))
+
+
+def build_plaza():
+    """The plaza in front of the menu city, the strip below the menu's panels: flagstone paving,
+    a bench between flower planters, and cafe tables under striped parasols with candle lanterns
+    (a nod to the restaurant game). Fronts face +y, towards the camera; origins at the base."""
+    objects = []
+
+    # A 24 x 22 m patch of staggered 1.5 m flagstones, each a touch higher or lower than the next,
+    # so the moonlight and the ink pick out the joints. The builder tiles patches side by side.
+    bm = bmesh.new()
+    rng = random.Random(7)
+    stone, gap, width, depth = 1.5, 0.08, 24.0, 22.0
+    rows = int(depth / stone)
+    for row in range(rows):
+        y = -depth / 2.0 + stone * (row + 0.5)
+        x = -width / 2.0 - (stone / 2.0 if row % 2 else 0.0)
+        while x < width / 2.0:
+            x0, x1 = max(x, -width / 2.0), min(x + stone, width / 2.0)
+            if x1 - x0 > 0.3:
+                h = 0.05 + rng.uniform(-0.012, 0.012)
+                add_box(bm, (x1 - x0 - gap, stone - gap, h), ((x0 + x1) / 2.0, y, h / 2.0), bevel=0.02)
+            x += stone
+    objects.append(finish("CityPaving", bm))
+
+    # A park bench, 1.8 m: wooden slats on cast-iron side frames, facing the camera.
+    bm = bmesh.new()
+    for y in (0.13, 0.0, -0.13):
+        add_box(bm, (1.8, 0.11, 0.05), (0.0, y, 0.46), bevel=0.015)
+    for z in (0.66, 0.84):
+        add_box(bm, (1.8, 0.05, 0.12), (0.0, -0.25, z), bevel=0.015)
+    objects.append(finish("CityBenchWood", bm))
+    bm = bmesh.new()
+    for x in (-0.72, 0.72):
+        add_pipe(bm, [(x, 0.17, 0.0), (x, 0.17, 0.43)], radius=0.035, segments=8)
+        add_pipe(bm, [(x, -0.2, 0.0), (x, -0.22, 0.43), (x, -0.28, 0.92)], radius=0.035, segments=8)
+        add_pipe(bm, [(x, -0.23, 0.62), (x, 0.2, 0.62), (x, 0.2, 0.47)], radius=0.03, segments=8)
+    objects.append(finish("CityBenchIron", bm))
+
+    # A wooden planter box with a round shrub and dots of flowers.
+    bm = bmesh.new()
+    add_box(bm, (1.2, 0.6, 0.5), (0.0, 0.0, 0.25), bevel=0.04)
+    add_box(bm, (1.28, 0.68, 0.07), (0.0, 0.0, 0.5), bevel=0.02)
+    objects.append(finish("CityPlanterBox", bm))
+    bm = bmesh.new()
+    for centre, radius in (((-0.28, 0.0, 0.62), 0.3), ((0.26, 0.02, 0.62), 0.32), ((0.0, -0.04, 0.8), 0.3)):
+        add_round_ball(bm, centre, radius, rings=8, segments=16)
+    objects.append(finish("CityPlanterShrub", bm))
+    bm = bmesh.new()
+    for k in range(14):
+        a = 2.0 * math.pi * k / 14 + rng.uniform(-0.2, 0.2)
+        cx = 0.42 * math.cos(a)
+        z = 0.72 + 0.18 * math.sin(3 * a) + rng.uniform(0.0, 0.12)
+        add_ball(bm, (cx, 0.27 * math.sin(a) + (0.06 if math.sin(a) > 0 else -0.06), z), 0.07, segments=8)
+    objects.append(finish("CityPlanterFlowers", bm))
+
+    # A cafe table: a cast-iron foot and column, a round marble top, and a candle lantern on it.
+    bm = bmesh.new()
+    add_lathe(bm, [(0.0, 0.0), (0.26, 0.0), (0.26, 0.04), (0.08, 0.1), (0.0, 0.1)], segments=16)
+    add_pipe(bm, [(0.0, 0.0, 0.08), (0.0, 0.0, 0.72)], radius=0.05, segments=8)
+    objects.append(finish("CityCafeTable", bm))
+    bm = bmesh.new()
+    add_lathe(bm, [(0.0, 0.71), (0.36, 0.71), (0.38, 0.74), (0.36, 0.77), (0.0, 0.77)], segments=20)
+    objects.append(finish("CityCafeTop", bm))
+    bm = bmesh.new()
+    add_lathe(bm, [(0.0, 0.77), (0.06, 0.77), (0.07, 0.88), (0.0, 0.9)], segments=10)
+    objects.append(finish("CityCafeCandle", bm))
+
+    # A bistro chair, seat facing +y: four legs, a round seat and a hoop back.
+    bm = bmesh.new()
+    for sx in (-1.0, 1.0):
+        for sy in (-1.0, 1.0):
+            add_pipe(bm, [(sx * 0.17, sy * 0.17, 0.0), (sx * 0.15, sy * 0.15, 0.44)], radius=0.035, segments=8)
+    hoop = [(-0.17, -0.19, 0.46)] + [(-0.17 * math.cos(math.pi * k / 8), -0.2, 0.66 + 0.2 * math.sin(math.pi * k / 8)) for k in range(9)] + [(0.17, -0.19, 0.46)]
+    add_pipe(bm, hoop, radius=0.04, segments=8)
+    add_lathe(bm, [(0.0, 0.42), (0.23, 0.42), (0.25, 0.48), (0.0, 0.5)], segments=16)
+    objects.append(finish("CityCafeChair", bm))
+
+    # A parasol: a pole through the table and a canopy of eight stripes in two meshes, so each
+    # takes its own colour, sloping out with a short flap at the rim.
+    bm = bmesh.new()
+    add_pipe(bm, [(0.0, 0.0, 0.1), (0.0, 0.0, 2.55)], radius=0.025, segments=8)
+    objects.append(finish("CityParasolPole", bm))
+    canopy = [(0.001, 2.5), (1.3, 2.02), (1.3, 1.9), (1.24, 1.92), (0.001, 2.42)]
+    for name, first in (("CityParasolA", 0), ("CityParasolB", 1)):
+        bm = bmesh.new()
+        for k in range(first, 8, 2):
+            add_lathe_wedge(bm, canopy, 2.0 * math.pi * k / 8, 2.0 * math.pi * (k + 1) / 8)
+        objects.append(finish(name, bm))
     return objects
 
 

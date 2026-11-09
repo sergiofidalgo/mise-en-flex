@@ -74,7 +74,8 @@ namespace Game.Editor
 
         /// <summary>
         /// A room material (MAT_Room_<paramref name="name"/>), created or brought up to date with the given
-        /// pattern (TILES, PLANKS or WALL). Patterns are in world space, so any floor or wall shows them at true size.
+        /// pattern: TILES, PLANKS, WALL, or the city's BRICK and STONE. Patterns are in world space, so any
+        /// floor or wall shows them at true size.
         /// </summary>
         public static Material RoomMaterial(string name, string pattern, System.Action<Material> set)
         {
@@ -84,7 +85,7 @@ namespace Game.Editor
             if (isNew)
                 material = new Material(Shader.Find(RoomShader));
 
-            var patterns = new[] { "TILES", "PLANKS", "WALL" };
+            var patterns = new[] { "TILES", "PLANKS", "WALL", "BRICK", "STONE" };
             foreach (var keyword in patterns)
                 material.DisableKeyword($"_PATTERN_{keyword}");
             material.EnableKeyword($"_PATTERN_{pattern}");
