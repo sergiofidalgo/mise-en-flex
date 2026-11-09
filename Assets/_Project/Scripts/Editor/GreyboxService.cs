@@ -90,6 +90,30 @@ namespace Game.Editor
             var agent = new SerializedObject(root.AddComponent<CustomerAgent>());
             agent.FindProperty("_bodyRadius").floatValue = CustomerBodyRadius;
             agent.ApplyModifiedPropertiesWithoutUndo();
+
+            // The v9.2 people (concept 2026-11-09): every archetype is built, and one shows per customer.
+            if (CharacterArt.Available)
+            {
+                var looks = new System.Collections.Generic.List<GameObject>();
+                foreach (var look in CharacterArt.CustomerLooks())
+                {
+                    var visuals = new GameObject("Look_" + look.Name);
+                    visuals.transform.SetParent(root.transform, false);
+                    CharacterArt.Build(visuals.transform, look);
+                    looks.Add(visuals);
+                }
+                var picker = new SerializedObject(root.AddComponent<Game.Presentation.CharacterLookPicker>());
+                var list = picker.FindProperty("_looks");
+                list.arraySize = looks.Count;
+                for (var i = 0; i < looks.Count; i++)
+                    list.GetArrayElementAtIndex(i).objectReferenceValue = looks[i];
+                picker.ApplyModifiedPropertiesWithoutUndo();
+
+                var built = PrefabUtility.SaveAsPrefabAsset(root, CustomerPrefabPath);
+                Object.DestroyImmediate(root);
+                return built;
+            }
+
             var body = GreyboxAssets.CreatePrimitive(
                 PrimitiveType.Capsule, "Body", root.transform, GreyboxAssets.EnsureMaterial("Customer", CustomerColor), keepCollider: false);
             body.transform.localScale = CustomerScale;

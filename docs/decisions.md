@@ -22,6 +22,44 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-09 — Characters v9.2 in the kitchen: big heads, barrel bodies, stubby legs (proportion greybox)
+
+**User's call:** test the concept sheet's proportions in the real kitchen first, in the scene's current look (toon ramp, soft ink, chunky bevelled shapes, decision 2026-11-08).
+
+**Done:**
+- **One body kit,** `SM_Characters.fbx`, made by `build_characters()` in `blender/build_pilot_models.py` with the same helpers, bevels and toon materials as the props. Each hair, hat, face feature and accessory is its own mesh. `CharacterArt` (Editor) builds a person from a `Look` on the same frames as the old chef (feet, waist, a shoulder per arm), so `ChefArmsView` and the storage bend work unchanged.
+- **Proportions:** waist 0.45 m, head 0.62 m across (top at 1.64 m), toque to 1.94 m. Head and toque are 47% of the height. Short sleeves with mitten hands.
+- **Players** are the chef in whites, with the player colour on the toque's band, the neckerchief and the apron (2026-11-08). The game's colours stay (orange, teal, raspberry, lime), not the concept's.
+- **Customers** are one prefab with six looks built in: regular, office, date night, tourist, retiree, gym. `CharacterLookPicker` shows one at random as each customer appears. **The dishwasher** wears grey with a slate apron, in no player's colour.
+- **Fitting the look:** the darkest hair is a warm brown (`CharacterArt.DarkHair`), not black, so it bands like everything else. The apron curves round the belly instead of being a flat panel.
+- **Fitting the world:** nothing worn reaches more than 0.38 m from the centre (the capsule is 0.35 m), so hair and hats don't show through walls and counters. The cap's bill and the bandana's knot were cut back to fit. The bend into storage is 20°, not 40°: the bigger, higher head would go through the shelf's top board (worked out in `CharacterArt.StorageBend`).
+- **Checks:** `CharacterProportionTests` (proportions, reach, hats above the eyes). `StorageArtTests.ChefBendsAtTheWaist` now checks the new body: its waist is 0.45 m, and its height is the head's 1.64 m, toque to 1.85–2.0 m. Before, it checked the old chef's 0.85 m waist and 1.7 m height. `Tools/Game/Art/Capture Characters` renders the people in the kitchen from the game camera.
+
+**Found:** facing straight away from the camera (about ±30°), a chef's head and toque hide a carried plate completely. At 45° and beyond it shows. The old chef hid less, because its head was smaller and its toque narrower. This needs a design decision.
+
+**Not yet:** the office's people (boss, bodyguards, receptionist, accountant, tailor) are still built from the old chef. Hair, hats and outfits can't be chosen in game yet (the tailor).
+
+---
+
+## 2026-11-09 — Chef customisation: modules, slot colours, a profile that outlives campaigns, the tailor
+
+**User's call**, after reviewing the character concept sheet v9.2 (`Art/Direction/concepts/2026-11-09_character-system_v9-2.png`):
+- **Modules:** skin tone, hat, face, accessories and body. **Hair is part of the face:** picking a face changes the hair with it, not a separate choice. The body is an outfit, from realistic kitchen looks (chef whites, line cook, pastry, sushi, pizza, wok) to fun and crazy ones.
+- **Customers wear hats too,** to give certain characters movement and make them memorable (the tourist's sun hat, a regular you recognise by their cap).
+- **Hat on or hat off.** With the hat on, players pick its shape, which isn't limited to kitchen hats: devil horns and other crazy headwear too.
+- **Player colour is fixed by slot** (Player 1 is always the same colour), not chosen. Two players can never pick similar colours, and the four colours stay readable. It sits on the spots every outfit and hat keeps for it (see the 2026-11-08 entry: apron and neckerchief).
+- **The look is saved in a player profile that lasts across campaigns,** like the cookbook, not in the campaign save.
+- **Crazy outfits and hats are earned,** not all available from the start. What earns each one is still open (cuisines, reputation milestones and so on).
+- **Players customise in the boss's office, at the tailor** (`docs/office-scene.md`): stand on a plinth, A = change look, saved at once.
+
+**Reason:** Your look is part of "your restaurant, your identity". Slot colours keep co-op readable. A profile that outlives campaigns matches the cookbook, so losing a campaign doesn't take away the chef you've built. Unlocks give a reason to keep playing.
+
+**Proposed constraints, to test in play:** every hat and outfit has a marked player-colour area (with the hat off, a headband or clip carries it); hats have height and width caps (hoods, doorways, never hiding the carried item or what's behind); when a player and a customer wear the same kind of hat, the player-colour area and the ring tell them apart (check in a busy service); each hair style has a flattened under-hat version; accessories go on the head, neck and face only, so the hands stay free to carry.
+
+**Docs now out of date:** `game-design.md` §15.4 says changing a player's appearance saves with the campaign; it now saves to the player profile.
+
+---
+
 ## 2026-11-09 — Reviews are written when shown, so a language switch rewrites them all
 
 **User's call:** changing language mid-campaign must localise everything, old reviews included, automatically. This is step 1 of the plan (`ideas.md`, "Localising reviews and replies").

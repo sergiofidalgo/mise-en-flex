@@ -317,7 +317,8 @@ Players can sell things, fire staff, downsize, or go back to the office and borr
 
 ### 15.4 Time, saves and the ending
 
-- **One campaign at a time,** with no save slots. The game saves as Review starts and whenever anything is done in the office, such as buying a restaurant, borrowing or changing a player's appearance. Leaving a restaurant at any other point in the day loses that day's progress, and players are clearly told so first.
+- **One campaign at a time,** with no save slots. The game saves as Review starts and whenever anything is done in the office, such as buying a restaurant or borrowing. Leaving a restaurant at any other point in the day loses that day's progress, and players are clearly told so first.
+- **Each chef's look lives in a player profile that outlives campaigns,** like the cookbook. Players change it at the tailor in the boss's office, and it saves at once. Player colour is fixed by slot, and crazy outfits and hats are earned (decided 2026-11-09, see `decisions.md`).
 - **A restaurant only runs while players are in it.** The others sit idle.
 - **Fees come due every 7 finished days played in that restaurant,** and that collection day also sets the week's goal.
 - **The ending:** once every restaurant on the miniature is unlocked, players take over the empire. The bodyguards follow player 1 and guard the door from outside in restaurants. This is when players really make money, and can hire and decorate more heavily.

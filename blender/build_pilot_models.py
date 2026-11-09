@@ -475,6 +475,236 @@ def build_chef():
     return objects + upper + [arm, hand, sheath, rim]
 
 
+# ---- Characters v9.2 (concept 2026-11-09): big heads, barrel bodies, stubby legs ----------------
+# One shared body for every person, built in the same two frames as SM_Chef so the game's arms and
+# bending keep working: the lower body from the feet, the upper body (head, hair, hats, face) from
+# the waist. Head and hat are about 45% of the height, so identity reads from the 55° camera.
+# Parts are separate meshes the game picks and colours (CharacterArt): the person is assembled.
+# Must match CharacterArt in Unity.
+CHAR_WAIST = 0.45
+CHAR_SHOULDER = (0.29, 0.43)       # (out to the side, up from the waist)
+CHAR_ARM_LENGTH = 0.27             # shoulder to the hand's centre: short arms, mitten hands
+CHAR_HEAD_CENTRE = 0.88            # above the waist; the head's top is 1.19 above it, 1.64 m in all
+CHAR_HEAD_RADIUS = 0.31
+# Nothing a person wears may reach further out than this from their centre, or it would show
+# through walls and counters the 0.35 m body capsule stands against (CharacterProportionTests).
+CHAR_REACH = 0.38
+
+
+def add_ellipsoid(bm, centre, radii, rings=10, segments=20):
+    """A smooth sphere stretched along each axis, for hair masses, cheeks and puffs."""
+    created = bmesh.ops.create_uvsphere(bm, u_segments=segments, v_segments=rings, radius=1.0)
+    transform = Matrix.Translation(centre) @ Matrix.Diagonal((*radii, 1.0))
+    bmesh.ops.transform(bm, matrix=transform, verts=created["verts"])
+
+
+def add_cone(bm, base, tip, radius, segments=12):
+    """A rounded cone from `base` to `tip`, for horns."""
+    base, tip = Vector(base), Vector(tip)
+    direction = tip - base
+    rotation = direction.to_track_quat('Z', 'Y').to_matrix().to_4x4()
+    length = direction.length
+    add_lathe(bm, [(0.0, -radius * 0.3), (radius, 0.0), (radius * 0.75, length * 0.45), (radius * 0.4, length * 0.8),
+                   (0.0, length)], segments=segments, centre=base, axis_matrix=rotation)
+
+
+def add_arc_panel(bm, radius, thickness, half_angle, z0, z1, segments=14):
+    """A curved panel round the front (-Y) of a body: `radius` in, `thickness` thick, spanning
+    `half_angle` either side of the front, from height z0 to z1. For aprons on round bellies."""
+    columns = []
+    for i in range(segments + 1):
+        a = -half_angle + 2.0 * half_angle * i / segments
+        columns.append([bm.verts.new((math.sin(a) * r, -math.cos(a) * r, z))
+                        for r, z in ((radius, z0), (radius + thickness, z0), (radius + thickness, z1), (radius, z1))])
+    for a, b in zip(columns, columns[1:]):
+        for k in range(4):
+            bm.faces.new([a[k], a[(k + 1) % 4], b[(k + 1) % 4], b[k]])
+    bm.faces.new(columns[0])
+    bm.faces.new(list(reversed(columns[-1])))
+
+
+def head_surface(x, dz):
+    """How far forward (Blender -Y) the head's surface is at a point `x` across and `dz` above its centre."""
+    return -math.sqrt(max(CHAR_HEAD_RADIUS ** 2 - x * x - dz * dz, 0.0))
+
+
+def build_characters():
+    """The v9.2 body kit (concept 2026-11-09), chunky and soft-edged like the kitchen's props:
+    stubby legs, a barrel body, short sleeves with mitten hands, and a big round head with a
+    friendly dot-eyed face. Hair, hats and accessories are separate pieces on the same head, each
+    within CHAR_REACH. Faces -Y (the game's forward)."""
+    c = CHAR_HEAD_CENTRE
+    objects = []
+
+    def part(name, bm, frame):
+        obj = finish(name, bm)
+        if frame == "waist":
+            obj.location = (0.0, 0.0, CHAR_WAIST)
+        objects.append(obj)
+
+    # ---- Lower body, from the feet.
+    bm = bmesh.new()  # stubby legs (trouser colour; the shoes are CharShoes)
+    for x in (-0.11, 0.11):
+        add_pipe(bm, [(x, 0.0, 0.1), (x, 0.0, 0.32)], radius=0.095, segments=12)
+    part("CharLegs", bm, "feet")
+    bm = bmesh.new()
+    for x in (-0.11, 0.11):
+        add_box(bm, (0.16, 0.26, 0.1), (x, -0.035, 0.05), bevel=0.04)
+    part("CharShoes", bm, "feet")
+    bm = bmesh.new()  # the barrel's bottom, over the hips, in the top's colour
+    add_lathe(bm, [(0.0, 0.26), (0.25, 0.26), (0.3, 0.3), (0.315, 0.38), (0.315, 0.52), (0.0, 0.52)], segments=28)
+    part("CharHips", bm, "feet")
+    bm = bmesh.new()  # a dress's flared skirt over the hips, down to the knees
+    add_lathe(bm, [(0.0, 0.2), (0.34, 0.2), (0.36, 0.23), (0.33, 0.4), (0.32, 0.56), (0.0, 0.56)], segments=28)
+    part("CharDress", bm, "feet")
+    bm = bmesh.new()  # apron (player colour): curved round the belly, so it sits centred from any
+    # angle and doesn't read as a tray from above, and a band round the waist
+    add_arc_panel(bm, 0.322, 0.025, math.radians(52.0), 0.29, 0.6)
+    add_pipe(bm, [(0.33 * math.cos(2 * math.pi * k / 24), 0.33 * math.sin(2 * math.pi * k / 24), 0.6) for k in range(25)],
+             radius=0.018, segments=6)
+    part("CharApron", bm, "feet")
+
+    # ---- Upper body, from the waist.
+    bm = bmesh.new()  # the barrel: widest at the belly, rounding into the shoulders
+    add_lathe(bm, [(0.0, -0.06), (0.3, -0.06), (0.315, 0.06), (0.31, 0.26), (0.28, 0.4), (0.2, 0.49),
+                   (0.1, 0.53), (0.0, 0.53)], segments=28)
+    part("CharTorso", bm, "waist")
+    bm = bmesh.new()  # a chef's double row of buttons
+    for side in (-1.0, 1.0):
+        for z in (0.1, 0.22, 0.34):
+            add_ball(bm, (side * 0.1, -math.sqrt(0.31 ** 2 - 0.01) - 0.01, z), 0.022, segments=8)
+    part("CharButtons", bm, "waist")
+    bm = bmesh.new()  # neckerchief (player colour), hiding where the head meets the body
+    add_pipe(bm, [(0.14 * math.cos(2 * math.pi * k / 16), 0.14 * math.sin(2 * math.pi * k / 16), 0.53) for k in range(17)],
+             radius=0.05, segments=8)
+    add_box(bm, (0.1, 0.05, 0.1), (0.0, -0.17, 0.47), bevel=0.025)  # the knot
+    part("CharScarf", bm, "waist")
+    bm = bmesh.new()  # a tie, for suits
+    add_box(bm, (0.08, 0.03, 0.3), (0.0, -0.3, 0.3), bevel=0.012)
+    add_box(bm, (0.07, 0.035, 0.06), (0.0, -0.27, 0.48), bevel=0.012)  # the knot
+    part("CharTie", bm, "waist")
+    bm = bmesh.new()  # a camera on its strap, for the tourist
+    add_box(bm, (0.16, 0.08, 0.11), (0.0, -0.33, 0.24), bevel=0.02)
+    add_lathe(bm, [(0.0, 0.0), (0.035, 0.0), (0.035, 0.05), (0.0, 0.05)], segments=12, centre=(0.0, -0.37, 0.24),
+              axis_matrix=Matrix.Rotation(math.radians(90.0), 4, 'X'))
+    part("CharCamera", bm, "waist")
+
+    bm = bmesh.new()  # the head, with ears; smooth, as it's the biggest round shape on screen
+    add_round_ball(bm, (0.0, 0.0, c), CHAR_HEAD_RADIUS, rings=14, segments=28)
+    for x in (-CHAR_HEAD_RADIUS, CHAR_HEAD_RADIUS):
+        add_ball(bm, (x * 0.97, 0.02, c - 0.02), 0.06, segments=12)
+    part("CharHead", bm, "waist")
+    bm = bmesh.new()  # a round button nose
+    add_ball(bm, (0.0, head_surface(0.0, -0.04) - 0.02, c - 0.04), 0.055, segments=12)
+    part("CharNoseButton", bm, "waist")
+    bm = bmesh.new()  # a big bulb of a nose
+    add_ellipsoid(bm, (0.0, head_surface(0.0, -0.05) - 0.035, c - 0.06), (0.075, 0.07, 0.08))
+    part("CharNoseBig", bm, "waist")
+    bm = bmesh.new()  # dot eyes, set wide
+    for x in (-0.115, 0.115):
+        add_ellipsoid(bm, (x, head_surface(x, 0.04) + 0.008, c + 0.04), (0.04, 0.03, 0.05), rings=8, segments=12)
+    part("CharEyes", bm, "waist")
+    bm = bmesh.new()  # a catch light in each eye, so the face reads friendly, not blank
+    for x in (-0.115, 0.115):
+        add_ball(bm, (x + 0.012, head_surface(x, 0.06) - 0.012, c + 0.06), 0.012, segments=8)
+    part("CharEyeShine", bm, "waist")
+    bm = bmesh.new()  # soft brows, in the hair's colour
+    for x in (-0.12, 0.12):
+        add_box(bm, (0.1, 0.035, 0.03), (x, head_surface(x, 0.13) + 0.005, c + 0.13), bevel=0.012)
+    part("CharBrows", bm, "waist")
+    bm = bmesh.new()  # a small smile
+    points = []
+    for k in range(7):
+        x = -0.06 + 0.02 * k
+        dz = -0.13 + 0.03 * (x / 0.06) ** 2
+        points.append((x, head_surface(x, dz) + 0.004, c + dz))
+    add_pipe(bm, points, radius=0.012, segments=6)
+    part("CharSmile", bm, "waist")
+    bm = bmesh.new()  # a walrus moustache over the mouth
+    for x in (-0.055, 0.055):
+        add_ellipsoid(bm, (x, head_surface(x, -0.09) - 0.012, c - 0.09), (0.07, 0.04, 0.035), rings=8, segments=12)
+    part("CharMoustache", bm, "waist")
+    bm = bmesh.new()  # round glasses: two rings and a bridge
+    for x in (-0.115, 0.115):
+        y = head_surface(x, 0.04) - 0.035
+        add_pipe(bm, [(x + 0.06 * math.cos(2 * math.pi * k / 14), y, c + 0.04 + 0.055 * math.sin(2 * math.pi * k / 14))
+                      for k in range(15)], radius=0.011, segments=6)
+    add_pipe(bm, [(-0.055, head_surface(0.0, 0.05) - 0.035, c + 0.05), (0.055, head_surface(0.0, 0.05) - 0.035, c + 0.05)],
+             radius=0.01, segments=6)
+    part("CharGlasses", bm, "waist")
+    bm = bmesh.new()  # sunglasses: two dark lenses on a bar
+    for x in (-0.11, 0.11):
+        add_box(bm, (0.13, 0.03, 0.08), (x, head_surface(x, 0.04) - 0.03, c + 0.04), bevel=0.02)
+    add_box(bm, (0.36, 0.025, 0.025), (0.0, head_surface(0.0, 0.07) - 0.035, c + 0.07), bevel=0.008)
+    part("CharSunglasses", bm, "waist")
+
+    # Hair. Under a hat only the back shows (HairBack); bare heads add a cap or a shape on top.
+    bm = bmesh.new()  # the back and sides, down to the nape: always there, and all a hat leaves
+    add_ellipsoid(bm, (0.0, 0.1, c - 0.01), (0.315, 0.24, 0.27), rings=12, segments=24)
+    part("HairBack", bm, "waist")
+    bm = bmesh.new()  # a short crop over the top, its hairline above the brows
+    add_ellipsoid(bm, (0.0, 0.06, c + 0.06), (0.33, 0.32, 0.3), rings=12, segments=24)
+    part("HairCrop", bm, "waist")
+    bm = bmesh.new()  # a bun on the crown
+    add_ball(bm, (0.0, 0.12, c + 0.33), 0.12, segments=16)
+    part("HairBun", bm, "waist")
+    bm = bmesh.new()  # an afro, as wide as the reach allows
+    add_ellipsoid(bm, (0.0, 0.04, c + 0.12), (0.37, 0.34, 0.33), rings=12, segments=24)
+    part("HairAfro", bm, "waist")
+    bm = bmesh.new()  # a retiree's fringe round the back of a bald head
+    add_ellipsoid(bm, (0.0, 0.12, c - 0.03), (0.32, 0.22, 0.15), rings=10, segments=24)
+    part("HairFringe", bm, "waist")
+
+    # Hats, each with a part the game colours: the player's colour on a player, anything on a guest.
+    bm = bmesh.new()  # the toque's puff
+    add_lathe(bm, [(0.0, c + 0.24), (0.27, c + 0.24), (0.31, c + 0.29), (0.34, c + 0.37), (0.34, c + 0.49),
+                   (0.29, c + 0.56), (0.16, c + 0.6), (0.0, c + 0.61)], segments=32)
+    part("HatToque", bm, "waist")
+    bm = bmesh.new()  # its band, round the head
+    add_lathe(bm, [(0.0, c + 0.13), (0.29, c + 0.13), (0.3, c + 0.15), (0.3, c + 0.25), (0.29, c + 0.27), (0.0, c + 0.27)],
+              segments=32)
+    part("HatToqueBand", bm, "waist")
+    bm = bmesh.new()  # a cap's crown, sitting low on the head
+    add_ellipsoid(bm, (0.0, 0.02, c + 0.1), (0.33, 0.33, 0.27), rings=12, segments=24)
+    part("HatCap", bm, "waist")
+    bm = bmesh.new()  # its peak: a rounded bill out over the eyes, short enough to stay within the reach
+    add_ellipsoid(bm, (0.0, -0.27, c + 0.13), (0.17, 0.11, 0.02), rings=6, segments=24)
+    part("HatCapPeak", bm, "waist")
+    bm = bmesh.new()  # a bandana: a snug cover over the top and a knot at the back
+    add_ellipsoid(bm, (0.0, 0.03, c + 0.08), (0.325, 0.33, 0.29), rings=12, segments=24)
+    add_ball(bm, (0.0, 0.31, c + 0.04), 0.065, segments=12)
+    add_box(bm, (0.06, 0.03, 0.14), (0.04, 0.34, c - 0.05), bevel=0.012)
+    part("HatBandana", bm, "waist")
+    bm = bmesh.new()  # a headband, which carries the colour when there's no hat
+    add_pipe(bm, [(0.285 * math.cos(2 * math.pi * k / 28), 0.285 * math.sin(2 * math.pi * k / 28), c + 0.13) for k in range(29)],
+             radius=0.035, segments=8)
+    part("HatHeadband", bm, "waist")
+    bm = bmesh.new()  # devil horns, curving up and out from the headband
+    for side in (-1.0, 1.0):
+        add_cone(bm, (side * 0.16, -0.08, c + 0.23), (side * 0.27, -0.12, c + 0.45), 0.065)
+    part("HatHorns", bm, "waist")
+    bm = bmesh.new()  # a sun hat's brim, as wide as the reach allows, and its crown
+    add_lathe(bm, [(0.0, c + 0.17), (CHAR_REACH, c + 0.17), (CHAR_REACH + 0.005, c + 0.19), (0.0, c + 0.2)], segments=40)
+    add_lathe(bm, [(0.0, c + 0.17), (0.28, c + 0.17), (0.28, c + 0.33), (0.24, c + 0.38), (0.0, c + 0.39)], segments=32)
+    part("HatSunHat", bm, "waist")
+    bm = bmesh.new()  # its ribbon
+    add_lathe(bm, [(0.0, c + 0.2), (0.285, c + 0.2), (0.285, c + 0.25), (0.0, c + 0.25)], segments=32)
+    part("HatSunHatBand", bm, "waist")
+
+    # An arm: a short sleeve from the shoulder, hanging straight down, and a mitten hand. The game
+    # hangs one from each shoulder (CHAR_SHOULDER) and aims them (ChefArmsView).
+    bm = bmesh.new()
+    add_lathe(bm, [(0.0, 0.05), (0.07, 0.04), (0.095, 0.0), (0.095, -0.07), (0.085, -0.16), (0.09, -0.18),
+                   (0.09, -0.2), (0.075, -0.21), (0.0, -0.21)], segments=16)
+    arm = finish("CharArm", bm)
+    bm = bmesh.new()
+    add_ball(bm, (0.0, 0.0, -CHAR_ARM_LENGTH), 0.085, segments=16)
+    add_ball(bm, (0.0, -0.064, -CHAR_ARM_LENGTH + 0.03), 0.036, segments=10)  # thumb, to the front
+    hand = finish("CharHand", bm)
+    arm.location, hand.location = (1.0, 0.0, 1.0), (1.0, 0.0, 1.0)  # apart, for previews only
+    return objects + [arm, hand]
+
+
 # Kitchenware. A plate is 0.32 m across (GreyboxKitchenware.PlateDiameter); its origin is the
 # centre of its base. Food sits in its well at 0.012 m.
 PLATE_RADIUS = 0.16
@@ -1552,6 +1782,7 @@ def main():
         "SM_Fridge.fbx": build_fridge(),
         "SM_Shelf.fbx": build_shelf(),
         "SM_Chef.fbx": build_chef(),
+        "SM_Characters.fbx": build_characters(),
         "SM_Plate.fbx": build_plate(),
         "SM_PlateRack.fbx": build_plate_racks(),
         "SM_Sink.fbx": build_sink(),

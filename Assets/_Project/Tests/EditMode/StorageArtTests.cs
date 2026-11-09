@@ -197,18 +197,25 @@ namespace Game.Tests.EditMode
         [Test]
         public void ChefBendsAtTheWaist()
         {
-            var legs = Model("SM_Chef", "ChefLegs").bounds;
-            var torso = Model("SM_Chef", "ChefTorso").bounds;
-            var head = Model("SM_Chef", "ChefHead").bounds; // hangs from the waist too, and is the top
-            Assert.That(legs.min.y, Is.EqualTo(0f).Within(Tolerance));
-            Assert.That(legs.max.y, Is.GreaterThan(0.85f), "The legs reach past the waist, so no gap opens when bending.");
+            // The v9.2 character (concept 2026-11-09): a lower waist, a big head and a toque on top.
+            // Must match CharacterArt.WaistHeight.
+            const float waistHeight = 0.45f;
+            var shoes = Model("SM_Characters", "CharShoes").bounds;
+            var hips = Model("SM_Characters", "CharHips").bounds;
+            var torso = Model("SM_Characters", "CharTorso").bounds;
+            var head = Model("SM_Characters", "CharHead").bounds; // hangs from the waist too
+            var toque = Model("SM_Characters", "HatToque").bounds;
+            Assert.That(shoes.min.y, Is.EqualTo(0f).Within(Tolerance));
+            Assert.That(hips.max.y, Is.GreaterThan(waistHeight), "The hips reach past the waist, so no gap opens when bending.");
             Assert.That(torso.min.y, Is.LessThan(0f), "The torso's origin is the waist; it starts a little below.");
 
             var player = Prefab("Assets/_Project/Prefabs/PF_Player.prefab");
             var waist = player.transform.Find("Visuals/Waist");
             Assert.That(waist, Is.Not.Null);
-            Assert.That(waist.localPosition.y, Is.EqualTo(0.85f).Within(Tolerance));
-            Assert.That(waist.localPosition.y + Mathf.Max(torso.max.y, head.max.y), Is.EqualTo(1.7f).Within(0.01f), "The chef is as tall as before.");
+            Assert.That(waist.localPosition.y, Is.EqualTo(waistHeight).Within(Tolerance));
+            // About as tall as the first chef with its toque (2.0 m), so camera framing still fits.
+            Assert.That(waist.localPosition.y + head.max.y, Is.EqualTo(1.64f).Within(0.01f), "The top of the head.");
+            Assert.That(waist.localPosition.y + toque.max.y, Is.InRange(1.85f, 2.0f), "The top of the toque.");
             Assert.That(player.GetComponent<StorageUseView>(), Is.Not.Null);
         }
     }

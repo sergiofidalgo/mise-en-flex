@@ -88,14 +88,18 @@ namespace Game.Editor
         {
             var root = new GameObject("PF_Staff");
             var agent = root.AddComponent<StaffAgent>();
-            var body = GreyboxAssets.CreatePrimitive(
-                PrimitiveType.Capsule, "Body", root.transform, GreyboxAssets.EnsureMaterial("Staff", BodyColor), keepCollider: false);
-            body.transform.localScale = BodyScale;
-            body.transform.localPosition = new Vector3(0f, BodyScale.y, 0f); // capsule is 2 units tall
-            var nose = GreyboxAssets.CreatePrimitive(
-                PrimitiveType.Cube, "Nose", root.transform, GreyboxAssets.EnsureMaterial("Nose", new Color(0.2f, 0.2f, 0.22f)), keepCollider: false);
-            nose.transform.localScale = new Vector3(0.16f, 0.16f, 0.24f);
-            nose.transform.localPosition = new Vector3(0f, BodyScale.y * 1.45f, BodyScale.z * 0.5f);
+            // The v9.2 dishwasher (concept 2026-11-09) when the kit is exported; a capsule otherwise.
+            if (CharacterArt.Build(root.transform, CharacterArt.Dishwasher()) == null)
+            {
+                var body = GreyboxAssets.CreatePrimitive(
+                    PrimitiveType.Capsule, "Body", root.transform, GreyboxAssets.EnsureMaterial("Staff", BodyColor), keepCollider: false);
+                body.transform.localScale = BodyScale;
+                body.transform.localPosition = new Vector3(0f, BodyScale.y, 0f); // capsule is 2 units tall
+                var nose = GreyboxAssets.CreatePrimitive(
+                    PrimitiveType.Cube, "Nose", root.transform, GreyboxAssets.EnsureMaterial("Nose", new Color(0.2f, 0.2f, 0.22f)), keepCollider: false);
+                nose.transform.localScale = new Vector3(0.16f, 0.16f, 0.24f);
+                nose.transform.localPosition = new Vector3(0f, BodyScale.y * 1.45f, BodyScale.z * 0.5f);
+            }
 
             var anchor = new GameObject("CarryAnchor").transform;
             anchor.SetParent(root.transform, false);

@@ -349,88 +349,99 @@ namespace Game.Editor
             var visuals = new GameObject("Visuals").transform;
             visuals.SetParent(root.transform, false);
 
-            // Two parts, so the chef can bend at the waist (reaching into a shelf). Placeholder
-            // capsule halves unless the chef model exists; the torso hangs from the waist.
-            var halfScale = new Vector3(BodyScale.x, BodyScale.y / 2f, BodyScale.z);
-            var legs = GreyboxAssets.CreatePrimitive(PrimitiveType.Capsule, "Legs", visuals, null, keepCollider: false);
-            legs.transform.localScale = halfScale;
-            legs.transform.localPosition = new Vector3(0f, halfScale.y, 0f); // capsule is 2 units tall
-            var modelled = PilotArt.TryUseMesh(legs, "SM_Chef", "ChefLegs");
-
-            var waist = new GameObject("Waist").transform;
-            waist.SetParent(visuals, false);
-            waist.localPosition = new Vector3(0f, ChefWaistHeight, 0f);
-            var torso = GreyboxAssets.CreatePrimitive(PrimitiveType.Capsule, "Torso", waist, null, keepCollider: false);
-            torso.transform.localScale = halfScale;
-            torso.transform.localPosition = new Vector3(0f, halfScale.y, 0f);
-            PilotArt.TryUseMesh(torso, "SM_Chef", "ChefTorso");
-
-            // The modelled chef (decision 2026-11-08, the art overhaul): white jacket and toque, dark
-            // trousers, a face, and an apron and neckerchief in the player's colour, so co-op
-            // players tell each other apart. Without the model, the capsules take the colour.
-            var tinted = new System.Collections.Generic.List<Renderer>();
-            if (modelled)
-            {
-                legs.GetComponent<Renderer>().sharedMaterial = StyleTest.EnsureToonMaterial("ChefTrousers", ChefTrousersColor);
-                torso.GetComponent<Renderer>().sharedMaterial = StyleTest.EnsureToonMaterial("ChefJacket", ChefHatColor);
-                AddChefPart(visuals, "Skirt", "ChefSkirt", StyleTest.EnsureToonMaterial("ChefJacket", ChefHatColor));
-                tinted.Add(AddChefPart(visuals, "Apron", "ChefApron", StyleTest.EnsureToonMaterial("ChefAccent", Color.white)));
-                AddChefPart(waist, "Head", "ChefHead", StyleTest.EnsureToonMaterial("ChefSkin", ChefSkinColor));
-                AddChefPart(waist, "Face", "ChefFace", StyleTest.EnsureToonMaterial("ChefFace", ChefFaceColor));
-                tinted.Add(AddChefPart(waist, "Scarf", "ChefScarf", StyleTest.EnsureToonMaterial("ChefAccent", Color.white)));
-                AddChefPart(waist, "Hat", "ChefHat", StyleTest.EnsureToonMaterial("ChefHat", ChefHatColor));
-                tinted.RemoveAll(renderer => renderer == null);
-
-                // Arms (the user's note, 2026-11-08): a sleeve and mitten hand on each shoulder,
-                // which bend with the torso; ChefArmsView swings them and puts the hands on what's held.
-                var shoulders = new Transform[2];
-                for (var i = 0; i < 2; i++)
-                {
-                    var shoulder = new GameObject(i == 0 ? "Shoulder_L" : "Shoulder_R").transform;
-                    shoulder.SetParent(waist, false);
-                    shoulder.localPosition = new Vector3(i == 0 ? -ChefShoulderWidth : ChefShoulderWidth, ChefShoulderHeight, 0f);
-                    AddChefPart(shoulder, "Arm", "ChefArm", StyleTest.EnsureToonMaterial("ChefJacket", ChefHatColor));
-                    AddChefPart(shoulder, "Hand", "ChefHand", StyleTest.EnsureToonMaterial("ChefSkin", ChefSkinColor));
-                    shoulders[i] = shoulder;
-                }
-                // The knife's sheath on the right hip (the user's choice, 2026-11-08): the knife rides
-                // in it until the board, and it only shows while the chef has one. It hangs from the
-                // belt, so it doesn't bend with the torso.
-                var sheath = new[]
-                {
-                    AddChefPart(visuals, "Sheath", "ChefSheath", StyleTest.EnsureToonMaterial("ChefSheath", SheathColor)),
-                    AddChefPart(visuals, "SheathRim", "ChefSheathRim", StyleTest.EnsureToonMaterial("ChefSheathRim", SheathRimColor)),
-                }.Where(part => part != null).ToArray();
-                foreach (var part in sheath)
-                    part.enabled = false; // until the chef takes a knife
-
-                var arms = new SerializedObject(root.AddComponent<ChefArmsView>());
-                arms.FindProperty("_interactor").objectReferenceValue = interactor;
-                arms.FindProperty("_leftShoulder").objectReferenceValue = shoulders[0];
-                arms.FindProperty("_rightShoulder").objectReferenceValue = shoulders[1];
-                arms.FindProperty("_carryAnchor").objectReferenceValue = carryAnchor;
-                arms.FindProperty("_toolAnchor").objectReferenceValue = toolAnchor;
-                var sheathList = arms.FindProperty("_sheath");
-                sheathList.arraySize = sheath.Length;
-                for (var i = 0; i < sheath.Length; i++)
-                    sheathList.GetArrayElementAtIndex(i).objectReferenceValue = sheath[i];
-                arms.ApplyModifiedPropertiesWithoutUndo();
-            }
+            // The v9.2 character (concept 2026-11-09) when its kit is exported; otherwise the
+            // first modelled chef, or capsules without any model.
+            Transform waist;
+            System.Collections.Generic.List<Renderer> tinted;
+            if (CharacterArt.Available)
+                waist = BuildCharacterChef(root, visuals, interactor, carryAnchor, toolAnchor, out tinted);
             else
             {
-                tinted.Add(legs.GetComponent<Renderer>());
-                tinted.Add(torso.GetComponent<Renderer>());
+                // Two parts, so the chef can bend at the waist (reaching into a shelf). Placeholder
+                // capsule halves unless the chef model exists; the torso hangs from the waist.
+                var halfScale = new Vector3(BodyScale.x, BodyScale.y / 2f, BodyScale.z);
+                var legs = GreyboxAssets.CreatePrimitive(PrimitiveType.Capsule, "Legs", visuals, null, keepCollider: false);
+                legs.transform.localScale = halfScale;
+                legs.transform.localPosition = new Vector3(0f, halfScale.y, 0f); // capsule is 2 units tall
+                var modelled = PilotArt.TryUseMesh(legs, "SM_Chef", "ChefLegs");
 
-                // A nose shows facing direction from the overhead camera; it bends with the torso.
-                var nose = GreyboxAssets.CreatePrimitive(
-                    PrimitiveType.Cube, "Nose", waist, GreyboxAssets.EnsureMaterial("Nose", NoseColor), keepCollider: false);
-                nose.transform.localScale = NoseScale;
-                nose.transform.localPosition = new Vector3(0f, BodyScale.y * 1.5f - ChefWaistHeight, BodyScale.z * 0.5f);
+                waist = new GameObject("Waist").transform;
+                waist.SetParent(visuals, false);
+                waist.localPosition = new Vector3(0f, ChefWaistHeight, 0f);
+                var torso = GreyboxAssets.CreatePrimitive(PrimitiveType.Capsule, "Torso", waist, null, keepCollider: false);
+                torso.transform.localScale = halfScale;
+                torso.transform.localPosition = new Vector3(0f, halfScale.y, 0f);
+                PilotArt.TryUseMesh(torso, "SM_Chef", "ChefTorso");
+
+                // The modelled chef (decision 2026-11-08, the art overhaul): white jacket and toque, dark
+                // trousers, a face, and an apron and neckerchief in the player's colour, so co-op
+                // players tell each other apart. Without the model, the capsules take the colour.
+                tinted = new System.Collections.Generic.List<Renderer>();
+                if (modelled)
+                {
+                    legs.GetComponent<Renderer>().sharedMaterial = StyleTest.EnsureToonMaterial("ChefTrousers", ChefTrousersColor);
+                    torso.GetComponent<Renderer>().sharedMaterial = StyleTest.EnsureToonMaterial("ChefJacket", ChefHatColor);
+                    AddChefPart(visuals, "Skirt", "ChefSkirt", StyleTest.EnsureToonMaterial("ChefJacket", ChefHatColor));
+                    tinted.Add(AddChefPart(visuals, "Apron", "ChefApron", StyleTest.EnsureToonMaterial("ChefAccent", Color.white)));
+                    AddChefPart(waist, "Head", "ChefHead", StyleTest.EnsureToonMaterial("ChefSkin", ChefSkinColor));
+                    AddChefPart(waist, "Face", "ChefFace", StyleTest.EnsureToonMaterial("ChefFace", ChefFaceColor));
+                    tinted.Add(AddChefPart(waist, "Scarf", "ChefScarf", StyleTest.EnsureToonMaterial("ChefAccent", Color.white)));
+                    AddChefPart(waist, "Hat", "ChefHat", StyleTest.EnsureToonMaterial("ChefHat", ChefHatColor));
+                    tinted.RemoveAll(renderer => renderer == null);
+
+                    // Arms (the user's note, 2026-11-08): a sleeve and mitten hand on each shoulder,
+                    // which bend with the torso; ChefArmsView swings them and puts the hands on what's held.
+                    var shoulders = new Transform[2];
+                    for (var i = 0; i < 2; i++)
+                    {
+                        var shoulder = new GameObject(i == 0 ? "Shoulder_L" : "Shoulder_R").transform;
+                        shoulder.SetParent(waist, false);
+                        shoulder.localPosition = new Vector3(i == 0 ? -ChefShoulderWidth : ChefShoulderWidth, ChefShoulderHeight, 0f);
+                        AddChefPart(shoulder, "Arm", "ChefArm", StyleTest.EnsureToonMaterial("ChefJacket", ChefHatColor));
+                        AddChefPart(shoulder, "Hand", "ChefHand", StyleTest.EnsureToonMaterial("ChefSkin", ChefSkinColor));
+                        shoulders[i] = shoulder;
+                    }
+                    // The knife's sheath on the right hip (the user's choice, 2026-11-08): the knife rides
+                    // in it until the board, and it only shows while the chef has one. It hangs from the
+                    // belt, so it doesn't bend with the torso.
+                    var sheath = new[]
+                    {
+                        AddChefPart(visuals, "Sheath", "ChefSheath", StyleTest.EnsureToonMaterial("ChefSheath", SheathColor)),
+                        AddChefPart(visuals, "SheathRim", "ChefSheathRim", StyleTest.EnsureToonMaterial("ChefSheathRim", SheathRimColor)),
+                    }.Where(part => part != null).ToArray();
+                    foreach (var part in sheath)
+                        part.enabled = false; // until the chef takes a knife
+
+                    var arms = new SerializedObject(root.AddComponent<ChefArmsView>());
+                    arms.FindProperty("_interactor").objectReferenceValue = interactor;
+                    arms.FindProperty("_leftShoulder").objectReferenceValue = shoulders[0];
+                    arms.FindProperty("_rightShoulder").objectReferenceValue = shoulders[1];
+                    arms.FindProperty("_carryAnchor").objectReferenceValue = carryAnchor;
+                    arms.FindProperty("_toolAnchor").objectReferenceValue = toolAnchor;
+                    var sheathList = arms.FindProperty("_sheath");
+                    sheathList.arraySize = sheath.Length;
+                    for (var i = 0; i < sheath.Length; i++)
+                        sheathList.GetArrayElementAtIndex(i).objectReferenceValue = sheath[i];
+                    arms.ApplyModifiedPropertiesWithoutUndo();
+                }
+                else
+                {
+                    tinted.Add(legs.GetComponent<Renderer>());
+                    tinted.Add(torso.GetComponent<Renderer>());
+
+                    // A nose shows facing direction from the overhead camera; it bends with the torso.
+                    var nose = GreyboxAssets.CreatePrimitive(
+                        PrimitiveType.Cube, "Nose", waist, GreyboxAssets.EnsureMaterial("Nose", NoseColor), keepCollider: false);
+                    nose.transform.localScale = NoseScale;
+                    nose.transform.localPosition = new Vector3(0f, BodyScale.y * 1.5f - ChefWaistHeight, BodyScale.z * 0.5f);
+                }
             }
 
             var use = new SerializedObject(root.AddComponent<StorageUseView>());
             use.FindProperty("_interactor").objectReferenceValue = interactor;
             use.FindProperty("_waist").objectReferenceValue = waist;
+            if (CharacterArt.Available)
+                use.FindProperty("_bendAngle").floatValue = CharacterArt.StorageBend;
             use.ApplyModifiedPropertiesWithoutUndo();
 
             var visual = root.AddComponent<PlayerVisual>();
@@ -835,6 +846,43 @@ namespace Game.Editor
 
             AddToHighlight(rack, block.GetComponent<Renderer>());
             return rack;
+        }
+
+        // The v9.2 chef (concept 2026-11-09): big head, toque with the player's colour on its band,
+        // apron and neckerchief, short arms that ChefArmsView aims, and the old chef's knife sheath
+        // moved down to the barrel's hip. Returns the waist, which bends.
+        private static Transform BuildCharacterChef(GameObject root, Transform visuals, PlayerInteractor interactor,
+            Transform carryAnchor, Transform toolAnchor, out System.Collections.Generic.List<Renderer> tinted)
+        {
+            var rig = CharacterArt.Build(visuals, CharacterArt.PlayerChef());
+            tinted = rig.Tinted;
+
+            var belt = new GameObject("Belt").transform;
+            belt.SetParent(visuals, false);
+            belt.localPosition = CharacterArt.SheathShift;
+            var sheath = new[]
+            {
+                AddChefPart(belt, "Sheath", "ChefSheath", StyleTest.EnsureToonMaterial("ChefSheath", SheathColor)),
+                AddChefPart(belt, "SheathRim", "ChefSheathRim", StyleTest.EnsureToonMaterial("ChefSheathRim", SheathRimColor)),
+            }.Where(part => part != null).ToArray();
+            foreach (var part in sheath)
+                part.enabled = false; // until the chef takes a knife
+
+            var arms = new SerializedObject(root.AddComponent<ChefArmsView>());
+            arms.FindProperty("_interactor").objectReferenceValue = interactor;
+            arms.FindProperty("_leftShoulder").objectReferenceValue = rig.LeftShoulder;
+            arms.FindProperty("_rightShoulder").objectReferenceValue = rig.RightShoulder;
+            arms.FindProperty("_carryAnchor").objectReferenceValue = carryAnchor;
+            arms.FindProperty("_toolAnchor").objectReferenceValue = toolAnchor;
+            var sheathList = arms.FindProperty("_sheath");
+            sheathList.arraySize = sheath.Length;
+            for (var i = 0; i < sheath.Length; i++)
+                sheathList.GetArrayElementAtIndex(i).objectReferenceValue = sheath[i];
+            // The knife rides in the sheath, so it moves with it (the tool anchor is scaled up).
+            var beltOffset = arms.FindProperty("_beltOffset");
+            beltOffset.vector3Value += CharacterArt.SheathShift / ItemSizes.Carried;
+            arms.ApplyModifiedPropertiesWithoutUndo();
+            return rig.Waist;
         }
 
         // A part of the modelled chef, under the given frame (feet or waist); null without the model.
