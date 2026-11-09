@@ -366,3 +366,7 @@ To work out when we get there: what scorching and spilling cost (quality, lost f
 ## Prefabs for the office's city (proposed 2026-11-09)
 
 *From the office's rooftop detail.* The office scene file is about 23 MB because every roof's machinery, window frame and person is written into it as separate objects. Making the roof kit (plant room, air conditioner, stack, vents, dish), the special roofs and the people into prefabs would shrink the scene to references, and make each piece editable in one place. Worth doing before the art phase or if the scene gets slow to open.
+
+## Known issue: the sink's tap draws over the 3D wash ring
+
+*Found 2026-11-09.* With the sink turned 45°, captures show the tap's gooseneck covering part of the wash ring, though the ring's pieces (`Game/ToonOnTop`) ignore depth and draw after everything else, and the tap is an ordinary opaque toon object. Tried: an overlay camera on its own layer, rendering with Camera.Render instead of a render request, and the on-top shader. Next: check the draw order in the Frame Debugger in Play mode (Tap vs Segment), and whether it shows in play at all or only in batch captures.

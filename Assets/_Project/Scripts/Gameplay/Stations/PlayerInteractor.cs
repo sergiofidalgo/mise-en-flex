@@ -77,9 +77,15 @@ namespace Game.Gameplay.Stations
         /// <summary>Chefs work in Prep and Service; Plan and Review happen between shifts.</summary>
         /// <summary>
         /// Set by a station that takes over the chef, like washing by hand: they stay put, the stick
-        /// goes to the station, and only Use works (to stop).
+        /// goes to the station, and only Use works (to stop), or B (to back out).
         /// </summary>
         public bool IsBusy { get; set; }
+
+        /// <summary>
+        /// Set with <see cref="IsBusy"/> by a station B should back out of (washing): B, the button
+        /// that backs out of everything, then stops it, as Use does (decision 2026-11-09).
+        /// </summary>
+        public System.Action BackOut { get; set; }
 
         /// <summary>In management mode: the chef waits while the player's cursor rearranges the kitchen.</summary>
         public bool IsManaging { get; set; }
@@ -289,7 +295,12 @@ namespace Game.Gameplay.Stations
 
         private void HandleButtonB(InputAction.CallbackContext context)
         {
-            if (CanAct && !IsBusy && _target != null && !TryFaceButton(FaceButton.East))
+            if (IsBusy)
+            {
+                BackOut?.Invoke();
+                return;
+            }
+            if (CanAct && _target != null && !TryFaceButton(FaceButton.East))
                 _target.NotifyDenied();
         }
 

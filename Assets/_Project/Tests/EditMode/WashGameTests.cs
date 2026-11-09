@@ -104,7 +104,7 @@ namespace Game.Tests.EditMode
         // A calm, still point in the centre with no drift: only the rules act on it.
         private static WashGameSettings StillSettings => new WashGameSettings
         {
-            Nudge = 0f, Instability = 0f, Damping = 6f, StartRadius = 0f, HoldSeconds = 0.3f, Corrections = 3, PushSpeed = 3.5f,
+            Nudge = 0f, Instability = 0f, Damping = 6f, StartRadius = 0f, HoldSeconds = 0.3f, Corrections = 2, PushSpeed = 3.5f,
         };
 
         [Test]
@@ -120,7 +120,7 @@ namespace Game.Tests.EditMode
 
             for (var i = 0; i < 6; i++) // past 0.3 s
                 washed += game.Tick(Frame, Vector2.Zero);
-            Assert.That(washed, Is.EqualTo(0.25f).Within(1e-5f), "one of four parts");
+            Assert.That(washed, Is.EqualTo(1f / 3f).Within(1e-5f), "one of three parts");
             Assert.That(pushes, Is.EqualTo(1));
             for (var i = 0; i < 30; i++)
                 game.Tick(Frame, Vector2.Zero);
@@ -143,7 +143,7 @@ namespace Game.Tests.EditMode
         }
 
         [Test]
-        public void APlateTakesTheCentringPlusThreeCorrectionsFromEverySide()
+        public void APlateTakesThreeCentringsFromThreeSides()
         {
             // An ideal hand pulls the point straight back to the centre.
             var game = new WashGame(StillSettings, 7);
@@ -154,9 +154,9 @@ namespace Game.Tests.EditMode
                 washed += game.Tick(Frame, Clamp(-game.Point * 4f));
 
             Assert.That(washed, Is.EqualTo(1f).Within(1e-4f), "a whole plate");
-            Assert.That(game.StagesDone, Is.EqualTo(4), "first centring and three corrections");
-            Assert.That(directions.Count, Is.EqualTo(3), "no push after the last one");
-            // Evenly spread with a little randomness: each push at least 80° from the others.
+            Assert.That(game.StagesDone, Is.EqualTo(3), "the first centring and two corrections (the user's call)");
+            Assert.That(directions.Count, Is.EqualTo(2), "no push after the last one");
+            // Evenly spread with a little randomness: the pushes about 120° apart, at least 80°.
             for (var i = 0; i < directions.Count; i++)
             for (var j = i + 1; j < directions.Count; j++)
             {

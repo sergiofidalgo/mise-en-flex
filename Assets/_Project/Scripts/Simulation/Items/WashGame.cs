@@ -34,12 +34,12 @@ namespace Game.Simulation.Items
         public float HoldSeconds { get; set; } = 0.3f;
 
         /// <summary>Pushes per plate after the first centring; each must be corrected. A plate takes this + 1 centrings.</summary>
-        public int Corrections { get; set; } = 3;
+        public int Corrections { get; set; } = 2;
 
         /// <summary>Speed the point is kicked away with once it's been held in the centre (circle radii per second).</summary>
         public float PushSpeed { get; set; } = 3.5f;
 
-        /// <summary>Random spread, in degrees either way, around pushes evenly spaced round the circle.</summary>
+        /// <summary>Random spread, in degrees either way, around the sides the plate is tipped to, evenly spaced round the circle.</summary>
         public float PushSpreadDegrees { get; set; } = 20f;
 
         /// <summary>Where the point starts for each plate: outside OkRadius, so you have to bring it in.</summary>
@@ -51,8 +51,9 @@ namespace Game.Simulation.Items
     /// of a circle with the stick. It behaves like balancing a stick on your palm: the further it's
     /// off centre, the harder it runs away, so doing nothing loses it, and over-correcting does too.
     /// Holding it in the centre for a moment scrubs one part of the plate; then the plate gets
-    /// kicked off in a new direction to be brought back. Kicks go evenly round the circle (with a
-    /// little randomness), so every plate is tipped every way before it's clean.
+    /// kicked off in a new direction to be brought back (3 centrings a plate, the user's call).
+    /// The start and the kicks go evenly round the circle (with a little randomness), so every
+    /// plate is tipped every way before it's clean.
     /// </summary>
     public sealed class WashGame
     {
@@ -99,13 +100,19 @@ namespace Game.Simulation.Items
         /// <summary>Starts the next plate, with the point off centre again.</summary>
         public void NewPlate()
         {
-            Point = RandomDirection() * _settings.StartRadius;
+            // The plate starts tipped to one side, and each push goes to the next, evenly round the
+            // circle: with 3 centrings, three sides 120° apart.
+            _pushAngle = (float)(_random.NextDouble() * Math.PI * 2.0);
+            var start = _pushAngle - SideSpacing;
+            Point = new Vector2((float)Math.Cos(start), (float)Math.Sin(start)) * _settings.StartRadius;
             _velocity = Vector2.Zero;
             _held = 0f;
             StagesDone = 0;
             _pushes = 0;
-            _pushAngle = (float)(_random.NextDouble() * Math.PI * 2.0);
         }
+
+        // The angle between the sides a plate is tipped to: one per centring.
+        private double SideSpacing => 2.0 * Math.PI / Stages;
 
         /// <summary>Moves the point.</summary>
         /// <returns>How much of a plate this washed (for <see cref="Sink.Wash"/>).</returns>
@@ -156,13 +163,12 @@ namespace Game.Simulation.Items
             return 1f / Stages;
         }
 
-        // Kicks the point off: the pushes on a plate are spread evenly round the circle from a
-        // random start, each nudged a little, so they come from every side.
+        // Kicks the point off to the plate's next side, nudged a little, so over a plate it's
+        // tipped every way.
         private void Push()
         {
-            var spacing = 2.0 * Math.PI / Math.Max(1, _settings.Corrections);
             var spread = _settings.PushSpreadDegrees * Math.PI / 180.0;
-            var angle = _pushAngle + _pushes * spacing + (_random.NextDouble() * 2.0 - 1.0) * spread;
+            var angle = _pushAngle + _pushes * SideSpacing + (_random.NextDouble() * 2.0 - 1.0) * spread;
             _pushes++;
             var direction = new Vector2((float)Math.Cos(angle), (float)Math.Sin(angle));
             _velocity += direction * _settings.PushSpeed;

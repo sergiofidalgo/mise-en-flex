@@ -39,6 +39,43 @@ namespace Game.Editor
             Debug.Log($"[WashRing] Ring on {count} sink(s); old wash HUD removed. Save the scene to keep it.");
         }
 
+        private const string ToonPath = "Assets/_Project/Art/Materials/MAT_FX_StationToon.mat";
+
+        /// <summary>
+        /// The material the 3D kit's pieces share (Game/ToonOnTop: house toon shading, drawn over
+        /// whatever is in front); each piece sets its own colour.
+        /// </summary>
+        public static Material EnsureToonMaterial()
+        {
+            var shader = Shader.Find("Game/ToonOnTop");
+            var material = AssetDatabase.LoadAssetAtPath<Material>(ToonPath);
+            if (material == null)
+            {
+                material = new Material(shader);
+                AssetDatabase.CreateAsset(material, ToonPath);
+            }
+            else if (material.shader != shader)
+            {
+                material.shader = shader;
+            }
+            material.renderQueue = -1; // the shader's own: after transparents
+            EditorUtility.SetDirty(material);
+            return material;
+        }
+
+        private const string IconPath = "Assets/_Project/Art/Materials/MAT_FX_TutorialIcon.mat";
+
+        /// <summary>The tutorial glyph material (Game/UI/TutorialIcon) for the stick hint.</summary>
+        public static Material EnsureIconMaterial()
+        {
+            var material = AssetDatabase.LoadAssetAtPath<Material>(IconPath);
+            if (material != null)
+                return material;
+            material = new Material(Shader.Find("Game/UI/TutorialIcon"));
+            AssetDatabase.CreateAsset(material, IconPath);
+            return material;
+        }
+
         public static Material EnsureMaterial()
         {
             var material = AssetDatabase.LoadAssetAtPath<Material>(MaterialPath);
@@ -89,6 +126,9 @@ namespace Game.Editor
             view.FindProperty("_sink").objectReferenceValue = sink;
             view.FindProperty("_settings").objectReferenceValue = settings;
             view.FindProperty("_ring").objectReferenceValue = renderer;
+            view.FindProperty("_toon").objectReferenceValue = EnsureToonMaterial();
+            view.FindProperty("_icon").objectReferenceValue = EnsureIconMaterial();
+            view.FindProperty("_stickFont").objectReferenceValue = MenuArt.Font(HudType.DisplayFont);
             view.ApplyModifiedPropertiesWithoutUndo();
         }
 
@@ -113,8 +153,15 @@ namespace Game.Editor
                     existing.localScale = new Vector3(Size, Size, 1f) * InverseScale(sink.transform);
                     existing.localPosition = new Vector3(existing.localPosition.x, RingHeight, existing.localPosition.z);
                 }
-                if (sink.GetComponent<SinkWashRingView>() != null)
+                if (sink.TryGetComponent(out SinkWashRingView view))
+                {
+                    var so = new SerializedObject(view);
+                    so.FindProperty("_toon").objectReferenceValue = EnsureToonMaterial();
+                    so.FindProperty("_icon").objectReferenceValue = EnsureIconMaterial();
+                    so.FindProperty("_stickFont").objectReferenceValue = MenuArt.Font(HudType.DisplayFont);
+                    so.ApplyModifiedPropertiesWithoutUndo();
                     count++;
+                }
                 EditorSceneManager.MarkSceneDirty(sink.gameObject.scene);
             }
 
@@ -202,7 +249,8 @@ namespace Game.Editor
                 chef.transform.SetPositionAndRotation(sink.transform.position + front * StandDistance, Quaternion.LookRotation(-front, Vector3.up));
                 foreach (var (name, point, rate, progress) in states)
                 {
-                    view.Preview(point, rate, progress, rim, 0.25f, 0.55f);
+                    // Washing well: holding, the target filling. Off target: the stick hint up.
+                    view.Preview(point, rate, progress, rim, rate >= 1f ? 0.6f : 0f, rate < 1f);
                     Render(camera, target, sink.transform.position + Vector3.up * 0.9f, CloseHeight, Path.Combine(folder, $"wash_{(int)turn}deg_{name}.png"));
                 }
                 Render(camera, target, sink.transform.position + new Vector3(-1.5f, 0.9f, -0.5f), PlayHeight, Path.Combine(folder, $"wash_{(int)turn}deg_play.png"));
@@ -212,80 +260,6 @@ namespace Game.Editor
             Object.DestroyImmediate(chef);
             Object.DestroyImmediate(camera.gameObject);
             Debug.Log($"[WashRing] Captured to {folder}.");
-        }
-
-        /// <summary>
-        /// One image with the ring in four looks, 2×2, for choosing between them: size (share of the
-        /// current) and outline (colour, strength). Off target, so the chevrons and the tilt show.
-        /// Batch: -executeMethod Game.Editor.WashRing.CaptureVariants -captureFolder &lt;folder&gt;
-        /// </summary>
-        public static void CaptureVariants()
-        {
-            var args = Environment.GetCommandLineArgs();
-            var index = Array.IndexOf(args, "-captureFolder");
-            var folder = index >= 0 && index + 1 < args.Length ? args[index + 1] : Path.GetFullPath("Screenshots/wash-ring");
-            Directory.CreateDirectory(folder);
-            EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
-            ApplyToOpenScene();
-
-            var soft = new Color(0.12f, 0.19f, 0.29f);   // deep water blue
-            var ink = new Color(0.227f, 0.141f, 0.078f);
-            var variants = new (float Size, Color Outline, float Strength)[]
-            {
-                (1f, ink, 1f),       // top left: as committed
-                (1f, soft, 0.4f),    // top right: same size, soft outline
-                (0.8f, soft, 0.4f),  // bottom left: smaller, soft outline
-                (0.8f, soft, 0f),    // bottom right: smaller, no outline
-            };
-
-            var sink = Object.FindFirstObjectByType<SinkStation>();
-            var view = sink.GetComponent<SinkWashRingView>();
-            var ring = (Renderer)new SerializedObject(view).FindProperty("_ring").objectReferenceValue;
-            var settings = FindSettings();
-            var rim = settings != null ? settings.GetPlayerColor(0) : new Color(0.91f, 0.53f, 0.23f);
-            var camera = new GameObject("Capture Camera").AddComponent<Camera>();
-            camera.fieldOfView = FieldOfView;
-            camera.tag = "MainCamera";
-            HouseStyle.SmoothEdges(camera);
-            RenderLook.Backdrop(camera);
-            var target = new RenderTexture(Width, Height, 24, RenderTextureFormat.ARGB32, RenderTextureReadWrite.sRGB) { antiAliasing = 4 };
-            var chef = (GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/_Project/Prefabs/PF_Player.prefab"));
-            var front = -sink.transform.forward;
-            chef.transform.SetPositionAndRotation(sink.transform.position + front * StandDistance, Quaternion.LookRotation(-front, Vector3.up));
-
-            const int cellW = 760, cellH = 560;
-            var sheet = new Texture2D(cellW * 2, cellH * 2, TextureFormat.RGB24, false);
-            var lookAt = sink.transform.position + Vector3.up * 0.9f;
-            var scale = ring.transform.localScale;
-            Render(camera, target, lookAt, CloseHeight, null); // warm-up frame
-            for (var i = 0; i < variants.Length; i++)
-            {
-                var (size, outline, strength) = variants[i];
-                ring.transform.localScale = scale * size;
-                view.Preview(new Vector2(-0.62f, 0.35f), 0f, 0.45f, rim, 0.25f, 0.55f);
-                var block = new MaterialPropertyBlock();
-                ring.GetPropertyBlock(block);
-                block.SetColor("_InkColor", outline);
-                block.SetFloat("_OutlineStrength", strength);
-                ring.SetPropertyBlock(block);
-                var image = RenderImage(camera, target, lookAt, CloseHeight);
-                // Screen points for the capture's own size: only while the camera targets it.
-                camera.targetTexture = target;
-                var centre = camera.WorldToScreenPoint(ring.transform.position);
-                camera.targetTexture = null;
-                var x0 = Mathf.Clamp((int)centre.x - cellW / 2, 0, Width - cellW);
-                var y0 = Mathf.Clamp((int)centre.y - cellH / 2, 0, Height - cellH);
-                sheet.SetPixels((i % 2) * cellW, (1 - i / 2) * cellH, cellW, cellH, image.GetPixels(x0, y0, cellW, cellH));
-                Object.DestroyImmediate(image);
-            }
-            ring.transform.localScale = scale;
-            view.EndPreview();
-            sheet.Apply();
-            File.WriteAllBytes(Path.Combine(folder, "wash_variants.png"), sheet.EncodeToPNG());
-            Object.DestroyImmediate(sheet);
-            Object.DestroyImmediate(chef);
-            Object.DestroyImmediate(camera.gameObject);
-            Debug.Log($"[WashRing] Variants captured to {folder}.");
         }
 
         private static Texture2D RenderImage(Camera camera, RenderTexture target, Vector3 lookAt, float height, bool faceCamera = true)

@@ -4,6 +4,19 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-09 — The wash game in 3D, a tutorial stick, no card, and 3 centrings a plate
+
+**User's calls, after playing the flat ring:** it looked too flat for the scene; the card ("LS center the soap", "X stop washing") should go, with an animated joystick showing the movement instead, and X or B to leave; the stick should look like a real thumbstick with an L on top, styled as a scene-agnostic tutorial glyph; a plate takes 3 touches of the centre, not 4.
+
+- **3D pieces** (`SinkWashRingView`, meshes from `StationKitMeshes`): 15 chunky toon-shaded segments (5 per centring) that light up in the washer's colour, a raised centre target whose 12 segments turn green while the soap is held, and a soap bar that bobs, leans as it slides and shakes when far off, with bubbles circling it in the centre.
+- **Drawn over the chef** with `Game/ToonOnTop` (house toon shading, ignores depth, drawn late in a fixed order per piece). An overlay camera on its own layer was tried first and dropped: the tap still drew over the ring.
+- **No card while washing.** X or B stops (B did nothing while busy before; `PlayerInteractor.BackOut`).
+- **The stick hint** appears beside the soap, on its far side from the centre, when it's been off target for 0.6 s with the stick not pushing towards the centre (not moving it counts), and tips towards the centre until the player does. A domed base with a collar, a short shaft, a rounded cap with a grippy rim and a dished top marked L (Fredoka). `Game/UI/TutorialIcon` gives it a fixed light and its own outline, so it looks the same in every scene and at every hour.
+- **3 centrings a plate** (`Corrections` 2): the plate starts tipped to one side and the two pushes go to the other two, about 120° apart (±20°), so it's still tipped every way. A steady simulated hand takes about 3.7 s a plate.
+- **Known issue:** with the sink turned 45°, the tap still draws over part of the ring in captures, though nothing found explains it (see `ideas.md`).
+
+---
+
 ## 2026-11-09 — The wash ring is drawn over the chef
 
 **User's call (from a mockup):** with the chef's back to the camera, their toque hid most of the ring, centre included (captured with the sink turned −90°). The ring is now drawn over whatever stands in front of it, the washing chef above all, instead of being moved off the water or the chef faded.

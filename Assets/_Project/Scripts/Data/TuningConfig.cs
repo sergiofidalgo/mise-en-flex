@@ -94,8 +94,8 @@ namespace Game.Data
         [SerializeField, Range(0f, 1f)] private float _washOkRadius = 0.55f;
         [Tooltip("Seconds the point must stay in the centre for it to count; passing through doesn't.")]
         [SerializeField, Min(0f)] private float _washHoldSeconds = 0.3f;
-        [Tooltip("Pushes to correct per plate after the first centring (decision 2026-11-09: 3).")]
-        [SerializeField, Min(0)] private int _washCorrections = 3;
+        [Tooltip("Pushes to correct per plate after the first centring (the user's call, 2026-11-09: 2, so 3 centrings a plate).")]
+        [SerializeField, Min(0)] private int _washCorrections = 2;
         [Tooltip("How hard each push kicks the point away (circle radii per second).")]
         [SerializeField, Min(0f)] private float _washPushSpeed = 3.5f;
         [Tooltip("Random spread, degrees either way, around pushes spaced evenly round the circle.")]

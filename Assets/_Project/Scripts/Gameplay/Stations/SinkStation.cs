@@ -78,6 +78,7 @@ namespace Game.Gameplay.Stations
 
             _washer = player;
             _washer.IsBusy = true;
+            _washer.BackOut = StopWashing;
             Game = new WashGame(_services.Tuning.WashGame, _nextSeed++);
             return true;
         }
@@ -109,20 +110,21 @@ namespace Game.Gameplay.Stations
         private void StopWashing()
         {
             if (_washer != null)
+            {
                 _washer.IsBusy = false;
+                _washer.BackOut = null;
+            }
             _washer = null;
             Game = null;
         }
 
         public void DescribeActions(PlayerInteractor player, List<PromptLine> lines)
         {
+            // While washing, no card (decision 2026-11-09): the ring on the water is the interface,
+            // an animated stick shows where to push when the player seems stuck, and X or B
+            // stops, as everywhere.
             if (_washer == player)
-            {
-                // The stick isn't part of the usual A / X / triggers grammar, so say what it does.
-                lines.Add(new PromptLine(PromptControl.LeftStick, Tr.Get("center the soap")));
-                lines.Add(new PromptLine(PromptControl.West, Tr.Get("stop washing")));
                 return;
-            }
 
             var held = player.Hands.Current;
             if (_washer != null)
