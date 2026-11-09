@@ -38,6 +38,9 @@ namespace Game.Tests.EditMode
             "PropBackpack", "PropSatchel",
             "CharShirtV", "CharLapels", "CharVestV", "CharHood", "CharHoodiePocket", "CharTankShoulders", "CharEarpiece",
             "CharAviators", "CharAviatorFrames",
+            "HatCrown", "HatCrownGems", "HatPartyCone", "HatPartyPompom", "HatCaptain", "HatCaptainBand", "HatCaptainPeak",
+            "HatCaptainBraid", "HatPropellerPanelA", "HatPropellerPeak", "HatHeadphonesBand", "HatHeadphonesCups", "HatStraw",
+            "HatStrawStrap",
         };
 
         private static Mesh Part(string name)

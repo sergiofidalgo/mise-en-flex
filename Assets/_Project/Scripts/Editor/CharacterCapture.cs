@@ -164,6 +164,10 @@ namespace Game.Editor
                 new Game.Simulation.Characters.ChefLook { Hat = "horns", Face = "moustache", Skin = "skin3", Outfit = "suit", Accessory = "aviators" },
                 new Game.Simulation.Characters.ChefLook { Hat = "crown", Face = "fringe", Skin = "skin2", Outfit = "whites" },
                 new Game.Simulation.Characters.ChefLook { Hat = "partyhat", Face = "bald", Skin = "skin7", Outfit = "tourist" },
+                new Game.Simulation.Characters.ChefLook { Hat = "captain", Face = "moustache", Skin = "skin2", Outfit = "whites" },
+                new Game.Simulation.Characters.ChefLook { Hat = "propeller", Face = "ginger", Skin = "skin0", Outfit = "linecook" },
+                new Game.Simulation.Characters.ChefLook { Hat = "headphones", Face = "afro", Skin = "skin5", Outfit = "wok" },
+                new Game.Simulation.Characters.ChefLook { Hat = "straw", Face = "darkbun", Skin = "skin3", Outfit = "pastry" },
             };
             for (var i = 0; i < outfits.Length; i++)
             {
@@ -217,9 +221,9 @@ namespace Game.Editor
             Render(camera, target, crowd + new Vector3(2.1f, 0.9f, -2.5f), PlayHeight, Path.Combine(folder, "variety_play.png"));
             camera.transform.SetPositionAndRotation(faces + new Vector3(4.4f, 1.0f, -7.5f), Quaternion.Euler(4f, 0f, 0f));
             Draw(camera, target, Path.Combine(folder, "variety_front.png"));
-            camera.transform.SetPositionAndRotation(rail + new Vector3(2.85f, 1.1f, -7.2f), Quaternion.Euler(4f, 0f, 0f));
+            camera.transform.SetPositionAndRotation(rail + new Vector3(4.75f, 1.1f, -10.5f), Quaternion.Euler(4f, 0f, 0f));
             Draw(camera, target, Path.Combine(folder, "tailor_rail_front.png"));
-            Render(camera, target, rail + new Vector3(2.85f, 0.9f, 0f), CloseHeight + 1f, Path.Combine(folder, "tailor_rail_play.png"));
+            Render(camera, target, rail + new Vector3(8.55f, 0.9f, 0f), CloseHeight + 0.4f, Path.Combine(folder, "tailor_rail_play.png"));
             camera.transform.SetPositionAndRotation(guards + new Vector3(0f, 1.3f, -3.2f), Quaternion.Euler(6f, 0f, 0f));
             Draw(camera, target, Path.Combine(folder, "bodyguards_front.png"));
             Render(camera, target, guards + new Vector3(0f, 0.9f, 0f), CloseHeight, Path.Combine(folder, "bodyguards_play.png"));

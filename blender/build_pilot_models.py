@@ -562,6 +562,32 @@ def add_front_strip(bm, rows, lift=0.008, thickness=0.012):
             bm.faces.new([front[k][i], front[k + 1][i], back[k + 1][i], back[k][i]])
 
 
+def add_ellipsoid_sector(bm, centre, radii, a0, a1, rings=10, steps=6):
+    """A wedge of an ellipsoid between azimuths a0 and a1 (radians, from +x towards +y), closed on
+    its two cut faces: for a cap sewn from coloured panels."""
+    cx, cy, cz = centre
+    top = bm.verts.new((cx, cy, cz + radii[2]))
+    bottom = bm.verts.new((cx, cy, cz - radii[2]))
+    grid = []
+    for i in range(1, rings):
+        polar = math.pi * i / rings
+        row = []
+        for j in range(steps + 1):
+            a = a0 + (a1 - a0) * j / steps
+            row.append(bm.verts.new((cx + radii[0] * math.sin(polar) * math.cos(a),
+                                     cy + radii[1] * math.sin(polar) * math.sin(a),
+                                     cz + radii[2] * math.cos(polar))))
+        grid.append(row)
+    for j in range(steps):
+        bm.faces.new([top, grid[0][j + 1], grid[0][j]])
+        bm.faces.new([bottom, grid[-1][j], grid[-1][j + 1]])
+        for i in range(len(grid) - 1):
+            bm.faces.new([grid[i][j], grid[i][j + 1], grid[i + 1][j + 1], grid[i + 1][j]])
+    for edge in (0, steps):  # the two cut faces, fanned from the axis
+        column = [top] + [row[edge] for row in grid] + [bottom]
+        bm.faces.new(column if edge == 0 else list(reversed(column)))
+
+
 def head_surface(x, dz):
     """How far forward (Blender -Y) the authored head's surface is at a point `x` across and `dz`
     above its centre."""
@@ -753,7 +779,79 @@ def build_characters():
              radius=0.008, segments=6)
     part("HatPartyPompom", bm, "waist", head=True)
 
-    brim = CHAR_REACH / CHAR_HEAD_SCALE  # the tourist's trademark keeps the full reach
+    # More crazy hats from the user's references (2026-11-09): a captain's cap, a propeller cap,
+    # headphones and a conical straw hat.
+    bm = bmesh.new()  # a captain's cap: a white crown that flares out flat over a band
+    add_lathe(bm, [(0.0, c + 0.14), (0.3, c + 0.14), (0.31, c + 0.25), (0.37, c + 0.33), (0.38, c + 0.37), (0.33, c + 0.4),
+                   (0.0, c + 0.41)], segments=32)
+    part("HatCaptain", bm, "waist", head=True)
+    bm = bmesh.new()  # its band (the player's colour)
+    add_lathe(bm, [(0.0, c + 0.15), (0.318, c + 0.15), (0.318, c + 0.25), (0.0, c + 0.25)], segments=32)
+    part("HatCaptainBand", bm, "waist", head=True)
+    bm = bmesh.new()  # its glossy black peak
+    add_ellipsoid(bm, (0.0, -0.27, c + 0.13), (0.19, 0.12, 0.022), rings=6, segments=24)
+    part("HatCaptainPeak", bm, "waist", head=True)
+    bm = bmesh.new()  # gold braid round the band and across the peak, and an anchor badge
+    add_pipe(bm, [(0.322 * math.cos(2 * math.pi * k / 32), 0.322 * math.sin(2 * math.pi * k / 32), c + 0.25) for k in range(33)],
+             radius=0.014, segments=6)
+    add_pipe(bm, [(-0.15, -0.31, c + 0.16), (0.0, -0.36, c + 0.16), (0.15, -0.31, c + 0.16)], radius=0.012, segments=6)
+    ay = -0.355
+    add_pipe(bm, [(0.0, ay, c + 0.36), (0.0, ay, c + 0.27)], radius=0.011, segments=6)           # shank
+    add_pipe(bm, [(-0.035, ay, c + 0.34), (0.035, ay, c + 0.34)], radius=0.009, segments=6)      # stock
+    add_pipe(bm, [(-0.045, ay, c + 0.3), (-0.03, ay, c + 0.275), (0.0, ay, c + 0.268), (0.03, ay, c + 0.275), (0.045, ay, c + 0.3)],
+             radius=0.009, segments=6)                                                          # arms
+    part("HatCaptainBraid", bm, "waist", head=True)
+
+    for k, name in enumerate(("HatPropellerPanelA", "HatPropellerPanelB", "HatPropellerPanelC", "HatPropellerPanelD")):
+        bm = bmesh.new()  # a propeller cap sewn from four coloured panels
+        a0 = math.pi / 4 + k * math.pi / 2
+        add_ellipsoid_sector(bm, (0.0, 0.02, c + 0.1), (0.33, 0.33, 0.29), a0, a0 + math.pi / 2)
+        part(name, bm, "waist", head=True)
+    bm = bmesh.new()  # its peak (the player's colour)
+    add_ellipsoid(bm, (0.0, -0.27, c + 0.13), (0.17, 0.11, 0.02), rings=6, segments=24)
+    part("HatPropellerPeak", bm, "waist", head=True)
+    bm = bmesh.new()  # the button on top, a stem and beads up to the propeller
+    add_ball(bm, (0.0, 0.02, c + 0.39), 0.035, segments=10)
+    add_pipe(bm, [(0.0, 0.02, c + 0.39), (0.0, 0.02, c + 0.52)], radius=0.012, segments=6)
+    for z in (c + 0.43, c + 0.47):
+        add_ball(bm, (0.0, 0.02, z), 0.025, segments=10)
+    part("HatPropellerStem", bm, "waist", head=True)
+    # The blades spin, so they're built round their own axis (origin at the hub) at the head's
+    # scale; the game hangs them at the top of the stem (CharacterArt.PropellerHub) and turns them.
+    bm = bmesh.new()
+    s_head = CHAR_HEAD_SCALE
+    for side in (-1.0, 1.0):
+        add_ellipsoid(bm, (side * 0.16 * s_head, 0.0, 0.0), (0.16 * s_head, 0.035 * s_head, 0.01 * s_head), rings=6, segments=14)
+    add_ball(bm, (0.0, 0.0, 0.0), 0.022 * s_head, segments=8)
+    part("HatPropellerBlades", bm, "apart")
+
+    bm = bmesh.new()  # headphones: a padded band over the top, ear to ear
+    add_pipe(bm, [(0.34 * math.cos(math.pi * k / 16), 0.03, c + 0.34 * math.sin(math.pi * k / 16)) for k in range(17)],
+             radius=0.035, segments=8)
+    part("HatHeadphonesBand", bm, "waist", head=True)
+    bm = bmesh.new()  # big round ear cups (the player's colour)
+    for side in (-1.0, 1.0):
+        add_ellipsoid(bm, (side * 0.335, 0.03, c - 0.02), (0.07, 0.12, 0.13), rings=8, segments=16)
+    part("HatHeadphonesCups", bm, "waist", head=True)
+
+    brim = CHAR_REACH / CHAR_HEAD_SCALE  # the widest brims keep the full reach
+    bm = bmesh.new()  # a conical straw hat: a shallow cone from a point to a wide rim
+    add_lathe(bm, [(0.0, c + 0.47), (brim - 0.01, c + 0.19), (brim, c + 0.17), (brim - 0.03, c + 0.165), (0.26, c + 0.25),
+                   (0.0, c + 0.29)], segments=40)
+    part("HatStraw", bm, "waist", head=True)
+    bm = bmesh.new()  # its ribs, tip to rim, so the cone reads from above (the reference's woven spokes)
+    for k in range(16):
+        a = 2 * math.pi * k / 16
+        rim = brim - 0.02
+        add_pipe(bm, [(0.0, 0.0, c + 0.475), (rim * math.cos(a), rim * math.sin(a), c + 0.2 + 0.01)], radius=0.008, segments=5)
+    add_pipe(bm, [((brim - 0.005) * math.cos(2 * math.pi * k / 40), (brim - 0.005) * math.sin(2 * math.pi * k / 40), c + 0.18)
+                  for k in range(41)], radius=0.012, segments=6)  # the bound rim
+    part("HatStrawRibs", bm, "waist", head=True)
+    bm = bmesh.new()  # its chin strap (the player's colour)
+    add_pipe(bm, [(0.25, 0.0, c + 0.22), (0.27, -0.08, c - 0.08), (0.12, -0.2, c - 0.27), (0.0, -0.23, c - 0.3),
+                  (-0.12, -0.2, c - 0.27), (-0.27, -0.08, c - 0.08), (-0.25, 0.0, c + 0.22)], radius=0.012, segments=6)
+    part("HatStrawStrap", bm, "waist", head=True)
+
     bm = bmesh.new()  # a sun hat's brim and its crown
     add_lathe(bm, [(0.0, c + 0.17), (brim - 0.005, c + 0.17), (brim, c + 0.19), (0.0, c + 0.2)], segments=40)
     add_lathe(bm, [(0.0, c + 0.17), (0.28, c + 0.17), (0.28, c + 0.33), (0.24, c + 0.38), (0.0, c + 0.39)], segments=32)

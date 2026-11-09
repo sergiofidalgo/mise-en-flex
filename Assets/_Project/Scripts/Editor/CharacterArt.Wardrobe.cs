@@ -52,6 +52,10 @@ namespace Game.Editor
                 ["darkbun"] = (HairKind.Bun, new Color(0.2f, 0.13f, 0.09f), NoseKind.Big, false),
             };
 
+        // Where the propeller's blades turn, in the waist's frame: the top of the stem, 0.52 m above
+        // the authored head's centre (0.71 m), scaled with the head (0.87); Blender's y is the game's -z.
+        private static readonly Vector3 PropellerHub = new Vector3(0f, 0.71f + 0.52f * 0.87f, -0.02f * 0.87f);
+
         // The skin tones in Wardrobe's order: skin1 (the default chef's), skin0, then skin2 on.
         private static Color SkinFor(string id) => SkinTones[int.Parse(id.Substring(4))];
 
@@ -173,6 +177,33 @@ namespace Game.Editor
                     case "partyhat":
                         rig.Tinted.Add(Part(group, "HatPartyCone", Color.white, "ChefAccent"));
                         Part(group, "HatPartyPompom", Shine);
+                        break;
+                    case "captain":
+                        Part(group, "HatCaptain", new Color(0.97f, 0.97f, 0.95f));
+                        Part(group, "HatCaptainPeak", new Color(0.1f, 0.1f, 0.12f));
+                        Part(group, "HatCaptainBraid", Gold);
+                        rig.Tinted.Add(Part(group, "HatCaptainBand", Color.white, "ChefAccent"));
+                        break;
+                    case "propeller":
+                        // Four panels, then the peak in the player's colour and the spinning blades.
+                        foreach (var (panel, colour) in new[] { ("A", new Color(0.85f, 0.18f, 0.16f)), ("B", new Color(0.2f, 0.32f, 0.7f)),
+                            ("C", new Color(0.95f, 0.78f, 0.2f)), ("D", new Color(0.18f, 0.5f, 0.3f)) })
+                            Part(group, "HatPropellerPanel" + panel, colour);
+                        rig.Tinted.Add(Part(group, "HatPropellerPeak", Color.white, "ChefAccent"));
+                        Part(group, "HatPropellerStem", new Color(0.95f, 0.5f, 0.2f));
+                        var hub = Frame(group, "PropellerHub", PropellerHub, Vector3.one);
+                        Part(hub, "HatPropellerBlades", new Color(0.98f, 0.55f, 0.15f));
+                        hub.gameObject.AddComponent<PropellerSpin>();
+                        break;
+                    case "headphones":
+                        Part(group, "HatHeadphonesBand", new Color(0.15f, 0.15f, 0.17f));
+                        rig.Tinted.Add(Part(group, "HatHeadphonesCups", Color.white, "ChefAccent"));
+                        covers = false;
+                        break;
+                    case "straw":
+                        Part(group, "HatStraw", new Color(0.82f, 0.68f, 0.42f));
+                        Part(group, "HatStrawRibs", new Color(0.62f, 0.48f, 0.28f));
+                        rig.Tinted.Add(Part(group, "HatStrawStrap", Color.white, "ChefAccent"));
                         break;
                 }
                 hats.Add(new ChefWardrobe.Entry { Id = item.Id, Parts = new[] { group.gameObject }, Covers = covers });

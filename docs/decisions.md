@@ -98,6 +98,23 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-09 — Four more hats for the tailor
+
+**The user's references:** a captain's cap, a propeller cap, headphones and a conical straw hat.
+
+**Decision:** all four are crazy items (earned before they're worn, like the horns, crown and party hat). Each has its part in the player's colour:
+
+| Hat | What it is | Player colour |
+|---|---|---|
+| Captain's hat | white crown flaring flat, glossy black peak, gold braid round the band and across the peak, gold anchor badge | the band |
+| Propeller cap | four panels (red, blue, yellow, green), a stem with beads; the propeller spins slowly standing still and whirs as the chef walks (`PropellerSpin`, from the walk's speed) | the peak |
+| Headphones | dark padded band over the top; doesn't hide the hair (an afro hides the band from above) | the ear cups |
+| Straw hat | shallow cone out to the full reach, with ribs and a bound rim so it reads as a cone from above | the chin strap |
+
+All within the 0.38 m reach (`CharacterProportionTests`). Spanish names are in `es.csv`.
+
+---
+
 ## 2026-11-09 — The tailor: dress your chef on your plinth, saved per player slot
 
 **The user's calls:**
