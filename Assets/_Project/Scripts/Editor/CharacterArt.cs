@@ -14,7 +14,7 @@ namespace Game.Editor
     /// their colours. All parts use the house toon material, so people sit in the kitchen's look.
     /// Sizes must match <c>build_characters()</c> in <c>blender/build_pilot_models.py</c>.
     /// </summary>
-    public static class CharacterArt
+    public static partial class CharacterArt
     {
         public const string Model = "SM_Characters";
 
@@ -429,21 +429,7 @@ namespace Game.Editor
                 AddRoll(rig, look, choices);
             }
 
-            // The walk: legs, a bob of the upper body and a waddle; the arms too unless a chef's
-            // ChefArmsView poses them (it follows this gait).
-            rig.Gait = rig.Figure.gameObject.AddComponent<Game.Presentation.WalkCycleView>();
-            var gait = new SerializedObject(rig.Gait);
-            gait.FindProperty("_leftHip").objectReferenceValue = rig.LeftHip;
-            gait.FindProperty("_rightHip").objectReferenceValue = rig.RightHip;
-            gait.FindProperty("_body").objectReferenceValue = rig.Waist;
-            gait.FindProperty("_leftShoulder").objectReferenceValue = rig.LeftShoulder;
-            gait.FindProperty("_rightShoulder").objectReferenceValue = rig.RightShoulder;
-            gait.FindProperty("_swingArms").boolValue = swingArms;
-            gait.FindProperty("_strideLength").floatValue = look.Stride;
-            gait.FindProperty("_legSwing").floatValue = look.LegSwing;
-            gait.FindProperty("_waddle").floatValue = look.Waddle;
-            gait.FindProperty("_bobHeight").floatValue = look.Bob;
-            gait.ApplyModifiedPropertiesWithoutUndo();
+            AddGait(rig, look, swingArms);
             return rig;
         }
 
@@ -519,6 +505,25 @@ namespace Game.Editor
             patterned.FindPropertyRelative("Scale").floatValue = look.Vary.PatternScale;
             roll.ApplyModifiedPropertiesWithoutUndo();
             rig.Roll = rig.Figure.GetComponent<Game.Presentation.CharacterRoll>();
+        }
+
+        // The walk: legs, a bob of the upper body and a waddle; the arms too unless a chef's
+        // ChefArmsView poses them (it follows this gait).
+        private static void AddGait(Rig rig, Look look, bool swingArms)
+        {
+            rig.Gait = rig.Figure.gameObject.AddComponent<Game.Presentation.WalkCycleView>();
+            var gait = new SerializedObject(rig.Gait);
+            gait.FindProperty("_leftHip").objectReferenceValue = rig.LeftHip;
+            gait.FindProperty("_rightHip").objectReferenceValue = rig.RightHip;
+            gait.FindProperty("_body").objectReferenceValue = rig.Waist;
+            gait.FindProperty("_leftShoulder").objectReferenceValue = rig.LeftShoulder;
+            gait.FindProperty("_rightShoulder").objectReferenceValue = rig.RightShoulder;
+            gait.FindProperty("_swingArms").boolValue = swingArms;
+            gait.FindProperty("_strideLength").floatValue = look.Stride;
+            gait.FindProperty("_legSwing").floatValue = look.LegSwing;
+            gait.FindProperty("_waddle").floatValue = look.Waddle;
+            gait.FindProperty("_bobHeight").floatValue = look.Bob;
+            gait.ApplyModifiedPropertiesWithoutUndo();
         }
 
         private static Transform Leg(Transform figure, string name, float x, Look look)

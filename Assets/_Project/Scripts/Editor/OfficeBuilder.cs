@@ -155,6 +155,7 @@ namespace Game.Editor
             BuildTerrace(rooms);
             BuildCity();
             AddLife(rooms); // OfficeBuilder.Life.cs: birds, rooftop life, windows, people's idles
+            AddTailor(rooms); // OfficeBuilder.Tailor.cs: the plinths dress their players
 
             var players = new GameObject("Players");
             var manager = players.AddComponent<PlayerInputManager>();
@@ -597,8 +598,8 @@ namespace Game.Editor
         private static void BuildTailor(Transform rooms)
         {
             var room = Room(rooms, "Tailor");
-            var colours = new[] { new Color(0.95f, 0.55f, 0.15f), new Color(0.15f, 0.70f, 0.75f), new Color(0.85f, 0.25f, 0.45f) };
-            var plinths = new[] { new Vector3(-15.4f, 0f, 9.8f), new Vector3(-13.25f, 0f, 10.6f), new Vector3(-11.1f, 0f, 9.8f) };
+            var colours = PlinthColours(); // the players' own, slot by slot
+            var plinths = TailorPlinths;
             for (var i = 0; i < plinths.Length; i++)
             {
                 Model(room, "PlinthRim", OfficeModel, "OfficePlinthRim", Toon("OfficeBrass", Brass), plinths[i], 0f);

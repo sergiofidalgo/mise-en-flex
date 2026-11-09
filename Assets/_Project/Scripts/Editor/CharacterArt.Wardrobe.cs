@@ -1,0 +1,261 @@
+using System.Collections.Generic;
+using System.Linq;
+using Game.Presentation;
+using Game.Simulation.Characters;
+using UnityEditor;
+using UnityEngine;
+
+namespace Game.Editor
+{
+    /// <summary>
+    /// The player's chef with the whole tailor's rail on it (decision 2026-11-09): every hat, face,
+    /// accessory and outfit in <see cref="Wardrobe"/> is built and hidden, and <see cref="ChefWardrobe"/>
+    /// shows the slot's look. The player colour stays on the neckerchief, the apron and each hat's
+    /// band, peak, gems or cone.
+    /// </summary>
+    public static partial class CharacterArt
+    {
+        private sealed class OutfitDef
+        {
+            public Garment Garment = Garment.Shirt;
+            public Color Top;
+            // Literal colours here: statics in the other CharacterArt file may not be set up yet
+            // (C# doesn't order static initialisers across the files of a partial class).
+            public Color Under = new Color(0.94f, 0.93f, 0.9f);
+            public bool Buttons, Tie, Camera;
+            public int Pattern;
+            public Color PatternColour;
+        }
+
+        // What each outfit on the rail is made of; ids match Wardrobe's.
+        private static readonly Dictionary<string, OutfitDef> Outfits = new Dictionary<string, OutfitDef>
+        {
+            ["whites"] = new OutfitDef { Top = new Color(0.97f, 0.97f, 0.95f), Buttons = true },
+            ["linecook"] = new OutfitDef { Top = new Color(0.3f, 0.32f, 0.36f) },
+            ["wok"] = new OutfitDef { Garment = Garment.TankTop, Top = new Color(0.92f, 0.9f, 0.86f) },
+            ["pastry"] = new OutfitDef { Top = new Color(0.96f, 0.87f, 0.87f), Buttons = true },
+            ["suit"] = new OutfitDef { Garment = Garment.Jacket, Top = new Color(0.14f, 0.15f, 0.18f), Tie = true },
+            ["tourist"] = new OutfitDef { Top = new Color(0.88f, 0.9f, 0.95f), Camera = true, Pattern = 1, PatternColour = new Color(0.2f, 0.25f, 0.5f) },
+        };
+
+        // Each face: its hair and colour, nose and facial hair; ids match Wardrobe's.
+        private static readonly Dictionary<string, (HairKind Hair, Color Colour, NoseKind Nose, bool Moustache)> Faces =
+            new Dictionary<string, (HairKind, Color, NoseKind, bool)>
+            {
+                ["crop"] = (HairKind.Crop, new Color(0.3f, 0.19f, 0.12f), NoseKind.Button, false),
+                ["moustache"] = (HairKind.Crop, new Color(0.2f, 0.13f, 0.09f), NoseKind.Big, true),
+                ["bun"] = (HairKind.Bun, new Color(0.85f, 0.7f, 0.42f), NoseKind.Button, false),
+                ["afro"] = (HairKind.Afro, new Color(0.2f, 0.13f, 0.09f), NoseKind.Button, false),
+                ["bald"] = (HairKind.Bald, new Color(0.45f, 0.42f, 0.4f), NoseKind.Big, false),
+                ["fringe"] = (HairKind.Fringe, new Color(0.85f, 0.85f, 0.83f), NoseKind.Big, true),
+                ["ginger"] = (HairKind.Crop, new Color(0.62f, 0.3f, 0.14f), NoseKind.Button, false),
+                ["darkbun"] = (HairKind.Bun, new Color(0.2f, 0.13f, 0.09f), NoseKind.Big, false),
+            };
+
+        // The skin tones in Wardrobe's order: skin1 (the default chef's), skin0, then skin2 on.
+        private static Color SkinFor(string id) => SkinTones[int.Parse(id.Substring(4))];
+
+        /// <summary>Builds the player's chef with every option on the tailor's rail, under <paramref name="visuals"/>.</summary>
+        public static Rig BuildChef(Transform visuals, bool swingArms)
+        {
+            if (!Available)
+                return null;
+            var basics = PlayerChef();
+            var rig = new Rig();
+            rig.Figure = Frame(visuals, "Figure", Vector3.zero, Vector3.one);
+            var lower = Frame(rig.Figure, "Lower", Vector3.zero, Vector3.one);
+            rig.LeftHip = Leg(rig.Figure, "Hip_L", -Hip.x, basics);
+            rig.RightHip = Leg(rig.Figure, "Hip_R", Hip.x, basics);
+            rig.Tinted.Add(Part(lower, "CharApron", Color.white, "ChefAccent"));
+
+            rig.Waist = Frame(rig.Figure, "Waist", new Vector3(0f, WaistHeight, 0f), Vector3.one);
+            var body = Frame(rig.Waist, "Body", Vector3.zero, Vector3.one);
+            rig.Tinted.Add(Part(rig.Waist, "CharScarf", Color.white, "ChefAccent"));
+            rig.LeftShoulder = Frame(rig.Waist, "Shoulder_L", new Vector3(-Shoulder.x, Shoulder.y, 0f), Vector3.one);
+            rig.RightShoulder = Frame(rig.Waist, "Shoulder_R", new Vector3(Shoulder.x, Shoulder.y, 0f), Vector3.one);
+
+            // Outfits: hips, torso, what the garment adds, and both sleeves, together.
+            var outfits = new List<ChefWardrobe.Entry>();
+            foreach (var item in Wardrobe.Options(WardrobeModule.Outfit))
+            {
+                var def = Outfits[item.Id];
+                var look = basics.Clone();
+                look.Top = def.Top;
+                look.Under = def.Under;
+                var parts = new List<Renderer> { Part(lower, "CharHips", def.Top), Part(body, "CharTorso", def.Top) };
+                parts.AddRange(GarmentParts(body, look, def.Garment).Select(p => p.GetComponent<Renderer>()));
+                if (def.Buttons)
+                    parts.Add(Part(body, "CharButtons", Ink));
+                if (def.Tie)
+                    parts.Add(Part(body, "CharTie", new Color(0.8f, 0.2f, 0.18f)));
+                if (def.Camera)
+                    parts.Add(Part(body, "CharCamera", Ink));
+                foreach (var shoulder in new[] { rig.LeftShoulder, rig.RightShoulder })
+                    parts.Add(def.Garment == Garment.TankTop
+                        ? Part(shoulder, "CharArmBare", basics.Skin)
+                        : Part(shoulder, "CharArm", def.Top));
+                if (def.Pattern > 0)
+                {
+                    var printed = Patterned(def.Top, def.Pattern, def.PatternColour, 10f);
+                    foreach (var part in parts.Where(p => p != null && (p.name == "CharTorso" || p.name == "CharHips" || p.name == "CharArm")))
+                        part.sharedMaterial = printed;
+                }
+                outfits.Add(new ChefWardrobe.Entry { Id = item.Id, Parts = Objects(parts) });
+            }
+            foreach (var shoulder in new[] { rig.LeftShoulder, rig.RightShoulder })
+                Part(shoulder, "CharHand", basics.Skin);
+
+            // The face's common features, then each face: nose, brows, facial hair and the hair at
+            // the back always; the top of the hair only under no covering hat.
+            Part(rig.Waist, "CharHead", basics.Skin);
+            Part(rig.Waist, "CharEyes", Ink);
+            Part(rig.Waist, "CharEyeShine", Shine);
+            Part(rig.Waist, "CharSmile", Ink);
+            var faces = new List<ChefWardrobe.Entry>();
+            foreach (var item in Wardrobe.Options(WardrobeModule.Face))
+            {
+                var (hair, colour, nose, moustache) = Faces[item.Id];
+                var always = Frame(rig.Waist, "Face_" + item.Id, Vector3.zero, Vector3.one);
+                var bare = Frame(rig.Waist, "FaceTop_" + item.Id, Vector3.zero, Vector3.one);
+                Part(always, nose == NoseKind.Big ? "CharNoseBig" : "CharNoseButton", basics.Skin);
+                Part(always, "CharBrows", colour);
+                if (moustache)
+                    Part(always, "CharMoustache", colour);
+                switch (hair)
+                {
+                    case HairKind.Fringe:
+                        Part(always, "HairFringe", colour);
+                        break;
+                    case HairKind.Bald:
+                        break;
+                    default:
+                        Part(always, "HairBack", colour);
+                        Part(bare, hair == HairKind.Afro ? "HairAfro" : "HairCrop", colour);
+                        if (hair == HairKind.Bun)
+                            Part(bare, "HairBun", colour);
+                        break;
+                }
+                faces.Add(new ChefWardrobe.Entry { Id = item.Id, Parts = new[] { always.gameObject }, Bare = new[] { bare.gameObject } });
+            }
+
+            // Hats, each with its part in the player's colour.
+            var hats = new List<ChefWardrobe.Entry>();
+            foreach (var item in Wardrobe.Options(WardrobeModule.Hat))
+            {
+                var group = Frame(rig.Waist, "Hat_" + item.Id, Vector3.zero, Vector3.one);
+                var covers = true;
+                switch (item.Id)
+                {
+                    case "toque":
+                        Part(group, "HatToque", basics.HatColor);
+                        rig.Tinted.Add(Part(group, "HatToqueBand", Color.white, "ChefAccent"));
+                        break;
+                    case "cap":
+                        Part(group, "HatCap", basics.HatColor);
+                        rig.Tinted.Add(Part(group, "HatCapPeak", Color.white, "ChefAccent"));
+                        break;
+                    case "bandana":
+                        rig.Tinted.Add(Part(group, "HatBandana", Color.white, "ChefAccent"));
+                        break;
+                    case "headband":
+                        rig.Tinted.Add(Part(group, "HatHeadband", Color.white, "ChefAccent"));
+                        covers = false;
+                        break;
+                    case "horns":
+                        Part(group, "HatHorns", new Color(0.72f, 0.14f, 0.12f));
+                        rig.Tinted.Add(Part(group, "HatHeadband", Color.white, "ChefAccent"));
+                        covers = false;
+                        break;
+                    case "crown":
+                        Part(group, "HatCrown", Gold);
+                        rig.Tinted.Add(Part(group, "HatCrownGems", Color.white, "ChefAccent"));
+                        break;
+                    case "partyhat":
+                        rig.Tinted.Add(Part(group, "HatPartyCone", Color.white, "ChefAccent"));
+                        Part(group, "HatPartyPompom", Shine);
+                        break;
+                }
+                hats.Add(new ChefWardrobe.Entry { Id = item.Id, Parts = new[] { group.gameObject }, Covers = covers });
+            }
+
+            // Accessories.
+            var accessories = new List<ChefWardrobe.Entry>();
+            foreach (var item in Wardrobe.Options(WardrobeModule.Accessory))
+            {
+                var group = Frame(rig.Waist, "Accessory_" + item.Id, Vector3.zero, Vector3.one);
+                switch (item.Id)
+                {
+                    case "glasses": Part(group, "CharGlasses", Ink); break;
+                    case "sunglasses": Part(group, "CharSunglasses", Ink); break;
+                    case "aviators":
+                        Part(group, "CharAviators", Ink);
+                        Part(group, "CharAviatorFrames", Gold);
+                        break;
+                }
+                accessories.Add(new ChefWardrobe.Entry { Id = item.Id, Parts = new[] { group.gameObject } });
+            }
+
+            var skins = Wardrobe.Options(WardrobeModule.Skin)
+                .Select(item => new ChefWardrobe.Entry { Id = item.Id, Colour = SkinFor(item.Id) }).ToList();
+            var skinNames = new[] { "CharHead", "CharNoseButton", "CharNoseBig", "CharHand", "CharArmBare", "CharTankShoulders" };
+            var skinParts = rig.Figure.GetComponentsInChildren<Renderer>(includeInactive: true)
+                .Where(r => skinNames.Contains(r.gameObject.name)).ToArray();
+            rig.Tinted.RemoveAll(r => r == null);
+
+            var wardrobe = new SerializedObject(rig.Figure.gameObject.AddComponent<ChefWardrobe>());
+            WriteEntries(wardrobe.FindProperty("_hats"), hats);
+            WriteEntries(wardrobe.FindProperty("_faces"), faces);
+            WriteEntries(wardrobe.FindProperty("_skins"), skins);
+            WriteEntries(wardrobe.FindProperty("_accessories"), accessories);
+            WriteEntries(wardrobe.FindProperty("_outfits"), outfits);
+            var skin = wardrobe.FindProperty("_skin");
+            skin.arraySize = skinParts.Length;
+            for (var i = 0; i < skinParts.Length; i++)
+                skin.GetArrayElementAtIndex(i).objectReferenceValue = skinParts[i];
+            wardrobe.ApplyModifiedPropertiesWithoutUndo();
+
+            // The default chef shows in the prefab: everything else starts hidden.
+            rig.Figure.GetComponent<ChefWardrobe>().Show(new ChefLook());
+
+            AddGait(rig, basics, swingArms);
+            return rig;
+        }
+
+        private static GameObject[] Objects(IEnumerable<Renderer> parts) =>
+            parts.Where(p => p != null).Select(p => p.gameObject).ToArray();
+
+        private static void WriteEntries(SerializedProperty list, List<ChefWardrobe.Entry> entries)
+        {
+            list.arraySize = entries.Count;
+            for (var i = 0; i < entries.Count; i++)
+            {
+                var element = list.GetArrayElementAtIndex(i);
+                element.FindPropertyRelative("Id").stringValue = entries[i].Id;
+                element.FindPropertyRelative("Covers").boolValue = entries[i].Covers;
+                element.FindPropertyRelative("Colour").colorValue = entries[i].Colour;
+                WriteObjects(element.FindPropertyRelative("Parts"), entries[i].Parts);
+                WriteObjects(element.FindPropertyRelative("Bare"), entries[i].Bare);
+            }
+        }
+
+        private static void WriteObjects(SerializedProperty list, GameObject[] objects)
+        {
+            objects ??= System.Array.Empty<GameObject>();
+            list.arraySize = objects.Length;
+            for (var i = 0; i < objects.Length; i++)
+                list.GetArrayElementAtIndex(i).objectReferenceValue = objects[i];
+        }
+
+        /// <summary>The house toon material printed with a cloth pattern (Game/Toon's _Pattern).</summary>
+        public static Material Patterned(Color colour, int pattern, Color patternColour, float scale)
+        {
+            var material = StyleTest.EnsureToonMaterial(
+                $"Char_{ColorUtility.ToHtmlStringRGB(colour)}_P{pattern}{ColorUtility.ToHtmlStringRGB(patternColour)}", colour);
+            material.SetFloat("_Pattern", pattern);
+            material.SetColor("_PatternColor", patternColour);
+            material.SetFloat("_PatternScale", scale);
+            EditorUtility.SetDirty(material);
+            return material;
+        }
+    }
+}

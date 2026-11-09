@@ -730,6 +730,29 @@ def build_characters():
     for side in (-1.0, 1.0):
         add_cone(bm, (side * 0.16, -0.08, c + 0.23), (side * 0.27, -0.12, c + 0.45), 0.065)
     part("HatHorns", bm, "waist", head=True)
+    # Crazy hats for the tailor (decision 2026-11-09), earned before they're worn.
+    bm = bmesh.new()  # a gold crown: a band round the head with five points
+    add_lathe(bm, [(0.0, c + 0.2), (0.3, c + 0.2), (0.31, c + 0.22), (0.31, c + 0.31), (0.29, c + 0.32), (0.0, c + 0.32)],
+                   segments=32)
+    for k in range(5):
+        a = 2 * math.pi * k / 5 + math.pi / 2
+        add_cone(bm, (0.27 * math.cos(a), 0.27 * math.sin(a), c + 0.3), (0.29 * math.cos(a), 0.29 * math.sin(a), c + 0.46), 0.06)
+    part("HatCrown", bm, "waist", head=True)
+    bm = bmesh.new()  # its gems, one at the foot of each point (the player's colour)
+    for k in range(5):
+        a = 2 * math.pi * k / 5 + math.pi / 2
+        add_ball(bm, (0.315 * math.cos(a), 0.315 * math.sin(a), c + 0.26), 0.035, segments=10)
+    part("HatCrownGems", bm, "waist", head=True)
+    bm = bmesh.new()  # a party hat: a cone tipped forward a little (the player's colour)
+    add_lathe(bm, [(0.0, 0.0), (0.16, 0.0), (0.0, 0.36)], segments=24, centre=(0.0, 0.02, c + 0.27),
+              axis_matrix=Matrix.Rotation(math.radians(8.0), 4, 'X'))  # tip forward, under the pompom
+    part("HatPartyCone", bm, "waist", head=True)
+    bm = bmesh.new()  # its pompom and an elastic under the chin
+    add_ball(bm, (0.0, -0.03, c + 0.64), 0.06, segments=12)
+    add_pipe(bm, [(0.15, 0.0, c + 0.28), (0.2, -0.12, c - 0.1), (0.0, -0.22, c - 0.27), (-0.2, -0.12, c - 0.1), (-0.15, 0.0, c + 0.28)],
+             radius=0.008, segments=6)
+    part("HatPartyPompom", bm, "waist", head=True)
+
     brim = CHAR_REACH / CHAR_HEAD_SCALE  # the tourist's trademark keeps the full reach
     bm = bmesh.new()  # a sun hat's brim and its crown
     add_lathe(bm, [(0.0, c + 0.17), (brim - 0.005, c + 0.17), (brim, c + 0.19), (0.0, c + 0.2)], segments=40)

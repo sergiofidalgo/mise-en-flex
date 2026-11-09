@@ -153,6 +153,31 @@ namespace Game.Editor
                 Person(guard, Color.white, guards + new Vector3(x, 0f, 0f), 180f + (left ? 20f : -20f), carry: false);
             }
 
+            // The tailor's rail on the real player prefab, as ChefWardrobe shows it.
+            var rail = new Vector3(100f, 0f, 40f);
+            var outfits = new[]
+            {
+                new Game.Simulation.Characters.ChefLook(),
+                new Game.Simulation.Characters.ChefLook { Hat = "cap", Face = "afro", Skin = "skin6", Outfit = "linecook", Accessory = "glasses" },
+                new Game.Simulation.Characters.ChefLook { Hat = "bandana", Face = "ginger", Skin = "skin0", Outfit = "wok" },
+                new Game.Simulation.Characters.ChefLook { Hat = "headband", Face = "darkbun", Skin = "skin4", Outfit = "pastry", Accessory = "sunglasses" },
+                new Game.Simulation.Characters.ChefLook { Hat = "horns", Face = "moustache", Skin = "skin3", Outfit = "suit", Accessory = "aviators" },
+                new Game.Simulation.Characters.ChefLook { Hat = "crown", Face = "fringe", Skin = "skin2", Outfit = "whites" },
+                new Game.Simulation.Characters.ChefLook { Hat = "partyhat", Face = "bald", Skin = "skin7", Outfit = "tourist" },
+            };
+            for (var i = 0; i < outfits.Length; i++)
+            {
+                var chef = (GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>(PlayerPrefabPath));
+                chef.transform.SetPositionAndRotation(rail + Vector3.right * (i * 0.95f), Quaternion.Euler(0f, 180f, 0f));
+                chef.GetComponentInChildren<Game.Presentation.ChefWardrobe>(true).Show(outfits[i]);
+                var tint = new MaterialPropertyBlock();
+                tint.SetColor("_BaseColor", coop.GetPlayerColor(i % 4));
+                var visual = chef.GetComponent<Game.Presentation.PlayerVisual>();
+                var tinted = new SerializedObject(visual).FindProperty("_tintedRenderers");
+                for (var t = 0; t < tinted.arraySize; t++)
+                    ((Renderer)tinted.GetArrayElementAtIndex(t).objectReferenceValue)?.SetPropertyBlock(tint);
+            }
+
             var faces = new Vector3(100f, 0f, 20f);
             for (var i = 0; i < looks.Count * 2; i++)
                 Person(looks[i / 2], Color.white, faces + Vector3.right * (i * 0.8f), 180f, carry: false);
@@ -192,6 +217,9 @@ namespace Game.Editor
             Render(camera, target, crowd + new Vector3(2.1f, 0.9f, -2.5f), PlayHeight, Path.Combine(folder, "variety_play.png"));
             camera.transform.SetPositionAndRotation(faces + new Vector3(4.4f, 1.0f, -7.5f), Quaternion.Euler(4f, 0f, 0f));
             Draw(camera, target, Path.Combine(folder, "variety_front.png"));
+            camera.transform.SetPositionAndRotation(rail + new Vector3(2.85f, 1.1f, -7.2f), Quaternion.Euler(4f, 0f, 0f));
+            Draw(camera, target, Path.Combine(folder, "tailor_rail_front.png"));
+            Render(camera, target, rail + new Vector3(2.85f, 0.9f, 0f), CloseHeight + 1f, Path.Combine(folder, "tailor_rail_play.png"));
             camera.transform.SetPositionAndRotation(guards + new Vector3(0f, 1.3f, -3.2f), Quaternion.Euler(6f, 0f, 0f));
             Draw(camera, target, Path.Combine(folder, "bodyguards_front.png"));
             Render(camera, target, guards + new Vector3(0f, 0.9f, 0f), CloseHeight, Path.Combine(folder, "bodyguards_play.png"));

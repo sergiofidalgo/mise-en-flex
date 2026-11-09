@@ -34,6 +34,15 @@ namespace Game.Gameplay
         public PlanarMover Mover => _mover;
 
         /// <summary>
+        /// A way to face regardless of the stick (degrees), turned to smoothly: the tailor turns a
+        /// dressing chef to the camera. Null: face where they walk.
+        /// </summary>
+        public float? FacingOverride { get; set; }
+
+        // How fast a chef turns to an override (degrees a second).
+        private const float OverrideTurnSpeed = 540f;
+
+        /// <summary>
         /// Set by the composition root: the free spot on the floor nearest a point, given the
         /// furniture as it stands now, or null if there's none.
         /// </summary>
@@ -126,7 +135,9 @@ namespace Game.Gameplay
             var velocity = _mover.Velocity;
             Intent = new System.Numerics.Vector2(velocity.X, velocity.Y) * deltaTime;
             _controller.Move(new Vector3(velocity.X, _verticalSpeed, velocity.Y) * deltaTime);
-            transform.rotation = Quaternion.Euler(0f, _mover.FacingDegrees, 0f);
+            transform.rotation = FacingOverride.HasValue
+                ? Quaternion.RotateTowards(transform.rotation, Quaternion.Euler(0f, FacingOverride.Value, 0f), OverrideTurnSpeed * deltaTime)
+                : Quaternion.Euler(0f, _mover.FacingDegrees, 0f);
         }
 
         // Back to the nearest free floor above where they fell, or to where they joined.

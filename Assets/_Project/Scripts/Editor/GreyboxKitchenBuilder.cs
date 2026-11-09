@@ -855,7 +855,8 @@ namespace Game.Editor
         private static Transform BuildCharacterChef(GameObject root, Transform visuals, PlayerInteractor interactor,
             Transform carryAnchor, Transform toolAnchor, out System.Collections.Generic.List<Renderer> tinted)
         {
-            var rig = CharacterArt.Build(visuals, CharacterArt.PlayerChef(), swingArms: false);
+            // The whole tailor's rail on the chef; ChefWardrobe wears the slot's look (decision 2026-11-09).
+            var rig = CharacterArt.BuildChef(visuals, swingArms: false);
             tinted = rig.Tinted;
             // The knife rides in the sheath on the figure, so it sways with the walk and stays in it
             // (the user's playtest: it showed while walking).

@@ -85,6 +85,52 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-09 — The tailor: dress your chef on your plinth, saved per player slot
+
+**The user's calls:**
+- Looks are kept per player slot, not in named profiles.
+- Crazy items are visible but locked until there's a way to earn them.
+- Dressing happens in the room, with a card above the chef, so both players can dress at once.
+
+The plan is in `plans/tailor.md`.
+
+**Done:**
+- **The look (Simulation, `Game.Simulation.Characters`):**
+  - A `ChefLook` is an item id per module: hat, face (with its hair), skin, accessory and outfit.
+  - `Wardrobe` is the rail, in browsing order. The first item of each module is the default chef. Ids are what saves and never change.
+  - `TailorSession` is the dressing: up/down picks the module and left/right the item, wrapping round. The chef shows whatever is picked, locked or not. Only open items are worn and saved. Stepping off drops a locked preview.
+- **The profile:** `ChefProfile` has a look per slot (four) and the crazy items earned (none yet), with a version number and an upgrade step.
+  - Anything unknown or locked in a saved look goes back to the default chef. A file from a newer game is refused and never overwritten.
+  - `ChefProfileFile` keeps it in `profile.json` beside the settings, outside any campaign slot, and saves at once on every change, as anything done in the office does.
+- **On the chef:** the player prefab carries the whole rail (`CharacterArt.BuildChef`), and `ChefWardrobe` shows a look.
+  - Each joining player wears their slot's look in the kitchen and the office, and changes as soon as the tailor saves.
+  - A hat that covers the head (toque, cap, bandana, crown, party hat) hides the top of the face's hair; the headband and horns don't.
+  - The player colour stays on the neckerchief, the apron and each hat's band, peak, gems or cone.
+- **The rail:**
+
+  | Module | Items |
+  |---|---|
+  | Hats | toque, cap, bandana, headband; locked: devil horns, a crown and a party hat (both new models) |
+  | Faces | eight, each a hair style and colour, a nose and maybe a moustache |
+  | Skin | eight tones |
+  | Accessories | none, glasses, sunglasses, aviators |
+  | Outfits | chef whites, line cook, wok cook (tank top), pastry chef; locked: a suit and a tourist (stripes and a camera) |
+
+- **The plinths (`TailorPlinth`):**
+  - The colour plinths are now in the players' own colours, slot by slot.
+  - The slot's player steps on and presses A. The chef stops (`IsBusy`) and turns to face the camera (`PlayerMovement.FacingOverride`).
+  - The stick browses: one step per push, repeating when held. B steps off.
+- **The card (`TailorCardHud`):** in the house HUD style, with the player's colour on its edge.
+  - On the plinth it shows "A Dress up".
+  - While dressing it shows the module with a dot per module, the item between arrows and its place in the list, "Locked: earn it first" for a locked item, and LS Browse and B Done.
+  - It stays whole on screen and names only Xbox controls. Spanish translations are in `es.csv`.
+
+**Checked:** `WardrobeTests` covers the defaults, the round trip, repairs, refusing a newer file, browsing, locks and that the player carries every item. Captures show the rail on the real player prefab. The plinths and the card haven't been played.
+
+**Not yet:** how crazy items are earned (Phase 7), named profiles, and a mirror close-up.
+
+---
+
 ## 2026-11-09 — Garment styles, and bodyguards with their own shades and big earpieces
 
 **The user's notes:** customers should wear different styles (a jacket, a vest, a tank top). The bodyguards each wearing a different style of sunglasses (in concept v16) was a detail to keep, and their earpieces could be more exaggerated.
