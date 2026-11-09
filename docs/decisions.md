@@ -111,6 +111,38 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-09 — The tailor's room: ladders any player climbs, a tailor who measures, a busier room
+
+**The user's notes:**
+- Four small ladders to climb; any player can use any of them.
+- Once a player climbs, the tailor approaches and takes random measures of their body while they browse. If another player climbs up, the tailor moves to them; otherwise they stay idle or roam gently towards the middle of the room.
+- The room could be busier, with more of the trade's objects.
+
+**Done:**
+- **Four step-ladders** replace the colour plinths, along the back wall, each before a three-way mirror. Each is a walnut platform with two steps, a velvet top and a brass rail.
+  - Any player at a ladder's foot sees "A Climb up" and hops up onto the top step (an arc, about 0.3 s), then dresses as their own slot's chef. B hops them back down.
+  - The card now takes the colour of whoever is on the ladder. The look still saves per player slot.
+- **The tailor (`TailorAttendant`)** potters about the rug in the middle of the room, pausing now and then.
+  - When a chef climbs up, they walk over to the ladder's front corner on the room's side (clear of where chefs hop up and down) and face the chef.
+  - They take one measure after another, chest, waist, an arm, a leg (stooping) or the head, with a yellow tape stretched between their hands. The walk's arm swing hands over to them while they measure (`WalkCycleView.SwingArms`).
+  - If another chef climbs up, they go to the newest. The tailor has no collider, so nobody snags on them; dressing doesn't wait for them.
+  - They walk on their own frame, so the office's breathing idle still works.
+- **A busier room** (`OfficeBuilder.Tailor.cs`):
+  - jacket rails;
+  - a wall of fabric bolts in every colour and a rack of thread spools;
+  - a cutting table with pattern paper, a half-unrolled bolt, shears, a pin cushion, chalk and a tape;
+  - a sewing machine on its table with a stool;
+  - an ironing board and iron;
+  - two dress forms;
+  - a hat stand by the door wearing hats from the rail;
+  - a round rug in the middle.
+
+  The middle and the way from the door stay clear.
+
+**Not checked in play:** the hop, the tailor's walk and reach, and the tape; only the room itself has been rendered.
+
+---
+
 ## 2026-11-09 — Hats that read from above, and headphones that work
 
 **The user's notes:** the headphones felt broken, and some hats were very hard to tell apart.

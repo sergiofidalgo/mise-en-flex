@@ -595,49 +595,11 @@ namespace Game.Editor
 
         // The tailor, 8.5 × 10 m, through the boss's office: three colour plinths before mirrors,
         // rails of clothes, the tailor.
+        // The tailor's room: furnished in OfficeBuilder.Tailor.cs, its ladders and tailor added by AddTailor.
         private static void BuildTailor(Transform rooms)
         {
             var room = Room(rooms, "Tailor");
-            var colours = PlinthColours(); // the players' own, slot by slot
-            var plinths = TailorPlinths;
-            for (var i = 0; i < plinths.Length; i++)
-            {
-                Model(room, "PlinthRim", OfficeModel, "OfficePlinthRim", Toon("OfficeBrass", Brass), plinths[i], 0f);
-                Model(room, "Plinth", OfficeModel, "OfficePlinthTop", Toon($"OfficePlinth{i}", colours[i]), plinths[i], 0f);
-                Mirror(room, plinths[i] + new Vector3(0f, 0f, 1.6f), 180f);
-            }
-            for (var r = 0; r < 2; r++)
-            {
-                var rail = new Vector3(-16.9f, 0f, 4.8f + r * 2.2f);
-                Model(room, "Rail", OfficeModel, "OfficeRail", Toon("OfficeBrass", Brass), rail, 90f, collider: new Vector3(1.7f, 1.6f, 0.5f));
-                var jackets = new[] { Cream, Suit, new Color(0.55f, 0.36f, 0.22f), new Color(0.32f, 0.42f, 0.55f), Burgundy, Leather };
-                for (var j = 0; j < 5; j++)
-                {
-                    var c = (j + r * 2) % jackets.Length;
-                    Model(room, "Jacket", OfficeModel, "OfficeJacket", Toon($"OfficeJacket{c}", jackets[c]), rail + new Vector3(0f, 1.6f, -0.6f + j * 0.3f), 0f); // hung across the rail
-                }
-            }
-            // The tailor's mannequin, wearing a chef's jacket a size too big (spec §5).
-            Mannequin(room, new Vector3(-9.8f, 0f, 12.6f));
-            Person(room, "Tailor", new Vector3(-13.25f, 0f, 7.6f), 0f, new Color(0.35f, 0.30f, 0.45f), new Color(0.22f, 0.2f, 0.26f), dress: look =>
-            {
-                look.Skin = CharacterArt.SkinTones[1];
-                look.HairStyle = CharacterArt.HairKind.Fringe;
-                look.Hair = CharacterArt.GreyHair[1];
-                look.Moustache = true;
-                look.Glasses = true;
-                look.Tie = true;
-                look.TieColor = new Color(0.75f, 0.6f, 0.3f);
-                look.Garment = CharacterArt.Garment.Vest;
-                look.Under = CharacterArt.ShirtColours[3];
-            });
-            var table = Prop(room, "PF_Table", new Vector3(-12.4f, 0f, 4.4f), 0f, keep: "Body");
-            if (table != null)
-                table.transform.localScale = new Vector3(1.6f, 1f, 1f);
-            foreach (var (x, c) in new[] { (-12.8f, 1), (-12.4f, 2), (-12.0f, 0) })
-                Shape(room, PrimitiveType.Cylinder, "FabricBolt", Toon($"OfficePlinth{c}", colours[c]), new Vector3(x, 0.84f, 4.4f), new Vector3(0.14f, 0.35f, 0.14f), Quaternion.Euler(90f, 0f, 0f));
-            foreach (var at in new[] { new Vector3(-16.8f, 0f, 12.9f), new Vector3(-9.6f, 0f, 4.2f) })
-                PottedPlant(room, at, 1f);
+            FurnishTailor(room);
         }
 
         // The test kitchen, 8.5 × 8 m: bare minimum (decision 2026-11-09), from the kitchen's own

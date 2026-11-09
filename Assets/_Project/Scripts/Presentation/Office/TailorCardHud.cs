@@ -44,6 +44,9 @@ namespace Game.Presentation.Office
             public TextMeshProUGUI Count;
             public TextMeshProUGUI Locked;
             public ChefWardrobe Wardrobe;
+            public int Slot = -1;
+            public Image PromptEdge;
+            public Image DressingEdge;
             public ChefLook Shown;
             public string Text;
         }
@@ -68,16 +71,18 @@ namespace Game.Presentation.Office
 
         private Card Build(TailorPlinth plinth)
         {
-            var colour = _coop != null ? _coop.GetPlayerColor(plinth.Slot) : Color.white;
+            var colour = Color.white; // set to the player's colour as they stand or dress (any player, any ladder)
             var card = new Card();
 
             card.Prompt = UiKit.Rect(_canvas.transform, "Prompt", 0f, 0f, PromptWidth, PromptHeight);
             UiKit.StrokedBox(card.Prompt, "Back", _style.CardBackground, colour, 4f, 0f, 0f, PromptWidth, PromptHeight, 18f);
+            card.PromptEdge = card.Prompt.Find("BackEdge").GetComponent<Image>();
             Badge(card.Prompt, PromptControl.South, 16f, 14f);
-            UiKit.TextAt(_style.Bold, card.Prompt, "Label", Tr.Get("Dress up"), 28f, _style.TextColor, 70f, 43f, PromptWidth - 84f);
+            UiKit.TextAt(_style.Bold, card.Prompt, "Label", Tr.Get("Climb up"), 28f, _style.TextColor, 70f, 43f, PromptWidth - 84f);
 
             card.Dressing = UiKit.Rect(_canvas.transform, "Dressing", 0f, 0f, Width, DressingHeight);
             UiKit.StrokedBox(card.Dressing, "Back", _style.CardBackground, colour, 4f, 0f, 0f, Width, DressingHeight, 22f);
+            card.DressingEdge = card.Dressing.Find("BackEdge").GetComponent<Image>();
             card.Module = UiKit.TextAt(_style.Bold, card.Dressing, "Module", "", 28f, _style.TextColor, 22f, 40f, 200f);
             card.Dots = new Image[ModuleNames.Length];
             for (var i = 0; i < card.Dots.Length; i++)
@@ -118,6 +123,8 @@ namespace Game.Presentation.Office
 
                 if (session != null && dresser != null)
                 {
+                    card.Slot = plinth.DresserSlot;
+                    card.DressingEdge.color = PlayerColour(card.Slot);
                     card.Wardrobe ??= dresser.GetComponentInChildren<ChefWardrobe>();
                     if (card.Wardrobe != null && (card.Shown == null || !card.Shown.SameAs(session.Preview)))
                     {
@@ -132,17 +139,22 @@ namespace Game.Presentation.Office
                 }
 
                 // Stepped off: back in what's worn, which drops a locked item still being looked at.
-                if (card.Shown != null && card.Wardrobe != null)
-                    card.Wardrobe.Show(ChefProfileFile.Current.Look(plinth.Slot));
+                if (card.Shown != null && card.Wardrobe != null && card.Slot >= 0)
+                    card.Wardrobe.Show(ChefProfileFile.Current.Look(card.Slot));
                 card.Shown = null;
                 card.Wardrobe = null;
                 card.Dressing.gameObject.SetActive(false);
                 var standing = plinth.Standing;
                 card.Prompt.gameObject.SetActive(standing != null);
                 if (standing != null)
+                {
+                    card.PromptEdge.color = PlayerColour(standing.playerIndex);
                     Place(card.Prompt, camera, standing.transform.position, PromptWidth, PromptHeight);
+                }
             }
         }
+
+        private Color PlayerColour(int slot) => _coop != null && slot >= 0 ? _coop.GetPlayerColor(slot) : Color.white;
 
         private void Fill(Card card, TailorSession session)
         {

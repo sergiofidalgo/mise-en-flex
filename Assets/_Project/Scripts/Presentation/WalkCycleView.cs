@@ -46,6 +46,13 @@ namespace Game.Presentation
         /// <summary>0 standing to 1 walking at full speed.</summary>
         public float Walking { get; private set; }
 
+        /// <summary>Whether the walk swings the arms; off while something else poses them (the tailor measuring).</summary>
+        public bool SwingArms
+        {
+            get => _swingArms;
+            set => _swingArms = value;
+        }
+
         private void OnEnable()
         {
             _lastPosition = transform.position;
