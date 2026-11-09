@@ -1263,6 +1263,213 @@ def build_city():
     return objects
 
 
+def build_office():
+    """The boss's floor's furniture (docs/office-scene.md), in the kitchen's chunky, bevelled style.
+    Everything that the kitchen already has (counters, hob, fridge, shelf, tables, chairs, stools,
+    pictures) and the city has (trees, lamps, towers) is reused from those models instead. Fronts
+    face -Y here, the game's forward, like the chef: the builder turns each piece to face the room."""
+    objects = []
+
+    # A bevelled 1 m block, centred on its base: the builder scales it for plinths, lecterns, desks
+    # and frames, so even simple shapes catch the light on their edges like the modelled props.
+    bm = bmesh.new()
+    add_box(bm, (1.0, 1.0, 1.0), (0.0, 0.0, 0.5), bevel=0.04)
+    objects.append(finish("OfficeBlock", bm))
+
+    # Sofa: 2.1 m, low and deep, with rolled arms; frame and cushions apart for two colours.
+    bm = bmesh.new()
+    add_box(bm, (2.1, 0.9, 0.3), (0.0, 0.0, 0.2), bevel=0.05)          # base
+    add_box(bm, (2.1, 0.24, 0.5), (0.0, 0.33, 0.55), bevel=0.08)       # back, behind (+Y)
+    for x in (-0.95, 0.95):
+        add_box(bm, (0.22, 0.9, 0.32), (x, 0.0, 0.5), bevel=0.09)      # arms
+    for x in (-0.9, 0.9):
+        for y in (-0.36, 0.36):
+            add_box(bm, (0.06, 0.06, 0.06), (x, y, 0.03), bevel=0.015)  # feet
+    objects.append(finish("OfficeSofaFrame", bm))
+    bm = bmesh.new()
+    for x in (-0.42, 0.42):
+        add_box(bm, (0.82, 0.62, 0.14), (x, -0.06, 0.42), bevel=0.05)   # seat cushions
+        add_box(bm, (0.8, 0.16, 0.42), (x, 0.17, 0.66), bevel=0.06)     # back cushions
+    objects.append(finish("OfficeSofaCushions", bm))
+
+    # Armchair: the sofa's single seat.
+    bm = bmesh.new()
+    add_box(bm, (0.95, 0.88, 0.3), (0.0, 0.0, 0.2), bevel=0.05)
+    add_box(bm, (0.95, 0.22, 0.52), (0.0, 0.33, 0.56), bevel=0.08)
+    for x in (-0.38, 0.38):
+        add_box(bm, (0.2, 0.88, 0.32), (x, 0.0, 0.5), bevel=0.08)
+    objects.append(finish("OfficeArmchairFrame", bm))
+    bm = bmesh.new()
+    add_box(bm, (0.56, 0.62, 0.14), (0.0, -0.06, 0.42), bevel=0.05)
+    objects.append(finish("OfficeArmchairCushion", bm))
+
+    # Executive desk: two drawer pedestals under a thick top with a leather writing inset.
+    bm = bmesh.new()
+    add_box(bm, (2.4, 1.05, 0.07), (0.0, 0.0, 0.725), bevel=0.025)     # top
+    for x in (-0.82, 0.82):
+        add_box(bm, (0.68, 0.95, 0.69), (x, 0.0, 0.345), bevel=0.02)  # pedestals
+        for z in (0.17, 0.4, 0.6):
+            add_box(bm, (0.58, 0.02, 0.17), (x, 0.48, z), bevel=0.008)  # drawer fronts, chair side (+Y)
+    add_box(bm, (0.98, 0.04, 0.5), (0.0, -0.44, 0.44), bevel=0.015)    # modesty panel at the front
+    objects.append(finish("OfficeDeskBody", bm))
+    bm = bmesh.new()
+    add_box(bm, (1.5, 0.66, 0.012), (0.0, 0.03, 0.765), bevel=0.004)
+    objects.append(finish("OfficeDeskLeather", bm))
+    bm = bmesh.new()
+    for x in (-0.82, 0.82):
+        for z in (0.17, 0.4, 0.6):
+            add_box(bm, (0.16, 0.03, 0.03), (x, 0.505, z), bevel=0.01)
+    objects.append(finish("OfficeDeskHandles", bm))
+
+    # Office chair: a high, buttoned leather back on a five-star base.
+    bm = bmesh.new()
+    add_box(bm, (0.62, 0.6, 0.12), (0.0, 0.0, 0.48), bevel=0.05)       # seat
+    add_box(bm, (0.64, 0.16, 0.9), (0.0, 0.3, 0.98), bevel=0.07)       # high back
+    for x in (-0.33, 0.33):
+        add_box(bm, (0.08, 0.46, 0.08), (x, 0.0, 0.66), bevel=0.03)    # arm pads
+    objects.append(finish("OfficeChairSeat", bm))
+    bm = bmesh.new()
+    add_pipe(bm, [(0.0, 0.0, 0.08), (0.0, 0.0, 0.43)], radius=0.035, segments=12)
+    for k in range(5):
+        a = math.pi / 2 + k * 2 * math.pi / 5
+        add_pipe(bm, [(0.0, 0.0, 0.08), (0.3 * math.cos(a), 0.3 * math.sin(a), 0.05)], radius=0.025, segments=8)
+        add_ball(bm, (0.3 * math.cos(a), 0.3 * math.sin(a), 0.03), 0.03, segments=8)
+    for x in (-0.33, 0.33):
+        add_pipe(bm, [(x, 0.0, 0.5), (x, 0.0, 0.62)], radius=0.02, segments=8)
+    objects.append(finish("OfficeChairBase", bm))
+
+    # Filing cabinet: four drawers with brass handles and label plates.
+    bm = bmesh.new()
+    add_box(bm, (0.55, 0.62, 1.32), (0.0, 0.0, 0.66), bevel=0.02)
+    for z in (0.18, 0.5, 0.82, 1.14):
+        add_box(bm, (0.49, 0.02, 0.28), (0.0, -0.31, z), bevel=0.008)
+    objects.append(finish("OfficeFilingBody", bm))
+    bm = bmesh.new()
+    for z in (0.18, 0.5, 0.82, 1.14):
+        add_box(bm, (0.18, 0.04, 0.035), (0.0, -0.33, z - 0.04), bevel=0.012)
+        add_box(bm, (0.12, 0.012, 0.05), (0.0, -0.322, z + 0.06), bevel=0.003)
+    objects.append(finish("OfficeFilingHandles", bm))
+
+    # Potted plant: a tapered pot and a bushy crown of round clumps.
+    bm = bmesh.new()
+    add_lathe(bm, [(0.0, 0.0), (0.17, 0.0), (0.24, 0.42), (0.27, 0.44), (0.27, 0.5), (0.22, 0.5), (0.22, 0.46), (0.0, 0.46)], segments=24)
+    objects.append(finish("OfficePlantPot", bm))
+    bm = bmesh.new()
+    rng = random.Random(9)
+    for k in range(7):
+        a = k * 2 * math.pi / 7 + rng.uniform(-0.2, 0.2)
+        r = 0.16 if k else 0.0
+        add_round_ball(bm, (r * math.cos(a), r * math.sin(a), 0.82 + rng.uniform(-0.08, 0.14)), rng.uniform(0.2, 0.26), rings=8, segments=14)
+    add_round_ball(bm, (0.0, 0.0, 1.05), 0.22, rings=8, segments=14)
+    objects.append(finish("OfficePlantLeaves", bm))
+
+    # Floor lamp: a brass stem with a drum shade.
+    bm = bmesh.new()
+    add_lathe(bm, [(0.0, 0.0), (0.18, 0.0), (0.18, 0.03), (0.04, 0.05), (0.0, 0.05)], segments=24)
+    add_pipe(bm, [(0.0, 0.0, 0.05), (0.0, 0.0, 1.45)], radius=0.018, segments=10)
+    objects.append(finish("OfficeLampStand", bm))
+    bm = bmesh.new()
+    add_lathe(bm, [(0.0, 1.32), (0.2, 1.32), (0.15, 1.62), (0.0, 1.62)], segments=24)
+    objects.append(finish("OfficeLampShade", bm))
+
+    # Trophy: a cup on a stepped base.
+    bm = bmesh.new()
+    add_lathe(bm, [(0.0, 0.0), (0.11, 0.0), (0.11, 0.05), (0.08, 0.05), (0.08, 0.09), (0.025, 0.11), (0.025, 0.2),
+                   (0.06, 0.22), (0.11, 0.3), (0.12, 0.4), (0.105, 0.4), (0.0, 0.33)], segments=24)
+    for side in (-1.0, 1.0):
+        add_pipe(bm, [(side * 0.11, 0.0, 0.37), (side * 0.17, 0.0, 0.34), (side * 0.15, 0.0, 0.26), (side * 0.09, 0.0, 0.25)], radius=0.012, segments=6)
+    objects.append(finish("OfficeTrophy", bm))
+
+    # The boss's cowboy hat, sized for the chef's head (its origin is the chef's waist, like the toque).
+    bm = bmesh.new()
+    add_lathe(bm, [(0.0, 0.8), (0.4, 0.8), (0.42, 0.83), (0.4, 0.84), (0.2, 0.83), (0.19, 0.83), (0.0, 0.83)], segments=32)
+    objects.append(finish("OfficeHatBrim", bm))
+    bm = bmesh.new()
+    add_lathe(bm, [(0.0, 0.82), (0.2, 0.82), (0.2, 0.9), (0.185, 1.0), (0.15, 1.04), (0.06, 1.0), (0.0, 1.01)], segments=32)
+    objects.append(finish("OfficeHatCrown", bm))
+    bm = bmesh.new()
+    add_lathe(bm, [(0.0, 0.84), (0.205, 0.84), (0.205, 0.88), (0.0, 0.88)], segments=32)
+    objects.append(finish("OfficeHatBand", bm))
+    for obj in objects[-3:]:
+        obj.location = (0.0, 0.0, CHEF_WAIST)
+
+    # Tailor's plinth: a low round platform with a brass rim, low enough to step onto.
+    bm = bmesh.new()
+    add_lathe(bm, [(0.0, 0.0), (0.62, 0.0), (0.62, 0.06), (0.58, 0.1), (0.0, 0.1)], segments=40)
+    objects.append(finish("OfficePlinthTop", bm))
+    bm = bmesh.new()
+    add_lathe(bm, [(0.0, 0.0), (0.66, 0.0), (0.66, 0.04), (0.0, 0.04)], segments=40)
+    objects.append(finish("OfficePlinthRim", bm))
+
+    # Clothes rail: two uprights on feet and a bar.
+    bm = bmesh.new()
+    for x in (-0.8, 0.8):
+        add_pipe(bm, [(x, 0.0, 0.0), (x, 0.0, 1.6)], radius=0.025, segments=10)
+        add_pipe(bm, [(x, -0.25, 0.02), (x, 0.25, 0.02)], radius=0.025, segments=10)
+    add_pipe(bm, [(-0.8, 0.0, 1.6), (0.8, 0.0, 1.6)], radius=0.022, segments=10)
+    objects.append(finish("OfficeRail", bm))
+    bm = bmesh.new()  # a jacket on a hanger, its origin at the rail
+    add_box(bm, (0.48, 0.14, 0.72), (0.0, 0.0, -0.5), bevel=0.05)
+    add_pipe(bm, [(-0.22, 0.0, -0.13), (0.0, 0.0, -0.05), (0.22, 0.0, -0.13)], radius=0.015, segments=6)
+    objects.append(finish("OfficeJacket", bm))
+
+    # Patio umbrella and a sun lounger for the terrace.
+    bm = bmesh.new()
+    add_pipe(bm, [(0.0, 0.0, 0.0), (0.0, 0.0, 2.3)], radius=0.03, segments=10)
+    add_lathe(bm, [(0.0, 0.0), (0.3, 0.0), (0.3, 0.06), (0.0, 0.06)], segments=20)
+    objects.append(finish("OfficeUmbrellaPole", bm))
+    bm = bmesh.new()
+    add_lathe(bm, [(0.0, 2.1), (1.35, 2.1), (1.4, 2.06), (1.3, 2.13), (0.06, 2.42), (0.0, 2.44)], segments=8)
+    objects.append(finish("OfficeUmbrellaCanopy", bm))
+    bm = bmesh.new()
+    add_box(bm, (0.72, 1.9, 0.08), (0.0, 0.0, 0.3), bevel=0.02)
+    for x in (-0.3, 0.3):
+        for y in (-0.8, 0.8):
+            add_box(bm, (0.05, 0.05, 0.28), (x, y, 0.14), bevel=0.01)
+    objects.append(finish("OfficeLoungerFrame", bm))
+    bm = bmesh.new()
+    add_box(bm, (0.66, 1.3, 0.1), (0.0, -0.25, 0.39), bevel=0.04)
+    back = bmesh.new()
+    add_box(back, (0.66, 0.1, 0.7), (0.0, 0.0, 0.35), bevel=0.04)
+    bmesh.ops.rotate(back, verts=back.verts, cent=(0.0, 0.0, 0.0), matrix=Matrix.Rotation(math.radians(-35.0), 3, 'X'))
+    bmesh.ops.translate(back, verts=back.verts, vec=(0.0, 0.48, 0.36))
+    tmp = bpy.data.meshes.new("tmp")
+    back.to_mesh(tmp)
+    back.free()
+    bm.from_mesh(tmp)
+    bpy.data.meshes.remove(tmp)
+    objects.append(finish("OfficeLoungerCushion", bm))
+
+    # The boss's helicopter: a rounded cabin, a tail boom with a fin, skids and a tied-down rotor.
+    # Its nose is -Y.
+    bm = bmesh.new()
+    cabin = [(0.0, -1.3), (0.45, -1.15), (0.75, -0.7), (0.82, 0.0), (0.7, 0.6), (0.4, 1.0), (0.0, 1.1)]
+    add_lathe(bm, cabin, segments=24, centre=(0.0, 0.0, 1.0), axis_matrix=Matrix.Rotation(math.radians(-90.0), 4, 'X'))
+    add_lathe(bm, [(0.16, 0.0), (0.1, 2.4), (0.0, 2.45)], segments=12, centre=(0.0, 0.9, 1.15),
+              axis_matrix=Matrix.Rotation(math.radians(-90.0), 4, 'X'))
+    add_box(bm, (0.06, 0.5, 0.7), (0.0, 3.25, 1.4), bevel=0.02)
+    add_lathe(bm, [(0.0, 0.0), (0.16, 0.0), (0.12, 0.22), (0.0, 0.24)], segments=16, centre=(0.0, 0.0, 1.78))
+    objects.append(finish("OfficeHeliBody", bm))
+    bm = bmesh.new()
+    glass = [(0.0, -1.32), (0.43, -1.16), (0.66, -0.75), (0.7, -0.35), (0.0, -0.3)]
+    add_lathe(bm, glass, segments=24, centre=(0.0, 0.0, 1.12), axis_matrix=Matrix.Rotation(math.radians(-90.0), 4, 'X'))
+    objects.append(finish("OfficeHeliGlass", bm))
+    bm = bmesh.new()
+    for x in (-0.6, 0.6):
+        add_pipe(bm, [(x, -1.1, 0.12), (x, -0.95, 0.04), (x, 1.0, 0.04), (x, 1.15, 0.1)], radius=0.035, segments=8)
+        for y in (-0.5, 0.5):
+            add_pipe(bm, [(x, y, 0.04), (x * 0.6, y, 0.4)], radius=0.03, segments=8)
+    objects.append(finish("OfficeHeliSkids", bm))
+    bm = bmesh.new()  # the rotor, two crossed blades; the builder turns it so it doesn't line up with the body
+    add_box(bm, (5.2, 0.2, 0.04), (0.0, 0.0, 2.02), bevel=0.015)
+    add_box(bm, (0.2, 5.2, 0.04), (0.0, 0.0, 2.06), bevel=0.015)
+    objects.append(finish("OfficeHeliRotor", bm))
+
+    for i, obj in enumerate(objects):
+        obj.location = (obj.location.x + 2.6 * i, obj.location.y, obj.location.z)  # apart, for previews only
+    return objects
+
+
 def build_board():
     """A big, thick cutting board using most of its counter (the user's notes, 2026-11-08): a plain
     slab with rounded edges and a low, narrow lip round its top, a finished edge without the deep
@@ -1362,12 +1569,19 @@ def main():
         "SM_Container.fbx": build_container(),
         "SM_TrayRack.fbx": build_tray_rack(),
         "SM_City.fbx": build_city(),
+        "SM_Office.fbx": build_office(),
     }
+    args = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
+    # `--only SM_Office.fbx` exports just that model, so the others' files aren't rewritten.
+    only = args[args.index("--only") + 1] if "--only" in args else None
     for filename, objects in models.items():
+        if only is not None and filename != only:
+            continue
         export_fbx(objects, filename)
         print(f"Exported {filename}")
+    if only is not None:
+        models = {only: models[only]}
 
-    args = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
     if "--preview" in args:
         render_previews(models, args[args.index("--preview") + 1])
 

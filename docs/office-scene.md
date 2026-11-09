@@ -34,14 +34,14 @@ A **3 × 3 grid of rooms** with a terrace along the back, matching the user's dr
 
 | Measure | Value | Why |
 | --- | --- | --- |
-| Room | 8 m × 6 m (W × D) | Same width as the kitchen (`FloorWidth` 8 m), so the camera's familiar framings fit a room |
-| Floor | 24 m × 18 m, plus a 4 m terrace | Fits within the 18 m player leash diagonally from room to room |
-| Doorways | 1.6 m gaps, centred on shared walls | Two chefs pass without snagging; forgiving to walk through |
+| Rooms | Columns 11, 13 and 11 m wide; rows 9, 8 and 10 m deep (front to back) | Big enough to feel like walking through an office (user's note, 2026-11-09: the first greybox's 8 × 6 m rooms felt too small). The middle column and back row are the grandest |
+| Floor | 35 m × 27 m, plus a 6 m terrace | Each room still fits the follow camera (up to 22 m high) |
+| Doorways | 2 m gaps (3 m from reception to the guarded doors) | Two chefs pass without snagging; forgiving to walk through |
 | Walls | Outer back wall: low 1.0 m sill + glass to 2.4 m. All other walls 1.0 m with a trim cap | The dollhouse cut (art bible) applied to a whole floor: a tall interior wall would hide the room behind it from the overhead camera |
 
 **Connections:** reception opens to all three front-row rooms and to the guarded doors. The guarded doors open to the boss's office, the test kitchen and the hall of fame. Each side column also runs front to back: lounge → test kitchen → tailor, and accountant → hall of fame → back room. The three back rooms open onto the terrace, which runs the full width. *(The side columns' front-to-back doors were added in the greybox, 2026-11-09, so no room is a dead end.)*
 
-**Walking distances:** most trips start at the elevator (front centre). The miniature, the tailor and the boss are each two rooms away, about 12–14 m. At the chef's walking pace that's a few seconds, which is acceptable on a between-days visit. If playtests show it drags, the first fix is wider doorways and diagonal shortcuts, not moving rooms.
+**Walking distances:** most trips start at the elevator (front centre). The miniature, the tailor and the boss are each two rooms away, about 18–22 m. At the chef's walking pace (4.2 m/s) that's about five seconds, which is acceptable on a between-days visit. If playtests show it drags, the first fix is wider doorways and diagonal shortcuts, not moving rooms.
 
 ### The camera
 
@@ -75,7 +75,7 @@ One big elevator, not four. It replaces the four coloured lifts in the draft.
 - **Leaving is not the elevator's job.** A day starts at the city miniature, once every joined player is at the table looking at it (user's call, 2026-11-09). A player who's elsewhere holds it, and the hint says who's missing. *(Open: what the transition to the restaurant looks like, e.g. the camera diving into the miniature.)*
 - **Coming back:** arriving from a restaurant is the same ring and doors, with every chef stepping out together.
 - **Feedback:** a floor-indicator dial above the doors sweeps up as a chef arrives; the bell is the loudest sound on the floor, so a join never goes unnoticed.
-- **Size:** 3.2 m wide inside, so four chefs fit (3–4 players is a stretch goal) and nobody blocks the doors.
+- **Size:** 3.8 m wide inside, so four chefs fit (3–4 players is a stretch goal) and nobody blocks the doors.
 - **Height:** the door wall is 2.5 m (doors 2.0 m) so the dial and lamp sit above the doors on the car's side, which is the side the camera sees. It hides about 1.75 m of reception just outside the doors, so a chef stepping out is briefly behind it. If that feels wrong in play, the fix is a lower wall with the dial on top.
 
 ### The test kitchen (user's call, 2026-11-09)
@@ -93,6 +93,17 @@ An office kitchen with **bare-minimum appliances** where players can try things 
 - **Not the free kitchen.** The free kitchen sandbox is a separate mode (`ideas.md`): a restaurant already bought, with real customers and phases and unlimited money.
 
 ## 4. Assets
+
+**Reuse first (user's note, 2026-11-09).** The office is built from the kitchen's own pieces wherever they exist, so the two read as one game:
+- **Floors and walls:** the kitchen's room shader (planks, tiles, panelled walls), in office colours.
+- **Furniture:** copies of the kitchen's counters, hob, fridge, cutting board, knife rack, shelf, tables and bar tables with stools (visual only, their station scripts removed), and the dining chair and pictures.
+- **People:** the chef's model, recoloured and without the toque.
+- **City:** the night city's blocks, cornices, window frames, trees, lamp posts and water towers.
+
+Only what neither has comes from the new `SM_Office` model, built by the same Blender script (`-- --only SM_Office.fbx`): a bevelled block for simple shapes, sofa, armchair, executive desk, office chair, filing cabinet, potted plant, floor lamp, trophy, cowboy hat, tailor's plinth, clothes rail and jacket, umbrella, lounger and helicopter.
+
+*The list below was the first plan, kept for the art phase.*
+
 
 All models come from `blender/build_pilot_models.py` (generated, reviewable as text), named per `CLAUDE.md`, chunky with bevelled edges (art bible "Modeling"), on the one palette texture.
 

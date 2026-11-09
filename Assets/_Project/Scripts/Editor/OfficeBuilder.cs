@@ -11,68 +11,87 @@ using UnityEngine.InputSystem;
 namespace Game.Editor
 {
     /// <summary>
-    /// Builds the greybox of the boss's floor (spec: docs/office-scene.md; decision 2026-11-09): a
-    /// 3 × 3 grid of 8 × 6 m rooms on the penthouse of his tower, a terrace with a helipad behind,
-    /// and the night city below. Players join through the one big elevator in reception. Only the
-    /// space and the elevator work; the rooms' jobs (miniature, loans, tailor, test kitchen) come in
-    /// Phase 6. Props are primitives in the toon materials until the art phase. Seeded, so every
-    /// rebuild is the same. Menu: Tools/Game/Build Office. Needs PF_Player (Build Greybox Kitchen).
+    /// Builds the boss's floor (spec: docs/office-scene.md; decisions 2026-11-09): nine rooms on the
+    /// penthouse of his tower, a terrace with a helipad behind, and the night city below. Players join
+    /// through the one big elevator in reception. Only the space and the elevator work; the rooms'
+    /// jobs (miniature, loans, tailor, test kitchen) come in Phase 6.
+    ///
+    /// It's built from the kitchen's own pieces wherever they exist, so the two read as one game: the
+    /// room shader's planks, tiles and panelled walls; copies of the kitchen's counters, hob, fridge,
+    /// shelf, tables and stools (visual only, without their station scripts); people made of the
+    /// chef's model; the night city's trees, lamps and towers. What the kitchen has no model for
+    /// (sofas, desks, office chairs, plants, the helicopter) comes from SM_Office, made by the same
+    /// Blender script. Seeded, so every rebuild is the same. Menu: Tools/Game/Build Office. Needs
+    /// PF_Player and the furniture prefabs (Build Greybox Kitchen).
     /// </summary>
     public static class OfficeBuilder
     {
         public const string ScenePath = "Assets/_Project/Scenes/Office_Greybox.unity";
         private const string SettingsFolder = "Assets/_Project/Data/Settings";
-        private const string PlayerPrefabPath = "Assets/_Project/Prefabs/PF_Player.prefab";
+        private const string PrefabsFolder = "Assets/_Project/Prefabs";
         private const string SfxFolder = "Assets/_Project/Audio/SFX";
+        private const string OfficeModel = "SM_Office";
+        private const string CityModel = "SM_City";
+        private const string ChefModel = "SM_Chef";
         private const int Seed = 2611_09;
 
-        // The floor: three columns of 8 m and three rows of 6 m, centred on X; the front row is
-        // nearest the camera (south, −Z). The terrace runs along the back.
-        private const float RoomWidth = 8f;
-        private const float RoomDepth = 6f;
-        private const float FloorWest = -12f;
-        private const float FloorSouth = -9f;
-        private const float FloorNorth = 9f;
-        private const float TerraceNorth = 14f;
+        // The floor (user's note, 2026-11-09: the draft's rooms felt too small for an office): three
+        // columns and three rows of different sizes, the middle column widest, the back row deepest.
+        // The camera looks north, so the front row (−Z) is nearest. The terrace runs along the back.
+        private static readonly float[] ColumnEdges = { -17.5f, -6.5f, 6.5f, 17.5f };
+        private static readonly float[] RowEdges = { -13.5f, -4.5f, 3.5f, 13.5f };
+        private const float TerraceNorth = 19.5f;
+        private static float West => ColumnEdges[0];
+        private static float East => ColumnEdges[3];
+        private static float South => RowEdges[0];
+        private static float North => RowEdges[3];
 
-        // Walls (art bible: the dollhouse cut, applied to a whole floor): 1.0 m everywhere, so the
-        // overhead camera sees into every room; the back wall is a low sill with glass above.
+        // Walls as in the kitchen: 1.0 m, the house's panelled wall, so the camera sees into every
+        // room. The back wall is a panelled sill with glass above it, onto the terrace.
         private const float WallHeight = 1f;
         private const float WallThickness = 0.2f;
-        private const float DoorWidth = 1.6f;
+        private const float DoorWidth = 2f;
         private const float SillHeight = 0.5f;
         private const float GlassTop = 2.4f;
+        private const float PictureHeight = 0.78f; // the kitchen's, over the panelling
 
         // The elevator car, against the front wall in reception, its doors facing north.
-        private const float CarHalfWidth = 1.6f;
-        private const float CarDoorZ = -6.8f;
+        private const float CarHalfWidth = 1.9f;
+        private const float CarDoorZ = -11f;
         private const float CarWallHeight = 2.2f;
         private const float DoorWallHeight = 2.5f;
-        private const float DoorPanelWidth = 1.4f;
+        private const float DoorPanelWidth = 1.5f;
         private const float DoorPanelHeight = 2.0f;
+
+        // The chef model's frame (GreyboxKitchenBuilder): people are made of it.
+        private const float ChefWaist = 0.85f;
+        private const float ChefShoulderHeight = 0.38f;
+        private const float ChefShoulderWidth = 0.27f;
 
         // Palette: the kitchen's warm woods and cream, dressed up; burgundy rather than the "Bad"
         // red for the carpet, and floors kept mid-dark so a white chef pops (spec §5).
         private static readonly Color Ink = new Color32(0x3A, 0x24, 0x14, 0xFF);
-        private static readonly Color WoodDark = new Color32(0x5C, 0x3A, 0x21, 0xFF);
+        private static readonly Color Walnut = new Color(0.30f, 0.19f, 0.12f);
         private static readonly Color WoodMid = new Color32(0x8B, 0x5A, 0x33, 0xFF);
         private static readonly Color Cream = new Color32(0xEA, 0xDF, 0xC6, 0xFF);
         private static readonly Color Brass = new Color(0.86f, 0.62f, 0.26f);
-        private static readonly Color Burgundy = new Color(0.43f, 0.11f, 0.14f);
-        private static readonly Color Leather = new Color(0.20f, 0.36f, 0.24f);
+        private static readonly Color Burgundy = new Color(0.45f, 0.12f, 0.15f);
+        private static readonly Color Leather = new Color(0.22f, 0.38f, 0.26f);
         private static readonly Color Suit = new Color(0.14f, 0.15f, 0.18f);
         private static readonly Color Skin = new Color(0.96f, 0.78f, 0.63f);
-        private static readonly Color Plant = new Color(0.24f, 0.44f, 0.26f);
-        private static readonly Color Pot = new Color(0.36f, 0.24f, 0.18f);
+        private static readonly Color Face = new Color(0.16f, 0.11f, 0.09f);
+        private static readonly Color Plant = new Color(0.26f, 0.48f, 0.28f);
+        private static readonly Color Terracotta = new Color(0.62f, 0.36f, 0.24f);
         private static readonly Color Facade = new Color(0.17f, 0.21f, 0.36f);
         private static readonly Color NightSky = new Color(0.07f, 0.08f, 0.16f);
         private static readonly Color WindowLit = new Color(1f, 0.80f, 0.45f);
         private static readonly Color WindowDark = new Color(0.12f, 0.13f, 0.22f);
-        private static readonly Color LampWarm = new Color(1f, 0.85f, 0.66f); // the art bible's #FFD9A8, a touch warmer
+        private static readonly Color LampWarm = new Color(1f, 0.85f, 0.66f);
+        private static readonly Color Velvet = new Color(0.55f, 0.18f, 0.16f);
 
         private static readonly Color[] TowerColors =
         {
-            new Color(0.17f, 0.20f, 0.34f), new Color(0.22f, 0.20f, 0.32f), new Color(0.14f, 0.17f, 0.27f), new Color(0.24f, 0.25f, 0.36f),
+            new Color(0.22f, 0.24f, 0.38f), new Color(0.30f, 0.25f, 0.36f), new Color(0.25f, 0.31f, 0.36f), new Color(0.20f, 0.21f, 0.32f),
         };
 
         private static System.Random _random;
@@ -84,15 +103,17 @@ namespace Game.Editor
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
             _random = new System.Random(Seed);
 
-            var playerPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(PlayerPrefabPath);
+            var playerPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(PrefabsFolder + "/PF_Player.prefab");
             if (playerPrefab == null)
-                throw new System.InvalidOperationException($"No {PlayerPrefabPath}: run Tools/Game/Build Greybox Kitchen first.");
+                throw new System.InvalidOperationException("No PF_Player: run Tools/Game/Build Greybox Kitchen first.");
+            if (PilotArt.FindMesh(OfficeModel, "OfficeBlock") == null)
+                throw new System.InvalidOperationException("No SM_Office: run blender/build_pilot_models.py -- --only SM_Office.fbx.");
             var coop = GreyboxAssets.EnsureAsset<CoopSettings>(SettingsFolder + "/CoopSettings.asset");
             var elevatorConfig = GreyboxAssets.EnsureAsset<ElevatorConfig>(SettingsFolder + "/ElevatorConfig.asset");
 
             var sun = new GameObject("Directional Light").AddComponent<Light>();
             sun.type = LightType.Directional;
-            HouseStyle.LightScene(sun); // the kitchen's warm key, so chefs look the same here
+            HouseStyle.LightScene(sun); // the kitchen's light, so everything looks as it does there
 
             var floor = new GameObject("Floor").transform;
             BuildShell(floor);
@@ -136,9 +157,12 @@ namespace Game.Editor
             HouseStyle.SmoothEdges(camera);
             camera.gameObject.AddComponent<AudioListener>();
             var follow = camera.gameObject.AddComponent<OfficeCamera>();
+            var framing = new SerializedObject(follow);
+            framing.FindProperty("_floorMin").vector2Value = new Vector2(West, South);
+            framing.FindProperty("_floorMax").vector2Value = new Vector2(East, TerraceNorth);
+            framing.ApplyModifiedPropertiesWithoutUndo();
             camera.transform.SetPositionAndRotation(follow.Wanted(), Quaternion.Euler(55f, 0f, 0f));
 
-            HouseStyle.ApplyToMaterials();
             GreyboxAssets.EnsureFolder(System.IO.Path.GetDirectoryName(ScenePath));
             EditorSceneManager.SaveScene(scene, ScenePath);
             AssetDatabase.SaveAssets();
@@ -147,82 +171,81 @@ namespace Game.Editor
 
         // ---- The floor, walls and tower ----------------------------------------------------------
 
-        private static float RoomX(int column) => FloorWest + RoomWidth * (column + 0.5f);
-        private static float RoomZ(int row) => FloorSouth + RoomDepth * (row + 0.5f);
+        private static Vector2 RoomCentre(int column, int row) =>
+            new Vector2((ColumnEdges[column] + ColumnEdges[column + 1]) / 2f, (RowEdges[row] + RowEdges[row + 1]) / 2f);
 
-        // The roof slab everyone walks on, each room's floor on it, and the terrace's decking.
+        private static Vector2 RoomSize(int column, int row) =>
+            new Vector2(ColumnEdges[column + 1] - ColumnEdges[column], RowEdges[row + 1] - RowEdges[row]);
+
+        // The roof slab everyone walks on, and each room's floor on it in the room shader.
         private static void BuildShell(Transform floor)
         {
-            var slab = Box(floor, "RoofSlab", Toon("OfficeSlab", WoodDark), new Vector3(0f, -0.4f, (FloorSouth + TerraceNorth) / 2f),
-                new Vector3(24.8f, 0.4f, TerraceNorth - FloorSouth + 0.8f), collider: true);
-            slab.isStatic = true;
+            Cube(floor, "RoofSlab", Toon("OfficeSlab", Walnut), new Vector3(0f, -0.4f, (South + TerraceNorth) / 2f),
+                new Vector3(East - West + 0.8f, 0.4f, TerraceNorth - South + 0.8f), collider: true);
 
-            // Room floors: a few millimetres up, without colliders.
-            RoomFloor(floor, "Floor_Tailor", 0, 2, Wood("OfficeParquet", new Color(0.48f, 0.30f, 0.18f)));
-            RoomFloor(floor, "Floor_BossOffice", 1, 2, Wood("OfficeBossWood", new Color(0.30f, 0.19f, 0.12f)));
-            RoomFloor(floor, "Floor_BackRoom", 2, 2, Wood("OfficeParquetLight", new Color(0.52f, 0.34f, 0.20f)));
+            RoomFloor(floor, "Floor_Tailor", 0, 2, Planks("OfficeHoneyPlanks", new Color(0.62f, 0.42f, 0.26f), new Color(0.34f, 0.21f, 0.13f), 0.16f, 1.2f));
+            RoomFloor(floor, "Floor_BossOffice", 1, 2, Planks("OfficeWalnutPlanks", new Color(0.36f, 0.23f, 0.15f), new Color(0.2f, 0.12f, 0.08f), 0.2f, 1.8f));
+            RoomFloor(floor, "Floor_BackRoom", 2, 2, Planks("OfficeOakPlanks", new Color(0.55f, 0.37f, 0.23f), new Color(0.3f, 0.19f, 0.12f), 0.18f, 1.4f));
             RoomFloor(floor, "Floor_TestKitchen", 0, 1, HouseStyle.KitchenFloor());
-            RoomFloor(floor, "Floor_GuardedDoors", 1, 1, Toon("OfficeAnteroom", new Color(0.24f, 0.19f, 0.16f)));
-            RoomFloor(floor, "Floor_HallOfFame", 2, 1, Wood("OfficeHallWood", new Color(0.40f, 0.27f, 0.18f)));
-            RoomFloor(floor, "Floor_Lounge", 0, 0, Toon("OfficeLoungeCarpet", new Color(0.18f, 0.26f, 0.27f)));
-            RoomFloor(floor, "Floor_Accountant", 2, 0, Toon("OfficeAccountCarpet", new Color(0.33f, 0.31f, 0.21f)));
+            RoomFloor(floor, "Floor_GuardedDoors", 1, 1, Tiles("OfficeAnteroomStone", new Color(0.36f, 0.30f, 0.26f), new Color(0.24f, 0.19f, 0.16f), 0.8f));
+            RoomFloor(floor, "Floor_HallOfFame", 2, 1, Planks("OfficeHallPlanks", new Color(0.47f, 0.31f, 0.2f), new Color(0.26f, 0.16f, 0.1f), 0.18f, 1.6f));
+            RoomFloor(floor, "Floor_Lounge", 0, 0, Tiles("OfficeLoungeCarpet", new Color(0.24f, 0.34f, 0.34f), new Color(0.2f, 0.29f, 0.29f), 1.5f, 0.004f));
+            RoomFloor(floor, "Floor_Reception", 1, 0, Tiles("OfficeLobbyStone", new Color(0.58f, 0.48f, 0.38f), new Color(0.40f, 0.32f, 0.25f), 1.0f));
+            RoomFloor(floor, "Floor_Accountant", 2, 0, Tiles("OfficeAccountCarpet", new Color(0.40f, 0.38f, 0.26f), new Color(0.35f, 0.33f, 0.22f), 1.5f, 0.004f));
 
-            // Reception: a checker in two close wood tones, not the draft's black and white, which
-            // would swallow a white chef from above (spec §5).
-            var tiles = new GameObject("Floor_Reception").transform;
-            tiles.SetParent(floor, false);
-            var light = Toon("OfficeCheckerLight", new Color(0.46f, 0.32f, 0.22f));
-            var dark = Toon("OfficeCheckerDark", new Color(0.38f, 0.26f, 0.18f));
-            for (var x = 0; x < 8; x++)
-            for (var z = 0; z < 6; z++)
-                Box(tiles, "Tile", (x + z) % 2 == 0 ? light : dark, new Vector3(-3.5f + x, 0f, FloorSouth + 0.5f + z), new Vector3(1f, 0.008f, 1f));
+            // The carpet: from the elevator's doors straight through the guarded doors to his rug.
+            var length = 8.6f - CarDoorZ;
+            var centre = (CarDoorZ + 8.6f) / 2f;
+            Cube(floor, "Carpet", Toon("OfficeCarpet", Burgundy), new Vector3(0f, 0f, centre), new Vector3(2.2f, 0.016f, length));
+            foreach (var x in new[] { -1.14f, 1.14f })
+                Cube(floor, "CarpetEdge", Toon("OfficeBrass", Brass), new Vector3(x, 0f, centre), new Vector3(0.08f, 0.018f, length));
 
-            // The carpet: from the elevator's doors straight through the guarded doors to his desk.
-            Box(floor, "Carpet", Toon("OfficeCarpet", Burgundy), new Vector3(0f, 0f, (CarDoorZ + 6.2f) / 2f), new Vector3(2f, 0.016f, 6.2f - CarDoorZ));
-            Box(floor, "CarpetEdge_W", Toon("OfficeBrass", Brass), new Vector3(-1.04f, 0f, (CarDoorZ + 6.2f) / 2f), new Vector3(0.08f, 0.018f, 6.2f - CarDoorZ));
-            Box(floor, "CarpetEdge_E", Toon("OfficeBrass", Brass), new Vector3(1.04f, 0f, (CarDoorZ + 6.2f) / 2f), new Vector3(0.08f, 0.018f, 6.2f - CarDoorZ));
-
-            Box(floor, "Floor_Terrace", Wood("OfficeDecking", new Color(0.36f, 0.30f, 0.26f)), new Vector3(0f, 0f, (FloorNorth + TerraceNorth) / 2f),
-                new Vector3(24f, 0.006f, TerraceNorth - FloorNorth));
+            Cube(floor, "Floor_Terrace", Planks("OfficeDecking", new Color(0.45f, 0.38f, 0.32f), new Color(0.27f, 0.22f, 0.19f), 0.14f, 2.4f),
+                new Vector3(0f, 0f, (North + TerraceNorth) / 2f), new Vector3(East - West, 0.006f, TerraceNorth - North));
         }
 
-        private static void RoomFloor(Transform parent, string name, int column, int row, Material material) =>
-            Box(parent, name, material, new Vector3(RoomX(column), 0f, RoomZ(row)), new Vector3(RoomWidth, 0.006f, RoomDepth));
+        private static void RoomFloor(Transform parent, string name, int column, int row, Material material)
+        {
+            var centre = RoomCentre(column, row);
+            var size = RoomSize(column, row);
+            Cube(parent, name, material, new Vector3(centre.x, 0f, centre.y), new Vector3(size.x, 0.006f, size.y));
+        }
 
         private static void BuildWalls(Transform floor)
         {
             var walls = new GameObject("Walls").transform;
             walls.SetParent(floor, false);
             var none = new float[0];
+            float[] xs = ColumnEdges, zs = RowEdges;
 
-            // Outside: the front and sides are plain low walls; the back is a sill with glass, with
-            // a door from each back room onto the terrace.
-            WallAlongX(walls, "Wall_South", FloorSouth, -12f, 12f, none);
-            WallAlongZ(walls, "Wall_West", -12f, FloorSouth, FloorNorth, none);
-            WallAlongZ(walls, "Wall_East", 12f, FloorSouth, FloorNorth, none);
-            GlassAlongX(walls, "Wall_North", FloorNorth, -12f, 12f, new[] { RoomX(0), RoomX(1), RoomX(2) });
+            // Outside: low walls at the front and sides; at the back, glass onto the terrace with
+            // doors from the tailor, the boss (beside his desk, not behind it) and the back room.
+            WallAlongX(walls, "Wall_South", South, West, East, none);
+            WallAlongZ(walls, "Wall_West", West, South, North, none);
+            WallAlongZ(walls, "Wall_East", East, South, North, none);
+            GlassAlongX(walls, "Wall_North", North, West, East, new[] { -15.5f, -4.5f, 12f });
 
             // Between columns. The serving hatch from the test kitchen to the bodyguards is a gap
-            // filled by a counter (below).
-            WallAlongZ(walls, "Wall_LoungeReception", -4f, -9f, -3f, new[] { -5f });
-            WallAlongZ(walls, "Wall_KitchenGuards", -4f, -3f, 3f, new[] { -1f }, hatchAt: 1.6f);
-            WallAlongZ(walls, "Wall_TailorBoss", -4f, 3f, 9f, none);
-            WallAlongZ(walls, "Wall_ReceptionAccountant", 4f, -9f, -3f, new[] { -5f });
-            WallAlongZ(walls, "Wall_GuardsHall", 4f, -3f, 3f, new[] { 0f });
-            WallAlongZ(walls, "Wall_BossBackRoom", 4f, 3f, 9f, none);
+            // filled by a counter.
+            WallAlongZ(walls, "Wall_LoungeReception", xs[1], zs[0], zs[1], new[] { -7f });
+            WallAlongZ(walls, "Wall_KitchenGuards", xs[1], zs[1], zs[2], new[] { -1.8f }, hatchAt: 1.6f);
+            WallAlongZ(walls, "Wall_TailorBoss", xs[1], zs[2], zs[3], none);
+            WallAlongZ(walls, "Wall_ReceptionAccountant", xs[2], zs[0], zs[1], new[] { -7f });
+            WallAlongZ(walls, "Wall_GuardsHall", xs[2], zs[1], zs[2], new[] { -0.5f });
+            WallAlongZ(walls, "Wall_BossBackRoom", xs[2], zs[2], zs[3], none);
 
-            // Between rows: every room opens to the one in front and behind, except the boss.
-            WallAlongX(walls, "Wall_LoungeKitchen", -3f, -12f, -4f, new[] { -8f });
-            WallAlongX(walls, "Wall_ReceptionGuards", -3f, -4f, 4f, new[] { 0f }, 2.4f);
-            WallAlongX(walls, "Wall_AccountantHall", -3f, 4f, 12f, new[] { 8f });
-            WallAlongX(walls, "Wall_KitchenTailor", 3f, -12f, -4f, new[] { -8f });
-            WallAlongX(walls, "Wall_GuardsBoss", 3f, -4f, 4f, new[] { 0f }, 2f);
-            WallAlongX(walls, "Wall_HallBackRoom", 3f, 4f, 12f, new[] { 8f });
+            // Between rows: every room opens to the ones in front and behind, except the boss's,
+            // which only the guarded doors reach.
+            WallAlongX(walls, "Wall_LoungeKitchen", zs[1], xs[0], xs[1], new[] { -12f });
+            WallAlongX(walls, "Wall_ReceptionGuards", zs[1], xs[1], xs[2], new[] { 0f }, 3f);
+            WallAlongX(walls, "Wall_AccountantHall", zs[1], xs[2], xs[3], new[] { 12f });
+            WallAlongX(walls, "Wall_KitchenTailor", zs[2], xs[0], xs[1], new[] { -12f });
+            WallAlongX(walls, "Wall_GuardsBoss", zs[2], xs[1], xs[2], new[] { 0f }, 2.4f);
+            WallAlongX(walls, "Wall_HallBackRoom", zs[2], xs[2], xs[3], new[] { 12f });
 
-            // The terrace's railing: posts, glass and a brass top rail at the edge.
-            Railing(walls, "Railing_North", new Vector3(-12f, 0f, TerraceNorth), new Vector3(12f, 0f, TerraceNorth));
-            Railing(walls, "Railing_West", new Vector3(-12f, 0f, FloorNorth), new Vector3(-12f, 0f, TerraceNorth));
-            Railing(walls, "Railing_East", new Vector3(12f, 0f, FloorNorth), new Vector3(12f, 0f, TerraceNorth));
+            Railing(walls, "Railing_North", new Vector3(West, 0f, TerraceNorth), new Vector3(East, 0f, TerraceNorth));
+            Railing(walls, "Railing_West", new Vector3(West, 0f, North), new Vector3(West, 0f, TerraceNorth));
+            Railing(walls, "Railing_East", new Vector3(East, 0f, North), new Vector3(East, 0f, TerraceNorth));
         }
 
         private static void WallAlongX(Transform parent, string name, float z, float x0, float x1, float[] doors, float doorWidth = DoorWidth) =>
@@ -231,7 +254,7 @@ namespace Game.Editor
         private static void WallAlongZ(Transform parent, string name, float x, float z0, float z1, float[] doors, float doorWidth = DoorWidth, float? hatchAt = null) =>
             Wall(parent, name, z0, z1, doors, doorWidth, hatchAt, (a, b) => (new Vector3(x, 0f, (a + b) / 2f), new Vector3(WallThickness, 0f, b - a)));
 
-        // A low capped wall from `from` to `to` with door gaps; `place` turns a run into a centre and size.
+        // A wall from `from` to `to` with door gaps; `place` turns a run into a centre and size.
         private static void Wall(Transform parent, string name, float from, float to, float[] doors, float doorWidth, float? hatchAt,
             System.Func<float, float, (Vector3 Centre, Vector3 Size)> place)
         {
@@ -240,7 +263,7 @@ namespace Game.Editor
             var gaps = new List<(float From, float To)>();
             foreach (var door in doors)
                 gaps.Add((door - doorWidth / 2f, door + doorWidth / 2f));
-            const float hatchWidth = 1.2f;
+            const float hatchWidth = 1f;
             if (hatchAt.HasValue)
                 gaps.Add((hatchAt.Value - hatchWidth / 2f, hatchAt.Value + hatchWidth / 2f));
             gaps.Sort((a, b) => a.From.CompareTo(b.From));
@@ -255,41 +278,40 @@ namespace Game.Editor
 
             if (hatchAt.HasValue)
             {
-                // The serving hatch: a counter in the wall, cream top and brass edge, at counter height.
-                var (centre, size) = place(hatchAt.Value - hatchWidth / 2f, hatchAt.Value + hatchWidth / 2f);
-                Box(wall, "ServingHatch", Toon("OfficeCabinet", WoodMid), centre, new Vector3(size.x + 0.2f, 0.88f, size.z + 0.4f), collider: true);
-                Box(wall, "ServingHatchTop", Toon("OfficeCounterTop", Cream), centre + Vector3.up * 0.88f, new Vector3(size.x + 0.3f, 0.06f, size.z + 0.5f));
+                // The serving hatch: a kitchen counter set in the wall, its top at counter height.
+                var (centre, _) = place(hatchAt.Value - hatchWidth / 2f, hatchAt.Value + hatchWidth / 2f);
+                var hatch = Prop(wall, "PF_Counter", centre, 90f);
+                if (hatch != null)
+                    hatch.name = "ServingHatch";
             }
         }
 
         private static void WallRun(Transform wall, (Vector3 Centre, Vector3 Size) run)
         {
-            var length = Mathf.Max(run.Size.x, run.Size.z);
-            if (length < 0.05f)
+            if (Mathf.Max(run.Size.x, run.Size.z) < 0.05f)
                 return;
-            Box(wall, "Wall", HouseStyle.Wall(), run.Centre, new Vector3(run.Size.x, WallHeight, run.Size.z), collider: true);
-            // The trim cap, a touch wider, in dark wood.
-            var cap = run.Size.x > run.Size.z ? new Vector3(run.Size.x, 0.06f, WallThickness + 0.08f) : new Vector3(WallThickness + 0.08f, 0.06f, run.Size.z);
-            Box(wall, "Cap", Toon("OfficeTrim", WoodDark), run.Centre + Vector3.up * WallHeight, cap);
+            Cube(wall, "Wall", HouseStyle.Wall(), run.Centre, new Vector3(run.Size.x, WallHeight, run.Size.z), collider: true);
         }
 
-        // The back wall: a sill with glass above it, and a gap at each door onto the terrace.
+        // The back wall: a panelled sill with glass above it, and a gap at each door onto the terrace.
         private static void GlassAlongX(Transform parent, string name, float z, float x0, float x1, float[] doors)
         {
             var wall = new GameObject(name).transform;
             wall.SetParent(parent, false);
             var glass = PilotArt.EnsureGlassMaterial("OfficeWindow", new Color(0.62f, 0.76f, 0.86f, 0.18f));
+            var frame = Toon("OfficeWalnut", Walnut);
             var start = x0;
             void Run(float a, float b)
             {
                 if (b - a < 0.05f)
                     return;
                 var centre = new Vector3((a + b) / 2f, 0f, z);
-                Box(wall, "Sill", HouseStyle.Wall(), centre, new Vector3(b - a, SillHeight, WallThickness), collider: true);
-                Box(wall, "Glass", glass, centre + Vector3.up * SillHeight, new Vector3(b - a, GlassTop - SillHeight, 0.04f), collider: true);
-                Box(wall, "Head", Toon("OfficeTrim", WoodDark), centre + Vector3.up * GlassTop, new Vector3(b - a, 0.08f, WallThickness));
-                for (var x = a; x <= b + 0.01f; x += 2f)
-                    Box(wall, "Mullion", Toon("OfficeTrim", WoodDark), new Vector3(Mathf.Min(x, b), 0f, z), new Vector3(0.08f, GlassTop, WallThickness));
+                Cube(wall, "Sill", HouseStyle.Wall(), centre, new Vector3(b - a, SillHeight, WallThickness), collider: true);
+                Cube(wall, "Glass", glass, centre + Vector3.up * SillHeight, new Vector3(b - a, GlassTop - SillHeight, 0.04f), collider: true);
+                Block(wall, "Head", frame, centre + Vector3.up * GlassTop, new Vector3(b - a, 0.1f, WallThickness));
+                var panes = Mathf.Max(1, Mathf.RoundToInt((b - a) / 2.2f));
+                for (var i = 0; i <= panes; i++)
+                    Block(wall, "Mullion", frame, new Vector3(Mathf.Lerp(a, b, i / (float)panes), SillHeight, z), new Vector3(0.1f, GlassTop - SillHeight, WallThickness));
             }
             foreach (var door in doors)
             {
@@ -307,12 +329,11 @@ namespace Game.Editor
             var length = Vector3.Distance(from, to);
             var alongX = Mathf.Abs(to.x - from.x) > Mathf.Abs(to.z - from.z);
             var centre = (from + to) / 2f;
-            var size = alongX ? new Vector3(length, 0f, 0.05f) : new Vector3(0.05f, 0f, length);
-            Box(railing, "Glass", glass, centre, new Vector3(size.x, 1.0f, size.z), collider: true);
-            Box(railing, "Rail", Toon("OfficeBrass", Brass), centre + Vector3.up * 1.0f, new Vector3(Mathf.Max(size.x, 0.1f), 0.07f, Mathf.Max(size.z, 0.1f)));
-            var posts = Mathf.CeilToInt(length / 1.5f);
+            Cube(railing, "Glass", glass, centre, alongX ? new Vector3(length, 1f, 0.05f) : new Vector3(0.05f, 1f, length), collider: true);
+            Block(railing, "Rail", Toon("OfficeBrass", Brass), centre + Vector3.up * 1f, alongX ? new Vector3(length, 0.07f, 0.1f) : new Vector3(0.1f, 0.07f, length));
+            var posts = Mathf.CeilToInt(length / 1.8f);
             for (var i = 0; i <= posts; i++)
-                Box(railing, "Post", Toon("OfficeBrass", Brass), Vector3.Lerp(from, to, i / (float)posts), new Vector3(0.08f, 1.0f, 0.08f));
+                Block(railing, "Post", Toon("OfficeBrass", Brass), Vector3.Lerp(from, to, i / (float)posts), new Vector3(0.09f, 1f, 0.09f));
         }
 
         // ---- The elevator -------------------------------------------------------------------------
@@ -322,49 +343,39 @@ namespace Game.Editor
             var root = new GameObject("Elevator").transform;
             root.SetParent(floor, false);
             var brass = Toon("OfficeBrass", Brass);
-            var frame = Toon("OfficeLiftFrame", new Color(0.22f, 0.17f, 0.15f));
-            var depth = CarDoorZ - FloorSouth;
+            var frame = Toon("OfficeWalnut", Walnut);
+            var depth = CarDoorZ - South;
 
-            // The car: a brass-trimmed floor, tall side walls and the door wall; the front is the
+            // The car: a brass-trimmed floor, walnut side walls and the door wall; the front is the
             // building's own low wall, so the camera sees in.
-            Box(root, "CarFloor", Toon("OfficeLiftFloor", new Color(0.30f, 0.24f, 0.22f)), new Vector3(0f, 0f, FloorSouth + depth / 2f), new Vector3(CarHalfWidth * 2f, 0.02f, depth));
-            Box(root, "CarFloorTrim", brass, new Vector3(0f, 0f, FloorSouth + depth / 2f), new Vector3(CarHalfWidth * 2f + 0.1f, 0.012f, depth + 0.05f));
+            Cube(root, "CarFloor", Tiles("OfficeLiftFloor", new Color(0.32f, 0.25f, 0.22f), new Color(0.6f, 0.45f, 0.24f), 0.6f, 0.02f),
+                new Vector3(0f, 0.004f, South + depth / 2f), new Vector3(CarHalfWidth * 2f, 0.01f, depth));
             foreach (var side in new[] { -1f, 1f })
             {
-                Box(root, side < 0 ? "CarWall_W" : "CarWall_E", frame, new Vector3(side * (CarHalfWidth + 0.1f), 0f, FloorSouth + depth / 2f - 0.15f),
+                Block(root, side < 0 ? "CarWall_W" : "CarWall_E", frame, new Vector3(side * (CarHalfWidth + 0.1f), 0f, South + depth / 2f - 0.15f),
                     new Vector3(0.2f, CarWallHeight, depth - 0.3f), collider: true);
-                Box(root, "CarWallTrim", brass, new Vector3(side * (CarHalfWidth + 0.1f), CarWallHeight, FloorSouth + depth / 2f - 0.15f), new Vector3(0.26f, 0.06f, depth - 0.3f));
+                Block(root, "CarWallTrim", brass, new Vector3(side * (CarHalfWidth + 0.1f), CarWallHeight, South + depth / 2f - 0.15f), new Vector3(0.26f, 0.06f, depth - 0.3f));
             }
 
             // The door wall: pockets either side the panels slide into, and a lintel with the dial.
-            var pocket = CarHalfWidth + 1.4f;
+            var pocket = CarHalfWidth + 1.5f;
             foreach (var side in new[] { -1f, 1f })
             {
                 var centreX = side * (DoorPanelWidth + (pocket - DoorPanelWidth) / 2f);
-                Box(root, side < 0 ? "Pocket_W" : "Pocket_E", frame, new Vector3(centreX, 0f, CarDoorZ), new Vector3(pocket - DoorPanelWidth, DoorWallHeight, 0.3f), collider: true);
-                Box(root, "Jamb", brass, new Vector3(side * DoorPanelWidth, 0f, CarDoorZ - 0.16f), new Vector3(0.1f, DoorPanelHeight, 0.04f));
+                Block(root, side < 0 ? "Pocket_W" : "Pocket_E", frame, new Vector3(centreX, 0f, CarDoorZ), new Vector3(pocket - DoorPanelWidth, DoorWallHeight, 0.3f), collider: true);
+                Block(root, "Jamb", brass, new Vector3(side * DoorPanelWidth, 0f, CarDoorZ - 0.16f), new Vector3(0.1f, DoorPanelHeight, 0.05f));
             }
-            Box(root, "Lintel", frame, new Vector3(0f, DoorPanelHeight, CarDoorZ), new Vector3(DoorPanelWidth * 2f, DoorWallHeight - DoorPanelHeight, 0.3f), collider: true);
-            Box(root, "LintelTrim", brass, new Vector3(0f, DoorWallHeight, CarDoorZ), new Vector3(pocket * 2f, 0.08f, 0.36f));
+            Block(root, "Lintel", frame, new Vector3(0f, DoorPanelHeight, CarDoorZ), new Vector3(DoorPanelWidth * 2f, DoorWallHeight - DoorPanelHeight, 0.3f), collider: true);
+            Block(root, "LintelTrim", brass, new Vector3(0f, DoorWallHeight, CarDoorZ), new Vector3(pocket * 2f, 0.08f, 0.36f));
 
-            var doorMaterial = Toon("OfficeLiftDoor", new Color(0.78f, 0.58f, 0.30f));
-            var left = Box(root, "Door_L", doorMaterial, new Vector3(-DoorPanelWidth / 2f, 0f, CarDoorZ), new Vector3(DoorPanelWidth, DoorPanelHeight, 0.08f), collider: true);
-            var right = Box(root, "Door_R", doorMaterial, new Vector3(DoorPanelWidth / 2f, 0f, CarDoorZ), new Vector3(DoorPanelWidth, DoorPanelHeight, 0.08f), collider: true);
+            var doorMaterial = Toon("OfficeLiftDoor", new Color(0.80f, 0.60f, 0.32f));
+            var left = Block(root, "Door_L", doorMaterial, new Vector3(-DoorPanelWidth / 2f, 0f, CarDoorZ), new Vector3(DoorPanelWidth, DoorPanelHeight, 0.08f), collider: true);
+            var right = Block(root, "Door_R", doorMaterial, new Vector3(DoorPanelWidth / 2f, 0f, CarDoorZ), new Vector3(DoorPanelWidth, DoorPanelHeight, 0.08f), collider: true);
             left.isStatic = right.isStatic = false;
-            // A brass seam down each panel's meeting edge, so open and shut read from above.
-            foreach (var (door, side) in new[] { (left, 1f), (right, -1f) })
-            {
-                var seam = Box(door.transform.parent, "Seam", brass, Vector3.zero, Vector3.one);
-                seam.transform.SetParent(door.transform, false);
-                seam.transform.localPosition = new Vector3(side * 0.47f, 0f, -0.6f);
-                seam.transform.localScale = new Vector3(0.05f, 1f, 1.3f);
-                seam.isStatic = false;
-            }
 
-            // Spawn points: up to four chefs inside, facing the doors.
             var spawns = new GameObject("SpawnPoints").transform;
             spawns.SetParent(root, false);
-            var spawnAt = new[] { new Vector3(-0.7f, 0f, -7.7f), new Vector3(0.7f, 0f, -7.7f), new Vector3(-0.7f, 0f, -8.5f), new Vector3(0.7f, 0f, -8.5f) };
+            var spawnAt = new[] { new Vector3(-0.8f, 0f, CarDoorZ - 0.9f), new Vector3(0.8f, 0f, CarDoorZ - 0.9f), new Vector3(-0.8f, 0f, CarDoorZ - 1.8f), new Vector3(0.8f, 0f, CarDoorZ - 1.8f) };
             spawnPoints = new Transform[spawnAt.Length];
             for (var i = 0; i < spawnAt.Length; i++)
             {
@@ -377,8 +388,8 @@ namespace Game.Editor
             var car = new GameObject("CarZone").AddComponent<BoxCollider>();
             car.transform.SetParent(root, false);
             car.isTrigger = true;
-            car.center = new Vector3(0f, 1f, (FloorSouth + CarDoorZ + 0.7f) / 2f);
-            car.size = new Vector3(CarHalfWidth * 2f, 2f, CarDoorZ + 0.7f - FloorSouth);
+            car.center = new Vector3(0f, 1f, (South + CarDoorZ + 0.7f) / 2f);
+            car.size = new Vector3(CarHalfWidth * 2f, 2f, CarDoorZ + 0.7f - South);
 
             var elevator = root.gameObject.AddComponent<OfficeElevator>();
             var so = new SerializedObject(elevator);
@@ -398,30 +409,26 @@ namespace Game.Editor
             var root = elevator.transform;
             var face = CarDoorZ - 0.16f;
             var dialHeight = DoorPanelHeight + (DoorWallHeight - DoorPanelHeight) / 2f;
-            var dial = Shape(root, PrimitiveType.Cylinder, "Dial", Toon("OfficeDialFace", Cream), new Vector3(0f, dialHeight, face),
-                new Vector3(0.5f, 0.02f, 0.5f), Quaternion.Euler(90f, 0f, 0f));
+            Shape(root, PrimitiveType.Cylinder, "Dial", Toon("OfficeDialFace", Cream), new Vector3(0f, dialHeight, face),
+                new Vector3(0.42f, 0.02f, 0.42f), Quaternion.Euler(90f, 0f, 0f));
             Shape(root, PrimitiveType.Cylinder, "DialRim", Toon("OfficeBrass", Brass), new Vector3(0f, dialHeight, face + 0.01f),
-                new Vector3(0.58f, 0.015f, 0.58f), Quaternion.Euler(90f, 0f, 0f));
+                new Vector3(0.5f, 0.015f, 0.5f), Quaternion.Euler(90f, 0f, 0f));
             var needle = new GameObject("Needle").transform;
             needle.SetParent(root, false);
             needle.localPosition = new Vector3(0f, dialHeight, face - 0.03f);
-            // Pointing up at the top of the dial: this floor. The view turns it about local Z.
-            var hand = Box(needle, "Hand", Toon("OfficeInk", Ink), new Vector3(0f, -0.02f, 0f), new Vector3(0.03f, 0.2f, 0.01f));
-            hand.isStatic = false;
-            dial.isStatic = true;
+            Cube(needle, "Hand", Toon("OfficeInk", Ink), new Vector3(0f, -0.02f, 0f), new Vector3(0.03f, 0.18f, 0.01f)).isStatic = false;
 
             var lamp = new GameObject("ArrivedLamp");
             lamp.transform.SetParent(root, false);
             lamp.transform.localPosition = new Vector3(0.55f, dialHeight, face - 0.02f); // beside the dial
-            var bulb = Shape(lamp.transform, PrimitiveType.Cube, "Bulb", Unlit("OfficeLiftLamp", new Color(1f, 0.72f, 0.3f)), Vector3.zero,
-                new Vector3(0.36f, 0.08f, 0.03f));
-            bulb.isStatic = false;
+            Shape(lamp.transform, PrimitiveType.Cube, "Bulb", Unlit("OfficeLiftLamp", new Color(1f, 0.72f, 0.3f)), Vector3.zero,
+                new Vector3(0.3f, 0.08f, 0.03f)).isStatic = false;
             var light = new GameObject("Light").AddComponent<Light>();
             light.transform.SetParent(lamp.transform, false);
-            light.transform.localPosition = new Vector3(0f, -0.4f, -0.8f);
+            light.transform.localPosition = new Vector3(-0.55f, -0.4f, -0.9f);
             light.type = LightType.Point;
             light.color = LampWarm;
-            light.range = 4f;
+            light.range = 4.5f;
             light.intensity = 2f;
             lamp.SetActive(false);
 
@@ -460,365 +467,461 @@ namespace Game.Editor
             return room;
         }
 
+        // Reception, 13 × 9 m: the elevator, the desk, somewhere to wait.
         private static void BuildReception(Transform rooms)
         {
             var room = Room(rooms, "Reception");
-            Box(room, "Desk", Wood("OfficeDeskWood", WoodMid), new Vector3(2.5f, 0f, -5.4f), new Vector3(2.2f, 1.0f, 0.7f), collider: true);
-            Box(room, "DeskTop", Toon("OfficeBrass", Brass), new Vector3(2.5f, 1.0f, -5.4f), new Vector3(2.3f, 0.05f, 0.8f));
-            Box(room, "Ledger", Toon("OfficeLedger", Burgundy), new Vector3(2.1f, 1.05f, -5.45f), new Vector3(0.36f, 0.06f, 0.26f));
-            Shape(room, PrimitiveType.Sphere, "DeskBell", Toon("OfficeBellRed", new Color(0.8f, 0.2f, 0.18f)), new Vector3(3.2f, 1.1f, -5.4f), Vector3.one * 0.14f);
-            Person(room, "Receptionist", new Vector3(2.5f, 0f, -4.6f), 180f, new Color(0.62f, 0.22f, 0.32f), 1f);
-            PottedPlant(room, new Vector3(-3.4f, 0f, -3.6f), 1f);
-            PottedPlant(room, new Vector3(3.4f, 0f, -8.4f), 1f);
-            PottedPlant(room, new Vector3(-3.4f, 0f, -8.4f), 0.8f);
-            Lamp(room, "Pendant", new Vector3(0f, 3.2f, -4.6f), 7f, 1.6f);
+            for (var i = 0; i < 3; i++)
+                Prop(room, "PF_Counter", new Vector3(2.8f + i, 0f, -7.6f), 0f);
+            Shape(room, PrimitiveType.Sphere, "DeskBell", Toon("OfficeBellRed", new Color(0.8f, 0.2f, 0.18f)), new Vector3(3.3f, 0.98f, -7.75f), Vector3.one * 0.14f);
+            Block(room, "Ledger", Toon("OfficeLedger", Burgundy), new Vector3(4.2f, 0.92f, -7.7f), new Vector3(0.42f, 0.06f, 0.3f));
+            Person(room, "Receptionist", new Vector3(3.8f, 0f, -6.7f), 180f, new Color(0.62f, 0.22f, 0.32f), Suit);
+
+            Armchair(room, new Vector3(-5.4f, 0f, -8.0f), 90f, Velvet);
+            Armchair(room, new Vector3(-5.4f, 0f, -9.6f), 90f, Velvet);
+            Block(room, "SideTable", Toon("OfficeWalnut", Walnut), new Vector3(-4.2f, 0f, -8.8f), new Vector3(0.7f, 0.45f, 0.7f), collider: true);
+            FloorLamp(room, new Vector3(-5.9f, 0f, -11.0f));
+            foreach (var at in new[] { new Vector3(-5.8f, 0f, -5.2f), new Vector3(5.8f, 0f, -5.2f), new Vector3(-5.8f, 0f, -12.8f), new Vector3(5.8f, 0f, -12.8f), new Vector3(-2.8f, 0f, -12.9f), new Vector3(2.8f, 0f, -12.9f) })
+                PottedPlant(room, at, 1f);
+            HangPicture(room, new Vector3(-6.5f, PictureHeight, -10.6f), Vector3.right, new Color(0.56f, 0.66f, 0.5f));
+            HangPicture(room, new Vector3(6.5f, PictureHeight, -10.6f), Vector3.left, new Color(0.5f, 0.62f, 0.72f));
+            Lamp(room, "Pendant", new Vector3(0f, 3.4f, -7.5f), 9f, 1.6f);
         }
 
+        // The guarded doors, 13 × 8 m: the bodyguards' post in front of the boss's door.
         private static void BuildGuardedDoors(Transform rooms)
         {
             var room = Room(rooms, "GuardedDoors");
-            // The bodyguards flank the boss's door, facing whoever comes up the carpet.
-            Bodyguard(room, "Bodyguard_L", new Vector3(-1.6f, 0f, 2.2f));
-            Bodyguard(room, "Bodyguard_R", new Vector3(1.6f, 0f, 2.2f));
-            PottedPlant(room, new Vector3(-3.4f, 0f, -2.4f), 1.2f);
-            PottedPlant(room, new Vector3(3.4f, 0f, -2.4f), 1.2f);
-            // Two columns either side of the door, so it reads as the way to someone important.
-            foreach (var x in new[] { -1.15f, 1.15f })
+            Bodyguard(room, "Bodyguard_L", new Vector3(-1.9f, 0f, 2.6f));
+            Bodyguard(room, "Bodyguard_R", new Vector3(1.9f, 0f, 2.6f));
+            foreach (var x in new[] { -1.5f, 1.5f })
             {
-                Shape(room, PrimitiveType.Cylinder, "Column", Toon("OfficeColumn", Cream), new Vector3(x, 1.1f, 2.75f), new Vector3(0.36f, 1.1f, 0.36f), collider: true);
-                Box(room, "ColumnCap", Toon("OfficeBrass", Brass), new Vector3(x, 2.2f, 2.75f), new Vector3(0.46f, 0.1f, 0.46f));
+                Block(room, "Column", Toon("OfficeColumn", Cream), new Vector3(x, 0f, 3.15f), new Vector3(0.5f, 2.3f, 0.5f), collider: true);
+                Block(room, "ColumnCap", Toon("OfficeBrass", Brass), new Vector3(x, 2.3f, 3.15f), new Vector3(0.62f, 0.12f, 0.62f));
             }
+            Sofa(room, new Vector3(-5.6f, 0f, -0.2f), 90f, Velvet);
+            Armchair(room, new Vector3(5.6f, 0f, 2.0f), -90f, Velvet);
+            Armchair(room, new Vector3(5.6f, 0f, -3.0f), -90f, Velvet);
+            foreach (var at in new[] { new Vector3(-5.8f, 0f, -3.8f), new Vector3(-5.8f, 0f, 2.8f), new Vector3(5.8f, 0f, 2.9f) })
+                PottedPlant(room, at, 1.1f);
+            HangPicture(room, new Vector3(6.5f, PictureHeight, 1.9f), Vector3.left, new Color(0.72f, 0.56f, 0.36f));
         }
 
+        // The boss's office, 13 × 10 m: his desk at the end of the carpet, the warmest light on the floor.
         private static void BuildBossOffice(Transform rooms)
         {
             var room = Room(rooms, "BossOffice");
-            Box(room, "Rug", Toon("OfficeRug", new Color(0.36f, 0.09f, 0.11f)), new Vector3(0f, 0.01f, 6.1f), new Vector3(6f, 0.012f, 4.6f));
-            Box(room, "RugBorder", Toon("OfficeBrass", Brass), new Vector3(0f, 0.008f, 6.1f), new Vector3(6.2f, 0.012f, 4.8f));
-            Box(room, "Desk", Wood("OfficeBossDesk", new Color(0.26f, 0.16f, 0.10f)), new Vector3(0f, 0f, 7.0f), new Vector3(2.8f, 0.78f, 1.1f), collider: true);
-            Box(room, "DeskLeather", Toon("OfficeLeather", Leather), new Vector3(0f, 0.78f, 7.0f), new Vector3(2.6f, 0.03f, 0.9f));
-            Box(room, "Papers", Toon("OfficePaper", Cream), new Vector3(-0.2f, 0.81f, 6.85f), new Vector3(0.42f, 0.02f, 0.3f));
-            Box(room, "Chair", Toon("OfficeChair", Burgundy), new Vector3(0f, 0f, 8.15f), new Vector3(1.0f, 0.5f, 0.8f), collider: true);
-            Box(room, "ChairBack", Toon("OfficeChair", Burgundy), new Vector3(0f, 0.5f, 8.5f), new Vector3(1.1f, 1.3f, 0.2f));
-            Boss(room, new Vector3(0f, 0f, 7.9f));
-            foreach (var x in new[] { -0.8f, 0.8f })
-            {
-                Box(room, "GuestChair", Toon("OfficeGuestChair", new Color(0.55f, 0.17f, 0.17f)), new Vector3(x, 0f, 5.6f), new Vector3(0.6f, 0.45f, 0.6f), collider: true);
-                Box(room, "GuestChairBack", Toon("OfficeGuestChair", new Color(0.55f, 0.17f, 0.17f)), new Vector3(x, 0.45f, 5.35f), new Vector3(0.6f, 0.5f, 0.12f));
-            }
-            // The warmest light on the floor: his desk lamp (spec §5, the focal point).
-            Shape(room, PrimitiveType.Cylinder, "LampStem", Toon("OfficeBrass", Brass), new Vector3(1.0f, 1.0f, 7.25f), new Vector3(0.05f, 0.2f, 0.05f));
-            Shape(room, PrimitiveType.Cylinder, "LampShade", Unlit("OfficeLampShade", new Color(1f, 0.86f, 0.55f)), new Vector3(1.0f, 1.22f, 7.25f), new Vector3(0.36f, 0.08f, 0.36f));
-            Lamp(room, "DeskLight", new Vector3(0.6f, 2.0f, 6.6f), 6f, 3f);
-            Box(room, "Bookshelf", Wood("OfficeBossDesk", new Color(0.26f, 0.16f, 0.10f)), new Vector3(-3.55f, 0f, 6f), new Vector3(0.5f, 1.6f, 3.6f), collider: true);
-            BookRow(room, new Vector3(-3.3f, 0f, 6f), 3.2f);
-            Box(room, "Safe", Toon("OfficeSafe", new Color(0.24f, 0.25f, 0.28f)), new Vector3(3.3f, 0f, 8.3f), new Vector3(0.8f, 1.0f, 0.7f), collider: true);
-            Shape(room, PrimitiveType.Cylinder, "SafeDial", Toon("OfficeBrass", Brass), new Vector3(3.3f, 0.6f, 7.94f), new Vector3(0.2f, 0.02f, 0.2f), Quaternion.Euler(90f, 0f, 0f));
-            PottedPlant(room, new Vector3(-3.3f, 0f, 3.6f), 1.1f);
-            PottedPlant(room, new Vector3(3.3f, 0f, 3.6f), 1.1f);
+            Cube(room, "RugBorder", Toon("OfficeBrass", Brass), new Vector3(0f, 0.008f, 9.6f), new Vector3(8.2f, 0.012f, 5.6f));
+            Cube(room, "Rug", Toon("OfficeRug", new Color(0.38f, 0.10f, 0.12f)), new Vector3(0f, 0.01f, 9.6f), new Vector3(8f, 0.012f, 5.4f));
+
+            Model(room, "Desk", OfficeModel, "OfficeDeskBody", Toon("OfficeWalnut", Walnut), new Vector3(0f, 0f, 10.6f), 180f, collider: new Vector3(2.4f, 0.8f, 1.05f));
+            Model(room, "DeskLeather", OfficeModel, "OfficeDeskLeather", Toon("OfficeLeather", Leather), new Vector3(0f, 0f, 10.6f), 180f);
+            Model(room, "DeskHandles", OfficeModel, "OfficeDeskHandles", Toon("OfficeBrass", Brass), new Vector3(0f, 0f, 10.6f), 180f);
+            Block(room, "Papers", Toon("OfficePaper", Cream), new Vector3(-0.3f, 0.77f, 10.45f), new Vector3(0.42f, 0.02f, 0.3f));
+            Model(room, "Trophy", OfficeModel, "OfficeTrophy", Toon("OfficeBrass", Brass), new Vector3(-0.95f, 0.76f, 10.8f), 0f, scale: 0.7f);
+            Model(room, "DeskLampStand", OfficeModel, "OfficeLampStand", Toon("OfficeBrass", Brass), new Vector3(0.95f, 0.76f, 10.85f), 0f, scale: 0.45f);
+            Model(room, "DeskLampShade", OfficeModel, "OfficeLampShade", Unlit("OfficeLampGlow", new Color(1f, 0.86f, 0.55f)), new Vector3(0.95f, 0.76f, 10.85f), 0f, scale: 0.45f);
+            OfficeChair(room, new Vector3(0f, 0f, 12.0f), 180f);
+            Boss(room, new Vector3(0f, 0f, 11.45f));
+            Armchair(room, new Vector3(-1.2f, 0f, 8.6f), 0f, new Color(0.52f, 0.16f, 0.16f));
+            Armchair(room, new Vector3(1.2f, 0f, 8.6f), 0f, new Color(0.52f, 0.16f, 0.16f));
+            Lamp(room, "DeskLight", new Vector3(0.7f, 2.2f, 10.0f), 7f, 3.2f);
+
+            // A sitting corner, his books and his safe.
+            Sofa(room, new Vector3(-5.6f, 0f, 7.0f), 90f, Leather);
+            Block(room, "CoffeeTable", Toon("OfficeWalnut", Walnut), new Vector3(-4.2f, 0f, 7.0f), new Vector3(0.9f, 0.42f, 1.6f), collider: true);
+            Model(room, "Decanter", OfficeModel, "OfficeTrophy", PilotArt.EnsureGlassMaterial("OfficeDecanter", new Color(0.7f, 0.45f, 0.2f, 0.7f)), new Vector3(-4.2f, 0.42f, 6.6f), 0f, scale: 0.6f);
+            for (var i = 0; i < 2; i++)
+                Bookcase(room, new Vector3(6.1f, 0f, 9.0f + i * 1.9f), -90f);
+            Block(room, "Safe", Toon("OfficeSafe", new Color(0.24f, 0.25f, 0.28f)), new Vector3(5.8f, 0f, 4.4f), new Vector3(0.9f, 1.0f, 0.8f), collider: true);
+            Shape(room, PrimitiveType.Cylinder, "SafeDial", Toon("OfficeBrass", Brass), new Vector3(5.8f, 0.6f, 3.99f), new Vector3(0.22f, 0.02f, 0.22f), Quaternion.Euler(90f, 0f, 0f));
+            FloorLamp(room, new Vector3(-2.6f, 0f, 12.8f));
+            FloorLamp(room, new Vector3(2.6f, 0f, 12.8f));
+            foreach (var at in new[] { new Vector3(-5.8f, 0f, 4.2f), new Vector3(-5.8f, 0f, 12.8f), new Vector3(5.8f, 0f, 12.8f), new Vector3(-3.2f, 0f, 4.2f), new Vector3(3.2f, 0f, 4.2f) })
+                PottedPlant(room, at, 1.15f);
         }
 
+        // The tailor, 11 × 10 m: three colour plinths before mirrors, rails of clothes, the tailor.
         private static void BuildTailor(Transform rooms)
         {
             var room = Room(rooms, "Tailor");
-            // Three colour plinths: step on one to change look (Phase 6). Low enough to step onto.
             var colours = new[] { new Color(0.95f, 0.55f, 0.15f), new Color(0.15f, 0.70f, 0.75f), new Color(0.85f, 0.25f, 0.45f) };
-            var plinths = new[] { new Vector3(-10.2f, 0f, 6.4f), new Vector3(-8f, 0f, 6f), new Vector3(-5.8f, 0f, 6.4f) };
+            var plinths = new[] { new Vector3(-14.6f, 0f, 9.4f), new Vector3(-12f, 0f, 10.2f), new Vector3(-9.4f, 0f, 9.4f) };
             for (var i = 0; i < plinths.Length; i++)
             {
-                Shape(room, PrimitiveType.Cylinder, "Plinth", Toon($"OfficePlinth{i}", colours[i]), plinths[i] + Vector3.up * 0.05f, new Vector3(1.2f, 0.05f, 1.2f));
-                Shape(room, PrimitiveType.Cylinder, "PlinthRim", Toon("OfficeBrass", Brass), plinths[i] + Vector3.up * 0.03f, new Vector3(1.3f, 0.03f, 1.3f));
+                Model(room, "PlinthRim", OfficeModel, "OfficePlinthRim", Toon("OfficeBrass", Brass), plinths[i], 0f);
+                Model(room, "Plinth", OfficeModel, "OfficePlinthTop", Toon($"OfficePlinth{i}", colours[i]), plinths[i], 0f);
+                Mirror(room, plinths[i] + new Vector3(0f, 0f, 1.6f), 180f);
             }
-            Mirror(room, new Vector3(-11.65f, 0f, 6.4f), 90f);
-            Mirror(room, new Vector3(-4.35f, 0f, 6.4f), -90f);
-            Mirror(room, new Vector3(-9.6f, 0f, 8.6f), 180f);
-            // A rail of jackets along the west wall.
-            Box(room, "RackRail", Toon("OfficeBrass", Brass), new Vector3(-11.4f, 1.6f, 4.5f), new Vector3(0.05f, 0.05f, 2.0f));
-            foreach (var z in new[] { 3.7f, 5.3f })
-                Box(room, "RackPost", Toon("OfficeBrass", Brass), new Vector3(-11.4f, 0f, z), new Vector3(0.05f, 1.65f, 0.05f));
-            var jackets = new[] { Cream, Suit, new Color(0.55f, 0.36f, 0.22f), new Color(0.32f, 0.42f, 0.55f), Burgundy };
-            for (var i = 0; i < jackets.Length; i++)
-                Box(room, "Jacket", Toon($"OfficeJacket{i}", jackets[i]), new Vector3(-11.4f, 0.7f, 3.85f + i * 0.34f), new Vector3(0.5f, 0.85f, 0.18f), collider: i == 2);
+            for (var r = 0; r < 2; r++)
+            {
+                var rail = new Vector3(-16.9f, 0f, 5.6f + r * 2.4f);
+                Model(room, "Rail", OfficeModel, "OfficeRail", Toon("OfficeBrass", Brass), rail, 90f, collider: new Vector3(1.7f, 1.6f, 0.5f));
+                var jackets = new[] { Cream, Suit, new Color(0.55f, 0.36f, 0.22f), new Color(0.32f, 0.42f, 0.55f), Burgundy, Leather };
+                for (var j = 0; j < 5; j++)
+                {
+                    var c = (j + r * 2) % jackets.Length;
+                    Model(room, "Jacket", OfficeModel, "OfficeJacket", Toon($"OfficeJacket{c}", jackets[c]), rail + new Vector3(0f, 1.6f, -0.6f + j * 0.3f), 0f); // hung across the rail
+                }
+            }
             // The tailor's mannequin, wearing a chef's jacket a size too big (spec §5).
-            Shape(room, PrimitiveType.Cylinder, "MannequinStand", Toon("OfficeTrim", WoodDark), new Vector3(-5.0f, 0.4f, 8.3f), new Vector3(0.08f, 0.4f, 0.08f));
-            Shape(room, PrimitiveType.Capsule, "MannequinJacket", Toon("OfficeChefJacket", new Color(0.97f, 0.97f, 0.95f)), new Vector3(-5.0f, 1.25f, 8.3f), new Vector3(0.85f, 0.5f, 0.7f), collider: true);
-            Person(room, "Tailor", new Vector3(-6.6f, 0f, 4.2f), 200f, new Color(0.35f, 0.30f, 0.45f), 0.95f);
-            Box(room, "CuttingTable", Wood("OfficeDeskWood", WoodMid), new Vector3(-10.4f, 0f, 3.8f), new Vector3(1.6f, 0.85f, 0.7f), collider: true);
-            Box(room, "Fabric", Toon("OfficePlinth1", colours[1]), new Vector3(-10.6f, 0.85f, 3.8f), new Vector3(0.9f, 0.04f, 0.5f));
+            Mannequin(room, new Vector3(-7.4f, 0f, 12.4f));
+            Person(room, "Tailor", new Vector3(-12f, 0f, 7.4f), 0f, new Color(0.35f, 0.30f, 0.45f), new Color(0.22f, 0.2f, 0.26f));
+            var table = Prop(room, "PF_Table", new Vector3(-8.2f, 0f, 5.2f), 0f, keep: "Body");
+            if (table != null)
+                table.transform.localScale = new Vector3(1.6f, 1f, 1f);
+            foreach (var (x, c) in new[] { (-8.6f, 1), (-8.2f, 2), (-7.8f, 0) })
+                Shape(room, PrimitiveType.Cylinder, "FabricBolt", Toon($"OfficePlinth{c}", colours[c]), new Vector3(x, 0.84f, 5.2f), new Vector3(0.14f, 0.35f, 0.14f), Quaternion.Euler(90f, 0f, 0f));
+            Armchair(room, new Vector3(-16.6f, 0f, 12.4f), 135f, Velvet);
+            foreach (var at in new[] { new Vector3(-7.2f, 0f, 4.2f), new Vector3(-16.8f, 0f, 4.2f), new Vector3(-10.6f, 0f, 12.9f) })
+                PottedPlant(room, at, 1f);
         }
 
+        // The test kitchen, 11 × 8 m: bare minimum (decision 2026-11-09), from the kitchen's own
+        // counters, hob, fridge, board, knife rack and shelf. Visual copies for now; the real
+        // stations come in Phase 6.
         private static void BuildTestKitchen(Transform rooms)
         {
             var room = Room(rooms, "TestKitchen");
-            // Bare minimum (decision 2026-11-09): a hob, a board, a small fridge, a bin, an island.
-            // Stand-ins only: the real stations come in Phase 6, on the kitchen's own prefabs.
-            Counter(room, "BackCounter", new Vector3(-10.3f, 0f, 2.55f), new Vector3(2.6f, 0.9f, 0.7f));
-            Box(room, "Hob", Toon("OfficeHob", new Color(0.18f, 0.18f, 0.2f)), new Vector3(-10.9f, 0.95f, 2.55f), new Vector3(0.9f, 0.04f, 0.6f));
-            foreach (var x in new[] { -11.12f, -10.68f })
-                Shape(room, PrimitiveType.Cylinder, "Burner", Toon("OfficeBurner", new Color(0.08f, 0.08f, 0.09f)), new Vector3(x, 0.98f, 2.55f), new Vector3(0.3f, 0.01f, 0.3f));
-            Counter(room, "Island", new Vector3(-8.6f, 0f, -0.2f), new Vector3(2.4f, 0.9f, 1.0f));
-            Box(room, "Board", StyleTest.BoardMaterial(), new Vector3(-8.9f, 0.95f, -0.2f), new Vector3(0.7f, 0.05f, 0.5f));
-            Counter(room, "ShelfCounter", new Vector3(-5.6f, 0f, 2.55f), new Vector3(2.4f, 0.9f, 0.7f));
-            for (var i = 0; i < 4; i++)
-                Shape(room, PrimitiveType.Cylinder, "Plate", Toon("OfficePlate", new Color(0.92f, 0.92f, 0.9f)), new Vector3(-5.2f, 0.96f + i * 0.03f, 2.55f), new Vector3(0.4f, 0.012f, 0.4f));
-            Box(room, "Fridge", Toon("OfficeFridge", new Color(0.88f, 0.88f, 0.86f)), new Vector3(-11.45f, 0f, -0.6f), new Vector3(0.8f, 1.6f, 0.8f), collider: true);
-            Box(room, "FridgeHandle", Toon("OfficeBrass", Brass), new Vector3(-11.02f, 0.9f, -0.35f), new Vector3(0.04f, 0.5f, 0.05f));
-            Shape(room, PrimitiveType.Cylinder, "Bin", Toon("OfficeBin", new Color(0.25f, 0.55f, 0.30f)), new Vector3(-11.4f, 0.4f, -2.4f), new Vector3(0.55f, 0.4f, 0.55f), collider: true);
+            var row = new[] { ("PF_Fridge", -16.5f), ("PF_Counter", -15.5f), ("PF_Hob", -14.5f), ("PF_CuttingBoard", -13.5f),
+                ("PF_KnifeRack", -10.5f), ("PF_Counter", -9.5f), ("PF_Shelf", -8.5f), ("PF_Counter", -7.5f) };
+            foreach (var (prefab, x) in row)
+                Prop(room, prefab, new Vector3(x, 0f, 2.9f), 0f);
+            for (var i = 0; i < 3; i++)
+                Prop(room, "PF_Counter", new Vector3(-13.5f + i, 0f, -0.6f), 0f);
+            Prop(room, "PF_Counter", new Vector3(-16.9f, 0f, -2.6f), 90f);
+            Model(room, "Bin", "SM_Bin", "BinBody", Toon("OfficeBin", new Color(0.12f, 0.12f, 0.13f)), new Vector3(-16.9f, 0f, -3.8f), 90f, collider: new Vector3(0.6f, 0.9f, 0.6f));
+            PottedPlant(room, new Vector3(-7.2f, 0f, -3.8f), 0.8f);
         }
 
+        // The back room, 11 × 10 m: the city miniature, lit from above.
         private static void BuildBackRoom(Transform rooms)
         {
             var room = Room(rooms, "BackRoom");
-            // The city miniature: a big dark table with the city on it, lit from above. Your
-            // restaurants will show as pins (Phase 6); the grill's is here as a placeholder.
-            var centre = new Vector3(8f, 0f, 6f);
-            Box(room, "MiniatureTable", Wood("OfficeBossDesk", new Color(0.26f, 0.16f, 0.10f)), centre, new Vector3(4.4f, 0.8f, 2.8f), collider: true);
-            Box(room, "MiniatureTrim", Toon("OfficeBrass", Brass), centre + Vector3.up * 0.8f, new Vector3(4.5f, 0.04f, 2.9f));
-            Box(room, "MiniatureGround", Toon("OfficeMiniGround", new Color(0.14f, 0.16f, 0.24f)), centre + Vector3.up * 0.84f, new Vector3(4.2f, 0.02f, 2.6f));
-            var city = new GameObject("MiniatureCity").transform;
-            city.SetParent(room, false);
-            var lit = Unlit("OfficeMiniLit", WindowLit);
-            for (var x = -1.9f; x < 1.9f; x += 0.32f)
-            for (var z = -1.1f; z < 1.1f; z += 0.32f)
+            var centre = new Vector3(12f, 0f, 8.6f);
+            Block(room, "MiniatureTable", Toon("OfficeWalnut", Walnut), centre, new Vector3(5.6f, 0.82f, 3.4f), collider: true);
+            Block(room, "MiniatureTrim", Toon("OfficeBrass", Brass), centre + Vector3.up * 0.82f, new Vector3(5.7f, 0.05f, 3.5f));
+            Cube(room, "MiniatureGround", Toon("OfficeMiniGround", new Color(0.18f, 0.2f, 0.28f)), centre + Vector3.up * 0.87f, new Vector3(5.4f, 0.02f, 3.2f));
+            Miniature(room, centre + Vector3.up * 0.89f, new Vector2(5.2f, 3.0f));
+            Lamp(room, "MiniatureLight", centre + new Vector3(0f, 3.2f, -0.6f), 7f, 3f);
+            for (var i = 0; i < 3; i++)
             {
-                // Streets: leave every fourth row and column empty.
-                if (Mathf.Abs((x + 1.9f) / 0.32f % 4f - 3f) < 0.1f || Mathf.Abs((z + 1.1f) / 0.32f % 4f - 3f) < 0.1f)
-                    continue;
-                var height = 0.04f + (float)_random.NextDouble() * 0.26f;
-                var colour = TowerColors[_random.Next(TowerColors.Length)];
-                var block = new Vector3(centre.x + x, 0.86f, centre.z + z);
-                Box(city, "Block", Toon($"OfficeTower{System.Array.IndexOf(TowerColors, colour)}", colour), block, new Vector3(0.24f, height, 0.24f));
-                if (_random.NextDouble() < 0.25)
-                    Box(city, "LitWindow", lit, block + new Vector3(0f, height * 0.5f, -0.121f), new Vector3(0.12f, height * 0.4f, 0.004f));
+                Block(room, "MapChest", Toon("OfficeWalnut", Walnut), new Vector3(17.0f, 0f, 5.4f + i * 1.6f), new Vector3(0.7f, 1.0f, 1.5f), collider: true);
+                for (var k = 0; k < 3; k++)
+                    Shape(room, PrimitiveType.Cylinder, "Plan", Toon("OfficePaper", Cream), new Vector3(17.0f, 1.06f, 5.0f + i * 1.6f + k * 0.4f), new Vector3(0.12f, 0.32f, 0.12f), Quaternion.Euler(0f, 0f, 90f));
             }
-            Shape(room, PrimitiveType.Cylinder, "GrillPin", Toon("OfficeBellRed", new Color(0.8f, 0.2f, 0.18f)), new Vector3(7.1f, 1.15f, 5.3f), new Vector3(0.04f, 0.15f, 0.04f));
-            Shape(room, PrimitiveType.Sphere, "GrillPinHead", Toon("OfficeBellRed", new Color(0.8f, 0.2f, 0.18f)), new Vector3(7.1f, 1.32f, 5.3f), Vector3.one * 0.12f);
-            Lamp(room, "MiniatureLight", centre + new Vector3(0f, 3f, -0.4f), 6f, 2.6f);
-            // Rolled plans and map chests along the east wall.
-            Box(room, "MapChest", Wood("OfficeDeskWood", WoodMid), new Vector3(11.5f, 0f, 6f), new Vector3(0.6f, 1.1f, 3.2f), collider: true);
-            for (var i = 0; i < 4; i++)
-                Shape(room, PrimitiveType.Cylinder, "Plan", Toon("OfficePaper", Cream), new Vector3(11.5f, 1.15f, 4.8f + i * 0.7f), new Vector3(0.1f, 0.3f, 0.1f), Quaternion.Euler(0f, 0f, 90f));
-            PottedPlant(room, new Vector3(4.6f, 0f, 8.4f), 1f);
+            foreach (var x in new[] { 10.4f, 13.6f })
+                Prop(room, "PF_BarTable", new Vector3(x, 0f, 5.2f), 180f);
+            FloorLamp(room, new Vector3(7.2f, 0f, 12.8f));
+            foreach (var at in new[] { new Vector3(7.2f, 0f, 4.2f), new Vector3(16.8f, 0f, 12.8f), new Vector3(9.6f, 0f, 12.9f) })
+                PottedPlant(room, at, 1.1f);
+            HangPicture(room, new Vector3(6.5f, PictureHeight, 8.6f), Vector3.right, new Color(0.38f, 0.48f, 0.62f));
         }
 
+        // The hall of fame, 11 × 8 m: the cookbook on its lectern, a trophy for each restaurant,
+        // portraits of erased chefs.
         private static void BuildHallOfFame(Transform rooms)
         {
             var room = Room(rooms, "HallOfFame");
-            // The cookbook on its lectern, the room's centre: it outlives chefs (§15.3).
-            Box(room, "Lectern", Wood("OfficeBossDesk", new Color(0.26f, 0.16f, 0.10f)), new Vector3(8f, 0f, 0.4f), new Vector3(0.7f, 1.05f, 0.55f), collider: true);
-            var book = Box(room, "Cookbook", Toon("OfficeCookbook", new Color(0.62f, 0.16f, 0.14f)), new Vector3(8f, 1.05f, 0.4f), new Vector3(0.55f, 0.1f, 0.42f));
+            Block(room, "Lectern", Toon("OfficeWalnut", Walnut), new Vector3(12f, 0f, -0.6f), new Vector3(0.8f, 1.05f, 0.6f), collider: true);
+            var book = Block(room, "Cookbook", Toon("OfficeCookbook", new Color(0.62f, 0.16f, 0.14f)), new Vector3(12f, 1.05f, -0.6f), new Vector3(0.6f, 0.1f, 0.46f));
             book.transform.localRotation = Quaternion.Euler(-14f, 0f, 0f);
-            Box(room, "CookbookPages", Toon("OfficePaper", Cream), new Vector3(8f, 1.1f, 0.38f), new Vector3(0.5f, 0.04f, 0.38f)).transform.localRotation = Quaternion.Euler(-14f, 0f, 0f);
-            // Plinths for owned restaurants: one trophy so far, the rest waiting.
-            var plinths = new[] { 5.3f, 6.6f, 9.4f, 10.7f };
+            Block(room, "CookbookPages", Toon("OfficePaper", Cream), new Vector3(12f, 1.1f, -0.62f), new Vector3(0.54f, 0.04f, 0.4f)).transform.localRotation = Quaternion.Euler(-14f, 0f, 0f);
+            Cube(room, "LecternRug", Toon("OfficeRug", new Color(0.38f, 0.10f, 0.12f)), new Vector3(12f, 0.01f, -0.9f), new Vector3(2.6f, 0.012f, 2.0f));
+            // Trophies for restaurants owned: one so far, plinths waiting for the rest.
+            var plinths = new[] { 7.8f, 9.4f, 14.6f, 16.2f };
             for (var i = 0; i < plinths.Length; i++)
             {
-                var at = new Vector3(plinths[i], 0f, 2.2f);
-                Box(room, "Plinth", Toon("OfficeColumn", Cream), at, new Vector3(0.6f, 0.95f, 0.6f), collider: true);
+                var at = new Vector3(plinths[i], 0f, 2.7f);
+                Block(room, "Plinth", Toon("OfficeColumn", Cream), at, new Vector3(0.7f, 1.0f, 0.7f), collider: true);
                 if (i == 0)
-                {
-                    Shape(room, PrimitiveType.Cylinder, "TrophyBase", Toon("OfficeTrim", WoodDark), at + Vector3.up * 1.0f, new Vector3(0.26f, 0.05f, 0.26f));
-                    Shape(room, PrimitiveType.Sphere, "Trophy", Toon("OfficeBrass", Brass), at + Vector3.up * 1.22f, new Vector3(0.3f, 0.34f, 0.3f));
-                }
+                    Model(room, "Trophy", OfficeModel, "OfficeTrophy", Toon("OfficeBrass", Brass), at + Vector3.up * 1.0f, 0f, scale: 1.4f);
             }
-            // Portraits of erased chefs on easels, dusty and dim (§15.3's story, without words).
-            foreach (var z in new[] { -1.8f, 0f, 1.8f })
-            {
-                var easel = new GameObject("Portrait").transform;
-                easel.SetParent(room, false);
-                easel.localPosition = new Vector3(11.4f, 0f, z);
-                easel.localRotation = Quaternion.Euler(0f, -90f, 0f);
-                Box(easel, "Leg", Toon("OfficeTrim", WoodDark), new Vector3(0f, 0f, 0.1f), new Vector3(0.06f, 1.4f, 0.06f));
-                Box(easel, "Frame", Toon("OfficeDustyFrame", new Color(0.52f, 0.46f, 0.36f)), new Vector3(0f, 0.7f, 0f), new Vector3(0.8f, 0.9f, 0.06f), collider: true);
-                Box(easel, "Canvas", Toon("OfficeDustyCanvas", new Color(0.42f, 0.40f, 0.38f)), new Vector3(0f, 0.78f, -0.035f), new Vector3(0.62f, 0.7f, 0.01f));
-            }
+            // Portraits of erased chefs, dusty and dim (§15.3's story, without words).
+            foreach (var z in new[] { -3.0f, -1.2f, 0.6f })
+                HangPicture(room, new Vector3(17.5f, PictureHeight, z), Vector3.left, new Color(0.44f, 0.42f, 0.4f));
+            Sofa(room, new Vector3(9f, 0f, -3.7f), 0f, Velvet); // clear of the door from the accountant
+            foreach (var at in new[] { new Vector3(7.2f, 0f, -3.8f), new Vector3(16.8f, 0f, 2.8f) })
+                PottedPlant(room, at, 1.1f);
         }
 
+        // The waiting lounge, 11 × 9 m: for fun and easter eggs later (decision 2026-11-09).
         private static void BuildLounge(Transform rooms)
         {
             var room = Room(rooms, "WaitingLounge");
-            // For fun and easter eggs (decision 2026-11-09): room for characters and objects later.
-            Sofa(room, new Vector3(-8.8f, 0f, -8.2f), 0f, 2.6f);
-            Sofa(room, new Vector3(-11.3f, 0f, -6.0f), 90f, 2.4f);
-            Box(room, "CoffeeTable", Wood("OfficeDeskWood", WoodMid), new Vector3(-9.2f, 0f, -6.3f), new Vector3(1.4f, 0.42f, 0.8f), collider: true);
-            Box(room, "CoffeeTableTop", Toon("OfficeBrass", Brass), new Vector3(-9.2f, 0.42f, -6.3f), new Vector3(1.45f, 0.03f, 0.85f));
+            Sofa(room, new Vector3(-12.4f, 0f, -12.7f), 0f, Velvet);
+            Sofa(room, new Vector3(-16.7f, 0f, -9.2f), 90f, Velvet);
+            Armchair(room, new Vector3(-8.6f, 0f, -8.2f), -90f, Leather);
+            Armchair(room, new Vector3(-8.6f, 0f, -10.2f), -90f, Leather);
+            Block(room, "CoffeeTable", Toon("OfficeWalnut", Walnut), new Vector3(-12.4f, 0f, -9.4f), new Vector3(1.8f, 0.42f, 1.0f), collider: true);
             // The bodyguards' coffee cups (spec §5).
-            foreach (var x in new[] { -9.6f, -9.3f })
-                Shape(room, PrimitiveType.Cylinder, "Cup", Toon("OfficePlate", new Color(0.92f, 0.92f, 0.9f)), new Vector3(x, 0.5f, -6.15f), new Vector3(0.09f, 0.05f, 0.09f));
-            Box(room, "Magazines", Toon("OfficeLedger", Burgundy), new Vector3(-8.8f, 0.45f, -6.4f), new Vector3(0.3f, 0.03f, 0.22f));
-            foreach (var z in new[] { -5.6f, -7.0f })
-                Armchair(room, new Vector3(-6.4f, 0f, z));
-            Box(room, "WaterCooler", Toon("OfficeFridge", new Color(0.88f, 0.88f, 0.86f)), new Vector3(-11.4f, 0f, -3.6f), new Vector3(0.45f, 1.0f, 0.45f), collider: true);
-            Shape(room, PrimitiveType.Cylinder, "WaterBottle", PilotArt.EnsureGlassMaterial("OfficeWater", new Color(0.4f, 0.7f, 0.95f, 0.5f)), new Vector3(-11.4f, 1.2f, -3.6f), new Vector3(0.3f, 0.2f, 0.3f));
-            PottedPlant(room, new Vector3(-4.6f, 0f, -8.4f), 1.3f);
-            Lamp(room, "LoungeLamp", new Vector3(-9.2f, 2.8f, -6.3f), 6f, 1.2f);
+            foreach (var x in new[] { -12.8f, -12.5f })
+                Shape(room, PrimitiveType.Cylinder, "Cup", Toon("OfficeCup", new Color(0.94f, 0.93f, 0.9f)), new Vector3(x, 0.47f, -9.3f), new Vector3(0.1f, 0.05f, 0.1f));
+            Block(room, "Magazines", Toon("OfficeLedger", Burgundy), new Vector3(-11.9f, 0.42f, -9.5f), new Vector3(0.34f, 0.03f, 0.25f));
+            // A coffee corner: the kitchen's bar tables and their stools.
+            Prop(room, "PF_BarTable", new Vector3(-15.6f, 0f, -5.4f), 180f);
+            Prop(room, "PF_BarTable", new Vector3(-14.6f, 0f, -5.4f), 180f);
+            Block(room, "WaterCooler", Toon("OfficeCooler", new Color(0.88f, 0.88f, 0.86f)), new Vector3(-17.0f, 0f, -6.2f), new Vector3(0.45f, 1.0f, 0.45f), collider: true);
+            Shape(room, PrimitiveType.Cylinder, "WaterBottle", PilotArt.EnsureGlassMaterial("OfficeWater", new Color(0.4f, 0.7f, 0.95f, 0.5f)), new Vector3(-17.0f, 1.2f, -6.2f), new Vector3(0.3f, 0.2f, 0.3f));
+            FloorLamp(room, new Vector3(-16.9f, 0f, -12.9f));
+            FloorLamp(room, new Vector3(-8.0f, 0f, -12.9f));
+            foreach (var at in new[] { new Vector3(-7.2f, 0f, -5.2f), new Vector3(-7.2f, 0f, -12.0f) })
+                PottedPlant(room, at, 1.2f);
+            HangPicture(room, new Vector3(-17.5f, PictureHeight, -11.8f), Vector3.right, new Color(0.72f, 0.56f, 0.36f));
+            Lamp(room, "LoungeLamp", new Vector3(-12.4f, 3f, -9.4f), 8f, 1.2f);
         }
 
+        // The accountant, 11 × 9 m: also for fun (decision 2026-11-09); the books stay on the dashboard.
         private static void BuildAccountant(Transform rooms)
         {
             var room = Room(rooms, "Accountant");
-            // For fun and easter eggs too (decision 2026-11-09); the books stay on the dashboard.
-            Box(room, "Desk", Wood("OfficeDeskWood", WoodMid), new Vector3(8.8f, 0f, -6.4f), new Vector3(2.0f, 0.78f, 0.9f), collider: true);
-            Box(room, "AddingMachine", Toon("OfficeSafe", new Color(0.24f, 0.25f, 0.28f)), new Vector3(9.4f, 0.78f, -6.5f), new Vector3(0.36f, 0.14f, 0.3f));
+            var desk = new Vector3(12f, 0f, -9.6f);
+            Model(room, "Desk", OfficeModel, "OfficeDeskBody", Toon("OfficeDeskOak", WoodMid), desk, 180f, scale: 0.85f, collider: new Vector3(2.1f, 0.7f, 0.9f));
+            Model(room, "DeskLeather", OfficeModel, "OfficeDeskLeather", Toon("OfficeLeatherBrown", new Color(0.36f, 0.24f, 0.16f)), desk, 180f, scale: 0.85f);
+            Model(room, "DeskHandles", OfficeModel, "OfficeDeskHandles", Toon("OfficeBrass", Brass), desk, 180f, scale: 0.85f);
+            Block(room, "AddingMachine", Toon("OfficeSafe", new Color(0.24f, 0.25f, 0.28f)), desk + new Vector3(0.5f, 0.65f, 0f), new Vector3(0.36f, 0.14f, 0.3f));
             // A stack of unpaid invoices (spec §5).
+            for (var i = 0; i < 7; i++)
+                Block(room, "Invoice", Toon("OfficePaper", Cream), desk + new Vector3(-0.45f + i * 0.012f, 0.65f + i * 0.025f, 0f), new Vector3(0.34f, 0.02f, 0.26f));
+            OfficeChair(room, desk + new Vector3(0f, 0f, 1.2f), 180f);
+            Person(room, "Accountant", desk + new Vector3(0f, 0f, 0.8f), 180f, new Color(0.40f, 0.38f, 0.30f), new Color(0.25f, 0.24f, 0.2f));
+            foreach (var x in new[] { -0.6f, 0.6f })
+                Model(room, "VisitorChair", "SM_Dining", "DiningChair", Toon("OfficeVisitorChair", WoodMid), desk + new Vector3(x, 0f, -1.4f), 0f, collider: new Vector3(0.45f, 0.9f, 0.45f));
             for (var i = 0; i < 6; i++)
-                Box(room, "Invoice", Toon("OfficePaper", Cream), new Vector3(8.2f + i * 0.01f, 0.78f + i * 0.025f, -6.45f), new Vector3(0.34f, 0.02f, 0.26f));
-            Person(room, "Accountant", new Vector3(8.8f, 0f, -5.6f), 180f, new Color(0.40f, 0.38f, 0.30f), 0.95f);
-            Box(room, "VisitorChair", Toon("OfficeGuestChair", new Color(0.55f, 0.17f, 0.17f)), new Vector3(8.8f, 0f, -7.6f), new Vector3(0.6f, 0.45f, 0.6f), collider: true);
-            for (var i = 0; i < 4; i++)
             {
-                Box(room, "FilingCabinet", Toon("OfficeCabinetGrey", new Color(0.46f, 0.46f, 0.42f)), new Vector3(9.6f + i * 0.6f, 0f, -3.45f), new Vector3(0.55f, 1.3f, 0.6f), collider: true);
-                Box(room, "Drawer", Toon("OfficeBrass", Brass), new Vector3(9.6f + i * 0.6f, 0.9f, -3.76f), new Vector3(0.2f, 0.04f, 0.02f));
+                var at = new Vector3(17.1f, 0f, -12.6f + i * 0.6f);
+                Model(room, "FilingCabinet", OfficeModel, "OfficeFilingBody", Toon("OfficeFiling", new Color(0.48f, 0.48f, 0.44f)), at, -90f, collider: new Vector3(0.55f, 1.32f, 0.62f));
+                Model(room, "FilingHandles", OfficeModel, "OfficeFilingHandles", Toon("OfficeBrass", Brass), at, -90f);
             }
-            PottedPlant(room, new Vector3(11.4f, 0f, -8.4f), 1.1f);
+            Prop(room, "PF_Shelf", new Vector3(8.0f, 0f, -5.1f), 0f);
+            FloorLamp(room, new Vector3(7.2f, 0f, -12.9f));
+            foreach (var at in new[] { new Vector3(16.8f, 0f, -5.2f), new Vector3(9.6f, 0f, -12.9f) })
+                PottedPlant(room, at, 1.1f);
+            HangPicture(room, new Vector3(6.5f, PictureHeight, -11.4f), Vector3.right, new Color(0.56f, 0.66f, 0.5f));
         }
 
+        // The terrace, 35 × 6 m: loungers, an outdoor bar, trees and lamps from the city, the helipad.
         private static void BuildTerrace(Transform rooms)
         {
             var room = Room(rooms, "Terrace");
             var cushion = Toon("OfficeCushion", new Color(0.45f, 0.55f, 0.75f));
-            foreach (var x in new[] { -10.6f, -9.2f, -7.8f })
+            var teak = Toon("OfficeTeak", new Color(0.55f, 0.38f, 0.24f));
+            foreach (var x in new[] { -16.2f, -14.8f, -13.4f })
             {
-                Box(room, "Lounger", Toon("OfficeTrim", WoodDark), new Vector3(x, 0f, 12.6f), new Vector3(0.75f, 0.3f, 1.8f), collider: true);
-                Box(room, "Cushion", cushion, new Vector3(x, 0.3f, 12.4f), new Vector3(0.68f, 0.1f, 1.4f));
-                var back = Box(room, "Back", cushion, new Vector3(x, 0.3f, 13.3f), new Vector3(0.68f, 0.5f, 0.12f));
-                back.transform.localRotation = Quaternion.Euler(-30f, 0f, 0f);
+                Model(room, "Lounger", OfficeModel, "OfficeLoungerFrame", teak, new Vector3(x, 0f, 17.6f), 180f, collider: new Vector3(0.72f, 0.4f, 1.9f));
+                Model(room, "LoungerCushion", OfficeModel, "OfficeLoungerCushion", cushion, new Vector3(x, 0f, 17.6f), 180f);
             }
-            Shape(room, PrimitiveType.Cylinder, "UmbrellaPole", Toon("OfficeTrim", WoodDark), new Vector3(-6.4f, 1.1f, 12.2f), new Vector3(0.06f, 1.1f, 0.06f));
-            Shape(room, PrimitiveType.Cylinder, "UmbrellaCanopy", Toon("OfficeUmbrella", new Color(0.16f, 0.34f, 0.28f)), new Vector3(-6.4f, 2.25f, 12.2f), new Vector3(2.6f, 0.08f, 2.6f));
-            foreach (var x in new[] { -3f, 0f, 3f })
-                Conifer(room, new Vector3(x, 0f, 13.4f));
+            Model(room, "UmbrellaPole", OfficeModel, "OfficeUmbrellaPole", teak, new Vector3(-11.4f, 0f, 16.6f), 0f);
+            Model(room, "UmbrellaCanopy", OfficeModel, "OfficeUmbrellaCanopy", Toon("OfficeUmbrella", new Color(0.18f, 0.40f, 0.32f)), new Vector3(-11.4f, 0f, 16.6f), 22.5f);
+            for (var i = 0; i < 3; i++)
+                Prop(room, "PF_BarTable", new Vector3(1f + i, 0f, 16.4f), 180f);
+            foreach (var x in new[] { -8f, -2f, 5f })
+                Tree(room, new Vector3(x, 0f, 18.9f));
+            foreach (var x in new[] { -9.8f, -0.5f, 7.6f })
+                StreetLamp(room, new Vector3(x, 0f, 14.2f));
 
-            // The helipad, with the boss's helicopter tied down on it (the ending takes it away).
-            var pad = new Vector3(7.6f, 0f, 11.5f);
-            Shape(room, PrimitiveType.Cylinder, "Helipad", Toon("OfficeHelipad", new Color(0.22f, 0.23f, 0.27f)), pad + Vector3.up * 0.02f, new Vector3(4.4f, 0.02f, 4.4f));
-            Shape(room, PrimitiveType.Cylinder, "HelipadRing", Toon("OfficeHelipadPaint", new Color(0.95f, 0.78f, 0.28f)), pad + Vector3.up * 0.015f, new Vector3(4.6f, 0.015f, 4.6f));
+            // The helipad, with the boss's helicopter on it (the ending takes it away).
+            var pad = new Vector3(12.6f, 0f, 16.5f);
             var paint = Toon("OfficeHelipadPaint", new Color(0.95f, 0.78f, 0.28f));
-            Box(room, "H_Left", paint, pad + new Vector3(-0.5f, 0.045f, 0f), new Vector3(0.2f, 0.01f, 1.4f));
-            Box(room, "H_Right", paint, pad + new Vector3(0.5f, 0.045f, 0f), new Vector3(0.2f, 0.01f, 1.4f));
-            Box(room, "H_Bar", paint, pad + new Vector3(0f, 0.045f, 0f), new Vector3(1.0f, 0.01f, 0.2f));
+            Shape(room, PrimitiveType.Cylinder, "HelipadRing", paint, pad + Vector3.up * 0.012f, new Vector3(5.6f, 0.012f, 5.6f));
+            Shape(room, PrimitiveType.Cylinder, "Helipad", Toon("OfficeHelipad", new Color(0.24f, 0.25f, 0.29f)), pad + Vector3.up * 0.02f, new Vector3(5.3f, 0.02f, 5.3f));
+            Cube(room, "H_Left", paint, pad + new Vector3(-0.6f, 0.04f, 0f), new Vector3(0.24f, 0.01f, 1.7f));
+            Cube(room, "H_Right", paint, pad + new Vector3(0.6f, 0.04f, 0f), new Vector3(0.24f, 0.01f, 1.7f));
+            Cube(room, "H_Bar", paint, pad + new Vector3(0f, 0.04f, 0f), new Vector3(1.2f, 0.01f, 0.24f));
             var heli = new GameObject("Helicopter").transform;
             heli.SetParent(room, false);
-            heli.localPosition = pad + new Vector3(0.3f, 0f, 0.4f);
-            heli.localRotation = Quaternion.Euler(0f, -20f, 0f);
-            var body = Toon("OfficeHeli", new Color(0.18f, 0.20f, 0.24f));
-            Shape(heli, PrimitiveType.Capsule, "Body", body, new Vector3(0f, 0.9f, 0f), new Vector3(1.1f, 1.0f, 1.1f), Quaternion.Euler(0f, 0f, 90f), collider: true);
-            Shape(heli, PrimitiveType.Sphere, "Canopy", PilotArt.EnsureGlassMaterial("OfficeHeliGlass", new Color(0.5f, 0.7f, 0.9f, 0.6f)), new Vector3(-0.7f, 1.05f, 0f), new Vector3(0.8f, 0.7f, 0.85f));
-            Box(heli, "Tail", body, new Vector3(1.9f, 1.0f, 0f), new Vector3(2.2f, 0.18f, 0.18f));
-            Box(heli, "TailFin", Toon("OfficeBrass", Brass), new Vector3(2.95f, 1.0f, 0f), new Vector3(0.3f, 0.5f, 0.06f));
-            foreach (var z in new[] { -0.45f, 0.45f })
-                Box(heli, "Skid", Toon("OfficeBrass", Brass), new Vector3(0f, 0f, z), new Vector3(2.0f, 0.06f, 0.08f));
-            Box(heli, "RotorA", Toon("OfficeInk", Ink), new Vector3(0f, 1.62f, 0f), new Vector3(4.2f, 0.04f, 0.18f));
-            Box(heli, "RotorB", Toon("OfficeInk", Ink), new Vector3(0f, 1.62f, 0f), new Vector3(0.18f, 0.04f, 4.2f));
+            heli.localPosition = pad + new Vector3(0.2f, 0.04f, 0f);
+            heli.localRotation = Quaternion.Euler(0f, 110f, 0f);
+            heli.localScale = Vector3.one * 0.85f;
+            Model(heli, "Body", OfficeModel, "OfficeHeliBody", Toon("OfficeHeli", new Color(0.16f, 0.18f, 0.24f)), Vector3.zero, 0f, collider: new Vector3(1.7f, 2f, 2.6f));
+            Model(heli, "Glass", OfficeModel, "OfficeHeliGlass", PilotArt.EnsureGlassMaterial("OfficeHeliGlass", new Color(0.55f, 0.75f, 0.92f, 0.7f)), Vector3.zero, 0f);
+            Model(heli, "Skids", OfficeModel, "OfficeHeliSkids", Toon("OfficeBrass", Brass), Vector3.zero, 0f);
+            Model(heli, "Rotor", OfficeModel, "OfficeHeliRotor", Toon("OfficeInk", Ink), Vector3.zero, 25f);
         }
 
         // ---- The city below -----------------------------------------------------------------------
 
-        // The boss's tower under the floor, and the city around and below it, so no void shows at
-        // any framing (art bible). Windows face the camera (south) only.
+        // The boss's tower under the floor, and the city around and below it in the night city's
+        // own models, so no void shows at any framing (art bible).
         private static void BuildCity()
         {
             var city = new GameObject("City").transform;
             var lit = Unlit("OfficeWindowLit", WindowLit);
             var darkWindow = Unlit("OfficeWindowDark", WindowDark);
+            var trim = Toon("CityWindowTrim", new Color(0.8f, 0.74f, 0.64f));
+            const float depthBelow = 160f;
 
             var tower = new GameObject("BossTower").transform;
             tower.SetParent(city, false);
-            const float towerHeight = 160f;
-            Box(tower, "Body", Toon("OfficeFacade", Facade), new Vector3(0f, -towerHeight, 2.5f), new Vector3(25.2f, towerHeight - 0.8f, 24.2f));
-            Box(tower, "Cornice", Toon("OfficeBrass", Brass), new Vector3(0f, -1.2f, 2.5f), new Vector3(25.6f, 0.4f, 24.6f));
-            Box(tower, "CorniceDark", Toon("OfficeTrim", WoodDark), new Vector3(0f, -0.8f, 2.5f), new Vector3(25.4f, 0.4f, 24.4f));
-            for (var y = -4f; y > -32f; y -= 3.2f) // the rows the camera can see; the rest is dark façade
-            for (var x = -11f; x <= 11f; x += 2.2f)
-                Shape(tower, PrimitiveType.Quad, "Window", _random.NextDouble() < 0.45 ? lit : darkWindow,
-                    new Vector3(x, y, -9.63f), new Vector3(1.2f, 1.8f, 1f), Quaternion.identity);
+            var width = East - West + 0.6f;
+            var depth = TerraceNorth - South + 0.6f;
+            var middle = (South + TerraceNorth) / 2f;
+            Cube(tower, "Body", Toon("OfficeFacade", Facade), new Vector3(0f, -depthBelow, middle), new Vector3(width, depthBelow - 0.8f, depth));
+            Block(tower, "Cornice", Toon("OfficeBrass", Brass), new Vector3(0f, -1.3f, middle), new Vector3(width + 0.5f, 0.5f, depth + 0.5f));
+            Block(tower, "CorniceDark", Toon("OfficeWalnut", Walnut), new Vector3(0f, -0.8f, middle), new Vector3(width + 0.3f, 0.4f, depth + 0.3f));
+            var front = South - 0.32f;
+            for (var y = -4f; y > -34f; y -= 3.2f)
+            for (var x = West + 1.4f; x < East - 1f; x += 2.4f)
+            {
+                Shape(tower, PrimitiveType.Quad, "Window", _random.NextDouble() < 0.45 ? lit : darkWindow, new Vector3(x, y, front - 0.02f), new Vector3(1.2f, 1.8f, 1f), Quaternion.identity);
+                if (y > -14f)
+                    Model(tower, "Frame", CityModel, "CityWindowFrame", trim, new Vector3(x, y, front), 0f);
+            }
 
-            // Neighbouring towers: their roofs well below this one in front and to the sides, and
-            // taller ones far behind, for a skyline at the top of the frame.
+            // Neighbouring towers, in the menu's city models: roofs well below this one in front
+            // and to the sides, taller ones far behind for a skyline at the top of the frame.
             var others = new GameObject("Towers").transform;
             others.SetParent(city, false);
             for (var i = 0; i < 50; i++)
             {
                 var angle = (float)_random.NextDouble() * Mathf.PI * 2f;
-                var distance = 26f + (float)_random.NextDouble() * 70f;
-                var at = new Vector3(Mathf.Cos(angle) * distance, 0f, 2.5f + Mathf.Sin(angle) * distance);
-                var behind = at.z > 40f;
+                var distance = 34f + (float)_random.NextDouble() * 70f;
+                var at = new Vector3(Mathf.Cos(angle) * distance, 0f, middle + Mathf.Sin(angle) * distance);
+                var behind = at.z > 50f;
                 var top = behind ? -25f + (float)_random.NextDouble() * 55f : -50f + (float)_random.NextDouble() * 38f;
-                var width = 8f + (float)_random.NextDouble() * 10f;
-                var depth = 8f + (float)_random.NextDouble() * 10f;
-                var colour = TowerColors[_random.Next(TowerColors.Length)];
+                var w = 9f + (float)_random.NextDouble() * 10f;
+                var d = 9f + (float)_random.NextDouble() * 10f;
+                var c = _random.Next(TowerColors.Length);
                 var building = new GameObject("Tower").transform;
                 building.SetParent(others, false);
-                building.localPosition = at;
-                Box(building, "Body", Toon($"OfficeTower{System.Array.IndexOf(TowerColors, colour)}", colour), new Vector3(0f, -towerHeight, 0f), new Vector3(width, top + towerHeight, depth));
-                Box(building, "Roof", Toon("OfficeRoof", new Color(0.12f, 0.12f, 0.18f)), new Vector3(0f, top, 0f), new Vector3(width + 0.4f, 0.4f, depth + 0.4f));
-                for (var y = top - 2.5f; y > top - 16f; y -= 3.2f)
-                for (var x = -width / 2f + 1.2f; x < width / 2f - 0.8f; x += 2.2f)
+                building.localPosition = at + Vector3.up * -depthBelow;
+                var height = top + depthBelow;
+                Model(building, "Body", CityModel, "CityBlock", Toon($"OfficeTower{c}", TowerColors[c]), Vector3.zero, 0f, scale3: new Vector3(w, height, d));
+                Model(building, "Cornice", CityModel, "CityCornice", Toon("OfficeTowerRoof", new Color(0.14f, 0.13f, 0.18f)), new Vector3(0f, height, 0f), 0f, scale3: new Vector3(w + 0.5f, 1f, d + 0.5f));
+                if (_random.NextDouble() < 0.3)
+                    WaterTower(building, new Vector3(w * 0.2f, height + 0.35f, d * 0.1f));
+                for (var y = height - 2.5f; y > height - 16f; y -= 3.2f)
+                for (var x = -w / 2f + 1.2f; x < w / 2f - 0.8f; x += 2.2f)
                     Shape(building, PrimitiveType.Quad, "Window", _random.NextDouble() < 0.35 ? lit : darkWindow,
-                        new Vector3(x + 0.4f, y, -depth / 2f - 0.02f), new Vector3(1.1f, 1.6f, 1f), Quaternion.identity);
+                        new Vector3(x + 0.4f, y, -d / 2f - 0.02f), new Vector3(1.1f, 1.6f, 1f), Quaternion.identity);
             }
         }
 
-        // ---- Props ---------------------------------------------------------------------------------
+        private static void WaterTower(Transform building, Vector3 at)
+        {
+            var iron = Toon("CityTowerIron", new Color(0.15f, 0.13f, 0.16f));
+            Model(building, "TowerLegs", CityModel, "CityTowerLegs", iron, at, 0f);
+            Model(building, "TowerTank", CityModel, "CityTowerTank", Toon("CityTowerWood", new Color(0.45f, 0.3f, 0.2f)), at, 0f);
+            Model(building, "TowerRoof", CityModel, "CityTowerRoof", iron, at, 0f);
+        }
 
-        private static void Person(Transform parent, string name, Vector3 at, float facing, Color clothes, float scale)
+        // ---- People -------------------------------------------------------------------------------
+
+        // A person made of the chef's model, so everyone on the floor belongs with the players:
+        // the jacket in `top`, trousers in `bottom`, no toque, apron or neckerchief.
+        private static Transform Person(Transform parent, string name, Vector3 at, float facing, Color top, Color bottom, float scale = 1f)
         {
             var person = new GameObject(name).transform;
             person.SetParent(parent, false);
             person.localPosition = at;
             person.localRotation = Quaternion.Euler(0f, facing, 0f);
             person.localScale = Vector3.one * scale;
-            // The chef's proportions (0.7 × 1.7 m), so everyone reads at the same size.
-            Shape(person, PrimitiveType.Capsule, "Body", Toon($"OfficeClothes_{name}", clothes), new Vector3(0f, 0.75f, 0f), new Vector3(0.7f, 0.75f, 0.7f), collider: true);
-            Shape(person, PrimitiveType.Sphere, "Head", Toon("OfficeSkin", Skin), new Vector3(0f, 1.62f, 0f), Vector3.one * 0.5f);
-            Box(person, "Nose", Toon("OfficeSkin", Skin), new Vector3(0f, 1.58f, 0.25f), new Vector3(0.1f, 0.1f, 0.1f));
+            var jacket = Toon($"OfficeJacket_{name}", top);
+            Model(person, "Legs", ChefModel, "ChefLegs", Toon($"OfficeTrousers_{name}", bottom), Vector3.zero, 0f);
+            Model(person, "Skirt", ChefModel, "ChefSkirt", jacket, Vector3.zero, 0f);
+            var waist = new Vector3(0f, ChefWaist, 0f);
+            Model(person, "Torso", ChefModel, "ChefTorso", jacket, waist, 0f);
+            Model(person, "Head", ChefModel, "ChefHead", Toon("OfficeSkin", Skin), waist, 0f);
+            Model(person, "Face", ChefModel, "ChefFace", Toon("OfficeFace", Face), waist, 0f);
+            foreach (var side in new[] { -1f, 1f })
+            {
+                var shoulder = waist + new Vector3(side * ChefShoulderWidth, ChefShoulderHeight, 0f);
+                Model(person, "Arm", ChefModel, "ChefArm", jacket, shoulder, 0f);
+                Model(person, "Hand", ChefModel, "ChefHand", Toon("OfficeSkin", Skin), shoulder, 0f);
+            }
+            var body = person.gameObject.AddComponent<CapsuleCollider>();
+            body.center = new Vector3(0f, 0.85f, 0f);
+            body.height = 1.7f;
+            body.radius = 0.32f;
+            return person;
         }
 
         private static void Bodyguard(Transform parent, string name, Vector3 at)
         {
-            Person(parent, name, at, 180f, Suit, 1.12f);
-            var guard = parent.Find(name);
-            Box(guard, "Sunglasses", Toon("OfficeInk", Ink), new Vector3(0f, 1.62f, 0.2f), new Vector3(0.4f, 0.08f, 0.12f));
-            Box(guard, "Tie", Toon("OfficeBellRed", new Color(0.8f, 0.2f, 0.18f)), new Vector3(0f, 1.05f, 0.34f), new Vector3(0.1f, 0.4f, 0.04f));
+            var guard = Person(parent, name, at, 180f, Suit, Suit, 1.12f);
+            var waist = new Vector3(0f, ChefWaist, 0f);
+            Block(guard, "Sunglasses", Toon("OfficeInk", Ink), waist + new Vector3(0f, 0.665f, 0.17f), new Vector3(0.3f, 0.06f, 0.06f));
+            Block(guard, "Tie", Toon("OfficeBellRed", new Color(0.8f, 0.2f, 0.18f)), waist + new Vector3(0f, 0.12f, 0.28f), new Vector3(0.08f, 0.32f, 0.03f));
         }
 
-        // The boss: a big man in a camel suit and a white cowboy hat, at his desk.
+        // The boss: a big man in a camel suit, bolo tie and white cowboy hat, behind his desk.
         private static void Boss(Transform parent, Vector3 at)
         {
-            Person(parent, "Boss", at, 180f, new Color(0.72f, 0.52f, 0.30f), 1.25f);
-            var boss = parent.Find("Boss");
+            var boss = Person(parent, "Boss", at, 180f, new Color(0.72f, 0.52f, 0.30f), new Color(0.42f, 0.30f, 0.2f), 1.22f);
+            var waist = new Vector3(0f, ChefWaist, 0f);
             var hat = Toon("OfficeHat", Cream);
-            Shape(boss, PrimitiveType.Cylinder, "HatBrim", hat, new Vector3(0f, 1.82f, 0f), new Vector3(0.85f, 0.02f, 0.85f));
-            Shape(boss, PrimitiveType.Cylinder, "HatCrown", hat, new Vector3(0f, 1.95f, 0f), new Vector3(0.42f, 0.13f, 0.42f));
-            Box(boss, "HatBand", Toon("OfficeTrim", WoodDark), new Vector3(0f, 1.86f, 0f), new Vector3(0.44f, 0.05f, 0.44f));
-            Box(boss, "Bolo", Toon("OfficeBrass", Brass), new Vector3(0f, 1.2f, 0.36f), new Vector3(0.12f, 0.12f, 0.04f));
+            Model(boss, "HatBrim", OfficeModel, "OfficeHatBrim", hat, waist, 0f);
+            Model(boss, "HatCrown", OfficeModel, "OfficeHatCrown", hat, waist, 0f);
+            Model(boss, "HatBand", OfficeModel, "OfficeHatBand", Toon("OfficeWalnut", Walnut), waist, 0f);
+            Block(boss, "Bolo", Toon("OfficeBrass", Brass), waist + new Vector3(0f, 0.36f, 0.27f), new Vector3(0.08f, 0.08f, 0.03f));
+        }
+
+        // The tailor's mannequin: the chef's own jacket on a stand, a size too big.
+        private static void Mannequin(Transform parent, Vector3 at)
+        {
+            var dummy = new GameObject("Mannequin").transform;
+            dummy.SetParent(parent, false);
+            dummy.localPosition = at;
+            dummy.localRotation = Quaternion.Euler(0f, 200f, 0f);
+            var white = Toon("ChefJacket", new Color(0.97f, 0.97f, 0.95f));
+            Shape(dummy, PrimitiveType.Cylinder, "Stand", Toon("OfficeWalnut", Walnut), new Vector3(0f, 0.45f, 0f), new Vector3(0.06f, 0.45f, 0.06f));
+            Shape(dummy, PrimitiveType.Cylinder, "Foot", Toon("OfficeWalnut", Walnut), new Vector3(0f, 0.02f, 0f), new Vector3(0.5f, 0.02f, 0.5f));
+            Model(dummy, "Torso", ChefModel, "ChefTorso", white, new Vector3(0f, ChefWaist, 0f), 0f, scale: 1.18f);
+            Model(dummy, "Skirt", ChefModel, "ChefSkirt", white, new Vector3(0f, -0.1f, 0f), 0f, scale: 1.18f);
+            var collider = dummy.gameObject.AddComponent<CapsuleCollider>();
+            collider.center = new Vector3(0f, 0.85f, 0f);
+            collider.height = 1.7f;
+            collider.radius = 0.32f;
+        }
+
+        // ---- Furniture ----------------------------------------------------------------------------
+
+        private static void Sofa(Transform parent, Vector3 at, float facing, Color fabric)
+        {
+            var key = ColorUtility.ToHtmlStringRGB(fabric);
+            Model(parent, "Sofa", OfficeModel, "OfficeSofaFrame", Toon($"OfficeSofa_{key}", fabric), at, facing, collider: new Vector3(2.1f, 0.8f, 0.9f));
+            Model(parent, "SofaCushions", OfficeModel, "OfficeSofaCushions", Toon($"OfficeCushion_{key}", Color.Lerp(fabric, Cream, 0.15f)), at, facing);
+        }
+
+        private static void Armchair(Transform parent, Vector3 at, float facing, Color fabric)
+        {
+            var key = ColorUtility.ToHtmlStringRGB(fabric);
+            Model(parent, "Armchair", OfficeModel, "OfficeArmchairFrame", Toon($"OfficeSofa_{key}", fabric), at, facing, collider: new Vector3(0.95f, 0.8f, 0.88f));
+            Model(parent, "ArmchairCushion", OfficeModel, "OfficeArmchairCushion", Toon($"OfficeCushion_{key}", Color.Lerp(fabric, Cream, 0.15f)), at, facing);
+        }
+
+        private static void OfficeChair(Transform parent, Vector3 at, float facing)
+        {
+            Model(parent, "OfficeChair", OfficeModel, "OfficeChairSeat", Toon("OfficeChairLeather", new Color(0.32f, 0.12f, 0.12f)), at, facing, collider: new Vector3(0.66f, 1.4f, 0.66f));
+            Model(parent, "OfficeChairBase", OfficeModel, "OfficeChairBase", Toon("OfficeChrome", new Color(0.55f, 0.56f, 0.6f)), at, facing);
         }
 
         private static void PottedPlant(Transform parent, Vector3 at, float scale)
         {
-            var plant = new GameObject("Plant").transform;
-            plant.SetParent(parent, false);
-            plant.localPosition = at;
-            plant.localScale = Vector3.one * scale;
-            Shape(plant, PrimitiveType.Cylinder, "Pot", Toon("OfficePot", Pot), new Vector3(0f, 0.25f, 0f), new Vector3(0.5f, 0.25f, 0.5f), collider: true);
-            Shape(plant, PrimitiveType.Sphere, "Leaves", Toon("OfficePlant", Plant), new Vector3(0f, 0.85f, 0f), new Vector3(0.85f, 0.8f, 0.85f));
+            Model(parent, "PlantPot", OfficeModel, "OfficePlantPot", Toon("OfficePot", Terracotta), at, 0f, scale: scale, collider: new Vector3(0.5f, 0.5f, 0.5f));
+            Model(parent, "PlantLeaves", OfficeModel, "OfficePlantLeaves", Toon("OfficePlant", Plant), at, (float)_random.NextDouble() * 360f, scale: scale);
         }
 
-        private static void Conifer(Transform parent, Vector3 at)
+        private static void FloorLamp(Transform parent, Vector3 at)
         {
-            var tree = new GameObject("Conifer").transform;
-            tree.SetParent(parent, false);
-            tree.localPosition = at;
-            Box(tree, "Planter", Toon("OfficeTrim", WoodDark), Vector3.zero, new Vector3(0.7f, 0.5f, 0.7f), collider: true);
-            for (var i = 0; i < 3; i++)
-                Shape(tree, PrimitiveType.Cylinder, "Tier", Toon("OfficeConifer", new Color(0.13f, 0.28f, 0.22f)), new Vector3(0f, 0.8f + i * 0.45f, 0f),
-                    new Vector3(0.8f - i * 0.22f, 0.25f, 0.8f - i * 0.22f));
+            Model(parent, "LampStand", OfficeModel, "OfficeLampStand", Toon("OfficeBrass", Brass), at, 0f, collider: new Vector3(0.36f, 1.6f, 0.36f));
+            Model(parent, "LampShade", OfficeModel, "OfficeLampShade", Unlit("OfficeLampGlow", new Color(1f, 0.86f, 0.55f)), at, 0f);
         }
 
-        private static void Counter(Transform parent, string name, Vector3 at, Vector3 size)
+        private static void Bookcase(Transform parent, Vector3 at, float facing)
         {
-            Box(parent, name, Toon("OfficeCabinet", WoodMid), at, size, collider: true);
-            Box(parent, name + "Top", Toon("OfficeCounterTop", Cream), at + Vector3.up * size.y, new Vector3(size.x + 0.06f, 0.05f, size.z + 0.06f));
+            var bookcase = new GameObject("Bookcase").transform;
+            bookcase.SetParent(parent, false);
+            bookcase.localPosition = at;
+            bookcase.localRotation = Quaternion.Euler(0f, facing, 0f);
+            Block(bookcase, "Case", Toon("OfficeWalnut", Walnut), Vector3.zero, new Vector3(1.8f, 1.7f, 0.45f), collider: true);
+            var colours = new[] { Burgundy, Leather, new Color(0.32f, 0.42f, 0.55f), Cream, new Color(0.55f, 0.36f, 0.22f) };
+            foreach (var y in new[] { 0.12f, 0.66f, 1.2f })
+                for (var x = -0.8f; x < 0.78f; x += 0.11f)
+                {
+                    var c = _random.Next(colours.Length);
+                    Block(bookcase, "Book", Toon($"OfficeBook{c}", colours[c]), new Vector3(x + 0.05f, y, 0.06f), new Vector3(0.08f, 0.34f + (float)_random.NextDouble() * 0.1f, 0.34f));
+                }
         }
 
         private static void Mirror(Transform parent, Vector3 at, float facing)
@@ -827,43 +930,86 @@ namespace Game.Editor
             mirror.SetParent(parent, false);
             mirror.localPosition = at;
             mirror.localRotation = Quaternion.Euler(0f, facing, 0f);
-            Box(mirror, "Frame", Toon("OfficeBrass", Brass), Vector3.zero, new Vector3(1.0f, 2.0f, 0.08f), collider: true);
-            Box(mirror, "Glass", Unlit("OfficeMirror", new Color(0.72f, 0.82f, 0.88f)), new Vector3(0f, 0.08f, 0.045f), new Vector3(0.86f, 1.84f, 0.01f));
+            Block(mirror, "Frame", Toon("OfficeBrass", Brass), Vector3.zero, new Vector3(1.1f, 2.1f, 0.1f), collider: true);
+            Cube(mirror, "Glass", Unlit("OfficeMirror", new Color(0.74f, 0.84f, 0.9f)), new Vector3(0f, 0.1f, 0.055f), new Vector3(0.92f, 1.88f, 0.01f));
         }
 
-        private static void Sofa(Transform parent, Vector3 at, float facing, float length)
+        private static void HangPicture(Transform parent, Vector3 at, Vector3 facing, Color canvas)
         {
-            var sofa = new GameObject("Sofa").transform;
-            sofa.SetParent(parent, false);
-            sofa.localPosition = at;
-            sofa.localRotation = Quaternion.Euler(0f, facing, 0f);
-            var fabric = Toon("OfficeSofa", new Color(0.55f, 0.18f, 0.16f));
-            Box(sofa, "Seat", fabric, Vector3.zero, new Vector3(length, 0.45f, 0.85f), collider: true);
-            Box(sofa, "Back", fabric, new Vector3(0f, 0.45f, -0.33f), new Vector3(length, 0.45f, 0.2f));
-            foreach (var side in new[] { -1f, 1f })
-                Box(sofa, "Arm", fabric, new Vector3(side * (length / 2f - 0.1f), 0.45f, 0f), new Vector3(0.2f, 0.2f, 0.85f));
+            // On the wall's face, not its middle.
+            DiningArt.HangPicture(parent, $"Picture_{ColorUtility.ToHtmlStringRGB(canvas)}", at + facing * (WallThickness / 2f), facing, canvas);
         }
 
-        private static void Armchair(Transform parent, Vector3 at)
+        // A tree in a walnut planter, in the night city's tree model.
+        private static void Tree(Transform parent, Vector3 at)
         {
-            var chair = new GameObject("Armchair").transform;
-            chair.SetParent(parent, false);
-            chair.localPosition = at;
-            chair.localRotation = Quaternion.Euler(0f, -90f, 0f);
-            var leather = Toon("OfficeArmchair", new Color(0.40f, 0.24f, 0.14f));
-            Box(chair, "Seat", leather, Vector3.zero, new Vector3(0.85f, 0.45f, 0.8f), collider: true);
-            Box(chair, "Back", leather, new Vector3(0f, 0.45f, -0.3f), new Vector3(0.85f, 0.5f, 0.2f));
+            Block(parent, "Planter", Toon("OfficeWalnut", Walnut), at, new Vector3(0.9f, 0.6f, 0.9f), collider: true);
+            Model(parent, "TreeTrunk", CityModel, "CityTreeTrunk", Toon("CityTreeTrunk", new Color(0.32f, 0.22f, 0.15f)), at + Vector3.up * 0.5f, 0f, scale: 0.55f);
+            Model(parent, "TreeCrown", CityModel, "CityTreeCrown", Toon("CityTreeCrown", new Color(0.2f, 0.36f, 0.26f)), at + Vector3.up * 0.5f, 0f, scale: 0.55f);
         }
 
-        private static void BookRow(Transform parent, Vector3 at, float length)
+        private static void StreetLamp(Transform parent, Vector3 at)
         {
-            var colours = new[] { Burgundy, Leather, new Color(0.32f, 0.42f, 0.55f), Cream, new Color(0.55f, 0.36f, 0.22f) };
-            foreach (var y in new[] { 0.25f, 0.8f, 1.3f })
-                for (var z = -length / 2f; z < length / 2f - 0.1f; z += 0.16f)
-                {
-                    var c = _random.Next(colours.Length);
-                    Box(parent, "Book", Toon($"OfficeBook{c}", colours[c]), at + new Vector3(0f, y, z + 0.08f), new Vector3(0.05f, 0.3f + (float)_random.NextDouble() * 0.08f, 0.13f));
-                }
+            Model(parent, "LampPost", CityModel, "CityLampPost", Toon("CityLampIron", new Color(0.12f, 0.16f, 0.14f)), at, 0f, scale: 0.7f, collider: new Vector3(0.3f, 4f, 0.3f));
+            Model(parent, "LampGlass", CityModel, "CityLampGlass", Unlit("OfficeLampGlow", new Color(1f, 0.86f, 0.55f)), at, 0f, scale: 0.7f);
+        }
+
+        // The city on the miniature table: the night city's blocks at about 1/60, with streets,
+        // a few lit windows, and the grill's pin (restaurants as pins come in Phase 6).
+        private static void Miniature(Transform parent, Vector3 ground, Vector2 size)
+        {
+            var city = new GameObject("MiniatureCity").transform;
+            city.SetParent(parent, false);
+            const float step = 0.34f;
+            var lit = Unlit("OfficeMiniLit", WindowLit);
+            var columns = Mathf.FloorToInt(size.x / step);
+            var rows = Mathf.FloorToInt(size.y / step);
+            for (var i = 0; i < columns; i++)
+            for (var j = 0; j < rows; j++)
+            {
+                if (i % 4 == 3 || j % 3 == 2)
+                    continue; // streets
+                var x = -size.x / 2f + step * (i + 0.5f);
+                var z = -size.y / 2f + step * (j + 0.5f);
+                var height = 0.05f + (float)_random.NextDouble() * (_random.NextDouble() < 0.15 ? 0.5f : 0.22f);
+                var c = _random.Next(TowerColors.Length);
+                var at = ground + new Vector3(x, 0f, z);
+                Model(city, "Block", CityModel, "CityBlock", Toon($"OfficeTower{c}", TowerColors[c]), at, 0f, scale3: new Vector3(0.26f, height, 0.26f));
+                if (_random.NextDouble() < 0.3)
+                    Cube(city, "Lit", lit, at + new Vector3(0f, height * 0.45f, -0.132f), new Vector3(0.12f, height * 0.35f, 0.004f));
+            }
+            var pin = ground + new Vector3(-1.2f, 0f, -0.7f);
+            Shape(city, PrimitiveType.Cylinder, "GrillPin", Toon("OfficeBellRed", new Color(0.8f, 0.2f, 0.18f)), pin + Vector3.up * 0.25f, new Vector3(0.04f, 0.25f, 0.04f));
+            Shape(city, PrimitiveType.Sphere, "GrillPinHead", Toon("OfficeBellRed", new Color(0.8f, 0.2f, 0.18f)), pin + Vector3.up * 0.52f, Vector3.one * 0.14f);
+        }
+
+        // A copy of one of the kitchen's furniture prefabs, visual only: unpacked and stripped of
+        // its scripts (they need the kitchen's systems), keeping meshes and colliders, and without
+        // the plates laid on tables. `keep: "Body"` also drops its chairs.
+        private static GameObject Prop(Transform parent, string prefabName, Vector3 at, float facing, string keep = null)
+        {
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>($"{PrefabsFolder}/Furniture/{prefabName}.prefab");
+            if (prefab == null)
+            {
+                Debug.LogWarning($"[OfficeBuilder] No {prefabName}: run Tools/Game/Build Greybox Kitchen.");
+                return null;
+            }
+            var copy = (GameObject)PrefabUtility.InstantiatePrefab(prefab, parent);
+            PrefabUtility.UnpackPrefabInstance(copy, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
+            copy.name = prefabName.Replace("PF_", "");
+            // Scripts may require each other: remove until none are left.
+            for (var pass = 0; pass < 4; pass++)
+                foreach (var script in copy.GetComponentsInChildren<MonoBehaviour>(true))
+                    if (script != null)
+                        Object.DestroyImmediate(script);
+            foreach (var child in new List<Transform>(copy.GetComponentsInChildren<Transform>(true)))
+                if (child != null && (child.name.StartsWith("Plate") || (keep == "Body" && child.name.StartsWith("Chair"))))
+                    Object.DestroyImmediate(child.gameObject);
+            copy.transform.localPosition = at;
+            copy.transform.localRotation = Quaternion.Euler(0f, facing, 0f);
+            foreach (var t in copy.GetComponentsInChildren<Transform>(true))
+                t.gameObject.isStatic = true;
+            return copy;
         }
 
         private static void Lamp(Transform parent, string name, Vector3 at, float range, float intensity)
@@ -878,10 +1024,42 @@ namespace Game.Editor
             light.shadows = LightShadows.None;
         }
 
-        // ---- Primitives and materials --------------------------------------------------------------
+        // ---- Meshes and materials ------------------------------------------------------------------
 
-        // A box standing on `bottom` (the centre of its base).
-        private static GameObject Box(Transform parent, string name, Material material, Vector3 bottom, Vector3 size, bool collider = false)
+        // A mesh from one of the Blender models, placed on `at` facing `facing`; a box collider of
+        // `collider` (width, height, depth) standing on its base, when given.
+        private static GameObject Model(Transform parent, string name, string model, string mesh, Material material, Vector3 at, float facing,
+            float scale = 1f, Vector3? scale3 = null, Vector3? collider = null)
+        {
+            var part = GreyboxAssets.CreatePrimitive(PrimitiveType.Cube, name, parent, material, keepCollider: false);
+            if (!PilotArt.TryUseMesh(part, model, mesh))
+            {
+                Debug.LogWarning($"[OfficeBuilder] No mesh {mesh} in {model}.");
+                Object.DestroyImmediate(part);
+                return null;
+            }
+            part.transform.localPosition = at;
+            part.transform.localRotation = Quaternion.Euler(0f, facing, 0f);
+            part.transform.localScale = scale3 ?? Vector3.one * scale;
+            part.isStatic = true;
+            if (collider.HasValue)
+            {
+                // In the part's own (scaled) space, so divide the size back out.
+                var s = part.transform.localScale;
+                var box = part.AddComponent<BoxCollider>();
+                box.size = new Vector3(collider.Value.x / s.x, collider.Value.y / s.y, collider.Value.z / s.z);
+                box.center = new Vector3(0f, box.size.y / 2f, 0f);
+            }
+            return part;
+        }
+
+        // The bevelled block from SM_Office, standing on `bottom` (the centre of its base), so simple
+        // shapes catch the light on their edges like the modelled props.
+        private static GameObject Block(Transform parent, string name, Material material, Vector3 bottom, Vector3 size, bool collider = false) =>
+            Model(parent, name, OfficeModel, "OfficeBlock", material, bottom, 0f, scale3: size, collider: collider ? size : (Vector3?)null);
+
+        // A plain box standing on `bottom`: for floors, rugs, glass and other flat things.
+        private static GameObject Cube(Transform parent, string name, Material material, Vector3 bottom, Vector3 size, bool collider = false)
         {
             var box = GreyboxAssets.CreatePrimitive(PrimitiveType.Cube, name, parent, material, keepCollider: collider);
             box.transform.localPosition = bottom + Vector3.up * (size.y / 2f);
@@ -890,10 +1068,9 @@ namespace Game.Editor
             return box;
         }
 
-        private static GameObject Shape(Transform parent, PrimitiveType type, string name, Material material, Vector3 position, Vector3 scale,
-            Quaternion? rotation = null, bool collider = false)
+        private static GameObject Shape(Transform parent, PrimitiveType type, string name, Material material, Vector3 position, Vector3 scale, Quaternion? rotation = null)
         {
-            var shape = GreyboxAssets.CreatePrimitive(type, name, parent, material, keepCollider: collider);
+            var shape = GreyboxAssets.CreatePrimitive(type, name, parent, material, keepCollider: false);
             shape.transform.localPosition = position;
             shape.transform.localScale = scale;
             if (rotation.HasValue)
@@ -904,8 +1081,27 @@ namespace Game.Editor
 
         private static Material Toon(string name, Color color) => StyleTest.EnsureToonMaterial(name, color);
 
-        // Wood with the toon shader's grain, a shade darker than the wood.
-        private static Material Wood(string name, Color color) => StyleTest.EnsureToonMaterial(name, color, color * 0.82f);
+        // Floors in the kitchen's room shader, at true size in world space.
+        private static Material Planks(string name, Color wood, Color seam, float width, float length) => HouseStyle.RoomMaterial(name, "PLANKS", m =>
+        {
+            m.SetColor("_BaseColor", wood);
+            m.SetColor("_SeamColor", seam);
+            m.SetFloat("_Size", width);
+            m.SetFloat("_Length", length);
+            m.SetFloat("_SeamWidth", 0.008f);
+            m.SetFloat("_Variation", 0.08f);
+            m.SetFloat("_Grain", 1f);
+        });
+
+        private static Material Tiles(string name, Color tile, Color seam, float size, float seamWidth = 0.012f) => HouseStyle.RoomMaterial(name, "TILES", m =>
+        {
+            m.SetColor("_BaseColor", tile);
+            m.SetColor("_SeamColor", seam);
+            m.SetFloat("_Size", size);
+            m.SetFloat("_SeamWidth", seamWidth);
+            m.SetFloat("_Variation", 0.05f);
+            m.SetFloat("_Grain", 0f);
+        });
 
         // Things that give off light at night (windows, lamps): unlit, so they read bright in the dark.
         private static Material Unlit(string name, Color color)

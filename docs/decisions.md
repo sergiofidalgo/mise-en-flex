@@ -75,6 +75,23 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-09 — The boss's floor rebuilt from the kitchen's pieces, at office scale
+
+**User's notes on the first greybox:** some textures didn't work; they expected the 3D models we already have (chairs, kitchen appliances) to be reused; the quality should match the kitchen; and the rooms felt too small to feel like walking through an office. The draft was only a reference.
+
+**Done:**
+- **Bigger rooms.** The columns are 11, 13 and 11 m wide and the rows 9, 8 and 10 m deep, so the floor is 35 × 27 m with a 6 m terrace (it was 24 × 18 m). Doors are 2 m wide.
+- **The kitchen's materials.** Floors and walls use the kitchen's room shader (planks, tiles, panelled walls) at true size. The first greybox stretched the toon shader's wood grain over whole rooms, which caused the smeared stripes, and capped its walls in a dark trim the kitchen doesn't have.
+- **The kitchen's furniture and models.** Counters, hob, fridge, cutting board, knife rack, shelf, tables and bar tables with stools are copied from the kitchen's prefabs, visual only. The dining chair and pictures are reused too. People are built from the chef's model, recoloured and without the toque. Trees, street lamps, water towers and the towers around come from the night city's models.
+- **New models only where nothing fits:** `SM_Office` (Blender, same script, `-- --only SM_Office.fbx` so the other models aren't rewritten). It holds the sofa, armchair, executive desk, office chair, filing cabinet, plant, floor lamp, trophy, cowboy hat, tailor's plinth, clothes rail, jacket, umbrella, lounger and helicopter, plus a bevelled block for simple shapes.
+- `HouseStyle.RoomMaterial` is now public, so other builders can make room-shader floors.
+
+**Not done:**
+- The people don't sit; the boss and accountant stand behind their chairs.
+- The rooms' interactions are still Phase 6. There's no join hint, the exterior isn't yet cooler, and the scene can't be reached from the main menu.
+
+---
+
 ## 2026-11-09 — The boss's floor as a greybox
 
 **Done:** `Tools/Game/Build Office` (`OfficeBuilder`) builds `Office_Greybox.unity` to `docs/office-scene.md`: the nine rooms, terrace and helipad, the boss's tower and the night city below, with every room dressed in primitives in the toon materials (boss, bodyguards, receptionist, tailor, accountant, the miniature table, the cookbook lectern, and so on). Only walking and joining work.

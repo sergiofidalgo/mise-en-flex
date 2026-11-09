@@ -72,8 +72,11 @@ namespace Game.Editor
             m.SetFloat("_Grain", 1f);
         });
 
-        // A room material (MAT_Room_<name>), created or brought up to date with the given pattern.
-        private static Material RoomMaterial(string name, string pattern, System.Action<Material> set)
+        /// <summary>
+        /// A room material (MAT_Room_<paramref name="name"/>), created or brought up to date with the given
+        /// pattern (TILES, PLANKS or WALL). Patterns are in world space, so any floor or wall shows them at true size.
+        /// </summary>
+        public static Material RoomMaterial(string name, string pattern, System.Action<Material> set)
         {
             var path = $"{MaterialsFolder}/MAT_Room_{name}.mat";
             var material = AssetDatabase.LoadAssetAtPath<Material>(path);

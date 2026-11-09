@@ -21,11 +21,14 @@ namespace Game.Editor
         // Play-height shots: where on the floor the view centres, and the camera's height.
         private static readonly (string Name, Vector2 Target, float Height)[] Shots =
         {
-            ("office_reception", new Vector2(0f, -4.5f), 14f),
-            ("office_boss", new Vector2(0f, 4.5f), 14f),
-            ("office_west", new Vector2(-8f, 0f), 18f),
-            ("office_east", new Vector2(8f, 0f), 18f),
-            ("office_terrace", new Vector2(4f, 10f), 16f),
+            ("office_reception", new Vector2(0f, -8.5f), 16f),
+            ("office_boss", new Vector2(0f, 8f), 16f),
+            ("office_lounge", new Vector2(-12f, -9f), 16f),
+            ("office_kitchen_tailor", new Vector2(-12f, 3f), 18f),
+            ("office_accountant_hall", new Vector2(12f, -5f), 18f),
+            ("office_backroom", new Vector2(12f, 8f), 16f),
+            ("office_terrace", new Vector2(6f, 16f), 16f),
+            ("office_play", new Vector2(0f, -7f), 11f),
         };
 
         public static void CaptureFromCommandLine()
