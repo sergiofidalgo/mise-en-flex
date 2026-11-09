@@ -19,7 +19,7 @@ namespace Game.Presentation.Hud
         [SerializeField, Min(0f)] private float _topMargin = 16f;
         [Tooltip("Canvas pixels from the centre of the screen: the clock is on the other side.")]
         [SerializeField, Min(0f)] private float _besideClock = 6f;
-        [SerializeField, Min(8f)] private float _fontSize = 26f;
+        [SerializeField, Min(8f)] private float _fontSize = 32f;
         [Tooltip("Real seconds the last payment stays next to the total.")]
         [SerializeField, Min(0f)] private float _gainSeconds = 2f;
         [SerializeField] private Vector2 _padding = new Vector2(18f, 8f);
@@ -39,6 +39,7 @@ namespace Game.Presentation.Hud
             _root.Services.ServiceReplaced += HandleServiceReplaced;
             _label = WorldLabel.Create(_style, _canvas, "Money", _padding, new Vector2(0f, 1f));
             _label.FontSize = _fontSize;
+            _label.Font = _style.DisplayFont;
         }
 
         private void OnDestroy()

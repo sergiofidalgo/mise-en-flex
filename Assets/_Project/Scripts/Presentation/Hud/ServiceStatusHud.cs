@@ -30,12 +30,12 @@ namespace Game.Presentation.Hud
         [SerializeField, Min(0f)] private float _besideMoney = 6f;
         [Tooltip("Canvas pixels above the bottom of the screen for the small Prep strip.")]
         [SerializeField, Min(0f)] private float _stripBottomMargin = 14f;
-        [SerializeField, Min(8f)] private float _stripFontSize = 18f;
+        [SerializeField, Min(8f)] private float _stripFontSize = 28f;
         [SerializeField] private Vector2 _stripPadding = new Vector2(14f, 6f);
         [Tooltip("Real seconds the morning's delivery stays on the Prep strip.")]
         [SerializeField, Min(0f)] private float _deliverySeconds = 6f;
-        [SerializeField, Min(8f)] private float _clockFontSize = 26f;
-        [SerializeField, Min(8f)] private float _cardFontSize = 26f;
+        [SerializeField, Min(8f)] private float _clockFontSize = 32f;
+        [SerializeField, Min(8f)] private float _cardFontSize = 32f;
         [SerializeField] private Vector2 _clockPadding = new Vector2(16f, 6f);
         [SerializeField] private Vector2 _cardPadding = new Vector2(36f, 24f);
 
@@ -67,6 +67,7 @@ namespace Game.Presentation.Hud
         {
             _clock = WorldLabel.Create(_style, _canvas, "ServiceClock", _clockPadding, new Vector2(1f, 1f));
             _clock.FontSize = _clockFontSize;
+            _clock.Font = _style.DisplayFont;
             _card = WorldLabel.Create(_style, _canvas, "ServiceCard", _cardPadding, new Vector2(0.5f, 0.5f));
             _card.FontSize = _cardFontSize;
             _strip = WorldLabel.Create(_style, _canvas, "PrepStrip", _stripPadding, new Vector2(0.5f, 0f));

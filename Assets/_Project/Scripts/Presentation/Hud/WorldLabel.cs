@@ -94,6 +94,12 @@ namespace Game.Presentation.Hud
             set => _text.fontSize = value;
         }
 
+        /// <summary>The label's face; the HUD body font unless set (the clock and money use the display font).</summary>
+        public TMPro.TMP_FontAsset Font
+        {
+            set => _text.font = value;
+        }
+
         /// <summary>Shows <paramref name="text"/> at a fixed canvas position (a counter, not following anything).</summary>
         public void ShowAt(string text, Vector2 canvasPosition)
         {

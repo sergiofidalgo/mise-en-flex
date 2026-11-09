@@ -2,6 +2,12 @@
 
 - **Inter** by Rasmus Andersson — https://github.com/rsms/inter — SIL Open Font License 1.1
 - **Lora** by Cyreal — https://github.com/cyrealtype/Lora-Cyrillic — SIL Open Font License 1.1
+- **Nunito** by The Nunito Project Authors — https://github.com/googlefonts/nunito — SIL Open Font License 1.1 (`Licenses/Nunito-OFL.txt`).
+  `Nunito-ExtraBold.ttf` is the variable font from google/fonts (`ofl/nunito/Nunito[wght].ttf`) fixed at weight 800 with fontTools' instancer.
+- **Fredoka** by The Fredoka Project Authors — https://github.com/hafontia/Fredoka-One — SIL Open Font License 1.1 (`Licenses/Fredoka-OFL.txt`).
+  `Fredoka-SemiBold.ttf` is the variable font from google/fonts (`ofl/fredoka/Fredoka[wdth,wght].ttf`) fixed at weight 600, width 100.
 
-TODO before shipping: add each family's official `OFL.txt` next to this file and to the game's credits,
+Neither licence reserves a font name, so the fixed-weight copies keep their family names.
+
+TODO before shipping: add Inter's and Lora's official `OFL.txt` to `Licenses/`, and every family to the game's credits,
 as the licence requires when the fonts are distributed.

@@ -22,7 +22,7 @@ namespace Game.Presentation.Hud
         [Tooltip("Canvas pixels: the gauge's size.")]
         [SerializeField] private Vector2 _size = new Vector2(170f, 16f);
         [Tooltip("Canvas pixels from the food to the gauge's centre; negative is down, under the doneness tag.")]
-        [SerializeField] private float _offsetY = -66f;
+        [SerializeField] private float _offsetY = -76f;
         [Tooltip("Canvas pixels the gauge keeps from the screen's edges.")]
         [SerializeField, Min(0f)] private float _screenMargin = 12f;
         [SerializeField, Min(1f)] private float _needleWidth = 5f;

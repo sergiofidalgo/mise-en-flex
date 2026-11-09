@@ -165,6 +165,16 @@ namespace Game.Editor
             reviews.ApplyModifiedPropertiesWithoutUndo();
         }
 
+        /// <summary>
+        /// Rebuilds the prompt card and chop dial prefabs from the style, in place (their GUIDs, and so
+        /// the scene's references to them, stay the same). For style changes that are baked into them.
+        /// </summary>
+        public static void RebuildPrefabs(HudStyle style)
+        {
+            BuildPromptCard(style);
+            BuildChopDial(style);
+        }
+
         private static GameObject BuildPromptCard(HudStyle style)
         {
             // Root: player-coloured edge, sized to its content; pivot bottom-left (PromptHud centres it).
@@ -329,8 +339,8 @@ namespace Game.Editor
             fill.fillOrigin = (int)Image.OriginHorizontal.Left;
 
             var grade = Label("Grade", content, style, -8f - DotSize - 6f - QualityBarHeight - 4f, 260f, 38f, FontStyles.Bold);
-            var hint = Label("SpeedHint", content, style, -8f - DotSize - 6f - QualityBarHeight - 4f - 36f, 200f, 22f, FontStyles.Italic);
-            hint.fontSize = style.FontSize * 0.7f;
+            var hint = Label("SpeedHint", content, style, -8f - DotSize - 6f - QualityBarHeight - 4f - 40f, 220f, 34f, FontStyles.Italic);
+            hint.fontSize = style.FontSize;
             hint.color = new Color(0.85f, 0.87f, 0.9f);
 
             var view = root.gameObject.AddComponent<ChopDialView>();

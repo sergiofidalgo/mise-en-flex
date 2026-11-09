@@ -4,6 +4,21 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-09 — HUD type: Nunito and Fredoka, 28 px minimum, an Ink outline
+
+**User's call:** Fredoka and Nunito, as the art bible suggests, over Inter. First step of the cooking and service UI pass (type and readability).
+
+- **Nunito ExtraBold for words** (prompt verbs, tags, tickets, reviews), **Fredoka SemiBold for numbers and button letters** (clock, money, badge glyphs). `HudStyle` has a new `DisplayFont` slot; the body font stays `Font`. The fixed weights are cut from Google Fonts' variable files (`Art/Fonts/FONTS-LICENSE.md`). The Review dashboard keeps Inter and Lora, drawn to its mockups.
+- **28 px minimum for text read in play** (art bible): HUD and label text 22/20 → 28, clock, money and phase card 26 → 32, the Prep strip 18 → 28, the chop grade 26 → 30 (a miss is 38) and its speed hint 15 → 28. Badges grow from 34 to 40 px so the letters match the text.
+- **A thin Ink outline on the HUD fonts' materials** (`HudStyle` text outline, 0.15), so text that floats over the scene without a card, like the chop grade, reads on any background. Cards are a little more opaque (86% → 92%) so food colours on them don't wash out over the white chef.
+- **The flip gauge moves 10 px lower** (−66 → −76) to clear the taller doneness tag above it.
+- **"1 star", not "1 stars"** on review cards.
+- Applied by **Tools/Game/Apply HUD Type**, which makes the font assets, sets the style, rebuilds the prompt card and chop dial prefabs and raises the sizes stored in the open scene.
+
+**Reason:** the HUD still used Unity's placeholder font below the art bible's minimum size, which made every screen read as greybox and was hard to read from the couch.
+
+---
+
 ## 2026-11-09 — Every on-screen text goes through our own translation tables; a language setting
 
 **User's call:** our own CSV tables rather than Unity's Localization package (step 2 of `ideas.md`, "Localising reviews and replies").

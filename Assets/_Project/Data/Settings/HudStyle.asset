@@ -12,12 +12,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a26df33ae1ec240a3b5ad508cda2fb1f, type: 3}
   m_Name: HudStyle
   m_EditorClassIdentifier: Game.Presentation::Game.Presentation.Hud.HudStyle
-  _font: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  _fontSize: 22
+  _font: {fileID: 11400000, guid: 06f3a055f441a4362a83363c08b11219, type: 2}
+  _displayFont: {fileID: 11400000, guid: be4ccc8532ec142238d15b934424a438, type: 2}
+  _fontSize: 28
   _textColor: {r: 0.95, g: 0.96, b: 0.97, a: 1}
-  _cardBackground: {r: 0.07, g: 0.08, b: 0.1, a: 0.86}
+  _textOutlineWidth: 0.15
+  _textOutlineColor: {r: 0.227, g: 0.141, b: 0.078, a: 1}
+  _cardBackground: {r: 0.07, g: 0.08, b: 0.1, a: 0.92}
   _cardEdge: 3
-  _badgeSize: 34
+  _badgeSize: 40
   _buttonA: {r: 0.42, g: 0.74, b: 0.25, a: 1}
   _buttonB: {r: 0.86, g: 0.25, b: 0.22, a: 1}
   _buttonX: {r: 0.2, g: 0.5, b: 0.9, a: 1}
@@ -43,7 +46,7 @@ MonoBehaviour:
     _color: {r: 0.98, g: 0.92, b: 0.62, a: 1}
   - _name: Cooked
     _color: {r: 0.92, g: 0.7, b: 0.32, a: 1}
-  _labelFontSize: 20
+  _labelFontSize: 28
   _meterTrack: {r: 0.22, g: 0.23, b: 0.26, a: 1}
   _patienceColors:
   - _at: 0.15
@@ -62,6 +65,7 @@ MonoBehaviour:
   _bold: {fileID: 11400000, guid: 188556c2d75eb4b0790f1c606848aa41, type: 2}
   _extraBold: {fileID: 11400000, guid: 52a23d60354fc4f0ebccb6bcdfdb7d6f, type: 2}
   _serifItalic: {fileID: 11400000, guid: f03b5ffbf06d14782afce411d5c8f943, type: 2}
+  _languages: {fileID: 0}
   _forkcastLogo: {fileID: 21300000, guid: 1146f2827b507499eac7fd219343aabc, type: 3}
   _searchIcon: {fileID: 21300000, guid: fd20f44ead7374cd6a3d49fa7a48269a, type: 3}
   _starFull: {fileID: 21300000, guid: 78e9aac981be14173858ffc885527a87, type: 3}

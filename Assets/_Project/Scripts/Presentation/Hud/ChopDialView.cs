@@ -51,8 +51,8 @@ namespace Game.Presentation.Hud
         [Tooltip("Canvas pixels of side-to-side shake on a Miss.")]
         [SerializeField, Min(0f)] private float _missShake = 10f;
         [SerializeField, Min(0f)] private float _shakeFrequency = 55f;
-        [SerializeField, Min(8f)] private float _gradeSize = 26f;
-        [SerializeField, Min(8f)] private float _missGradeSize = 34f;
+        [SerializeField, Min(8f)] private float _gradeSize = 30f;
+        [SerializeField, Min(8f)] private float _missGradeSize = 38f;
 
         public RectTransform Rect => _rect;
 

@@ -70,7 +70,11 @@ namespace Game.Presentation.Hud
 
         private string Describe(Review review)
         {
-            var stars = HudStyle.Colored(Tr.Format("{stars} stars", ("stars", review.Stars.ToString("0.#"))), _style.RatingColor(review.Stars / 5f));
+            // Stars come in halves, so only exactly one is singular ("1 star", "1.5 stars").
+            var starText = Mathf.Approximately(review.Stars, 1f)
+                ? Tr.Get("1 star")
+                : Tr.Format("{stars} stars", ("stars", review.Stars.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture)));
+            var stars = HudStyle.Colored(starText, _style.RatingColor(review.Stars / 5f));
             var headline = review.Customer.Bill is Bill bill
                 ? $"{stars}  " + Tr.Format("{paid} + {tip} tip", ("paid", Money(bill.Payment)), ("tip", Money(bill.Tip)))
                 : $"{stars}  {HudStyle.Colored(Tr.Format("walked out! {amount}", ("amount", Money(-review.Customer.WalkOutPenalty))), _style.RatingColor(0f))}";

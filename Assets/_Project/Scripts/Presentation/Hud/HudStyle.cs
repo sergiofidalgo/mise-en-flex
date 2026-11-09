@@ -31,18 +31,25 @@ namespace Game.Presentation.Hud
             public Color Color => _color;
         }
 
-        [Header("Text")]
+        [Header("Text (art bible: a sturdy body face, a rounded display face, 28 px or more in play)")]
+        [Tooltip("Body face: verbs, labels, tags (Nunito ExtraBold).")]
         [SerializeField] private TMP_FontAsset _font;
-        [SerializeField, Min(8f)] private float _fontSize = 22f;
+        [Tooltip("Display face: numbers and button letters, the clock and the money (Fredoka SemiBold).")]
+        [SerializeField] private TMP_FontAsset _displayFont;
+        [SerializeField, Min(8f)] private float _fontSize = 28f;
         [SerializeField] private Color _textColor = new Color(0.95f, 0.96f, 0.97f);
+        [Tooltip("Outline on the HUD fonts' materials, as a fraction of the glyph's SDF spread, so text reads over the scene even without a card behind it. Applied by Tools/Game/Apply HUD Type.")]
+        [SerializeField, Range(0f, 0.4f)] private float _textOutlineWidth = 0.15f;
+        [Tooltip("Art bible Ink.")]
+        [SerializeField] private Color _textOutlineColor = new Color(0.227f, 0.141f, 0.078f);
 
         [Header("Cards")]
-        [SerializeField] private Color _cardBackground = new Color(0.07f, 0.08f, 0.10f, 0.86f);
+        [SerializeField] private Color _cardBackground = new Color(0.07f, 0.08f, 0.10f, 0.92f);
         [Tooltip("Pixels of the player-coloured edge around a card.")]
         [SerializeField, Min(0f)] private float _cardEdge = 3f;
 
         [Header("Badges (Xbox colours; keyboard keycaps)")]
-        [SerializeField, Min(8f)] private float _badgeSize = 34f;
+        [SerializeField, Min(8f)] private float _badgeSize = 40f;
         [SerializeField] private Color _buttonA = new Color(0.42f, 0.74f, 0.25f);
         [SerializeField] private Color _buttonB = new Color(0.86f, 0.25f, 0.22f);
         [SerializeField] private Color _buttonX = new Color(0.20f, 0.50f, 0.90f);
@@ -72,7 +79,7 @@ namespace Game.Presentation.Hud
             new NamedColor("Cooked", new Color(0.92f, 0.70f, 0.32f)),
         };
         [Tooltip("Font size of order tickets and food tags.")]
-        [SerializeField, Min(8f)] private float _labelFontSize = 20f;
+        [SerializeField, Min(8f)] private float _labelFontSize = 28f;
 
         [Header("Patience meter (tickets, queue)")]
         [SerializeField] private Color _meterTrack = new Color(0.22f, 0.23f, 0.26f, 1f);
@@ -129,6 +136,9 @@ namespace Game.Presentation.Hud
         public Game.Data.LanguageTables Languages => _languages;
 
         public TMP_FontAsset Font => _font;
+        public TMP_FontAsset DisplayFont => _displayFont != null ? _displayFont : _font;
+        public float TextOutlineWidth => _textOutlineWidth;
+        public Color TextOutlineColor => _textOutlineColor;
         public float FontSize => _fontSize;
         public Color TextColor => _textColor;
         public Color CardBackground => _cardBackground;

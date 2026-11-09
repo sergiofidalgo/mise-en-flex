@@ -33,6 +33,7 @@ namespace Game.Presentation.Hud
             _background.sprite = round ? _style.Circle : _style.Rounded;
             _background.color = _style.BadgeColor(control, gamepad);
 
+            _glyph.font = _style.DisplayFont;
             _glyph.text = HudStyle.Glyph(control, gamepad);
             _glyph.color = gamepad || triggers ? Color.white : _style.KeycapText;
             _glyph.fontSize = triggers ? size * 0.42f : size * 0.6f;
