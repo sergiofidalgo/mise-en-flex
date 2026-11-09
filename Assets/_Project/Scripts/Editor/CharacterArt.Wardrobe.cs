@@ -52,6 +52,72 @@ namespace Game.Editor
                 ["darkbun"] = (HairKind.Bun, new Color(0.2f, 0.13f, 0.09f), NoseKind.Big, false),
             };
 
+        // A point on the head as authored in Blender (x, y, height above the head's centre), where
+        // it ends up in the waist's frame: scaled with the head (0.87) about its centre (0.71 m above
+        // the waist), and Blender's x and y are the game's -x and -z.
+        private static Vector3 HeadPoint(Vector3 blender) =>
+            new Vector3(-blender.x * 0.87f, 0.71f + blender.z * 0.87f, -blender.y * 0.87f);
+
+        // A pivot that sways (HatSway) for a loose part authored about it (`swing` in Blender).
+        private static Transform Sway(Transform parent, string name, Vector3 blenderPivot, float stiffness, float damping,
+            float drag, float inertia, float breeze, float maxAngle)
+        {
+            var pivot = Frame(parent, name, HeadPoint(blenderPivot), Vector3.one);
+            pivot.gameObject.AddComponent<HatSway>().Set(stiffness, damping, drag, inertia, breeze, maxAngle);
+            return pivot;
+        }
+
+        // Notes floating up and away from an ear (FxMusicNote particles): they rise, drift outwards and
+        // wobble, and shrink away at the top rather than fading, as the toon look has no see-through.
+        private static Renderer MusicNotes(Transform parent, Vector3 at, float side)
+        {
+            var emitter = new GameObject("MusicNotes");
+            emitter.transform.SetParent(parent, false);
+            emitter.transform.localPosition = at;
+            var particles = emitter.AddComponent<ParticleSystem>();
+            particles.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            var main = particles.main;
+            main.duration = 2f;
+            main.loop = true;
+            main.startLifetime = new ParticleSystem.MinMaxCurve(1.3f, 1.8f);
+            main.startSpeed = new ParticleSystem.MinMaxCurve(0.3f, 0.45f);
+            main.startSize = new ParticleSystem.MinMaxCurve(0.9f, 1.25f);
+            main.startRotation = new ParticleSystem.MinMaxCurve(-0.3f, 0.3f);
+            main.simulationSpace = ParticleSystemSimulationSpace.World; // they're left behind as the chef walks
+            main.maxParticles = 8;
+            main.playOnAwake = true;
+            var emission = particles.emission;
+            emission.rateOverTime = 1.1f;
+            var shape = particles.shape;
+            shape.shapeType = ParticleSystemShapeType.Cone;
+            shape.angle = 18f;
+            shape.radius = 0.02f;
+            shape.rotation = new Vector3(-90f, 0f, 0f); // straight up
+            var drift = particles.velocityOverLifetime;
+            drift.enabled = true;
+            drift.space = ParticleSystemSimulationSpace.Local;
+            drift.x = new ParticleSystem.MinMaxCurve(-side * 0.08f, -side * 0.16f); // out from the ear
+            drift.y = new ParticleSystem.MinMaxCurve(0f, 0f);
+            drift.z = new ParticleSystem.MinMaxCurve(0f, 0f);
+            var size = particles.sizeOverLifetime;
+            size.enabled = true;
+            size.size = new ParticleSystem.MinMaxCurve(1f, new AnimationCurve(
+                new Keyframe(0f, 0.2f), new Keyframe(0.15f, 1f), new Keyframe(0.7f, 1f), new Keyframe(1f, 0f)));
+            var spin = particles.rotationOverLifetime;
+            spin.enabled = true;
+            spin.z = new ParticleSystem.MinMaxCurve(-0.6f, 0.6f);
+            var noise = particles.noise;
+            noise.enabled = true;
+            noise.strength = 0.12f;
+            noise.frequency = 0.7f;
+            var renderer = emitter.GetComponent<ParticleSystemRenderer>();
+            renderer.renderMode = ParticleSystemRenderMode.Mesh;
+            renderer.mesh = PilotArt.FindMesh(Model, "FxMusicNote");
+            renderer.alignment = ParticleSystemRenderSpace.View;
+            renderer.sharedMaterial = StyleTest.EnsureToonMaterial("ChefAccent", Color.white);
+            return renderer;
+        }
+
         // Where the propeller's blades turn, in the waist's frame: the top of the stem, 0.52 m above
         // the authored head's centre (0.71 m), scaled with the head (0.87); Blender's y is the game's -z.
         private static readonly Vector3 PropellerHub = new Vector3(0f, 0.71f + 0.52f * 0.87f, -0.02f * 0.87f);
@@ -160,6 +226,9 @@ namespace Game.Editor
                         break;
                     case "bandana":
                         rig.Tinted.Add(Part(group, "HatBandana", Color.white, "ChefAccent"));
+                        // Its tails flutter as the chef moves (the user's note, 2026-11-09).
+                        rig.Tinted.Add(Part(Sway(group, "BandanaTails", new Vector3(0f, 0.31f, 0.04f), 90f, 6f, 12f, 1.5f, 6f, 45f),
+                            "HatBandanaTails", Color.white, "ChefAccent"));
                         break;
                     case "headband":
                         rig.Tinted.Add(Part(group, "HatHeadband", Color.white, "ChefAccent"));
@@ -175,8 +244,11 @@ namespace Game.Editor
                         rig.Tinted.Add(Part(group, "HatCrownGems", Color.white, "ChefAccent"));
                         break;
                     case "partyhat":
-                        rig.Tinted.Add(Part(group, "HatPartyCone", Color.white, "ChefAccent"));
-                        Part(group, "HatPartyPompom", Shine);
+                        // The cone wobbles on its elastic, the pompom with it.
+                        var cone = Sway(group, "PartyCone", new Vector3(0f, 0.02f, 0.27f), 110f, 5f, 4f, 1.4f, 2f, 25f);
+                        rig.Tinted.Add(Part(cone, "HatPartyCone", Color.white, "ChefAccent"));
+                        Part(cone, "HatPartyPompom", Shine);
+                        Part(group, "HatPartyStrap", Shine);
                         break;
                     case "captain":
                         Part(group, "HatCaptain", new Color(0.97f, 0.97f, 0.95f));
@@ -198,7 +270,21 @@ namespace Game.Editor
                     case "headphones":
                         Part(group, "HatHeadphonesBand", new Color(0.15f, 0.15f, 0.17f));
                         rig.Tinted.Add(Part(group, "HatHeadphonesCups", Color.white, "ChefAccent"));
+                        // Music notes float up from each ear in the player's colour (the user's idea).
+                        foreach (var side in new[] { -1f, 1f })
+                            rig.Tinted.Add(MusicNotes(group, HeadPoint(new Vector3(side * 0.37f, 0.03f, 0.02f)), side));
                         covers = false;
+                        break;
+                    case "cowboy":
+                        Part(group, "HatCowboy", new Color(0.55f, 0.36f, 0.2f));
+                        rig.Tinted.Add(Part(group, "HatCowboyBand", Color.white, "ChefAccent"));
+                        break;
+                    case "plumed":
+                        Part(group, "HatPlumed", new Color(0.3f, 0.22f, 0.32f));
+                        rig.Tinted.Add(Part(group, "HatPlumedBand", Color.white, "ChefAccent"));
+                        // The feather sways with every step and drifts in the breeze.
+                        Part(Sway(group, "Feather", new Vector3(0.2f, 0.1f, 0.27f), 55f, 4.5f, 9f, 1.6f, 7f, 40f),
+                            "HatPlumedFeather", new Color(0.96f, 0.95f, 0.92f));
                         break;
                     case "straw":
                         Part(group, "HatStraw", new Color(0.82f, 0.68f, 0.42f));

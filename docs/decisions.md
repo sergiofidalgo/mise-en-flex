@@ -110,6 +110,21 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-09 — Hats that move, a cowboy hat, and a plumed hat instead of a headdress
+
+**The user's notes:**
+- Ideas for a Native American feathered headdress and a cowboy hat.
+- Hat parts should be animated as much as possible and answer the chef's movement: propellers turn, feathers move gently in the wind, and headphones send little music notes floating up from the ears.
+
+**Decision:**
+- **No Native American headdress (proposed, the user can overrule).** The war bonnet is sacred regalia earned within those nations, and wearing one as a costume is widely seen as disrespectful. Instead, a **plumed hat**: a soft wide brim pinned up on one side, a band in the player's colour, and a big white feather that sways.
+- **A cowboy hat:** a dented crown and a brim curling up at the sides, brown, with the band in the player's colour. It's distinct from the boss's white one.
+- **Movement:** `HatSway` hangs a loose part on a damped spring. It trails behind as the chef walks, swings on past a stop or a turn, settles, and drifts in a light breeze. The plume, the party hat (cone and pompom on its elastic) and the bandana's two new tails all sway, each with its own stiffness. The propeller already spins faster with the walk (`PropellerSpin`).
+- **Headphones** send music notes (`FxMusicNote` particles, in the player's colour) up from each ear. They drift outwards, wobble, and shrink away at the top rather than fading, which suits the opaque toon look. They're left behind as the chef walks.
+- Both hats are earned items within the reach limit, with Spanish names.
+
+---
+
 ## 2026-11-09 — Four more hats for the tailor
 
 **The user's references:** a captain's cap, a propeller cap, headphones and a conical straw hat.

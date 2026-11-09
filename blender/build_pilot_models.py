@@ -588,6 +588,25 @@ def add_ellipsoid_sector(bm, centre, radii, a0, a1, rings=10, steps=6):
         bm.faces.new(column if edge == 0 else list(reversed(column)))
 
 
+def add_loft(bm, points, widths, thickness, segments=10):
+    """A flat, tapering blade along a curve (a feather's vane): an ellipse across each point,
+    `widths[i]` wide and `thickness` thick, side to side along x, joined into one smooth piece."""
+    rings = []
+    for i, point in enumerate(points):
+        a = Vector(points[max(i - 1, 0)])
+        b = Vector(points[min(i + 1, len(points) - 1)])
+        tangent = (b - a).normalized()
+        across = Vector((1.0, 0.0, 0.0))
+        across = (across - tangent * across.dot(tangent)).normalized()
+        flat = tangent.cross(across).normalized()
+        if widths[i] <= 1e-4:
+            rings.append([bm.verts.new(point)])
+            continue
+        rings.append([bm.verts.new(Vector(point) + across * (widths[i] * math.cos(2 * math.pi * k / segments))
+                                   + flat * (thickness * math.sin(2 * math.pi * k / segments))) for k in range(segments)])
+    connect_rings(bm, rings)
+
+
 def head_surface(x, dz):
     """How far forward (Blender -Y) the authored head's surface is at a point `x` across and `dz`
     above its centre."""
@@ -612,6 +631,15 @@ def build_characters():
         elif frame == "apart":
             obj.location = (1.0, 0.0, 1.0)  # its origin is a joint; apart, for previews only
         objects.append(obj)
+
+    def swing(name, bm, pivot):
+        """A loose part of a hat that sways (HatSway): authored in the head's place like the rest,
+        then moved so its origin is the pivot it swings about, and scaled with the head. The game
+        hangs it at CharacterArt.HeadPoint(pivot)."""
+        px, py, pdz = pivot
+        bmesh.ops.translate(bm, vec=(-px, -py, -(c + pdz)), verts=bm.verts)
+        bmesh.ops.scale(bm, vec=(CHAR_HEAD_SCALE,) * 3, verts=bm.verts)
+        part(name, bm, "apart")
 
     # ---- From the feet: the barrel's bottom over the hips, a dress, the apron.
     bm = bmesh.new()  # in the top's colour
@@ -746,8 +774,11 @@ def build_characters():
     bm = bmesh.new()  # a bandana: a snug cover over the top and a knot at the back
     add_ellipsoid(bm, (0.0, 0.03, c + 0.08), (0.325, 0.33, 0.29), rings=12, segments=24)
     add_ball(bm, (0.0, 0.31, c + 0.04), 0.065, segments=12)
-    add_box(bm, (0.06, 0.03, 0.14), (0.04, 0.34, c - 0.05), bevel=0.012)
     part("HatBandana", bm, "waist", head=True)
+    bm = bmesh.new()  # its two tails, hanging from the knot; they flutter as the chef moves
+    add_box(bm, (0.055, 0.025, 0.16), (0.03, 0.335, c - 0.06), bevel=0.012)
+    add_box(bm, (0.05, 0.025, 0.13), (-0.035, 0.33, c - 0.045), bevel=0.012)
+    swing("HatBandanaTails", bm, (0.0, 0.31, 0.04))
     bm = bmesh.new()  # a headband, which carries the colour when there's no hat
     add_pipe(bm, [(0.285 * math.cos(2 * math.pi * k / 28), 0.285 * math.sin(2 * math.pi * k / 28), c + 0.13) for k in range(29)],
              radius=0.035, segments=8)
@@ -772,12 +803,14 @@ def build_characters():
     bm = bmesh.new()  # a party hat: a cone tipped forward a little (the player's colour)
     add_lathe(bm, [(0.0, 0.0), (0.16, 0.0), (0.0, 0.36)], segments=24, centre=(0.0, 0.02, c + 0.27),
               axis_matrix=Matrix.Rotation(math.radians(8.0), 4, 'X'))  # tip forward, under the pompom
-    part("HatPartyCone", bm, "waist", head=True)
-    bm = bmesh.new()  # its pompom and an elastic under the chin
+    swing("HatPartyCone", bm, (0.0, 0.02, 0.27))  # it wobbles on its elastic
+    bm = bmesh.new()  # its pompom, on the tip
     add_ball(bm, (0.0, -0.03, c + 0.64), 0.06, segments=12)
+    swing("HatPartyPompom", bm, (0.0, 0.02, 0.27))
+    bm = bmesh.new()  # the elastic under the chin
     add_pipe(bm, [(0.15, 0.0, c + 0.28), (0.2, -0.12, c - 0.1), (0.0, -0.22, c - 0.27), (-0.2, -0.12, c - 0.1), (-0.15, 0.0, c + 0.28)],
              radius=0.008, segments=6)
-    part("HatPartyPompom", bm, "waist", head=True)
+    part("HatPartyStrap", bm, "waist", head=True)
 
     # More crazy hats from the user's references (2026-11-09): a captain's cap, a propeller cap,
     # headphones and a conical straw hat.
@@ -835,6 +868,47 @@ def build_characters():
     part("HatHeadphonesCups", bm, "waist", head=True)
 
     brim = CHAR_REACH / CHAR_HEAD_SCALE  # the widest brims keep the full reach
+    # A cowboy hat (the user's idea, 2026-11-09): a dented crown and a brim curling up at the sides.
+    bm = bmesh.new()
+    add_lathe(bm, [(0.0, c + 0.16), (brim - 0.02, c + 0.16), (brim, c + 0.175), (brim - 0.02, c + 0.19), (0.3, c + 0.2),
+                   (0.3, c + 0.36), (0.26, c + 0.43), (0.12, c + 0.45), (0.0, c + 0.41)], segments=40)
+    for v in bm.verts:  # the brim curls up at the sides, more the further out
+        r = math.hypot(v.co.x, v.co.y)
+        if r > 0.3:
+            v.co.z += 0.16 * ((r - 0.3) / (brim - 0.3)) ** 2 * (v.co.x / r) ** 2
+    part("HatCowboy", bm, "waist", head=True)
+    bm = bmesh.new()  # its band (the player's colour)
+    add_lathe(bm, [(0.0, c + 0.2), (0.305, c + 0.2), (0.305, c + 0.25), (0.0, c + 0.25)], segments=32)
+    part("HatCowboyBand", bm, "waist", head=True)
+
+    # A plumed hat (the user asked for feathers): a soft wide brim and a big feather that sways.
+    bm = bmesh.new()
+    add_lathe(bm, [(0.0, c + 0.16), (brim - 0.015, c + 0.15), (brim, c + 0.165), (brim - 0.02, c + 0.18), (0.29, c + 0.2),
+                   (0.3, c + 0.32), (0.25, c + 0.39), (0.0, c + 0.4)], segments=40)
+    for v in bm.verts:  # the brim pinned up on the left, a musketeer's swagger
+        r = math.hypot(v.co.x, v.co.y)
+        if r > 0.29 and v.co.x > 0.0:
+            v.co.z += 0.18 * ((r - 0.29) / (brim - 0.29)) * (v.co.x / r) ** 3
+    part("HatPlumed", bm, "waist", head=True)
+    bm = bmesh.new()  # its band (the player's colour)
+    add_lathe(bm, [(0.0, c + 0.2), (0.295, c + 0.2), (0.295, c + 0.26), (0.0, c + 0.26)], segments=32)
+    part("HatPlumedBand", bm, "waist", head=True)
+    bm = bmesh.new()  # the feather: a quill, and one broad vane curling up and back to a soft tip
+    base = Vector((0.2, 0.1, c + 0.27))
+    steps = 14
+    path = [tuple(base + Vector((-0.05 * t * t, 0.2 * t * t, 0.46 * t - 0.06 * t * t))) for t in (k / steps for k in range(steps + 1))]
+    add_pipe(bm, path[:4], radius=0.009, segments=6)  # the bare quill at the bottom
+    widths = [0.0 if k == 0 else 0.075 * math.sin(math.pi * (0.1 + 0.85 * k / steps)) ** 0.6 for k in range(steps + 1)]
+    widths[-1] = 0.0
+    add_loft(bm, path[1:], widths[1:], 0.012)
+    swing("HatPlumedFeather", bm, (0.2, 0.1, 0.27))
+
+    # A music note the headphones send floating up (a particle's mesh, about its middle).
+    bm = bmesh.new()
+    add_ellipsoid(bm, (0.0, 0.0, -0.035), (0.03, 0.02, 0.022), rings=6, segments=12)
+    add_pipe(bm, [(0.026, 0.0, -0.035), (0.026, 0.0, 0.05)], radius=0.006, segments=5)
+    add_pipe(bm, [(0.026, 0.0, 0.05), (0.05, 0.0, 0.03), (0.055, 0.0, 0.005)], radius=0.007, segments=5)
+    part("FxMusicNote", bm, "apart")
     bm = bmesh.new()  # a conical straw hat: a shallow cone from a point to a wide rim
     add_lathe(bm, [(0.0, c + 0.47), (brim - 0.01, c + 0.19), (brim, c + 0.17), (brim - 0.03, c + 0.165), (0.26, c + 0.25),
                    (0.0, c + 0.29)], segments=40)

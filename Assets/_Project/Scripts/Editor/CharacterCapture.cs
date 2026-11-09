@@ -168,12 +168,17 @@ namespace Game.Editor
                 new Game.Simulation.Characters.ChefLook { Hat = "propeller", Face = "ginger", Skin = "skin0", Outfit = "linecook" },
                 new Game.Simulation.Characters.ChefLook { Hat = "headphones", Face = "afro", Skin = "skin5", Outfit = "wok" },
                 new Game.Simulation.Characters.ChefLook { Hat = "straw", Face = "darkbun", Skin = "skin3", Outfit = "pastry" },
+                new Game.Simulation.Characters.ChefLook { Hat = "cowboy", Face = "moustache", Skin = "skin4", Outfit = "linecook" },
+                new Game.Simulation.Characters.ChefLook { Hat = "plumed", Face = "bun", Skin = "skin1", Outfit = "suit" },
             };
             for (var i = 0; i < outfits.Length; i++)
             {
                 var chef = (GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>(PlayerPrefabPath));
                 chef.transform.SetPositionAndRotation(rail + Vector3.right * (i * 0.95f), Quaternion.Euler(0f, 180f, 0f));
                 chef.GetComponentInChildren<Game.Presentation.ChefWardrobe>(true).Show(outfits[i]);
+                // Particles (the headphones' notes) only run in play: run them a while for the picture.
+                foreach (var particles in chef.GetComponentsInChildren<ParticleSystem>())
+                    particles.Simulate(2.5f, true, true);
                 var tint = new MaterialPropertyBlock();
                 tint.SetColor("_BaseColor", coop.GetPlayerColor(i % 4));
                 var visual = chef.GetComponent<Game.Presentation.PlayerVisual>();
@@ -221,9 +226,9 @@ namespace Game.Editor
             Render(camera, target, crowd + new Vector3(2.1f, 0.9f, -2.5f), PlayHeight, Path.Combine(folder, "variety_play.png"));
             camera.transform.SetPositionAndRotation(faces + new Vector3(4.4f, 1.0f, -7.5f), Quaternion.Euler(4f, 0f, 0f));
             Draw(camera, target, Path.Combine(folder, "variety_front.png"));
-            camera.transform.SetPositionAndRotation(rail + new Vector3(4.75f, 1.1f, -10.5f), Quaternion.Euler(4f, 0f, 0f));
+            camera.transform.SetPositionAndRotation(rail + new Vector3(5.7f, 1.1f, -12.4f), Quaternion.Euler(4f, 0f, 0f));
             Draw(camera, target, Path.Combine(folder, "tailor_rail_front.png"));
-            Render(camera, target, rail + new Vector3(8.55f, 0.9f, 0f), CloseHeight + 0.4f, Path.Combine(folder, "tailor_rail_play.png"));
+            Render(camera, target, rail + new Vector3(10.45f, 0.9f, 0f), CloseHeight + 0.4f, Path.Combine(folder, "tailor_rail_play.png"));
             camera.transform.SetPositionAndRotation(guards + new Vector3(0f, 1.3f, -3.2f), Quaternion.Euler(6f, 0f, 0f));
             Draw(camera, target, Path.Combine(folder, "bodyguards_front.png"));
             Render(camera, target, guards + new Vector3(0f, 0.9f, 0f), CloseHeight, Path.Combine(folder, "bodyguards_play.png"));
