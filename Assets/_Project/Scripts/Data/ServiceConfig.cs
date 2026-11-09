@@ -136,15 +136,6 @@ namespace Game.Data
         [SerializeField, Min(1)] private int _tiredAfter = 3;
         [Tooltip("…and after which they're fed up: curt, passive-aggressive, or rude.")]
         [SerializeField, Min(1)] private int _fedUpAfter = 6;
-        [Tooltip("First names for guests in the review listing.")]
-        [SerializeField] private string[] _guestFirstNames =
-        {
-            // An American neighbourhood's diners (the setting, art bible 2026-11-08).
-            "Mike", "Jessica", "Tyler", "Ashley", "Brandon", "Megan", "Chris", "Lauren", "Dave", "Brittany",
-            "Jamal", "Keisha", "Carlos", "Maria", "Tony", "Gina", "Bobby", "Linda", "Hank", "Dolores",
-            "Trey", "Destiny", "Luis", "Priya", "Kenny", "Shawna", "Earl", "Becky", "Kevin", "Tamika",
-        };
-
         [Header("Prices and payment")]
         [Tooltip("Shown before amounts of money.")]
         [SerializeField] private string _currency = "€";
@@ -234,16 +225,23 @@ namespace Game.Data
         public Game.Simulation.Service.ReplySettings ToReplySettings() =>
             new Game.Simulation.Service.ReplySettings { FittingNudge = _replyNudge, PoorNudge = _replyNudge, TiredAfter = _tiredAfter, FedUpAfter = Mathf.Max(_tiredAfter, _fedUpAfter) };
 
-        /// <summary>A guest's name for the listing, e.g. "Megan R.": the same guest gets the same name.</summary>
+        /// <summary>
+        /// A guest's name slot and initial: the same guest gets the same ones. Names are kept by slot
+        /// so they can be shown in any language (GuestNames).
+        /// </summary>
+        public (int Slot, string Initial) GuestSlot(int customerId, int day)
+        {
+            var seed = (uint)(customerId * 7919 + day * 104729);
+            return ((int)(seed % (uint)GuestNames.Slots), ((char)('A' + (seed / 7u) % 26u)).ToString());
+        }
+
+        /// <summary>A guest's name in English, e.g. "Megan R.", as reviews keep it alongside the slot.</summary>
         public string GuestName(int customerId, int day)
         {
-            if (_guestFirstNames == null || _guestFirstNames.Length == 0)
-                return $"Guest {customerId + 1}";
-            var seed = (uint)(customerId * 7919 + day * 104729);
-            var first = _guestFirstNames[seed % (uint)_guestFirstNames.Length];
-            var initial = (char)('A' + (seed / 7u) % 26u);
-            return $"{first} {initial}.";
+            var (slot, initial) = GuestSlot(customerId, day);
+            return $"{GuestNames.First(slot, "en")} {initial}.";
         }
+
         public float WalkSpeed => _walkSpeed;
         public string Currency => _currency;
 

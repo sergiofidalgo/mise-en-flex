@@ -341,7 +341,7 @@ namespace Game.Presentation.Hud
 
         private string ReplyText(ReviewRecord review)
         {
-            var first = (review.Guest ?? "").Split(' ')[0];
+            var first = Game.Data.GuestNames.FirstOf(review);
             var text = (ReviewReply)review.Reply switch
             {
                 ReviewReply.Apologise => _apologiseReply,

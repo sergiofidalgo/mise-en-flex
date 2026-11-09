@@ -27,8 +27,8 @@ namespace Game.Simulation.Saving
         /// <summary>An order as the listing writes it, e.g. "steak, medium".</summary>
         public static string OrderName(Order order) => $"{order.MainName.ToLowerInvariant()}, {order.Doneness.Name.ToLowerInvariant()}";
 
-        /// <param name="guest">The name for a first visit; a returning guest keeps their own.</param>
-        public static ReviewRecord ToRecord(Review review, int day, string guest = "")
+        /// <param name="guest">The name for a first visit in English, with its slot and initial; a returning guest keeps their own.</param>
+        public static ReviewRecord ToRecord(Review review, int day, string guest = "", int slot = -1, string initial = "")
         {
             var customer = review.Customer;
             var order = customer?.Order;
@@ -39,6 +39,8 @@ namespace Game.Simulation.Saving
                 Topic = (int)review.Topic,
                 Line = review.Line ?? "",
                 Guest = review.Returning?.Name ?? guest ?? "",
+                GuestSlot = review.Returning?.Slot ?? slot,
+                GuestInitial = review.Returning?.Initial ?? initial ?? "",
                 Order = order == null ? "" : OrderName(order),
                 ArrivedAt = customer?.ArrivedAt ?? 0f,
                 WalkedOut = customer?.WalkedOut ?? false,

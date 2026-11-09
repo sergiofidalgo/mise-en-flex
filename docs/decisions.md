@@ -4,6 +4,27 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-09 — Shorter replies; guest names that translate
+
+**User's call: replies shouldn't be unnecessarily long.**
+- **Most replies are now short:** 40% are a one-liner (50% when the owner is fed up). Most of the rest are two parts, usually the heart of the reply and a sign-off. All three parts happen 5% of the time.
+- **The cap is 110 characters** (was 150). When a reply runs long, the greeting goes first, then the sign-off.
+
+  "Thanks for being straight with us, Tony. We let the tickets pile up and you paid for it. Come back on a Tuesday. It's calmer." now tends to read "We let the tickets pile up and you paid for it. Come back on a Tuesday. It's calmer."
+- **The month metrics still pass:** replies 90–93% unique, none more than twice or within 10 days.
+
+**User's call: guests' names should be local in a translated game** ("Juan S.", not "John S.", in Spanish).
+- **Saves keep a guest's name slot and initial** (`ReviewRecord.GuestSlot`, `GuestInitial`) as well as the English name. The guest book still knows guests by the English name.
+- **`GuestNames` holds a first-name table per language, slot for slot.** Each slot is a role (a guy called Mike is Miguel in Spanish), not a literal translation.
+  - There's English and a Spanish example; `GuestNameTests` checks every language fills every slot.
+  - The dashboard and the main menu show names in `GuestNames.Language`, a stand-in until the game has a language setting and Unity's Localization package.
+  - A language with no table shows English, and older saves show the name they kept.
+- **Replies address the guest by their name in the player's language.**
+
+**Flagged for later (`ideas.md`):** review and reply text is still saved as finished English sentences. Translating those needs saving which line was used plus its facts, and writing the sentence when it's shown.
+
+---
+
 ## 2026-11-09 — Measured variety; fuller replies; an owner who tires
 
 **User's call: every restaurant's interactions should feel unique, measured, not hoped for.**

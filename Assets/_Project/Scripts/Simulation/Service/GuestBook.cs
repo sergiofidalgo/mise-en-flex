@@ -24,6 +24,10 @@ namespace Game.Simulation.Service
     public sealed class KnownGuest
     {
         public string Name = "";
+
+        /// <summary>Their name slot and initial, so they're shown in the player's language.</summary>
+        public int Slot = -1;
+        public string Initial = "";
         public Persona Persona;
         public int LastDay;
         public int Visits;
@@ -71,6 +75,8 @@ namespace Game.Simulation.Service
                 _guests.Add(new KnownGuest
                 {
                     Name = last.Guest,
+                    Slot = last.GuestSlot,
+                    Initial = last.GuestInitial,
                     Persona = (Persona)last.Persona,
                     LastDay = last.Day,
                     Visits = visits.Count(),

@@ -167,8 +167,14 @@ namespace Game.Simulation.Saving
         public int Topic;
         public string Line = "";
 
-        /// <summary>The guest's name as the listing shows it.</summary>
+        /// <summary>The guest's name in English, e.g. "Mike S."; also how the guest book knows them.</summary>
         public string Guest = "";
+
+        /// <summary>Which name the guest has, so it can be shown in any language; -1 in older saves.</summary>
+        public int GuestSlot = -1;
+
+        /// <summary>The guest's last initial, e.g. "S".</summary>
+        public string GuestInitial = "";
 
         /// <summary>What they ordered, e.g. "steak, medium"; empty if they never ordered.</summary>
         public string Order = "";

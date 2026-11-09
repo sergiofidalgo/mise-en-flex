@@ -459,7 +459,8 @@ namespace Game.Presentation.Hud
 
             UiKit.StrokedEllipse(parent, "Avatar", UiKit.AvatarColour(review.Guest), _ink, 4f, CardLeft + 24f, y + (overview ? 21f : 16f), 49f, 61f);
             var nameBase = y + (overview ? 38f : 34f);
-            var name = Label(Bold, parent, review.Guest, 20f, _ink, 857f, nameBase, 300f);
+            // In the player's language: the guest's name slot looked up there (decision 2026-11-09).
+            var name = Label(Bold, parent, Game.Data.GuestNames.Display(review), 20f, _ink, 857f, nameBase, 300f);
             var meta = (string.IsNullOrEmpty(review.Order) ? "" : $"· {review.Order} ") + $"· {ClockAt(review.ArrivedAt)}";
             if (review.Day != Services.Days.Day)
                 meta += $" · day {review.Day}";

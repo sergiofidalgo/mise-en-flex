@@ -4,6 +4,22 @@ Ideas worth keeping that aren't decided or scheduled yet. When one is accepted, 
 
 ---
 
+## Localising reviews and replies
+
+*Added 2026-11-09 · Relevant phase: before any translation; best before saves pile up · Pillars: your restaurant, your identity*
+
+Guest names already translate: saves keep a name slot, and each language has its own names (`decisions.md`, 2026-11-09). Review and reply text doesn't yet: it's saved as finished English sentences, so a player who switches language would see old reviews in English.
+
+The fix is to save what was said, not how it read:
+- **Each line gets a stable key,** and the review record keeps the keys used (reply parts too), the persona, and the facts (dish, doneness ordered and served, wait, time).
+- **The sentence is written when it's shown,** in the current language, from that language's voice: the same keys, with lines written by a translator.
+- **Translated lines need a way to handle plurals and grammar around the facts,** such as Unity Localization's Smart Strings rather than plain `{main}` replacement.
+- **The voices' data (`ReviewVoiceData`) would move into string tables per language,** and the metrics would run per language.
+
+Doing this before players have long campaigns avoids a save migration for old reviews: older reviews would simply stay in the language they were written in.
+
+---
+
 ## Reviews and replies with variety, wit and a voice per restaurant
 
 *Added 2026-11-09 · Relevant phase: 7 (content), with a small first step any time · Pillars: your restaurant, your identity; chaos you can plan for*

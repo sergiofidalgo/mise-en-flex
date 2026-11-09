@@ -181,8 +181,11 @@ namespace Game.Simulation.Service
         public const int MaxReviewLength = 44;
         public const int MaxReplyLength = 72;
 
-        /// <summary>A reply built from parts may run to two lines of the review card.</summary>
-        public const int MaxComposedReplyLength = 150;
+        /// <summary>
+        /// A reply built from parts may wrap onto a second line, but stays short (user's call,
+        /// 2026-11-09: not unnecessarily long). About a line and a third.
+        /// </summary>
+        public const int MaxComposedReplyLength = 110;
 
         private static readonly string[] Placeholders = { "{main}", "{side}", "{ordered}", "{got}", "{name}", "{restaurant}", "{left}", "{wait}" };
 
@@ -257,12 +260,13 @@ namespace Game.Simulation.Service
         public static string Reply(ReviewReply reply, ReviewTopic topic, ReviewFacts facts, OwnerMood mood, Voice style, Voice generic, LineMemory memory, Random random)
         {
             var group = GroupOf(topic);
-            // How long: a third short, the rest built from parts; a fed-up owner is curt or rants.
+            // How long: often a one-liner, usually two parts, rarely all three (user's call,
+            // 2026-11-09: don't make them unnecessarily long). A fed-up owner is curter still.
             var (shortShare, longShare) = mood switch
             {
-                OwnerMood.FedUp => (0.35, 0.35),
-                OwnerMood.Tired => (0.3, 0.3),
-                _ => (0.35, 0.25),
+                OwnerMood.FedUp => (0.5, 0.05),
+                OwnerMood.Tired => (0.4, 0.05),
+                _ => (0.4, 0.05),
             };
             var shape = random.NextDouble();
             if (shape < shortShare)
@@ -279,17 +283,18 @@ namespace Game.Simulation.Service
             }
 
             var full = shape >= 1.0 - longShare;
-            var withOpener = full || random.NextDouble() < 0.5;
+            // Two parts: usually the heart of it and a sign-off; sometimes a greeting first.
+            var withOpener = full || random.NextDouble() < 0.35;
             var opener = withOpener ? Part(reply, group, ReplyPart.Opener, mood, facts, style, generic, memory, random) : "";
             var body = Part(reply, group, ReplyPart.Body, mood, facts, style, generic, memory, random);
             if (body.Length == 0)
                 return Whole(reply, group, facts, style, generic, memory, random);
             var closer = full || !withOpener ? Part(reply, group, ReplyPart.Closer, mood, facts, style, generic, memory, random) : "";
 
-            // Too long for two lines: the sign-off goes first, then the opening.
+            // Too long: the greeting goes first (the reply says more without it), then the sign-off.
             var text = Join(opener, body, closer);
             if (text.Length > MaxComposedReplyLength)
-                text = Join(opener, body, "");
+                text = Join("", body, closer);
             if (text.Length > MaxComposedReplyLength)
                 text = body;
             return text;

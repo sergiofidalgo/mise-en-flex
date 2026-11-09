@@ -57,14 +57,15 @@ namespace Game.Simulation.Service
         /// per review, whose words show what kind of reply it is (decision 2026-11-09). The same review
         /// and reply always give the same words.
         /// </summary>
-        public static void WriteReply(ReviewRecord review, ReviewReply reply, Voice style, Voice generic, LineMemory memory, string restaurant, OwnerMood mood = OwnerMood.Fresh)
+        /// <param name="name">The guest's first name as the player sees it (their language's); their saved name if null.</param>
+        public static void WriteReply(ReviewRecord review, ReviewReply reply, Voice style, Voice generic, LineMemory memory, string restaurant, OwnerMood mood = OwnerMood.Fresh, string name = null)
         {
             var order = (review.Order ?? "").Split(',');
             var facts = new ReviewFacts
             {
                 Main = order[0].Trim(),
                 Ordered = order.Length > 1 ? order[1].Trim() : "",
-                Name = (review.Guest ?? "").Split(' ')[0],
+                Name = name ?? (review.Guest ?? "").Split(' ')[0],
                 Restaurant = restaurant ?? "",
             };
             var seed = unchecked(review.Day * 7919 + StableHash(review.Guest) * 31 + (int)reply);

@@ -90,7 +90,7 @@ namespace Game.Gameplay
             var day = Services.Days.Day;
             var repliedToday = Services.ReviewHistory.Count(r => r.Day == day && r.Reply >= 0) - 1;
             var mood = ReviewVoices.MoodAfter(repliedToday, Services.Days.LastService?.WalkOuts ?? 0, settings.TiredAfter, settings.FedUpAfter);
-            ReviewReplies.WriteReply(review, reply, _serviceConfig.StyleVoice(), _serviceConfig.GenericVoice(), _reviewLines, _serviceConfig.RestaurantName, mood);
+            ReviewReplies.WriteReply(review, reply, _serviceConfig.StyleVoice(), _serviceConfig.GenericVoice(), _reviewLines, _serviceConfig.RestaurantName, mood, GuestNames.FirstOf(review));
             SaveCampaign();
             return true;
         }
@@ -108,8 +108,9 @@ namespace Game.Gameplay
             var day = Services.Days.Day;
             foreach (var review in Services.Service.Reviews)
             {
-                var guest = _serviceConfig.GuestName(review.Customer?.Id ?? 0, day);
-                Services.ReviewHistory.Add(Game.Simulation.Saving.SaveConversions.ToRecord(review, day, guest));
+                var id = review.Customer?.Id ?? 0;
+                var (slot, initial) = _serviceConfig.GuestSlot(id, day);
+                Services.ReviewHistory.Add(Game.Simulation.Saving.SaveConversions.ToRecord(review, day, _serviceConfig.GuestName(id, day), slot, initial));
             }
         }
 
