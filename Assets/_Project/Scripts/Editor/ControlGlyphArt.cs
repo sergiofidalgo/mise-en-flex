@@ -24,6 +24,7 @@ namespace Game.Editor
         public const string StickBase = "TEX_Glyph_StickBase";  // the stick, seen from three-quarters: its well
         public const string StickPost = "TEX_Glyph_StickPost";  // the post, stretched and turned to show a tilt
         public const string StickCap = "TEX_Glyph_StickCap";    // the cap, moved to show a tilt; L or R on top
+        public const string StickPlate = "TEX_Glyph_StickPlate"; // a cream plate the stick sits on, for dark backgrounds
 
         // The kit's palette: near-black outline, two dark greys for bodies, a lighter cap top.
         private static readonly Color Outline = new Color32(0x12, 0x13, 0x17, 0xFF);
@@ -34,6 +35,7 @@ namespace Game.Editor
         private static readonly Color CapDish = new Color32(0x3B, 0x3F, 0x48, 0xFF);
         private static readonly Color Shine = new Color(1f, 1f, 1f, 0.22f);
         private static readonly Color Shadow = new Color(0f, 0f, 0f, 0.35f);
+        private static readonly Color Cream = new Color32(0xEA, 0xDF, 0xC6, 0xFF); // art bible: light panels
 
         private const float Line = 7f;     // outline width, px at 4×
         private const float Soft = 1.4f;   // antialiasing, px
@@ -48,8 +50,9 @@ namespace Game.Editor
             Save(StickBase, 300, 170, DrawStickBase);
             Save(StickPost, 80, 150, DrawStickPost);
             Save(StickCap, 260, 190, DrawStickCap);
+            Save(StickPlate, 340, 190, DrawStickPlate);
             AssetDatabase.Refresh();
-            foreach (var name in new[] { Button, Bumper, Trigger, StickBase, StickPost, StickCap })
+            foreach (var name in new[] { Button, Bumper, Trigger, StickBase, StickPost, StickCap, StickPlate })
                 Import(name);
             Debug.Log($"[ControlGlyphArt] Drew the control glyphs into {Folder}.");
         }
@@ -133,7 +136,7 @@ namespace Game.Editor
             var group = new GameObject("Stick", typeof(RectTransform)).GetComponent<RectTransform>();
             group.SetParent(root, false);
             group.anchoredPosition = at;
-            var (post, cap) = Game.Presentation.Hud.StickHintHud.CreateStick(group, size, Sprite(StickBase), Sprite(StickPost), Sprite(StickCap), style.DisplayFont);
+            var (post, cap) = Game.Presentation.Hud.StickHintHud.CreateStick(group, size, Sprite(StickBase), Sprite(StickPost), Sprite(StickCap), style.DisplayFont, plate: Sprite(StickPlate));
             Game.Presentation.Hud.StickHintHud.Pose(post, cap, size, new Vector2(push.x, push.y * 0.7f));
         }
 
@@ -200,6 +203,18 @@ namespace Game.Editor
             c.Layer(p => Ellipse(p, top, 46f, 19f) - Line * 0.6f, Outline);
             c.Layer(p => Ellipse(p, top, 46f, 19f), BodyDark);
             c.Layer(p => Math.Max(Ellipse(p, top + new Vector2(-30f, 22f), 60f, 12f), -Ellipse(p, top, 46f, 19f)), Shine, 4f);
+        }
+
+        // A cream plate seen from three-quarters, outlined, that the stick's well sits in: it gives
+        // the dark stick a light ground wherever it's shown (the wash ring's dark segments).
+        private static void DrawStickPlate(Canvas c)
+        {
+            var centre = new Vector2(170f, 100f);
+            const float rx = 158f, ry = 72f;
+            c.Layer(p => Ellipse(p, centre - new Vector2(0f, 8f), rx, ry), Shadow, 12f);
+            c.Layer(p => Ellipse(p, centre, rx, ry) - Line, Outline);
+            c.Layer(p => Ellipse(p, centre, rx, ry), Cream);
+            c.Layer(p => Math.Max(Ellipse(p, centre + new Vector2(-40f, 30f), 80f, 18f), Ellipse(p, centre, rx * 0.95f, ry * 0.9f)), new Color(1f, 1f, 1f, 0.35f), 4f);
         }
 
         // The post, upright; the view stretches and turns it towards the cap.

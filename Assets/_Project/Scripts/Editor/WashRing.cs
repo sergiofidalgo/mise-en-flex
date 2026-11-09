@@ -120,7 +120,7 @@ namespace Game.Editor
         /// <summary>Adds the stick hint to a HUD canvas, drawing the control glyphs first if needed.</summary>
         public static void AddStickHint(GameObject hud, Game.Presentation.Hud.HudStyle style)
         {
-            if (AssetDatabase.LoadAssetAtPath<Sprite>($"{ControlGlyphArt.Folder}/{ControlGlyphArt.StickCap}.png") == null)
+            if (AssetDatabase.LoadAssetAtPath<Sprite>($"{ControlGlyphArt.Folder}/{ControlGlyphArt.StickPlate}.png") == null)
                 ControlGlyphArt.Build();
             if (!hud.TryGetComponent(out Game.Presentation.Hud.StickHintHud hint))
                 hint = hud.AddComponent<Game.Presentation.Hud.StickHintHud>();
@@ -130,6 +130,10 @@ namespace Game.Editor
             so.FindProperty("_base").objectReferenceValue = ControlGlyphArt.Sprite(ControlGlyphArt.StickBase);
             so.FindProperty("_post").objectReferenceValue = ControlGlyphArt.Sprite(ControlGlyphArt.StickPost);
             so.FindProperty("_cap").objectReferenceValue = ControlGlyphArt.Sprite(ControlGlyphArt.StickCap);
+            so.FindProperty("_plate").objectReferenceValue = ControlGlyphArt.Sprite(ControlGlyphArt.StickPlate);
+            so.FindProperty("_lift").floatValue = 0f;
+            so.FindProperty("_size").floatValue = 60f;
+            so.FindProperty("_travel").floatValue = 12f;
             so.ApplyModifiedPropertiesWithoutUndo();
         }
 

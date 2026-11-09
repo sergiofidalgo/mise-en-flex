@@ -8,8 +8,8 @@ namespace Game.Presentation.Hud
     /// <summary>
     /// The animated thumbstick that shows a stuck player which way to push (the wash game's soap,
     /// decision 2026-11-09), drawn from the control-glyph kit: flat HUD art apart from the game's
-    /// look, so it reads on any background and is never lit or hidden by the scene. It follows the
-    /// world point a view asks for and stays on screen. The cap slides towards the way to push, the
+    /// look, never lit or hidden by the scene. It sits on a cream plate on the world point a view
+    /// asks for (the wash ring's rim, by the soap; the user's call) and stays on screen. The cap slides towards the way to push, the
     /// post leans after it and the L rides on top, again and again, like a tutorial.
     /// </summary>
     public sealed class StickHintHud : MonoBehaviour
@@ -19,15 +19,17 @@ namespace Game.Presentation.Hud
         [SerializeField] private Sprite _base;
         [SerializeField] private Sprite _post;
         [SerializeField] private Sprite _cap;
+        [Tooltip("The cream plate the stick sits on, so it reads on the ring's dark segments.")]
+        [SerializeField] private Sprite _plate;
 
         [Tooltip("Canvas pixels: the glyph's width.")]
-        [SerializeField, Min(16f)] private float _size = 96f;
+        [SerializeField, Min(16f)] private float _size = 60f;
         [Tooltip("Canvas pixels the cap travels at the far end of a push.")]
-        [SerializeField, Min(0f)] private float _travel = 18f;
+        [SerializeField, Min(0f)] private float _travel = 12f;
         [Tooltip("Pushes per second.")]
         [SerializeField, Min(0f)] private float _pushes = 1.6f;
-        [Tooltip("Canvas pixels the glyph sits above the point it follows, so it doesn't cover it.")]
-        [SerializeField] private float _lift = 40f;
+        [Tooltip("Canvas pixels the glyph sits above the point it follows (on the ring's rim, the plate centres on it).")]
+        [SerializeField] private float _lift = 0f;
 
         private readonly List<Hint> _hints = new List<Hint>();
         private readonly List<SinkWashRingView> _views = new List<SinkWashRingView>();
@@ -131,8 +133,10 @@ namespace Game.Presentation.Hud
         /// Builds the stick glyph under <paramref name="parent"/>: base, post, cap and its L.
         /// Shared with the kit's sheet capture, so the two can't drift apart.
         /// </summary>
-        public static (RectTransform Post, RectTransform Cap) CreateStick(RectTransform parent, float size, Sprite baseSprite, Sprite postSprite, Sprite capSprite, TMP_FontAsset font, string letter = "L")
+        public static (RectTransform Post, RectTransform Cap) CreateStick(RectTransform parent, float size, Sprite baseSprite, Sprite postSprite, Sprite capSprite, TMP_FontAsset font, string letter = "L", Sprite plate = null)
         {
+            if (plate != null)
+                Image(parent, "Plate", plate, new Vector2(0f, -size * BaseDrop - size * 0.02f), new Vector2(size * 1.25f, size * 1.25f * 190f / 340f));
             Image(parent, "Base", baseSprite, new Vector2(0f, -size * BaseDrop), new Vector2(size, size * 170f / 300f));
             var post = Image(parent, "Post", postSprite, Vector2.zero, new Vector2(size * 0.16f, size * 0.3f));
             var cap = Image(parent, "Cap", capSprite, new Vector2(0f, size * CapLift), new Vector2(size * CapWidth, CapHeight(size)));
@@ -166,7 +170,7 @@ namespace Game.Presentation.Hud
             group.blocksRaycasts = false;
             group.interactable = false;
 
-            var (post, cap) = CreateStick(rect, _size, _base, _post, _cap, _style != null ? _style.DisplayFont : null);
+            var (post, cap) = CreateStick(rect, _size, _base, _post, _cap, _style != null ? _style.DisplayFont : null, plate: _plate);
 
             var hint = new Hint { Root = rect, Post = post, Cap = cap, Group = group };
             _hints.Add(hint);

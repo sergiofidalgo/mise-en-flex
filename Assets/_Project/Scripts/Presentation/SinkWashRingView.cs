@@ -252,10 +252,11 @@ namespace Game.Presentation
                 _bubbles[i].localPosition = _soap.localPosition + new Vector3(Mathf.Sin(angle) * 0.3f, 0.05f + 0.04f * Mathf.Sin(Time.time * 5f + i), Mathf.Cos(angle) * 0.3f);
             }
 
-            // Where the stick hint (StickHintHud, flat HUD art) shows: beside the soap on its far
-            // side from the centre, so it never hides the soap or the way in, pointing inwards.
+            // Where the stick hint (StickHintHud, flat HUD art) shows: on the ring's rim at the
+            // soap's side (the user's call), following it round, pointing inwards.
             var outward = _shownPoint.sqrMagnitude > 1e-4f ? _shownPoint.normalized : Vector2.up;
-            _hintWorld = _root.TransformPoint(_soap.localPosition + new Vector3(outward.x * 0.3f, 0f, outward.y * 0.3f));
+            // Just outside the rim's middle, so it rides along the edge without covering the soap.
+            _hintWorld = _root.TransformPoint(new Vector3(outward.x * (RimRadius + 0.34f), _segmentHeight, outward.y * (RimRadius + 0.34f)));
             _hintTowards = _root.TransformDirection(new Vector3(-outward.x, 0f, -outward.y)) * 0.1f;
             _hintAmount = hint;
         }
