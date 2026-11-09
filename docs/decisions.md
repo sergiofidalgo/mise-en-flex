@@ -355,6 +355,16 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-09 — A wider centre; the tailor and the miniature through the boss
+
+**User's calls:**
+- **The centre column is wider:** 18 m instead of 13 m. The side rooms (lounge, test kitchen, tailor, accountant, hall of fame, miniature) don't need much space and are 8.5 m. The floor stays 35 m wide.
+- **The tailor and the miniature open only from the boss's office.** The other rooms all connect to each other.
+
+**Proposed with it (flagged for review):** the terrace is also reached only from the boss's office, by a door either side of his desk; the tailor's and the miniature room's terrace doors are gone. So every visit to the miniature, which is how a day starts, passes the bodyguards and the boss.
+
+---
+
 ## 2026-11-09 — A glass tower, and roofs as real roofs
 
 **User's notes:** if the penthouse is glass on all four sides, so should the floors below it be; and trees on flat roofs looked wrong.

@@ -35,10 +35,12 @@ namespace Game.Editor
         private const string ChefModel = "SM_Chef";
         private const int Seed = 2611_09;
 
-        // The floor (user's note, 2026-11-09: the draft's rooms felt too small for an office): three
-        // columns and three rows of different sizes, the middle column widest, the back row deepest.
-        // The camera looks north, so the front row (−Z) is nearest. The terrace runs along the back.
-        private static readonly float[] ColumnEdges = { -17.5f, -6.5f, 6.5f, 17.5f };
+        // The floor (user's notes, 2026-11-09): three columns and three rows. The middle column, the
+        // reception, the guarded doors and the boss's office, is the grand one at 18 m; the side
+        // rooms (lounge, test kitchen, tailor, accountant, hall of fame, miniature) need less and
+        // are 8.5 m. The back row is deepest. The camera looks north, so the front row (−Z) is
+        // nearest. The terrace runs along the back.
+        private static readonly float[] ColumnEdges = { -17.5f, -9f, 9f, 17.5f };
         private static readonly float[] RowEdges = { -13.5f, -4.5f, 3.5f, 13.5f };
         private const float TerraceNorth = 19.5f;
         private static float West => ColumnEdges[0];
@@ -241,33 +243,35 @@ namespace Game.Editor
             float[] xs = ColumnEdges, zs = RowEdges;
 
             // Outside (user's note, 2026-11-09): a penthouse is walled in glass. Tall windows on a
-            // panelled sill all round, so the city shows through on every side; the camera sees
-            // through the front one into the rooms. Doors onto the terrace from the tailor, the
-            // boss (beside his desk, not behind it) and the back room.
-            // The front is the exception: the camera looks over it, so a tall frame there would run
-            // across the front rooms. It's cut low (the art bible's dollhouse cut), glass on a sill.
+            // panelled sill on the sides and back, so the city shows through. The front is cut low
+            // (the art bible's dollhouse cut): the camera looks over it, and a tall frame there would
+            // run across the front rooms. The terrace is reached only from the boss's office, by a
+            // door either side of his desk.
             Glass(walls, "Glass_South", new Vector3(West, 0f, South), new Vector3(East, 0f, South), none, FrontMullionSpacing, FrontWallHeight);
             Glass(walls, "Glass_West", new Vector3(West, 0f, South), new Vector3(West, 0f, North), none, MullionSpacing);
             Glass(walls, "Glass_East", new Vector3(East, 0f, South), new Vector3(East, 0f, North), none, MullionSpacing);
-            Glass(walls, "Glass_North", new Vector3(West, 0f, North), new Vector3(East, 0f, North), new[] { -15.5f, -4.5f, 12f }, MullionSpacing);
+            Glass(walls, "Glass_North", new Vector3(West, 0f, North), new Vector3(East, 0f, North), new[] { -6f, 6f }, MullionSpacing);
 
-            // Between columns. The serving hatch from the test kitchen to the bodyguards is a gap
-            // filled by a counter.
+            // Who reaches what (user's call, 2026-11-09): the tailor and the miniature open only
+            // from the boss's office, which only the guarded doors reach. The other six rooms all
+            // connect: lounge, reception and accountant across the front; lounge to test kitchen
+            // and accountant to hall of fame; test kitchen and hall of fame to the guarded doors.
+            // The serving hatch from the test kitchen to the bodyguards is a gap filled by a counter.
             WallAlongZ(walls, "Wall_LoungeReception", xs[1], zs[0], zs[1], new[] { -7f });
             WallAlongZ(walls, "Wall_KitchenGuards", xs[1], zs[1], zs[2], new[] { -1.8f }, hatchAt: 1.6f);
-            WallAlongZ(walls, "Wall_TailorBoss", xs[1], zs[2], zs[3], none);
+            WallAlongZ(walls, "Wall_TailorBoss", xs[1], zs[2], zs[3], new[] { 6f });
             WallAlongZ(walls, "Wall_ReceptionAccountant", xs[2], zs[0], zs[1], new[] { -7f });
             WallAlongZ(walls, "Wall_GuardsHall", xs[2], zs[1], zs[2], new[] { -0.5f });
-            WallAlongZ(walls, "Wall_BossBackRoom", xs[2], zs[2], zs[3], none);
+            WallAlongZ(walls, "Wall_BossBackRoom", xs[2], zs[2], zs[3], new[] { 6f });
 
-            // Between rows: every room opens to the ones in front and behind, except the boss's,
-            // which only the guarded doors reach.
-            WallAlongX(walls, "Wall_LoungeKitchen", zs[1], xs[0], xs[1], new[] { -12f });
+            var west = (xs[0] + xs[1]) / 2f;
+            var east = (xs[2] + xs[3]) / 2f;
+            WallAlongX(walls, "Wall_LoungeKitchen", zs[1], xs[0], xs[1], new[] { west });
             WallAlongX(walls, "Wall_ReceptionGuards", zs[1], xs[1], xs[2], new[] { 0f }, 3f);
-            WallAlongX(walls, "Wall_AccountantHall", zs[1], xs[2], xs[3], new[] { 12f });
-            WallAlongX(walls, "Wall_KitchenTailor", zs[2], xs[0], xs[1], new[] { -12f });
+            WallAlongX(walls, "Wall_AccountantHall", zs[1], xs[2], xs[3], new[] { east });
+            WallAlongX(walls, "Wall_KitchenTailor", zs[2], xs[0], xs[1], none);
             WallAlongX(walls, "Wall_GuardsBoss", zs[2], xs[1], xs[2], new[] { 0f }, 2.4f);
-            WallAlongX(walls, "Wall_HallBackRoom", zs[2], xs[2], xs[3], new[] { 12f });
+            WallAlongX(walls, "Wall_HallBackRoom", zs[2], xs[2], xs[3], none);
 
             Railing(walls, "Railing_North", new Vector3(West, 0f, TerraceNorth), new Vector3(East, 0f, TerraceNorth));
             Railing(walls, "Railing_West", new Vector3(West, 0f, North), new Vector3(West, 0f, TerraceNorth));
@@ -500,34 +504,33 @@ namespace Game.Editor
             return room;
         }
 
-        // Reception, 13 × 9 m: the elevator, the desk, somewhere to wait.
+        // Reception, 18 × 9 m: the elevator, the desk on the right, somewhere to wait on the left.
         private static void BuildReception(Transform rooms)
         {
             var room = Room(rooms, "Reception");
             for (var i = 0; i < 3; i++)
-                Prop(room, "PF_Counter", new Vector3(2.8f + i, 0f, -7.6f), 0f);
-            Shape(room, PrimitiveType.Sphere, "DeskBell", Toon("OfficeBellRed", new Color(0.8f, 0.2f, 0.18f)), new Vector3(3.3f, 0.98f, -7.75f), Vector3.one * 0.14f);
-            Block(room, "Ledger", Toon("OfficeLedger", Burgundy), new Vector3(4.2f, 0.92f, -7.7f), new Vector3(0.42f, 0.06f, 0.3f));
-            Person(room, "Receptionist", new Vector3(3.8f, 0f, -6.7f), 180f, new Color(0.5f, 0.2f, 0.3f), Suit, dress: look =>
-            {
-                look.Skin = CharacterArt.SkinTones[5];
-                look.HairStyle = CharacterArt.HairKind.Bun;
-                look.Hair = CharacterArt.DarkHair;
-                look.Glasses = true;
-            });
+                Prop(room, "PF_Counter", new Vector3(4.5f + i, 0f, -7.6f), 0f);
+            Shape(room, PrimitiveType.Sphere, "DeskBell", Toon("OfficeBellRed", new Color(0.8f, 0.2f, 0.18f)), new Vector3(5.0f, 0.98f, -7.75f), Vector3.one * 0.14f);
+            Block(room, "Ledger", Toon("OfficeLedger", Burgundy), new Vector3(5.9f, 0.92f, -7.7f), new Vector3(0.42f, 0.06f, 0.3f));
+            Person(room, "Receptionist", new Vector3(5.5f, 0f, -6.7f), 180f, new Color(0.62f, 0.22f, 0.32f), Suit);
 
-            Armchair(room, new Vector3(-5.4f, 0f, -8.0f), 90f, Velvet);
-            Armchair(room, new Vector3(-5.4f, 0f, -9.6f), 90f, Velvet);
-            Block(room, "SideTable", Toon("OfficeWalnut", Walnut), new Vector3(-4.2f, 0f, -8.8f), new Vector3(0.7f, 0.45f, 0.7f), collider: true);
-            FloorLamp(room, new Vector3(-5.9f, 0f, -11.0f));
-            foreach (var at in new[] { new Vector3(-5.8f, 0f, -5.2f), new Vector3(5.8f, 0f, -5.2f), new Vector3(-5.8f, 0f, -12.8f), new Vector3(5.8f, 0f, -12.8f), new Vector3(-2.8f, 0f, -12.9f), new Vector3(2.8f, 0f, -12.9f) })
+            // The waiting area: a sofa and armchairs round a low table, under a floor lamp.
+            Sofa(room, new Vector3(-5.6f, 0f, -6.0f), 180f, Velvet);
+            Armchair(room, new Vector3(-7.6f, 0f, -8.6f), 90f, Velvet);
+            Armchair(room, new Vector3(-3.6f, 0f, -8.6f), -90f, Velvet);
+            Block(room, "CoffeeTable", Toon("OfficeWalnut", Walnut), new Vector3(-5.6f, 0f, -8.4f), new Vector3(1.6f, 0.42f, 0.9f), collider: true);
+            Block(room, "Magazines", Toon("OfficeLedger", Burgundy), new Vector3(-5.3f, 0.42f, -8.4f), new Vector3(0.34f, 0.03f, 0.25f));
+            FloorLamp(room, new Vector3(-8.4f, 0f, -5.2f));
+            foreach (var at in new[] { new Vector3(8.3f, 0f, -5.2f), new Vector3(-8.3f, 0f, -12.8f), new Vector3(8.3f, 0f, -12.8f), new Vector3(-4.0f, 0f, -12.9f), new Vector3(4.0f, 0f, -12.9f), new Vector3(-2.0f, 0f, -5.2f), new Vector3(2.0f, 0f, -5.2f) })
                 PottedPlant(room, at, 1f);
-            HangPicture(room, new Vector3(-6.5f, PictureHeight, -10.6f), Vector3.right, new Color(0.56f, 0.66f, 0.5f));
-            HangPicture(room, new Vector3(6.5f, PictureHeight, -10.6f), Vector3.left, new Color(0.5f, 0.62f, 0.72f));
-            Lamp(room, "Pendant", new Vector3(0f, 3.4f, -7.5f), 9f, 1.6f);
+            HangPicture(room, new Vector3(-9f, PictureHeight, -10.6f), Vector3.right, new Color(0.56f, 0.66f, 0.5f));
+            HangPicture(room, new Vector3(9f, PictureHeight, -10.6f), Vector3.left, new Color(0.5f, 0.62f, 0.72f));
+            Lamp(room, "PendantWest", new Vector3(-5f, 3.4f, -8f), 8f, 1.4f);
+            Lamp(room, "PendantEast", new Vector3(5f, 3.4f, -8f), 8f, 1.4f);
         }
 
-        // The guarded doors, 13 × 8 m: the bodyguards' post in front of the boss's door.
+        // The guarded doors, 18 × 8 m: the bodyguards' post in front of the boss's door, with seats
+        // for whoever is kept waiting.
         private static void BuildGuardedDoors(Transform rooms)
         {
             var room = Room(rooms, "GuardedDoors");
@@ -538,15 +541,15 @@ namespace Game.Editor
                 Block(room, "Column", Toon("OfficeColumn", Cream), new Vector3(x, 0f, 3.15f), new Vector3(0.5f, 2.3f, 0.5f), collider: true);
                 Block(room, "ColumnCap", Toon("OfficeBrass", Brass), new Vector3(x, 2.3f, 3.15f), new Vector3(0.62f, 0.12f, 0.62f));
             }
-            Sofa(room, new Vector3(-5.6f, 0f, -0.2f), 90f, Velvet);
-            Armchair(room, new Vector3(5.6f, 0f, 2.0f), -90f, Velvet);
-            Armchair(room, new Vector3(5.6f, 0f, -3.0f), -90f, Velvet);
-            foreach (var at in new[] { new Vector3(-5.8f, 0f, -3.8f), new Vector3(-5.8f, 0f, 2.8f), new Vector3(5.8f, 0f, 2.9f) })
+            Sofa(room, new Vector3(-5.2f, 0f, -0.4f), 90f, Velvet);
+            Sofa(room, new Vector3(5.2f, 0f, -0.4f), -90f, Velvet);
+            foreach (var at in new[] { new Vector3(-8.3f, 0f, -3.8f), new Vector3(8.3f, 0f, -3.8f), new Vector3(-8.3f, 0f, 2.9f), new Vector3(8.3f, 0f, 2.9f), new Vector3(-3.2f, 0f, 2.9f), new Vector3(3.2f, 0f, 2.9f) })
                 PottedPlant(room, at, 1.1f);
-            HangPicture(room, new Vector3(6.5f, PictureHeight, 1.9f), Vector3.left, new Color(0.72f, 0.56f, 0.36f));
+            HangPicture(room, new Vector3(9f, PictureHeight, 2.2f), Vector3.left, new Color(0.72f, 0.56f, 0.36f));
         }
 
-        // The boss's office, 13 × 10 m: his desk at the end of the carpet, the warmest light on the floor.
+        // The boss's office, 18 × 10 m: his desk at the end of the carpet, the warmest light on the
+        // floor, and the only way to the tailor (west), the miniature (east) and the terrace.
         private static void BuildBossOffice(Transform rooms)
         {
             var room = Room(rooms, "BossOffice");
@@ -566,26 +569,28 @@ namespace Game.Editor
             Armchair(room, new Vector3(1.2f, 0f, 8.6f), 0f, new Color(0.52f, 0.16f, 0.16f));
             Lamp(room, "DeskLight", new Vector3(0.7f, 2.2f, 10.0f), 7f, 3.2f);
 
-            // A sitting corner, his books and his safe.
-            Sofa(room, new Vector3(-5.6f, 0f, 7.0f), 90f, Leather);
-            Block(room, "CoffeeTable", Toon("OfficeWalnut", Walnut), new Vector3(-4.2f, 0f, 7.0f), new Vector3(0.9f, 0.42f, 1.6f), collider: true);
-            Model(room, "Decanter", OfficeModel, "OfficeTrophy", PilotArt.EnsureGlassMaterial("OfficeDecanter", new Color(0.7f, 0.45f, 0.2f, 0.7f)), new Vector3(-4.2f, 0.42f, 6.6f), 0f, scale: 0.6f);
+            // A sitting corner on the left, his books and his safe on the right; the doors to the
+            // tailor and the miniature (z = 6) are kept clear.
+            Sofa(room, new Vector3(-7.4f, 0f, 10.2f), 90f, Leather);
+            Block(room, "CoffeeTable", Toon("OfficeWalnut", Walnut), new Vector3(-6.0f, 0f, 10.2f), new Vector3(0.9f, 0.42f, 1.6f), collider: true);
+            Model(room, "Decanter", OfficeModel, "OfficeTrophy", PilotArt.EnsureGlassMaterial("OfficeDecanter", new Color(0.7f, 0.45f, 0.2f, 0.7f)), new Vector3(-6.0f, 0.42f, 9.8f), 0f, scale: 0.6f);
             for (var i = 0; i < 2; i++)
-                Bookcase(room, new Vector3(6.1f, 0f, 9.0f + i * 1.9f), -90f);
-            Block(room, "Safe", Toon("OfficeSafe", new Color(0.24f, 0.25f, 0.28f)), new Vector3(5.8f, 0f, 4.4f), new Vector3(0.9f, 1.0f, 0.8f), collider: true);
-            Shape(room, PrimitiveType.Cylinder, "SafeDial", Toon("OfficeBrass", Brass), new Vector3(5.8f, 0.6f, 3.99f), new Vector3(0.22f, 0.02f, 0.22f), Quaternion.Euler(90f, 0f, 0f));
-            FloorLamp(room, new Vector3(-2.6f, 0f, 12.8f));
-            FloorLamp(room, new Vector3(2.6f, 0f, 12.8f));
-            foreach (var at in new[] { new Vector3(-5.8f, 0f, 4.2f), new Vector3(-5.8f, 0f, 12.8f), new Vector3(5.8f, 0f, 12.8f), new Vector3(-3.2f, 0f, 4.2f), new Vector3(3.2f, 0f, 4.2f) })
+                Bookcase(room, new Vector3(8.6f, 0f, 9.4f + i * 1.9f), -90f);
+            Block(room, "Safe", Toon("OfficeSafe", new Color(0.24f, 0.25f, 0.28f)), new Vector3(8.3f, 0f, 4.3f), new Vector3(0.9f, 1.0f, 0.8f), collider: true);
+            Shape(room, PrimitiveType.Cylinder, "SafeDial", Toon("OfficeBrass", Brass), new Vector3(8.3f, 0.6f, 3.89f), new Vector3(0.22f, 0.02f, 0.22f), Quaternion.Euler(90f, 0f, 0f));
+            FloorLamp(room, new Vector3(-3f, 0f, 12.8f));
+            FloorLamp(room, new Vector3(3f, 0f, 12.8f));
+            foreach (var at in new[] { new Vector3(-8.3f, 0f, 4.2f), new Vector3(-8.3f, 0f, 12.8f), new Vector3(8.3f, 0f, 12.8f), new Vector3(-3.2f, 0f, 4.2f), new Vector3(3.2f, 0f, 4.2f) })
                 PottedPlant(room, at, 1.15f);
         }
 
-        // The tailor, 11 × 10 m: three colour plinths before mirrors, rails of clothes, the tailor.
+        // The tailor, 8.5 × 10 m, through the boss's office: three colour plinths before mirrors,
+        // rails of clothes, the tailor.
         private static void BuildTailor(Transform rooms)
         {
             var room = Room(rooms, "Tailor");
             var colours = new[] { new Color(0.95f, 0.55f, 0.15f), new Color(0.15f, 0.70f, 0.75f), new Color(0.85f, 0.25f, 0.45f) };
-            var plinths = new[] { new Vector3(-14.6f, 0f, 9.4f), new Vector3(-12f, 0f, 10.2f), new Vector3(-9.4f, 0f, 9.4f) };
+            var plinths = new[] { new Vector3(-15.4f, 0f, 9.8f), new Vector3(-13.25f, 0f, 10.6f), new Vector3(-11.1f, 0f, 9.8f) };
             for (var i = 0; i < plinths.Length; i++)
             {
                 Model(room, "PlinthRim", OfficeModel, "OfficePlinthRim", Toon("OfficeBrass", Brass), plinths[i], 0f);
@@ -594,7 +599,7 @@ namespace Game.Editor
             }
             for (var r = 0; r < 2; r++)
             {
-                var rail = new Vector3(-16.9f, 0f, 5.6f + r * 2.4f);
+                var rail = new Vector3(-16.9f, 0f, 4.8f + r * 2.2f);
                 Model(room, "Rail", OfficeModel, "OfficeRail", Toon("OfficeBrass", Brass), rail, 90f, collider: new Vector3(1.7f, 1.6f, 0.5f));
                 var jackets = new[] { Cream, Suit, new Color(0.55f, 0.36f, 0.22f), new Color(0.32f, 0.42f, 0.55f), Burgundy, Leather };
                 for (var j = 0; j < 5; j++)
@@ -604,80 +609,68 @@ namespace Game.Editor
                 }
             }
             // The tailor's mannequin, wearing a chef's jacket a size too big (spec §5).
-            Mannequin(room, new Vector3(-7.4f, 0f, 12.4f));
-            Person(room, "Tailor", new Vector3(-12f, 0f, 7.4f), 0f, new Color(0.35f, 0.30f, 0.45f), new Color(0.22f, 0.2f, 0.26f), dress: look =>
-            {
-                look.Skin = CharacterArt.SkinTones[1];
-                look.HairStyle = CharacterArt.HairKind.Fringe;
-                look.Hair = CharacterArt.GreyHair[1];
-                look.Moustache = true;
-                look.Glasses = true;
-                look.Tie = true;
-                look.TieColor = new Color(0.75f, 0.6f, 0.3f);
-            });
-            var table = Prop(room, "PF_Table", new Vector3(-8.2f, 0f, 5.2f), 0f, keep: "Body");
+            Mannequin(room, new Vector3(-9.8f, 0f, 12.6f));
+            Person(room, "Tailor", new Vector3(-13.25f, 0f, 7.6f), 0f, new Color(0.35f, 0.30f, 0.45f), new Color(0.22f, 0.2f, 0.26f));
+            var table = Prop(room, "PF_Table", new Vector3(-12.4f, 0f, 4.4f), 0f, keep: "Body");
             if (table != null)
                 table.transform.localScale = new Vector3(1.6f, 1f, 1f);
-            foreach (var (x, c) in new[] { (-8.6f, 1), (-8.2f, 2), (-7.8f, 0) })
-                Shape(room, PrimitiveType.Cylinder, "FabricBolt", Toon($"OfficePlinth{c}", colours[c]), new Vector3(x, 0.84f, 5.2f), new Vector3(0.14f, 0.35f, 0.14f), Quaternion.Euler(90f, 0f, 0f));
-            Armchair(room, new Vector3(-16.6f, 0f, 12.4f), 135f, Velvet);
-            foreach (var at in new[] { new Vector3(-7.2f, 0f, 4.2f), new Vector3(-16.8f, 0f, 4.2f), new Vector3(-10.6f, 0f, 12.9f) })
+            foreach (var (x, c) in new[] { (-12.8f, 1), (-12.4f, 2), (-12.0f, 0) })
+                Shape(room, PrimitiveType.Cylinder, "FabricBolt", Toon($"OfficePlinth{c}", colours[c]), new Vector3(x, 0.84f, 4.4f), new Vector3(0.14f, 0.35f, 0.14f), Quaternion.Euler(90f, 0f, 0f));
+            foreach (var at in new[] { new Vector3(-16.8f, 0f, 12.9f), new Vector3(-9.6f, 0f, 4.2f) })
                 PottedPlant(room, at, 1f);
         }
 
-        // The test kitchen, 11 × 8 m: bare minimum (decision 2026-11-09), from the kitchen's own
+        // The test kitchen, 8.5 × 8 m: bare minimum (decision 2026-11-09), from the kitchen's own
         // counters, hob, fridge, board, knife rack and shelf. Visual copies for now; the real
         // stations come in Phase 6.
         private static void BuildTestKitchen(Transform rooms)
         {
             var room = Room(rooms, "TestKitchen");
             var row = new[] { ("PF_Fridge", -16.5f), ("PF_Counter", -15.5f), ("PF_Hob", -14.5f), ("PF_CuttingBoard", -13.5f),
-                ("PF_KnifeRack", -10.5f), ("PF_Counter", -9.5f), ("PF_Shelf", -8.5f), ("PF_Counter", -7.5f) };
+                ("PF_KnifeRack", -12.5f), ("PF_Counter", -11.5f), ("PF_Shelf", -10.5f) };
             foreach (var (prefab, x) in row)
                 Prop(room, prefab, new Vector3(x, 0f, 2.9f), 0f);
             for (var i = 0; i < 3; i++)
-                Prop(room, "PF_Counter", new Vector3(-13.5f + i, 0f, -0.6f), 0f);
-            Prop(room, "PF_Counter", new Vector3(-16.9f, 0f, -2.6f), 90f);
-            Model(room, "Bin", "SM_Bin", "BinBody", Toon("OfficeBin", new Color(0.12f, 0.12f, 0.13f)), new Vector3(-16.9f, 0f, -3.8f), 90f, collider: new Vector3(0.6f, 0.9f, 0.6f));
-            PottedPlant(room, new Vector3(-7.2f, 0f, -3.8f), 0.8f);
+                Prop(room, "PF_Counter", new Vector3(-14.25f + i, 0f, -0.4f), 0f);
+            Prop(room, "PF_Counter", new Vector3(-16.9f, 0f, -2.4f), 90f);
+            Model(room, "Bin", "SM_Bin", "BinBody", Toon("OfficeBin", new Color(0.12f, 0.12f, 0.13f)), new Vector3(-16.9f, 0f, -3.7f), 90f, collider: new Vector3(0.6f, 0.9f, 0.6f));
+            PottedPlant(room, new Vector3(-9.6f, 0f, -3.8f), 0.8f);
         }
 
-        // The back room, 11 × 10 m: the city miniature, lit from above.
+        // The miniature room, 8.5 × 10 m, through the boss's office: the city miniature, lit from above.
         private static void BuildBackRoom(Transform rooms)
         {
             var room = Room(rooms, "BackRoom");
-            var centre = new Vector3(12f, 0f, 8.6f);
-            Block(room, "MiniatureTable", Toon("OfficeWalnut", Walnut), centre, new Vector3(5.6f, 0.82f, 3.4f), collider: true);
-            Block(room, "MiniatureTrim", Toon("OfficeBrass", Brass), centre + Vector3.up * 0.82f, new Vector3(5.7f, 0.05f, 3.5f));
-            Cube(room, "MiniatureGround", Toon("OfficeMiniGround", new Color(0.18f, 0.2f, 0.28f)), centre + Vector3.up * 0.87f, new Vector3(5.4f, 0.02f, 3.2f));
-            Miniature(room, centre + Vector3.up * 0.89f, new Vector2(5.2f, 3.0f));
+            var centre = new Vector3(13.4f, 0f, 9.0f);
+            Block(room, "MiniatureTable", Toon("OfficeWalnut", Walnut), centre, new Vector3(5.0f, 0.82f, 3.2f), collider: true);
+            Block(room, "MiniatureTrim", Toon("OfficeBrass", Brass), centre + Vector3.up * 0.82f, new Vector3(5.1f, 0.05f, 3.3f));
+            Cube(room, "MiniatureGround", Toon("OfficeMiniGround", new Color(0.18f, 0.2f, 0.28f)), centre + Vector3.up * 0.87f, new Vector3(4.8f, 0.02f, 3.0f));
+            Miniature(room, centre + Vector3.up * 0.89f, new Vector2(4.6f, 2.8f));
             Lamp(room, "MiniatureLight", centre + new Vector3(0f, 3.2f, -0.6f), 7f, 3f);
-            for (var i = 0; i < 3; i++)
+            for (var i = 0; i < 2; i++)
             {
-                Block(room, "MapChest", Toon("OfficeWalnut", Walnut), new Vector3(17.0f, 0f, 5.4f + i * 1.6f), new Vector3(0.7f, 1.0f, 1.5f), collider: true);
+                Block(room, "MapChest", Toon("OfficeWalnut", Walnut), new Vector3(17.0f, 0f, 4.6f + i * 1.6f), new Vector3(0.7f, 1.0f, 1.5f), collider: true);
                 for (var k = 0; k < 3; k++)
-                    Shape(room, PrimitiveType.Cylinder, "Plan", Toon("OfficePaper", Cream), new Vector3(17.0f, 1.06f, 5.0f + i * 1.6f + k * 0.4f), new Vector3(0.12f, 0.32f, 0.12f), Quaternion.Euler(0f, 0f, 90f));
+                    Shape(room, PrimitiveType.Cylinder, "Plan", Toon("OfficePaper", Cream), new Vector3(17.0f, 1.06f, 4.2f + i * 1.6f + k * 0.4f), new Vector3(0.12f, 0.32f, 0.12f), Quaternion.Euler(0f, 0f, 90f));
             }
-            foreach (var x in new[] { 10.4f, 13.6f })
-                Prop(room, "PF_BarTable", new Vector3(x, 0f, 5.2f), 180f);
-            FloorLamp(room, new Vector3(7.2f, 0f, 12.8f));
-            foreach (var at in new[] { new Vector3(7.2f, 0f, 4.2f), new Vector3(16.8f, 0f, 12.8f), new Vector3(9.6f, 0f, 12.9f) })
+            FloorLamp(room, new Vector3(9.6f, 0f, 12.9f));
+            foreach (var at in new[] { new Vector3(9.6f, 0f, 4.2f), new Vector3(16.8f, 0f, 12.9f) })
                 PottedPlant(room, at, 1.1f);
-            HangPicture(room, new Vector3(6.5f, PictureHeight, 8.6f), Vector3.right, new Color(0.38f, 0.48f, 0.62f));
+            HangPicture(room, new Vector3(9f, PictureHeight, 10.6f), Vector3.right, new Color(0.38f, 0.48f, 0.62f));
         }
 
-        // The hall of fame, 11 × 8 m: the cookbook on its lectern, a trophy for each restaurant,
+        // The hall of fame, 8.5 × 8 m: the cookbook on its lectern, a trophy for each restaurant,
         // portraits of erased chefs.
         private static void BuildHallOfFame(Transform rooms)
         {
             var room = Room(rooms, "HallOfFame");
-            Block(room, "Lectern", Toon("OfficeWalnut", Walnut), new Vector3(12f, 0f, -0.6f), new Vector3(0.8f, 1.05f, 0.6f), collider: true);
-            var book = Block(room, "Cookbook", Toon("OfficeCookbook", new Color(0.62f, 0.16f, 0.14f)), new Vector3(12f, 1.05f, -0.6f), new Vector3(0.6f, 0.1f, 0.46f));
+            Block(room, "Lectern", Toon("OfficeWalnut", Walnut), new Vector3(13.25f, 0f, -0.4f), new Vector3(0.8f, 1.05f, 0.6f), collider: true);
+            var book = Block(room, "Cookbook", Toon("OfficeCookbook", new Color(0.62f, 0.16f, 0.14f)), new Vector3(13.25f, 1.05f, -0.4f), new Vector3(0.6f, 0.1f, 0.46f));
             book.transform.localRotation = Quaternion.Euler(-14f, 0f, 0f);
-            Block(room, "CookbookPages", Toon("OfficePaper", Cream), new Vector3(12f, 1.1f, -0.62f), new Vector3(0.54f, 0.04f, 0.4f)).transform.localRotation = Quaternion.Euler(-14f, 0f, 0f);
-            Cube(room, "LecternRug", Toon("OfficeRug", new Color(0.38f, 0.10f, 0.12f)), new Vector3(12f, 0.01f, -0.9f), new Vector3(2.6f, 0.012f, 2.0f));
+            Block(room, "CookbookPages", Toon("OfficePaper", Cream), new Vector3(13.25f, 1.1f, -0.42f), new Vector3(0.54f, 0.04f, 0.4f)).transform.localRotation = Quaternion.Euler(-14f, 0f, 0f);
+            Cube(room, "LecternRug", Toon("OfficeRug", new Color(0.38f, 0.10f, 0.12f)), new Vector3(13.25f, 0.01f, -0.7f), new Vector3(2.6f, 0.012f, 2.0f));
             // Trophies for restaurants owned: one so far, plinths waiting for the rest.
-            var plinths = new[] { 7.8f, 9.4f, 14.6f, 16.2f };
+            var plinths = new[] { 10.4f, 11.85f, 13.3f, 14.75f, 16.2f };
             for (var i = 0; i < plinths.Length; i++)
             {
                 var at = new Vector3(plinths[i], 0f, 2.7f);
@@ -688,42 +681,39 @@ namespace Game.Editor
             // Portraits of erased chefs, dusty and dim (§15.3's story, without words).
             foreach (var z in new[] { -3.0f, -1.2f, 0.6f })
                 HangPicture(room, new Vector3(17.5f, PictureHeight, z), Vector3.left, new Color(0.44f, 0.42f, 0.4f));
-            Sofa(room, new Vector3(9f, 0f, -3.7f), 0f, Velvet); // clear of the door from the accountant
-            foreach (var at in new[] { new Vector3(7.2f, 0f, -3.8f), new Vector3(16.8f, 0f, 2.8f) })
-                PottedPlant(room, at, 1.1f);
+            Sofa(room, new Vector3(11.0f, 0f, -3.7f), 0f, Velvet);
+            PottedPlant(room, new Vector3(16.8f, 0f, -3.8f), 1.1f);
         }
 
-        // The waiting lounge, 11 × 9 m: for fun and easter eggs later (decision 2026-11-09).
+        // The waiting lounge, 8.5 × 9 m: for fun and easter eggs later (decision 2026-11-09).
         private static void BuildLounge(Transform rooms)
         {
             var room = Room(rooms, "WaitingLounge");
-            Sofa(room, new Vector3(-12.4f, 0f, -12.7f), 0f, Velvet);
-            Sofa(room, new Vector3(-16.7f, 0f, -9.2f), 90f, Velvet);
-            Armchair(room, new Vector3(-8.6f, 0f, -8.2f), -90f, Leather);
-            Armchair(room, new Vector3(-8.6f, 0f, -10.2f), -90f, Leather);
-            Block(room, "CoffeeTable", Toon("OfficeWalnut", Walnut), new Vector3(-12.4f, 0f, -9.4f), new Vector3(1.8f, 0.42f, 1.0f), collider: true);
+            Sofa(room, new Vector3(-13.6f, 0f, -12.7f), 0f, Velvet);
+            Sofa(room, new Vector3(-16.9f, 0f, -9.4f), 90f, Velvet);
+            Armchair(room, new Vector3(-10.4f, 0f, -9.0f), -90f, Leather);
+            Armchair(room, new Vector3(-10.4f, 0f, -10.8f), -90f, Leather);
+            Block(room, "CoffeeTable", Toon("OfficeWalnut", Walnut), new Vector3(-13.6f, 0f, -9.8f), new Vector3(1.6f, 0.42f, 0.9f), collider: true);
             // The bodyguards' coffee cups (spec §5).
-            foreach (var x in new[] { -12.8f, -12.5f })
-                Shape(room, PrimitiveType.Cylinder, "Cup", Toon("OfficeCup", new Color(0.94f, 0.93f, 0.9f)), new Vector3(x, 0.47f, -9.3f), new Vector3(0.1f, 0.05f, 0.1f));
-            Block(room, "Magazines", Toon("OfficeLedger", Burgundy), new Vector3(-11.9f, 0.42f, -9.5f), new Vector3(0.34f, 0.03f, 0.25f));
+            foreach (var x in new[] { -14.0f, -13.7f })
+                Shape(room, PrimitiveType.Cylinder, "Cup", Toon("OfficeCup", new Color(0.94f, 0.93f, 0.9f)), new Vector3(x, 0.47f, -9.7f), new Vector3(0.1f, 0.05f, 0.1f));
+            Block(room, "Magazines", Toon("OfficeLedger", Burgundy), new Vector3(-13.1f, 0.42f, -9.9f), new Vector3(0.34f, 0.03f, 0.25f));
             // A coffee corner: the kitchen's bar tables and their stools.
-            Prop(room, "PF_BarTable", new Vector3(-15.6f, 0f, -5.4f), 180f);
-            Prop(room, "PF_BarTable", new Vector3(-14.6f, 0f, -5.4f), 180f);
-            Block(room, "WaterCooler", Toon("OfficeCooler", new Color(0.88f, 0.88f, 0.86f)), new Vector3(-17.0f, 0f, -6.2f), new Vector3(0.45f, 1.0f, 0.45f), collider: true);
-            Shape(room, PrimitiveType.Cylinder, "WaterBottle", PilotArt.EnsureGlassMaterial("OfficeWater", new Color(0.4f, 0.7f, 0.95f, 0.5f)), new Vector3(-17.0f, 1.2f, -6.2f), new Vector3(0.3f, 0.2f, 0.3f));
+            Prop(room, "PF_BarTable", new Vector3(-16.4f, 0f, -5.4f), 180f);
+            Prop(room, "PF_BarTable", new Vector3(-15.4f, 0f, -5.4f), 180f);
+            Block(room, "WaterCooler", Toon("OfficeCooler", new Color(0.88f, 0.88f, 0.86f)), new Vector3(-17.0f, 0f, -6.8f), new Vector3(0.45f, 1.0f, 0.45f), collider: true);
+            Shape(room, PrimitiveType.Cylinder, "WaterBottle", PilotArt.EnsureGlassMaterial("OfficeWater", new Color(0.4f, 0.7f, 0.95f, 0.5f)), new Vector3(-17.0f, 1.2f, -6.8f), new Vector3(0.3f, 0.2f, 0.3f));
             FloorLamp(room, new Vector3(-16.9f, 0f, -12.9f));
-            FloorLamp(room, new Vector3(-8.0f, 0f, -12.9f));
-            foreach (var at in new[] { new Vector3(-7.2f, 0f, -5.2f), new Vector3(-7.2f, 0f, -12.0f) })
-                PottedPlant(room, at, 1.2f);
-            HangPicture(room, new Vector3(-17.5f, PictureHeight, -11.8f), Vector3.right, new Color(0.72f, 0.56f, 0.36f));
-            Lamp(room, "LoungeLamp", new Vector3(-12.4f, 3f, -9.4f), 8f, 1.2f);
+            PottedPlant(room, new Vector3(-9.6f, 0f, -12.9f), 1.2f);
+            PottedPlant(room, new Vector3(-9.6f, 0f, -5.2f), 1.0f);
+            Lamp(room, "LoungeLamp", new Vector3(-13.6f, 3f, -9.6f), 7f, 1.2f);
         }
 
-        // The accountant, 11 × 9 m: also for fun (decision 2026-11-09); the books stay on the dashboard.
+        // The accountant, 8.5 × 9 m: also for fun (decision 2026-11-09); the books stay on the dashboard.
         private static void BuildAccountant(Transform rooms)
         {
             var room = Room(rooms, "Accountant");
-            var desk = new Vector3(12f, 0f, -9.6f);
+            var desk = new Vector3(13.0f, 0f, -9.8f);
             Model(room, "Desk", OfficeModel, "OfficeDeskBody", Toon("OfficeDeskOak", WoodMid), desk, 180f, scale: 0.85f, collider: new Vector3(2.1f, 0.7f, 0.9f));
             Model(room, "DeskLeather", OfficeModel, "OfficeDeskLeather", Toon("OfficeLeatherBrown", new Color(0.36f, 0.24f, 0.16f)), desk, 180f, scale: 0.85f);
             Model(room, "DeskHandles", OfficeModel, "OfficeDeskHandles", Toon("OfficeBrass", Brass), desk, 180f, scale: 0.85f);
@@ -732,17 +722,7 @@ namespace Game.Editor
             for (var i = 0; i < 7; i++)
                 Block(room, "Invoice", Toon("OfficePaper", Cream), desk + new Vector3(-0.45f + i * 0.012f, 0.65f + i * 0.025f, 0f), new Vector3(0.34f, 0.02f, 0.26f));
             OfficeChair(room, desk + new Vector3(0f, 0f, 1.2f), 180f);
-            Person(room, "Accountant", desk + new Vector3(0f, 0f, 0.8f), 180f, new Color(0.40f, 0.38f, 0.30f), new Color(0.25f, 0.24f, 0.2f), dress: look =>
-            {
-                // Frames and a green visor (concept v16).
-                look.Skin = CharacterArt.SkinTones[0];
-                look.Hair = CharacterArt.NaturalHair[3];
-                look.Glasses = true;
-                look.Hat = CharacterArt.HatKind.Headband;
-                look.HatAccent = new Color(0.2f, 0.45f, 0.3f);
-                look.Tie = true;
-                look.TieColor = new Color(0.45f, 0.18f, 0.16f);
-            });
+            Person(room, "Accountant", desk + new Vector3(0f, 0f, 0.8f), 180f, new Color(0.40f, 0.38f, 0.30f), new Color(0.25f, 0.24f, 0.2f));
             foreach (var x in new[] { -0.6f, 0.6f })
                 Model(room, "VisitorChair", "SM_Dining", "DiningChair", Toon("OfficeVisitorChair", WoodMid), desk + new Vector3(x, 0f, -1.4f), 0f, collider: new Vector3(0.45f, 0.9f, 0.45f));
             for (var i = 0; i < 6; i++)
@@ -751,11 +731,10 @@ namespace Game.Editor
                 Model(room, "FilingCabinet", OfficeModel, "OfficeFilingBody", Toon("OfficeFiling", new Color(0.48f, 0.48f, 0.44f)), at, -90f, collider: new Vector3(0.55f, 1.32f, 0.62f));
                 Model(room, "FilingHandles", OfficeModel, "OfficeFilingHandles", Toon("OfficeBrass", Brass), at, -90f);
             }
-            Prop(room, "PF_Shelf", new Vector3(8.0f, 0f, -5.1f), 0f);
-            FloorLamp(room, new Vector3(7.2f, 0f, -12.9f));
-            foreach (var at in new[] { new Vector3(16.8f, 0f, -5.2f), new Vector3(9.6f, 0f, -12.9f) })
-                PottedPlant(room, at, 1.1f);
-            HangPicture(room, new Vector3(6.5f, PictureHeight, -11.4f), Vector3.right, new Color(0.56f, 0.66f, 0.5f));
+            Prop(room, "PF_Shelf", new Vector3(10.4f, 0f, -5.1f), 0f);
+            FloorLamp(room, new Vector3(9.6f, 0f, -12.9f));
+            PottedPlant(room, new Vector3(16.8f, 0f, -5.2f), 1.1f);
+            HangPicture(room, new Vector3(9f, PictureHeight, -11.4f), Vector3.right, new Color(0.56f, 0.66f, 0.5f));
         }
 
         // The terrace, 35 × 6 m: loungers, an outdoor bar, trees and lamps from the city, the helipad.

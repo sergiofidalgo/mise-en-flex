@@ -34,12 +34,12 @@ A **3 × 3 grid of rooms** with a terrace along the back, matching the user's dr
 
 | Measure | Value | Why |
 | --- | --- | --- |
-| Rooms | Columns 11, 13 and 11 m wide; rows 9, 8 and 10 m deep (front to back) | Big enough to feel like walking through an office (user's note, 2026-11-09: the first greybox's 8 × 6 m rooms felt too small). The middle column and back row are the grandest |
+| Rooms | Columns 8.5, 18 and 8.5 m wide; rows 9, 8 and 10 m deep (front to back) | The middle column (reception, guarded doors, the boss's office) is the grand one; the side rooms need less space (user's calls, 2026-11-09) |
 | Floor | 35 m × 27 m, plus a 6 m terrace | Each room still fits the follow camera (up to 22 m high) |
 | Doorways | 2 m gaps (3 m from reception to the guarded doors) | Two chefs pass without snagging; forgiving to walk through |
 | Walls | Outer walls on the sides and back: 2.8 m glass on a panelled sill, walnut mullions (user's note, 2026-11-09). The front: a 1.2 m glass parapet. Inner walls: 1.0 m, walnut panelling with a brass cap | A penthouse walled in glass, with the city showing on every side. The front stays low (the art bible's dollhouse cut) because the camera looks over it, and inner walls stay low so the camera sees into every room |
 
-**Connections:** reception opens to all three front-row rooms and to the guarded doors. The guarded doors open to the boss's office, the test kitchen and the hall of fame. Each side column also runs front to back: lounge → test kitchen → tailor, and accountant → hall of fame → back room. The three back rooms open onto the terrace, which runs the full width. *(The side columns' front-to-back doors were added in the greybox, 2026-11-09, so no room is a dead end.)*
+**Connections (user's call, 2026-11-09):** the tailor and the miniature room open only from the boss's office, and so does the terrace (a door either side of his desk). The boss's office is reached only through the guarded doors. The other six rooms all connect: lounge, reception and accountant across the front; lounge to test kitchen and accountant to hall of fame; test kitchen and hall of fame to the guarded doors, which open from reception.
 
 **Walking distances:** most trips start at the elevator (front centre). The miniature, the tailor and the boss are each two rooms away, about 18–22 m. At the chef's walking pace (4.2 m/s) that's about five seconds, which is acceptable on a between-days visit. If playtests show it drags, the first fix is wider doorways and diagonal shortcuts, not moving rooms.
 
