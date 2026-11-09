@@ -204,6 +204,31 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-09 — The bodyguards stare at chefs near their doors
+
+**The user's notes:**
+- The bodyguards should clearly stare at players walking round their room, and lock on while they're in the kitchen or the awards room.
+- In the boss's rooms, the waiting room, the entrance or the accountant, they stop looking.
+- With two players they split their focus 1:1 from the centre of the screen; with more, by who's nearest.
+
+**Done (`BodyguardWatch`):**
+- **Watched rooms:** chefs in the floor's middle row are watched: the test kitchen, the guards' own room and the hall of fame (the awards room). Anyone elsewhere is ignored.
+- **Who watches whom:**
+
+  | Chefs watched | Guards' focus |
+  |---|---|
+  | One | both guards stare at them |
+  | Two | split down the middle of the screen: the left guard takes the chef further left |
+  | Three or four | each guard watches the chef nearest to him |
+
+- **The stare:** a guard turns quickly (320°/s) and holds still, which is what makes it read as a stare.
+- **When nobody's left to watch:** they turn back to the front more slowly and only then resume their idle glances.
+- **Build:** each guard has his own turning frame (`OfficeBuilder.Guards.cs`), so the glance (an `Oscillate` on the person) and the stare don't fight over one transform.
+
+**Not checked in play:** the split and the turning speeds; tune `_turnSpeed` and `_relaxSpeed` on the watcher.
+
+---
+
 ## 2026-11-09 — Tailor cards docked top right, with a live portrait of the chef
 
 **The user's notes:**
