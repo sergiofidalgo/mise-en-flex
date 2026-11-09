@@ -10,6 +10,7 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 - **Scope:** station rings only (`Game/FX/WashRing` ignores depth). This is a deliberate exception to 2026-11-07, which stopped the hob's heat pips drawing over things in front of them; the pips are unchanged. The sink is always in the play area, so in practice only people and the tap come between it and the camera.
 - The dark backing under the ring is lighter (20%, was 40%), as over the toque it read as a grey patch.
+- **Bigger, after review:** the ring is 0.8 m across its quad (was 0.6 m), about 0.67 m at the rim, so it overhangs the 0.62 m basin a little (the user's call: fine, for visibility). The soap is about twice the size on screen (point radius 0.16 of the quad, was 0.12).
 - The station-is-the-interface rule (above) changes accordingly: a station's ring stays readable over the chef using it.
 - Considered and dropped: centring the ring on the tap's base (the tap covers the centre and half the ring leaves the basin), shifting it back in the basin, standing it up at the tap, fading the chef, and the chef stepping aside.
 

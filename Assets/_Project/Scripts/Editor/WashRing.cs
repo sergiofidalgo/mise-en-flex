@@ -22,9 +22,10 @@ namespace Game.Editor
         private const string MaterialPath = "Assets/_Project/Art/Materials/MAT_FX_WashRing.mat";
         private const string ScenePath = "Assets/_Project/Scenes/Kitchen_Greybox.unity";
         private const string RingName = "WashRing";
-        // Metres: the quad's side. The shader draws the rim at 0.9 of it, so the ring is about
-        // 0.54 m across, inside the 0.62 m deep basin at any turn of the sink.
-        private const float Size = 0.6f;
+        // Metres: the quad's side. The shader draws the rim at 0.84 of it, so the ring is about
+        // 0.67 m across: a little over the 0.62 m deep basin, which the user wanted for
+        // visibility (2026-11-09). It's drawn over everything, so the overhang shows on the rim.
+        private const float Size = 0.8f;
         // Metres above the water, so the ring never z-fights it.
         private const float AboveWater = 0.004f;
 
@@ -54,7 +55,7 @@ namespace Game.Editor
             material.SetFloat("_RimRadius", 0.84f);
             material.SetFloat("_RimWidth", 0.19f);
             material.SetFloat("_Segments", 16f);
-            material.SetFloat("_PointRadius", 0.12f);
+            material.SetFloat("_PointRadius", 0.16f);
             material.SetColor("_InkColor", new Color(0.12f, 0.19f, 0.29f));
             material.SetFloat("_OutlineStrength", 0.4f);
             EditorUtility.SetDirty(material);
@@ -102,6 +103,10 @@ namespace Game.Editor
             foreach (var sink in Object.FindObjectsByType<SinkStation>(FindObjectsInactive.Include, FindObjectsSortMode.None))
             {
                 AddRing(sink, settings);
+                // A ring made at an older size takes the current one.
+                var existing = sink.transform.Find(RingName);
+                if (existing != null)
+                    existing.localScale = new Vector3(Size, Size, 1f) * InverseScale(sink.transform);
                 if (sink.GetComponent<SinkWashRingView>() != null)
                     count++;
                 EditorSceneManager.MarkSceneDirty(sink.gameObject.scene);
