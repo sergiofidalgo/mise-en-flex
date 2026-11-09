@@ -4,6 +4,12 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-09 — Reply effects show in the thread, not as chips
+
+**User's call:** no effect chips on the reply wheel. Instead, the owner's reply as it appears in the thread, and how the guest answers it, hint at the intended effect. Players read the effect rather than seeing numbers, which keeps learn-by-playing. The design (and the wider push for varied, funny reviews tailored by restaurant style) is in `ideas.md`, "Reviews and replies with variety, wit and a voice per restaurant". Not built yet.
+
+---
+
 ## 2026-11-09 — The boss's floor
 
 **User's calls**, from their lo-fi floor plan; the full spec is `docs/office-scene.md`:

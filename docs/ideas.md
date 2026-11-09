@@ -4,6 +4,30 @@ Ideas worth keeping that aren't decided or scheduled yet. When one is accepted, 
 
 ---
 
+## Reviews and replies with variety, wit and a voice per restaurant
+
+*Added 2026-11-09 · Relevant phase: 7 (content), with a small first step any time · Pillars: your restaurant, your identity; chaos you can plan for*
+
+**The problem today.** Review lines come from one flat list per complaint type in `ServiceConfig` (two or three lines each, with {main}, {side}, {ordered} and {got} filled in), the same for every restaurant. The three owner replies are fixed sentences. After a few days every review reads the same.
+
+**Replies hint at their effect in the thread (user's direction, 2026-11-09).** There are no effect chips; the thread itself tells players what a reply did:
+- **The owner's reply is written for the review it answers.** Apologising for slow service reads differently from apologising for a burnt steak, and standing your ground on a walk-out reads as defensive.
+- **The guest answers back, in the thread.** A reply that fits gets a warm answer ("Fair. I'll give you another go."). One that doesn't gets a dry one ("Thanks for the essay. Still burnt."). A like count shows how the room took it. That's the hint: no numbers, but players can read the effect.
+- **Returning guests remember.** A guest who was apologised to comes back and mentions it, in a later review.
+
+**Variety, built up in layers:**
+1. **Facts from the actual service.** The wait in minutes, the doneness asked for and served, how cold it was, the time they left, what the person at the next table had. These make a line feel on-point, not canned ("Waited 23 minutes for a medium. Left at 19:35.").
+2. **A voice per restaurant style.** Each style gets its own words and tone: a steakhouse talks about char, crust and medium-rare; a seafood shack about catch and tourists; fine dining reads like a critic; a diner like a regular. Owner replies follow the same register.
+3. **Guest personas,** weighted by style and service style: the regular, the foodie, the influencer (hashtags, emoji), the critic (long, cutting), the tourist, the grumpy local, the parent with kids. Each has a length, a tone and habits.
+4. **No repeats.** Lines are dealt from a shuffled deck per campaign and aren't reused within a few days. A seeded generator in the simulation layer keeps it testable.
+5. **Callbacks and running jokes.** Returning guests, the boss's bodyguards' reviews, a guest who always orders well done.
+
+**Data.** One `ReviewVoice` asset per restaurant style (lines per topic × persona, reply lines per topic × reply, answers per fit), easy to write in bulk, with a generic voice as the fallback.
+
+**How to tell if it's working when playing:** read a week of reviews aloud. If two read alike, or if one couldn't belong to this restaurant, the deck is too thin.
+
+---
+
 ## Dishes that ask for onion rings
 
 *Added 2026-11-08 · Relevant phase: 7 (content) · Pillars: cooking is a craft*
