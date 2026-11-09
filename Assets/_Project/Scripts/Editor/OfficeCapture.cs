@@ -60,6 +60,10 @@ namespace Game.Editor
             var fit = Game.Simulation.Movement.CameraFraming.Fit(spread, Tilt, camera.fieldOfView, camera.aspect, 3f, 10f, 55f, screenTop: 0.15f,
                 buildingMin: new System.Numerics.Vector2(-17.5f, -13.5f), buildingMax: new System.Numerics.Vector2(17.5f, 19.5f));
             Render(camera, new Vector3(fit.X, fit.Y, fit.Z), rotation, Path.Combine(folder, "office_two_players.png"));
+            // The opening's street, 120 m below the floor: looking along it, and up at the tower.
+            Render(camera, new Vector3(40f, -118.2f, -24f), Quaternion.Euler(4f, -90f, 0f), Path.Combine(folder, "street_along.png"));
+            Render(camera, new Vector3(14f, -116.5f, -36f), Quaternion.Euler(-12f, -20f, 0f), Path.Combine(folder, "street_lobby.png"));
+            Render(camera, new Vector3(32f, -70f, -95f), Quaternion.Euler(-14f, -16f, 0f), Path.Combine(folder, "street_menu_stop.png"));
             Debug.Log($"[OfficeCapture] Saved to {folder}");
         }
 

@@ -788,7 +788,8 @@ namespace Game.Editor
             var city = new GameObject("City").transform;
             BossTower(city);
 
-            var placed = new List<Rect> { new Rect(West - 3f, South - 3f, East - West + 6f, TerraceNorth - South + 6f) };
+            var placed = new List<Rect> { new Rect(West - 3f, South - 3f, East - West + 6f, TerraceNorth - South + 6f), StreetBounds, OpeningCorridor };
+            BuildStreet(city); // OfficeBuilder.Street.cs: the street at the tower's foot, where the opening starts
             var near = new GameObject("NearRoofs").transform;
             near.SetParent(city, false);
             Ring(near, placed, 26, 22f, 46f, -9f, -22f, detail: 2, specials: new Queue<string>(RooftopSpecials));
@@ -876,19 +877,21 @@ namespace Game.Editor
 
         // Framed, sill-ed windows in rows under the cornice, on the south face (side 0) or on the
         // west (side −1) or east (side 1) face. About four in ten are lit.
+        // Side 2 is the north face (+Z), for the street's buildings facing the tower.
         private static void Windows(Transform building, float w, float d, int rows, Material trim, int side, bool framed)
         {
             var lit = Unlit("OfficeWindowLit", WindowLit);
             var dark = Unlit("OfficeWindowDark", WindowDark);
-            var span = side == 0 ? w : d;
-            var turn = Quaternion.Euler(0f, side == 0 ? 0f : side * -90f, 0f);
+            var alongX = side == 0 || side == 2;
+            var span = alongX ? w : d;
+            var turn = Quaternion.Euler(0f, side == 0 ? 0f : side == 2 ? 180f : side * -90f, 0f);
             for (var r = 0; r < rows; r++)
             {
                 var y = -2.2f - r * 3.2f;
                 for (var a = -span / 2f + 1.4f; a < span / 2f - 0.9f; a += 2.3f)
                 {
-                    var face = side == 0 ? new Vector3(a + 0.4f, y, -d / 2f) : new Vector3(side * w / 2f, y, a + 0.4f);
-                    var outward = side == 0 ? Vector3.back : Vector3.right * side;
+                    var face = side == 0 ? new Vector3(a + 0.4f, y, -d / 2f) : side == 2 ? new Vector3(a + 0.4f, y, d / 2f) : new Vector3(side * w / 2f, y, a + 0.4f);
+                    var outward = side == 0 ? Vector3.back : side == 2 ? Vector3.forward : Vector3.right * side;
                     var window = Shape(building, PrimitiveType.Quad, "Window", _random.NextDouble() < 0.4 ? lit : dark, face + outward * 0.02f, new Vector3(0.9f, 1.2f, 1f), turn);
                     // Now and then, someone walking past behind a lit window (user's note, 2026-11-09).
                     if (RegisterWindow(window) && framed && _random.NextDouble() < 0.18)
@@ -915,11 +918,12 @@ namespace Game.Editor
             var depth = TerraceNorth - South + 0.6f;
             var middle = (South + TerraceNorth) / 2f;
             var spandrel = Toon("OfficeTowerStone", new Color(0.66f, 0.55f, 0.43f));
-            var glass = Toon("OfficeTowerGlass", new Color(0.33f, 0.42f, 0.52f));
             var bronze = Toon("OfficeTowerBronze", new Color(0.45f, 0.32f, 0.2f));
             var lit = WindowArt.LitWindows()[2]; // offices, behind the curtain wall
-            // The core, set back behind the facade, so nothing shows between the bands.
-            Cube(tower, "Core", glass, new Vector3(0f, -CityDepth, middle), new Vector3(width - 0.2f, CityDepth - 0.8f, depth - 0.2f));
+            // The core, set back behind the modelled top floors, and the curtain wall all the way down
+            // to the street (the opening climbs it): a painted, tiled facade with lit offices.
+            var core = Cube(tower, "Core", WindowArt.TowerCurtain(), new Vector3(0f, -CityDepth, middle), new Vector3(width - 0.2f, CityDepth - 0.8f, depth - 0.2f));
+            core.GetComponent<Renderer>().sharedMaterial.SetTextureScale("_BaseMap", new Vector2((width - 0.2f) / (8f * 2.2f), (CityDepth - 0.8f) / (8f * 3.4f)));
             Block(tower, "Cornice", Toon("OfficeBrass", Brass), new Vector3(0f, -1.3f, middle), new Vector3(width + 0.5f, 0.5f, depth + 0.5f));
             Block(tower, "CorniceDark", Toon("OfficeWalnut", Walnut), new Vector3(0f, -0.8f, middle), new Vector3(width + 0.3f, 0.4f, depth + 0.3f));
 

@@ -94,6 +94,29 @@ namespace Game.Tests.EditMode
         }
 
         [Test]
+        public void DrivingRunsTheLaneThenStartsAgain()
+        {
+            Assert.That(AmbientMotion.Lane(0f, 20f, 10f, false, 0f, 0f).Along, Is.EqualTo(0f).Within(1e-4f));
+            Assert.That(AmbientMotion.Lane(1f, 20f, 10f, false, 0f, 0f).Along, Is.EqualTo(10f).Within(1e-4f));
+            Assert.That(AmbientMotion.Lane(2.5f, 20f, 10f, false, 0f, 0f).Along, Is.EqualTo(5f).Within(1e-3f), "came round again");
+        }
+
+        [Test]
+        public void WalkingGoesThereWaitsAndComesBack()
+        {
+            // 10 m at 2 m/s: 5 s each way, 1 s pause at each end.
+            var (along, forward) = AmbientMotion.Lane(2.5f, 10f, 2f, true, 1f, 0f);
+            Assert.That(along, Is.EqualTo(5f).Within(1e-3f));
+            Assert.That(forward, Is.True);
+            Assert.That(AmbientMotion.Lane(5.5f, 10f, 2f, true, 1f, 0f).Along, Is.EqualTo(10f), "waiting at the far end");
+            (along, forward) = AmbientMotion.Lane(8.5f, 10f, 2f, true, 1f, 0f);
+            Assert.That(along, Is.EqualTo(5f).Within(1e-3f));
+            Assert.That(forward, Is.False, "on the way back");
+            for (var t = 0f; t < 30f; t += 0.13f)
+                Assert.That(AmbientMotion.Lane(t, 10f, 2f, true, 1f, 0.3f).Along, Is.InRange(0f, 10f));
+        }
+
+        [Test]
         public void ClockwiseGoesTheOtherWay()
         {
             var a = AmbientMotion.Loop(Vector3.zero, Vector2.one, 0f, 1f, 8f, 0f, false);

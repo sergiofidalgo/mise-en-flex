@@ -61,6 +61,78 @@ namespace Game.Editor
             return material;
         }
 
+        /// <summary>
+        /// The boss's tower's curtain wall, all the way down (the opening climbs its whole height):
+        /// eight bays by eight storeys of tinted glass between bronze mullions over stone bands, about
+        /// one office in three lit, the lit ones glowing (emission). The builder tiles it over the tower.
+        /// </summary>
+        public static Material TowerCurtain()
+        {
+            const int bays = 8, storeys = 8, bayPx = 16, storeyPx = 24;
+            var width = bays * bayPx;
+            var height = storeys * storeyPx;
+            var random = new System.Random(77);
+            var lit = new int[bays, storeys];
+            for (var b = 0; b < bays; b++)
+            for (var f = 0; f < storeys; f++)
+                lit[b, f] = random.NextDouble() < 0.32 ? 1 + random.Next(2) : 0; // 1 warm, 2 cool
+            Color Paint(float x, float y, bool glow)
+            {
+                var bay = Mathf.Min(bays - 1, Mathf.FloorToInt(x * bays));
+                var storey = Mathf.Min(storeys - 1, Mathf.FloorToInt(y * storeys));
+                var bx = x * bays - bay;
+                var fy = y * storeys - storey;
+                var spandrel = fy < 0.27f;
+                var mullion = bx < 0.07f;
+                if (spandrel)
+                    return glow ? Color.black : new Color(0.66f, 0.55f, 0.43f);
+                if (mullion)
+                    return glow ? Color.black : new Color(0.45f, 0.32f, 0.2f);
+                var kind = lit[bay, storey];
+                if (kind == 0)
+                    return glow ? Color.black : Color.Lerp(new Color(0.22f, 0.3f, 0.42f), new Color(0.33f, 0.42f, 0.52f), fy);
+                var light = kind == 1 ? new Color(1f, 0.8f, 0.5f) : new Color(0.75f, 0.88f, 1f);
+                return glow ? light * 0.9f : light;
+            }
+            var albedo = Texture("TowerCurtain", width, height, (x, y) => Paint(x, y, false));
+            var emission = Texture("TowerCurtainGlow", width, height, (x, y) => Paint(x, y, true));
+            var path = $"{MaterialsFolder}/MAT_Lit_TowerCurtain.mat";
+            var material = AssetDatabase.LoadAssetAtPath<Material>(path);
+            var isNew = material == null;
+            if (isNew)
+                material = new Material(Shader.Find("Universal Render Pipeline/Simple Lit"));
+            material.SetTexture("_BaseMap", albedo);
+            material.SetColor("_BaseColor", Color.white);
+            material.SetTexture("_EmissionMap", emission);
+            material.SetColor("_EmissionColor", Color.white);
+            material.EnableKeyword("_EMISSION");
+            material.globalIlluminationFlags = MaterialGlobalIlluminationFlags.None;
+            if (isNew)
+                AssetDatabase.CreateAsset(material, path);
+            else
+                EditorUtility.SetDirty(material);
+            return material;
+        }
+
+        private static Texture2D Texture(string name, int width, int height, System.Func<float, float, Color> paint)
+        {
+            GreyboxAssets.EnsureFolder(Folder);
+            var path = $"{Folder}/TEX_{name}.asset";
+            var texture = AssetDatabase.LoadAssetAtPath<Texture2D>(path);
+            var isNew = texture == null;
+            if (isNew)
+                texture = new Texture2D(width, height, TextureFormat.RGBA32, true) { wrapMode = TextureWrapMode.Repeat, filterMode = FilterMode.Bilinear };
+            for (var py = 0; py < height; py++)
+            for (var px = 0; px < width; px++)
+                texture.SetPixel(px, py, paint((px + 0.5f) / width, (py + 0.5f) / height));
+            texture.Apply();
+            if (isNew)
+                AssetDatabase.CreateAsset(texture, path);
+            else
+                EditorUtility.SetDirty(texture);
+            return texture;
+        }
+
         // ---- Painting --------------------------------------------------------------------------
 
         // A room lit by a lamp at (lx, ly): bright round the lamp, falling off to the corners,

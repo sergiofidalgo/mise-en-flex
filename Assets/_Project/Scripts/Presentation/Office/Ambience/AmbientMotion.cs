@@ -61,6 +61,34 @@ namespace Game.Presentation.Office.Ambience
             return Hash01(slice + cycle * 31, seed + 5f) > 0.55f;
         }
 
+        /// <summary>
+        /// Where along a lane of <paramref name="length"/> metres something is at <paramref name="time"/>,
+        /// and whether it's heading forward. Driving (no ping-pong) runs to the end and starts again;
+        /// walking (ping-pong) goes to the end, waits <paramref name="pause"/> seconds, comes back,
+        /// waits again.
+        /// </summary>
+        public static (float Along, bool Forward) Lane(float time, float length, float speed, bool pingPong, float pause, float phase)
+        {
+            length = Mathf.Max(length, 0.01f);
+            speed = Mathf.Max(speed, 0.01f);
+            var leg = length / speed;
+            if (!pingPong)
+            {
+                var t = Mathf.Repeat(time / leg + phase, 1f);
+                return (t * length, true);
+            }
+            var cycle = 2f * (leg + pause);
+            var at = Mathf.Repeat(time + phase * cycle, cycle);
+            if (at < leg)
+                return (at * speed, true);
+            if (at < leg + pause)
+                return (length, true);
+            at -= leg + pause;
+            if (at < leg)
+                return (length - at * speed, false);
+            return (0f, false);
+        }
+
         // A repeatable 0–1 from a whole number and a seed.
         private static float Hash01(int n, float seed)
         {
