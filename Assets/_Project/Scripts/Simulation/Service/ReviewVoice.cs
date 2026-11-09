@@ -21,6 +21,8 @@ namespace Game.Simulation.Service
         Praise,
         Food,
         Wait,
+        /// <summary>Cooked more or less than ordered: replies here may mention what was ordered.</summary>
+        Doneness,
     }
 
     /// <summary>A line someone might write, optionally only for one kind of guest.</summary>
@@ -149,6 +151,14 @@ namespace Game.Simulation.Service
     /// </summary>
     public static class ReviewVoices
     {
+        /// <summary>
+        /// Characters a review line can have and still fit on one line of the dashboard's review card
+        /// (Lora Italic at 30 px in 640 px, about 0.46 em a character). Replies and answers have more room.
+        /// </summary>
+        public const int MaxReviewLength = 44;
+        public const int MaxReplyLength = 72;
+        public const int MaxAnswerLength = 60;
+
         private static readonly string[] Placeholders = { "{main}", "{side}", "{ordered}", "{got}", "{name}", "{restaurant}", "{left}", "{wait}" };
 
         public static TopicGroup GroupOf(ReviewTopic topic) => topic switch
@@ -157,6 +167,8 @@ namespace Game.Simulation.Service
             ReviewTopic.Decent => TopicGroup.Praise,
             ReviewTopic.SlowService => TopicGroup.Wait,
             ReviewTopic.WalkedOut => TopicGroup.Wait,
+            ReviewTopic.Undercooked => TopicGroup.Doneness,
+            ReviewTopic.Overcooked => TopicGroup.Doneness,
             _ => TopicGroup.Food,
         };
 
@@ -184,7 +196,9 @@ namespace Game.Simulation.Service
             var line = Pick(candidates, facts, memory, random);
             if (line.Length > 0 && persona == Persona.Influencer)
             {
-                var tags = (style?.Hashtags.Count > 0 ? style.Hashtags : generic?.Hashtags) ?? new List<string>();
+                // Only a hashtag that still fits on the card's one line.
+                var tags = ((style?.Hashtags.Count > 0 ? style.Hashtags : generic?.Hashtags) ?? new List<string>())
+                    .Where(t => line.Length + 1 + t.Length <= MaxReviewLength).ToList();
                 if (tags.Count > 0)
                     line += " " + tags[random.Next(tags.Count)];
             }
@@ -197,9 +211,14 @@ namespace Game.Simulation.Service
         /// </summary>
         public static ReplyThread Reply(ReviewReply reply, ReviewTopic topic, bool fits, Persona persona, ReviewFacts facts, Voice style, Voice generic, LineMemory memory, Random random)
         {
-            var key = (reply, GroupOf(topic));
-            var owners = RepliesFor(style, key).Concat(RepliesFor(generic, key)).Select(t => new VoiceLine(t));
-            var owner = Pick(owners, facts, memory, random);
+            var group = GroupOf(topic);
+            var key = (reply, group);
+            var owners = RepliesFor(style, key).Concat(RepliesFor(generic, key));
+            // A doneness complaint is also about the food, so the food replies answer it too.
+            if (group == TopicGroup.Doneness)
+                owners = owners.Concat(RepliesFor(style, (reply, TopicGroup.Food))).Concat(RepliesFor(generic, (reply, TopicGroup.Food)));
+            var ownerLines = owners.Select(t => new VoiceLine(t));
+            var owner = Pick(ownerLines, facts, memory, random);
             var answers = Answers(style, generic, fits).Where(a => a.Suits(persona));
             var answer = Pick(answers, facts, memory, random);
             var likes = fits ? random.Next(3, 15) : random.Next(0, 3);
@@ -209,7 +228,7 @@ namespace Game.Simulation.Service
         }
 
         /// <summary>Fills in the facts: {main}, {side}, {ordered}, {got}, {name}, {restaurant}, {left} and {wait}.</summary>
-        public static string Fill(string text, ReviewFacts facts) => text
+        public static string Fill(string text, ReviewFacts facts) => Capitalised(text
             .Replace("{main}", facts.Main)
             .Replace("{side}", facts.Side)
             .Replace("{ordered}", facts.Ordered)
@@ -217,7 +236,11 @@ namespace Game.Simulation.Service
             .Replace("{name}", facts.Name)
             .Replace("{restaurant}", facts.Restaurant)
             .Replace("{left}", facts.LeftAt)
-            .Replace("{wait}", facts.WaitMinutes.ToString());
+            .Replace("{wait}", facts.WaitMinutes.ToString()));
+
+        // A line that opens with a fact ("{ordered}, exactly.") starts with a capital all the same.
+        private static string Capitalised(string text) =>
+            text.Length > 0 && char.IsLower(text[0]) ? char.ToUpperInvariant(text[0]) + text.Substring(1) : text;
 
         /// <summary>True if every fact the line mentions is known.</summary>
         public static bool CanFill(string text, ReviewFacts facts)

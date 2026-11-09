@@ -59,6 +59,17 @@ namespace Game.Simulation.Saving
 
         /// <summary>Review and reply lines used lately, so they don't repeat across days.</summary>
         public List<string> RecentLines = new List<string>();
+
+        /// <summary>Every order ever taken, per dish: not every guest reviews, so reviews can't count them.</summary>
+        public List<DishCount> Dishes = new List<DishCount>();
+    }
+
+    [Serializable]
+    public sealed class DishCount
+    {
+        /// <summary>As orders are written, e.g. "steak, medium".</summary>
+        public string Dish = "";
+        public int Count;
     }
 
     /// <summary>One piece of furniture where it stands.</summary>

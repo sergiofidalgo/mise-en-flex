@@ -61,6 +61,7 @@ namespace Game.Gameplay.Saving
             save.Staff.AddRange(services.Staff.Hired.Select(SaveConversions.ToRecord));
             save.Reviews.AddRange(services.ReviewHistory);
             save.RecentLines.AddRange(services.ReviewLines.ToList());
+            save.Dishes.AddRange(services.DishTally.Select(d => new DishCount { Dish = d.Key, Count = d.Value }));
             save.DaysTowardsFee = services.Days.DaysTowardsFee;
             save.Period = services.Days.Period.ToArray();
             save.History.AddRange(services.Days.History);
@@ -169,6 +170,8 @@ namespace Game.Gameplay.Saving
             foreach (var member in save.Staff)
                 services.Staff.Restore(SaveConversions.ToMember(member));
             services.ReviewHistory.AddRange(save.Reviews);
+            foreach (var dish in save.Dishes ?? new System.Collections.Generic.List<DishCount>())
+                services.DishTally[dish.Dish] = dish.Count;
         }
 
         private static void Move(Transform transform, StationRecord record, float height)

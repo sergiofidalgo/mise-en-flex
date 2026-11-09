@@ -80,6 +80,32 @@ namespace Game.Simulation.Service
 
         /// <summary>The hour the doors open, for times such as when a guest left.</summary>
         public float OpensAtHour { get; set; } = 18f;
+
+        // Not every guest posts (user's call, 2026-11-09): a night worth talking about is likelier to
+        // be reviewed than a forgettable one. 1 means everyone posts.
+        public float PraiseShare { get; set; } = 1f;
+        public float DecentShare { get; set; } = 1f;
+        public float ComplaintShare { get; set; } = 1f;
+        public float WalkOutShare { get; set; } = 1f;
+
+        /// <summary>How much likelier each kind of guest is to post, by <see cref="Persona"/> order; empty means 1.</summary>
+        public float[] PersonaShare { get; set; } = new float[0];
+
+        /// <summary>The chance this guest posts about this night, from 0 to 1.</summary>
+        public float ShareChance(ReviewTopic topic, Persona persona)
+        {
+            var chance = topic switch
+            {
+                ReviewTopic.Praise => PraiseShare,
+                ReviewTopic.Decent => DecentShare,
+                ReviewTopic.WalkedOut => WalkOutShare,
+                _ => ComplaintShare,
+            };
+            var index = (int)persona;
+            if (PersonaShare != null && index < PersonaShare.Length)
+                chance *= PersonaShare[index];
+            return Math.Max(0f, Math.Min(1f, chance));
+        }
     }
 
     /// <summary>Picks what a customer says about their visit (decision 2026-11-03).</summary>
@@ -111,14 +137,24 @@ namespace Game.Simulation.Service
             return score.Stars >= settings.PraiseStars ? ReviewTopic.Praise : ReviewTopic.Decent;
         }
 
+        /// <summary>
+        /// What this guest posts about their night, or null if they keep it to themselves: not every
+        /// guest reviews, and how memorable the night was and who they are decide how likely it is.
+        /// </summary>
         public static Review Write(Customer customer, ReviewSettings settings, Random random)
         {
             var stars = customer.Satisfaction == null ? settings.WalkOutStars : customer.Satisfaction.Stars;
             var topic = customer.Satisfaction == null ? ReviewTopic.WalkedOut : ChooseTopic(customer.Satisfaction, customer.PatienceWhenServed ?? 1f, settings);
-            if (settings.Style == null && settings.Generic == null)
+            var voiced = settings.Style != null || settings.Generic != null;
+            var persona = voiced ? ReviewVoices.PickPersona(settings.Style, settings.Generic, random) : Persona.Regular;
+            // The dice are only rolled when someone might stay quiet, so settings where everyone
+            // posts give the same reviews as before.
+            var chance = settings.ShareChance(topic, persona);
+            if (chance < 1f && random.NextDouble() >= chance)
+                return null;
+            if (!voiced)
                 return new Review(customer, stars, topic, Line(topic, customer, settings, random));
 
-            var persona = ReviewVoices.PickPersona(settings.Style, settings.Generic, random);
             var line = ReviewVoices.Line(topic, persona, Facts(customer, settings), settings.Style, settings.Generic, settings.Memory, random);
             return new Review(customer, stars, topic, line.Length > 0 ? line : Line(topic, customer, settings, random), persona);
         }

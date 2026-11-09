@@ -88,9 +88,16 @@ namespace Game.Gameplay
             return true;
         }
 
-        /// <summary>Today's reviews join the listing as the day ends, before it's saved.</summary>
+        /// <summary>Today's reviews join the listing as the day ends, before it's saved; today's orders join the tally.</summary>
         public void ListTodaysReviews()
         {
+            foreach (var customer in Services.Service.Customers)
+            {
+                if (customer.Order == null || (customer.Satisfaction == null && !customer.WalkedOut))
+                    continue;
+                var dish = Game.Simulation.Saving.SaveConversions.OrderName(customer.Order);
+                Services.DishTally[dish] = Services.DishTally.TryGetValue(dish, out var count) ? count + 1 : 1;
+            }
             var day = Services.Days.Day;
             foreach (var review in Services.Service.Reviews)
             {

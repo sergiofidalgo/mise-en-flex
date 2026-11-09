@@ -401,9 +401,12 @@ namespace Game.Simulation.Service
                 LeaveReview(customer);
         }
 
+        // Not everyone posts: Review stays null for a guest who keeps their night to themselves.
         private void LeaveReview(Customer customer)
         {
             var review = ReviewWriter.Write(customer, Settings.Reviews, _reviewRandom);
+            if (review == null)
+                return;
             customer.Review = review;
             _reviews.Add(review);
             Reviewed?.Invoke(review);

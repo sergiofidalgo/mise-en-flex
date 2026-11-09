@@ -184,16 +184,16 @@ namespace Game.Presentation.Hud
             legend = LegendItem(_left, "Walked out", _bad, legend, 738f, 17.33f);
             LegendItem(_left, "Served", _good, legend - 16f, 738f, 17.33f);
 
-            var today = Services.ReviewHistory.Where(r => r.Day == Services.Days.Day).ToList();
+            var today = TonightsVisits();
             var duration = Services.Service.Settings.DurationSeconds;
             const float bucket = 30f * 60f;
             var buckets = Mathf.Max(1, Mathf.CeilToInt(duration / bucket));
             var served = new int[buckets];
             var left = new int[buckets];
-            foreach (var review in today)
+            foreach (var visit in today)
             {
-                var b = Mathf.Clamp((int)(review.ArrivedAt / bucket), 0, buckets - 1);
-                if (review.WalkedOut)
+                var b = Mathf.Clamp((int)(visit.ArrivedAt / bucket), 0, buckets - 1);
+                if (visit.WalkedOut)
                     left[b]++;
                 else
                     served[b]++;
@@ -545,24 +545,28 @@ namespace Game.Presentation.Hud
 
         private void DrawMenu()
         {
+            // Orders and money come from every guest tonight; the rating from those who reviewed.
             var all = Services.ReviewHistory;
-            var today = all.Where(r => r.Day == Services.Days.Day).ToList();
-            var dishes = all.Where(r => !string.IsNullOrEmpty(r.Order)).GroupBy(r => r.Order)
-                .Select(g => new
+            var visits = TonightsVisits();
+            var reviewed = all.Where(r => r.Day == Services.Days.Day && !r.WalkedOut).ToList();
+            var dishes = visits.Select(v => v.Dish).Concat(Services.DishTally.Keys).Concat(all.Select(r => r.Order))
+                .Where(n => !string.IsNullOrEmpty(n)).Distinct()
+                .Select(name => new
                 {
-                    Name = g.Key,
-                    Today = g.Where(r => r.Day == Services.Days.Day).ToList(),
-                    AllTime = g.Count(),
+                    Name = name,
+                    Today = visits.Where(v => v.Dish == name).ToList(),
+                    Rated = reviewed.Where(r => r.Order == name).ToList(),
+                    AllTime = Services.DishTally.TryGetValue(name, out var count) ? count : all.Count(r => r.Order == name),
                 })
-                .OrderByDescending(d => d.Today.Count(r => r.WalkedOut))
-                .ThenBy(d => d.Today.Where(r => !r.WalkedOut).Select(r => r.RatedStars).DefaultIfEmpty(5f).Average())
+                .OrderByDescending(d => d.Today.Count(v => v.WalkedOut))
+                .ThenBy(d => d.Rated.Select(r => r.RatedStars).DefaultIfEmpty(5f).Average())
                 .ToList();
 
             var top = 262f;
-            var worst = dishes.FirstOrDefault(d => d.Today.Count(r => r.WalkedOut) >= 2);
+            var worst = dishes.FirstOrDefault(d => d.Today.Count(v => v.WalkedOut) >= 2);
             if (worst != null)
             {
-                var walked = worst.Today.Count(r => r.WalkedOut);
+                var walked = worst.Today.Count(v => v.WalkedOut);
                 UiKit.RoundBox(_content, "Insight", _alarm, RightX, top, RightWidth, 96f, 18f);
                 UiKit.Picture(_content, "Warning", _style.WarningIcon, 788f, top + 31f, 36f, 32f);
                 Label(Bold, _content, $"{Plural(worst.Name)} are costing you.", 22.67f, _alarmDark, 839f, top + 43f, 900f);
@@ -591,7 +595,7 @@ namespace Game.Presentation.Hud
             for (var i = 0; i < dishes.Count; i++)
             {
                 var dish = dishes[i];
-                var walked = dish.Today.Count(r => r.WalkedOut);
+                var walked = dish.Today.Count(v => v.WalkedOut);
                 if (walked > 0)
                 {
                     var last = i == dishes.Count - 1;
@@ -604,15 +608,44 @@ namespace Game.Presentation.Hud
                 if (walked > 0)
                     Pill(_content, walked == 1 ? "1 walk-out" : $"{walked} walk-outs", Bold, 14f, _bad, Color.white, 790f + UiKit.Width(name) + 14f, y + 21f, 23f, 9f, 16.5f);
                 Label(Medium, _content, $"{dish.Today.Count}", 22.67f, _ink, 1134f, y + 40f, 100f);
-                var rated = dish.Today.Where(r => !r.WalkedOut).ToList();
+                var rated = dish.Rated;
                 var stars = rated.Count > 0 ? rated.Average(r => r.RatedStars) : 0f;
                 for (var s = 0; s < 5; s++)
                     UiKit.Picture(_content, "Star", ReviewDashboard.StarSprite, 1274f + s * 25f, y + 21f, 21f, 21f, s < Mathf.RoundToInt(stars) ? _gold : _rule);
-                Label(Medium, _content, Money(dish.Today.Sum(r => r.Paid + r.Tip)), 22.67f, _ink, 1493f, y + 40f, 130f);
+                Label(Medium, _content, Money(dish.Today.Sum(v => v.Taken)), 22.67f, _ink, 1493f, y + 40f, 130f);
                 Label(Medium, _content, $"{dish.AllTime}", 22.67f, _ink, 1633f, y + 40f, 100f);
                 y += rowHeight;
             }
             Label(Medium, _content, "Prices and the menu are set in the cookbook.", 18.67f, _muted, RightX, top + tableHeight + 34f, 900f);
+        }
+
+        // One guest's night, whether or not they reviewed it.
+        private sealed class Visit
+        {
+            public string Dish = "";
+            public float ArrivedAt;
+            public bool WalkedOut;
+            public float Taken;
+        }
+
+        // Everyone served or who walked out tonight: not every guest reviews (2026-11-09), so the
+        // chart and the menu count guests, not reviews. Reviews stand in only when there are no
+        // guests to count, as in the screenshot test's staged evening.
+        private List<Visit> TonightsVisits()
+        {
+            var visits = Services.Service.Customers
+                .Where(c => c.Order != null && (c.Satisfaction != null || c.WalkedOut))
+                .Select(c => new Visit
+                {
+                    Dish = Game.Simulation.Saving.SaveConversions.OrderName(c.Order),
+                    ArrivedAt = c.ArrivedAt,
+                    WalkedOut = c.WalkedOut,
+                    Taken = c.Bill.HasValue ? c.Bill.Value.Payment + c.Bill.Value.Tip : 0f,
+                }).ToList();
+            if (visits.Count > 0)
+                return visits;
+            return Services.ReviewHistory.Where(r => r.Day == Services.Days.Day)
+                .Select(r => new Visit { Dish = r.Order, ArrivedAt = r.ArrivedAt, WalkedOut = r.WalkedOut, Taken = r.Paid + r.Tip }).ToList();
         }
 
         // "steak, medium" → "Medium steaks"; anything else is used as it is.

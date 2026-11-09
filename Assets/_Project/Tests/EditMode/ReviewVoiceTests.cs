@@ -139,5 +139,25 @@ namespace Game.Tests.EditMode
                 Assert.That(config.GenericVoice().Replies.ContainsKey((reply, group)), Is.True, $"a generic reply for {reply} to {group}");
             UnityEngine.Object.DestroyImmediate(config);
         }
+
+        [Test]
+        public void NotEveryGuestPosts()
+        {
+            var settings = new ReviewSettings { PraiseShare = 0.45f, DecentShare = 0.15f, ComplaintShare = 0.5f, WalkOutShare = 0.65f, PersonaShare = new[] { 0.7f, 1.3f, 2f, 3f, 1.1f, 0.8f } };
+            Assert.That(settings.ShareChance(ReviewTopic.Decent, Persona.Regular), Is.LessThan(settings.ShareChance(ReviewTopic.Praise, Persona.Regular)), "a forgettable night is written about least");
+            Assert.That(settings.ShareChance(ReviewTopic.WalkedOut, Persona.Regular), Is.GreaterThan(settings.ShareChance(ReviewTopic.Burnt, Persona.Regular)));
+            Assert.That(settings.ShareChance(ReviewTopic.Praise, Persona.Critic), Is.EqualTo(1f), "critics nearly always post, capped at certain");
+            Assert.That(new ReviewSettings().ShareChance(ReviewTopic.Decent, Persona.Local), Is.EqualTo(1f), "by default everyone posts");
+        }
+
+        [Test]
+        public void TheConfigKeepsSomeGuestsQuiet()
+        {
+            var config = UnityEngine.ScriptableObject.CreateInstance<ServiceConfig>();
+            var reviews = config.ToSettings().Reviews;
+            foreach (ReviewTopic topic in Enum.GetValues(typeof(ReviewTopic)))
+                Assert.That(reviews.ShareChance(topic, Persona.Regular), Is.LessThan(1f), $"a regular doesn't always post about {topic}");
+            UnityEngine.Object.DestroyImmediate(config);
+        }
     }
 }

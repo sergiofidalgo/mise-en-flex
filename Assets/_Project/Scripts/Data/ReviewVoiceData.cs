@@ -168,9 +168,9 @@ namespace Game.Data
                 new ReviewVoiceData.Lines(ReviewTopic.Praise, Who.Critic, "A rare thing: a kitchen that listens."),
                 new ReviewVoiceData.Lines(ReviewTopic.Decent, Who.Tourist, "Nice enough. The guidebook oversold it."),
                 new ReviewVoiceData.Lines(ReviewTopic.SlowService, Who.Anyone, "Food: yes. Speed: no."),
-                new ReviewVoiceData.Lines(ReviewTopic.WalkedOut, Who.Anyone, "Waited {wait} minutes. Left at {left}. Ate a sandwich at home."),
+                new ReviewVoiceData.Lines(ReviewTopic.WalkedOut, Who.Anyone, "Waited {wait} minutes. Left at {left}."),
                 new ReviewVoiceData.Lines(ReviewTopic.WalkedOut, Who.Critic, "I cannot review the food. I never met it."),
-                new ReviewVoiceData.Lines(ReviewTopic.Cold, Who.Anyone, "Lukewarm {main}. Like a handshake from someone who doesn't mean it."),
+                new ReviewVoiceData.Lines(ReviewTopic.Cold, Who.Anyone, "Lukewarm {main}. Like a limp handshake."),
             },
             new[]
             {
@@ -180,6 +180,12 @@ namespace Game.Data
                 new ReviewVoiceData.Replies(ReviewReply.Apologise, TopicGroup.Food,
                     "Sorry, {name}. That {main} should never have left the pass.",
                     "You're right, {name}. We'll get the next one right."),
+                new ReviewVoiceData.Replies(ReviewReply.Apologise, TopicGroup.Doneness,
+                    "Sorry, {name}. You asked for {ordered} and deserved {ordered}."),
+                new ReviewVoiceData.Replies(ReviewReply.Thank, TopicGroup.Doneness,
+                    "Thanks for trying our {main}, {name}!"),
+                new ReviewVoiceData.Replies(ReviewReply.StandYourGround, TopicGroup.Doneness,
+                    "Our {main} is cooked exactly how the chef likes it."),
                 new ReviewVoiceData.Replies(ReviewReply.Apologise, TopicGroup.Praise,
                     "Sorry if anything was less than perfect, {name}!",
                     "We apologise for... everything? Thanks for coming!"),
@@ -218,44 +224,169 @@ namespace Game.Data
             },
             new[] { "#foodie", "#datenight", "#eatlocal" });
 
+        // The grill: a steakhouse on a residential street. Its guests talk crust, pink and smoke; its
+        // owner talks fire. Lines fit the dashboard: about 44 characters for a review (hashtag
+        // included), 72 for a reply, 60 for an answer, once the facts are filled in (VoiceFitTests).
         private static ReviewVoiceData Grill() => new ReviewVoiceData(
             new[] { "Grill", "Steakhouse" },
             // Regular, Foodie, Influencer, Critic, Tourist, Local
             new[] { 4f, 2f, 1.2f, 0.6f, 1f, 3f },
             new[]
             {
-                new ReviewVoiceData.Lines(ReviewTopic.Praise, Who.Anyone, "That crust. That pink. Marry me, {restaurant}.", "Ordered {ordered}, got exactly {ordered}. Rare skill."),
-                new ReviewVoiceData.Lines(ReviewTopic.Praise, Who.Foodie, "Proper sear, proper rest. Someone back there cares."),
-                new ReviewVoiceData.Lines(ReviewTopic.Praise, Who.Critic, "A {main} that knows what it is."),
-                new ReviewVoiceData.Lines(ReviewTopic.Praise, Who.Influencer, "POV: the perfect {ordered} {main}."),
-                new ReviewVoiceData.Lines(ReviewTopic.Decent, Who.Anyone, "Solid {main}. Not life-changing, not sad."),
-                new ReviewVoiceData.Lines(ReviewTopic.Decent, Who.Local, "Does the job. Like the old place did."),
-                new ReviewVoiceData.Lines(ReviewTopic.Undercooked, Who.Anyone, "Asked for {ordered}. It mooed.", "{got} is a bold reading of {ordered}."),
-                new ReviewVoiceData.Lines(ReviewTopic.Overcooked, Who.Anyone, "Ordered {ordered}, received a {got} shoe."),
-                new ReviewVoiceData.Lines(ReviewTopic.Overcooked, Who.Critic, "The {main} arrived {got}, which is to say, finished."),
-                new ReviewVoiceData.Lines(ReviewTopic.Burnt, Who.Anyone, "I can still taste the smoke alarm.", "Charcoal is a fuel, not a doneness."),
-                new ReviewVoiceData.Lines(ReviewTopic.PaleCrust, Who.Anyone, "Grey all over. The grill was clearly off duty."),
-                new ReviewVoiceData.Lines(ReviewTopic.NotRested, Who.Anyone, "Cut it and the plate became a crime scene."),
-                new ReviewVoiceData.Lines(ReviewTopic.Cold, Who.Anyone, "{main} at room temperature. Whose room?"),
-                new ReviewVoiceData.Lines(ReviewTopic.SlowService, Who.Anyone, "Great {main}. Bring a book."),
-                new ReviewVoiceData.Lines(ReviewTopic.SlowService, Who.Tourist, "Lovely place, but we nearly missed our train."),
-                new ReviewVoiceData.Lines(ReviewTopic.WalkedOut, Who.Anyone, "Waited {wait} minutes for a {ordered} {main}. Left at {left}.", "Watched three tables eat. Mine never came."),
-                new ReviewVoiceData.Lines(ReviewTopic.WalkedOut, Who.Influencer, "Came for content. Left with none."),
+                L(ReviewTopic.Praise, Who.Anyone, "{ordered}, exactly. Witchcraft.", "That crust. That pink. I'm in love.", "Best {main} on the block. Tell no one.", "Cut like butter. Ate like a raccoon."),
+                L(ReviewTopic.Praise, Who.Regular, "Back again. Still perfect. Still happy."),
+                L(ReviewTopic.Praise, Who.Foodie, "Proper sear, proper rest. Someone cares.", "Salted early, seared hard, rested right."),
+                L(ReviewTopic.Praise, Who.Influencer, "POV: the perfect {ordered} {main}.", "So good I forgot to film it."),
+                L(ReviewTopic.Praise, Who.Critic, "A {main} that knows exactly what it is.", "Salt, fire, patience. Nothing else."),
+                L(ReviewTopic.Praise, Who.Tourist, "Best meal of the trip. Worth the detour."),
+                L(ReviewTopic.Praise, Who.Local, "Finally, a grill this street deserves."),
+
+                L(ReviewTopic.Decent, Who.Anyone, "Solid {main}. Not life-changing, not sad.", "Good, not great. Would grill again.", "A perfectly fine Tuesday {main}."),
+                L(ReviewTopic.Decent, Who.Foodie, "Good meat, timid salt. Be braver."),
+                L(ReviewTopic.Decent, Who.Influencer, "Mid, but the lighting slaps."),
+                L(ReviewTopic.Decent, Who.Critic, "Competent. Occasionally more."),
+                L(ReviewTopic.Decent, Who.Tourist, "Nice. Big portions. Very American."),
+                L(ReviewTopic.Decent, Who.Local, "Does the job. Like the old place did.", "Fine. My dad's is better. Don't tell him."),
+
+                L(ReviewTopic.Undercooked, Who.Anyone, "Asked for {ordered}. It mooed.", "{got}? Bold take on {ordered}.", "Cold in the middle. The {main}, not me."),
+                L(ReviewTopic.Undercooked, Who.Foodie, "Thermometers cost ten dollars."),
+                L(ReviewTopic.Undercooked, Who.Critic, "{got}, where {ordered} was promised."),
+                L(ReviewTopic.Undercooked, Who.Influencer, "Plot twist: it's {got}."),
+                L(ReviewTopic.Undercooked, Who.Tourist, "Is {got} the local {ordered}?"),
+                L(ReviewTopic.Undercooked, Who.Local, "A good vet could've saved it."),
+
+                L(ReviewTopic.Overcooked, Who.Anyone, "Ordered {ordered}. Received a shoe.", "My {main} was cooked into retirement.", "{ordered}? More like {got}."),
+                L(ReviewTopic.Overcooked, Who.Foodie, "Grey to the middle. That's a crime."),
+                L(ReviewTopic.Overcooked, Who.Critic, "The {main} arrived {got}. Finished."),
+                L(ReviewTopic.Overcooked, Who.Influencer, "Ordered {ordered}. Got jerky."),
+                L(ReviewTopic.Overcooked, Who.Tourist, "Great if you like {got}. We didn't."),
+                L(ReviewTopic.Overcooked, Who.Local, "Grandma cooks steak like this. She's 94."),
+
+                L(ReviewTopic.Burnt, Who.Anyone, "I can still taste the smoke alarm.", "Charcoal is a fuel, not a doneness.", "Blackened. Not the Cajun kind."),
+                L(ReviewTopic.Burnt, Who.Foodie, "Carbon is not a crust."),
+                L(ReviewTopic.Burnt, Who.Critic, "Burnt, and served anyway. That's it."),
+                L(ReviewTopic.Burnt, Who.Influencer, "Steak, but make it goth."),
+                L(ReviewTopic.Burnt, Who.Tourist, "Our {main} was very, very dark."),
+                L(ReviewTopic.Burnt, Who.Local, "Smelled it from my porch."),
+
+                L(ReviewTopic.NoMain, Who.Anyone, "Ordered a {main}. Got a plate of hope.", "Paid for a {main}. Met the garnish."),
+                L(ReviewTopic.NoMain, Who.Critic, "The {main} did not attend."),
+                L(ReviewTopic.NoMain, Who.Influencer, "Main character: missing."),
+                L(ReviewTopic.NoMain, Who.Local, "Nice {side}. I came for {main}."),
+
+                L(ReviewTopic.NoSide, Who.Anyone, "Lonely {main}. Where were the {side}?", "The {side} were promised. Never came."),
+                L(ReviewTopic.NoSide, Who.Local, "No {side}. I noticed. I always notice."),
+                L(ReviewTopic.NoSide, Who.Foodie, "A {main} needs its {side}. Basic."),
+
+                L(ReviewTopic.Cold, Who.Anyone, "{main} at room temperature. Whose room?", "Hot grill, cold plate. Explain."),
+                L(ReviewTopic.Cold, Who.Foodie, "Rested so long it went to sleep."),
+                L(ReviewTopic.Cold, Who.Critic, "Served tepid. An insult of its own."),
+                L(ReviewTopic.Cold, Who.Tourist, "Colder than our motel pool."),
+
+                L(ReviewTopic.PaleCrust, Who.Anyone, "Grey all over. Grill was off duty.", "Steamed, not seared. This is a grill?", "No crust. Just a beige rectangle."),
+                L(ReviewTopic.PaleCrust, Who.Foodie, "Wet pan, no sear, no flavor."),
+                L(ReviewTopic.PaleCrust, Who.Critic, "A {main} without crust is a rumor."),
+                L(ReviewTopic.PaleCrust, Who.Influencer, "Pale steak. Unfollow."),
+
+                L(ReviewTopic.NotRested, Who.Anyone, "Cut it. Plate became a crime scene.", "Juice everywhere but in the {main}."),
+                L(ReviewTopic.NotRested, Who.Foodie, "Five minutes of rest. That's all."),
+                L(ReviewTopic.NotRested, Who.Local, "Needed a mop, not a napkin."),
+
+                L(ReviewTopic.NotFresh, Who.Anyone, "That {main} had seen things.", "Tasted like yesterday's special."),
+                L(ReviewTopic.NotFresh, Who.Critic, "Not fresh. You know it. I know it."),
+                L(ReviewTopic.NotFresh, Who.Local, "Fridge smell. Clean your fridge."),
+
+                L(ReviewTopic.BadCut, Who.Anyone, "{side} from tiny to boulder.", "Who cut the {side}? With what?"),
+                L(ReviewTopic.BadCut, Who.Foodie, "Uneven cut, uneven cook. Physics."),
+
+                L(ReviewTopic.SideOff, Who.Anyone, "Good {main}. The {side} need help.", "Great {main}, sad {side}."),
+                L(ReviewTopic.SideOff, Who.Foodie, "Raw {side} on a cooked plate. Why."),
+                L(ReviewTopic.SideOff, Who.Critic, "The {side} were an afterthought."),
+
+                L(ReviewTopic.SlowService, Who.Anyone, "Great {main}. Bring a book.", "Worth it? Yes. Fast? Absolutely not.", "Ordered hungry, ate starving."),
+                L(ReviewTopic.SlowService, Who.Regular, "Love you, but the wait's getting worse."),
+                L(ReviewTopic.SlowService, Who.Critic, "Worth a wait. Not this wait."),
+                L(ReviewTopic.SlowService, Who.Influencer, "Waited so long my phone died."),
+                L(ReviewTopic.SlowService, Who.Tourist, "Nearly missed our train for it."),
+                L(ReviewTopic.SlowService, Who.Local, "My kids aged a year. Steak was good."),
+
+                L(ReviewTopic.WalkedOut, Who.Anyone, "{wait} minutes, no {main}. Left at {left}.", "Watched three tables eat. Not mine.", "Smelled great. Never found out why.", "Left hungry. Got pizza on the way."),
+                L(ReviewTopic.WalkedOut, Who.Regular, "First time I've walked out. Last, I hope."),
+                L(ReviewTopic.WalkedOut, Who.Critic, "I can't review a {main} I never met."),
+                L(ReviewTopic.WalkedOut, Who.Influencer, "Came for content. Left with none."),
+                L(ReviewTopic.WalkedOut, Who.Tourist, "Waited {wait} minutes, then the bus came."),
+                L(ReviewTopic.WalkedOut, Who.Local, "Gave up at {left}. Diner it is."),
             },
             new[]
             {
-                new ReviewVoiceData.Replies(ReviewReply.Apologise, TopicGroup.Food,
+                // Apologies read as apologies, thanks as thanks, digging in as digging in: the guest's
+                // answer then tells players whether it was the right call (decision 2026-11-09).
+                R(ReviewReply.Apologise, TopicGroup.Wait,
+                    "Sorry, {name}. The grill was full and we should've said so.",
+                    "{name}, that wait was on us. Truly sorry.",
+                    "We kept you waiting, {name}. Not okay. Sorry."),
+                R(ReviewReply.Apologise, TopicGroup.Food,
                     "Sorry, {name}. That {main} deserved better from our grill.",
-                    "{name}, you asked for {ordered} and we didn't listen. Sorry."),
-                new ReviewVoiceData.Replies(ReviewReply.Apologise, TopicGroup.Wait,
-                    "Sorry, {name}. The grill was full and we should have said so."),
-                new ReviewVoiceData.Replies(ReviewReply.StandYourGround, TopicGroup.Food,
-                    "A real {main} isn't for everyone."),
-                new ReviewVoiceData.Replies(ReviewReply.Thank, TopicGroup.Praise,
-                    "Thank you, {name}! The grill says hi."),
+                    "Our grill let you down, {name}. It won't happen twice."),
+                R(ReviewReply.Apologise, TopicGroup.Doneness,
+                    "{name}, you asked for {ordered} and we didn't listen. Sorry.",
+                    "Sorry, {name}. {ordered} means {ordered}. Our grill forgot."),
+                R(ReviewReply.Apologise, TopicGroup.Praise,
+                    "So sorry, {name}! For... the stars?",
+                    "Apologies, {name}! We'll try to be less good?"),
+                R(ReviewReply.Thank, TopicGroup.Praise,
+                    "Thank you, {name}! The grill says hi.",
+                    "{name}, you made the whole line grin tonight.",
+                    "Thanks, {name}. Same table next Friday?"),
+                R(ReviewReply.Thank, TopicGroup.Food,
+                    "Thanks for dining with us, {name}! Enjoy your evening!",
+                    "Thank you for the feedback! We love our {main} too!"),
+                R(ReviewReply.Thank, TopicGroup.Wait,
+                    "Thanks for your patience, {name}! Good things take time!",
+                    "Thanks for waiting, {name}! Hope the {main} was worth it!"),
+                R(ReviewReply.StandYourGround, TopicGroup.Food,
+                    "A real {main} isn't for everyone.",
+                    "That's how fire works, {name}."),
+                R(ReviewReply.StandYourGround, TopicGroup.Doneness,
+                    "Our grill, our rules. That's {ordered} here.",
+                    "We've grilled for years, {name}. We know {ordered}."),
+                R(ReviewReply.Thank, TopicGroup.Doneness,
+                    "Thanks for trying our {ordered}, {name}! Come again!"),
+                R(ReviewReply.StandYourGround, TopicGroup.Wait,
+                    "Fire takes time. So does quality.",
+                    "We don't rush steak. Or apologies.",
+                    "Busy grill, happy grill."),
+                R(ReviewReply.StandYourGround, TopicGroup.Praise,
+                    "We know.",
+                    "Naturally.",
+                    "Tell your friends. Or don't. We're full anyway."),
             },
-            new[] { new ReviewVoiceData.Answers(Who.Local, "Fine. Save me a seat by the grill.") },
-            new[] { new ReviewVoiceData.Answers(Who.Foodie, "A {main} is not a matter of opinion. Doneness is.") },
-            new[] { "#steaknight", "#medrare", "#grillgoals", "#meatsweats" });
+            new[]
+            {
+                A(Who.Anyone, "Fair. Save me a seat by the grill.", "Okay. I'll give the {main} another shot.", "Classy reply. See you Friday."),
+                A(Who.Regular, "That's why I keep coming back."),
+                A(Who.Foodie, "Respect. Back soon for the {ordered}."),
+                A(Who.Influencer, "Okay, this reply is a vibe. Reposting."),
+                A(Who.Critic, "Gracious. I'll revisit."),
+                A(Who.Tourist, "Sweet! Next time we're passing through."),
+                A(Who.Local, "Fine. Usual table, usual order."),
+            },
+            new[]
+            {
+                A(Who.Anyone, "Cool reply. Still hungry.", "Did a bot write this?", "This is why it's not three stars."),
+                A(Who.Regular, "Wow. After all these Fridays?"),
+                A(Who.Foodie, "Doneness is not a matter of opinion."),
+                A(Who.Influencer, "Screenshotted. For my followers."),
+                A(Who.Critic, "Defensiveness: the house special."),
+                A(Who.Tourist, "Next time we'll try the diner."),
+                A(Who.Local, "Telling the whole street."),
+            },
+            new[] { "#steaknight", "#medrare", "#grillgoals", "#meatsweats", "#crustgoals", "#fridaygrill" });
+
+        private static ReviewVoiceData.Lines L(ReviewTopic topic, Who who, params string[] lines) => new ReviewVoiceData.Lines(topic, who, lines);
+
+        private static ReviewVoiceData.Replies R(ReviewReply reply, TopicGroup about, params string[] lines) => new ReviewVoiceData.Replies(reply, about, lines);
+
+        private static ReviewVoiceData.Answers A(Who who, params string[] lines) => new ReviewVoiceData.Answers(who, lines);
     }
 }

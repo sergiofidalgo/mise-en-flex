@@ -171,6 +171,16 @@ namespace Game.Data
         [SerializeField, Range(0f, 5f)] private float _praiseStars = 4.5f;
         [Tooltip("Stars left by someone who walked out.")]
         [SerializeField, Range(0f, 5f)] private float _walkOutStars = 1f;
+        [Tooltip("Chance a guest who loved it posts a review. Not everyone reviews (2026-11-09).")]
+        [SerializeField, Range(0f, 1f)] private float _shareWhenPraising = 0.45f;
+        [Tooltip("Chance a guest who found it fine posts: a forgettable night is rarely written about.")]
+        [SerializeField, Range(0f, 1f)] private float _shareWhenDecent = 0.15f;
+        [Tooltip("Chance a guest with a complaint posts.")]
+        [SerializeField, Range(0f, 1f)] private float _shareWhenComplaining = 0.5f;
+        [Tooltip("Chance a guest who walked out posts.")]
+        [SerializeField, Range(0f, 1f)] private float _shareWhenWalkedOut = 0.65f;
+        [Tooltip("How much likelier each kind of guest is to post: Regular, Foodie, Influencer, Critic, Tourist, Local. Critics and influencers nearly always do.")]
+        [SerializeField] private float[] _personaShare = { 0.7f, 1.3f, 2f, 3f, 1.1f, 0.8f };
         [Tooltip("What customers say. {ordered}, {got}, {main} and {side} are filled in.")]
         [SerializeField] private ReviewLines[] _reviewLines =
         {
@@ -258,6 +268,11 @@ namespace Game.Data
                 Generic = GenericVoice(),
                 Restaurant = _restaurantName,
                 OpensAtHour = _opensAt,
+                PraiseShare = _shareWhenPraising,
+                DecentShare = _shareWhenDecent,
+                ComplaintShare = _shareWhenComplaining,
+                WalkOutShare = _shareWhenWalkedOut,
+                PersonaShare = _personaShare,
             },
         };
 

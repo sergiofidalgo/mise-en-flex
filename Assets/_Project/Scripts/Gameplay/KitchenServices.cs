@@ -75,6 +75,9 @@ namespace Game.Gameplay
         /// <summary>Review and reply lines used lately, saved with the campaign so they don't repeat.</summary>
         public Game.Simulation.Service.LineMemory ReviewLines { get; set; } = new Game.Simulation.Service.LineMemory();
 
+        /// <summary>Orders taken per dish since the campaign began (not every guest reviews).</summary>
+        public Dictionary<string, int> DishTally { get; } = new Dictionary<string, int>();
+
         /// <summary>What says a plate on a counter is ready to go out.</summary>
         public ReadyBell Bell { get; } = new ReadyBell();
         public StaffConfig StaffConfig { get; }

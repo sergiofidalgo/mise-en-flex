@@ -4,6 +4,34 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-09 — Not every guest posts a review; the grill's full voice
+
+**User's call:** like in real life, a guest can leave happy or disappointed without posting about it.
+- **Each guest posts by chance.** It's likeliest after a walk-out (65%), then a complaint (50%) or praise (45%). A forgettable "decent" night is rarely written about (15%).
+- **Some kinds of guest post more than others.** The chance is multiplied by the guest: regular ×0.7, foodie ×1.3, influencer ×2, critic ×3, tourist ×1.1, local ×0.8, capped at certain.
+
+  All of these are on `ServiceConfig` → Reviews, and they're first guesses to tune in play. The rating, the review count and "Guests mention" come from the reviews posted.
+- **The dashboard counts guests, not reviews,** wherever it means guests: "Tonight's guests" and the Menu tab's orders and money read every guest served or who walked out. The rating column reads the reviews. "All time" reads a per-dish tally saved with the campaign (`CampaignSave.Dishes`), so it no longer depends on reviews either.
+
+**The grill voice, written in full** (`ReviewVoiceDefaults.Grill`):
+- About 130 lines, with every complaint type covered by at least two.
+- Each kind of guest has its own lines and answers.
+- Every reply combination is written to read as what it is.
+- Hashtags for influencers.
+
+**Writing rules the code now enforces** (`VoiceFitTests`):
+- A review line fits one line of the card: 44 characters with the longest facts filled in.
+- An influencer's hashtag is only added when it still fits.
+- Replies fit 72 characters and answers 60.
+- Every fact a line names is one the writer knows.
+- A line starting with a fact gets a capital.
+
+**Doneness complaints have their own reply group,** so replies naming the order ("you asked for medium rare…") answer only under- and overcooked reviews. Other food complaints get general food replies.
+
+**Tools/Game/Write Review Samples** writes a sample week (each guest, their review, all three replies and the answers) to `Screenshots/ReviewSamples.md`, for reading the writing as players will meet it.
+
+---
+
 ## 2026-11-09 — Review voices: the system for varied reviews and replies
 
 **User's call:** build the system before writing much content. Built, with starter writing to deal from:

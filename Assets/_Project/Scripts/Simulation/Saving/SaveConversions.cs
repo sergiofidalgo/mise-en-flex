@@ -24,6 +24,9 @@ namespace Game.Simulation.Saving
                 Morale = record.Morale,
             };
 
+        /// <summary>An order as the listing writes it, e.g. "steak, medium".</summary>
+        public static string OrderName(Order order) => $"{order.MainName.ToLowerInvariant()}, {order.Doneness.Name.ToLowerInvariant()}";
+
         public static ReviewRecord ToRecord(Review review, int day, string guest = "")
         {
             var customer = review.Customer;
@@ -35,7 +38,7 @@ namespace Game.Simulation.Saving
                 Topic = (int)review.Topic,
                 Line = review.Line ?? "",
                 Guest = guest ?? "",
-                Order = order == null ? "" : $"{order.MainName.ToLowerInvariant()}, {order.Doneness.Name.ToLowerInvariant()}",
+                Order = order == null ? "" : OrderName(order),
                 ArrivedAt = customer?.ArrivedAt ?? 0f,
                 WalkedOut = customer?.WalkedOut ?? false,
                 Paid = customer?.Bill?.Payment ?? 0f,
