@@ -355,18 +355,16 @@ namespace Game.Presentation.Hud
 
         private void DrawReviews()
         {
+            var all = AllReviews();
             var reviews = ListedReviews();
             var chipX = RightX;
-            chipX = Pill(_content, $"All · {reviews.Count}", SemiBold, 19.5f, _ink, _paper, chipX, 260f, 39f, 16f, 26f) + 12f;
-            chipX = Pill(_content, $"Walk-outs · {reviews.Count(r => r.WalkedOut)}", SemiBold, 19.5f, _alarm, _alarmText, chipX, 260f, 39f, 16f, 26f) + 12f;
-            chipX = StarPill($"1–2", reviews.Count(r => !r.WalkedOut && r.RatedStars < 3f), chipX) + 12f;
-            chipX = StarPill($"3+", reviews.Count(r => !r.WalkedOut && r.RatedStars >= 3f), chipX) + 12f;
-            Pill(_content, $"Unreplied · {reviews.Count(r => r.Reply < 0)}", SemiBold, 19.5f, _card, _ink, chipX, 260f, 39f, 16f, 26f);
+            foreach (Filter filter in System.Enum.GetValues(typeof(Filter)))
+                chipX = FilterChip(filter, all.Count(r => Matches(r, filter)), chipX) + 12f;
             Label(Medium, _content, "Sorted: needs attention first", 19.5f, _muted, RightEdge, 286f, 400f, HorizontalAlignmentOptions.Right);
 
             if (reviews.Count == 0)
             {
-                Label(Serif, _content, "No reviews yet.", 26.67f, _muted, RightX, 360f);
+                Label(Serif, _content, all.Count == 0 ? "No reviews yet." : "No reviews match this filter.", 26.67f, _muted, RightX, 360f);
                 return;
             }
 
@@ -377,19 +375,44 @@ namespace Game.Presentation.Hud
                 first++;
             var y = ListTop;
             for (var i = first; i < reviews.Count && y < ListBottom; i++)
-                y = ReviewCard(_list, reviews[i], y, i == _selected, false) + 14f;
+                y = ReviewCard(_list, reviews[i], y, i == _selected && !_onFilters, false) + 14f;
         }
 
-        // A filter count with a drawn star, such as "1–2 ★ · 1".
-        private float StarPill(string range, int count, float x)
+        // One filter chip, such as "Walk-outs · 2" or "1–2 ★ · 1"; returns its right edge. The active
+        // filter is dark, as "All" is in the mockup; with the focus on the chips it also has a gold ring.
+        private float FilterChip(Filter filter, int count, float x)
         {
-            var before = Label(SemiBold, _content, range, 19.5f, _ink, x + 16f, 286f, 100f);
-            var starX = x + 16f + UiKit.Width(before) + 6f;
-            var after = Label(SemiBold, _content, $"· {count}", 19.5f, _ink, starX + 17f + 6f, 286f, 100f);
-            var width = starX + 17f + 6f + UiKit.Width(after) + 16f - x;
-            var box = UiKit.RoundBox(_content, range + "Pill", _card, x, 260f, width, 39f, 19.5f);
-            box.transform.SetSiblingIndex(before.transform.GetSiblingIndex());
-            UiKit.Picture(_content, "Star", ReviewDashboard.StarSprite, starX, 271f, 17f, 17f, _ink);
+            var active = filter == _filter;
+            var back = active ? _ink : filter == Filter.WalkOuts ? _alarm : _card;
+            var fore = active ? _paper : filter == Filter.WalkOuts ? _alarmText : _ink;
+            var star = filter == Filter.Low || filter == Filter.High;
+            var text = filter switch
+            {
+                Filter.All => $"All · {count}",
+                Filter.WalkOuts => $"Walk-outs · {count}",
+                Filter.Low => "1–2",
+                Filter.High => "3+",
+                _ => $"Unreplied · {count}",
+            };
+
+            var first = Label(SemiBold, _content, text, 19.5f, fore, x + 16f, 286f, 300f);
+            var right = x + 16f + UiKit.Width(first);
+            if (star)
+            {
+                UiKit.Picture(_content, "Star", StarSprite, right + 6f, 271f, 17f, 17f, fore);
+                var after = Label(SemiBold, _content, $"· {count}", 19.5f, fore, right + 29f, 286f, 100f);
+                right += 29f + UiKit.Width(after);
+            }
+            var width = right + 16f - x;
+
+            var index = first.transform.GetSiblingIndex();
+            var fill = UiKit.RoundBox(_content, text + "Chip", back, x, 260f, width, 39f, 19.5f);
+            fill.transform.SetSiblingIndex(index);
+            if (active && _onFilters)
+            {
+                var ring = UiKit.RoundBox(_content, "Focus", _gold, x - 4f, 256f, width + 8f, 47f, 23.5f);
+                ring.transform.SetSiblingIndex(index);
+            }
             return x + width;
         }
 
@@ -763,7 +786,8 @@ namespace Game.Presentation.Hud
         private void DrawHints()
         {
             var canReply = !_choosingReply && SelectedReview() is ReviewRecord selected && selected.Reply < 0;
-            var state = $"{canReply}|{Services.Days.Day}|" + string.Join(",", PlayerInput.all.Select(p => $"{p.playerIndex}:{_dayLoop.Ready.IsReady(p.playerIndex)}"));
+            var filtering = _tab == Tab.Reviews && _onFilters;
+            var state = $"{canReply}|{filtering}|{Services.Days.Day}|" + string.Join(",", PlayerInput.all.Select(p => $"{p.playerIndex}:{_dayLoop.Ready.IsReady(p.playerIndex)}"));
             if (state == _hintsShown)
                 return;
             _hintsShown = state;
@@ -771,7 +795,7 @@ namespace Game.Presentation.Hud
             var hints = new List<(string[] Keys, string Text)>
             {
                 (new[] { "LB", "RB" }, "Tabs"),
-                (new[] { "LS" }, "Browse"),
+                (new[] { "LS" }, filtering ? "Filter" : "Browse"),
             };
             if (canReply)
                 hints.Add((new[] { "Y" }, "Reply"));

@@ -38,8 +38,8 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 - **The backdrop is the photo taken at close, blurred and dimmed.** Before, it was a flat dim. The canvas scales with Expand, so 16:10 screens fit.
 
 **Flagged for review:**
-- The Reviews filter chips only show counts. The mockup gives no button to switch them.
-- The Menu warning adds "Guests wait longest for these." The mockup's tip about grill time only fits medium steaks.
+- **Reviews filters (user's call):** the stick or arrow keys go up from the top review to the chips; left and right filter at once (All, Walk-outs, 1–2 stars, 3+ stars, Unreplied); down returns to the list. The active chip is dark, with a gold ring while the chips have the focus, and the hint reads "LS Filter". The filter resets each new day.
+- The Menu warning adds "Guests wait longest for these." The mockup's tip about grill time only fits medium steaks. The user will review it while testing.
 - With two or more cooks, who's ready shows at the left of the hint bar.
 
 ---

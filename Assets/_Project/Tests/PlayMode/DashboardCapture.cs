@@ -56,6 +56,7 @@ namespace Game.Tests.PlayMode
             yield return Shoot(dashboard, 0, 0, false, Path.Combine(folder, "dashboard_overview.png"));
             yield return Shoot(dashboard, 1, 0, false, Path.Combine(folder, "dashboard_reviews.png"));
             yield return Shoot(dashboard, 1, 0, true, Path.Combine(folder, "dashboard_reply_wheel.png"));
+            yield return Shoot(dashboard, 1, 0, false, Path.Combine(folder, "dashboard_filter_walkouts.png"), 1, true);
             yield return Shoot(dashboard, 2, 0, false, Path.Combine(folder, "dashboard_menu.png"));
             yield return Shoot(dashboard, 3, 0, false, Path.Combine(folder, "dashboard_books.png"));
             root.ReplyTo(services.ReviewHistory.First(r => r.Guest == "Inés R."), ReviewReply.Apologise);
@@ -67,9 +68,9 @@ namespace Game.Tests.PlayMode
         // That needs a window, so this runs in a visible editor (no -batchmode), where the frame is the
         // Game view's size. (In batch mode Unity never finishes a frame, and a canvas redrawn through a
         // hand-driven camera in Play mode comes out empty: tried 2026-11-09.)
-        private static IEnumerator Shoot(ReviewDashboard dashboard, int tab, int selected, bool wheel, string file)
+        private static IEnumerator Shoot(ReviewDashboard dashboard, int tab, int selected, bool wheel, string file, int filter = 0, bool onFilters = false)
         {
-            dashboard.ShowForCapture(tab, selected, wheel);
+            dashboard.ShowForCapture(tab, selected, wheel, filter, onFilters);
             yield return null;
             yield return new WaitForEndOfFrame();
             var frame = ScreenCapture.CaptureScreenshotAsTexture();

@@ -28,6 +28,16 @@ namespace Game.Presentation.Hud
             Books,
         }
 
+        // The Reviews tab's filters, in the order of their chips.
+        private enum Filter
+        {
+            All,
+            WalkOuts,
+            Low,
+            High,
+            Unreplied,
+        }
+
         private static readonly string[] Weekdays = { "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun" };
 
         [SerializeField] private HudStyle _style;
@@ -51,6 +61,9 @@ namespace Game.Presentation.Hud
         private Tab _tab;
         private int _selected;
         private bool _choosingReply;
+        private Filter _filter;
+        // On the Reviews tab, the stick can rise from the top review to the filter chips.
+        private bool _onFilters;
         private float _nextStickStep;
         private bool _dirty = true;
         private int _shownForDay = -1;
@@ -90,18 +103,22 @@ namespace Game.Presentation.Hud
                 _tab = Tab.Overview;
                 _selected = 0;
                 _choosingReply = false;
+                _filter = Filter.All;
+                _onFilters = false;
                 TakePhoto();
             }
             _dirty = true;
         }
 
         /// <summary>For the capture test: shows a tab with a review chosen and, if asked, the reply wheel open, at once.</summary>
-        public Canvas ShowForCapture(int tab, int selected, bool choosingReply)
+        public Canvas ShowForCapture(int tab, int selected, bool choosingReply, int filter = 0, bool onFilters = false)
         {
             _canvasObject.SetActive(true);
             _tab = (Tab)Mathf.Clamp(tab, 0, 3);
             _selected = selected;
             _choosingReply = choosingReply;
+            _filter = (Filter)Mathf.Clamp(filter, 0, 4);
+            _onFilters = onFilters;
             Refresh();
             _dirty = false;
             return _canvasObject.GetComponent<Canvas>();
@@ -163,8 +180,10 @@ namespace Game.Presentation.Hud
                 else if (!_choosingReply && Pressed(actions, "ButtonY") && SelectedReview() is ReviewRecord review && review.Reply < 0)
                     SetChoosing(true);
 
-                var y = actions["Move"].ReadValue<Vector2>().y;
-                if (Mathf.Abs(y) < _stickThreshold)
+                // The stick or the arrow keys (both are Move): up and down browse, left and right
+                // change the filter while the chips have the focus.
+                var move = actions["Move"].ReadValue<Vector2>();
+                if (move.magnitude < _stickThreshold)
                 {
                     _nextStickStep = 0f;
                 }
@@ -172,7 +191,10 @@ namespace Game.Presentation.Hud
                 {
                     // A fresh push moves at once; holding repeats.
                     _nextStickStep = Time.unscaledTime + _stickRepeat;
-                    Browse(y > 0f ? -1 : 1);
+                    if (Mathf.Abs(move.y) >= Mathf.Abs(move.x))
+                        Browse(move.y > 0f ? -1 : 1);
+                    else if (_onFilters)
+                        ChangeFilter(move.x > 0f ? 1 : -1);
                 }
             }
         }
@@ -189,16 +211,48 @@ namespace Game.Presentation.Hud
             _tab = (Tab)(((int)_tab + step + count) % count);
             _selected = 0;
             _choosingReply = false;
+            _onFilters = false;
             _dirty = true;
         }
 
         private void Browse(int step)
         {
             _choosingReply = false;
+            if (_tab == Tab.Reviews)
+            {
+                // Up from the top review reaches the filters; down from them returns to the list.
+                if (_onFilters)
+                {
+                    if (step > 0)
+                    {
+                        _onFilters = false;
+                        _selected = 0;
+                        _dirty = true;
+                    }
+                    return;
+                }
+                if (step < 0 && _selected == 0)
+                {
+                    _onFilters = true;
+                    _dirty = true;
+                    return;
+                }
+            }
             var count = ListedReviews().Count;
             if (count == 0)
                 return;
             _selected = Mathf.Clamp(_selected + step, 0, count - 1);
+            _dirty = true;
+        }
+
+        // Left and right along the chips; the list follows at once, from its top.
+        private void ChangeFilter(int step)
+        {
+            var next = Mathf.Clamp((int)_filter + step, 0, System.Enum.GetValues(typeof(Filter)).Length - 1);
+            if (next == (int)_filter)
+                return;
+            _filter = (Filter)next;
+            _selected = 0;
             _dirty = true;
         }
 
@@ -229,13 +283,28 @@ namespace Game.Presentation.Hud
         private List<ReviewRecord> ListedReviews() => _tab switch
         {
             Tab.Overview => TodaysReviews(),
-            // Today's first, needing attention first; then older days, newest first.
-            Tab.Reviews => Services.ReviewHistory.GroupBy(r => r.Day).OrderByDescending(g => g.Key).SelectMany(g => NeedsAttentionFirst(g)).ToList(),
+            Tab.Reviews => AllReviews().Where(r => Matches(r, _filter)).ToList(),
             _ => new List<ReviewRecord>(),
         };
 
+        // Today's first, needing attention first; then older days, newest first.
+        private List<ReviewRecord> AllReviews() =>
+            Services.ReviewHistory.GroupBy(r => r.Day).OrderByDescending(g => g.Key).SelectMany(g => NeedsAttentionFirst(g)).ToList();
+
+        private static bool Matches(ReviewRecord review, Filter filter) => filter switch
+        {
+            Filter.WalkOuts => review.WalkedOut,
+            Filter.Low => !review.WalkedOut && review.RatedStars < 3f,
+            Filter.High => !review.WalkedOut && review.RatedStars >= 3f,
+            Filter.Unreplied => review.Reply < 0,
+            _ => true,
+        };
+
+        // Nothing is chosen while the filters have the focus, so Y does nothing there.
         private ReviewRecord SelectedReview()
         {
+            if (_tab == Tab.Reviews && _onFilters)
+                return null;
             var list = ListedReviews();
             return _selected >= 0 && _selected < list.Count ? list[_selected] : null;
         }
