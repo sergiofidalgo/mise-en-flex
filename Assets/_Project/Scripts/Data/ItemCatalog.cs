@@ -39,7 +39,8 @@ namespace Game.Data
         public string DisplayName(string typeId)
         {
             var ingredient = Find(typeId);
-            return ingredient != null ? ingredient.DisplayName : typeId;
+            // In the player's language (decision 2026-11-09).
+            return Tr.Get(ingredient != null ? ingredient.DisplayName : typeId);
         }
 
         /// <returns>The prefab for <paramref name="typeId"/>, or null if the catalog doesn't know it.</returns>

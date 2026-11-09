@@ -1,3 +1,4 @@
+using Game.Data;
 using System.Collections.Generic;
 using Game.Simulation.Cooking;
 using Game.Simulation.Items;
@@ -108,21 +109,21 @@ namespace Game.Gameplay.Stations
             if (_grill == null)
                 return;
             var zone = ZoneFacing(player);
-            var side = zone.IsHot ? "hot side" : "cool side";
-            var otherSide = zone.IsHot ? "cool side" : "hot side";
+            var side = zone.IsHot ? Tr.Get("hot side") : Tr.Get("cool side");
+            var otherSide = zone.IsHot ? Tr.Get("cool side") : Tr.Get("hot side");
 
             if (zone.StandingPan != null)
-                lines.Add(new PromptLine(PromptControl.West, "flip", zone.StandingPan.Contents.Count > 0));
+                lines.Add(new PromptLine(PromptControl.West, Tr.Get("flip"), zone.StandingPan.Contents.Count > 0));
             else if (zone.Hottest != null)
-                lines.Add(new PromptLine(PromptControl.West, $"flip onto {otherSide}", _grill.Other(zone).HasRoomOnGrate));
+                lines.Add(new PromptLine(PromptControl.West, Tr.Format("flip onto {side}", ("side", otherSide)), _grill.Other(zone).HasRoomOnGrate));
 
             var held = player.Hands.Current;
             if (held == null && zone.Current != null)
-                lines.Add(new PromptLine(PromptControl.South, $"take {zone.Current.TypeId}"));
+                lines.Add(new PromptLine(PromptControl.South, Tr.Format("take {what}", ("what", Tr.Get(zone.Current.TypeId)))));
             else if (held is Pan)
-                lines.Add(new PromptLine(PromptControl.South, $"put pan on {side}", zone.CanAccept(held)));
+                lines.Add(new PromptLine(PromptControl.South, Tr.Format("put pan on {side}", ("side", side)), zone.CanAccept(held)));
             else if (held is Ingredient)
-                lines.Add(new PromptLine(PromptControl.South, $"put on {side}", zone.CanAccept(held)));
+                lines.Add(new PromptLine(PromptControl.South, Tr.Format("put on {side}", ("side", side)), zone.CanAccept(held)));
         }
 
         public override Transform AnchorFor(Item item)

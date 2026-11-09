@@ -1,3 +1,4 @@
+using Game.Data;
 using System.Collections.Generic;
 using System.Linq;
 using Game.Simulation.Items;
@@ -49,9 +50,9 @@ namespace Game.Gameplay.Stations
             if (held is Tray tray)
             {
                 if (tray.Items.Any(Stack.CanAccept))
-                    lines.Add(new PromptLine(PromptControl.South, "put plates back"));
+                    lines.Add(new PromptLine(PromptControl.South, Tr.Get("put plates back")));
                 else
-                    lines.Add(new PromptLine(PromptControl.South, $"take plate ({Stack.Count})", Stack.CanTake && tray.HasRoom));
+                    lines.Add(new PromptLine(PromptControl.South, Tr.Format("take plate ({count})", ("count", Stack.Count)), Stack.CanTake && tray.HasRoom));
                 return;
             }
 
@@ -59,14 +60,14 @@ namespace Game.Gameplay.Stations
             {
                 // Food in hand goes straight onto a fresh plate (decision 2026-11-08).
                 if (ItemTransfer.CanPlate(Stack, held))
-                    lines.Add(new PromptLine(PromptControl.South, "plate it"));
+                    lines.Add(new PromptLine(PromptControl.South, Tr.Get("plate it")));
                 else
-                    lines.Add(new PromptLine(PromptControl.South, "put plate back", Stack.CanAccept(held)));
+                    lines.Add(new PromptLine(PromptControl.South, Tr.Get("put plate back"), Stack.CanAccept(held)));
                 return;
             }
             lines.Add(Stack.CanTake
-                ? new PromptLine(PromptControl.South, $"take plate ({Stack.Count})")
-                : new PromptLine(PromptControl.South, "no clean plates", false));
+                ? new PromptLine(PromptControl.South, Tr.Format("take plate ({count})", ("count", Stack.Count)))
+                : new PromptLine(PromptControl.South, Tr.Get("no clean plates"), false));
         }
     }
 }

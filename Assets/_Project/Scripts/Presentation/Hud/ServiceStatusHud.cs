@@ -105,7 +105,7 @@ namespace Game.Presentation.Hud
 
             if (PlayerInput.all.Count == 0)
             {
-                _card.ShowAt(_joinText, Vector2.zero);
+                _card.ShowAt(Tr.Get(_joinText), Vector2.zero);
                 return;
             }
 
@@ -140,15 +140,15 @@ namespace Game.Presentation.Hud
         private string PrepText()
         {
             var services = _root.Services;
-            var text = _prepText;
+            var text = Tr.Get(_prepText);
             if (PlayerInput.all.Count > 1)
                 text += $"\n{ReadyLine()}";
 
             // Just long enough to read: the stock shows on the storage itself.
             if (services.LastDelivery.Count > 0 && Time.unscaledTime - _prepStartedAt < _deliverySeconds)
             {
-                var parts = services.LastDelivery.Select(d => $"{d.Count} {services.Catalog.DisplayName(d.TypeId)}");
-                text += $"\n{_deliveryText} {string.Join(", ", parts)}";
+                var parts = services.LastDelivery.Select(d => Tr.Format("{count} {what}", ("count", d.Count), ("what", services.Catalog.DisplayName(d.TypeId))));
+                text += $"\n{Tr.Get(_deliveryText)} {string.Join(", ", parts)}";
             }
             return text;
         }
@@ -158,24 +158,25 @@ namespace Game.Presentation.Hud
         {
             var staff = _root.Services.Staff;
             var plan = new StringBuilder();
-            plan.AppendLine($"<b>Day {days.Day}: plan</b>");
-            plan.AppendLine($"Balance {FormatMoney(days.Balance)}");
+            plan.AppendLine("<b>" + Tr.Format("Day {day}: plan", ("day", days.Day)) + "</b>");
+            plan.AppendLine(Tr.Format("Balance {amount}", ("amount", FormatMoney(days.Balance))));
             plan.AppendLine();
 
             foreach (var member in staff.Hired)
-                plan.AppendLine($"{member.Name}, {RoleName(member.Role)}: {member.Description}, {Mood(member)}, {FormatMoney(member.DailyWage)}/day   {Button(PromptControl.East)} let go");
+                plan.AppendLine(Tr.Format("{name}, {role}: {description}, {mood}, {wage}/day", ("name", member.Name), ("role", RoleName(member.Role)), ("description", Tr.Get(member.Description)), ("mood", Mood(member)), ("wage", FormatMoney(member.DailyWage)))
+                    + $"   {Button(PromptControl.East)} " + Tr.Get("let go"));
             if (staff.Hired.Count > 0)
                 plan.AppendLine();
 
-            plan.AppendLine(_candidatesText);
+            plan.AppendLine(Tr.Get(_candidatesText));
             for (var i = 0; i < staff.Candidates.Count && i < HireButtons.Length; i++)
             {
                 var candidate = staff.Candidates[i];
-                var line = $"{Button(HireButtons[i])}  {candidate.Name}, {RoleName(candidate.Role)}: {candidate.Description}, {FormatMoney(candidate.DailyWage)}/day";
+                var line = $"{Button(HireButtons[i])}  " + Tr.Format("{name}, {role}: {description}, {wage}/day", ("name", candidate.Name), ("role", RoleName(candidate.Role)), ("description", Tr.Get(candidate.Description)), ("wage", FormatMoney(candidate.DailyWage)));
                 plan.AppendLine(staff.CanHire(candidate, days.Balance) ? line : HudStyle.Colored(line, _waitingColor));
             }
             plan.AppendLine();
-            plan.AppendLine(_manageText);
+            plan.AppendLine(Tr.Get(_manageText));
             return plan.ToString().TrimEnd();
         }
 
@@ -187,34 +188,34 @@ namespace Game.Presentation.Hud
         internal static string Mood(StaffMember member)
         {
             if (member.Morale < 0f)
-                return "new";
+                return Tr.Get("new");
             if (member.Morale >= 0.75f)
-                return HudStyle.Colored("happy", new Color(0.45f, 0.85f, 0.40f));
+                return HudStyle.Colored(Tr.Get("happy"), new Color(0.45f, 0.85f, 0.40f));
             if (member.Morale >= 0.45f)
-                return "doing fine";
+                return Tr.Get("doing fine");
             if (member.Morale >= 0.25f)
-                return HudStyle.Colored("unhappy", new Color(0.96f, 0.76f, 0.25f));
-            return HudStyle.Colored("fed up", new Color(0.95f, 0.30f, 0.26f));
+                return HudStyle.Colored(Tr.Get("unhappy"), new Color(0.96f, 0.76f, 0.25f));
+            return HudStyle.Colored(Tr.Get("fed up"), new Color(0.95f, 0.30f, 0.26f));
         }
 
         private static string RoleName(StaffRole role) => role switch
         {
-            StaffRole.PrepAssistant => "helper",
-            StaffRole.Waiter => "waiter",
-            _ => "cleaner",
+            StaffRole.PrepAssistant => Tr.Get("helper"),
+            StaffRole.Waiter => Tr.Get("waiter"),
+            _ => Tr.Get("cleaner"),
         };
 
         internal static string WorkDone(StaffMember member) => member.Role switch
         {
-            StaffRole.PrepAssistant => $"{member.Name} prepared {member.JobsToday}, dropped {member.MistakesToday}",
-            StaffRole.Waiter => $"{member.Name} carried {member.JobsToday} plates, dropped {member.MistakesToday}",
-            _ => $"{member.Name} washed {member.JobsToday}, broke {member.MistakesToday}",
+            StaffRole.PrepAssistant => Tr.Format("{name} prepared {jobs}, dropped {mistakes}", ("name", member.Name), ("jobs", member.JobsToday), ("mistakes", member.MistakesToday)),
+            StaffRole.Waiter => Tr.Format("{name} carried {jobs} plates, dropped {mistakes}", ("name", member.Name), ("jobs", member.JobsToday), ("mistakes", member.MistakesToday)),
+            _ => Tr.Format("{name} washed {jobs}, broke {mistakes}", ("name", member.Name), ("jobs", member.JobsToday), ("mistakes", member.MistakesToday)),
         };
 
         // The button prompt, plus who's ready when there's more than one player. (With one player,
         // being ready moves the day on at once, so there's nothing to show.)
         private string WithReady(string text) =>
-            PlayerInput.all.Count <= 1 ? $"{text}\n{_readyText}" : $"{text}\n{_readyText}\n{ReadyLine()}";
+            PlayerInput.all.Count <= 1 ? $"{text}\n{Tr.Get(_readyText)}" : $"{text}\n{Tr.Get(_readyText)}\n{ReadyLine()}";
 
         private string ReadyLine()
         {
@@ -223,8 +224,8 @@ namespace Game.Presentation.Hud
             {
                 var name = $"P{player.playerIndex + 1}";
                 _text.Append(_dayLoop.Ready.IsReady(player.playerIndex)
-                    ? $"<b>{HudStyle.Colored($"{name} {_playerReadyText}", _settings.GetPlayerColor(player.playerIndex))}</b>   "
-                    : HudStyle.Colored($"{name} {_playerWaitingText}", _waitingColor) + "   ");
+                    ? $"<b>{HudStyle.Colored($"{name} {Tr.Get(_playerReadyText)}", _settings.GetPlayerColor(player.playerIndex))}</b>   "
+                    : HudStyle.Colored($"{name} {Tr.Get(_playerWaitingText)}", _waitingColor) + "   ");
             }
             return _text.ToString().TrimEnd();
         }
@@ -238,8 +239,8 @@ namespace Game.Presentation.Hud
             var clock = $"{(int)(minutes / 60f) % 24:00}:{(int)minutes % 60:00}";
             return service.Phase switch
             {
-                ServicePhase.LastOrders => $"{clock}  {HudStyle.Colored(_lastOrdersText, _noticeColor)}",
-                ServicePhase.Closed => $"{clock}  {HudStyle.Colored(_closedText, _noticeColor)}",
+                ServicePhase.LastOrders => $"{clock}  {HudStyle.Colored(Tr.Get(_lastOrdersText), _noticeColor)}",
+                ServicePhase.Closed => $"{clock}  {HudStyle.Colored(Tr.Get(_closedText), _noticeColor)}",
                 _ => clock,
             };
         }

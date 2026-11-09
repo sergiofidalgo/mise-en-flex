@@ -1,3 +1,4 @@
+using Game.Data;
 using Game.Simulation.Prep;
 using TMPro;
 using UnityEngine;
@@ -115,10 +116,10 @@ namespace Game.Presentation.Hud
 
             // The grade, and the speed change it caused.
             var showGrade = fresh && secondsSinceChop < _gradeDuration;
-            _grade.text = showGrade ? Label(grade.Value) : cuts == 0 ? "press X in the green" : string.Empty;
+            _grade.text = showGrade ? Label(grade.Value) : cuts == 0 ? Tr.Get("press X in the green") : string.Empty;
             _grade.color = showGrade ? colour : new Color(1f, 1f, 1f, 0.8f);
             _grade.fontSize = showGrade && grade == ChopGrade.Miss ? _missGradeSize : _gradeSize;
-            _speedHint.text = showGrade ? (grade == ChopGrade.Good ? "faster" : "slower") : string.Empty;
+            _speedHint.text = showGrade ? (grade == ChopGrade.Good ? Tr.Get("faster") : Tr.Get("slower")) : string.Empty;
             _speedHint.alpha = showGrade ? 1f - secondsSinceChop / _gradeDuration : 0f;
         }
 
@@ -134,10 +135,10 @@ namespace Game.Presentation.Hud
 
         private static string Label(ChopGrade grade) => grade switch
         {
-            ChopGrade.Good => "Good!",
-            ChopGrade.Early => "Early",
-            ChopGrade.Late => "Late",
-            _ => "Miss!",
+            ChopGrade.Good => Tr.Get("Good!"),
+            ChopGrade.Early => Tr.Get("Early"),
+            ChopGrade.Late => Tr.Get("Late"),
+            _ => Tr.Get("Miss!"),
         };
 
         private Color Colour(ChopGrade grade) => grade == ChopGrade.Good ? _good : grade == ChopGrade.Miss ? _miss : _okay;

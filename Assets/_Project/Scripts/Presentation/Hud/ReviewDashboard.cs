@@ -38,7 +38,17 @@ namespace Game.Presentation.Hud
             Unreplied,
         }
 
-        private static readonly string[] Weekdays = { "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun" };
+        // Day 1 is a Monday.
+        private static string Weekday(int day) => ((day - 1) % 7) switch
+        {
+            0 => Game.Data.Tr.Get("Mon"),
+            1 => Game.Data.Tr.Get("Tue"),
+            2 => Game.Data.Tr.Get("Wed"),
+            3 => Game.Data.Tr.Get("Thu"),
+            4 => Game.Data.Tr.Get("Fri"),
+            5 => Game.Data.Tr.Get("Sat"),
+            _ => Game.Data.Tr.Get("Sun"),
+        };
 
         [SerializeField] private HudStyle _style;
         [SerializeField] private KitchenCompositionRoot _root;
@@ -324,21 +334,21 @@ namespace Game.Presentation.Hud
 
         private static string ReasonFor(ReviewTopic topic) => topic switch
         {
-            ReviewTopic.Praise => "Loved it",
-            ReviewTopic.Decent => "A decent meal",
-            ReviewTopic.Undercooked => "Undercooked",
-            ReviewTopic.Overcooked => "Overcooked",
-            ReviewTopic.Burnt => "Burnt",
-            ReviewTopic.NoMain => "No main on the plate",
-            ReviewTopic.NoSide => "Missing the side",
-            ReviewTopic.Cold => "Served cold",
-            ReviewTopic.PaleCrust => "Pale crust",
-            ReviewTopic.NotRested => "Not rested",
-            ReviewTopic.NotFresh => "Not fresh",
-            ReviewTopic.BadCut => "Rough cut",
-            ReviewTopic.SideOff => "The side was off",
-            ReviewTopic.SlowService => "Slow service",
-            ReviewTopic.WalkedOut => "Gave up waiting",
+            ReviewTopic.Praise => Game.Data.Tr.Get("Loved it"),
+            ReviewTopic.Decent => Game.Data.Tr.Get("A decent meal"),
+            ReviewTopic.Undercooked => Game.Data.Tr.Get("Undercooked"),
+            ReviewTopic.Overcooked => Game.Data.Tr.Get("Overcooked"),
+            ReviewTopic.Burnt => Game.Data.Tr.Get("Burnt"),
+            ReviewTopic.NoMain => Game.Data.Tr.Get("No main on the plate"),
+            ReviewTopic.NoSide => Game.Data.Tr.Get("Missing the side"),
+            ReviewTopic.Cold => Game.Data.Tr.Get("Served cold"),
+            ReviewTopic.PaleCrust => Game.Data.Tr.Get("Pale crust"),
+            ReviewTopic.NotRested => Game.Data.Tr.Get("Not rested"),
+            ReviewTopic.NotFresh => Game.Data.Tr.Get("Not fresh"),
+            ReviewTopic.BadCut => Game.Data.Tr.Get("Rough cut"),
+            ReviewTopic.SideOff => Game.Data.Tr.Get("The side was off"),
+            ReviewTopic.SlowService => Game.Data.Tr.Get("Slow service"),
+            ReviewTopic.WalkedOut => Game.Data.Tr.Get("Gave up waiting"),
             _ => topic.ToString(),
         };
 

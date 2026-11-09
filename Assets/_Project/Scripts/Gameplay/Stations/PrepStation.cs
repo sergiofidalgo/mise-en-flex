@@ -1,3 +1,4 @@
+using Game.Data;
 using System;
 using System.Collections.Generic;
 using Game.Simulation.Cooking;
@@ -102,11 +103,11 @@ namespace Game.Gameplay.Stations
 
             var emptyHands = player.Hands.IsEmpty;
             if (player.Tool is Knife && _counter.CanChop)
-                lines.Add(new PromptLine(PromptControl.West, $"cut {_counter.Cuts}/{_counter.CutsNeeded}"));
+                lines.Add(new PromptLine(PromptControl.West, Tr.Format("cut {cuts}/{needed}", ("cuts", _counter.Cuts), ("needed", _counter.CutsNeeded))));
             if (_counter.Current != null && emptyHands)
-                lines.Add(new PromptLine(PromptControl.South, $"take {_counter.Current.TypeId}"));
+                lines.Add(new PromptLine(PromptControl.South, Tr.Format("take {what}", ("what", Tr.Get(_counter.Current.TypeId)))));
             else if (!emptyHands)
-                lines.Add(new PromptLine(PromptControl.South, "put on board", _counter.CanAccept(player.Hands.Current)));
+                lines.Add(new PromptLine(PromptControl.South, Tr.Get("put on board"), _counter.CanAccept(player.Hands.Current)));
         }
 
         private bool TryChop(PlayerInteractor player)

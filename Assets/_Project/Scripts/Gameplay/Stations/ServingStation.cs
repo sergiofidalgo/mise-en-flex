@@ -1,3 +1,4 @@
+using Game.Data;
 using System;
 using System.Collections.Generic;
 using Game.Simulation.Cooking;
@@ -196,11 +197,11 @@ namespace Game.Gameplay.Stations
         {
             var held = player.Hands.Current;
             if (held == null && _top.CanTake)
-                lines.Add(new PromptLine(PromptControl.South, HasDirtyPlate ? "clear plate" : "take plate back"));
+                lines.Add(new PromptLine(PromptControl.South, HasDirtyPlate ? Tr.Get("clear plate") : Tr.Get("take plate back")));
             else if (HasFreePlace)
                 lines.Add(new PromptLine(PromptControl.South, ServeVerb(held as Plate), _top.CanAccept(held)));
             else if (_top.CanTake)
-                lines.Add(new PromptLine(PromptControl.South, HasDirtyPlate ? "clear plate" : "take plate back", false));
+                lines.Add(new PromptLine(PromptControl.South, HasDirtyPlate ? Tr.Get("clear plate") : Tr.Get("take plate back"), false));
         }
 
         private bool HasFreePlace

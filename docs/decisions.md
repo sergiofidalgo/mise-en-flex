@@ -4,6 +4,24 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-09 — Every on-screen text goes through our own translation tables; a language setting
+
+**User's call:** our own CSV tables rather than Unity's Localization package (step 2 of `ideas.md`, "Localising reviews and replies").
+
+- **Keys are the English text** (gettext style): `Tr.Get("Settings")`, `Tr.Format("Start day {day}", ("day", 2))` with named slots, `Tr.Plural(n, "1 day", "{n} days")`, and `Tr.In("heat", "medium")` for an English word with two meanings ("medium" heat is "medio", a "medium" steak is "al punto"). Untranslated text reads in English, so rewording English never breaks anything.
+- **One CSV per language** (`Data/Localization/es.csv`: english, translation, note), listed in the `LanguageTables` asset that `HudStyle` loads. Spreadsheets open them as they are.
+- **Tools/Game/Update Language Tables** collects every key (what the code passes to `Tr`, serialized HUD texts shown through `Tr.Get`, ingredient, doneness, staff and furniture names, the review voices) and merges them into each table, keeping translations; keys nobody uses any more stay, marked `unused`.
+- **Settings has a Language row** (English, Español, and in the Editor and development builds a pseudo-language that accents, brackets and lengthens every translated text, to find hard-coded strings and text that can't stretch). It's saved in the player settings and switches everything at once, old reviews included.
+- **Money, dates and names follow the language** (`Locale`, `GuestNames`). Data words are translated where they're shown (`ItemCatalog.DisplayName`, tickets, tags, prompts).
+- Not translated: the developer cooking overlay, the sign artwork's baked-in text, and the boss's office (another session's work in progress). The review voices' Spanish lines are step 3.
+- Tests check that every text in the code has a Spanish translation and that every translation keeps its `{slots}`.
+
+**Reason:** A small, readable system we control: no package setup, tables a translator can edit in a spreadsheet, and keys that are the English itself, matching how reviews are already stored (templates keyed by their English).
+
+**Spanish needs a native review:** the first table (Spain Spanish, informal "tú") was written for testing the system. Some lines read stiffly in Spanish because English word order is assumed, e.g. "{dishes} are costing you." becomes "Filete, al punto te está costando caro."
+
+---
+
 ## 2026-11-09 — Reviews are written when shown, so a language switch rewrites them all
 
 **User's call:** changing language mid-campaign must localise everything, old reviews included, automatically. This is step 1 of the plan (`ideas.md`, "Localising reviews and replies").

@@ -1,3 +1,4 @@
+using Game.Data;
 using System.Collections.Generic;
 using Game.Simulation.Items;
 using UnityEngine;
@@ -120,38 +121,38 @@ namespace Game.Gameplay.Stations
         {
             if (ReadyBell.CanRing(Slot))
                 lines.Add(_services.Bell.IsRung(Slot)
-                    ? new PromptLine(PromptControl.West, "order up", available: false)
-                    : new PromptLine(PromptControl.West, "ring the bell"));
+                    ? new PromptLine(PromptControl.West, Tr.Get("order up"), available: false)
+                    : new PromptLine(PromptControl.West, Tr.Get("ring the bell")));
 
             var held = player.Hands.Current;
             if (Slot.Current is Knife)
             {
                 if (player.Tool == null)
-                    lines.Add(new PromptLine(PromptControl.South, "take knife"));
+                    lines.Add(new PromptLine(PromptControl.South, Tr.Get("take knife")));
                 return;
             }
 
             if (Slot.Current is FoodContainer container)
             {
-                var what = container.IsEmpty ? "empty" : $"{container.HoldsTypeId} ×{container.Items.Count}/{container.Capacity}";
+                var what = container.IsEmpty ? Tr.Get("empty") : $"{Tr.Get(container.HoldsTypeId)} ×{container.Items.Count}/{container.Capacity}";
                 if (held == null)
-                    lines.Add(new PromptLine(PromptControl.South, container.IsEmpty ? "take container" : $"take: {what}"));
+                    lines.Add(new PromptLine(PromptControl.South, container.IsEmpty ? Tr.Get("take container") : Tr.Format("take: {what}", ("what", what))));
                 else if (held is IItemCollection)
                     lines.Add(new PromptLine(PromptControl.South, what));
                 else
-                    lines.Add(new PromptLine(PromptControl.South, $"add: {what}", container.CanAccept(held)));
+                    lines.Add(new PromptLine(PromptControl.South, Tr.Format("add: {what}", ("what", what)), container.CanAccept(held)));
                 return;
             }
 
             // A dirty plate on a pile of dirty plates.
             if (held is Plate plate && plate.IsDirty && Slot.Current is Plate top && top.IsDirty)
-                lines.Add(new PromptLine(PromptControl.South, $"pile up ({Slot.Count}/{Slot.MaxDirtyPlates})", Slot.CanPileOn(held)));
+                lines.Add(new PromptLine(PromptControl.South, Tr.Format("pile up ({count}/{most})", ("count", Slot.Count), ("most", Slot.MaxDirtyPlates)), Slot.CanPileOn(held)));
             else if (held != null && Slot.Current == null)
-                lines.Add(new PromptLine(PromptControl.South, "put down"));
+                lines.Add(new PromptLine(PromptControl.South, Tr.Get("put down")));
             else if (held == null && Slot.Current != null)
-                lines.Add(new PromptLine(PromptControl.South, Slot.Count > 1 ? $"take ({Slot.Count})" : "take"));
+                lines.Add(new PromptLine(PromptControl.South, Slot.Count > 1 ? Tr.Format("take ({count})", ("count", Slot.Count)) : Tr.Get("take")));
             else if (held == null && Slot.Current == null && player.Tool is Knife)
-                lines.Add(new PromptLine(PromptControl.South, "put knife down"));
+                lines.Add(new PromptLine(PromptControl.South, Tr.Get("put knife down")));
         }
 
         // The counter as Interact sees it: a knife lying here isn't picked up into the hands.

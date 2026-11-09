@@ -150,15 +150,18 @@ namespace Game.Presentation.Menu
             {
                 UiKit.RoundBox(_list, "Chosen", new Color(1f, 1f, 1f, 0.06f), 116f, y, 600f, height, 12f);
             }
-            UiKit.TextAt(_bold, _list, "Title", Label(item), TitleSize, focused ? _ink : _cream, 204f, middle + 0.5f, 500f);
+            UiKit.TextAt(_bold, _list, "Title", Tr.Get(Label(item)), TitleSize, focused ? _ink : _cream, 204f, middle + 0.5f, 500f);
             UiKit.TextAt(_medium, _list, "Sub", Sub(item), SubSize, focused ? _brown : _sand, 204f, middle + 30.5f, 500f);
         }
 
         private static string Label(Item item) => item switch
         {
+            Item.Continue => "Continue",
             Item.NewCampaign => "New campaign",
             Item.FreeKitchen => "Free kitchen",
-            _ => item.ToString(),
+            Item.Settings => "Settings",
+            Item.Credits => "Credits",
+            _ => "Quit",
         };
 
         private string Sub(Item item)
@@ -166,20 +169,24 @@ namespace Game.Presentation.Menu
             switch (item)
             {
                 case Item.Continue:
-                    return _lastPlayed >= 0 ? $"{Name(_saves[_lastPlayed])} · Day {_saves[_lastPlayed].Day + 1}" : "";
+                    return _lastPlayed >= 0 ? Tr.Format("{restaurant} · Day {day}", ("restaurant", Name(_saves[_lastPlayed])), ("day", _saves[_lastPlayed].Day + 1)) : "";
                 case Item.NewCampaign:
                     var free = SaveSlots.FirstFree(_saves);
-                    return _lastPlayed < 0 ? "Open your first restaurant" : free >= 0 ? $"Starts in slot {free + 1}" : "All three slots are taken";
+                    return _lastPlayed < 0 ? Tr.Get("Open your first restaurant") : free >= 0 ? Tr.Format("Starts in slot {slot}", ("slot", free + 1)) : Tr.Get("All three slots are taken");
                 case Item.Settings:
-                    return "Cooking precision, spoilage, patience";
+                    return Tr.Get("Cooking precision, spoilage, patience, language");
                 case Item.Credits:
-                    return "Who made Mise en Flex";
+                    return Tr.Get("Who made Mise en Flex");
                 case Item.Quit:
-                    return "Close the game";
+                    return Tr.Get("Close the game");
                 default:
                     return "";
             }
         }
+
+        // The language's own name for itself, as Settings lists it.
+        private string LanguageName(string code) =>
+            _style.Languages != null ? _style.Languages.Choices().FirstOrDefault(c => c.Code == code).Name ?? "English" : "English";
 
         private string Name(CampaignSave save) =>
             string.IsNullOrEmpty(save?.RestaurantName) ? _service.RestaurantName : save.RestaurantName;
@@ -191,7 +198,7 @@ namespace Game.Presentation.Menu
             UiKit.Clear(_header);
             var used = _saves.Count(s => s != null);
             UiKit.RoundBox(_header, "Slots", _well, 1569f, 148f, 119f, 32f, 16f);
-            UiKit.TextAt(_bold, _header, "SlotsText", $"{used} of {SaveSlots.Count} slots", 17f, _cream, 1628.5f, 170f, 119f, HorizontalAlignmentOptions.Center);
+            UiKit.TextAt(_bold, _header, "SlotsText", Tr.Format("{used} of {total} slots", ("used", used), ("total", SaveSlots.Count)), 17f, _cream, 1628.5f, 170f, 119f, HorizontalAlignmentOptions.Center);
             if (used > 0)
                 UiKit.StrokedCircle(_header, "Avatar", _coop.GetPlayerColor(0), _gold, Stroke * 0.75f, 1758f, 146f, 37f);
             else
@@ -243,12 +250,12 @@ namespace Game.Presentation.Menu
             else
             {
                 UiKit.RoundBox(paper.transform, "Photo", _rule, 0f, 0f, photoWidth, photoHeight, 0f);
-                UiKit.TextAt(_serifItalic, paper.transform, "NoPhoto", "No photo yet: one is taken\nas each day closes", 18f, _tan, photoWidth / 2f, photoHeight / 2f - 4f, photoWidth - 40f, HorizontalAlignmentOptions.Center, 2);
+                UiKit.TextAt(_serifItalic, paper.transform, "NoPhoto", Tr.Get("No photo yet: one is taken\nas each day closes"), 18f, _tan, photoWidth / 2f, photoHeight / 2f - 4f, photoWidth - 40f, HorizontalAlignmentOptions.Center, 2);
             }
 
             if (slot == _lastPlayed)
-                Tag("LAST PLAYED", _lastPlayedTag, Color.white, 13.33f, x + 13f, CardY + 13f, 26f, 10.5f, 18f, false, 2.5f);
-            Tag($"Slot {slot + 1}", Alpha(_ink, 0.85f), _cream, 15.4f, x + w - 13f, CardY + 13f, 27f, 10f, 19f, true);
+                Tag(Tr.Get("LAST PLAYED"), _lastPlayedTag, Color.white, 13.33f, x + 13f, CardY + 13f, 26f, 10.5f, 18f, false, 2.5f);
+            Tag(Tr.Format("Slot {slot}", ("slot", slot + 1)), Alpha(_ink, 0.85f), _cream, 15.4f, x + w - 13f, CardY + 13f, 27f, 10f, 19f, true);
 
             var left = x + 21f;
             UiKit.TextAt(_bold, _cards, "Name", Name(save), 27.33f, _ink, left, 521f, 268f);
@@ -262,21 +269,21 @@ namespace Game.Presentation.Menu
             }
             else
             {
-                UiKit.TextAt(_medium, _cards, "Rating", "No reviews yet", 20f, _brown, left, 553f, 268f);
+                UiKit.TextAt(_medium, _cards, "Rating", Tr.Get("No reviews yet"), 20f, _brown, left, 553f, 268f);
             }
 
             var style = string.IsNullOrEmpty(save.StyleName) ? _service.StyleName : save.StyleName;
             var area = string.IsNullOrEmpty(save.Area) ? _service.Area : save.Area;
-            UiKit.TextAt(_medium, _cards, "Info", $"{Locale.PriceBand(2)} · {style} · {area}", 17f, _brown, left, 580f, 268f);
+            UiKit.TextAt(_medium, _cards, "Info", $"{Locale.PriceBand(2)} · {Tr.Get(style)} · {Tr.Get(area)}", 17f, _brown, left, 580f, 268f);
 
-            var chipEnd = Chip($"Day {save.Day + 1}", _dayBack, _dayText, left, 598f);
+            var chipEnd = Chip(Tr.Format("Day {day}", ("day", save.Day + 1)), _dayBack, _dayText, left, 598f);
             if (save.Balance < 0f)
-                Chip($"Owes {Money(-save.Balance)}", _owesBack, _owesText, chipEnd + 8f, 598f);
+                Chip(Tr.Format("Owes {amount}", ("amount", Money(-save.Balance))), _owesBack, _owesText, chipEnd + 8f, 598f);
 
             UiKit.RoundBox(_cards, "Rule", _rule, left, 643f, 268f, 2f, 0f);
-            SmallCaps("BALANCE", left + 1f, 672f);
+            SmallCaps(Tr.Get("BALANCE"), left + 1f, 672f);
             UiKit.TextAt(_bold, _cards, "Balance", Money(save.Balance), 23.33f, save.Balance < 0f ? _owesText : _ink, left, 698f, 140f);
-            SmallCaps("COOKS", x + 160f, 672f);
+            SmallCaps(Tr.Get("COOKS"), x + 160f, 672f);
             for (var c = 0; c < 4; c++)
             {
                 var dotX = x + 161f + c * 26f;
@@ -312,9 +319,9 @@ namespace Game.Presentation.Menu
             {
                 var first = _lastPlayed < 0;
                 UiKit.Picture(_cards, "Polaroid", first ? _polaroidFirst : _polaroidNext, x + 62.5f, 398f, 184f, 186f);
-                UiKit.TextAt(_bold, _cards, "Title", "Start a new campaign", 26.67f, focused ? _ink : _tan, centre, 616f, CardWidth, HorizontalAlignmentOptions.Center);
-                UiKit.TextAt(_serifItalic, _cards, "Free", $"Slot {slot + 1} is free", 20f, _tan, centre, 654f, CardWidth, HorizontalAlignmentOptions.Center);
-                var start = UiKit.TextAt(_semiBold, _cards, "Start", "Start", 18.67f, _tan, 0f, 702f, 100f);
+                UiKit.TextAt(_bold, _cards, "Title", Tr.Get("Start a new campaign"), 26.67f, focused ? _ink : _tan, centre, 616f, CardWidth, HorizontalAlignmentOptions.Center);
+                UiKit.TextAt(_serifItalic, _cards, "Free", Tr.Format("Slot {slot} is free", ("slot", slot + 1)), 20f, _tan, centre, 654f, CardWidth, HorizontalAlignmentOptions.Center);
+                var start = UiKit.TextAt(_semiBold, _cards, "Start", Tr.Get("Start"), 18.67f, _tan, 0f, 702f, 100f);
                 var group = 29f + 9.4f + UiKit.Width(start);
                 var badgeX = centre - group / 2f;
                 Badge(_cards, "A", badgeX + 14.5f, 694.5f, 29f);
@@ -322,9 +329,9 @@ namespace Game.Presentation.Menu
                 return;
             }
             UiKit.Picture(_cards, "Plus", _slotPlus, centre - 46f, 468f, 92f, 92f);
-            UiKit.TextAt(_bold, _cards, "Title", "Empty slot", 26.67f, focused ? _ink : _tan, centre, 607f, CardWidth, HorizontalAlignmentOptions.Center);
-            UiKit.TextAt(_serifItalic, _cards, "Free", "Free", 16.8f, _tan, centre, 645f, CardWidth, HorizontalAlignmentOptions.Center);
-            Tag($"Slot {slot + 1}", _cardEdge, _tan, 15.4f, x + CardWidth - 18.5f, CardY + 18f, 27f, 10f, 19f, true);
+            UiKit.TextAt(_bold, _cards, "Title", Tr.Get("Empty slot"), 26.67f, focused ? _ink : _tan, centre, 607f, CardWidth, HorizontalAlignmentOptions.Center);
+            UiKit.TextAt(_serifItalic, _cards, "Free", Tr.Get("Free"), 16.8f, _tan, centre, 645f, CardWidth, HorizontalAlignmentOptions.Center);
+            Tag(Tr.Format("Slot {slot}", ("slot", slot + 1)), _cardEdge, _tan, 15.4f, x + CardWidth - 18.5f, CardY + 18f, 27f, 10f, 19f, true);
         }
 
         private void LoadPhotos()
@@ -368,32 +375,33 @@ namespace Game.Presentation.Menu
             UiKit.RoundBox(_page, "HeaderFoot", _ink, 0f, HeaderHeight - 24f, AppWidth, 24f, 0f);
             var title = _openPage switch
             {
-                Page.Settings => "Settings",
-                Page.Credits => "Credits",
-                Page.ConfirmDelete => $"Delete {Name(_saves[_card])}?",
-                _ => "All three slots are taken",
+                Page.Settings => Tr.Get("Settings"),
+                Page.Credits => Tr.Get("Credits"),
+                Page.ConfirmDelete => Tr.Format("Delete {restaurant}?", ("restaurant", Name(_saves[_card]))),
+                _ => Tr.Get("All three slots are taken"),
             };
             UiKit.TextAt(_bold, _page, "Title", title, 26.67f, _cream, 32f, 46f, 900f);
 
             switch (_openPage)
             {
                 case Page.Settings:
-                    UiKit.TextAt(_serifItalic, _page, "Note", "For every campaign. Saved as you change them.", 20f, _tan, 48f, 128f, 900f);
-                    SettingRow(0, "Cooking precision", $"{_settings.CookingPrecision * 100f:0}%", "How narrow the doneness windows are", 160f);
-                    SettingRow(1, "Spoilage", $"×{_settings.Spoilage:0.##}", "How fast food loses freshness", 280f);
-                    SettingRow(2, "Customer patience", $"×{_settings.Patience:0.##}", "How long guests wait", 400f);
-                    UiKit.TextAt(_serifItalic, _page, "Later", "Presets and changing the controls come later.", 18f, _tan, 48f, 560f, 900f);
+                    UiKit.TextAt(_serifItalic, _page, "Note", Tr.Get("For every campaign. Saved as you change them."), 20f, _tan, 48f, 128f, 900f);
+                    SettingRow(0, Tr.Get("Cooking precision"), $"{_settings.CookingPrecision * 100f:0}%", Tr.Get("How narrow the doneness windows are"), 160f);
+                    SettingRow(1, Tr.Get("Spoilage"), $"×{_settings.Spoilage:0.##}", Tr.Get("How fast food loses freshness"), 280f);
+                    SettingRow(2, Tr.Get("Customer patience"), $"×{_settings.Patience:0.##}", Tr.Get("How long guests wait"), 400f);
+                    SettingRow(3, Tr.Get("Language"), LanguageName(_settings.Language), Tr.Get("Everything, old reviews included, switches at once"), 520f);
+                    UiKit.TextAt(_serifItalic, _page, "Later", Tr.Get("Presets and changing the controls come later."), 18f, _tan, 48f, 680f, 900f);
                     break;
                 case Page.Credits:
-                    UiKit.TextAt(_medium, _page, "Body", _credits, 26.67f, _ink, 48f, 150f, 900f, lines: 20);
+                    UiKit.TextAt(_medium, _page, "Body", Tr.Get(_credits), 26.67f, _ink, 48f, 150f, 900f, lines: 20);
                     break;
                 case Page.ConfirmDelete:
                     var save = _saves[_card];
-                    UiKit.TextAt(_medium, _page, "Body", $"Slot {_card + 1}: Day {save.Day + 1}, {Money(save.Balance)}.", 26.67f, _ink, 48f, 330f, 920f);
-                    UiKit.TextAt(_serifItalic, _page, "Warn", "This can't be undone.", 22f, _owesText, 48f, 376f, 920f);
+                    UiKit.TextAt(_medium, _page, "Body", Tr.Format("Slot {slot}: Day {day}, {balance}.", ("slot", _card + 1), ("day", save.Day + 1), ("balance", Money(save.Balance))), 26.67f, _ink, 48f, 330f, 920f);
+                    UiKit.TextAt(_serifItalic, _page, "Warn", Tr.Get("This can't be undone."), 22f, _owesText, 48f, 376f, 920f);
                     break;
                 case Page.SlotsFull:
-                    UiKit.TextAt(_medium, _page, "Body", "Delete one first: choose its card and press Y.", 26.67f, _ink, 48f, 330f, 920f);
+                    UiKit.TextAt(_medium, _page, "Body", Tr.Get("Delete one first: choose its card and press Y."), 26.67f, _ink, 48f, 330f, 920f);
                     break;
             }
         }
@@ -417,25 +425,25 @@ namespace Game.Presentation.Menu
             switch (_openPage)
             {
                 case Page.Settings:
-                    hints.Add(("LS", "Choose and change"));
-                    hints.Add(("B", "Back"));
+                    hints.Add(("LS", Tr.Get("Choose and change")));
+                    hints.Add(("B", Tr.Get("Back")));
                     break;
                 case Page.ConfirmDelete:
-                    hints.Add(("A", "Delete"));
-                    hints.Add(("B", "Keep it"));
+                    hints.Add(("A", Tr.Get("Delete")));
+                    hints.Add(("B", Tr.Get("Keep it")));
                     break;
                 case Page.Credits:
                 case Page.SlotsFull:
-                    hints.Add(("B", "Back"));
+                    hints.Add(("B", Tr.Get("Back")));
                     break;
                 default:
-                    hints.Add(("LS", "Browse"));
-                    hints.Add(("A", "Select"));
+                    hints.Add(("LS", Tr.Get("Browse")));
+                    hints.Add(("A", Tr.Get("Select")));
                     if (_onCards)
                     {
-                        hints.Add(("B", "Back"));
+                        hints.Add(("B", Tr.Get("Back")));
                         if (_saves[_card] != null)
-                            hints.Add(("Y", "Delete slot"));
+                            hints.Add(("Y", Tr.Get("Delete slot")));
                     }
                     break;
             }
@@ -522,7 +530,9 @@ namespace Game.Presentation.Menu
         private static string PlayTime(float seconds)
         {
             var minutes = Mathf.FloorToInt(seconds / 60f);
-            return minutes >= 60 ? $"{minutes / 60} h {minutes % 60} min" : $"{minutes} min";
+            return minutes >= 60
+                ? Tr.Format("{hours} h {minutes} min", ("hours", minutes / 60), ("minutes", minutes % 60))
+                : Tr.Format("{minutes} min", ("minutes", minutes));
         }
 
         private static string WhenPlayed(long ticks)
@@ -533,9 +543,9 @@ namespace Game.Presentation.Menu
             var days = (DateTime.Now.Date - when.Date).Days;
             return days switch
             {
-                0 => "Played today",
-                1 => "Played yesterday",
-                _ => $"Played {when:d MMM}",
+                0 => Tr.Get("Played today"),
+                1 => Tr.Get("Played yesterday"),
+                _ => Tr.Format("Played {date}", ("date", Locale.ShortDate(when))),
             };
         }
 
@@ -584,7 +594,7 @@ namespace Game.Presentation.Menu
             UiKit.Picture(root, "Logo", _forkcastLogo, 828f, 146f, 132f, 36f);
             UiKit.RoundBox(root, "Search", _well, 974f, 143f, 577f, 42f, 21f);
             UiKit.Picture(root, "SearchIcon", _searchIcon, 991f, 153f, 22f, 22f);
-            UiKit.TextAt(_medium, root, "SearchText", "Your spots · dishes · @chefs", 18.67f, _sand, 1022f, 171f, 500f);
+            UiKit.TextAt(_medium, root, "SearchText", Tr.Get("Your spots · dishes · @chefs"), 18.67f, _sand, 1022f, 171f, 500f);
             UiKit.Ellipse(root, "Bell", _well, 1702f, 144f, 40f, 40f);
             UiKit.Picture(root, "BellIcon", _bellIcon, 1711f, 147f, 28f, 28f);
             _header = UiKit.Rect(root, "HeaderState", 0f, 0f, 1920f, 1080f);

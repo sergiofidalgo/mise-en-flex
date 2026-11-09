@@ -6,40 +6,6 @@ using Game.Simulation.Service;
 namespace Game.Data
 {
     /// <summary>
-    /// Translations keyed by the English text they translate, the way gettext works: a review line's
-    /// template ("{wait} minutes, no {main}. Left at {left}."), a dish word ("steak"), a doneness
-    /// ("medium rare"). Keys are the English text itself, so rewording an English line never breaks
-    /// an old save: the save keeps the old template, which still reads in English. Empty until the
-    /// voices are translated (ideas.md, "Localising reviews and replies", step 3); anything without a
-    /// translation shows in English.
-    /// </summary>
-    public static class Translations
-    {
-        private static readonly Dictionary<string, Dictionary<string, string>> Tables = new Dictionary<string, Dictionary<string, string>>();
-
-        /// <summary>The text in the language, or the English text if there's no translation.</summary>
-        public static string Get(string english, string language = null)
-        {
-            if (string.IsNullOrEmpty(english))
-                return english ?? "";
-            language ??= Locale.Language;
-            return language != "en" && Tables.TryGetValue(language, out var table) && table.TryGetValue(english, out var text) && !string.IsNullOrEmpty(text)
-                ? text
-                : english;
-        }
-
-        /// <summary>Adds or replaces a translation (for the loaders to come, and tests).</summary>
-        public static void Set(string language, string english, string translated)
-        {
-            if (!Tables.TryGetValue(language, out var table))
-                Tables[language] = table = new Dictionary<string, string>();
-            table[english] = translated;
-        }
-
-        public static void Clear(string language) => Tables.Remove(language);
-    }
-
-    /// <summary>
     /// Reviews and replies written when they're shown, in the player's language (decision
     /// 2026-11-09): from the templates and facts each review keeps, so switching language mid-campaign
     /// rewrites every review, old ones included. Reviews that couldn't be traced to their templates

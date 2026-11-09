@@ -78,7 +78,7 @@ namespace Game.Presentation.Hud
         {
             if (_texts.TryGetValue(order, out var text))
                 return text;
-            var doneness = HudStyle.Colored(order.Doneness.Name, _style.DonenessColor(order.Doneness.Name));
+            var doneness = HudStyle.Colored(Tr.Get(order.Doneness.Name), _style.DonenessColor(order.Doneness.Name));
             text = $"{Name(order.MainTypeId)} · {doneness}";
             if (order.SideTypeId != null)
                 text += $"\n+ {Name(order.SideTypeId)}";

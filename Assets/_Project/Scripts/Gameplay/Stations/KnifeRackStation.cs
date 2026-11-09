@@ -1,3 +1,4 @@
+using Game.Data;
 using System.Collections.Generic;
 using Game.Simulation.Items;
 using UnityEngine;
@@ -131,9 +132,9 @@ namespace Game.Gameplay.Stations
         public void DescribeActions(PlayerInteractor player, List<PromptLine> lines)
         {
             if (player.Tool == null)
-                lines.Add(new PromptLine(PromptControl.South, "take knife", KnifeCount > 0));
+                lines.Add(new PromptLine(PromptControl.South, Tr.Get("take knife"), KnifeCount > 0));
             else if (player.Tool is Knife)
-                lines.Add(new PromptLine(PromptControl.South, "hang knife", KnifeCount < Capacity));
+                lines.Add(new PromptLine(PromptControl.South, Tr.Get("hang knife"), KnifeCount < Capacity));
         }
     }
 

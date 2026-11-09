@@ -77,7 +77,7 @@ namespace Game.Presentation.Hud
         {
             if (!_texts.TryGetValue(doneness, out var text))
             {
-                text = HudStyle.Colored(doneness, _style.DonenessColor(doneness));
+                text = HudStyle.Colored(Game.Data.Tr.Get(doneness), _style.DonenessColor(doneness));
                 _texts[doneness] = text;
             }
             return text;

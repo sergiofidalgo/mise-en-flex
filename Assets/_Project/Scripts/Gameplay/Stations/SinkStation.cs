@@ -1,3 +1,4 @@
+using Game.Data;
 using System.Collections.Generic;
 using Game.Simulation.Items;
 using Game.Gameplay.Saving;
@@ -117,20 +118,20 @@ namespace Game.Gameplay.Stations
         {
             if (_washer == player)
             {
-                lines.Add(new PromptLine(PromptControl.West, "stop washing"));
+                lines.Add(new PromptLine(PromptControl.West, Tr.Get("stop washing")));
                 return;
             }
 
             var held = player.Hands.Current;
             if (_washer != null)
-                lines.Add(new PromptLine(PromptControl.West, "busy", false));
+                lines.Add(new PromptLine(PromptControl.West, Tr.Get("busy"), false));
             else if (Sink.DirtyCount > 0)
-                lines.Add(new PromptLine(PromptControl.West, "wash", held == null));
+                lines.Add(new PromptLine(PromptControl.West, Tr.Get("wash"), held == null));
             else
-                lines.Add(new PromptLine(PromptControl.West, "nothing to wash", false));
+                lines.Add(new PromptLine(PromptControl.West, Tr.Get("nothing to wash"), false));
 
             if (held != null)
-                lines.Add(new PromptLine(PromptControl.South, Sink.HasRoom ? "put in sink" : "sink is busy", Sink.CanAccept(held)));
+                lines.Add(new PromptLine(PromptControl.South, Sink.HasRoom ? Tr.Get("put in sink") : Tr.Get("sink is busy"), Sink.CanAccept(held)));
         }
     }
 }

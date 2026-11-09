@@ -1,3 +1,4 @@
+using Game.Data;
 using System.Collections.Generic;
 using Game.Simulation.Cooking;
 using Game.Simulation.Items;
@@ -14,7 +15,6 @@ namespace Game.Gameplay.Stations
     /// </summary>
     public sealed class HobStation : Interactable, IUsable, IHeatControl, IStationPrompt, ISavedContents
     {
-        private static readonly string[] StepNames = { "off", "low", "medium", "high" };
 
         [SerializeField] private HeatKind _kind = HeatKind.Gas;
         [Tooltip("Induction: how far a trigger has to be pulled to count as a press.")]
@@ -90,13 +90,13 @@ namespace Game.Gameplay.Stations
 
         public void DescribeActions(PlayerInteractor player, List<PromptLine> lines)
         {
-            lines.Add(new PromptLine(PromptControl.Triggers, Hob != null && Hob.Kind == HeatKind.Induction ? $"heat: {StepName(Hob)}" : "heat"));
+            lines.Add(new PromptLine(PromptControl.Triggers, Hob != null && Hob.Kind == HeatKind.Induction ? Tr.Format("heat: {heat}", ("heat", StepName(Hob))) : Tr.Get("heat")));
             var hasFood = Hob?.Pan != null && Hob.Pan.Contents.Count > 0;
-            lines.Add(new PromptLine(PromptControl.West, "flip", hasFood));
+            lines.Add(new PromptLine(PromptControl.West, Tr.Get("flip"), hasFood));
             if (Hob?.Pan != null && player.Hands.IsEmpty)
-                lines.Add(new PromptLine(PromptControl.South, "take pan"));
+                lines.Add(new PromptLine(PromptControl.South, Tr.Get("take pan")));
             else if (Hob != null && Hob.Pan == null && player.Hands.Current is Pan)
-                lines.Add(new PromptLine(PromptControl.South, "put pan"));
+                lines.Add(new PromptLine(PromptControl.South, Tr.Get("put pan")));
         }
 
         public void AdjustHeat(float heatDown, float heatUp, float realDeltaTime)
@@ -120,6 +120,13 @@ namespace Game.Gameplay.Stations
             _upHeld = up;
         }
 
-        private static string StepName(Hob hob) => hob.Step < StepNames.Length ? StepNames[hob.Step] : $"step {hob.Step}";
+        private static string StepName(Hob hob) => hob.Step switch
+        {
+            0 => Tr.In("heat", "off"),
+            1 => Tr.In("heat", "low"),
+            2 => Tr.In("heat", "medium"),
+            3 => Tr.In("heat", "high"),
+            _ => Tr.Format("step {step}", ("step", hob.Step)),
+        };
     }
 }

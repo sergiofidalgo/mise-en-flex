@@ -8,7 +8,7 @@ Ideas worth keeping that aren't decided or scheduled yet. When one is accepted, 
 
 *Added 2026-11-09 · Relevant phase: before any translation; best before saves pile up · Pillars: your restaurant, your identity*
 
-**Step 1 built 2026-11-09** (`decisions.md`): saves keep templates and facts, sentences are written when shown, and old saves are traced automatically. Still to do: step 2 (Unity Localization, UI string tables, a live language setting) and step 3 (each language's voices and name tables, with the metrics and length tests per language).
+**Step 1 built 2026-11-09** (`decisions.md`): saves keep templates and facts, sentences are written when shown, and old saves are traced automatically. **Step 2 built 2026-11-09:** every UI text goes through our own CSV tables (`Tr`, `LanguageTables`), with a Language setting and a first Spanish table. Still to do: step 3 (each language's voices and name tables, with the metrics and length tests per language).
 
 Guest names already translate: saves keep a name slot, and each language has its own names (`decisions.md`, 2026-11-09). Review and reply text doesn't yet: it's saved as finished English sentences, so a player who switches language would see old reviews in English.
 

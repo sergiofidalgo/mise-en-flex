@@ -1,3 +1,4 @@
+using Game.Data;
 using System.Collections.Generic;
 using Game.Gameplay;
 using Game.Gameplay.Customers;
@@ -69,10 +70,10 @@ namespace Game.Presentation.Hud
 
         private string Describe(Review review)
         {
-            var stars = HudStyle.Colored($"{review.Stars:0.#} stars", _style.RatingColor(review.Stars / 5f));
+            var stars = HudStyle.Colored(Tr.Format("{stars} stars", ("stars", review.Stars.ToString("0.#"))), _style.RatingColor(review.Stars / 5f));
             var headline = review.Customer.Bill is Bill bill
-                ? $"{stars}  {Money(bill.Payment)} + {Money(bill.Tip)} tip"
-                : $"{stars}  {HudStyle.Colored($"walked out! {Money(-review.Customer.WalkOutPenalty)}", _style.RatingColor(0f))}";
+                ? $"{stars}  " + Tr.Format("{paid} + {tip} tip", ("paid", Money(bill.Payment)), ("tip", Money(bill.Tip)))
+                : $"{stars}  {HudStyle.Colored(Tr.Format("walked out! {amount}", ("amount", Money(-review.Customer.WalkOutPenalty))), _style.RatingColor(0f))}";
             var line = Game.Data.ReviewText.Line(review);
             return string.IsNullOrEmpty(line) ? headline : $"{headline}\n\"{line}\"";
         }

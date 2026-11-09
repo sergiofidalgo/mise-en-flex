@@ -16,8 +16,8 @@ namespace Game.Data
     /// The player's language and what follows from it (user's call, 2026-11-09): guests' names
     /// (GuestNames) and how money is written. Currency follows the language: dollars in English,
     /// euros in Spanish, each with its own separators and symbol position. Amounts are the same
-    /// numbers in every language; only how they're written changes. A stand-in until the game has a
-    /// language setting and Unity's Localization package (ideas.md).
+    /// numbers in every language; only how they're written changes. The language comes from the
+    /// player's settings; text itself is translated by <see cref="Tr"/>.
     /// </summary>
     public static class Locale
     {
@@ -37,7 +37,7 @@ namespace Game.Data
             ["es"] = new MoneyFormat { Symbol = "€", SymbolFirst = false, Space = " ", Numbers = new NumberFormatInfo { NumberGroupSeparator = ".", NumberDecimalSeparator = "," } },
         };
 
-        /// <summary>The language, by code ("en", "es"). English until the game has a language setting.</summary>
+        /// <summary>The language, by code ("en", "es"), set from the player's settings.</summary>
         public static string Language { get; set; } = "en";
 
         public static IEnumerable<string> Languages => Formats.Keys;
@@ -59,6 +59,19 @@ namespace Game.Data
             var written = format.SymbolFirst ? format.Symbol + format.Space + number : number + format.Space + format.Symbol;
             var sign = amount < 0f && number.Trim('0', '.', ',') != "" ? "−" : signed && amount > 0f ? "+" : "";
             return sign + written;
+        }
+
+        private static readonly Dictionary<string, string[]> Months = new Dictionary<string, string[]>
+        {
+            ["en"] = new[] { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" },
+            ["es"] = new[] { "ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sept", "oct", "nov", "dic" },
+        };
+
+        /// <summary>A short date as the language writes it: "2 Nov", "2 nov".</summary>
+        public static string ShortDate(DateTime date)
+        {
+            var months = Months.TryGetValue(Language, out var names) ? names : Months["en"];
+            return $"{date.Day} {months[date.Month - 1]}";
         }
 
         /// <summary>A price band as listings show it: "$$" in English, "€€" in Spanish.</summary>

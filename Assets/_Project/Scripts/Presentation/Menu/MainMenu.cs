@@ -1,3 +1,4 @@
+using System.Linq;
 using System;
 using Game.Data;
 using Game.Gameplay.Saving;
@@ -68,6 +69,7 @@ namespace Game.Presentation.Menu
         private void Start()
         {
             _settings = PlayerSettings.Load(_realism);
+            ApplyLanguage();
             ReadSlots();
             _item = _lastPlayed >= 0 ? Item.Continue : Item.NewCampaign;
             Build();
@@ -82,6 +84,7 @@ namespace Game.Presentation.Menu
             if (_canvas != null)
                 DestroyImmediate(_canvas.gameObject);
             _settings = PlayerSettings.Load(_realism);
+            ApplyLanguage();
             ReadSlots();
             _item = _lastPlayed >= 0 ? Item.Continue : Item.NewCampaign;
             _onCards = onCards;
@@ -90,6 +93,14 @@ namespace Game.Presentation.Menu
             Build();
             Redraw();
             return _canvas.GetComponent<Canvas>();
+        }
+
+        // The saved language, for names, money and every string (decision 2026-11-09).
+        private void ApplyLanguage()
+        {
+            if (_style.Languages != null)
+                _style.Languages.Load();
+            Game.Data.Locale.Language = string.IsNullOrEmpty(_settings.Language) ? "en" : _settings.Language;
         }
 
         private void ReadSlots()
@@ -267,7 +278,7 @@ namespace Game.Presentation.Menu
             }
             if (step.y != 0)
             {
-                _settingRow = Mathf.Clamp(_settingRow + step.y, 0, 2);
+                _settingRow = Mathf.Clamp(_settingRow + step.y, 0, 3);
                 _dirty = true;
             }
             if (step.x == 0)
@@ -279,6 +290,13 @@ namespace Game.Presentation.Menu
                     break;
                 case 1:
                     _settings.Spoilage = Mathf.Clamp(Mathf.Round((_settings.Spoilage + step.x * 0.25f) * 4f) / 4f, 0f, 3f);
+                    break;
+                case 3:
+                    // The next language along; everything redraws in it at once, old reviews included.
+                    var choices = _style.Languages != null ? _style.Languages.Choices().Select(c => c.Code).ToList() : new System.Collections.Generic.List<string> { "en" };
+                    var index = Mathf.Max(0, choices.IndexOf(_settings.Language));
+                    _settings.Language = choices[(index + step.x + choices.Count) % choices.Count];
+                    ApplyLanguage();
                     break;
                 default:
                     _settings.Patience = Mathf.Clamp(Mathf.Round((_settings.Patience + step.x * 0.25f) * 4f) / 4f, 0.25f, 3f);

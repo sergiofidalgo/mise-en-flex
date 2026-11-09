@@ -1,3 +1,4 @@
+using Game.Data;
 using System;
 using System.Collections.Generic;
 using Game.Simulation.Interaction;
@@ -225,10 +226,10 @@ namespace Game.Gameplay.Stations
         private static string ItemLabel(Item item)
         {
             if (!(item is Plate plate))
-                return item.TypeId;
+                return Tr.Get(item.TypeId);
             if (plate.IsDirty)
-                return "dirty plate";
-            return plate.Items.Count == 0 ? "empty plate" : $"plate: {plate.Items[0].TypeId}";
+                return Tr.Get("dirty plate");
+            return plate.Items.Count == 0 ? Tr.Get("empty plate") : Tr.Format("plate: {what}", ("what", Tr.Get(plate.Items[0].TypeId)));
         }
 
         // Puts one chosen thing off the tray, by the same rules as putting it down from the hands.

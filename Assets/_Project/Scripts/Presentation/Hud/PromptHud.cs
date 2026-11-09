@@ -65,7 +65,7 @@ namespace Game.Presentation.Hud
                     prompt?.DescribeActions(interactor, _lines);
                     diamond = prompt != null && prompt.PromptAsDiamond(interactor);
                     if (interactor.CanOpenTrayMenu)
-                        _lines.Add(new PromptLine(PromptControl.Triggers, "choose from tray"));
+                        _lines.Add(new PromptLine(PromptControl.Triggers, Tr.Get("choose from tray")));
                 }
 
                 var screen = camera.WorldToScreenPoint(interactor.Target.transform.position + Vector3.up * AnchorHeight(interactor.Target));

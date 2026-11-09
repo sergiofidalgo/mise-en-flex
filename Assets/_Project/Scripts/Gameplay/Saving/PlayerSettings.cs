@@ -18,6 +18,9 @@ namespace Game.Gameplay.Saving
         public float Spoilage = -1f;
         public float Patience = -1f;
 
+        /// <summary>The language the game is shown in, by code (decision 2026-11-09).</summary>
+        public string Language = "en";
+
         private static string Path => System.IO.Path.Combine(SaveSlots.Root, FileName);
 
         /// <summary>The saved settings, with the designer's defaults for anything never set.</summary>
@@ -49,6 +52,10 @@ namespace Game.Gameplay.Saving
             File.WriteAllText(Path, JsonUtility.ToJson(this, true));
         }
 
-        public void ApplyTo(RealismSettings realism) => realism.UsePlayerValues(CookingPrecision, Spoilage, Patience);
+        public void ApplyTo(RealismSettings realism)
+        {
+            realism.UsePlayerValues(CookingPrecision, Spoilage, Patience);
+            Locale.Language = string.IsNullOrEmpty(Language) ? "en" : Language;
+        }
     }
 }

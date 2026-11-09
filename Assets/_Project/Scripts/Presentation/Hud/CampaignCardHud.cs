@@ -1,3 +1,4 @@
+using Game.Data;
 using Game.Gameplay;
 using Game.Gameplay.Stations;
 using UnityEngine;
@@ -58,7 +59,7 @@ namespace Game.Presentation.Hud
             switch (_card)
             {
                 case Card.ConfirmQuit:
-                    Show(_confirmQuitText, $"{Badge(PromptControl.South)} {_confirmQuitYes}     {Badge(PromptControl.East)} {_stay}");
+                    Show(Tr.Get(_confirmQuitText), $"{Badge(PromptControl.South)} {Tr.Get(_confirmQuitYes)}     {Badge(PromptControl.East)} {Tr.Get(_stay)}");
                     if (Pressed(South))
                     {
                         _quitConfirmed = true;

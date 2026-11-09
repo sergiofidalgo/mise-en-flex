@@ -1,3 +1,4 @@
+using Game.Data;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -156,11 +157,11 @@ namespace Game.Gameplay.Stations
             if (!player.IsSlotMenuOpen)
             {
                 var held = player.Hands.Current;
-                lines.Add(new PromptLine(PromptControl.Triggers, "open", held == null || (held is Tray openTray && openTray.HasRoom)));
+                lines.Add(new PromptLine(PromptControl.Triggers, Tr.Get("open"), held == null || (held is Tray openTray && openTray.HasRoom)));
                 if (held is Tray tray)
-                    lines.Add(new PromptLine(PromptControl.South, "put back", tray.Items.Any(_unit.CanAccept)));
+                    lines.Add(new PromptLine(PromptControl.South, Tr.Get("put back"), tray.Items.Any(_unit.CanAccept)));
                 else if (held != null)
-                    lines.Add(new PromptLine(PromptControl.South, "put back", _unit.CanAccept(held)));
+                    lines.Add(new PromptLine(PromptControl.South, Tr.Get("put back"), _unit.CanAccept(held)));
                 return;
             }
 
@@ -169,7 +170,7 @@ namespace Game.Gameplay.Stations
                 var slot = _unit.Slots[i];
                 var control = (PromptControl)i;
                 lines.Add(slot.Count > 0
-                    ? new PromptLine(control, $"{(slot.HoldsCooked ? "cooked " : "")}{slot.TypeId} ×{slot.Count}", player.Hands.IsEmpty || (player.Hands.Current is Tray room && room.HasRoom),
+                    ? new PromptLine(control, (slot.HoldsCooked ? Tr.Format("cooked {what}", ("what", Tr.Get(slot.TypeId))) : Tr.Get(slot.TypeId)) + $" ×{slot.Count}", player.Hands.IsEmpty || (player.Hands.Current is Tray room && room.HasRoom),
                         iconId: slot.TypeId, iconLabel: $"×{slot.Count}")
                     : new PromptLine(control, "—", available: false));
             }

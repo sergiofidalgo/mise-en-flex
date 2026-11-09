@@ -99,6 +99,10 @@ namespace Game.Presentation.Hud
         [SerializeField] private TMP_FontAsset _extraBold;
         [SerializeField] private TMP_FontAsset _serifItalic;
 
+        [Header("Languages (decision 2026-11-09)")]
+        [Tooltip("Every language's translation table; loaded as soon as a scene uses this style.")]
+        [SerializeField] private Game.Data.LanguageTables _languages;
+
         [Header("forkcast art (exported from the dashboard mockups)")]
         [SerializeField] private Sprite _forkcastLogo;
         [SerializeField] private Sprite _searchIcon;
@@ -121,6 +125,8 @@ namespace Game.Presentation.Hud
         public Sprite StarEmpty => _starEmpty;
         public Sprite WarningIcon => _warningIcon;
         public Sprite ReplyMark => _replyMark;
+
+        public Game.Data.LanguageTables Languages => _languages;
 
         public TMP_FontAsset Font => _font;
         public float FontSize => _fontSize;
@@ -188,5 +194,12 @@ namespace Game.Presentation.Hud
             PromptControl.North => gamepad ? "Y" : "W",
             _ => gamepad ? "LT RT" : "Q E",
         };
+
+        // Every scene with a HUD uses this style, so its languages load before anything is drawn.
+        private void OnEnable()
+        {
+            if (_languages != null)
+                _languages.Load();
+        }
     }
 }

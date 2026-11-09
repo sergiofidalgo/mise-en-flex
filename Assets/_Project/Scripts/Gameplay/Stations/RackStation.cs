@@ -1,3 +1,4 @@
+using Game.Data;
 using System.Collections.Generic;
 using Game.Simulation.Items;
 using UnityEngine;
@@ -60,12 +61,12 @@ namespace Game.Gameplay.Stations
 
         public void DescribeActions(PlayerInteractor player, List<PromptLine> lines)
         {
-            var name = _kind == RackKind.Trays ? "tray" : "container";
+            var name = _kind == RackKind.Trays ? Tr.Get("tray") : Tr.Get("container");
             var held = player.Hands.Current;
             if (held != null)
-                lines.Add(new PromptLine(PromptControl.South, $"put {name} back", Rack.CanAccept(held)));
+                lines.Add(new PromptLine(PromptControl.South, Tr.Format("put {what} back", ("what", name)), Rack.CanAccept(held)));
             else
-                lines.Add(new PromptLine(PromptControl.South, $"take {name} ({Rack.Count})", Rack.CanTake));
+                lines.Add(new PromptLine(PromptControl.South, Tr.Format("take {what} ({count})", ("what", name), ("count", Rack.Count)), Rack.CanTake));
         }
     }
 }

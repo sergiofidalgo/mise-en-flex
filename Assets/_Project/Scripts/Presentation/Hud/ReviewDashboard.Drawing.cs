@@ -7,6 +7,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
+using Game.Data;
 
 namespace Game.Presentation.Hud
 {
@@ -128,13 +129,13 @@ namespace Game.Presentation.Hud
             UiKit.Clear(_header);
             var days = Services.Days;
             var config = Services.ServiceConfig;
-            Label(Medium, _header, $"{config.StyleName}s near you", 21.33f, _sand, 374f, 106f, 500f);
+            Label(Medium, _header, Tr.Format("{style}s near you", ("style", Tr.Get(config.StyleName))), 21.33f, _sand, 374f, 106f, 500f);
 
             var today = Services.ReviewHistory.Count(r => r.Day == days.Day);
             var right = 1804f;
             if (today > 0)
                 right = HeaderPill(today == 1 ? "1 new review" : $"{today} new reviews", _wellLight, right) - 22f;
-            HeaderPill($"Day {days.Day} · {Weekdays[(days.Day - 1) % 7]}", _well, right);
+            HeaderPill(Tr.Format("Day {day} · {weekday}", ("day", days.Day), ("weekday", Weekday(days.Day))), _well, right);
         }
 
         // A pill whose right edge is at right; returns its left edge.
@@ -166,12 +167,12 @@ namespace Game.Presentation.Hud
             }
             else
             {
-                Label(Medium, _left, "No reviews yet", 26.67f, _muted, 120f, 632f);
+                Label(Medium, _left, Tr.Get("No reviews yet"), 26.67f, _muted, 120f, 632f);
             }
 
             var hours = Services.Service.Settings.DurationSeconds;
             var band = config.MainPrice < 15f ? 1 : config.MainPrice < 30f ? 2 : 3;
-            Label(Medium, _left, $"{Game.Data.Locale.PriceBand(band)} · {config.StyleName} · Open {ClockAt(0f)}–{ClockAt(hours)}", 21.33f, _body, 120f, 673f, 600f);
+            Label(Medium, _left, Tr.Format("{band} · {style} · Open {from}–{to}", ("band", Locale.PriceBand(band)), ("style", Tr.Get(config.StyleName)), ("from", ClockAt(0f)), ("to", ClockAt(hours))), 21.33f, _body, 120f, 673f, 600f);
 
             DrawChart();
         }
@@ -181,8 +182,8 @@ namespace Game.Presentation.Hud
         {
             Caps(_left, "TONIGHT'S GUESTS", 146f, 738f);
             var legend = 694f;
-            legend = LegendItem(_left, "Walked out", _bad, legend, 738f, 17.33f);
-            LegendItem(_left, "Served", _good, legend - 16f, 738f, 17.33f);
+            legend = LegendItem(_left, Tr.Get("Walked out"), _bad, legend, 738f, 17.33f);
+            LegendItem(_left, Tr.Get("Served"), _good, legend - 16f, 738f, 17.33f);
 
             var today = TonightsVisits();
             var duration = Services.Service.Settings.DurationSeconds;
@@ -225,7 +226,7 @@ namespace Game.Presentation.Hud
                 if (i == rush && left[i] > 0)
                 {
                     var top = baseline - servedHeight - (servedHeight > 0f ? 4f : 0f) - leftHeight;
-                    Label(Bold, _left, $"Rush · {left[i]} left", 16.67f, _badText, centre, top - 8f, 200f, HorizontalAlignmentOptions.Center);
+                    Label(Bold, _left, Tr.Format("Rush · {count} left", ("count", left[i])), 16.67f, _badText, centre, top - 8f, 200f, HorizontalAlignmentOptions.Center);
                 }
             }
         }
@@ -285,7 +286,7 @@ namespace Game.Presentation.Hud
             var x = 846f;
             foreach (Tab tab in System.Enum.GetValues(typeof(Tab)))
             {
-                var text = tab == Tab.Reviews ? $"Reviews {Services.ReviewHistory.Count}" : tab.ToString();
+                var text = tab == Tab.Reviews ? Tr.Format("Reviews {count}", ("count", Services.ReviewHistory.Count)) : TabName(tab);
                 var active = tab == _tab;
                 var label = Label(active ? Bold : SemiBold, _tabs, text, 28.33f, active ? _ink : _quiet, x, active ? 207f : 209f, 300f);
                 var width = UiKit.Width(label);
@@ -300,13 +301,13 @@ namespace Game.Presentation.Hud
         private void DrawOverview()
         {
             var summary = Services.Days.LastService;
-            StatCard(0, $"{summary?.Served ?? 0}", "Served", false);
-            StatCard(1, $"{summary?.WalkOuts ?? 0}", "Walked out", (summary?.WalkOuts ?? 0) > 0);
-            StatCard(2, $"{summary?.TurnedAway ?? 0}", "Turned away", (summary?.TurnedAway ?? 0) > 0);
+            StatCard(0, $"{summary?.Served ?? 0}", Tr.Get("Served"), false);
+            StatCard(1, $"{summary?.WalkOuts ?? 0}", Tr.Get("Walked out"), (summary?.WalkOuts ?? 0) > 0);
+            StatCard(2, $"{summary?.TurnedAway ?? 0}", Tr.Get("Turned away"), (summary?.TurnedAway ?? 0) > 0);
             var x = RightX + 3 * 263f;
             UiKit.RoundBox(_content, "Balance", _ink, x, 262f, 247f, 133f, 16f);
             Label(ExtraBold, _content, Money(Services.Days.Balance), 51f, _paper, x + 22f, 323f, 220f, tracking: -1.5f);
-            var today = UiKit.TextAt(Medium, _content, "Today", $"Balance · {Money(Services.Days.Today.Net)} today", 19.5f, _sand, x + 22f, 351f, 205f, lines: 2);
+            var today = UiKit.TextAt(Medium, _content, "Today", Tr.Format("Balance · {amount} today", ("amount", Money(Services.Days.Today.Net))), 19.5f, _sand, x + 22f, 351f, 205f, lines: 2);
             today.lineSpacing = (23f - today.font.faceInfo.lineHeight * 19.5f / today.font.faceInfo.pointSize) / 19.5f * 100f;
 
             var reviews = TodaysReviews();
@@ -323,7 +324,7 @@ namespace Game.Presentation.Hud
 
             if (reviews.Count == 0)
             {
-                Label(Serif, _content, "No reviews today.", 26.67f, _muted, RightX, 540f);
+                Label(Serif, _content, Tr.Get("No reviews today."), 26.67f, _muted, RightX, 540f);
                 return;
             }
 
@@ -337,8 +338,8 @@ namespace Game.Presentation.Hud
             {
                 var top = Mathf.Max(756f, y);
                 UiKit.RoundBox(_content, "More", _card, RightX, top, RightWidth, 62f, 14f);
-                Label(SemiBold, _content, more == 1 ? "1 more review" : $"{more} more reviews", 19f, _body, 786f, top + 38f, 400f);
-                var see = Label(SemiBold, _content, "See all in Reviews", 19.5f, _body, 1777f, top + 38f, 300f, HorizontalAlignmentOptions.Right);
+                Label(SemiBold, _content, Tr.Plural(more, "1 more review", "{n} more reviews"), 19f, _body, 786f, top + 38f, 400f);
+                var see = Label(SemiBold, _content, Tr.Get("See all in Reviews"), 19.5f, _body, 1777f, top + 38f, 300f, HorizontalAlignmentOptions.Right);
                 Keycap(_content, "RB", 1777f - UiKit.Width(see) - 10f - 39f, top + 16f, 39f, 31f, true);
             }
         }
@@ -360,11 +361,11 @@ namespace Game.Presentation.Hud
             var chipX = RightX;
             foreach (Filter filter in System.Enum.GetValues(typeof(Filter)))
                 chipX = FilterChip(filter, all.Count(r => Matches(r, filter)), chipX) + 12f;
-            Label(Medium, _content, "Sorted: needs attention first", 19.5f, _muted, RightEdge, 286f, 400f, HorizontalAlignmentOptions.Right);
+            Label(Medium, _content, Tr.Get("Sorted: needs attention first"), 19.5f, _muted, RightEdge, 286f, 400f, HorizontalAlignmentOptions.Right);
 
             if (reviews.Count == 0)
             {
-                Label(Serif, _content, all.Count == 0 ? "No reviews yet." : "No reviews match this filter.", 26.67f, _muted, RightX, 360f);
+                Label(Serif, _content, all.Count == 0 ? Tr.Get("No reviews yet.") : Tr.Get("No reviews match this filter."), 26.67f, _muted, RightX, 360f);
                 return;
             }
 
@@ -388,11 +389,11 @@ namespace Game.Presentation.Hud
             var star = filter == Filter.Low || filter == Filter.High;
             var text = filter switch
             {
-                Filter.All => $"All · {count}",
-                Filter.WalkOuts => $"Walk-outs · {count}",
+                Filter.All => Tr.Format("All · {count}", ("count", count)),
+                Filter.WalkOuts => Tr.Format("Walk-outs · {count}", ("count", count)),
                 Filter.Low => "1–2",
                 Filter.High => "3+",
-                _ => $"Unreplied · {count}",
+                _ => Tr.Format("Unreplied · {count}", ("count", count)),
             };
 
             var first = Label(SemiBold, _content, text, 19.5f, fore, x + 16f, 286f, 300f);
@@ -467,12 +468,12 @@ namespace Game.Presentation.Hud
             var name = Label(Bold, parent, Game.Data.GuestNames.Display(review), 20f, _ink, 857f, nameBase, 300f);
             var meta = (string.IsNullOrEmpty(review.Order) ? "" : $"· {Game.Data.ReviewText.Order(review.Order)} ") + $"· {ClockAt(review.ArrivedAt)}";
             if (review.Day != Services.Days.Day)
-                meta += $" · day {review.Day}";
+                meta += Tr.Format(" · day {day}", ("day", review.Day));
             // A guest who's posted before (decision 2026-11-09).
             if (review.Visit == 2)
-                meta += " · back again";
+                meta += Tr.Get(" · back again");
             else if (review.Visit > 2)
-                meta += $" · visit {review.Visit}";
+                meta += Tr.Format(" · visit {visit}", ("visit", review.Visit));
             Label(Medium, parent, meta, 19f, _muted, 857f + UiKit.Width(name) + 12f, nameBase, 420f);
             // Written in the player's language from its templates and facts (decision 2026-11-09).
             var quote = Label(Serif, parent, $"“{Game.Data.ReviewText.Line(review)}”", overview ? 30.33f : 26f, _ink, 857f, y + (overview ? 77f : 69f), 640f);
@@ -495,8 +496,8 @@ namespace Game.Presentation.Hud
 
             var chipBase = y + (overview ? 92f : 88f);
             var chipText = review.WalkedOut
-                ? $"Walked out · {Money(-review.Penalty)}"
-                : review.Tip > 0f ? $"{Money(review.Paid)} + {Money(review.Tip)} tip" : $"{Money(review.Paid)} · no tip";
+                ? Tr.Format("Walked out · {amount}", ("amount", Money(-review.Penalty)))
+                : review.Tip > 0f ? Tr.Format("{paid} + {tip} tip", ("paid", Money(review.Paid)), ("tip", Money(review.Tip))) : Tr.Format("{paid} · no tip", ("paid", Money(review.Paid)));
             var chipLeft = RightPill(parent, chipText, review.WalkedOut ? Bold : SemiBold, 16.67f, review.WalkedOut ? _alarm : _card, review.WalkedOut ? _alarmText : _wellLight, 1776f, chipBase - 21f, 30f, 12f);
             if (selected && review.Reply < 0)
                 ReplyButton(parent, chipLeft - 8f, chipBase - 21f + 15f);
@@ -507,7 +508,7 @@ namespace Game.Presentation.Hud
                 UiKit.RoundBox(parent, "Thread", _gold, 856f, top, 3f, 54f + (ReplyLines(review) > 1 ? ReplyLineHeight : 0f), 0f);
                 UiKit.Picture(parent, "Mark", _style.ReplyMark, 876f, top + 4f, 14f, 18f);
                 var owner = Label(Bold, parent, Services.ServiceConfig.RestaurantName, 16.67f, _wellLight, 897f, top + 18f, 300f);
-                Label(Medium, parent, review.Day == Services.Days.Day ? "· owner · just now" : "· owner", 16.67f, _quiet, 897f + UiKit.Width(owner) + 7f, top + 18f, 300f);
+                Label(Medium, parent, review.Day == Services.Days.Day ? Tr.Get("· owner · just now") : Tr.Get("· owner"), 16.67f, _quiet, 897f + UiKit.Width(owner) + 7f, top + 18f, 300f);
                 var reply = UiKit.TextAt(Medium, parent, "Reply", ShownReply(review), ReplySize, _ink, 877f, top + 45f, ReplyWidth, lines: 2);
                 LineHeight(reply, ReplyLineHeight);
             }
@@ -517,7 +518,7 @@ namespace Game.Presentation.Hud
         // The Y Reply button, its right edge at right and centred on cy; with the wheel open it's pressed in.
         private void ReplyButton(Transform parent, float right, float cy)
         {
-            var label = Label(Bold, parent, "Reply", 18.67f, _choosingReply ? _paper : _ink, 0f, cy + 7f, 120f);
+            var label = Label(Bold, parent, Tr.Get("Reply"), 18.67f, _choosingReply ? _paper : _ink, 0f, cy + 7f, 120f);
             var width = UiKit.Width(label);
             var badgeX = right - width - 9f - 31f;
             if (_choosingReply)
@@ -563,10 +564,10 @@ namespace Game.Presentation.Hud
             Badge(_popover, "X", _buttonX, hx - 64f, hy, 55f, 24f);
             Badge(_popover, "B", _buttonB, hx + 64f, hy, 55f, 24f);
             Badge(_popover, "A", _buttonA, hx, hy + 64.5f, 55f, 24f);
-            Label(ExtraBold, _popover, "Thank", 34.67f, _paper, hx, hy - 143f, 400f, HorizontalAlignmentOptions.Center, -0.7f);
-            Label(ExtraBold, _popover, "Apologise", 34.67f, _paper, hx - 105f, hy - 3f, 300f, HorizontalAlignmentOptions.Right, -0.7f);
-            Label(ExtraBold, _popover, "Leave it", 34.67f, _paper, hx + 108f, hy - 4f, 300f, tracking: -0.7f);
-            Label(ExtraBold, _popover, "Stand your ground", 34.67f, _paper, hx, hy + 134f, 520f, HorizontalAlignmentOptions.Center, -0.7f);
+            Label(ExtraBold, _popover, Tr.Get("Thank"), 34.67f, _paper, hx, hy - 143f, 400f, HorizontalAlignmentOptions.Center, -0.7f);
+            Label(ExtraBold, _popover, Tr.Get("Apologise"), 34.67f, _paper, hx - 105f, hy - 3f, 300f, HorizontalAlignmentOptions.Right, -0.7f);
+            Label(ExtraBold, _popover, Tr.Get("Leave it"), 34.67f, _paper, hx + 108f, hy - 4f, 300f, tracking: -0.7f);
+            Label(ExtraBold, _popover, Tr.Get("Stand your ground"), 34.67f, _paper, hx, hy + 134f, 520f, HorizontalAlignmentOptions.Center, -0.7f);
         }
 
         // ---- Menu ----
@@ -597,17 +598,17 @@ namespace Game.Presentation.Hud
                 var walked = worst.Today.Count(v => v.WalkedOut);
                 UiKit.RoundBox(_content, "Insight", _alarm, RightX, top, RightWidth, 96f, 18f);
                 UiKit.Picture(_content, "Warning", _style.WarningIcon, 788f, top + 31f, 36f, 32f);
-                Label(Bold, _content, $"{Plural(worst.Name)} are costing you.", 22.67f, _alarmDark, 839f, top + 43f, 900f);
+                Label(Bold, _content, Tr.Format("{dishes} are costing you.", ("dishes", Plural(worst.Name))), 22.67f, _alarmDark, 839f, top + 43f, 900f);
                 var body = walked == worst.Today.Count
-                    ? (walked == 2 ? $"Both {Kind(worst.Name)} orders walked out." : $"All {walked} {Kind(worst.Name)} orders walked out.")
-                    : $"{walked} of {worst.Today.Count} {Kind(worst.Name)} orders walked out.";
-                Label(Medium, _content, body + " Guests wait longest for these.", 19.5f, _muted, 839f, top + 70f, 940f);
+                    ? (walked == 2 ? Tr.Format("Both {kind} orders walked out.", ("kind", Kind(worst.Name))) : Tr.Format("All {count} {kind} orders walked out.", ("count", walked), ("kind", Kind(worst.Name))))
+                    : Tr.Format("{count} of {total} {kind} orders walked out.", ("count", walked), ("total", worst.Today.Count), ("kind", Kind(worst.Name)));
+                Label(Medium, _content, body + " " + Tr.Get("Guests wait longest for these."), 19.5f, _muted, 839f, top + 70f, 940f);
                 top += 119f;
             }
 
             if (dishes.Count == 0)
             {
-                Label(Serif, _content, "Nobody has ordered yet.", 26.67f, _muted, RightX, top + 40f);
+                Label(Serif, _content, Tr.Get("Nobody has ordered yet."), 26.67f, _muted, RightX, top + 40f);
                 return;
             }
 
@@ -634,7 +635,7 @@ namespace Game.Presentation.Hud
                 UiKit.RoundBox(_content, "Line", Alpha(_paper, 0.8f), RightX, y, RightWidth, 2f, 0f);
                 var name = Label(Bold, _content, Game.Data.ReviewText.Order(dish.Name), 22.67f, _ink, 790f, y + 40f, 330f);
                 if (walked > 0)
-                    Pill(_content, walked == 1 ? "1 walk-out" : $"{walked} walk-outs", Bold, 14f, _bad, Color.white, 790f + UiKit.Width(name) + 14f, y + 21f, 23f, 9f, 16.5f);
+                    Pill(_content, Tr.Plural(walked, "1 walk-out", "{n} walk-outs"), Bold, 14f, _bad, Color.white, 790f + UiKit.Width(name) + 14f, y + 21f, 23f, 9f, 16.5f);
                 Label(Medium, _content, $"{dish.Today.Count}", 22.67f, _ink, 1134f, y + 40f, 100f);
                 var rated = dish.Rated;
                 var stars = rated.Count > 0 ? rated.Average(r => r.RatedStars) : 0f;
@@ -644,7 +645,7 @@ namespace Game.Presentation.Hud
                 Label(Medium, _content, $"{dish.AllTime}", 22.67f, _ink, 1633f, y + 40f, 100f);
                 y += rowHeight;
             }
-            Label(Medium, _content, "Prices and the menu are set in the cookbook.", 18.67f, _muted, RightX, top + tableHeight + 34f, 900f);
+            Label(Medium, _content, Tr.Get("Prices and the menu are set in the cookbook."), 18.67f, _muted, RightX, top + tableHeight + 34f, 900f);
         }
 
         // One guest's night, whether or not they reviewed it.
@@ -676,9 +677,13 @@ namespace Game.Presentation.Hud
                 .Select(r => new Visit { Dish = r.Order, ArrivedAt = r.ArrivedAt, WalkedOut = r.WalkedOut, Taken = r.Paid + r.Tip }).ToList();
         }
 
-        // "steak, medium" → "Medium steaks"; anything else is used as it is.
+        // "steak, medium" → "Medium steaks"; anything else is used as it is. Other languages write
+        // the dish their own way: "Steaks, medium" reads badly translated word by word, so they get
+        // the order as tickets show it ("Filete, al punto").
         private static string Plural(string order)
         {
+            if (Locale.Language != "en")
+                return Capital(ReviewText.Order(order));
             var parts = order.Split(',');
             if (parts.Length < 2)
                 return char.ToUpper(order[0]) + order.Substring(1);
@@ -689,8 +694,18 @@ namespace Game.Presentation.Hud
         private static string Kind(string order)
         {
             var parts = order.Split(',');
-            return parts.Length < 2 ? order : parts[1].Trim();
+            return Tr.Get(parts.Length < 2 ? order : parts[1].Trim());
         }
+
+        private static string Capital(string text) => string.IsNullOrEmpty(text) ? text : char.ToUpper(text[0]) + text.Substring(1);
+
+        private static string TabName(Tab tab) => tab switch
+        {
+            Tab.Overview => Tr.Get("Overview"),
+            Tab.Menu => Tr.Get("Menu"),
+            Tab.Books => Tr.Get("Books"),
+            _ => Tr.Get("Reviews"),
+        };
 
         // ---- Books ----
 
@@ -713,7 +728,7 @@ namespace Game.Presentation.Hud
                 y += pitch;
             }
             UiKit.RoundBox(_content, "Rule", Hex(0xd9c39a), 790f, 470f, 455f, 2f, 0f);
-            Label(Bold, _content, "Net today", 22.67f, _ink, 790f, 517f, 300f);
+            Label(Bold, _content, Tr.Get("Net today"), 22.67f, _ink, 790f, 517f, 300f);
             var net = ledger.Net;
             Label(ExtraBold, _content, Money(net, true, signed: true), 32.67f, net < 0f ? _badText : _goodText, 1244f, 517f, 300f, HorizontalAlignmentOptions.Right, -0.5f);
 
@@ -724,12 +739,12 @@ namespace Game.Presentation.Hud
             Label(ExtraBold, _content, Money(days.Fee.Amount), 74f, _paper, bx + 26f, 378f, 460f, tracking: -2.5f);
             if (days.FeeCollectedToday)
             {
-                Label(Bold, _content, "fee collected today", 25f, _paper, bx + 26f, 413f, 460f);
+                Label(Bold, _content, Tr.Get("fee collected today"), 25f, _paper, bx + 26f, 413f, 460f);
             }
             else
             {
-                var left = days.DaysUntilFee == 1 ? "1 day" : $"{days.DaysUntilFee} days";
-                Label(Bold, _content, $"fee due in {HudStyle.Colored(left, _gold)}", 25f, _paper, bx + 26f, 413f, 460f);
+                var left = Tr.Plural(days.DaysUntilFee, "1 day", "{n} days");
+                Label(Bold, _content, Tr.Format("fee due in {days}", ("days", HudStyle.Colored(left, _gold))), 25f, _paper, bx + 26f, 413f, 460f);
             }
             var segments = Mathf.Max(1, days.Fee.EveryDays);
             var done = days.FeeCollectedToday ? segments : segments - days.DaysUntilFee;
@@ -737,12 +752,12 @@ namespace Game.Presentation.Hud
             for (var i = 0; i < segments; i++)
                 UiKit.RoundBox(_content, "Day", i < done ? _gold : _wellLight, bx + 26f + i * (segment + 8f), 433f, segment, 10f, 5f);
             UiKit.RoundBox(_content, "Rule", _wellLight, bx + 26f, 463f, 455f, 2f, 0f);
-            Label(Medium, _content, "Balance", 21.33f, _sand, bx + 26f, 500f, 200f);
+            Label(Medium, _content, Tr.Get("Balance"), 21.33f, _sand, bx + 26f, 500f, 200f);
             Label(Bold, _content, Money(days.Balance, true), 26.67f, _paper, bx + 480f, 504f, 300f, HorizontalAlignmentOptions.Right);
             if (days.OwedToBoss > 0f)
-                Label(Bold, _content, $"You owe him {Money(days.OwedToBoss, true)}", 19.5f, _shortBy, bx + 26f, 536f, 460f);
+                Label(Bold, _content, Tr.Format("You owe him {amount}", ("amount", Money(days.OwedToBoss, true))), 19.5f, _shortBy, bx + 26f, 536f, 460f);
             else if (!days.FeeCollectedToday && days.Balance < days.Fee.Amount)
-                Label(Bold, _content, $"Short by {Money(days.Fee.Amount - days.Balance, true)}", 19.5f, _shortBy, bx + 26f, 536f, 460f);
+                Label(Bold, _content, Tr.Format("Short by {amount}", ("amount", Money(days.Fee.Amount - days.Balance, true))), 19.5f, _shortBy, bx + 26f, 536f, 460f);
 
             DrawMoneyWent(ledger, lines);
             DrawTrendAndTeam();
@@ -753,15 +768,15 @@ namespace Game.Presentation.Hud
         {
             UiKit.RoundBox(_content, "Went", _card, RightX, 585f, RightWidth, 196f, 18f);
             Caps(_content, "WHERE THE MONEY WENT", 790f, 625f);
-            Label(Medium, _content, $"Day {Services.Days.Day}", 19.5f, _muted, 1772f, 625f, 200f, HorizontalAlignmentOptions.Right);
+            Label(Medium, _content, Tr.Format("Day {day}", ("day", Services.Days.Day)), 19.5f, _muted, 1772f, 625f, 200f, HorizontalAlignmentOptions.Right);
 
             var income = lines.Where(Ledger.IsIncome).ToList();
             var spending = lines.Where(l => !Ledger.IsIncome(l)).ToList();
             var totalIn = income.Sum(l => ledger.Of(l));
             var totalOut = spending.Sum(l => ledger.Of(l));
             var scale = 656f / Mathf.Max(1f, Mathf.Max(totalIn, totalOut));
-            MoneyBar("In", income, ledger, scale, 648f, 670f, Money(totalIn), _goodText);
-            MoneyBar("Out", spending, ledger, scale, 692f, 714f, Money(totalOut), _badText);
+            MoneyBar(Tr.Get("In"), income, ledger, scale, 648f, 670f, Money(totalIn), _goodText);
+            MoneyBar(Tr.Get("Out"), spending, ledger, scale, 692f, 714f, Money(totalOut), _badText);
 
             var x = 790f;
             foreach (var line in lines)
@@ -771,7 +786,7 @@ namespace Game.Presentation.Hud
                 x += 24f + UiKit.Width(label) + 22f;
             }
             if (Services.Days.Day < 3)
-                Label(Medium, _content, "Trend appears from day 3", 19.5f, _muted, 1773f, 754f, 400f, HorizontalAlignmentOptions.Right);
+                Label(Medium, _content, Tr.Get("Trend appears from day 3"), 19.5f, _muted, 1773f, 754f, 400f, HorizontalAlignmentOptions.Right);
         }
 
         private void MoneyBar(string title, List<LedgerLine> parts, Ledger ledger, float scale, float top, float baseline, string total, Color totalColour)
@@ -791,11 +806,11 @@ namespace Game.Presentation.Hud
         private void DrawTrendAndTeam()
         {
             var days = Services.Days;
-            var team = Services.Staff.Hired.Select(m => $"{ServiceStatusHud.WorkDone(m)}, {ServiceStatusHud.Mood(m)}")
-                .Concat(Services.Staff.LastQuit.Select(m => $"{ServiceStatusHud.WorkDone(m)}, and quit")).ToList();
+            var team = Services.Staff.Hired.Select(m => Tr.Format("{work}, {mood}", ("work", ServiceStatusHud.WorkDone(m)), ("mood", ServiceStatusHud.Mood(m))))
+                .Concat(Services.Staff.LastQuit.Select(m => Tr.Format("{work}, and quit", ("work", ServiceStatusHud.WorkDone(m))))).ToList();
             var close = days.LastClose;
             if (close.Spoiled > 0 || close.LeftOut > 0)
-                team.Add($"Overnight: {close.Spoiled} spoiled, {close.LeftOut} left out");
+                team.Add(Tr.Format("Overnight: {spoiled} spoiled, {left} left out", ("spoiled", close.Spoiled), ("left", close.LeftOut)));
             var history = days.History.Skip(Mathf.Max(0, days.History.Count - 12)).ToList();
             var trend = days.Day >= 3 && history.Count > 0;
             if (!trend && team.Count == 0)
@@ -841,15 +856,15 @@ namespace Game.Presentation.Hud
 
         private static string LineName(LedgerLine line) => line switch
         {
-            LedgerLine.Payments => "Meals",
-            LedgerLine.Tips => "Tips",
-            LedgerLine.Sales => "Sold",
-            LedgerLine.Ingredients => "Ingredients",
-            LedgerLine.WalkOuts => "Walk-outs",
-            LedgerLine.Wages => "Wages",
-            LedgerLine.Energy => "Energy",
-            LedgerLine.Purchases => "Bought",
-            LedgerLine.Fee => "Fee to the boss",
+            LedgerLine.Payments => Tr.Get("Meals"),
+            LedgerLine.Tips => Tr.Get("Tips"),
+            LedgerLine.Sales => Tr.Get("Sold"),
+            LedgerLine.Ingredients => Tr.Get("Ingredients"),
+            LedgerLine.WalkOuts => Tr.Get("Walk-outs"),
+            LedgerLine.Wages => Tr.Get("Wages"),
+            LedgerLine.Energy => Tr.Get("Energy"),
+            LedgerLine.Purchases => Tr.Get("Bought"),
+            LedgerLine.Fee => Tr.Get("Fee to the boss"),
             _ => line.ToString(),
         };
 
@@ -869,12 +884,12 @@ namespace Game.Presentation.Hud
             UiKit.Clear(_hints);
             var hints = new List<(string[] Keys, string Text)>
             {
-                (new[] { "LB", "RB" }, "Tabs"),
-                (new[] { "LS" }, filtering ? "Filter" : "Browse"),
+                (new[] { "LB", "RB" }, Tr.Get("Tabs")),
+                (new[] { "LS" }, filtering ? Tr.Get("Filter") : Tr.Get("Browse")),
             };
             if (canReply)
-                hints.Add((new[] { "Y" }, "Reply"));
-            hints.Add((new[] { "≡" }, $"Start day {Services.Days.Day + 1}"));
+                hints.Add((new[] { "Y" }, Tr.Get("Reply")));
+            hints.Add((new[] { "≡" }, Tr.Format("Start day {day}", ("day", Services.Days.Day + 1))));
 
             // From the right edge leftwards: label, 10 px, keys 10 px apart, then 32 px to the next.
             var right = 1799f;
@@ -909,7 +924,7 @@ namespace Game.Presentation.Hud
                     var ready = _dayLoop.Ready.IsReady(player.playerIndex);
                     var colour = _settings.GetPlayerColor(player.playerIndex);
                     UiKit.Ellipse(_hints, "Cook", ready ? colour : Alpha(colour, 0.35f), x, 978f, 20f, 20f);
-                    var label = Label(SemiBold, _hints, ready ? $"P{player.playerIndex + 1} ready" : $"P{player.playerIndex + 1}", 19.5f, ready ? _wellLight : _quiet, x + 28f, 995f, 160f);
+                    var label = Label(SemiBold, _hints, ready ? Tr.Format("P{player} ready", ("player", player.playerIndex + 1)) : $"P{player.playerIndex + 1}", 19.5f, ready ? _wellLight : _quiet, x + 28f, 995f, 160f);
                     x += 28f + UiKit.Width(label) + 24f;
                 }
             }
@@ -1036,7 +1051,7 @@ namespace Game.Presentation.Hud
             var aspect = 600f / 338f / ((float)_photoSize.x / _photoSize.y);
             _photo.uvRect = new UnityEngine.Rect((1f - aspect) / 2f, 0f, aspect, 1f);
             UiKit.RoundBox(_layout, "Caption", Alpha(_ink, 0.85f), 438f, 466f, 270f, 32f, 8f);
-            UiKit.TextAt(_style.Medium, _layout, "CaptionText", "Your photo · captured at close", 17.33f, _paper, 573f, 488f, 270f, HorizontalAlignmentOptions.Center);
+            UiKit.TextAt(_style.Medium, _layout, "CaptionText", Tr.Get("Your photo · captured at close"), 17.33f, _paper, 573f, 488f, 270f, HorizontalAlignmentOptions.Center);
             UiKit.RoundBox(_layout, "Guests", _card, 120f, 700f, 600f, 222f, 18f);
 
             _header = UiKit.Rect(_layout, "HeaderState", 0f, 0f, 1920f, 1080f);

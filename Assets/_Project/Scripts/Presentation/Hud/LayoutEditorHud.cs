@@ -87,30 +87,30 @@ namespace Game.Presentation.Hud
             {
                 var problem = cursor.Result switch
                 {
-                    Placement.OutsideTheKitchen => "not in this room",
-                    Placement.OnAnotherStation => "something's there",
-                    Placement.SomeoneInTheWay => "someone's in the way",
-                    Placement.CantAfford => "not enough money",
-                    Placement.NotOnAWall => "it goes on an outside wall",
-                    Placement.NoRoomForChairs => "no room for its chairs",
-                    Placement.NoFreeCounter => "no free counter for it",
+                    Placement.OutsideTheKitchen => Tr.Get("not in this room"),
+                    Placement.OnAnotherStation => Tr.Get("something's there"),
+                    Placement.SomeoneInTheWay => Tr.Get("someone's in the way"),
+                    Placement.CantAfford => Tr.Get("not enough money"),
+                    Placement.NotOnAWall => Tr.Get("it goes on an outside wall"),
+                    Placement.NoRoomForChairs => Tr.Get("no room for its chairs"),
+                    Placement.NoFreeCounter => Tr.Get("no free counter for it"),
                     _ => null,
                 };
                 return problem != null
-                    ? $"{HudStyle.Colored(problem, _blocked)}\n[LB/RB] rotate   {Glyph(PromptControl.East)} cancel"
+                    ? $"{HudStyle.Colored(problem, _blocked)}\n[LB/RB] {Tr.Get("rotate")}   {Glyph(PromptControl.East)} {Tr.Get("cancel")}"
                     : cursor.Held is StreetDoor
-                        ? $"{Glyph(PromptControl.South)} place   {Glyph(PromptControl.East)} cancel"
-                        : $"{Glyph(PromptControl.South)} place   [LB/RB] rotate   {Glyph(PromptControl.East)} cancel";
+                        ? $"{Glyph(PromptControl.South)} {Tr.Get("place")}   {Glyph(PromptControl.East)} {Tr.Get("cancel")}"
+                        : $"{Glyph(PromptControl.South)} {Tr.Get("place")}   [LB/RB] {Tr.Get("rotate")}   {Glyph(PromptControl.East)} {Tr.Get("cancel")}";
             }
 
-            var always = $"{Glyph(PromptControl.North)} shop   [Select] back to chef";
+            var always = $"{Glyph(PromptControl.North)} {Tr.Get("shop")}   [Select] {Tr.Get("back to chef")}";
             var under = _editor.StationUnder(cursor);
             if (under == null)
                 return always;
             var sale = SaleText(cursor, under);
-            var move = $"{Glyph(PromptControl.South)} move {under.name}";
+            var move = $"{Glyph(PromptControl.South)} " + Tr.Format("move {what}", ("what", Tr.Get(under.name)));
             var chairs = under is TableStation table && table.HasChoiceOfChairs
-                ? $"[RB] add chair {Money(_editor.ChairPrice)}   [LB] remove   {table.ChairCount} now\n"
+                ? "[RB] " + Tr.Format("add chair {price}", ("price", Money(_editor.ChairPrice))) + "   [LB] " + Tr.Get("remove") + "   " + Tr.Format("{count} now", ("count", table.ChairCount)) + "\n"
                 : "";
             return $"{move}{(sale != null ? "   " + sale : "")}\n{chairs}{always}";
         }
@@ -120,32 +120,32 @@ namespace Game.Presentation.Hud
             var problem = _editor.SaleProblemOf(cursor, station) switch
             {
                 SaleProblem.NotForSale => "",
-                SaleProblem.NotEmpty => "clear it to sell",
-                SaleProblem.InUse => "in use",
-                SaleProblem.LastOne => "your last one",
+                SaleProblem.NotEmpty => Tr.Get("clear it to sell"),
+                SaleProblem.InUse => Tr.Get("in use"),
+                SaleProblem.LastOne => Tr.Get("your last one"),
                 _ => null,
             };
             if (problem == null)
-                return $"{Glyph(PromptControl.West)} sell {Money(_editor.SellPriceOf(station))}";
+                return $"{Glyph(PromptControl.West)} " + Tr.Format("sell {price}", ("price", Money(_editor.SellPriceOf(station))));
             return problem.Length > 0 ? HudStyle.Colored(problem, _blocked) : null;
         }
 
         private string ShopText(LayoutEditor.Cursor cursor)
         {
             var text = new System.Text.StringBuilder();
-            text.AppendLine($"{Money(_root.Services.Days.Balance)} to spend");
+            text.AppendLine(Tr.Format("{amount} to spend", ("amount", Money(_root.Services.Days.Balance))));
             for (var i = 0; i < _editor.Shop.Count; i++)
             {
                 var entry = _editor.Shop[i];
-                var line = $"{(i == cursor.ShopIndex ? "> " : "  ")}{entry.DisplayName}  {Money(entry.Price)}";
+                var line = $"{(i == cursor.ShopIndex ? "> " : "  ")}{Tr.Get(entry.DisplayName)}  {Money(entry.Price)}";
                 text.AppendLine(_editor.CanAfford(entry) ? line : HudStyle.Colored(line, _blocked));
             }
             // Kitchenware is bought on the spot, so why it wasn't shows here.
             if (cursor.Result == Placement.NoFreeCounter)
-                text.AppendLine(HudStyle.Colored("no free counter for it", _blocked));
+                text.AppendLine(HudStyle.Colored(Tr.Get("no free counter for it"), _blocked));
             else if (cursor.Result == Placement.CantAfford)
-                text.AppendLine(HudStyle.Colored("not enough money", _blocked));
-            text.Append($"{Glyph(PromptControl.South)} buy   {Glyph(PromptControl.East)} close");
+                text.AppendLine(HudStyle.Colored(Tr.Get("not enough money"), _blocked));
+            text.Append($"{Glyph(PromptControl.South)} {Tr.Get("buy")}   {Glyph(PromptControl.East)} {Tr.Get("close")}");
             return text.ToString();
         }
 
