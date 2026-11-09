@@ -60,6 +60,7 @@ namespace Game.Gameplay.Saving
 
             save.Staff.AddRange(services.Staff.Hired.Select(SaveConversions.ToRecord));
             save.Reviews.AddRange(services.ReviewHistory);
+            save.RecentLines.AddRange(services.ReviewLines.ToList());
             save.DaysTowardsFee = services.Days.DaysTowardsFee;
             save.Period = services.Days.Period.ToArray();
             save.History.AddRange(services.Days.History);

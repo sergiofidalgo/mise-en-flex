@@ -191,6 +191,9 @@ namespace Game.Data
             new ReviewLines(ReviewTopic.WalkedOut, "Waited ages. Never got my food.", "Gave up and left hungry."),
         };
 
+        [Tooltip("How each kind of restaurant is talked about (ideas.md, 2026-11-09): the generic voice, then one per style. The lines above join the generic voice.")]
+        [SerializeField] private ReviewVoiceData[] _voices = ReviewVoiceDefaults.All();
+
         [Header("Customers (gameplay)")]
         [Tooltip("Real metres per second customers walk.")]
         [SerializeField, Min(0.1f)] private float _walkSpeed = 1.6f;
@@ -251,8 +254,28 @@ namespace Game.Data
                 PraiseStars = _praiseStars,
                 WalkOutStars = _walkOutStars,
                 Lines = _reviewLines.ToDictionary(l => l.Topic, l => l.Lines),
+                Style = StyleVoice(),
+                Generic = GenericVoice(),
+                Restaurant = _restaurantName,
+                OpensAtHour = _opensAt,
             },
         };
+
+        /// <summary>The voice of this restaurant's style, or null if it has none of its own.</summary>
+        public Voice StyleVoice() => _voices?.FirstOrDefault(v => v != null && v.Speaks(_styleName))?.ToVoice();
+
+        /// <summary>The voice every style shares, with the review lines above among its lines.</summary>
+        public Voice GenericVoice()
+        {
+            var voice = _voices?.FirstOrDefault(v => v != null && v.IsGeneric)?.ToVoice() ?? new Voice();
+            foreach (var group in _reviewLines ?? new ReviewLines[0])
+            {
+                if (!voice.Lines.TryGetValue(group.Topic, out var list))
+                    voice.Lines[group.Topic] = list = new System.Collections.Generic.List<VoiceLine>();
+                list.AddRange((group.Lines ?? new string[0]).Select(t => new VoiceLine(t)));
+            }
+            return voice;
+        }
 
         // Order choices take the main's own doneness levels (with their order targets); unknown
         // names are skipped so a typo can't break a service, and WiringTests checks them.

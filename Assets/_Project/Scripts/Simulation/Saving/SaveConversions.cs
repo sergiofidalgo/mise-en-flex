@@ -41,6 +41,7 @@ namespace Game.Simulation.Saving
                 Paid = customer?.Bill?.Payment ?? 0f,
                 Tip = customer?.Bill?.Tip ?? 0f,
                 Penalty = customer?.WalkOutPenalty ?? 0f,
+                Persona = (int)review.Persona,
             };
         }
     }

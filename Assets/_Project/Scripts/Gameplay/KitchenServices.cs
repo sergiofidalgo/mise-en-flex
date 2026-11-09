@@ -72,6 +72,9 @@ namespace Game.Gameplay
         /// <summary>Reviews from earlier days, as saved. Today's are on <see cref="Service"/>.</summary>
         public List<Game.Simulation.Saving.ReviewRecord> ReviewHistory { get; } = new List<Game.Simulation.Saving.ReviewRecord>();
 
+        /// <summary>Review and reply lines used lately, saved with the campaign so they don't repeat.</summary>
+        public Game.Simulation.Service.LineMemory ReviewLines { get; set; } = new Game.Simulation.Service.LineMemory();
+
         /// <summary>What says a plate on a counter is ready to go out.</summary>
         public ReadyBell Bell { get; } = new ReadyBell();
         public StaffConfig StaffConfig { get; }

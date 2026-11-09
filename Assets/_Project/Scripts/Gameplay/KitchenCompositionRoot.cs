@@ -54,9 +54,11 @@ namespace Game.Gameplay
                 ? DayCycle.Continuing(save.Day, save.Balance, fee, save.DaysTowardsFee, Ledger.FromArray(save.Period), save.History)
                 : new DayCycle(_staffConfig.StartingMoney, fee);
             days.PhaseChanged += HandlePhaseChanged;
+            _reviewLines.Load(save?.RecentLines);
             var service = NewService(days.Day);
             Services = new KitchenServices(cooking, new ItemViewRegistry(_itemCatalog), _itemCatalog, _equipment, _tuning, _realism, service, _serviceConfig, days, new StaffRoster(), _staffConfig, stations, _floorPlan);
             Services.Staff.Candidates = _staffConfig.CandidatesFor(days.Day);
+            Services.ReviewLines = _reviewLines;
 
             foreach (var station in stations.All)
                 station.Bind(Services);
@@ -64,6 +66,9 @@ namespace Game.Gameplay
             if (save != null)
                 CampaignSnapshot.RestoreContents(save, placed, Services);
         }
+
+        // Review and reply lines used lately, across days and sessions, so words don't repeat.
+        private readonly LineMemory _reviewLines = new LineMemory();
 
         // The campaign as it was loaded, for what the card keeps across sessions (play time, cooks).
         private Game.Simulation.Saving.CampaignSave _loaded;
@@ -77,6 +82,8 @@ namespace Game.Gameplay
         {
             if (!ReviewReplies.Reply(review, reply, _serviceConfig.ToReplySettings()))
                 return false;
+            // Written for this review in the style's voice, with the guest's answer (decision 2026-11-09).
+            ReviewReplies.WriteThread(review, reply, _serviceConfig.StyleVoice(), _serviceConfig.GenericVoice(), _reviewLines, _serviceConfig.RestaurantName);
             SaveCampaign();
             return true;
         }
@@ -157,8 +164,12 @@ namespace Game.Gameplay
                 Services.Service.Tick(gameSeconds);
         }
 
-        private ServiceSimulation NewService(int day) =>
-            new ServiceSimulation(_serviceConfig.ToSettings(day), 0, _realism.CustomerPatience); // seats open with the doors
+        private ServiceSimulation NewService(int day)
+        {
+            var settings = _serviceConfig.ToSettings(day);
+            settings.Reviews.Memory = _reviewLines;
+            return new ServiceSimulation(settings, 0, _realism.CustomerPatience); // seats open with the doors
+        }
 
         /// <summary>
         /// Closes up after a service: the night passes, stored food too old to keep gets thrown out,

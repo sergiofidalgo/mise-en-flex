@@ -4,6 +4,28 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-09 — Review voices: the system for varied reviews and replies
+
+**User's call:** build the system before writing much content. Built, with starter writing to deal from:
+- **A voice per restaurant style plus a generic one** (`ServiceConfig` → Voices, editable in the inspector). Each voice has:
+  - guest lines per topic, optionally for one kind of guest;
+  - owner replies per reply and per what the review was about (praise, the food, the wait);
+  - warm and dry guest answers;
+  - how often each kind of guest comes;
+  - hashtags.
+
+  The grill/steakhouse voice and the generic one exist. The old review lines joined the generic voice.
+- **Guests have a persona:** regular, foodie, influencer, critic, tourist or local, weighted by the style. Influencers add a hashtag and draw four times the likes.
+- **Lines use the visit's facts:** {main}, {side}, {ordered}, {got}, {name}, {restaurant}, {left} and {wait}. A line naming a fact that isn't known is skipped, and lines with facts are favoured two to one.
+- **No repeats:** the last 80 lines used are remembered and saved with the campaign, so words don't come back across days. When every fitting line was used lately, the one used longest ago returns.
+- **Replies write a thread** (`ReviewReplies.WriteThread`): the owner's reply in the style's voice, about what the review said, then the guest's answer. It's warm if the reply fits, with 3–14 likes, and dry if it doesn't, with 0–2. The same reply to the same review always reads the same. Old saves' replies fall back to the fixed lines.
+
+**Proposed while building (flagged for review):** how likes are counted, the personas and their weights, and the size of the memory (80) are first guesses to tune in play. The starter writing is a first pass.
+
+**Not built yet (ideas.md):** returning guests who remember a reply, running jokes, and more voices (one per cuisine in Phase 7).
+
+---
+
 ## 2026-11-09 — Reply effects show in the thread, not as chips
 
 **User's call:** no effect chips on the reply wheel. Instead, the owner's reply as it appears in the thread, and how the guest answers it, hint at the intended effect. Players read the effect rather than seeing numbers, which keeps learn-by-playing. The design (and the wider push for varied, funny reviews tailored by restaurant style) is in `ideas.md`, "Reviews and replies with variety, wit and a voice per restaurant". Not built yet.

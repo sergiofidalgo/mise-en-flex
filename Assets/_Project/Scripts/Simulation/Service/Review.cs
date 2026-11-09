@@ -28,18 +28,22 @@ namespace Game.Simulation.Service
     /// <summary>One customer's review.</summary>
     public sealed class Review
     {
-        public Review(Customer customer, float stars, ReviewTopic topic, string line)
+        public Review(Customer customer, float stars, ReviewTopic topic, string line, Persona persona = Persona.Regular)
         {
             Customer = customer;
             Stars = stars;
             Topic = topic;
             Line = line;
+            Persona = persona;
         }
 
         public Customer Customer { get; }
         public float Stars { get; }
         public ReviewTopic Topic { get; }
         public string Line { get; }
+
+        /// <summary>Who wrote it, which shapes how they write and how they take a reply.</summary>
+        public Persona Persona { get; }
     }
 
     /// <summary>Tuning and text for reviews. Filled from the ServiceConfig asset.</summary>
@@ -62,6 +66,20 @@ namespace Game.Simulation.Service
         /// and {side} the dish names.
         /// </summary>
         public IReadOnlyDictionary<ReviewTopic, string[]> Lines { get; set; } = new Dictionary<ReviewTopic, string[]>();
+
+        /// <summary>The restaurant style's voice (ideas.md, 2026-11-09); null for none.</summary>
+        public Voice Style { get; set; }
+
+        /// <summary>The voice every style shares. When it or <see cref="Style"/> is set, lines come from the voices.</summary>
+        public Voice Generic { get; set; }
+
+        /// <summary>Lines used lately, kept with the campaign so words don't repeat across days.</summary>
+        public LineMemory Memory { get; set; }
+
+        public string Restaurant { get; set; } = "";
+
+        /// <summary>The hour the doors open, for times such as when a guest left.</summary>
+        public float OpensAtHour { get; set; } = 18f;
     }
 
     /// <summary>Picks what a customer says about their visit (decision 2026-11-03).</summary>
@@ -95,10 +113,33 @@ namespace Game.Simulation.Service
 
         public static Review Write(Customer customer, ReviewSettings settings, Random random)
         {
-            if (customer.Satisfaction == null)
-                return new Review(customer, settings.WalkOutStars, ReviewTopic.WalkedOut, Line(ReviewTopic.WalkedOut, customer, settings, random));
-            var topic = ChooseTopic(customer.Satisfaction, customer.PatienceWhenServed ?? 1f, settings);
-            return new Review(customer, customer.Satisfaction.Stars, topic, Line(topic, customer, settings, random));
+            var stars = customer.Satisfaction == null ? settings.WalkOutStars : customer.Satisfaction.Stars;
+            var topic = customer.Satisfaction == null ? ReviewTopic.WalkedOut : ChooseTopic(customer.Satisfaction, customer.PatienceWhenServed ?? 1f, settings);
+            if (settings.Style == null && settings.Generic == null)
+                return new Review(customer, stars, topic, Line(topic, customer, settings, random));
+
+            var persona = ReviewVoices.PickPersona(settings.Style, settings.Generic, random);
+            var line = ReviewVoices.Line(topic, persona, Facts(customer, settings), settings.Style, settings.Generic, settings.Memory, random);
+            return new Review(customer, stars, topic, line.Length > 0 ? line : Line(topic, customer, settings, random), persona);
+        }
+
+        /// <summary>What a review can mention about this visit.</summary>
+        public static ReviewFacts Facts(Customer customer, ReviewSettings settings)
+        {
+            var order = customer.Order;
+            var got = customer.Satisfaction != null ? Main(customer.Satisfaction)?.DonenessName : null;
+            // Service time runs a second to the game minute, as the dashboard's clock reads it.
+            var left = settings.OpensAtHour * 60f + (customer.ArrivedAt + customer.SecondsInRestaurant) / 60f;
+            return new ReviewFacts
+            {
+                Main = order?.MainName.ToLowerInvariant() ?? "",
+                Side = order?.SideName?.ToLowerInvariant() ?? "",
+                Ordered = order?.Doneness.Name.ToLowerInvariant() ?? "",
+                Got = got?.ToLowerInvariant() ?? "",
+                Restaurant = settings.Restaurant ?? "",
+                LeftAt = $"{(int)(left / 60f) % 24:00}:{(int)left % 60:00}",
+                WaitMinutes = customer.WalkedOut ? (int)Math.Round(customer.SecondsInRestaurant / 60f) : 0,
+            };
         }
 
         private static string Line(ReviewTopic topic, Customer customer, ReviewSettings settings, Random random)

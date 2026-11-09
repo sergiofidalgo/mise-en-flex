@@ -56,6 +56,9 @@ namespace Game.Simulation.Saving
 
         /// <summary>Every player number that has cooked in this campaign, for the card's coloured dots.</summary>
         public List<int> Cooks = new List<int>();
+
+        /// <summary>Review and reply lines used lately, so they don't repeat across days.</summary>
+        public List<string> RecentLines = new List<string>();
     }
 
     /// <summary>One piece of furniture where it stands.</summary>
@@ -177,6 +180,18 @@ namespace Game.Simulation.Saving
 
         /// <summary>What the reply did to how this review counts.</summary>
         public float Nudge;
+
+        /// <summary>Who wrote it (a <see cref="Service.Persona"/>).</summary>
+        public int Persona;
+
+        /// <summary>The owner's reply as posted; empty for a reply from before replies were written per review.</summary>
+        public string ReplyText = "";
+
+        /// <summary>The guest's answer to the reply: warm if it fit, dry if not.</summary>
+        public string Answer = "";
+
+        /// <summary>Likes on the reply thread.</summary>
+        public int Likes;
     }
 
     /// <summary>Brings a file from an older version up to date, one version at a time.</summary>

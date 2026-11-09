@@ -46,6 +46,39 @@ namespace Game.Simulation.Service
             return true;
         }
 
+        /// <summary>
+        /// Writes the reply as posted, in the style's voice and about what the review said, and the
+        /// guest's answer: warm if the reply fits, dry if not, with likes to match. The thread is how
+        /// players read what a reply did (decision 2026-11-09). The same review and reply always give
+        /// the same words.
+        /// </summary>
+        public static void WriteThread(ReviewRecord review, ReviewReply reply, Voice style, Voice generic, LineMemory memory, string restaurant)
+        {
+            var order = (review.Order ?? "").Split(',');
+            var facts = new ReviewFacts
+            {
+                Main = order[0].Trim(),
+                Ordered = order.Length > 1 ? order[1].Trim() : "",
+                Name = (review.Guest ?? "").Split(' ')[0],
+                Restaurant = restaurant ?? "",
+            };
+            var seed = unchecked(review.Day * 7919 + StableHash(review.Guest) * 31 + (int)reply);
+            var topic = (ReviewTopic)review.Topic;
+            var thread = ReviewVoices.Reply(reply, topic, Fits(reply, topic), (Persona)review.Persona, facts, style, generic, memory, new System.Random(seed));
+            review.ReplyText = thread.Owner;
+            review.Answer = thread.Answer;
+            review.Likes = thread.Likes;
+        }
+
+        // string.GetHashCode differs between runs; this doesn't.
+        private static int StableHash(string text)
+        {
+            var hash = 17;
+            foreach (var c in text ?? "")
+                hash = unchecked(hash * 31 + c);
+            return hash & 0x7fffffff;
+        }
+
         /// <summary>The restaurant's rating: every review so far, after replies. Null with none.</summary>
         public static float? Rating(IEnumerable<ReviewRecord> reviews)
         {
