@@ -20,6 +20,12 @@ namespace Game.Gameplay
 
         public float BodyRadius => _bodyRadius;
 
+        /// <summary>
+        /// How fast this person walks relative to the usual pace: a character trait set by their
+        /// look (a retiree ambles, a gym-goer strides). 1 is the configured walking speed.
+        /// </summary>
+        public float SpeedFactor { get; set; } = 1f;
+
         /// <summary>Set by their director: where a move on the floor ends up, given the furniture.</summary>
         public System.Func<System.Numerics.Vector2, System.Numerics.Vector2, System.Numerics.Vector2> Slide { get; set; }
 

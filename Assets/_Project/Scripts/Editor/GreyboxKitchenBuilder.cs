@@ -857,6 +857,9 @@ namespace Game.Editor
         {
             var rig = CharacterArt.Build(visuals, CharacterArt.PlayerChef(), swingArms: false);
             tinted = rig.Tinted;
+            // The knife rides in the sheath on the figure, so it sways with the walk and stays in it
+            // (the user's playtest: it showed while walking).
+            toolAnchor.SetParent(rig.Figure, worldPositionStays: true);
 
             var belt = new GameObject("Belt").transform;
             belt.SetParent(rig.Figure, false);

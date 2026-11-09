@@ -23,7 +23,7 @@ namespace Game.Tests.EditMode
         private const float ShoulderUp = 0.38f;
         private static readonly Vector2 Hip = new Vector2(0.1f, 0.48f);
         // The player's carry anchor, and how far either side of it each hand grips (ChefArmsView).
-        private static readonly Vector3 CarryAnchor = new Vector3(0f, 1.0f, 0.5f);
+        private static readonly Vector3 CarryAnchor = new Vector3(0f, 1.1f, 0.56f);
         private const float GripWidth = 0.17f;
         private const float Reach = 0.38f;
         private const float Tolerance = 0.01f;

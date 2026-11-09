@@ -24,13 +24,13 @@ namespace Game.Presentation
         [Tooltip("Metres walked per full cycle (two steps). Short legs take short, quick steps.")]
         [SerializeField, Min(0.1f)] private float _strideLength = 1f;
         [Tooltip("Degrees each leg swings either way at full speed.")]
-        [SerializeField, Range(0f, 60f)] private float _legSwing = 30f;
+        [SerializeField, Range(0f, 60f)] private float _legSwing = 24f;
         [Tooltip("Degrees each free arm swings either way at full speed.")]
-        [SerializeField, Range(0f, 60f)] private float _armSwing = 22f;
+        [SerializeField, Range(0f, 60f)] private float _armSwing = 16f;
         [Tooltip("How far the body rises at mid-step, in metres.")]
-        [SerializeField, Min(0f)] private float _bobHeight = 0.035f;
+        [SerializeField, Min(0f)] private float _bobHeight = 0.02f;
         [Tooltip("Degrees the body rolls onto each foot: the waddle.")]
-        [SerializeField, Range(0f, 15f)] private float _waddle = 4f;
+        [SerializeField, Range(0f, 15f)] private float _waddle = 1.5f;
         [Tooltip("The walking speed (m/s) that gives the full swing.")]
         [SerializeField, Min(0.1f)] private float _fullSpeed = 2.5f;
 

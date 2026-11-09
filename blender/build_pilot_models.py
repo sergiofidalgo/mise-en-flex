@@ -487,7 +487,7 @@ def build_chef():
 CHAR_WAIST = 0.65
 CHAR_HIP = (0.1, 0.48)             # each leg hangs from here: (out to the side, height)
 CHAR_SHOULDER = (0.25, 0.38)       # (out to the side, up from the waist)
-CHAR_ARM_LENGTH = 0.42             # shoulder to the hand's centre: reaches the carry point
+CHAR_ARM_LENGTH = 0.48             # shoulder to the hand's centre: reaches the carry point
 CHAR_HEAD_CENTRE = 0.71            # above the waist
 CHAR_HEAD_RADIUS = 0.31            # as authored; 0.27 once scaled
 CHAR_HEAD_SCALE = 0.87
@@ -667,9 +667,10 @@ def build_characters():
     part("HairFringe", bm, "waist", head=True)
 
     # Hats, each with a part the game colours: the player's colour on a player, anything on a guest.
-    bm = bmesh.new()  # the toque's puff: short and round, a mushroom over the band (v16)
-    add_lathe(bm, [(0.0, c + 0.24), (0.27, c + 0.24), (0.33, c + 0.28), (0.37, c + 0.33), (0.37, c + 0.39),
-                   (0.32, c + 0.44), (0.2, c + 0.465), (0.0, c + 0.47)], segments=32)
+    bm = bmesh.new()  # the toque's puff: short and round, a mushroom over the band (v16), kept
+    # small so what a chef carries shows past it (the user's playtest)
+    add_lathe(bm, [(0.0, c + 0.24), (0.27, c + 0.24), (0.31, c + 0.28), (0.33, c + 0.32), (0.33, c + 0.37),
+                   (0.29, c + 0.41), (0.18, c + 0.435), (0.0, c + 0.44)], segments=32)
     part("HatToque", bm, "waist", head=True)
     bm = bmesh.new()  # its band, round the head
     add_lathe(bm, [(0.0, c + 0.13), (0.29, c + 0.13), (0.3, c + 0.15), (0.3, c + 0.25), (0.29, c + 0.27), (0.0, c + 0.27)],
@@ -706,8 +707,8 @@ def build_characters():
     # ---- An arm, from the shoulder, hanging straight down: a sleeve and a mitten hand. The game
     # hangs one from each shoulder (CHAR_SHOULDER) and aims them (ChefArmsView).
     bm = bmesh.new()
-    add_lathe(bm, [(0.0, 0.05), (0.065, 0.04), (0.085, 0.0), (0.085, -0.08), (0.075, -0.27), (0.08, -0.29),
-                   (0.08, -0.32), (0.065, -0.33), (0.0, -0.33)], segments=16)
+    add_lathe(bm, [(0.0, 0.05), (0.065, 0.04), (0.085, 0.0), (0.085, -0.08), (0.075, -0.33), (0.08, -0.35),
+                   (0.08, -0.38), (0.065, -0.39), (0.0, -0.39)], segments=16)
     part("CharArm", bm, "apart")
     bm = bmesh.new()
     add_ball(bm, (0.0, 0.0, -CHAR_ARM_LENGTH), 0.08, segments=16)

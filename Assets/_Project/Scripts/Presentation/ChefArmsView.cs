@@ -55,14 +55,18 @@ namespace Game.Presentation
         [SerializeField, Min(0.05f)] private float _chopTime = 0.22f;
 
         [Header("Flipping")]
+        // Exaggerated so a flip reads from the overhead camera in a busy kitchen (the user's
+        // playtest, 2026-11-09: the first, realistic toss was very hard to notice).
         [Tooltip("How long a flip takes (s): a toss of the pan at a hob, a flick of the hand at a grill.")]
-        [SerializeField, Min(0.05f)] private float _flipTime = 0.4f;
+        [SerializeField, Min(0.05f)] private float _flipTime = 0.6f;
         [Tooltip("How high the pan lifts off the hob in a toss (m), and how far it tips (degrees).")]
-        [SerializeField, Min(0f)] private float _tossHeight = 0.12f;
-        [SerializeField, Range(0f, 45f)] private float _tossTilt = 18f;
+        [SerializeField, Min(0f)] private float _tossHeight = 0.25f;
+        [SerializeField, Range(0f, 60f)] private float _tossTilt = 35f;
+        [Tooltip("How high the food jumps out of the pan or off the grill (m); it turns a full somersault on the way.")]
+        [SerializeField, Min(0f)] private float _foodJump = 0.4f;
         [Tooltip("Where the hand flicks a flip at a grill, from the chef (m), and how high.")]
         [SerializeField] private Vector3 _flipHand = new Vector3(0.1f, 1.02f, 0.5f);
-        [SerializeField, Min(0f)] private float _flipHeight = 0.16f;
+        [SerializeField, Min(0f)] private float _flipHeight = 0.32f;
 
         [Header("Washing")]
         [Tooltip("Where the left hand holds the plate and the right hand scrubs it, from the chef (m) (the user's reference).")]
@@ -76,7 +80,7 @@ namespace Game.Presentation
         [Tooltip("How far each hand grips to the side of the carry point (m).")]
         [SerializeField, Min(0f)] private float _gripWidth = 0.17f;
         [Tooltip("Degrees each arm swings either way while walking at full speed.")]
-        [SerializeField, Range(0f, 80f)] private float _swingAngle = 32f;
+        [SerializeField, Range(0f, 80f)] private float _swingAngle = 20f;
         [Tooltip("Swings a second, in radians of the swing's cycle, at full speed.")]
         [SerializeField, Min(0f)] private float _swingRate = 9f;
         [Tooltip("The walking speed (m/s) that gives a full swing.")]
@@ -93,6 +97,9 @@ namespace Game.Presentation
         private Stroke _stroke;
         private float _strokeAge;
         private ItemView _tossedPan;
+        // The food in the air during a flip, with where it rests, to put it back.
+        private readonly System.Collections.Generic.List<(ItemView View, Vector3 Position, Quaternion Rotation)> _flying =
+            new System.Collections.Generic.List<(ItemView, Vector3, Quaternion)>();
 
         private void OnEnable()
         {
@@ -122,14 +129,25 @@ namespace Game.Presentation
             // At a hob the chef tosses the pan on it by its handle (the user's references); the first
             // item view under the hob is its pan, the food under that.
             _tossedPan = station is HobStation ? station.GetComponentInChildren<ItemView>() : null;
+            if (_stroke == Stroke.Flip)
+            {
+                // The food on the hob (in its pan) or on the grill goes up with the flip.
+                foreach (var food in station.GetComponentsInChildren<ItemView>())
+                    if (food != _tossedPan)
+                        _flying.Add((food, food.transform.localPosition, food.transform.localRotation));
+            }
         }
 
-        // Puts a tossed pan back down flat on its hob.
+        // Puts a tossed pan back down flat on its hob, and the food back where it lay.
         private void EndToss()
         {
             if (_tossedPan != null)
                 _tossedPan.SetHeldPose(Vector3.zero, Quaternion.identity, immediate: true);
             _tossedPan = null;
+            foreach (var (view, position, rotation) in _flying)
+                if (view != null)
+                    view.SetHeldPose(position, rotation, immediate: true);
+            _flying.Clear();
         }
 
         private void LateUpdate()
@@ -152,16 +170,25 @@ namespace Game.Presentation
                 _walking = _gait.Walking;
             }
             _strokeAge += dt;
-            if (_tossedPan != null)
+            if (_tossedPan != null || _flying.Count > 0)
             {
                 if (_strokeAge >= _flipTime)
                     EndToss();
                 else
                 {
-                    // Up and back down, tipping its far side up then down so the food goes over.
                     var t = _strokeAge / _flipTime;
-                    _tossedPan.SetHeldPose(Vector3.up * (Mathf.Sin(Mathf.PI * t) * _tossHeight),
-                        Quaternion.Euler(-Mathf.Sin(2f * Mathf.PI * t) * _tossTilt, 0f, 0f), immediate: true);
+                    // The pan: up and back down, tipping its far side up then down to throw the food.
+                    if (_tossedPan != null)
+                        _tossedPan.SetHeldPose(Vector3.up * (Mathf.Sin(Mathf.PI * t) * _tossHeight),
+                            Quaternion.Euler(-Mathf.Sin(2f * Mathf.PI * t) * _tossTilt, 0f, 0f), immediate: true);
+                    // The food leaves a moment after the pan starts up, rises well above it turning a
+                    // full somersault, and lands as the pan settles: the flip you can see.
+                    var air = Mathf.Clamp01((t - 0.12f) / 0.8f);
+                    var lift = Mathf.Sin(Mathf.PI * air) * _foodJump;
+                    var turn = Quaternion.Euler(-360f * Mathf.SmoothStep(0f, 1f, air), 0f, 0f);
+                    foreach (var (view, position, rotation) in _flying)
+                        if (view != null)
+                            view.SetHeldPose(position + Vector3.up * lift, rotation * turn, immediate: true);
                 }
             }
 

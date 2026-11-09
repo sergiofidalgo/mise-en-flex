@@ -152,18 +152,19 @@ namespace Game.Gameplay.Customers
             {
                 var customer = pair.Key;
                 var agent = pair.Value;
+                var stride = step * agent.SpeedFactor; // their own pace
                 agent.Intent = SimVector2.Zero;
                 switch (customer.State)
                 {
                     case CustomerState.WalkingToSeat:
-                        var toSeat = Walk(agent, SeatSpot(customer.Seat), step);
+                        var toSeat = Walk(agent, SeatSpot(customer.Seat), stride);
                         if (toSeat == WalkResult.Arrived)
                             _service.SitDown(customer);
                         else if (toSeat == WalkResult.NoWay)
                             _service.GiveUp(customer);
                         break;
                     case CustomerState.Queueing:
-                        Walk(agent, QueueSpot(customer), step);
+                        Walk(agent, QueueSpot(customer), stride);
                         break;
                     case CustomerState.Waiting:
                     case CustomerState.Eating:
@@ -173,13 +174,13 @@ namespace Game.Gameplay.Customers
                         // pressed would be an equal push against whoever's squeezing by: neither moves.
                         if (IsPressed(agent))
                             break;
-                        if (Walk(agent, SeatSpot(customer.Seat), step) != WalkResult.Walking && StationAt(customer.Seat) != null)
+                        if (Walk(agent, SeatSpot(customer.Seat), stride) != WalkResult.Walking && StationAt(customer.Seat) != null)
                             agent.Face(StationAt(customer.Seat).transform.position - agent.transform.position);
                         break;
                     case CustomerState.Leaving:
                         // Even with the door blocked they always get out, so a service can finish.
-                        if (Walk(agent, _door.position, step) == WalkResult.NoWay)
-                            agent.WalkTowards(_door.position, step, ArriveDistance);
+                        if (Walk(agent, _door.position, stride) == WalkResult.NoWay)
+                            agent.WalkTowards(_door.position, stride, ArriveDistance);
                         if ((Floor(agent.transform.position) - Floor(_door.position)).Length() <= DoorReach)
                             _service.Left(customer);
                         break;

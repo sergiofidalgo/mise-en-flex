@@ -25,12 +25,12 @@ namespace Game.Editor
         public static readonly Vector2 Hip = new Vector2(0.1f, 0.48f);
 
         /// <summary>
-        /// Where a chef holds what they carry (the player's carry anchor): out in front at chest
-        /// height, where the 0.42 m arms reach it, so the hands are on it rather than it floating
-        /// (the user's playtest note). From each shoulder to its grip, 0.17 m either side of the
-        /// middle, is about 0.5 m: the arm plus the mitten.
+        /// Where a chef holds what they carry (the player's carry anchor): held up and out in front,
+        /// where the 0.48 m arms reach it, so the hands are on it rather than it floating, and it
+        /// shows past the toque from more angles (the user's playtest notes). From each shoulder to
+        /// its grip, 0.17 m either side of the middle, is about 0.57 m: the arm plus the mitten.
         /// </summary>
-        public static readonly Vector3 CarryAnchor = new Vector3(0f, 1.0f, 0.5f);
+        public static readonly Vector3 CarryAnchor = new Vector3(0f, 1.1f, 0.56f);
         /// <summary>Nothing worn reaches further from the centre (CHAR_REACH): the capsule is 0.35 m.</summary>
         public const float Reach = 0.38f;
 
@@ -74,6 +74,18 @@ namespace Game.Editor
             public float Build = 1f;
             /// <summary>The whole person's size. Customers are a little smaller than chefs (playtest).</summary>
             public float Scale = 1f;
+
+            // How they walk, a character trait like their clothes (the user's note, 2026-11-09).
+            /// <summary>Walking speed relative to the usual pace (customers; chefs walk at the player's speed).</summary>
+            public float Pace = 1f;
+            /// <summary>Metres per two steps.</summary>
+            public float Stride = 1f;
+            /// <summary>Degrees each leg swings either way.</summary>
+            public float LegSwing = 24f;
+            /// <summary>Degrees the body rolls onto each foot.</summary>
+            public float Waddle = 1.5f;
+            /// <summary>How far the body rises each step, in metres.</summary>
+            public float Bob = 0.02f;
         }
 
         public sealed class Rig
@@ -114,8 +126,9 @@ namespace Game.Editor
         };
 
         /// <summary>
-        /// The customers' archetypes (concept v9.2, section C): clothes, a prop and a hat tell them
-        /// apart. Colours stay clear of the four player colours (orange, teal, raspberry, lime).
+        /// The customers' archetypes (concept v9.2, section C): clothes, a prop, a hat and a walk tell
+        /// them apart: the office worker strides briskly, the retiree ambles with small steps, the
+        /// gym-goer bounds, the date sways. Colours stay clear of the four player colours (orange, teal, raspberry, lime).
         /// </summary>
         public static IReadOnlyList<Look> CustomerLooks()
         {
@@ -123,21 +136,27 @@ namespace Game.Editor
             {
                 new Look { Name = "Regular", Top = new Color(0.62f, 0.2f, 0.16f), Bottom = new Color(0.2f, 0.27f, 0.42f),
                     Hat = HatKind.Cap, HatColor = new Color(0.55f, 0.18f, 0.15f), HatAccent = new Color(0.92f, 0.88f, 0.8f),
-                    Hair = new Color(0.45f, 0.42f, 0.4f), HairStyle = HairKind.Crop, Moustache = true, Nose = NoseKind.Big },
+                    Hair = new Color(0.45f, 0.42f, 0.4f), HairStyle = HairKind.Crop, Moustache = true, Nose = NoseKind.Big,
+                    Waddle = 2f },
                 new Look { Name = "Office", Skin = new Color(0.55f, 0.36f, 0.24f), Top = new Color(0.27f, 0.29f, 0.34f),
                     Bottom = new Color(0.22f, 0.23f, 0.27f), Hair = CharacterArt.DarkHair, HairStyle = HairKind.Crop,
-                    Tie = true, TieColor = new Color(0.2f, 0.32f, 0.6f) },
+                    Tie = true, TieColor = new Color(0.2f, 0.32f, 0.6f),
+                    Pace = 1.15f, Stride = 1.1f, Waddle = 0.6f },
                 new Look { Name = "DateNight", Skin = new Color(0.98f, 0.83f, 0.7f), Top = new Color(0.5f, 0.12f, 0.2f),
-                    Bottom = new Color(0.98f, 0.83f, 0.7f), Dress = true, Hair = new Color(0.85f, 0.7f, 0.42f), HairStyle = HairKind.Bun },
+                    Bottom = new Color(0.98f, 0.83f, 0.7f), Dress = true, Hair = new Color(0.85f, 0.7f, 0.42f), HairStyle = HairKind.Bun,
+                    Pace = 0.95f, Stride = 0.75f, LegSwing = 16f, Waddle = 2.5f },
                 new Look { Name = "Tourist", Skin = new Color(0.86f, 0.62f, 0.45f), Top = new Color(0.88f, 0.9f, 0.95f),
                     Bottom = new Color(0.82f, 0.74f, 0.55f), Hat = HatKind.SunHat, HatColor = new Color(0.9f, 0.82f, 0.6f),
-                    HatAccent = new Color(0.2f, 0.27f, 0.5f), Hair = new Color(0.4f, 0.26f, 0.15f), Camera = true },
+                    HatAccent = new Color(0.2f, 0.27f, 0.5f), Hair = new Color(0.4f, 0.26f, 0.15f), Camera = true,
+                    Pace = 0.85f, Stride = 0.9f, Waddle = 2f },
                 new Look { Name = "Retiree", Skin = new Color(0.94f, 0.76f, 0.64f), Top = new Color(0.7f, 0.6f, 0.45f),
                     Bottom = new Color(0.4f, 0.36f, 0.32f), Hair = new Color(0.85f, 0.85f, 0.83f), HairStyle = HairKind.Fringe,
-                    Glasses = true, Nose = NoseKind.Big },
+                    Glasses = true, Nose = NoseKind.Big,
+                    Pace = 0.7f, Stride = 0.65f, LegSwing = 14f, Waddle = 2.5f, Bob = 0.01f },
                 new Look { Name = "Gym", Skin = new Color(0.36f, 0.22f, 0.15f), Top = new Color(0.22f, 0.3f, 0.5f),
                     Bottom = new Color(0.18f, 0.18f, 0.2f), Hat = HatKind.Headband, HatAccent = new Color(0.95f, 0.95f, 0.92f),
-                    Hair = CharacterArt.DarkHair, HairStyle = HairKind.Afro, Build = 1.08f },
+                    Hair = CharacterArt.DarkHair, HairStyle = HairKind.Afro, Build = 1.08f,
+                    Pace = 1.25f, Stride = 1.25f, LegSwing = 30f, Waddle = 0.8f, Bob = 0.03f },
             };
             // A little smaller than the chefs (the user's playtest: customers felt too big), so the
             // players stay the biggest, clearest people in the room.
@@ -228,6 +247,10 @@ namespace Game.Editor
             gait.FindProperty("_leftShoulder").objectReferenceValue = rig.LeftShoulder;
             gait.FindProperty("_rightShoulder").objectReferenceValue = rig.RightShoulder;
             gait.FindProperty("_swingArms").boolValue = swingArms;
+            gait.FindProperty("_strideLength").floatValue = look.Stride;
+            gait.FindProperty("_legSwing").floatValue = look.LegSwing;
+            gait.FindProperty("_waddle").floatValue = look.Waddle;
+            gait.FindProperty("_bobHeight").floatValue = look.Bob;
             gait.ApplyModifiedPropertiesWithoutUndo();
             return rig;
         }

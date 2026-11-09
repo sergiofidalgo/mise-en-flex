@@ -95,8 +95,10 @@ namespace Game.Editor
             if (CharacterArt.Available)
             {
                 var looks = new System.Collections.Generic.List<GameObject>();
+                var paces = new System.Collections.Generic.List<float>();
                 foreach (var look in CharacterArt.CustomerLooks())
                 {
+                    paces.Add(look.Pace);
                     var visuals = new GameObject("Look_" + look.Name);
                     visuals.transform.SetParent(root.transform, false);
                     CharacterArt.Build(visuals.transform, look);
@@ -107,6 +109,10 @@ namespace Game.Editor
                 list.arraySize = looks.Count;
                 for (var i = 0; i < looks.Count; i++)
                     list.GetArrayElementAtIndex(i).objectReferenceValue = looks[i];
+                var paceList = picker.FindProperty("_paces");
+                paceList.arraySize = paces.Count;
+                for (var i = 0; i < paces.Count; i++)
+                    paceList.GetArrayElementAtIndex(i).floatValue = paces[i];
                 picker.ApplyModifiedPropertiesWithoutUndo();
 
                 var built = PrefabUtility.SaveAsPrefabAsset(root, CustomerPrefabPath);

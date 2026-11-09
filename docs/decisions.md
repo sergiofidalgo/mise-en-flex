@@ -50,6 +50,25 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 **Still found:** facing straight away from the camera, the toque and head still hide what's carried. They hide less than before, and from 45° on it shows. The user will judge in play whether this still needs a fix (for example, an icon above the head).
 
+## 2026-11-09 — A calmer walk, a walk per customer, a smaller toque, and a flip you can see
+
+**The user's second playtest:** the walk was great but swung too much, and the knife showed out of its sheath while walking. Customers' walk and speed could be part of their character. What's carried should show more when a chef is turned away, so the hat could be smaller or the arms longer. The flip was very hard to notice and should be exaggerated substantially.
+
+**Changed:**
+- **Calmer walk:** the waddle is 1.5° (was 4°), the bob 2 cm (was 3.5 cm), the leg swing 24° (was 30°) and the arm swing 16–20° (was 22–32°).
+- **The knife stays in its sheath:** the knife's anchor now moves with the body, so the waddle no longer tips the sheath away from the knife.
+- **A walk per customer** (`Look.Pace`, `Stride`, `LegSwing`, `Waddle`, `Bob`):
+  - the office worker strides briskly (115% pace);
+  - the gym-goer bounds (125%);
+  - the date sways with short steps (95%);
+  - the tourist ambles (85%);
+  - the retiree takes small, slow steps (70%).
+- **Pace is gameplay too:** `WalkingAgent.SpeedFactor` scales the configured walking speed, so a retiree takes longer to reach a seat or the door. Nothing else depends on it.
+- **What's carried shows more:** the toque is smaller (the top is 1.74 m; head and toque are 37% of the height). The arms reach 0.48 m to the hand, and things are carried higher and further out (1.1 m up, 0.56 m forward). From 45° on, the plate shows clearly. Facing straight away it's still hidden: a 55° camera can't see past a head held level with the hands.
+- **The flip:** the pan lifts 25 cm (was 12) and tips 35° (was 18). The food jumps 40 cm out of the pan or off the grill, turning a full somersault, and lands as the pan settles. A flip lasts 0.6 s (was 0.4). The hand at a grill flicks twice as high. This is presentation only: when the food turns over in the simulation is unchanged.
+
+---
+
 ---
 
 ## 2026-11-09 — Characters v9.2 in the kitchen: big heads, barrel bodies, stubby legs (proportion greybox)
