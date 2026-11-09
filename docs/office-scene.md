@@ -1,0 +1,160 @@
+# The boss's office — scene spec
+
+*Draft 2026-11-09, from the user's lo-fi floor plan (`Art/Direction/concepts/2026-11-08_boss-floor_full-plan.png`, `…_boss-office.png`). Not yet reviewed by the Art Director: check with them before the art phase (user's call, 2026-11-09). Gameplay is Phase 6; this spec sets the space so that work has somewhere to land.*
+
+Design references: `game-design.md` §15 (campaign, office, money trouble, ending), `art-bible.md` (palette, rendering, world & scenography). Decisions: `decisions.md`, 2026-11-09 "The boss's floor".
+
+---
+
+## 1. Vision and story
+
+The office is the **penthouse floor of the boss's skyscraper**, in the same night city the main menu flies over (`SM_City`). It is the game's lobby: players join here, change their look, buy restaurants, borrow money, practise, and come back between days.
+
+**Mood: cozy money with a hint of menace.** Inside it's warm: lamplight, polished wood, brass trim, the kitchen's palette dressed up for an oligarch. Outside it's cold: a blue night city far below and a windy terrace. Players should feel welcome, but never quite at home. The money is his.
+
+**What the place should say without text:**
+- The boss is rich and a little absurd: a helipad, a hall of trophies, a red carpet up to his door.
+- Everything leads to him: the carpet, the bodyguards and the lighting all point at his door.
+- The empire grows here: the city miniature fills with your restaurants, and the hall of fame fills with plinths.
+- People lose here too: in the hall of fame, erased chefs leave dusty portraits, and their cookbook sits waiting for the next chef (§15.3).
+
+## 2. Layout
+
+### The floor
+
+A **3 × 3 grid of rooms** with a terrace along the back, matching the user's draft. The camera looks north, so the front row is nearest the camera.
+
+```
+          ┌──────────────── TERRACE (decking, planters, umbrella, helipad NE) ───────────────┐
+  back    │  TAILOR              │  THE BOSS'S OFFICE       │  BACK ROOM (city miniature)     │
+  middle  │  TEST KITCHEN        │  GUARDED DOORS           │  HALL OF FAME                   │
+  front   │  WAITING LOUNGE      │  RECEPTION + ELEVATOR    │  ACCOUNTANT                     │
+          └──────────────────────────── (façade drops away to the city) ─────────────────────┘
+```
+
+| Measure | Value | Why |
+| --- | --- | --- |
+| Room | 8 m × 6 m (W × D) | Same width as the kitchen (`FloorWidth` 8 m), so the camera's familiar framings fit a room |
+| Floor | 24 m × 18 m, plus a 4 m terrace | Fits within the 18 m player leash diagonally from room to room |
+| Doorways | 1.6 m gaps, centred on shared walls | Two chefs pass without snagging; forgiving to walk through |
+| Walls | Outer back wall: low 1.0 m sill + glass to 2.4 m. All other walls 1.0 m with a trim cap | The dollhouse cut (art bible) applied to a whole floor: a tall interior wall would hide the room behind it from the overhead camera |
+
+**Connections:** reception opens to all three front-row rooms and to the guarded doors. The guarded doors open to the boss's office, the test kitchen and the hall of fame. The tailor connects to the test kitchen and the terrace, the back room to the hall of fame and the terrace, and the boss's office to the terrace. The terrace runs the full width behind the back row.
+
+**Walking distances:** most trips start at the elevator (front centre). The miniature, the tailor and the boss are each two rooms away, about 12–14 m. At the chef's walking pace that's a few seconds, which is acceptable on a between-days visit. If playtests show it drags, the first fix is wider doorways and diagonal shortcuts, not moving rooms.
+
+### The camera
+
+- **On arrival, and before anyone joins:** a wide establishing shot of the whole floor, as in the draft. Same rule as the kitchen: "before anyone joins, the whole restaurant shows" (decision 2026-11-07).
+- **Once someone joins:** the kitchen's follow camera, with the same easing, leash and framing. The chef stays ≥ 100 px tall at 1080p (art bible). At the full-floor view a chef is about 40 px, so it's a shot, not a play view.
+- **Interiors aren't cut by the camera:** the 1.0 m walls handle it, so nothing needs to fade.
+
+## 3. Rooms
+
+Each room has one job and one hero prop that says that job from above.
+
+| Room | Job (Phase 6 unless noted) | Hero prop | Interaction |
+| --- | --- | --- | --- |
+| **Reception + elevator** | Join; leave for a restaurant | **The elevator** (see below) and the reception desk | A at the elevator when everyone's in = go |
+| **Tailor** | Change look; saves at once (§15.4) | Three-way mirror and colour plinths (the coloured discs in the draft) | Stand on a plinth: A = change look |
+| **The boss's office** | Meet the boss; borrow money; story beats | Desk with the boss behind it, pool of lamplight | A at the desk = Ask for a loan (draft 08) |
+| **Back room** | Buy restaurants and travel (§15.2) | **City miniature** table, built from `SM_City` pieces at about 1/50 scale | A at the table = open the miniature |
+| **Accountant** | What's owed and when the next fee is due | Desk, adding machine, filing cabinets | A = the books (read-only, like the Review dashboard's Books) |
+| **Hall of fame** | The cookbook; owned restaurants; past chefs | Lectern holding the **cookbook**, plinths with each restaurant's trophy, portraits of erased chefs | A at the lectern = cookbook |
+| **Test kitchen** | Practise any learned recipe (new, see below) | Minimal kitchen island | Normal kitchen controls |
+| **Guarded doors** | Antechamber; the bodyguards' post | Two bodyguards flanking the boss's door, red carpet | None; the bodyguards react to players passing |
+| **Waiting lounge** | Scenery and story beats (the boss's friends, a critic waiting, etc.) | Sofas, coffee table, a TV | None at first |
+| **Terrace** | Scenery; the ending (§15.4) | **Helipad** | None at first |
+
+### The elevator (user's call, 2026-11-09)
+
+One big elevator, not four. It replaces the four coloured lifts in the draft.
+
+- **Joining:** each time a player presses a button to join, the elevator rings as if it has just reached the floor, the doors open, and that player's chef steps out into reception. Then the doors close.
+- **Several joins:** if someone joins while the doors are still open, it rings again and the next chef steps out. No waiting.
+- **Leaving:** once a restaurant is chosen on the miniature, players walk into the elevator. When every joined player is inside, the doors close and the ride down is the transition to the restaurant. A player outside holds it, and the hint says who's missing. *(Proposed; to confirm in Phase 6.)*
+- **Coming back:** arriving from a restaurant is the same ring and doors, with every chef stepping out together.
+- **Feedback:** a floor-indicator dial above the doors sweeps up as a chef arrives; the bell is the loudest sound on the floor, so a join never goes unnoticed.
+- **Size:** 3.2 m wide inside, so four chefs fit (3–4 players is a stretch goal) and nobody blocks the doors.
+
+### The test kitchen (user's call, 2026-11-09)
+
+An office kitchen with **bare-minimum appliances** where players can try things out: searing, cooking, cutting.
+
+- **Appliances:** one hob, one board, a small fridge, a bin and a counter or two. No sink or plate pile unless a learned recipe needs one.
+- **Ingredients appear as recipes are learned.** The fridge stocks every ingredient of every recipe in the **cookbook**, so it grows as players buy and learn recipes across restaurants, and it outlives campaigns with the cookbook. It starts with the boss's dish (onion steak).
+- **Free and endless:** nothing costs money, no spoilage, no clock, no customers, nothing saved.
+- **Fits the earlier rule:** "a new ingredient and its mechanics are introduced when it's first bought" (2026-11-06) still holds. An ingredient only reaches the test kitchen after it's been bought and learned in a restaurant.
+- **Same code as the kitchen:** the same station prefabs and cooking simulation, so it costs little and stays true to service.
+- **Open:** whether there's a way to see a dish's quality score (e.g. a tasting spot that shows the breakdown); see `ideas.md`.
+
+## 4. Assets
+
+All models come from `blender/build_pilot_models.py` (generated, reviewable as text), named per `CLAUDE.md`, chunky with bevelled edges (art bible "Modeling"), on the one palette texture.
+
+**Hero props** (up to 1,500 tris each)
+- `SM_Elevator`: doors that slide, floor dial, bell; frame in brass
+- `SM_BossDesk`, `SM_BossChair`
+- `SM_MiniatureTable`: the table only; the city on it is `SM_City` pieces placed by the scene builder
+- `SM_ReceptionDesk`
+- `SM_Lectern` (cookbook) and `SM_Cookbook`
+- `SM_Helipad` (a decal-like slab with a painted H)
+
+**Supporting props** (up to 600 tris each)
+- Furniture: `SM_Sofa`, `SM_Armchair`, `SM_CoffeeTable`, `SM_OfficeDesk`, `SM_FilingCabinet`, `SM_Bookshelf`, `SM_Plinth`, `SM_Mirror`, `SM_ClothesRack`, `SM_TailorPlinth`, `SM_Portrait`
+- Terrace: `SM_DeckChair`, `SM_Umbrella`, `SM_Planter` (conifer), `SM_GlassRailing`
+
+**Filler props** (up to 300 tris each)
+- Potted plants, a lamp, a phone, a TV, a typewriter or adding machine, books, trophies
+- Reused from the kitchen: hob, board, fridge, bin and cabinet for the test kitchen
+
+**Building kit** (up to 600 tris per module)
+- Wall modules: 1.0 m capped wall, sill + glass wall, doorway, corner
+- Floor tiles in three woods (office parquet, lounge carpet, terrace decking), cream test-kitchen tile, one checker in two close tones for reception
+- Red carpet runner (a mesh strip, not a texture)
+
+**Exterior**
+- The top of the boss's tower (façade, cornice, ledge)
+- A ring of neighbouring tower tops below the floor, with windows lit through the palette texture, so no void shows at any framing (art bible). All of it within the 60k-triangle exterior budget.
+
+## 5. Scenography
+
+**Focal point:** the boss's office. The carpet runs from the elevator straight up through the guarded doors to his desk, so the first view after the doors open is a line to him. His desk gets the warmest light on the floor.
+
+**Secondary focal points:** the miniature (its own soft spot, the city glowing on it) and the elevator (the brass frame catches light).
+
+**Colour (readability first):**
+- **Floors are mid-dark and low-contrast:** the white chef must pop against every floor. The draft's black-and-white checker at reception would swallow a white chef from above, so it uses two close wood tones.
+- **The red carpet is deep burgundy**, not the "Bad / B" red `#D9493B`, so feedback colours keep their meaning.
+- **Player colours** (the draft's tailor plinths and markers) don't use two blues. Players 1 and 4 in the draft are both blue, which colourblind players can't tell apart.
+
+**Lighting:**
+- **Interior:** warm key `#FFD9A8`, as in the kitchen; brass and wood catch it.
+- **Exterior:** cool moonlight and −15% saturation through a local Volume, as the art bible sets for outside zones.
+- **Lamps:** desk lamps, a reception pendant and the miniature's spot as the only extra real-time lights.
+- **It's always night here.** Players visit between days, after Close.
+
+**Small stories:**
+- A stack of unpaid invoices on the accountant's desk, with one restaurant's name on top (yours, when you're behind).
+- The bodyguards' coffee cups on the lounge table.
+- The tailor's mannequin wearing a chef's jacket a size too big.
+- Erased chefs' portraits gathering dust in the hall of fame.
+- The helicopter on the pad, rotor tied down. At the ending, it's gone.
+
+## 6. Technical notes
+
+- **Building it:** the scene is built by an Editor menu item (`Tools/Game/Build Office Scene`), like `MainMenuBuilder`. No hand-edited `.unity` YAML.
+- **Shading:** one toon shader, one palette texture, outlines from the pending `2026-11-08_outline-pass` handoff. Window glow is in the palette, not real lights.
+- **Lights:** one directional moonlight plus up to 6 local lights, all with no shadows except the moonlight's.
+- **Batching:** building kit and furniture are static and batch together. The miniature's city pieces are instanced.
+- **Budgets:** interior about 40k triangles, exterior up to 60k. Target: a steady 60 fps on a MacBook with two players (`CLAUDE.md`).
+- **Test kitchen:** reuses the kitchen's station prefabs and composition-root wiring with a "practice" setting (no money, no spoilage, no customers). This is the only gameplay system the office needs before Phase 6.
+- **Overdraw:** the glass on the back wall and railing is the only transparency. Keep it to a few large quads.
+
+## 7. Open questions
+
+1. **Leaving together:** does everyone need to be in the elevator to leave, or does the first player in send everyone? (Proposed: everyone in.)
+2. **Waiting lounge:** scenery only, or a job (e.g. the escalation beats happen here)?
+3. **Quality score in the test kitchen:** a tasting spot, or no score at all?
+4. **The free kitchen sandbox** (`ideas.md`, greyed out in the main menu): does the test kitchen replace it, or does it stay as a separate mode with every appliance?
+5. **Art Director review:** this spec turns the user's draft into dimensions and assets. The AD should check the colour notes and the asset list before the art phase.

@@ -310,3 +310,9 @@ To work out when we get there: whether a full bin left standing smells and costs
 ## Free kitchen (sandbox)
 
 *From the main menu mockup, 2026-11-08.* A mode with the kitchen and every appliance, no money, fee or boss, and nothing saved: for trying techniques, layouts and co-op without pressure. It's greyed out in the main menu until it's built.
+
+## A tasting spot in the test kitchen (proposed 2026-11-09)
+
+*From the office scene spec (`office-scene.md`).* The test kitchen has no customers, so practising gives no score. A tasting spot (a plate on a pass, or handing the dish to the receptionist) could show the dish's quality breakdown: doneness, temperature, seasoning, freshness, plating. It's the fastest way to learn what "good" means without risking a service. Against it: it may teach the numbers instead of the food, which "learn by playing" would rather avoid.
+
+To work out when we get there: whether the test kitchen replaces the free kitchen sandbox above, or both exist (the sandbox with every appliance, the test kitchen with only what you've learned).

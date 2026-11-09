@@ -4,6 +4,20 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-09 — The boss's floor
+
+**User's calls**, from their lo-fi floor plan; the full spec is `docs/office-scene.md`:
+- **The office is the whole penthouse floor of the boss's skyscraper:** nine rooms in a 3 × 3 grid (tailor, the boss's office, back room with the city miniature; test kitchen, guarded doors, hall of fame; waiting lounge, reception, accountant) with a terrace and helipad behind. The full floor stays, rather than a tighter set of core rooms.
+- **There's a test kitchen in the office.** It's an office kitchen with bare-minimum appliances where players try things out (searing, cooking, cutting). Its fridge holds the ingredients of every recipe in the cookbook, so it grows as players buy and learn recipes across restaurants. This replaces "No test kitchen in the office" (2026-11-06). The rest of that rule still holds: an ingredient and its mechanics are first met when it's bought, since only learned recipes reach the test kitchen.
+- **One big elevator, not four.** Every player joins through it. Each time someone joins, it rings as if it's just reached the floor, the doors open and their chef steps out.
+- **Spec first, Art Director later.** The scene is specced from the user's draft now; the AD reviews it before the art phase.
+
+**Proposed in the spec (flagged for review):** rooms 8 × 6 m like the kitchen; every wall cut to 1.0 m except a glass back wall, so the overhead camera sees into every room; a wide shot of the floor before anyone joins, then the kitchen's follow camera; leaving for a restaurant once every player is in the elevator; the test kitchen free, endless, unsaved and without a clock; the reception checker in two close tones and the carpet in burgundy, for readability against the chef and the "Bad" red.
+
+**Where `game-design.md` is now out of date:** §15.2 describes the office as a single lobby and doesn't mention the floor's rooms, the elevator or the test kitchen.
+
+---
+
 ## 2026-11-09 — The Review dashboard drawn to the Art Director's dashboard mockups
 
 **User's call:** the reply wheel keeps the game's three replies in the mockup's look: X Apologise, Y Thank, A Stand your ground, B Leave it (closes without replying). No effect chips: players still learn what replies do by playing. The mockup's Invite back and Defend, with their effects, aren't built.
