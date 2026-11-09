@@ -309,10 +309,8 @@ To work out when we get there: whether a full bin left standing smells and costs
 
 ## Free kitchen (sandbox)
 
-*From the main menu mockup, 2026-11-08.* A mode with the kitchen and every appliance, no money, fee or boss, and nothing saved: for trying techniques, layouts and co-op without pressure. It's greyed out in the main menu until it's built.
+*From the main menu mockup, 2026-11-08; reshaped by the user, 2026-11-09.* A mode where players play **a restaurant they've already bought**, with only the recipes they've already bought, but with **unlimited money** for appliances and ingredients. Real customers and the real phases run, so it's practice for a full day, not just a technique. Nothing is saved. It's greyed out in the main menu until it's built.
 
-## A tasting spot in the test kitchen (proposed 2026-11-09)
+It stays alongside the office's test kitchen (decision 2026-11-09): the test kitchen is for trying a technique on the spot, with the bodyguards as tasters; the free kitchen is for rehearsing a whole service.
 
-*From the office scene spec (`office-scene.md`).* The test kitchen has no customers, so practising gives no score. A tasting spot (a plate on a pass, or handing the dish to the receptionist) could show the dish's quality breakdown: doneness, temperature, seasoning, freshness, plating. It's the fastest way to learn what "good" means without risking a service. Against it: it may teach the numbers instead of the food, which "learn by playing" would rather avoid.
-
-To work out when we get there: whether the test kitchen replaces the free kitchen sandbox above, or both exist (the sandbox with every appliance, the test kitchen with only what you've learned).
+To work out when we get there: which campaign's restaurants it offers (with three campaign slots, and after an erasure), and whether it's greyed out until a first restaurant is bought.

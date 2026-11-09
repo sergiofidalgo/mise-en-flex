@@ -11,10 +11,14 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 - **There's a test kitchen in the office.** It's an office kitchen with bare-minimum appliances where players try things out (searing, cooking, cutting). Its fridge holds the ingredients of every recipe in the cookbook, so it grows as players buy and learn recipes across restaurants. This replaces "No test kitchen in the office" (2026-11-06). The rest of that rule still holds: an ingredient and its mechanics are first met when it's bought, since only learned recipes reach the test kitchen.
 - **One big elevator, not four.** Every player joins through it. Each time someone joins, it rings as if it's just reached the floor, the doors open and their chef steps out.
 - **Spec first, Art Director later.** The scene is specced from the user's draft now; the AD reviews it before the art phase.
+- **A day starts at the city miniature,** once every joined player is at it, looking at the map. The elevator is for joining and coming back, not for leaving.
+- **The waiting lounge and the accountant are for fun:** characters and objects to interact with, and easter eggs. The books stay on the Review dashboard.
+- **The bodyguards taste the test kitchen's food.** Players serve it to them, and they review it like customers, but pay nothing.
+- **The free kitchen sandbox stays as its own mode,** reshaped: players play a restaurant they've already bought, with the recipes they've bought, real customers and phases, and unlimited money for appliances and ingredients (`ideas.md`).
 
-**Proposed in the spec (flagged for review):** rooms 8 × 6 m like the kitchen; every wall cut to 1.0 m except a glass back wall, so the overhead camera sees into every room; a wide shot of the floor before anyone joins, then the kitchen's follow camera; leaving for a restaurant once every player is in the elevator; the test kitchen free, endless, unsaved and without a clock; the reception checker in two close tones and the carpet in burgundy, for readability against the chef and the "Bad" red.
+**Proposed in the spec (flagged for review):** rooms 8 × 6 m like the kitchen; every wall cut to 1.0 m except a glass back wall, so the overhead camera sees into every room; a wide shot of the floor before anyone joins, then the kitchen's follow camera; the test kitchen free, endless, unsaved and without a clock; a serving hatch from the test kitchen to the bodyguards, whose reviews are practice and never reach a listing; the reception checker in two close tones and the carpet in burgundy, for readability against the chef and the "Bad" red.
 
-**Where `game-design.md` is now out of date:** §15.2 describes the office as a single lobby and doesn't mention the floor's rooms, the elevator or the test kitchen.
+**Where `game-design.md` is now out of date:** §15.2 describes the office as a single lobby and doesn't mention the floor's rooms, the elevator, the test kitchen or starting a day at the miniature.
 
 ---
 

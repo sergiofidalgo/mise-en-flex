@@ -55,15 +55,15 @@ Each room has one job and one hero prop that says that job from above.
 
 | Room | Job (Phase 6 unless noted) | Hero prop | Interaction |
 | --- | --- | --- | --- |
-| **Reception + elevator** | Join; leave for a restaurant | **The elevator** (see below) and the reception desk | A at the elevator when everyone's in = go |
+| **Reception + elevator** | Join; arrive back from a restaurant | **The elevator** (see below) and the reception desk | None: joining is a button press anywhere |
 | **Tailor** | Change look; saves at once (§15.4) | Three-way mirror and colour plinths (the coloured discs in the draft) | Stand on a plinth: A = change look |
 | **The boss's office** | Meet the boss; borrow money; story beats | Desk with the boss behind it, pool of lamplight | A at the desk = Ask for a loan (draft 08) |
-| **Back room** | Buy restaurants and travel (§15.2) | **City miniature** table, built from `SM_City` pieces at about 1/50 scale | A at the table = open the miniature |
-| **Accountant** | What's owed and when the next fee is due | Desk, adding machine, filing cabinets | A = the books (read-only, like the Review dashboard's Books) |
+| **Back room** | Buy restaurants; **start a day** in one (§15.2) | **City miniature** table, built from `SM_City` pieces at about 1/50 scale | A at the table = look at the miniature. A day starts only when **every joined player** is at the table looking at it (user's call, 2026-11-09) |
+| **Accountant** | For fun: characters and objects to poke at, easter eggs (user's call, 2026-11-09). The books stay on the Review dashboard | Desk, adding machine, filing cabinets | Small one-off interactions, no menus |
 | **Hall of fame** | The cookbook; owned restaurants; past chefs | Lectern holding the **cookbook**, plinths with each restaurant's trophy, portraits of erased chefs | A at the lectern = cookbook |
 | **Test kitchen** | Practise any learned recipe (new, see below) | Minimal kitchen island | Normal kitchen controls |
-| **Guarded doors** | Antechamber; the bodyguards' post | Two bodyguards flanking the boss's door, red carpet | None; the bodyguards react to players passing |
-| **Waiting lounge** | Scenery and story beats (the boss's friends, a critic waiting, etc.) | Sofas, coffee table, a TV | None at first |
+| **Guarded doors** | Antechamber; the bodyguards' post; they eat and review the test kitchen's food | Two bodyguards flanking the boss's door, red carpet | Serve them a plate from the test kitchen (see below) |
+| **Waiting lounge** | For fun: characters and objects to interact with, easter eggs (user's call, 2026-11-09) | Sofas, coffee table, a TV | Small one-off interactions, no menus |
 | **Terrace** | Scenery; the ending (§15.4) | **Helipad** | None at first |
 
 ### The elevator (user's call, 2026-11-09)
@@ -72,7 +72,7 @@ One big elevator, not four. It replaces the four coloured lifts in the draft.
 
 - **Joining:** each time a player presses a button to join, the elevator rings as if it has just reached the floor, the doors open, and that player's chef steps out into reception. Then the doors close.
 - **Several joins:** if someone joins while the doors are still open, it rings again and the next chef steps out. No waiting.
-- **Leaving:** once a restaurant is chosen on the miniature, players walk into the elevator. When every joined player is inside, the doors close and the ride down is the transition to the restaurant. A player outside holds it, and the hint says who's missing. *(Proposed; to confirm in Phase 6.)*
+- **Leaving is not the elevator's job.** A day starts at the city miniature, once every joined player is at the table looking at it (user's call, 2026-11-09). A player who's elsewhere holds it, and the hint says who's missing. *(Open: what the transition to the restaurant looks like, e.g. the camera diving into the miniature.)*
 - **Coming back:** arriving from a restaurant is the same ring and doors, with every chef stepping out together.
 - **Feedback:** a floor-indicator dial above the doors sweeps up as a chef arrives; the bell is the loudest sound on the floor, so a join never goes unnoticed.
 - **Size:** 3.2 m wide inside, so four chefs fit (3–4 players is a stretch goal) and nobody blocks the doors.
@@ -86,7 +86,10 @@ An office kitchen with **bare-minimum appliances** where players can try things 
 - **Free and endless:** nothing costs money, no spoilage, no clock, no customers, nothing saved.
 - **Fits the earlier rule:** "a new ingredient and its mechanics are introduced when it's first bought" (2026-11-06) still holds. An ingredient only reaches the test kitchen after it's been bought and learned in a restaurant.
 - **Same code as the kitchen:** the same station prefabs and cooking simulation, so it costs little and stays true to service.
-- **Open:** whether there's a way to see a dish's quality score (e.g. a tasting spot that shows the breakdown); see `ideas.md`.
+- **The bodyguards are the tasters** (user's call, 2026-11-09). Food from the test kitchen is served to them; they eat it and review it, as customers do, but pay nothing. Their posts at the guarded doors are next door, which keeps the walk short.
+  - *Proposed:* a serving hatch in the wall shared with the guarded doors. Put a plate on it and the nearer bodyguard takes it, eats and gives a review line, the same feedback a customer's review gives.
+  - *Proposed:* these reviews are practice. They don't reach any restaurant's listing or reputation.
+- **Not the free kitchen.** The free kitchen sandbox is a separate mode (`ideas.md`): a restaurant already bought, with real customers and phases and unlimited money.
 
 ## 4. Assets
 
@@ -153,8 +156,9 @@ All models come from `blender/build_pilot_models.py` (generated, reviewable as t
 
 ## 7. Open questions
 
-1. **Leaving together:** does everyone need to be in the elevator to leave, or does the first player in send everyone? (Proposed: everyone in.)
-2. **Waiting lounge:** scenery only, or a job (e.g. the escalation beats happen here)?
-3. **Quality score in the test kitchen:** a tasting spot, or no score at all?
-4. **The free kitchen sandbox** (`ideas.md`, greyed out in the main menu): does the test kitchen replace it, or does it stay as a separate mode with every appliance?
-5. **Art Director review:** this spec turns the user's draft into dimensions and assets. The AD should check the colour notes and the asset list before the art phase.
+*Answered 2026-11-09: starting a day (everyone at the miniature), the lounge and accountant (fun and easter eggs), tasting (the bodyguards review), the free kitchen (stays, as a separate mode).*
+
+1. **The trip to a restaurant:** what plays when everyone's at the miniature: a camera dive into the miniature, the elevator ride, or a plain fade?
+2. **Easter eggs:** which characters and objects in the lounge and at the accountant. A list to fill in during Phase 6 or 7; the rooms should leave space for them.
+3. **The bodyguards' reviews:** confirm they're practice only, never on a listing.
+4. **Art Director review:** this spec turns the user's draft into dimensions and assets. The AD should check the colour notes and the asset list before the art phase.
