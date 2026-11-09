@@ -14,12 +14,19 @@ namespace Game.Presentation
     /// </summary>
     public sealed class CharacterRoll : MonoBehaviour
     {
-        /// <summary>One choice among parts: one option shows, or none with <see cref="NoneChance"/>.</summary>
+        /// <summary>One option: the parts that show together (a jacket is its front and both sleeves).</summary>
+        [Serializable]
+        public struct Option
+        {
+            public GameObject[] Parts;
+        }
+
+        /// <summary>One choice among options: one shows, or none with <see cref="NoneChance"/>.</summary>
         [Serializable]
         public struct Choice
         {
             public string Name;
-            public GameObject[] Options;
+            public Option[] Options;
             [Range(0f, 1f)] public float NoneChance;
         }
 
@@ -78,6 +85,15 @@ namespace Game.Presentation
             _registered = false;
         }
 
+        private static void Show(Option option, bool shown)
+        {
+            if (option.Parts == null)
+                return;
+            foreach (var part in option.Parts)
+                if (part != null)
+                    part.SetActive(shown);
+        }
+
         /// <summary>
         /// Picks and shows a person; returns a key for the combination. Public so a still picture
         /// can roll with a fixed seed outside Play mode.
@@ -92,10 +108,9 @@ namespace Game.Presentation
                     : random.Next(choice.Options.Length);
                 // All off, then the pick on: an option may be listed twice to weight it.
                 foreach (var option in choice.Options)
-                    if (option != null)
-                        option.SetActive(false);
-                if (pick >= 0 && choice.Options[pick] != null)
-                    choice.Options[pick].SetActive(true);
+                    Show(option, false);
+                if (pick >= 0)
+                    Show(choice.Options[pick], true);
                 key = key * 31 + pick + 1;
             }
 

@@ -52,6 +52,17 @@ namespace Game.Editor
         public enum HairKind { Bald, Fringe, Crop, Bun, Afro }
         public enum NoseKind { Button, Big }
         public enum PropKind { Cane, Bottle, Newspaper, Handbag, Backpack, Satchel }
+        /// <summary>
+        /// What's worn on top (the user's note, 2026-11-09): a plain shirt, an open jacket over a
+        /// shirt, a vest over a shirt (its sleeves the shirt's), a tank top with bare arms, a hoodie.
+        /// </summary>
+        public enum Garment { Shirt, Jacket, Vest, TankTop, Hoodie }
+
+        /// <summary>Shirts under jackets and vests: white, pale blue, cream, pale pink.</summary>
+        public static readonly Color[] ShirtColours =
+        {
+            new Color(0.94f, 0.93f, 0.9f), new Color(0.75f, 0.83f, 0.92f), new Color(0.9f, 0.86f, 0.75f), new Color(0.93f, 0.8f, 0.8f),
+        };
 
         /// <summary>
         /// What can change from one person to the next within an archetype (concept v9.2: "the
@@ -73,6 +84,10 @@ namespace Game.Editor
             public float Glasses;
             public float Sunglasses;
             public float Moustache;
+            /// <summary>What they may wear on top; list one twice to make it likelier.</summary>
+            public Garment[] Garments = { Garment.Shirt };
+            /// <summary>The shirt under a jacket or vest, and a hoodie's strings.</summary>
+            public Color[] Unders = ShirtColours;
             /// <summary>The archetype's props, one of which they may carry.</summary>
             public PropKind[] Props = System.Array.Empty<PropKind>();
             public float NoProp = 0.3f;
@@ -125,6 +140,13 @@ namespace Game.Editor
             public Color? HatAccent;
             public NoseKind Nose = NoseKind.Button;
             public bool Apron, Scarf, Buttons, Dress, Tie, Camera, Glasses, Sunglasses, Moustache;
+            /// <summary>Gold-framed aviators instead of glasses or wayfarer sunglasses.</summary>
+            public bool Aviators;
+            /// <summary>A security earpiece with a big coiled wire (the bodyguards).</summary>
+            public bool Earpiece;
+            public Garment Garment = Garment.Shirt;
+            /// <summary>The shirt under a jacket or vest.</summary>
+            public Color Under = ShirtColours[0];
             /// <summary>Apron and neckerchief colour; null = player colour.</summary>
             public Color? Accent;
             public Color TieColor = new Color(0.55f, 0.15f, 0.15f);
@@ -204,6 +226,7 @@ namespace Game.Editor
                     Hair = new Color(0.45f, 0.42f, 0.4f), HairStyle = HairKind.Crop, Moustache = true, Nose = NoseKind.Big,
                     Waddle = 2f,
                     Vary = new Variation { Hairs = GreyHair.Concat(NaturalHair.Take(3)).ToArray(), Moustache = 0.6f, Glasses = 0.2f,
+                        Garments = new[] { Garment.Shirt, Garment.Shirt, Garment.Vest },
                         Patterns = new[] { 2, 2, 2, 0 }, PatternScale = 9f, // a flannel's plaid
                         PatternColours = new[] { new Color(0.12f, 0.1f, 0.1f), new Color(0.9f, 0.86f, 0.78f) },
                         Tops = new[] { new Color(0.62f, 0.2f, 0.16f), new Color(0.24f, 0.36f, 0.24f), new Color(0.25f, 0.3f, 0.45f), new Color(0.5f, 0.38f, 0.22f) },
@@ -213,6 +236,7 @@ namespace Game.Editor
                     Tie = true, TieColor = new Color(0.2f, 0.32f, 0.6f),
                     Pace = 1.15f, Stride = 1.1f, Waddle = 0.6f,
                     Vary = new Variation { HairStyles = new[] { HairKind.Crop, HairKind.Bun, HairKind.Bald }, Glasses = 0.35f, Moustache = 0.15f,
+                        Garments = new[] { Garment.Jacket, Garment.Jacket, Garment.Vest, Garment.Shirt },
                         Patterns = new[] { 0, 0, 4 }, PatternScale = 14f, PatternColours = new[] { new Color(0.7f, 0.7f, 0.72f) },
                         Tops = new[] { new Color(0.27f, 0.29f, 0.34f), new Color(0.2f, 0.24f, 0.38f), new Color(0.45f, 0.46f, 0.48f), new Color(0.36f, 0.28f, 0.22f) },
                         Props = new[] { PropKind.Satchel, PropKind.Backpack }, NoProp = 0.25f } },
@@ -229,6 +253,7 @@ namespace Game.Editor
                     HatAccent = new Color(0.2f, 0.27f, 0.5f), Hair = new Color(0.4f, 0.26f, 0.15f), Camera = true,
                     Pace = 0.85f, Stride = 0.9f, Waddle = 2f,
                     Vary = new Variation { Sunglasses = 0.4f,
+                        Garments = new[] { Garment.Shirt, Garment.Shirt, Garment.TankTop },
                         Patterns = new[] { 1, 1, 5, 0 }, PatternScale = 10f, // a breton, or gingham
                         PatternColours = new[] { new Color(0.2f, 0.25f, 0.5f), new Color(0.6f, 0.18f, 0.15f) },
                         Tops = new[] { new Color(0.88f, 0.9f, 0.95f), new Color(0.7f, 0.8f, 0.92f), new Color(0.95f, 0.9f, 0.65f) },
@@ -239,6 +264,7 @@ namespace Game.Editor
                     Pace = 0.7f, Stride = 0.65f, LegSwing = 14f, Waddle = 2.5f, Bob = 0.01f,
                     Vary = new Variation { HairStyles = new[] { HairKind.Fringe, HairKind.Bald, HairKind.Crop }, Hairs = GreyHair,
                         Skins = SkinTones, Glasses = 0.7f, Moustache = 0.4f, BigNose = 0.7f,
+                        Garments = new[] { Garment.Shirt, Garment.Vest, Garment.Jacket },
                         Patterns = new[] { 0, 0, 5 }, PatternScale = 8f,
                         PatternColours = new[] { new Color(0.9f, 0.86f, 0.78f), new Color(0.35f, 0.25f, 0.18f) },
                         Tops = new[] { new Color(0.7f, 0.6f, 0.45f), new Color(0.45f, 0.45f, 0.3f), new Color(0.45f, 0.52f, 0.62f), new Color(0.45f, 0.2f, 0.2f) },
@@ -249,6 +275,7 @@ namespace Game.Editor
                     Pace = 1.25f, Stride = 1.25f, LegSwing = 30f, Waddle = 0.8f, Bob = 0.03f,
                     // No afro: it would cover the headband, the gym-goer's trademark.
                     Vary = new Variation { HairStyles = new[] { HairKind.Crop, HairKind.Bun, HairKind.Bald }, BigNose = 0.3f,
+                        Garments = new[] { Garment.TankTop, Garment.TankTop, Garment.Hoodie, Garment.Shirt },
                         Patterns = new[] { 0, 1 }, PatternScale = 6f, PatternColours = new[] { new Color(0.95f, 0.95f, 0.92f) },
                         Tops = new[] { new Color(0.22f, 0.3f, 0.5f), new Color(0.25f, 0.25f, 0.28f), new Color(0.55f, 0.15f, 0.15f), new Color(0.4f, 0.25f, 0.55f) },
                         Props = new[] { PropKind.Bottle }, NoProp = 0.2f } },
@@ -302,6 +329,10 @@ namespace Game.Editor
             rig.Waist = Frame(rig.Figure, "Waist", new Vector3(0f, WaistHeight, 0f), Vector3.one);
             var body = Frame(rig.Waist, "Body", Vector3.zero, bodyScale);
             Part(body, "CharTorso", look.Top);
+            var vary = look.Vary;
+            var garments = vary != null ? vary.Garments.Distinct().ToArray() : new[] { look.Garment };
+            // Each garment's pieces on the torso; its sleeves are added with the arms below.
+            var garmentParts = garments.ToDictionary(g => g, g => GarmentParts(body, look, g));
             if (look.Buttons)
                 Part(body, "CharButtons", Ink);
             if (look.Tie)
@@ -312,8 +343,8 @@ namespace Game.Editor
                 Coloured(rig, rig.Waist, "CharScarf", look.Accent);
 
             // The head and everything on it: the same size whatever the build.
-            var vary = look.Vary;
-            var choices = new List<(string Name, GameObject[] Options, float None)>();
+            var choices = new List<(string Name, GameObject[][] Options, float None)>();
+            GameObject[][] Singles(IEnumerable<GameObject> parts) => parts.Select(p => new[] { p }).ToArray();
             Part(rig.Waist, "CharHead", look.Skin);
             if (vary == null)
                 Part(rig.Waist, look.Nose == NoseKind.Big ? "CharNoseBig" : "CharNoseButton", look.Skin);
@@ -323,13 +354,20 @@ namespace Game.Editor
                 // of the time as the second of two options, so roughly that share).
                 var button = Part(rig.Waist, "CharNoseButton", look.Skin).gameObject;
                 var big = Part(rig.Waist, "CharNoseBig", look.Skin).gameObject;
-                choices.Add(("Nose", vary.BigNose >= 0.5f ? new[] { button, big, big } : new[] { button, button, big }, 0f));
+                choices.Add(("Nose", Singles(vary.BigNose >= 0.5f ? new[] { button, big, big } : new[] { button, button, big }), 0f));
             }
             Part(rig.Waist, "CharEyes", Ink);
             Part(rig.Waist, "CharEyeShine", Shine);
             Part(rig.Waist, "CharSmile", Ink);
-            if (!look.Sunglasses)
+            if (!look.Sunglasses && !look.Aviators)
                 Part(rig.Waist, "CharBrows", look.Hair);
+            if (look.Aviators)
+            {
+                Part(rig.Waist, "CharAviators", Ink);
+                Part(rig.Waist, "CharAviatorFrames", Gold);
+            }
+            if (look.Earpiece)
+                Part(rig.Waist, "CharEarpiece", new Color(0.12f, 0.12f, 0.14f));
             if (vary == null)
             {
                 if (look.Moustache)
@@ -343,14 +381,14 @@ namespace Game.Editor
             else
             {
                 if (vary.Moustache > 0f)
-                    choices.Add(("Moustache", new[] { Part(rig.Waist, "CharMoustache", look.Hair).gameObject }, 1f - vary.Moustache));
+                    choices.Add(("Moustache", Singles(new[] { Part(rig.Waist, "CharMoustache", look.Hair).gameObject }), 1f - vary.Moustache));
                 var eyewear = new List<GameObject>();
                 if (vary.Glasses > 0f)
                     eyewear.Add(Part(rig.Waist, "CharGlasses", Ink).gameObject);
                 if (vary.Sunglasses > 0f)
                     eyewear.Add(Part(rig.Waist, "CharSunglasses", Ink).gameObject);
                 if (eyewear.Count > 0)
-                    choices.Add(("Eyewear", eyewear.ToArray(), Mathf.Clamp01(1f - vary.Glasses - vary.Sunglasses)));
+                    choices.Add(("Eyewear", Singles(eyewear), Mathf.Clamp01(1f - vary.Glasses - vary.Sunglasses)));
                 // Each hair style the archetype allows, in its own group, one shown.
                 var styles = new List<GameObject>();
                 foreach (var style in vary.HairStyles)
@@ -361,13 +399,13 @@ namespace Game.Editor
                     Hair(group, styled);
                     styles.Add(group.gameObject);
                 }
-                choices.Add(("Hair", styles.ToArray(), 0f));
+                choices.Add(("Hair", Singles(styles), 0f));
             }
             Hat(rig, look);
 
             // Arms: a short sleeve and a mitten on each shoulder, which turn as ChefArmsView aims them.
-            rig.LeftShoulder = Arm(rig.Waist, "Shoulder_L", -Shoulder.x * look.Build, look);
-            rig.RightShoulder = Arm(rig.Waist, "Shoulder_R", Shoulder.x * look.Build, look);
+            rig.LeftShoulder = Arm(rig.Waist, "Shoulder_L", -Shoulder.x * look.Build, look, garments, garmentParts);
+            rig.RightShoulder = Arm(rig.Waist, "Shoulder_R", Shoulder.x * look.Build, look, garments, garmentParts);
 
             if (vary != null)
             {
@@ -381,7 +419,13 @@ namespace Game.Editor
                     props.Add(group.gameObject);
                 }
                 if (props.Count > 0)
-                    choices.Add(("Prop", props.ToArray(), vary.NoProp));
+                    choices.Add(("Prop", Singles(props), vary.NoProp));
+                // The garment: its torso pieces and both sleeves show together.
+                if (garments.Length > 1)
+                {
+                    var weighted = vary.Garments.Select(g => garmentParts[g].ToArray()).ToArray();
+                    choices.Insert(0, ("Garment", weighted, 0f));
+                }
                 AddRoll(rig, look, choices);
             }
 
@@ -404,12 +448,12 @@ namespace Game.Editor
         }
 
         // The roll: the choices built above, and colours for every skin, hair and clothes part.
-        private static void AddRoll(Rig rig, Look look, List<(string Name, GameObject[] Options, float None)> choices)
+        private static void AddRoll(Rig rig, Look look, List<(string Name, GameObject[][] Options, float None)> choices)
         {
             var all = rig.Figure.GetComponentsInChildren<Renderer>(includeInactive: true);
             Renderer[] Named(params string[] names) =>
                 all.Where(r => names.Contains(r.gameObject.name) || names.Any(n => n.EndsWith("*") && r.gameObject.name.StartsWith(n.TrimEnd('*')))).ToArray();
-            var skin = Named("CharHead", "CharNoseButton", "CharNoseBig", "CharHand").ToList();
+            var skin = Named("CharHead", "CharNoseButton", "CharNoseBig", "CharHand", "CharArmBare", "CharTankShoulders").ToList();
             if (look.Dress)
                 skin.AddRange(Named("CharLeg")); // bare legs under a dress
             var palettes = new List<(string Name, Renderer[] Renderers, Color[] Colours)>
@@ -418,7 +462,8 @@ namespace Game.Editor
                 ("Hair", Named("CharBrows", "CharMoustache", "Hair*"), look.Vary.Hairs),
             };
             if (look.Vary.Tops.Length > 0)
-                palettes.Add(("Top", Named("CharTorso", "CharHips", "CharDress", "CharArm"), look.Vary.Tops));
+                palettes.Add(("Top", Named(TopParts), look.Vary.Tops));
+            palettes.Add(("Under", Named("CharShirtV", "CharVestV", "CharArmUnder", "CharHoodStrings"), look.Vary.Unders));
 
             var roll = new SerializedObject(rig.Figure.gameObject.AddComponent<Game.Presentation.CharacterRoll>());
             roll.FindProperty("_archetype").stringValue = look.Name;
@@ -432,7 +477,12 @@ namespace Game.Editor
                 var options = element.FindPropertyRelative("Options");
                 options.arraySize = choices[i].Options.Length;
                 for (var j = 0; j < choices[i].Options.Length; j++)
-                    options.GetArrayElementAtIndex(j).objectReferenceValue = choices[i].Options[j];
+                {
+                    var parts = options.GetArrayElementAtIndex(j).FindPropertyRelative("Parts");
+                    parts.arraySize = choices[i].Options[j].Length;
+                    for (var k = 0; k < choices[i].Options[j].Length; k++)
+                        parts.GetArrayElementAtIndex(k).objectReferenceValue = choices[i].Options[j][k];
+                }
             }
             var paletteList = roll.FindProperty("_palettes");
             paletteList.arraySize = palettes.Count;
@@ -453,7 +503,7 @@ namespace Game.Editor
             var patternList = roll.FindProperty("_patterns");
             patternList.arraySize = 1;
             var patterned = patternList.GetArrayElementAtIndex(0);
-            var clothes = Named("CharTorso", "CharHips", "CharDress", "CharArm");
+            var clothes = Named(TopParts);
             var patternRenderers = patterned.FindPropertyRelative("Renderers");
             patternRenderers.arraySize = clothes.Length;
             for (var j = 0; j < clothes.Length; j++)
@@ -528,10 +578,59 @@ namespace Game.Editor
             }
         }
 
-        private static Transform Arm(Transform waist, string name, float x, Look look)
+        // The parts in the top's colour and pattern, whatever's worn.
+        private static readonly string[] TopParts = { "CharTorso", "CharHips", "CharDress", "CharArm", "CharLapels", "CharHood", "CharHoodiePocket" };
+        private static readonly Color Gold = new Color(0.85f, 0.68f, 0.3f);
+
+        // What a garment adds on the torso (a jacket's open front, a vest's V and buttons...).
+        private static List<GameObject> GarmentParts(Transform body, Look look, Garment garment)
+        {
+            var parts = new List<Renderer>();
+            switch (garment)
+            {
+                case Garment.Jacket:
+                    parts.Add(Part(body, "CharShirtV", look.Under));
+                    parts.Add(Part(body, "CharLapels", look.Top));
+                    break;
+                case Garment.Vest:
+                    parts.Add(Part(body, "CharVestV", look.Under));
+                    parts.Add(Part(body, "CharVestButtons", Ink));
+                    break;
+                case Garment.Hoodie:
+                    parts.Add(Part(body, "CharHood", look.Top));
+                    parts.Add(Part(body, "CharHoodiePocket", look.Top));
+                    parts.Add(Part(body, "CharHoodStrings", look.Under));
+                    break;
+                case Garment.TankTop:
+                    parts.Add(Part(body, "CharTankShoulders", look.Skin));
+                    break;
+            }
+            return parts.Where(r => r != null).Select(r => r.gameObject).ToList();
+        }
+
+        // A shoulder with its hand, and the sleeve each garment needs: in the top's colour, the
+        // shirt's (under a vest), or a bare arm (a tank top). Each sleeve joins its garment's parts.
+        private static Transform Arm(Transform waist, string name, float x, Look look, Garment[] garments,
+            Dictionary<Garment, List<GameObject>> garmentParts)
         {
             var shoulder = Frame(waist, name, new Vector3(x, Shoulder.y, 0f), Vector3.one);
-            Part(shoulder, "CharArm", look.Top);
+            var sleeves = new Dictionary<string, GameObject>();
+            foreach (var garment in garments)
+            {
+                var (key, mesh, colour) = garment switch
+                {
+                    Garment.Vest => ("CharArmUnder", "CharArm", look.Under),
+                    Garment.TankTop => ("CharArmBare", "CharArmBare", look.Skin),
+                    _ => ("CharArm", "CharArm", look.Top),
+                };
+                if (!sleeves.TryGetValue(key, out var sleeve))
+                {
+                    sleeve = Part(shoulder, mesh, colour, name: key)?.gameObject;
+                    sleeves[key] = sleeve;
+                }
+                if (sleeve != null)
+                    garmentParts[garment].Add(sleeve);
+            }
             Part(shoulder, "CharHand", look.Skin);
             return shoulder;
         }
@@ -553,12 +652,12 @@ namespace Game.Editor
                 rig.Tinted.Add(renderer);
         }
 
-        private static Renderer Part(Transform parent, string mesh, Color color, string material = null)
+        private static Renderer Part(Transform parent, string mesh, Color color, string material = null, string name = null)
         {
             var shared = PilotArt.FindMesh(Model, mesh);
             if (shared == null)
                 return null;
-            var part = new GameObject(mesh);
+            var part = new GameObject(name ?? mesh);
             part.transform.SetParent(parent, false);
             part.AddComponent<MeshFilter>().sharedMesh = shared;
             var renderer = part.AddComponent<MeshRenderer>();

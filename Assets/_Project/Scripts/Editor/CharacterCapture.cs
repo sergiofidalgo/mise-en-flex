@@ -138,6 +138,21 @@ namespace Game.Editor
             for (var row = 0; row < looks.Count; row++)
                 for (var column = 0; column < 6; column++)
                     Person(looks[row], Color.white, crowd + new Vector3(column * 0.85f, 0f, -row * 1.0f), 180f, carry: false);
+            // The bodyguards as the office builds them: same suit, their own shades, earpieces.
+            var guards = new Vector3(100f, 0f, 30f);
+            foreach (var (left, x) in new[] { (true, -0.5f), (false, 0.5f) })
+            {
+                var guard = new CharacterArt.Look
+                {
+                    Name = left ? "Bodyguard_L" : "Bodyguard_R", Top = new Color(0.14f, 0.15f, 0.18f), Bottom = new Color(0.14f, 0.15f, 0.18f),
+                    Build = 1.15f, Garment = CharacterArt.Garment.Jacket, Sunglasses = left, Aviators = !left, Earpiece = true,
+                    Tie = true, TieColor = new Color(0.8f, 0.2f, 0.18f), Hair = CharacterArt.DarkHair,
+                    Skin = left ? CharacterArt.SkinTones[4] : CharacterArt.SkinTones[7],
+                    HairStyle = left ? CharacterArt.HairKind.Bald : CharacterArt.HairKind.Crop,
+                };
+                Person(guard, Color.white, guards + new Vector3(x, 0f, 0f), 180f + (left ? 20f : -20f), carry: false);
+            }
+
             var faces = new Vector3(100f, 0f, 20f);
             for (var i = 0; i < looks.Count * 2; i++)
                 Person(looks[i / 2], Color.white, faces + Vector3.right * (i * 0.8f), 180f, carry: false);
@@ -177,6 +192,9 @@ namespace Game.Editor
             Render(camera, target, crowd + new Vector3(2.1f, 0.9f, -2.5f), PlayHeight, Path.Combine(folder, "variety_play.png"));
             camera.transform.SetPositionAndRotation(faces + new Vector3(4.4f, 1.0f, -7.5f), Quaternion.Euler(4f, 0f, 0f));
             Draw(camera, target, Path.Combine(folder, "variety_front.png"));
+            camera.transform.SetPositionAndRotation(guards + new Vector3(0f, 1.3f, -3.2f), Quaternion.Euler(6f, 0f, 0f));
+            Draw(camera, target, Path.Combine(folder, "bodyguards_front.png"));
+            Render(camera, target, guards + new Vector3(0f, 0.9f, 0f), CloseHeight, Path.Combine(folder, "bodyguards_play.png"));
             camera.transform.SetPositionAndRotation(strideRow + new Vector3(2.2f, 0.9f, -5.5f), Quaternion.Euler(3f, 0f, 0f));
             Draw(camera, target, Path.Combine(folder, "walk_side.png"));
             for (var i = 0; i < bends.Count; i++)

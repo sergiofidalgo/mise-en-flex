@@ -1110,11 +1110,16 @@ namespace Game.Editor
 
         private static void Bodyguard(Transform parent, string name, Vector3 at)
         {
-            // Same suit, same shades, same red tie; one bald, one cropped (concept v16).
+            // Same suit and red tie, each his own shades (wayfarers, aviators), a big coiled
+            // earpiece; one bald, one cropped (concept v16 and the user's note).
+            var left = name.EndsWith("_L");
             Person(parent, name, at, 180f, Suit, Suit, 1.12f, look =>
             {
                 look.Build = 1.15f;
-                look.Sunglasses = true;
+                look.Garment = CharacterArt.Garment.Jacket;
+                look.Sunglasses = left;
+                look.Aviators = !left;
+                look.Earpiece = true;
                 look.Tie = true;
                 look.TieColor = new Color(0.8f, 0.2f, 0.18f);
                 look.Skin = name.EndsWith("_L") ? CharacterArt.SkinTones[4] : CharacterArt.SkinTones[7];
@@ -1134,6 +1139,8 @@ namespace Game.Editor
                 look.Hair = CharacterArt.GreyHair[1];
                 look.Moustache = true;
                 look.Nose = CharacterArt.NoseKind.Big;
+                look.Garment = CharacterArt.Garment.Jacket;
+                look.Under = CharacterArt.ShirtColours[2];
             });
             var hat = Toon("OfficeHat", Cream);
             // The hat was made for the first chef's head (0.19 m, its centre 0.66 m above a 0.85 m

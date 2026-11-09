@@ -85,6 +85,41 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-09 — Garment styles, and bodyguards with their own shades and big earpieces
+
+**The user's notes:** customers should wear different styles (a jacket, a vest, a tank top). The bodyguards each wearing a different style of sunglasses (in concept v16) was a detail to keep, and their earpieces could be more exaggerated.
+
+**Decision:**
+- **Garments** (`CharacterArt.Garment`):
+
+  | Garment | What shows |
+  |---|---|
+  | Shirt | as before |
+  | Open jacket | the shirt in a V at the front, with lapels |
+  | Vest | a deeper V, three buttons, and the shirt's sleeves |
+  | Tank top | bare shoulders and bare arms |
+  | Hoodie | a hood behind the neck, a front pocket, drawstrings |
+
+  The shirt underneath is its own colour (`Look.Under`; white, pale blue, cream or pale pink when rolled). Ties now sit proud of a shirt front.
+- **Rolled per archetype** (a garment's torso pieces and both sleeves show together):
+
+  | Archetype | Garments |
+  |---|---|
+  | Regular | shirt or vest |
+  | Office worker | mostly a jacket, sometimes a vest or a shirt |
+  | Tourist | shirt or tank top |
+  | Retiree | shirt, vest or jacket |
+  | Gym-goer | mostly a tank top, sometimes a hoodie or a tee |
+  | Date night | stays in a dress |
+
+  The pattern goes on the main garment (a pinstriped jacket, a plaid vest).
+- **The office:**
+  - the bodyguards wear suit jackets with a red tie and a big coiled earpiece wire from the right ear to the collar; the left one wears wayfarers, the right one gold aviators;
+  - the boss and the receptionist wear jackets;
+  - the tailor and the accountant wear vests.
+
+---
+
 ## 2026-11-09 — Patterned clothes, and the office's people on the players' body
 
 **The user's call:** customers always wore plain colours and should get patterns too. The office's people should follow the new characters.
