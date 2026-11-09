@@ -61,6 +61,11 @@ namespace Game.Tests.PlayMode
             yield return Shoot(dashboard, 3, 0, false, Path.Combine(folder, "dashboard_books.png"));
             root.ReplyTo(services.ReviewHistory.First(r => r.Guest == "Megan R."), ReviewReply.Apologise);
             yield return Shoot(dashboard, 1, 0, false, Path.Combine(folder, "dashboard_reply_thread.png"));
+            // A long reply, built from parts, wraps to two lines and its card makes room.
+            var tony = services.ReviewHistory.First(r => r.Guest == "Tony L.");
+            tony.Reply = (int)ReviewReply.StandYourGround;
+            tony.ReplyText = "Listen, Tony. Maybe try the chain place by the highway. They have a laminated menu. Bon appétit somewhere else.";
+            yield return Shoot(dashboard, 1, 0, false, Path.Combine(folder, "dashboard_reply_long.png"));
             Debug.Log($"[DashboardCapture] Saved screenshots to {folder}");
         }
 

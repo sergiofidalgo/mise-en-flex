@@ -18,6 +18,15 @@ namespace Game.Data
         Local,
     }
 
+    /// <summary>Which mood a piece of reply is for, in the inspector.</summary>
+    public enum Mood
+    {
+        Any,
+        Fresh,
+        Tired,
+        FedUp,
+    }
+
     /// <summary>
     /// How a kind of restaurant is talked about (ideas.md, 2026-11-09): what its guests write, how its
     /// owner replies, who comes, what returning guests write, and its hashtags. Used together with the generic
@@ -96,6 +105,38 @@ namespace Game.Data
             public string[] Text => _lines ?? new string[0];
         }
 
+        [Serializable]
+        public sealed class Parts
+        {
+            [SerializeField] private ReviewReply _reply;
+            [SerializeField] private ReplyPart _part;
+            [Tooltip("Any mood, or only a fresh, tired or fed-up owner's.")]
+            [SerializeField] private Mood _mood;
+            [Tooltip("For every kind of review; otherwise only for the one below.")]
+            [SerializeField] private bool _everyTopic;
+            [SerializeField] private TopicGroup _about;
+            [SerializeField, TextArea] private string[] _lines;
+
+            public Parts() { }
+
+            public Parts(ReviewReply reply, ReplyPart part, Mood mood, TopicGroup? about, params string[] lines)
+            {
+                _reply = reply;
+                _part = part;
+                _mood = mood;
+                _everyTopic = about == null;
+                _about = about ?? TopicGroup.Praise;
+                _lines = lines;
+            }
+
+            public ReviewReply Reply => _reply;
+            public ReplyPart Part => _part;
+            public Mood Mood => _mood;
+            public bool EveryTopic => _everyTopic;
+            public TopicGroup About => _about;
+            public string[] Text => _lines ?? new string[0];
+        }
+
         [Tooltip("Restaurant styles that speak this way, e.g. Grill and Steakhouse. Empty: the generic voice.")]
         [SerializeField] private string[] _styles;
         [Tooltip("How often each kind of guest comes: Regular, Foodie, Influencer, Critic, Tourist, Local.")]
@@ -107,6 +148,8 @@ namespace Game.Data
         [SerializeField] private string[] _hashtags;
         [Tooltip("What a returning guest writes, remembering how they were treated last time.")]
         [SerializeField] private Returns[] _returns;
+        [Tooltip("Pieces of longer replies: openers, bodies and closers, some only for a tired or fed-up owner.")]
+        [SerializeField] private Parts[] _replyParts;
 
         public ReviewVoiceData() { }
 
@@ -123,6 +166,13 @@ namespace Game.Data
         public ReviewVoiceData WithReturns(params Returns[] returns)
         {
             _returns = returns;
+            return this;
+        }
+
+        /// <summary>Adds pieces for longer replies.</summary>
+        public ReviewVoiceData WithParts(params Parts[] parts)
+        {
+            _replyParts = parts;
             return this;
         }
 
@@ -152,6 +202,18 @@ namespace Game.Data
                 if (!voice.Replies.TryGetValue(key, out var list))
                     voice.Replies[key] = list = new List<string>();
                 list.AddRange(group.Text);
+            }
+            foreach (var piece in _replyParts ?? new Parts[0])
+            {
+                var groups = piece.EveryTopic ? (TopicGroup[])Enum.GetValues(typeof(TopicGroup)) : new[] { piece.About };
+                OwnerMood? mood = piece.Mood == Mood.Any ? (OwnerMood?)null : (OwnerMood)((int)piece.Mood - 1);
+                foreach (var group in groups)
+                {
+                    var key = (piece.Reply, group, piece.Part);
+                    if (!voice.ReplyParts.TryGetValue(key, out var list))
+                        voice.ReplyParts[key] = list = new List<MoodLine>();
+                    list.AddRange(piece.Text.Select(t => new MoodLine(t, mood)));
+                }
             }
             foreach (var group in _returns ?? new Returns[0])
             {
@@ -235,7 +297,21 @@ namespace Game.Data
                 B(GuestMemory.Thanked, true, Who.Anyone, "Back as promised. Still great.", "Back again. Still the best."),
                 B(GuestMemory.Thanked, false, Who.Anyone, "Came back for the magic. Didn't find it.", "Not like last time. Off night?"),
                 B(GuestMemory.Unthanked, true, Who.Anyone, "Loved it twice now.", "Back again. Still great. Say hi sometime."),
-                B(GuestMemory.Unthanked, false, Who.Anyone, "Loved it last time. Not tonight."));
+                B(GuestMemory.Unthanked, false, Who.Anyone, "Loved it last time. Not tonight."))
+            .WithParts(
+                P(ReviewReply.Apologise, ReplyPart.Opener, Mood.Any, null, "Hi {name}.", "{name}, thank you for the honest review."),
+                P(ReviewReply.Apologise, ReplyPart.Closer, Mood.Any, null, "We hope to welcome you back.", "Thank you for the second chance, if you give us one."),
+                P(ReviewReply.Apologise, ReplyPart.Closer, Mood.FedUp, null, "Long day. Sorry."),
+                P(ReviewReply.Apologise, ReplyPart.Body, Mood.Any, TopicGroup.Wait, "You waited far too long, and we're sorry."),
+                P(ReviewReply.Apologise, ReplyPart.Body, Mood.Any, TopicGroup.Food, "That's not the meal we want anyone to have."),
+                P(ReviewReply.Apologise, ReplyPart.Body, Mood.Any, TopicGroup.Doneness, "That isn't how you ordered it, and we're sorry."),
+                P(ReviewReply.Thank, ReplyPart.Opener, Mood.Any, null, "Hi {name}!"),
+                P(ReviewReply.Thank, ReplyPart.Closer, Mood.Any, null, "Hope to see you soon."),
+                P(ReviewReply.Thank, ReplyPart.Body, Mood.Any, TopicGroup.Praise, "Reviews like yours keep the kitchen going."),
+                P(ReviewReply.StandYourGround, ReplyPart.Opener, Mood.Any, null, "Hi {name}."),
+                P(ReviewReply.StandYourGround, ReplyPart.Closer, Mood.FedUp, null, "Have a good evening anyway."),
+                P(ReviewReply.StandYourGround, ReplyPart.Body, Mood.Any, TopicGroup.Food, "We're proud of that dish as it is."),
+                P(ReviewReply.StandYourGround, ReplyPart.Body, Mood.Any, TopicGroup.Wait, "Busy nights are busy."));
 
         // The grill: a steakhouse on a residential street. Its guests talk crust, pink and smoke; its
         // owner talks fire. Lines fit the dashboard: about 44 characters for a review (hashtag
@@ -378,22 +454,111 @@ namespace Game.Data
             .WithReturns(
                 B(GuestMemory.Apologised, true, Who.Anyone, "They said sorry. Then they grilled it right.", "Apology accepted. {ordered}, nailed."),
                 B(GuestMemory.Apologised, true, Who.Influencer, "Redemption arc: complete."),
-                B(GuestMemory.Apologised, false, Who.Anyone, "Two apologies, zero good steaks."),
-                B(GuestMemory.Ignored, true, Who.Anyone, "No reply, but the {main} said sorry."),
-                B(GuestMemory.Ignored, false, Who.Anyone, "Back again. Grill still sulking."),
+                B(GuestMemory.Apologised, true, Who.Anyone,
+                    "Gave them a second shot. Bullseye.", "Whatever you changed, keep changing it.", "Redemption {main}. Worth coming back.",
+                    "Told my wife it'd be better. It was.", "Comeback of the year, {restaurant}.", "The apology was real. So was the crust."),
+                B(GuestMemory.Apologised, false, Who.Anyone,
+                    "Two apologies, zero good steaks.", "Gave you another shot. You missed again.", "Sorry was nice. Steak was not.",
+                    "Fool me twice, {restaurant}.", "The apology was better than the steak.", "Second visit, second disappointment.",
+                    "I believed you. That's on me now."),
+                B(GuestMemory.Ignored, true, Who.Anyone, "No reply, but the {main} said sorry.", "Silent treatment, great steak. I'll take it.",
+                    "You never answered, but tonight did.", "Didn't reply, but they listened. Better."),
+                B(GuestMemory.Ignored, false, Who.Anyone, "Back again. Grill still sulking.", "Still waiting on a reply. And a good steak.",
+                    "No reply last time. No luck this time.", "Third strike pending, {restaurant}.", "Talking to myself again, apparently.",
+                    "Back to check. Nothing has changed."),
                 B(GuestMemory.Ignored, false, Who.Local, "The whole street knows. Still no reply."),
-                B(GuestMemory.Dismissed, true, Who.Anyone, "Smug reply. Good {main}. Annoying."),
-                B(GuestMemory.Dismissed, false, Who.Anyone, "Came back to prove a point. Proved it."),
+                B(GuestMemory.Dismissed, true, Who.Anyone, "Smug reply. Good {main}. Annoying.", "Hate to admit it: they were right.",
+                    "Still annoyed. Steak was great, though."),
+                B(GuestMemory.Dismissed, false, Who.Anyone, "Came back to prove a point. Proved it.", "Your grill, your rules, your empty tables.",
+                    "They told me I was wrong. I wasn't.", "Back to see if the attitude improved. No.", "Same steak, same smug reply incoming."),
                 B(GuestMemory.Dismissed, false, Who.Critic, "A second visit confirms the first."),
-                B(GuestMemory.Thanked, true, Who.Anyone, "Back for the crust. Crust delivered."),
+                B(GuestMemory.Thanked, true, Who.Anyone, "Back for the crust. Crust delivered.", "They thanked me. I thanked my stomach.",
+                    "Promised I'd be back. Kept my promise.", "Same table, same joy, new favorite night.", "Third time I've said it: best steak around."),
                 B(GuestMemory.Thanked, true, Who.Regular, "Usual table, usual {ordered}, usual joy."),
-                B(GuestMemory.Thanked, false, Who.Anyone, "Last time: magic. Tonight: grill fail."),
-                B(GuestMemory.Unthanked, true, Who.Anyone, "Second great {main}. Third on Friday."),
-                B(GuestMemory.Unthanked, false, Who.Anyone, "Was my favorite. Was."));
+                B(GuestMemory.Thanked, false, Who.Anyone, "Last time: magic. Tonight: grill fail.", "Thanked me last time. Owe me one now.",
+                    "Off night. Still rooting for you.", "Where did my perfect {main} go?"),
+                B(GuestMemory.Unthanked, true, Who.Anyone, "Second great {main}. Third on Friday.", "Good again. Still waiting for my hello.",
+                    "Twice great, never thanked. Rude, tasty."),
+                B(GuestMemory.Unthanked, false, Who.Anyone, "Was my favorite. Was.", "Loved you once. Tonight, not so much."))
+            .WithParts(
+                // Apologising: warm at first, weary later, passive-aggressive at the end of a long night.
+                P(ReviewReply.Apologise, ReplyPart.Opener, Mood.Any, null,
+                    "{name}, thank you for telling us.", "Hey {name}. We read this twice.", "First things first, {name}: you're right.",
+                    "Thanks for being straight with us, {name}.", "{name}, you deserve more than a one-liner."),
+                P(ReviewReply.Apologise, ReplyPart.Opener, Mood.Tired, null, "{name}, it's late, but you deserve an answer.", "Long night here, {name}, but this one matters."),
+                P(ReviewReply.Apologise, ReplyPart.Opener, Mood.FedUp, null, "Okay, {name}. Deep breath.", "{name}. Sigh. Fine."),
+                P(ReviewReply.Apologise, ReplyPart.Closer, Mood.Any, null,
+                    "Next time, ask for the chef at the pass.", "The next one will be right.", "We hope you give us another shot.",
+                    "Come back on a Tuesday. It's calmer.", "Thanks for not giving up on us yet."),
+                P(ReviewReply.Apologise, ReplyPart.Closer, Mood.Tired, null, "Now, if you'll excuse us, there's a grill to scrub.", "Off to soak our feet. Sorry again."),
+                P(ReviewReply.Apologise, ReplyPart.Closer, Mood.FedUp, null, "That's all we've got tonight.", "We'll do better. Probably."),
+                P(ReviewReply.Apologise, ReplyPart.Body, Mood.Any, TopicGroup.Wait,
+                    "Nobody should wait that long for a steak, least of all on a Friday.", "We let the tickets pile up and you paid for it.",
+                    "The grill was full and we should have told you at the door.", "That wait was on us, not on you.",
+                    "Too many steaks, not enough grill, and you felt every minute of it."),
+                P(ReviewReply.Apologise, ReplyPart.Body, Mood.Tired, TopicGroup.Wait, "We had one grill and twelve tables. Not your problem, but it's the truth.",
+                    "Long queue, short staff, and you caught both.", "The tickets ran away from us tonight, and yours was one of them.",
+                    "We were drowning back there. You noticed. We're sorry."),
+                P(ReviewReply.Apologise, ReplyPart.Body, Mood.FedUp, TopicGroup.Wait, "Yes, it was slow. Everyone has mentioned it. Repeatedly.", "Sorry for the wait. Sorry for the next one too, while we're at it.",
+                    "We are aware of the wait. We were there for all of it."),
+                P(ReviewReply.Apologise, ReplyPart.Body, Mood.Any, TopicGroup.Food,
+                    "That plate should never have left our pass.", "Our grill let you down, and we know it.",
+                    "You came for a proper {main} and got our worst one.", "Whoever plated that has been spoken to. It was me. I've spoken to me."),
+                P(ReviewReply.Apologise, ReplyPart.Body, Mood.Tired, TopicGroup.Food, "Not our finest plate. Not our finest night either.",
+                    "It's been one of those nights, and your plate showed it.", "The grill had a bad night, and you got the worst of it."),
+                P(ReviewReply.Apologise, ReplyPart.Body, Mood.Tired, TopicGroup.Doneness, "We rushed your {ordered}, and it showed."),
+                P(ReviewReply.Apologise, ReplyPart.Body, Mood.FedUp, TopicGroup.Food, "Fine. It wasn't great. We noticed too.", "You're right. Happy now?"),
+                P(ReviewReply.Apologise, ReplyPart.Body, Mood.Any, TopicGroup.Doneness,
+                    "You asked for {ordered} and we served you something else.", "{ordered} means {ordered}, and we forgot that tonight.",
+                    "We missed your {ordered} by a mile, and that's on the cook."),
+                P(ReviewReply.Apologise, ReplyPart.Body, Mood.FedUp, TopicGroup.Doneness, "Doneness is hard at nine o'clock. Still, sorry."),
+                P(ReviewReply.Apologise, ReplyPart.Body, Mood.Any, TopicGroup.Praise, "We're sorry if anything felt less than perfect?", "Apologies for the five stars, we guess. Habit."),
+
+                // Thanking: glowing for praise, tone-deaf for a complaint.
+                P(ReviewReply.Thank, ReplyPart.Opener, Mood.Any, null, "{name}! Thank you.", "Thanks for coming in, {name}.", "{name}, this made our night.", "Well, {name}, thank you."),
+                P(ReviewReply.Thank, ReplyPart.Opener, Mood.Tired, null, "Thanks, {name}. Long night, but this helped."),
+                P(ReviewReply.Thank, ReplyPart.Opener, Mood.FedUp, null, "Thanks, {name}. Noted."),
+                P(ReviewReply.Thank, ReplyPart.Closer, Mood.Any, null, "See you soon!", "Save room for dessert next time.", "Same table next Friday?", "The grill says hi."),
+                P(ReviewReply.Thank, ReplyPart.Closer, Mood.FedUp, null, "Have a night.", "Bye now."),
+                P(ReviewReply.Thank, ReplyPart.Body, Mood.Any, TopicGroup.Praise,
+                    "The whole line read this out loud.", "We're printing this and taping it above the grill.",
+                    "That crust was no accident; we've been practicing.", "A {ordered} {main} done right is all we want to cook.",
+                    "Reviews like this are why we light the grill at four."),
+                P(ReviewReply.Thank, ReplyPart.Body, Mood.Tired, TopicGroup.Praise, "Some nights a review like this is all that keeps the grill lit.",
+                    "Long night, but this one made it worth it."),
+                P(ReviewReply.Thank, ReplyPart.Body, Mood.Tired, TopicGroup.Food, "Thanks for coming in on such a busy night!"),
+                P(ReviewReply.Thank, ReplyPart.Body, Mood.FedUp, TopicGroup.Praise, "Finally, someone happy. Framing this one."),
+                P(ReviewReply.Thank, ReplyPart.Body, Mood.Any, TopicGroup.Food, "We're so glad you chose us for your evening!", "We love hearing from our guests!", "Our {main} is a neighborhood favorite!"),
+                P(ReviewReply.Thank, ReplyPart.Body, Mood.FedUp, TopicGroup.Food, "We got your feedback. It's in the pile with the others."),
+                P(ReviewReply.Thank, ReplyPart.Body, Mood.Any, TopicGroup.Wait, "Thanks for your patience! Good things take time!", "We hope the {main} was worth the wait!"),
+                P(ReviewReply.Thank, ReplyPart.Body, Mood.FedUp, TopicGroup.Wait, "Thanks for waiting. Everyone waited. It was that kind of night."),
+                P(ReviewReply.Thank, ReplyPart.Body, Mood.Any, TopicGroup.Doneness, "We love that you tried our {ordered} {main}!"),
+
+                // Standing your ground: proud at first, then openly rude when the night's been long.
+                P(ReviewReply.StandYourGround, ReplyPart.Opener, Mood.Any, null, "With respect, {name}.", "{name}, let's be honest.", "Hi {name}.", "{name}, we hear you. We disagree."),
+                P(ReviewReply.StandYourGround, ReplyPart.Opener, Mood.Tired, null, "{name}, it's late, so we'll be brief."),
+                P(ReviewReply.StandYourGround, ReplyPart.Opener, Mood.FedUp, null, "Oh, {name}.", "Wow, {name}.", "Listen, {name}."),
+                P(ReviewReply.StandYourGround, ReplyPart.Closer, Mood.Any, null, "The grill stands by its work.", "Hope to see you again. Or not.", "We'll keep cooking it our way."),
+                P(ReviewReply.StandYourGround, ReplyPart.Closer, Mood.FedUp, null, "Good night, {name}.", "Enjoy the diner.", "Bon appétit somewhere else."),
+                P(ReviewReply.StandYourGround, ReplyPart.Body, Mood.Any, TopicGroup.Food,
+                    "A real {main} isn't for everyone.", "We cook it the way the grill wants it cooked.", "Our regulars order it exactly like that, every week."),
+                P(ReviewReply.StandYourGround, ReplyPart.Body, Mood.Tired, TopicGroup.Food, "We served eighty plates tonight. Yours was one of them.",
+                    "Every plate tonight came off the same grill as yours."),
+                P(ReviewReply.StandYourGround, ReplyPart.Body, Mood.Tired, TopicGroup.Wait, "We were slammed. That's the whole story."),
+                P(ReviewReply.StandYourGround, ReplyPart.Body, Mood.FedUp, TopicGroup.Food,
+                    "If you wanted a boiled steak, there's a cafeteria down the road.", "Maybe try the chain place by the highway. They have a laminated menu."),
+                P(ReviewReply.StandYourGround, ReplyPart.Body, Mood.Any, TopicGroup.Wait, "Fire takes time, and so does quality.", "We were full because people like us.", "We don't rush steak."),
+                P(ReviewReply.StandYourGround, ReplyPart.Body, Mood.FedUp, TopicGroup.Wait, "Next time, come at six like a reasonable person.", "Patience is also on the menu. You skipped it."),
+                P(ReviewReply.StandYourGround, ReplyPart.Body, Mood.Any, TopicGroup.Doneness, "That is what {ordered} looks like here.", "We've grilled for twenty years. We know {ordered}."),
+                P(ReviewReply.StandYourGround, ReplyPart.Body, Mood.FedUp, TopicGroup.Doneness, "Your {ordered} was perfect. Your thermometer is lying."),
+                P(ReviewReply.StandYourGround, ReplyPart.Body, Mood.Any, TopicGroup.Praise, "We know.", "Naturally.", "Tell your friends. Or don't; we're full anyway."));
 
         private static ReviewVoiceData.Lines L(ReviewTopic topic, Who who, params string[] lines) => new ReviewVoiceData.Lines(topic, who, lines);
 
         private static ReviewVoiceData.Replies R(ReviewReply reply, TopicGroup about, params string[] lines) => new ReviewVoiceData.Replies(reply, about, lines);
+
+        private static ReviewVoiceData.Parts P(ReviewReply reply, ReplyPart part, Mood mood, TopicGroup? about, params string[] lines) =>
+            new ReviewVoiceData.Parts(reply, part, mood, about, lines);
 
         private static ReviewVoiceData.Returns B(GuestMemory remembers, bool better, Who who, params string[] lines) => new ReviewVoiceData.Returns(remembers, better, who, lines);
     }

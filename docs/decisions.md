@@ -4,6 +4,34 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-09 — Measured variety; fuller replies; an owner who tires
+
+**User's call: every restaurant's interactions should feel unique, measured, not hoped for.**
+- **`VoiceMetrics` plays a busy month in a restaurant's voice:**
+  - four reviews a day, a realistic mix of complaints and praise, and every kind of guest;
+  - returning guests;
+  - replies to 80% of reviews (fitting 70% of the time), with the owner tiring;
+  - the campaign's no-repeat memory.
+
+  It reports how unique the reviews and replies are, the most uses of any one text, and the shortest gap between repeats.
+- **`VoiceMetricsTests` holds the grill to it on three seeds.** No reply may appear more than twice in 30 days or within 7 days of itself. No review line may appear more than 3 times or within 5 days.
+
+  When a test fails, the voice needs more lines, not looser targets. It already caught two: the "apologised, worse again" return lines were too few, and so were a tired owner's apologies.
+- **Today's results:** replies 100% unique; reviews 73–78% unique, at most twice or three times a month, never within a week. **Tools/Game/Write Review Samples** now opens with this report.
+
+**User's call: replies of varying length, more natural, using names, and rude when the day's been long.**
+- **Replies come in three lengths.** About a third are the short one-liners. The rest are built from an opener (usually with the guest's name), the heart of the reply and a sign-off, up to two lines on the card. That makes hundreds of combinations per kind of reply.
+- **The owner's mood:** each reply posted today and each walk-out tonight wears on them. After 3 they're tired, after 6 fed up (`ServiceConfig` → Tired After, Fed Up After).
+  - Tired replies admit the long night.
+  - Fed-up apologies turn passive-aggressive ("Yes, it was slow. Everyone has mentioned it. Repeatedly.").
+  - Fed-up pushback turns openly rude ("Maybe try the chain place by the highway. They have a laminated menu.").
+- **The no-repeat memory grew from 80 to 200 lines**, about a month of reviews and replies built from parts.
+- **The dashboard measures each reply's wrapped height,** and its card grows by a line when it needs two.
+
+**Flagged for review:** the mood only changes the words, not what a reply does. A fed-up apology still counts as an apology. Whether rudeness should cost something (fewer returning guests, a rating dip) is open. The metric targets and the mood thresholds are first guesses.
+
+---
+
 ## 2026-11-09 — One reply per review, and returning guests who remember
 
 **User's call: one reply per review, not a conversation.** The owner's reply sits under the review. Its words show what kind of reply it is: an apology sounds sorry, thanks sounds grateful (or tone-deaf, to a complaint), and digging in sounds proud. The guest's answers and the likes are gone, from the data, the writer, the dashboard and the save. This supersedes those parts of the two entries below.

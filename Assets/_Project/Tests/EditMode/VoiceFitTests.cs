@@ -71,7 +71,8 @@ namespace Game.Tests.EditMode
             var voices = Voices().ToList();
             var all = voices.SelectMany(v => v.Lines.Values.SelectMany(l => l).Select(l => l.Text)
                 .Concat(v.Replies.Values.SelectMany(r => r))
-                .Concat(v.ReturnLines.Values.SelectMany(l => l).Select(l => l.Text)));
+                .Concat(v.ReturnLines.Values.SelectMany(l => l).Select(l => l.Text))
+                .Concat(v.ReplyParts.Values.SelectMany(l => l).Select(l => l.Text)));
             var unknown = all.Select(t => ReviewVoices.Fill(t, Long)).Where(t => t.Contains("{") || t.Contains("}")).ToList();
             Assert.That(unknown, Is.Empty, string.Join("\n", unknown));
         }
@@ -97,6 +98,16 @@ namespace Game.Tests.EditMode
             };
             for (var seed = 0; seed < 10; seed++)
                 Assert.That(ReviewVoices.Line(ReviewTopic.Praise, Persona.Influencer, Long, voice, null, null, new System.Random(seed)).Length, Is.LessThanOrEqualTo(ReviewVoices.MaxReviewLength));
+        }
+
+        [Test]
+        public void ReplyPartsFitTwoLinesTogether()
+        {
+            var parts = Voices().SelectMany(v => v.ReplyParts).ToList();
+            var openers = parts.Where(p => p.Key.Item3 == ReplyPart.Opener).SelectMany(p => p.Value).Select(l => ReviewVoices.Fill(l.Text, Long)).Where(t => t.Length > 52).ToList();
+            var closers = parts.Where(p => p.Key.Item3 == ReplyPart.Closer).SelectMany(p => p.Value).Select(l => ReviewVoices.Fill(l.Text, Long)).Where(t => t.Length > 56).ToList();
+            var bodies = parts.Where(p => p.Key.Item3 == ReplyPart.Body).SelectMany(p => p.Value).Select(l => ReviewVoices.Fill(l.Text, Long)).Where(t => t.Length > 90).ToList();
+            Assert.That(openers.Concat(closers).Concat(bodies), Is.Empty, string.Join("\n", openers.Concat(closers).Concat(bodies)));
         }
     }
 }

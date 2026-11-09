@@ -132,6 +132,10 @@ namespace Game.Data
         [SerializeField, Min(1)] private int _feeEveryDays = 5;
         [Tooltip("Stars a fitting reply adds to how a review counts; a poor one takes the same away.")]
         [SerializeField, Min(0f)] private float _replyNudge = 0.25f;
+        [Tooltip("Replies posted plus walk-outs in a day after which the owner's replies sound tired (2026-11-09).")]
+        [SerializeField, Min(1)] private int _tiredAfter = 3;
+        [Tooltip("…and after which they're fed up: curt, passive-aggressive, or rude.")]
+        [SerializeField, Min(1)] private int _fedUpAfter = 6;
         [Tooltip("First names for guests in the review listing.")]
         [SerializeField] private string[] _guestFirstNames =
         {
@@ -226,7 +230,7 @@ namespace Game.Data
             new Game.Simulation.Days.FeeSettings { Amount = _feeAmount, EveryDays = _feeEveryDays };
 
         public Game.Simulation.Service.ReplySettings ToReplySettings() =>
-            new Game.Simulation.Service.ReplySettings { FittingNudge = _replyNudge, PoorNudge = _replyNudge };
+            new Game.Simulation.Service.ReplySettings { FittingNudge = _replyNudge, PoorNudge = _replyNudge, TiredAfter = _tiredAfter, FedUpAfter = Mathf.Max(_tiredAfter, _fedUpAfter) };
 
         /// <summary>A guest's name for the listing, e.g. "Megan R.": the same guest gets the same name.</summary>
         public string GuestName(int customerId, int day)

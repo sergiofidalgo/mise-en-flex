@@ -19,6 +19,12 @@ namespace Game.Simulation.Service
 
         /// <summary>Stars a poor reply takes away.</summary>
         public float PoorNudge { get; set; } = 0.25f;
+
+        /// <summary>Replies plus walk-outs in a day after which the owner sounds tired.</summary>
+        public int TiredAfter { get; set; } = 3;
+
+        /// <summary>…and after which they're fed up, and it shows.</summary>
+        public int FedUpAfter { get; set; } = 6;
     }
 
     /// <summary>
@@ -51,7 +57,7 @@ namespace Game.Simulation.Service
         /// per review, whose words show what kind of reply it is (decision 2026-11-09). The same review
         /// and reply always give the same words.
         /// </summary>
-        public static void WriteReply(ReviewRecord review, ReviewReply reply, Voice style, Voice generic, LineMemory memory, string restaurant)
+        public static void WriteReply(ReviewRecord review, ReviewReply reply, Voice style, Voice generic, LineMemory memory, string restaurant, OwnerMood mood = OwnerMood.Fresh)
         {
             var order = (review.Order ?? "").Split(',');
             var facts = new ReviewFacts
@@ -62,7 +68,7 @@ namespace Game.Simulation.Service
                 Restaurant = restaurant ?? "",
             };
             var seed = unchecked(review.Day * 7919 + StableHash(review.Guest) * 31 + (int)reply);
-            review.ReplyText = ReviewVoices.Reply(reply, (ReviewTopic)review.Topic, facts, style, generic, memory, new System.Random(seed));
+            review.ReplyText = ReviewVoices.Reply(reply, (ReviewTopic)review.Topic, facts, mood, style, generic, memory, new System.Random(seed));
         }
 
         // string.GetHashCode differs between runs; this doesn't.

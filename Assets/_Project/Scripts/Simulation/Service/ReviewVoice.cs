@@ -25,6 +25,39 @@ namespace Game.Simulation.Service
         Doneness,
     }
 
+    /// <summary>A piece of an owner's reply: opening, the heart of it, or a sign-off.</summary>
+    public enum ReplyPart
+    {
+        Opener,
+        Body,
+        Closer,
+    }
+
+    /// <summary>
+    /// How the owner feels while replying (user's call, 2026-11-09): fresh at first, tired after a
+    /// few replies or a rough night, fed up after many. A fed-up owner gets curt, passive-aggressive
+    /// or plain rude.
+    /// </summary>
+    public enum OwnerMood
+    {
+        Fresh,
+        Tired,
+        FedUp,
+    }
+
+    /// <summary>A piece of reply, optionally only for one mood.</summary>
+    public sealed class MoodLine
+    {
+        public MoodLine(string text, OwnerMood? only = null)
+        {
+            Text = text;
+            Only = only;
+        }
+
+        public string Text { get; }
+        public OwnerMood? Only { get; }
+    }
+
     /// <summary>A line someone might write, optionally only for one kind of guest.</summary>
     public sealed class VoiceLine
     {
@@ -51,6 +84,9 @@ namespace Game.Simulation.Service
         public Dictionary<ReviewTopic, List<VoiceLine>> Lines { get; set; } = new Dictionary<ReviewTopic, List<VoiceLine>>();
         public Dictionary<(ReviewReply, TopicGroup), List<string>> Replies { get; set; } = new Dictionary<(ReviewReply, TopicGroup), List<string>>();
         public List<string> Hashtags { get; set; } = new List<string>();
+
+        /// <summary>Pieces of longer replies, by reply, what the review was about, and part.</summary>
+        public Dictionary<(ReviewReply, TopicGroup, ReplyPart), List<MoodLine>> ReplyParts { get; set; } = new Dictionary<(ReviewReply, TopicGroup, ReplyPart), List<MoodLine>>();
 
         /// <summary>What a returning guest writes, by what they remember and whether tonight went better.</summary>
         public Dictionary<(GuestMemory, bool), List<VoiceLine>> ReturnLines { get; set; } = new Dictionary<(GuestMemory, bool), List<VoiceLine>>();
@@ -83,7 +119,8 @@ namespace Game.Simulation.Service
         private readonly LinkedList<string> _recent = new LinkedList<string>();
         private readonly HashSet<string> _lookup = new HashSet<string>();
 
-        public LineMemory(int capacity = 80)
+        // 200: about a month of reviews and replies built from parts (VoiceMetrics).
+        public LineMemory(int capacity = 200)
         {
             Capacity = Math.Max(1, capacity);
         }
@@ -143,6 +180,9 @@ namespace Game.Simulation.Service
         /// </summary>
         public const int MaxReviewLength = 44;
         public const int MaxReplyLength = 72;
+
+        /// <summary>A reply built from parts may run to two lines of the review card.</summary>
+        public const int MaxComposedReplyLength = 150;
 
         private static readonly string[] Placeholders = { "{main}", "{side}", "{ordered}", "{got}", "{name}", "{restaurant}", "{left}", "{wait}" };
 
@@ -206,14 +246,91 @@ namespace Game.Simulation.Service
         /// The owner's reply, written in the style's voice for what the review was about. One reply per
         /// review (user's call, 2026-11-09): its words show what kind of reply it is.
         /// </summary>
-        public static string Reply(ReviewReply reply, ReviewTopic topic, ReviewFacts facts, Voice style, Voice generic, LineMemory memory, Random random)
+        public static string Reply(ReviewReply reply, ReviewTopic topic, ReviewFacts facts, Voice style, Voice generic, LineMemory memory, Random random) =>
+            Reply(reply, topic, facts, OwnerMood.Fresh, style, generic, memory, random);
+
+        /// <summary>
+        /// A reply of varying length (user's call, 2026-11-09: short at times, fuller at others):
+        /// a one-line reply, or an opener, a body and a closer put together, up to two lines. The
+        /// owner's mood colours it: tired and fed-up owners reach for their own lines.
+        /// </summary>
+        public static string Reply(ReviewReply reply, ReviewTopic topic, ReviewFacts facts, OwnerMood mood, Voice style, Voice generic, LineMemory memory, Random random)
         {
             var group = GroupOf(topic);
+            // How long: a third short, the rest built from parts; a fed-up owner is curt or rants.
+            var (shortShare, longShare) = mood switch
+            {
+                OwnerMood.FedUp => (0.35, 0.35),
+                OwnerMood.Tired => (0.3, 0.3),
+                _ => (0.35, 0.25),
+            };
+            var shape = random.NextDouble();
+            if (shape < shortShare)
+            {
+                // The short form: a one-line reply, or, for a weary owner, a weary body on its own.
+                if (mood == OwnerMood.Fresh || random.NextDouble() < 0.4)
+                {
+                    var whole = Whole(reply, group, facts, style, generic, memory, random);
+                    if (whole.Length > 0)
+                        return whole;
+                }
+                var alone = Part(reply, group, ReplyPart.Body, mood, facts, style, generic, memory, random);
+                return alone.Length > 0 ? alone : Whole(reply, group, facts, style, generic, memory, random);
+            }
+
+            var full = shape >= 1.0 - longShare;
+            var withOpener = full || random.NextDouble() < 0.5;
+            var opener = withOpener ? Part(reply, group, ReplyPart.Opener, mood, facts, style, generic, memory, random) : "";
+            var body = Part(reply, group, ReplyPart.Body, mood, facts, style, generic, memory, random);
+            if (body.Length == 0)
+                return Whole(reply, group, facts, style, generic, memory, random);
+            var closer = full || !withOpener ? Part(reply, group, ReplyPart.Closer, mood, facts, style, generic, memory, random) : "";
+
+            // Too long for two lines: the sign-off goes first, then the opening.
+            var text = Join(opener, body, closer);
+            if (text.Length > MaxComposedReplyLength)
+                text = Join(opener, body, "");
+            if (text.Length > MaxComposedReplyLength)
+                text = body;
+            return text;
+        }
+
+        /// <summary>
+        /// The owner's mood after this many replies today and this many walk-outs tonight: each
+        /// counts toward tiredness.
+        /// </summary>
+        public static OwnerMood MoodAfter(int repliesToday, int walkOutsToday, int tiredAfter, int fedUpAfter)
+        {
+            var strain = repliesToday + walkOutsToday;
+            return strain >= fedUpAfter ? OwnerMood.FedUp : strain >= tiredAfter ? OwnerMood.Tired : OwnerMood.Fresh;
+        }
+
+        private static string Join(params string[] parts) => string.Join(" ", parts.Where(p => !string.IsNullOrEmpty(p)));
+
+        private static string Whole(ReviewReply reply, TopicGroup group, ReviewFacts facts, Voice style, Voice generic, LineMemory memory, Random random)
+        {
             var owners = RepliesFor(style, (reply, group)).Concat(RepliesFor(generic, (reply, group)));
             // A doneness complaint is also about the food, so the food replies answer it too.
             if (group == TopicGroup.Doneness)
                 owners = owners.Concat(RepliesFor(style, (reply, TopicGroup.Food))).Concat(RepliesFor(generic, (reply, TopicGroup.Food)));
             return Pick(owners.Select(t => new VoiceLine(t)), facts, memory, random);
+        }
+
+        // One part, from both voices. A tired or fed-up owner reaches for that mood's lines two
+        // times in three when there are any; otherwise the lines for any mood.
+        private static string Part(ReviewReply reply, TopicGroup group, ReplyPart part, OwnerMood mood, ReviewFacts facts, Voice style, Voice generic, LineMemory memory, Random random)
+        {
+            IEnumerable<MoodLine> Of(Voice voice, TopicGroup about) =>
+                voice != null && voice.ReplyParts.TryGetValue((reply, about, part), out var lines) ? lines : Enumerable.Empty<MoodLine>();
+            var all = Of(style, group).Concat(Of(generic, group));
+            if (group == TopicGroup.Doneness)
+                all = all.Concat(Of(style, TopicGroup.Food)).Concat(Of(generic, TopicGroup.Food));
+            var list = all.ToList();
+            var moody = list.Where(l => l.Only == mood && mood != OwnerMood.Fresh).ToList();
+            var plain = list.Where(l => l.Only == null || l.Only == OwnerMood.Fresh && mood == OwnerMood.Fresh).ToList();
+            var chosen = moody.Count > 0 && (plain.Count == 0 || random.NextDouble() < 0.67) ? moody : plain;
+            var picked = Pick(chosen.Select(l => new VoiceLine(l.Text)), facts, memory, random);
+            return picked.Length > 0 || chosen == plain ? picked : Pick(plain.Select(l => new VoiceLine(l.Text)), facts, memory, random);
         }
 
         /// <summary>Fills in the facts: {main}, {side}, {ordered}, {got}, {name}, {restaurant}, {left} and {wait}.</summary>

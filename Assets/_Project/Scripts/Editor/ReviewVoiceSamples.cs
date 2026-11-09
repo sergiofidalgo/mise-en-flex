@@ -55,13 +55,23 @@ namespace Game.Editor
             var text = new StringBuilder();
             text.AppendLine($"# Review samples: {config.StyleName} ({config.RestaurantName})");
             text.AppendLine();
+            text.AppendLine("## A month, measured");
+            text.AppendLine();
+            foreach (var seed in new[] { 1, 2, 3 })
+            {
+                var month = VoiceMetrics.Simulate(style, generic, 30, seed: seed, restaurant: config.RestaurantName);
+                text.AppendLine($"- Seed {seed}: {month.Summary()}");
+            }
+            text.AppendLine();
             text.AppendLine("A week of reviews from this style's guests, each with the reply the owner posted (picked at random here, or none). Guests who were treated well come back more often, and remember it. Not every guest posts: the chance is shown with each one.");
+            var replySettings = config.ToReplySettings();
             for (var day = 1; day <= 7; day++)
             {
                 book.Rebuild(posted, day);
+                var repliedToday = 0;
                 text.AppendLine();
                 text.AppendLine($"## Day {day}");
-                for (var i = 0; i < 5; i++)
+                for (var i = 0; i < 7; i++)
                 {
                     var topic = topics[random.Next(topics.Length)];
                     var returning = book.Draw(random);
@@ -88,8 +98,10 @@ namespace Game.Editor
                     if (pick < replies.Length)
                     {
                         record.Reply = (int)replies[pick];
-                        ReviewReplies.WriteReply(record, replies[pick], style, generic, memory, config.RestaurantName);
-                        text.AppendLine($">  ↳ *{replies[pick]}* ({(ReviewReplies.Fits(replies[pick], topic) ? "fits" : "doesn't fit")}): {record.ReplyText}");
+                        // The owner tires as the day's replies pile up (no walk-outs counted here).
+                        var mood = ReviewVoices.MoodAfter(repliedToday++, 0, replySettings.TiredAfter, replySettings.FedUpAfter);
+                        ReviewReplies.WriteReply(record, replies[pick], style, generic, memory, config.RestaurantName, mood);
+                        text.AppendLine($">  ↳ *{replies[pick]}* ({(ReviewReplies.Fits(replies[pick], topic) ? "fits" : "doesn't fit")}, owner {mood.ToString().ToLowerInvariant()}): {record.ReplyText}");
                     }
                     else
                     {

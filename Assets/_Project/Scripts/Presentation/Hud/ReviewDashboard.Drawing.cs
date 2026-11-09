@@ -416,9 +416,38 @@ namespace Game.Presentation.Hud
             return x + width;
         }
 
-        // A reply adds the owner's line under the review: one reply per review.
+        // A reply adds the owner's line under the review (one reply per review), or two when it's long.
         private float CardHeight(ReviewRecord review, bool overview) =>
-            (overview ? 118f : 110f) + (review.Reply >= 0 ? 68f : 0f);
+            (overview ? 118f : 110f) + (review.Reply >= 0 ? 68f + (ReplyLines(review) > 1 ? ReplyLineHeight : 0f) : 0f);
+
+        private const float ReplyWidth = 860f, ReplySize = 21.33f, ReplyLineHeight = 27f;
+        private TextMeshProUGUI _measure;
+
+        // How many lines a reply wraps to, measured with the reply's own font, size and width.
+        private int ReplyLines(ReviewRecord review)
+        {
+            var text = ShownReply(review);
+            if (_measure == null || string.IsNullOrEmpty(text))
+                return 1;
+            _measure.font = Medium;
+            _measure.fontSize = ReplySize;
+            var height = _measure.GetPreferredValues(text, ReplyWidth, 0f).y;
+            var face = Medium.faceInfo;
+            var line = face.lineHeight * ReplySize / face.pointSize;
+            return height > line * 1.5f ? 2 : 1;
+        }
+
+        // TextMeshPro spaces lines by the font's own line height; this sets an exact pitch instead.
+        private static void LineHeight(TextMeshProUGUI label, float pixels)
+        {
+            var face = label.font.faceInfo;
+            var natural = face.lineHeight * label.fontSize / face.pointSize;
+            label.lineSpacing = (pixels - natural) / label.fontSize * 100f;
+        }
+
+        // Replies from before replies were written per review fall back to the fixed lines.
+        private string ShownReply(ReviewRecord review) =>
+            string.IsNullOrEmpty(review.ReplyText) ? ReplyText(review) : review.ReplyText;
 
         // One review card at y; returns its bottom.
         private float ReviewCard(Transform parent, ReviewRecord review, float y, bool selected, bool overview)
@@ -469,13 +498,12 @@ namespace Game.Presentation.Hud
             if (review.Reply >= 0)
             {
                 var top = y + 107f;
-                UiKit.RoundBox(parent, "Thread", _gold, 856f, top, 3f, 54f, 0f);
+                UiKit.RoundBox(parent, "Thread", _gold, 856f, top, 3f, 54f + (ReplyLines(review) > 1 ? ReplyLineHeight : 0f), 0f);
                 UiKit.Picture(parent, "Mark", _style.ReplyMark, 876f, top + 4f, 14f, 18f);
                 var owner = Label(Bold, parent, Services.ServiceConfig.RestaurantName, 16.67f, _wellLight, 897f, top + 18f, 300f);
                 Label(Medium, parent, review.Day == Services.Days.Day ? "· owner · just now" : "· owner", 16.67f, _quiet, 897f + UiKit.Width(owner) + 7f, top + 18f, 300f);
-                // Replies from before replies were written per review fall back to the fixed lines.
-                var reply = string.IsNullOrEmpty(review.ReplyText) ? ReplyText(review) : review.ReplyText;
-                Label(Medium, parent, reply, 21.33f, _ink, 877f, top + 45f, 860f);
+                var reply = UiKit.TextAt(Medium, parent, "Reply", ShownReply(review), ReplySize, _ink, 877f, top + 45f, ReplyWidth, lines: 2);
+                LineHeight(reply, ReplyLineHeight);
             }
             return y + height;
         }
@@ -1015,6 +1043,9 @@ namespace Game.Presentation.Hud
             _list = UiKit.Rect(window, "List", -(RightX - 8f), -(ListTop - 8f), 1920f, 1080f);
             _hints = UiKit.Rect(_layout, "Hints", 0f, 0f, 1920f, 1080f);
             _popover = UiKit.Rect(_layout, "Popover", 0f, 0f, 1920f, 1080f);
+
+            // Never shown: measures how many lines a reply wraps to, so its card can make room.
+            _measure = UiKit.TextAt(Medium, _layout, "Measure", "", ReplySize, Color.clear, -4000f, -4000f, ReplyWidth, lines: 2);
         }
     }
 }

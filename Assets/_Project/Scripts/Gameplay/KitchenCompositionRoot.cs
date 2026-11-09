@@ -82,10 +82,15 @@ namespace Game.Gameplay
         /// <summary>Posts a reply under a review, once, and saves it straight away.</summary>
         public bool ReplyTo(Game.Simulation.Saving.ReviewRecord review, ReviewReply reply)
         {
-            if (!ReviewReplies.Reply(review, reply, _serviceConfig.ToReplySettings()))
+            var settings = _serviceConfig.ToReplySettings();
+            if (!ReviewReplies.Reply(review, reply, settings))
                 return false;
-            // Written for this review in the style's voice (decision 2026-11-09).
-            ReviewReplies.WriteReply(review, reply, _serviceConfig.StyleVoice(), _serviceConfig.GenericVoice(), _reviewLines, _serviceConfig.RestaurantName);
+            // Written for this review in the style's voice, in the mood the day has left the owner in:
+            // each reply already posted today and each walk-out tonight wears on them (decision 2026-11-09).
+            var day = Services.Days.Day;
+            var repliedToday = Services.ReviewHistory.Count(r => r.Day == day && r.Reply >= 0) - 1;
+            var mood = ReviewVoices.MoodAfter(repliedToday, Services.Days.LastService?.WalkOuts ?? 0, settings.TiredAfter, settings.FedUpAfter);
+            ReviewReplies.WriteReply(review, reply, _serviceConfig.StyleVoice(), _serviceConfig.GenericVoice(), _reviewLines, _serviceConfig.RestaurantName, mood);
             SaveCampaign();
             return true;
         }
