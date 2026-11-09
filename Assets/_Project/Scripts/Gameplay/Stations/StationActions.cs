@@ -22,6 +22,8 @@ namespace Game.Gameplay.Stations
         West,
         North,
         Triggers,
+        /// <summary>The left stick, for station games played with it (the sink's balancing).</summary>
+        LeftStick,
     }
 
     /// <summary>One line of a station's button prompt, e.g. "A  Steak ×6".</summary>

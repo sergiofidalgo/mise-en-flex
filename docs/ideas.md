@@ -356,3 +356,9 @@ To work out when we get there: whether a full bin left standing smells and costs
 It stays alongside the office's test kitchen (decision 2026-11-09): the test kitchen is for trying a technique on the spot, with the bodyguards as tasters; the free kitchen is for rehearsing a whole service.
 
 To work out when we get there: which campaign's restaurants it offers (with three campaign slots, and after an erasure), and whether it's greyed out until a first restaurant is bought.
+
+## Stirring with the stick (for the wok cuisine)
+
+*Proposed 2026-11-09, from the user's minigame mockup.* At a wok or saucepan, the chef locks to the station the way washing does, and the stick circles the pan to chase a puck drawn round it (the station is the interface, decision 2026-11-09). Too slow scorches, too fast spills, so the craft is a steady rhythm. The lock and the camera-relative stick already work at the sink.
+
+To work out when we get there: what scorching and spilling cost (quality, lost food, a mess to clean), whether it suits the wok cuisine's signature mechanic, and how it reads with a second player at the next station.

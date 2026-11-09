@@ -23,7 +23,8 @@ namespace Game.Presentation.Hud
         public void Set(PromptControl control, bool gamepad)
         {
             var triggers = control == PromptControl.Triggers;
-            var round = gamepad && !triggers;
+            var stick = control == PromptControl.LeftStick;
+            var round = (gamepad || stick) && !triggers;
             var size = _style.BadgeSize;
 
             var width = triggers ? size * TriggerWidthFactor : size;
@@ -35,8 +36,8 @@ namespace Game.Presentation.Hud
 
             _glyph.font = _style.DisplayFont;
             _glyph.text = HudStyle.Glyph(control, gamepad);
-            _glyph.color = gamepad || triggers ? Color.white : _style.KeycapText;
-            _glyph.fontSize = triggers ? size * 0.42f : size * 0.6f;
+            _glyph.color = gamepad || triggers || stick ? Color.white : _style.KeycapText;
+            _glyph.fontSize = triggers || stick ? size * 0.42f : size * 0.6f;
         }
     }
 }

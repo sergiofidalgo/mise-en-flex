@@ -280,6 +280,9 @@ namespace Game.Editor
             view.FindProperty("_splash").objectReferenceValue = splash;
             view.FindProperty("_bubbles").objectReferenceValue = bubbles;
             view.ApplyModifiedPropertiesWithoutUndo();
+
+            // The washing game itself, drawn on the water (decision 2026-11-09).
+            WashRing.AddRing(sink, WashRing.FindSettings());
         }
 
         /// <summary>

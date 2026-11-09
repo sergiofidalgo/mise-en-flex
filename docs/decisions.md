@@ -4,6 +4,25 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-09 — The station is the interface; washing moves onto the sink's water
+
+**User's call:** minigames are drawn on their appliance, not over the chef, and every mechanic and its interface must read at any of the 8 rotations the layout editor allows, with the chef on any side. The sink goes first. After the first captures: bolder and more arcade-like, the plate tilting with the point, and a cue that the stick moves it.
+
+- **The rule for every station:** what you time or judge lies flat on the appliance, tinted in the player's colour. Floating cards are only for button prompts and short text. What must be read (needle, target, letters, sweep direction) is laid out relative to the camera and the chef, never the station's own axes. Text stays upright on screen. Nothing is drawn over objects in front of it (2026-11-07).
+- **Sink:** the balance circle lies on the water (`SinkWashRingView`, shader `Game/FX/WashRing`).
+  - The target is a cloud of suds with an Ink outline (it has to read on the white plate under it); a dashed Ink circle marks where washing stops.
+  - The point is a glossy soap bar with a thick outline: a pulsing suds halo when it's washing well, a broken, turning red ring when it isn't, so it reads without colour.
+  - The rim is chunky and arcade-like: an Ink-outlined track in 16 segments that light up in the washer's colour with the plate's progress (it replaces the bar). The ring pulses gently while washing well, and pops and flashes white when a plate comes clean.
+  - **The plate in the basin tips towards the point** (up to 22°, sliding up to 5 cm), levelling out at the centre, so the balancing reads as the plate itself (the user's idea).
+  - **How to play it:** while the soap is off target, chevrons flow from it towards the suds, and the washer's prompt card shows a new LS badge, "center the soap", above "stop washing". The stick isn't part of the A / X / triggers grammar, so it keeps a prompt.
+  - The mechanic and its tuning are unchanged.
+- **Any rotation:** the ring and the tilt follow the camera, so pushing the stick up always moves the point, and dips the plate, up on screen. A circle reads the same at any angle.
+- Added by **Tools/Game/Apply Wash Ring** (and by the kitchen builder with the sink's water), which also removes the old circle above the chef. **Tools/Game/Art/Capture Wash Ring** renders it at the sink's angle and turned 45°, with a chef in place.
+
+**Reason:** the old circle floated above the chef's head with nothing tying it to the sink. On the water it reads as part of the kitchen, and the user found it the most natural home for the ring.
+
+---
+
 ## 2026-11-09 — HUD type: Nunito and Fredoka, 28 px minimum, an Ink outline
 
 **User's call:** Fredoka and Nunito, as the art bible suggests, over Inter. First step of the cooking and service UI pass (type and readability).

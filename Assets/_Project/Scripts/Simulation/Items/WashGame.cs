@@ -61,6 +61,12 @@ namespace Game.Simulation.Items
         /// <summary>The point, with 1 as the circle's edge.</summary>
         public Vector2 Point { get; private set; }
 
+        /// <summary>Inside this distance from the centre, washing goes at full speed.</summary>
+        public float GoodRadius => _settings.GoodRadius;
+
+        /// <summary>Beyond this distance from the centre, nothing gets clean.</summary>
+        public float OkRadius => _settings.OkRadius;
+
         /// <summary>0..1: how fast it's washing right now, from where the point is.</summary>
         public float Rate => RateAt(Point.Length());
 

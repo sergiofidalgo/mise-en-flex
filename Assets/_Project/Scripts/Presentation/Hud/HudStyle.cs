@@ -179,7 +179,7 @@ namespace Game.Presentation.Hud
         /// <summary>Fill colour of a control's badge for the player's device.</summary>
         public Color BadgeColor(PromptControl control, bool gamepad)
         {
-            if (control == PromptControl.Triggers)
+            if (control == PromptControl.Triggers || control == PromptControl.LeftStick)
                 return _triggers;
             if (!gamepad)
                 return _keycap;
@@ -202,6 +202,7 @@ namespace Game.Presentation.Hud
             PromptControl.East => gamepad ? "B" : "D",
             PromptControl.West => gamepad ? "X" : "A",
             PromptControl.North => gamepad ? "Y" : "W",
+            PromptControl.LeftStick => "LS", // hints only ever name Xbox controls (2026-11-04)
             _ => gamepad ? "LT RT" : "Q E",
         };
 

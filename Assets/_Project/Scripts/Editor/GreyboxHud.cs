@@ -124,11 +124,7 @@ namespace Game.Editor
             flips.FindProperty("_root").objectReferenceValue = root;
             flips.ApplyModifiedPropertiesWithoutUndo();
 
-            var wash = new SerializedObject(hud.AddComponent<WashGameHud>());
-            wash.FindProperty("_canvas").objectReferenceValue = hud.GetComponent<RectTransform>();
-            wash.FindProperty("_style").objectReferenceValue = style;
-            wash.FindProperty("_sink").objectReferenceValue = Object.FindFirstObjectByType<SinkStation>();
-            wash.ApplyModifiedPropertiesWithoutUndo();
+            // The washing game is drawn on the sink's water (WashRing), not on this canvas.
 
             var status = new SerializedObject(hud.AddComponent<ServiceStatusHud>());
             status.FindProperty("_canvas").objectReferenceValue = hud.GetComponent<RectTransform>();

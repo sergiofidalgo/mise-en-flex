@@ -118,6 +118,8 @@ namespace Game.Gameplay.Stations
         {
             if (_washer == player)
             {
+                // The stick isn't part of the usual A / X / triggers grammar, so say what it does.
+                lines.Add(new PromptLine(PromptControl.LeftStick, Tr.Get("center the soap")));
                 lines.Add(new PromptLine(PromptControl.West, Tr.Get("stop washing")));
                 return;
             }
