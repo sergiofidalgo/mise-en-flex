@@ -111,5 +111,40 @@ namespace Game.Simulation.Days
 
         /// <summary>Money at the end of the day, after the fee if one fell due.</summary>
         public float Balance;
+
+        // What forkcast's end-of-day summary shows, kept with the day so a relaunch redraws it
+        // exactly (2026-11-11). Older saves have none: empty, and the summary falls back to In/Out.
+
+        /// <summary>The day's ledger as the service ended, one amount per <see cref="LedgerLine"/>.</summary>
+        public float[] Lines = new float[0];
+
+        /// <summary>Each dish ordered that night: how many, how many walked out, the stars it got.</summary>
+        public List<DishNight> Dishes = new List<DishNight>();
+
+        /// <summary>True when the boss's collection fell on this day.</summary>
+        public bool Collected;
+
+        /// <summary>What he was owed that night, and what the balance covered.</summary>
+        public float CollectionDue;
+        public float CollectionPaid;
+    }
+
+    /// <summary>One dish on one night, for the end-of-day summary's menu (2026-11-11).</summary>
+    [Serializable]
+    public sealed class DishNight
+    {
+        /// <summary>The cookbook recipe, or empty for orders from before the cookbook.</summary>
+        public string RecipeId = "";
+        /// <summary>The order as guests named it, e.g. "steak, medium".</summary>
+        public string Dish = "";
+        public int Ordered;
+        public int WalkedOut;
+        /// <summary>The stars given for it, summed, and by how many guests: their average is the dish's stars.</summary>
+        public float StarSum;
+        public int Rated;
+        /// <summary>The price it sold at that night.</summary>
+        public int Price;
+
+        public float? Stars => Rated > 0 ? StarSum / Rated : (float?)null;
     }
 }

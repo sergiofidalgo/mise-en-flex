@@ -102,8 +102,13 @@ namespace Game.Presentation.Hud
         private TextMeshProUGUI Caps(Transform parent, string text, float x, float baseline, Color? color = null) =>
             Label(Bold, parent, text, 16f, color ?? _muted, x, baseline, 500f, tracking: 1.6f);
 
+        // The last finished day: everything forkcast shows is about it (the user's call, 2026-11-11).
+        private DaySummary _summary;
+        private DaySummary Summary => _summary ??= DaySummary.Of(Services.Days);
+
         private void Refresh()
         {
+            _summary = DaySummary.Of(Services.Days);
             DrawHeader();
             DrawLeft();
             DrawTabs();
@@ -115,8 +120,8 @@ namespace Game.Presentation.Hud
                 case Tab.Overview:
                     DrawOverview();
                     break;
-                case Tab.MenuAndBooks:
-                    DrawMenuAndBooks();
+                case Tab.Books:
+                    DrawBooks();
                     break;
                 case Tab.Cookbook:
                     DrawCookbook();
@@ -137,10 +142,11 @@ namespace Game.Presentation.Hud
             var days = Services.Days;
             Label(Medium, _header, Tr.Format("{style}s near you", ("style", Tr.Get(ShownStyle))), 21.33f, _sand, 374f, 106f, 500f);
 
-            var today = Services.ReviewHistory.Count(r => r.Day == days.Day);
+            var shown = Summary.HasDay ? Summary.Day : days.Day;
+            var today = Services.ReviewHistory.Count(r => r.Day == shown);
             // The money chip has the very right (the user's call, 2026-11-10); the pills sit to its left.
             var right = 1804f - _moneyWidth - 22f;
-            right = HeaderPill(Tr.Format("Day {day} · {weekday}", ("day", days.Day), ("weekday", Weekday(days.Day))), _well, right) - 22f;
+            right = HeaderPill(Tr.Format("Day {day} · {weekday}", ("day", shown), ("weekday", Weekday(shown))), _well, right) - 22f;
             if (today > 0)
                 HeaderPill(today == 1 ? "1 new review" : $"{today} new reviews", _wellLight, right);
         }
@@ -310,8 +316,7 @@ namespace Game.Presentation.Hud
         // Never open while forkcast shows: next is tonight in a morning, tomorrow after a service.
         private (string Value, string Label, bool Alarm) NextOpening()
         {
-            var day = Services.Days.Phase == DayPhase.Review ? Services.Days.Day + 1 : Services.Days.Day;
-            return ($"{ClockAt(0f)} {Weekday(day)}", Tr.Get("closed · opens"), false);
+            return ($"{ClockAt(0f)} {Weekday(Summary.NextDay)}", Tr.Get("closed · opens"), false);
         }
 
         // The best line from the latest day with reviews; the owner's when there are none.
@@ -355,12 +360,12 @@ namespace Game.Presentation.Hud
         {
             DrawBoss(RightX, 262f);
 
-            var summary = Services.Days.LastService;
+            var day = Summary;
             var x = RightX + BossWidth + 16f;
             var width = (RightEdge - x - 2f * 12f) / 3f;
-            SmallStat(x, width, $"{summary?.Served ?? 0}", Tr.Get("Served"), false);
-            SmallStat(x + width + 12f, width, $"{summary?.WalkOuts ?? 0}", Tr.Get("Walked out"), (summary?.WalkOuts ?? 0) > 0);
-            SmallStat(x + 2f * (width + 12f), width, $"{summary?.TurnedAway ?? 0}", Tr.Get("Turned away"), (summary?.TurnedAway ?? 0) > 0);
+            SmallStat(x, width, $"{day.Served}", Tr.Get("Served"), false);
+            SmallStat(x + width + 12f, width, $"{day.WalkOuts}", Tr.Get("Walked out"), day.WalkOuts > 0);
+            SmallStat(x + 2f * (width + 12f), width, $"{day.TurnedAway}", Tr.Get("Turned away"), day.TurnedAway > 0);
 
             var all = AllReviews();
             var reviews = ListedReviews();
@@ -395,10 +400,13 @@ namespace Game.Presentation.Hud
         {
             var days = Services.Days;
             var inner = BossWidth - 52f;
-            var collection = days.LastCollection;
+            // As the finished day ended: a collection that night shows what he took; otherwise the
+            // next one, counted from the end of that day ("tomorrow" is the next service).
+            var record = Summary.Record;
+            var collected = record != null && record.Collected;
             var card = BossCard.For(days.NextCollection.Due, days.Balance, days.DaysUntilFee,
-                days.Phase != DayPhase.Review, Services.Boss.Step, Services.RestaurantsOwned);
-            var urgent = !collection.HasValue && card.Urgent;
+                false, Services.Boss.Step, Services.RestaurantsOwned);
+            var urgent = !collected && card.Urgent;
 
             _bossGlow = UiKit.RoundBox(_content, "BossGlow", Alpha(_shortBy, 0f), x - 7f, y - 7f, BossWidth + 14f, BossHeight + 14f, 24f);
             _bossUrgent = urgent;
@@ -412,15 +420,17 @@ namespace Game.Presentation.Hud
 
             string lead, left, right = null;
             float covered;
-            if (collection.HasValue)
+            if (collected)
             {
                 // Collection night: what he took.
-                var taken = collection.Value;
-                covered = taken.Due > 0f ? Mathf.Clamp01(taken.Paid / taken.Due) : 1f;
-                lead = Tr.Format("Debt collection taken: {amount}", ("amount", Money(taken.Due)));
-                left = taken.PaidInFull ? Tr.Get("Paid in full") : Tr.Format("He took {paid}", ("paid", Money(taken.Paid)));
-                if (!taken.PaidInFull)
-                    right = Tr.Format("Short by {amount}", ("amount", Money(taken.Shortfall)));
+                var due = record.CollectionDue;
+                var paid = record.CollectionPaid;
+                var paidInFull = paid >= due - 0.005f;
+                covered = due > 0f ? Mathf.Clamp01(paid / due) : 1f;
+                lead = Tr.Format("Debt collection taken: {amount}", ("amount", Money(due)));
+                left = paidInFull ? Tr.Get("Paid in full") : Tr.Format("He took {paid}", ("paid", Money(paid)));
+                if (!paidInFull)
+                    right = Tr.Format("Short by {amount}", ("amount", Money(due - paid)));
             }
             else
             {
@@ -568,7 +578,7 @@ namespace Game.Presentation.Hud
             // In the player's language: the guest's name slot looked up there (decision 2026-11-09).
             var name = Label(Bold, parent, Game.Data.GuestNames.Display(review), 20f, _ink, 857f, nameBase, 300f);
             var meta = (string.IsNullOrEmpty(review.Order) ? "" : $"· {Game.Data.ReviewText.Order(review.Order)} ") + $"· {ClockAt(review.ArrivedAt)}";
-            if (review.Day != Services.Days.Day)
+            if (review.Day != Summary.Day)
                 meta += Tr.Format(" · day {day}", ("day", review.Day));
             // A guest who's posted before (decision 2026-11-09).
             if (review.Visit == 2)
@@ -609,7 +619,7 @@ namespace Game.Presentation.Hud
                 UiKit.RoundBox(parent, "Thread", _gold, 856f, top, 3f, 54f + (ReplyLines(review) > 1 ? ReplyLineHeight : 0f), 0f);
                 UiKit.Picture(parent, "Mark", _style.ReplyMark, 876f, top + 4f, 14f, 18f);
                 var owner = Label(Bold, parent, ShownName, 16.67f, _wellLight, 897f, top + 18f, 300f);
-                Label(Medium, parent, review.Day == Services.Days.Day ? Tr.Get("· owner · just now") : Tr.Get("· owner"), 16.67f, _quiet, 897f + UiKit.Width(owner) + 7f, top + 18f, 300f);
+                Label(Medium, parent, review.Day == Summary.Day ? Tr.Get("· owner · just now") : Tr.Get("· owner"), 16.67f, _quiet, 897f + UiKit.Width(owner) + 7f, top + 18f, 300f);
                 var reply = UiKit.TextAt(Medium, parent, "Reply", ShownReply(review), ReplySize, _ink, 877f, top + 45f, ReplyWidth, lines: 2);
                 LineHeight(reply, ReplyLineHeight);
             }
@@ -671,11 +681,12 @@ namespace Game.Presentation.Hud
             Label(ExtraBold, _popover, Tr.Get("Stand your ground"), 34.67f, _paper, hx, hy + 134f, 520f, HorizontalAlignmentOptions.Center, -0.7f);
         }
 
-        // ---- Menu & Books: today's money beside tonight's menu, then where it went ----
+        // ---- Books: the finished day's money, what they ordered, then where it went (2026-11-11) ----
 
-        private void DrawMenuAndBooks()
+        private void DrawBooks()
         {
-            var ledger = Services.Days.Today;
+            // The finished day's books (the user's call, 2026-11-11), even after a relaunch.
+            var ledger = Summary.Ledger;
             var lines = ((LedgerLine[])System.Enum.GetValues(typeof(LedgerLine))).Where(l => ledger.Of(l) != 0f).ToList();
             DrawToday(ledger, lines);
             DrawTonightsMenu();
@@ -683,48 +694,48 @@ namespace Game.Presentation.Hud
             DrawTrendAndTeam();
         }
 
-        // Each dish on tonight's menu at the price it sold for, with how many ordered it, how many
-        // gave up waiting, and the stars it got. Walk-outs tint the row, as the old table did.
+        // Each dish ordered that night, at the price it sold for, with how many ordered it, how many
+        // gave up waiting and the stars it got; walk-outs tint the row. From the day's record, so it's
+        // the finished day's even after a relaunch (2026-11-11).
         private void DrawTonightsMenu()
         {
             const float x = 1293f, width = 507f, top = 262f, height = 301f, rowHeight = 54f;
             UiKit.RoundBox(_content, "Menu", _card, x, top, width, height, 18f);
-            Caps(_content, "TONIGHT'S MENU", x + 26f, top + 38f);
-            var book = Services.Cookbook;
-            if (book == null || !book.Menu.Any())
+            Caps(_content, Tr.Get("WHAT THEY ORDERED"), x + 26f, top + 38f);
+            var dishes = Summary.Dishes.OrderByDescending(d => d.Ordered).ToList();
+            if (dishes.Count == 0)
             {
-                Label(Serif, _content, Tr.Get("No menu yet."), 24f, _muted, x + 26f, top + 100f);
+                Label(Serif, _content, Tr.Get("Nobody ordered."), 24f, _muted, x + 26f, top + 100f);
                 return;
             }
 
-            var visits = TonightsVisits();
-            var dishes = book.Menu.ToList();
             var rows = Mathf.Min(dishes.Count, 4);
             var y = top + 58f;
             for (var i = 0; i < rows; i++)
             {
-                var recipe = dishes[i];
-                var mine = visits.Where(v => v.RecipeId == recipe.Id || (v.RecipeId == null && i == 0 && v.Dish.StartsWith(recipe.MainName.ToLowerInvariant()))).ToList();
-                var walked = mine.Count(v => v.WalkedOut);
-                if (walked > 0)
+                var dish = dishes[i];
+                if (dish.WalkedOut > 0)
                     UiKit.RoundBox(_content, "Alarm", _alarm, x + 12f, y, width - 24f, rowHeight - 6f, 12f);
-                Label(Bold, _content, Tr.Get(recipe.Name), 21.33f, _ink, x + 26f, y + 24f, 330f);
-                var rated = mine.Where(v => v.Stars.HasValue).Select(v => v.Stars.Value).ToList();
-                var said = Tr.Plural(mine.Count, "1 ordered", "{n} ordered");
-                if (walked > 0)
-                    said += " · " + Tr.Plural(walked, "1 walked out", "{n} walked out");
-                if (rated.Count > 0)
-                    said += " · " + Tr.Format("{stars} stars", ("stars", rated.Average().ToString("0.0")));
-                Label(Medium, _content, said, 16.67f, walked > 0 ? _alarmText : _muted, x + 26f, y + 45f, 340f);
-
-                var price = book.PriceOf(recipe.Id);
-                Label(ExtraBold, _content, Money(price), 24f, _ink, x + width - 26f, y + 26f, 120f, HorizontalAlignmentOptions.Right);
-                if (price != recipe.SuggestedPrice)
-                    Label(Medium, _content, Percent(book.RatioOf(recipe)), 16.67f, _muted, x + width - 26f, y + 45f, 120f, HorizontalAlignmentOptions.Right);
+                Label(Bold, _content, DishName(dish), 21.33f, _ink, x + 26f, y + 24f, 330f);
+                var said = Tr.Plural(dish.Ordered, "1 ordered", "{n} ordered");
+                if (dish.WalkedOut > 0)
+                    said += " · " + Tr.Plural(dish.WalkedOut, "1 walked out", "{n} walked out");
+                if (dish.Stars.HasValue)
+                    said += " · " + Tr.Format("{stars} stars", ("stars", dish.Stars.Value.ToString("0.0")));
+                Label(Medium, _content, said, 16.67f, dish.WalkedOut > 0 ? _alarmText : _muted, x + 26f, y + 45f, 340f);
+                if (dish.Price > 0)
+                    Label(ExtraBold, _content, Money(dish.Price), 24f, _ink, x + width - 26f, y + 26f, 120f, HorizontalAlignmentOptions.Right);
                 y += rowHeight;
             }
             if (dishes.Count > rows)
-                Label(Medium, _content, Tr.Plural(dishes.Count - rows, "1 more dish in the cookbook tab", "{n} more dishes in the cookbook tab"), 16.67f, _muted, x + 26f, top + height - 14f, 450f);
+                Label(Medium, _content, Tr.Plural(dishes.Count - rows, "1 more dish", "{n} more dishes"), 16.67f, _muted, x + 26f, top + height - 14f, 450f);
+        }
+
+        // The recipe's name when the cookbook knows it, otherwise the order as guests said it.
+        private string DishName(DishNight dish)
+        {
+            var recipe = Services.Cookbook?.Recipes.FirstOrDefault(r => r.Id == dish.RecipeId);
+            return recipe != null ? Tr.Get(recipe.Name) : Capitalised(dish.Dish);
         }
 
         // "+20%" or "−10%" against the suggested price.
@@ -983,45 +994,10 @@ namespace Game.Presentation.Hud
             UiKit.RoundBox(_content, "Track", _rule, x + 90f, y, 186f, 12f, 6f);
             UiKit.RoundBox(_content, "Fill", _gold, x + 90f, y, Mathf.Max(12f, 186f * Mathf.Clamp01(value)), 12f, 6f);
         }
-        // One guest's night, whether or not they reviewed it.
-        private sealed class Visit
-        {
-            public string Dish = "";
-            public float ArrivedAt;
-            public bool WalkedOut;
-            public float Taken;
-            /// <summary>The cookbook recipe ordered, or null when only a review remembers the visit.</summary>
-            public string RecipeId;
-            /// <summary>The stars they gave, if they ate.</summary>
-            public float? Stars;
-        }
-
-        // Everyone served or who walked out tonight: not every guest reviews (2026-11-09), so the
-        // chart and the menu count guests, not reviews. Reviews stand in only when there are no
-        // guests to count, as in the screenshot test's staged evening.
-        private List<Visit> TonightsVisits()
-        {
-            var visits = Services.Service.Customers
-                .Where(c => c.Order != null && (c.Satisfaction != null || c.WalkedOut))
-                .Select(c => new Visit
-                {
-                    Dish = Game.Simulation.Saving.SaveConversions.OrderName(c.Order),
-                    ArrivedAt = c.ArrivedAt,
-                    WalkedOut = c.WalkedOut,
-                    Taken = c.Bill.HasValue ? c.Bill.Value.Payment + c.Bill.Value.Tip : 0f,
-                    RecipeId = c.Order.RecipeId,
-                    Stars = c.RatedStars,
-                }).ToList();
-            if (visits.Count > 0)
-                return visits;
-            return Services.ReviewHistory.Where(r => r.Day == Services.Days.Day)
-                .Select(r => new Visit { Dish = r.Order, ArrivedAt = r.ArrivedAt, WalkedOut = r.WalkedOut, Taken = r.Paid + r.Tip, Stars = r.WalkedOut ? (float?)null : r.RatedStars }).ToList();
-        }
-
         private string TabName(Tab tab) => tab switch
         {
             Tab.Overview => Tr.Get("Overview"),
-            Tab.MenuAndBooks => Tr.Get("Menu & Books"),
+            Tab.Books => Tr.Get("Books"),
             Tab.Cookbook => Tr.Get("Cookbook"),
             _ => Tr.Get("Staff"),
         };
@@ -1030,7 +1006,7 @@ namespace Game.Presentation.Hud
         private void DrawToday(Ledger ledger, List<LedgerLine> lines)
         {
             UiKit.RoundBox(_content, "Today", _card, RightX, 262f, 507f, 301f, 18f);
-            Caps(_content, "TODAY", 790f, 300f);
+            Caps(_content, Tr.Format("DAY {day}", ("day", Summary.Day)), 790f, 300f);
             var pitch = lines.Count > 1 ? Mathf.Min(36f, (447f - 339f) / (lines.Count - 1)) : 36f;
             var y = 339f;
             foreach (var line in lines)
@@ -1042,7 +1018,7 @@ namespace Game.Presentation.Hud
                 y += pitch;
             }
             UiKit.RoundBox(_content, "Rule", Hex(0xd9c39a), 790f, 470f, 455f, 2f, 0f);
-            Label(Bold, _content, Tr.Get("Net today"), 22.67f, _ink, 790f, 517f, 300f);
+            Label(Bold, _content, Tr.Get("Net"), 22.67f, _ink, 790f, 517f, 300f);
             var net = ledger.Net;
             Label(ExtraBold, _content, Money(net, true, signed: true), 32.67f, net < 0f ? _badText : _goodText, 1244f, 517f, 300f, HorizontalAlignmentOptions.Right, -0.5f);
         }
@@ -1052,7 +1028,7 @@ namespace Game.Presentation.Hud
         {
             UiKit.RoundBox(_content, "Went", _card, RightX, 585f, RightWidth, 196f, 18f);
             Caps(_content, "WHERE THE MONEY WENT", 790f, 625f);
-            Label(Medium, _content, Tr.Format("Day {day}", ("day", Services.Days.Day)), 19.5f, _muted, 1772f, 625f, 200f, HorizontalAlignmentOptions.Right);
+            Label(Medium, _content, Tr.Format("Day {day}", ("day", Summary.Day)), 19.5f, _muted, 1772f, 625f, 200f, HorizontalAlignmentOptions.Right);
 
             var income = lines.Where(Ledger.IsIncome).ToList();
             var spending = lines.Where(l => !Ledger.IsIncome(l)).ToList();
@@ -1069,7 +1045,7 @@ namespace Game.Presentation.Hud
                 var label = Label(Medium, _content, LineName(line), 17.33f, _body, x + 24f, 754f, 200f);
                 x += 24f + UiKit.Width(label) + 22f;
             }
-            if (Services.Days.Day < 3)
+            if (Summary.Day < 3)
                 Label(Medium, _content, Tr.Get("Trend appears from day 3"), 19.5f, _muted, 1773f, 754f, 400f, HorizontalAlignmentOptions.Right);
         }
 
@@ -1096,7 +1072,7 @@ namespace Game.Presentation.Hud
             if (close.Spoiled > 0 || close.LeftOut > 0)
                 team.Add(Tr.Format("Overnight: {spoiled} spoiled, {left} left out", ("spoiled", close.Spoiled), ("left", close.LeftOut)));
             var history = days.History.Skip(Mathf.Max(0, days.History.Count - 12)).ToList();
-            var trend = days.Day >= 3 && history.Count > 0;
+            var trend = Summary.Day >= 3 && history.Count > 0;
             if (!trend && team.Count == 0)
                 return;
 
@@ -1180,7 +1156,7 @@ namespace Game.Presentation.Hud
             var browse = filtering ? Tr.Get("Filter")
                 : _tab == Tab.Cookbook && cook != null ? Tr.Format("P{player} browses", ("player", cook.playerIndex + 1))
                 : Tr.Get("Browse");
-            if (_tab != Tab.MenuAndBooks)
+            if (_tab != Tab.Books)
                 hints.Add((new[] { "DPad" }, browse));
             // Nobody's here yet (a kitchen opened straight into Plan): forkcast covers the join card.
             if (PlayerInput.all.Count == 0)
@@ -1226,8 +1202,7 @@ namespace Game.Presentation.Hud
             // forkcast is the end-of-day summary (the user's call, 2026-11-10): its one button starts
             // the next day, straight into Prep. After a service that's tomorrow; arriving in a
             // morning (from the office, or a new restaurant's day 1), it's the day about to be played.
-            var next = Services.Days.Phase == DayPhase.Review ? Services.Days.Day + 1 : Services.Days.Day;
-            var text = Tr.Format("Start day {day}", ("day", next));
+            var text = Tr.Format("Start day {day}", ("day", Summary.NextDay));
             Label(ExtraBold, _hints, text, 28f, _ink, x + 66f, top + 40f, width - 150f, tracking: -0.5f);
 
             var players = PlayerInput.all.OrderBy(p => p.playerIndex).ToList();

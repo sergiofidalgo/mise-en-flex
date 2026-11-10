@@ -77,9 +77,6 @@ namespace Game.Tests.PlayMode
             for (var i = 0; i < 3; i++)
                 yield return null;
 
-            // The morning of day 1, as you arrive.
-            yield return Shoot(dashboard, -1, Path.Combine(folder, "forkcast_plan_overview_day1.png"));
-
             // An evening one service before the collection, with the money short: the card turns urgent.
             typeof(DayCycle).GetProperty(nameof(DayCycle.DaysTowardsFee)).SetValue(days, days.Fee.EveryDays - 2);
             days.Advance();
@@ -90,19 +87,26 @@ namespace Game.Tests.PlayMode
             foreach (var (guest, stars, line) in guests)
                 services.ReviewHistory.Add(new Game.Simulation.Saving.ReviewRecord { Day = days.Day, Guest = guest, Order = "steak, medium", Stars = stars, Line = line, Topic = (int)Game.Simulation.Service.ReviewTopic.Decent, Paid = 24f });
             days.FinishService(Summary(served: 6, walkOuts: 1, payments: 188f, tips: 22f, walkOutLosses: 12f), wages: 45f);
+            // What they ordered that night, as DayLoop records it from the guests.
+            days.History[days.History.Count - 1].Dishes = new System.Collections.Generic.List<DishNight>
+            {
+                new DishNight { RecipeId = services.Cookbook.Menu.First().Id, Dish = "steak, medium", Ordered = 7, WalkedOut = 1, StarSum = 21f, Rated = 6, Price = 24 },
+            };
             for (var i = 0; i < 5; i++)
                 yield return null;
             Assert.That(days.Phase, Is.EqualTo(DayPhase.Review));
             Object.FindFirstObjectByType<DayLoop>().Ready.Toggle(PlayerInput.all[0].playerIndex);
             yield return Shoot(dashboard, -1, Path.Combine(folder, "forkcast_review_overview_urgent.png"));
+            yield return ShootTab(dashboard, 1, Path.Combine(folder, "forkcast_review_books.png"));
 
-            // The next morning: last night's receipt, and the collection is tonight.
+            // The next morning (as after leaving and joining again): still day 1's summary.
             Object.FindFirstObjectByType<DayLoop>().Ready.Clear();
             days.Advance();
             for (var i = 0; i < 5; i++)
                 yield return null;
             Assert.That(days.Phase, Is.EqualTo(DayPhase.Plan));
             yield return Shoot(dashboard, -1, Path.Combine(folder, "forkcast_plan_overview_urgent.png"));
+            yield return ShootTab(dashboard, 1, Path.Combine(folder, "forkcast_plan_books.png"));
 
             // Start day: straight into Prep, where the strip says how many guests to expect.
             days.Advance();
@@ -132,6 +136,16 @@ namespace Game.Tests.PlayMode
             Set(nameof(Game.Simulation.Service.ServiceSummary.WalkOutLosses), walkOutLosses);
             Set(nameof(Game.Simulation.Service.ServiceSummary.Money), payments + tips - walkOutLosses);
             return summary;
+        }
+
+        private static IEnumerator ShootTab(ReviewDashboard dashboard, int tab, string file)
+        {
+            dashboard.ShowForCapture(tab, 0, false);
+            yield return new WaitForSecondsRealtime(1.5f);
+            yield return new WaitForEndOfFrame();
+            var frame = ScreenCapture.CaptureScreenshotAsTexture();
+            File.WriteAllBytes(file, frame.EncodeToPNG());
+            Object.Destroy(frame);
         }
 
         // selected −1 shows the Overview; otherwise the Staff tab with that row chosen.

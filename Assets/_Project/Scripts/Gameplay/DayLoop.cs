@@ -33,12 +33,29 @@ namespace Game.Gameplay
         /// <summary>Who's lost their controller, and whether the service is waiting for them, for the HUD.</summary>
         public ControllerPause ControllerPause { get; } = new ControllerPause();
 
+        /// <summary>
+        /// A restaurant with no finished day starts straight in day 1's Prep: there's no summary to
+        /// show before day 1 (the user's call, 2026-11-11). On in the game; the play-test suite turns
+        /// it off (SaveIsolation) so its tests can drive a new kitchen's day by hand from Plan.
+        /// </summary>
+        public static bool NewRestaurantsStartInPrep { get; set; } = true;
+
+        private bool _started;
+
         /// <summary>False on the frame a player joins, so the joining press does nothing else.</summary>
         public bool WasHereLastFrame(PlayerInput player) => _seenLastFrame.Contains(player);
 
         private void Update()
         {
             var days = _root.Services.Days;
+            // Once, on the first frame (everything has started by then, so Prep's own setup runs as
+            // usual): a new restaurant skips the summary it has nothing to show in.
+            if (!_started)
+            {
+                _started = true;
+                if (NewRestaurantsStartInPrep && days.Phase == DayPhase.Plan && days.History.Count == 0)
+                    days.Advance();
+            }
             // Holding Menu readies up only in Prep: in Plan and Review, forkcast's Start button does
             // (A held, the user's call 2026-11-10), so a tap on Menu opens the pause menu at once.
             MenuButton.HoldReadies = days.Phase == DayPhase.Prep;

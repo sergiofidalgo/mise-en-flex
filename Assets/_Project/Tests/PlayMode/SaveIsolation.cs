@@ -19,6 +19,9 @@ namespace Game.Tests.PlayMode
             _directory = Path.Combine(Path.GetTempPath(), "MiseEnFlexPlayTests_" + System.Guid.NewGuid().ToString("N"));
             SaveFile.DirectoryOverride = _directory;
             CampaignLaunch.StartNew();
+            // These tests drive a new kitchen's day by hand from Plan; the real start straight into
+            // Prep is tested on its own (ForkcastSummaryPlayTests).
+            Game.Gameplay.DayLoop.NewRestaurantsStartInPrep = false;
         }
 
         [OneTimeTearDown]
@@ -26,6 +29,7 @@ namespace Game.Tests.PlayMode
         {
             SaveFile.DirectoryOverride = null;
             CampaignLaunch.Reset();
+            Game.Gameplay.DayLoop.NewRestaurantsStartInPrep = true;
             if (Directory.Exists(_directory))
                 Directory.Delete(_directory, true);
         }
