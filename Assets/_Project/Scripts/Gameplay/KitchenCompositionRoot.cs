@@ -225,11 +225,11 @@ namespace Game.Gameplay
             }
             if (phase == DayPhase.Prep)
             {
-                Services.LastDelivery = Services.Stations.All.OfType<StorageStation>().SelectMany(s => s.TakeDelivery()).ToList();
-
-                // Paid for whatever the balance, until street vendors replace the delivery (decision 2026-11-08).
-                var cost = Services.LastDelivery.Sum(d => (_itemCatalog.Find(d.TypeId)?.Price ?? 0f) * d.Count);
-                Services.Days.Charge(LedgerLine.Ingredients, cost);
+                // Street vendors replace the morning delivery (decision 2026-11-10): a new campaign's
+                // first morning finds the storeroom stocked, free and once. After that it's bought.
+                Services.LastDelivery = Services.Days.Day == 1
+                    ? Services.Stations.All.OfType<StorageStation>().SelectMany(s => s.StockStarter()).ToList()
+                    : new System.Collections.Generic.List<(string, int)>();
                 return;
             }
             if (phase != DayPhase.Plan)

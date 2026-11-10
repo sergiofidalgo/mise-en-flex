@@ -177,7 +177,7 @@ namespace Game.Simulation.Days
         /// <summary>Money from outside a service, such as selling furniture.</summary>
         public void Receive(float amount) => Book(LedgerLine.Sales, amount);
 
-        /// <summary>A bill that's paid whatever the balance, such as the morning delivery: it can go into debt.</summary>
+        /// <summary>A bill that's paid whatever the balance, such as a crate from a street stall: it can go into debt.</summary>
         public void Charge(LedgerLine line, float amount) => Book(line, amount);
 
         // Every movement of money goes through here, so the books always add up to the balance.

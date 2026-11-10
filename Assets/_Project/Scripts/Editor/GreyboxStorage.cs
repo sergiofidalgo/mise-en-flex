@@ -26,7 +26,7 @@ namespace Game.Editor
             // Portions each of the four slots holds. Any ingredient can go in any slot.
             public int SlotCapacity;
 
-            // What arrives each morning, until shopping (Phase 5).
+            // What's here on a new campaign's first morning, once; after that it's bought at the stalls.
             public (string TypeId, int Count)[] Deliveries = System.Array.Empty<(string, int)>();
         }
 
@@ -91,7 +91,7 @@ namespace Game.Editor
                 element.FindPropertyRelative("_capacity").intValue = unit.SlotCapacity;
                 element.FindPropertyRelative("_bin").objectReferenceValue = bins[i];
             }
-            var deliveries = so.FindProperty("_deliveries");
+            var deliveries = so.FindProperty("_starterStock");
             deliveries.arraySize = unit.Deliveries.Length;
             for (var i = 0; i < unit.Deliveries.Length; i++)
             {

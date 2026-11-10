@@ -180,6 +180,10 @@ namespace Game.Presentation
                 fridge.Closed += closed;
             }
 
+            // A market stall: the till, at the stall, for every crate bought.
+            if (station is StallStation stall)
+                stall.Bought += _ => Play(_sounds.Till, stall.transform.position);
+
             if (!(station is PrepStation board) || _boards.ContainsKey(board))
                 return;
 
