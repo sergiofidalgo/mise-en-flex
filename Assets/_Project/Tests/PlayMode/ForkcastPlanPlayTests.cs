@@ -14,7 +14,7 @@ namespace Game.Tests.PlayMode
 {
     /// <summary>
     /// The real kitchen, entered in the morning (the user's calls, 2026-11-10): forkcast is up, hiring
-    /// happens on its Staff tab with a controller, and only holding A on Start prep leaves it.
+    /// happens on its Staff tab with a controller, and only holding A on "Start day N" leaves it.
     /// </summary>
     public class ForkcastPlanPlayTests
     {

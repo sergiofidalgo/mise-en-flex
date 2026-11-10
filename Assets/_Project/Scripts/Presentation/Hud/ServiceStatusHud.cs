@@ -143,13 +143,34 @@ namespace Game.Presentation.Hud
                     hold += "  " + HoldBar.Text(holder, _settings.GetPlayerColor(holder.playerIndex), _waitingColor);
                 _hints.Add((HintStrip.Menu, hold));
             }
-            _keys.Show(DayCardText.Phase(phase), _hints, _stripBottomMargin);
+            // While they prep, how many to expect tonight (the user's call, 2026-11-10): it follows the
+            // tables as they're moved and the menu's prices, as the night itself will.
+            var lead = DayCardText.Phase(phase);
+            if (phase == DayPhase.Prep)
+                lead += "  ·  " + Tr.Format("about {count} guests tonight", ("count", ExpectedGuests()));
+            _keys.Show(lead, _hints, _stripBottomMargin);
 
             var above = StripText();
             if (string.IsNullOrEmpty(above))
                 _strip.Hide();
             else
                 _strip.ShowAt(above, new Vector2(0f, bottom + _keys.StripHeight + 6f));
+        }
+
+        // Worked out twice a second, not every frame: it builds the menu to read its demand.
+        private int _expected;
+        private float _expectedAt = -1f;
+
+        private int ExpectedGuests()
+        {
+            if (_expectedAt >= 0f && Time.unscaledTime - _expectedAt < 0.5f)
+                return _expected;
+            _expectedAt = Time.unscaledTime;
+            var services = _root.Services;
+            var tables = services.Stations.All.OfType<Game.Gameplay.Stations.TableStation>().Select(t => t.SeatCount).Where(n => n > 0).ToList();
+            var demand = services.Cookbook != null ? services.Cookbook.BuildMenu().Demand : 1f;
+            _expected = Game.Simulation.Service.GuestForecast.Guests(services.Service.Settings, demand, tables);
+            return _expected;
         }
 
         private string StripText()

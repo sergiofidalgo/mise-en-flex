@@ -24,7 +24,7 @@ namespace Game.Simulation.Days
         public static bool OpensFor(DayPhase phase) => phase == DayPhase.Plan || phase == DayPhase.Review;
 
         /// <summary>
-        /// How many <see cref="DayCycle.Advance"/> steps "Start prep" takes from <paramref name="phase"/>:
+        /// How many <see cref="DayCycle.Advance"/> steps "Start day N" takes from <paramref name="phase"/>:
         /// Review goes through the next morning's Plan without stopping; Plan goes on to Prep.
         /// Elsewhere there's no Start button.
         /// </summary>

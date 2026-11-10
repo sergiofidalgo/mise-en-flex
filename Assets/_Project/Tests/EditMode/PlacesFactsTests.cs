@@ -9,15 +9,7 @@ namespace Game.Tests.EditMode
         [Test]
         public void The_same_restaurant_always_gets_the_same_made_up_details()
         {
-            Assert.That(PlacesFacts.HouseNumber("The Copper Pan"), Is.EqualTo(PlacesFacts.HouseNumber("The Copper Pan")));
             Assert.That(PlacesFacts.Pick("The Copper Pan", "address", 4), Is.EqualTo(PlacesFacts.Pick("The Copper Pan", "address", 4)));
-        }
-
-        [Test]
-        public void House_numbers_stay_believable()
-        {
-            foreach (var name in new[] { "", "A", "The Copper Pan", "Casa Lucía", "a very long restaurant name indeed" })
-                Assert.That(PlacesFacts.HouseNumber(name), Is.InRange(2, 89));
         }
 
         [Test]
@@ -35,15 +27,6 @@ namespace Game.Tests.EditMode
             Assert.That(PlacesFacts.PricePerPerson(new[] { 20f }), Is.EqualTo((20, 25)), "one price: a five-wide band");
             Assert.That(PlacesFacts.PricePerPerson(new float[0]), Is.Null);
             Assert.That(PlacesFacts.PricePerPerson(new[] { 0f }), Is.Null);
-        }
-
-        [TestCase(0, 0)]
-        [TestCase(1, 1)]
-        [TestCase(6, 2)]
-        [TestCase(10, 3)]
-        public void About_a_third_of_reporters_were_sober(int reporters, int sober)
-        {
-            Assert.That(PlacesFacts.Sober(reporters), Is.EqualTo(sober));
         }
     }
 }

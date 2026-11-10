@@ -236,18 +236,7 @@ namespace Game.Presentation.Hud
             }
             Label(Medium, _left, $"· {Locale.PriceBand(PriceBand())} · {Tr.Get(ShownStyle)}", 20f, _body, x, 603f, 720f - x);
 
-            switch (_placesLook)
-            {
-                case PlacesLook.Listing:
-                    DrawListing();
-                    break;
-                case PlacesLook.Highlights:
-                    DrawHighlights();
-                    break;
-                default:
-                    DrawPlacesCard();
-                    break;
-            }
+            DrawFacts();
         }
 
         // The price band follows the menu's dearest main dish, as listings do.
@@ -260,37 +249,11 @@ namespace Game.Presentation.Hud
         private IEnumerable<float> MenuPrices() =>
             Services.Cookbook != null ? Services.Cookbook.Menu.Select(r => (float)Services.Cookbook.PriceOf(r.Id)) : new[] { Services.ServiceConfig.MainPrice };
 
-        // ---- The listing card (the user's call, 2026-11-10): a Google Places card in Mise en Flex's
-        // voice. Real data where the game has it, a stable joke where it doesn't; decorative, with no
-        // controls of its own. Three looks to choose from (PlacesLook) until the user picks one. ----
+        // ---- The listing card (the user's calls, 2026-11-10): after a Google Places card, kept calm
+        // and readable. Four tiles of real facts, a big value over a small label each, then one quote:
+        // the best line from the latest reviews, or the owner's own when there are none yet. ----
 
-        private enum PlacesLook
-        {
-            /// <summary>Round action buttons, then four info rows and "Suggest an edit".</summary>
-            Card,
-            /// <summary>No buttons: service options, five info rows, more jokes.</summary>
-            Listing,
-            /// <summary>Highlight chips, three info rows, a quote from the owner.</summary>
-            Highlights,
-        }
-
-        [Tooltip("Which look the listing card on forkcast's left has, while the user chooses (2026-11-10).")]
-        [SerializeField] private PlacesLook _placesLook = PlacesLook.Card;
-
-        /// <summary>For the capture: draws the listing card in another look.</summary>
-        public void SetPlacesLook(int look)
-        {
-            _placesLook = (PlacesLook)Mathf.Clamp(look, 0, 2);
-            _dirty = true;
-        }
-
-        private static readonly string[] AddressJokes =
-        {
-            "next to a suspicious parking lot",
-            "above a laundromat that never closes",
-            "across from the Boss's cousin's bakery",
-            "between two identical pharmacies",
-        };
+        private const float TileTop = 628f, TileWidth = 294f, TileHeight = 96f, TileGap = 12f;
 
         private static readonly string[] OwnerQuotes =
         {
@@ -299,191 +262,69 @@ namespace Game.Presentation.Hud
             "Family run. The family is negotiable.",
         };
 
-        private static readonly string[] Highlights =
+        private void DrawFacts()
         {
-            "Loud kitchen",
-            "Cash only, sort of",
-            "Chef cries sometimes",
-            "Great for first dates you regret",
-        };
+            var tiles = new[] { KnownFor(), PerPerson(), GuestsFed(), NextOpening() };
+            for (var i = 0; i < tiles.Length; i++)
+            {
+                var x = 120f + (i % 2) * (TileWidth + TileGap);
+                var y = TileTop + (i / 2) * (TileHeight + TileGap);
+                UiKit.RoundBox(_left, "Fact", _card, x, y, TileWidth, TileHeight, 16f);
+                var value = Label(ExtraBold, _left, tiles[i].Value, 28f, tiles[i].Alarm ? _badText : _ink, x + 20f, y + 46f, TileWidth - 40f, tracking: -0.5f);
+                value.enableAutoSizing = true;
+                value.fontSizeMin = 18f;
+                value.fontSizeMax = 28f;
+                Label(Medium, _left, tiles[i].Label, 17.33f, _muted, x + 20f, y + 76f, TileWidth - 40f);
+            }
 
-        private string Address()
-        {
-            var street = string.IsNullOrEmpty(Services.Area) ? Services.ServiceConfig.Area : Services.Area;
-            var number = PlacesFacts.HouseNumber(ShownName);
-            var joke = AddressJokes[PlacesFacts.Pick(ShownName, "address", AddressJokes.Length)];
-            return Tr.Format("{number} {street} · {joke}", ("number", number), ("street", street), ("joke", Tr.Get(joke)));
+            var (quote, who) = Quote();
+            Label(Serif, _left, $"“{quote}”", 21.33f, _ink, 120f, 870f, 600f);
+            Label(Medium, _left, "— " + who, 17.33f, _muted, 120f, 902f, 600f);
         }
 
-        // Never open while forkcast shows: it's up only between services. In the morning it opens
-        // today; after a service, tomorrow.
-        private string Hours()
+        // The dish most ordered so far, or the menu's first while nothing's been ordered.
+        private (string Value, string Label, bool Alarm) KnownFor()
         {
-            var day = Services.Days.Phase == DayPhase.Review ? Services.Days.Day + 1 : Services.Days.Day;
-            var closed = HudStyle.Colored(Tr.Get("Closed"), _badText);
-            return $"<b>{closed}</b> · " + Tr.Format("Opens {time} ({weekday})", ("time", ClockAt(0f)), ("weekday", Weekday(day)));
+            if (Services.DishTally.Count > 0)
+            {
+                var dish = Services.DishTally.OrderByDescending(d => d.Value).ThenBy(d => d.Key).First().Key;
+                return (Capitalised(dish), Tr.Get("known for"), false);
+            }
+            var first = Services.Cookbook?.Menu.FirstOrDefault();
+            return (first != null ? Tr.Get(first.Name) : Tr.Get(ShownStyle), Tr.Get("on the menu"), false);
         }
 
-        private string Price()
+        private (string Value, string Label, bool Alarm) PerPerson()
         {
             var range = PlacesFacts.PricePerPerson(MenuPrices());
-            var reporters = Services.ReviewHistory.Count;
-            var who = reporters == 0 ? Tr.Get("nobody's reported yet")
-                : Tr.Format("reported by {count} diners, {sober} of them sober", ("count", reporters), ("sober", PlacesFacts.Sober(reporters)));
-            if (range == null)
-                return who;
-            return Tr.Format("{low}–{high} per person", ("low", Money(range.Value.Low)), ("high", Money(range.Value.High))) + " · " + who;
+            var value = range == null ? "–" : $"{Money(range.Value.Low)}–{Money(range.Value.High)}";
+            return (value, Tr.Get("per person"), false);
         }
 
-        private string Owner() =>
-            Tr.Get("Owner: you, allegedly") + " · " + Tr.Format("{fee} to the Boss every {days} days", ("fee", Money(Services.Days.Fee.Amount)), ("days", Services.Days.Fee.EveryDays));
-
-        // Look 1: round action buttons as a Places card has, then info rows.
-        private void DrawPlacesCard()
+        private (string Value, string Label, bool Alarm) GuestsFed()
         {
-            var labels = new[] { Tr.Get("Directions"), Tr.Get("Save"), Tr.Get("Send to Mum"), Tr.Get("Share") };
-            for (var i = 0; i < labels.Length; i++)
-            {
-                var cx = 120f + 75f + i * 150f;
-                UiKit.StrokedCircle(_left, "Action", _cardLight, _cardEdge, 2.5f, cx - 25f, 628f, 50f);
-                ActionIcon(i, cx, 653f);
-                Label(SemiBold, _left, labels[i], 16f, _goodText, cx, 700f, 150f, HorizontalAlignmentOptions.Center);
-            }
-            UiKit.RoundBox(_left, "Rule", _rule, 120f, 718f, 600f, 2f, 0f);
-            var y = 752f;
-            y = InfoRow(Icon.Pin, Address(), y);
-            y = InfoRow(Icon.Clock, Hours(), y);
-            y = InfoRow(Icon.Money, Price(), y);
-            InfoRow(Icon.Person, Owner(), y);
-            Label(SemiBold, _left, Tr.Get("Suggest an edit") + "  ·  " + Tr.Get("the Boss already did"), 16f, _goodText, 120f, 914f, 600f);
+            var fed = Services.Days.History.Sum(d => d.Served);
+            return ($"{fed}", fed == 0 ? Tr.Get("guests fed so far") : Tr.Get("guests fed"), false);
         }
 
-        // Look 2: no buttons; service options and more rows, more jokes.
-        private void DrawListing()
+        // Never open while forkcast shows: next is tonight in a morning, tomorrow after a service.
+        private (string Value, string Label, bool Alarm) NextOpening()
         {
-            var services = HudStyle.Colored("● ", _good) + Tr.Get("Dine in") + "   " + HudStyle.Colored("● ", _bad) + "<s>" + Tr.Get("Takeaway") + "</s>   "
-                + HudStyle.Colored("● ", _bad) + "<s>" + Tr.Get("Delivery") + "</s>";
-            Label(SemiBold, _left, services, 19f, _ink, 120f, 646f, 600f);
-            Label(Serif, _left, Tr.Get("“The scooter got repossessed.”"), 17.33f, _muted, 120f, 670f, 600f);
-            UiKit.RoundBox(_left, "Rule", _rule, 120f, 688f, 600f, 2f, 0f);
-            var y = 720f;
-            y = InfoRow(Icon.Pin, Address(), y, 38f);
-            y = InfoRow(Icon.Clock, Hours(), y, 38f);
-            y = InfoRow(Icon.Money, Price(), y, 38f);
-            y = InfoRow(Icon.Person, Owner(), y, 38f);
-            InfoRow(Icon.Trend, Tr.Get("Popular times: busiest when the Boss drops by"), y, 38f);
-            Label(SemiBold, _left, Tr.Get("Suggest an edit") + "  ·  " + Tr.Get("Add missing info"), 16f, _goodText, 120f, 914f, 600f);
+            var day = Services.Days.Phase == DayPhase.Review ? Services.Days.Day + 1 : Services.Days.Day;
+            return ($"{ClockAt(0f)} {Weekday(day)}", Tr.Get("closed · opens"), false);
         }
 
-        // Look 3: highlight chips (the style and the best dish are real), three rows, the owner's quote.
-        private void DrawHighlights()
+        // The best line from the latest day with reviews; the owner's when there are none.
+        private (string Quote, string Who) Quote()
         {
-            var chips = new List<string> { Tr.Get(ShownStyle) };
-            var best = Services.Cookbook?.Menu.FirstOrDefault();
-            if (best != null)
-                chips.Add(Tr.Get(best.Name));
-            chips.Add(Tr.Get(Highlights[PlacesFacts.Pick(ShownName, "highlight", Highlights.Length)]));
-            chips.Add(Tr.Get(Highlights[(PlacesFacts.Pick(ShownName, "highlight", Highlights.Length) + 1) % Highlights.Length]));
-            var x = 120f;
-            var row = 626f;
-            foreach (var chip in chips)
-            {
-                var right = Pill(_left, chip, SemiBold, 17.33f, _card, _ink, x, row, 34f, 14f, 23f, 720f);
-                if (right < 0f)
-                {
-                    if (row > 626f)
-                        break;
-                    row += 42f;
-                    x = 120f;
-                    right = Pill(_left, chip, SemiBold, 17.33f, _card, _ink, x, row, 34f, 14f, 23f, 720f);
-                }
-                x = right + 10f;
-            }
-            UiKit.RoundBox(_left, "Rule", _rule, 120f, 718f, 600f, 2f, 0f);
-            var y = 752f;
-            y = InfoRow(Icon.Pin, Address(), y);
-            y = InfoRow(Icon.Clock, Hours(), y);
-            InfoRow(Icon.Money, Price(), y);
-            Caps(_left, Tr.Get("FROM THE OWNER"), 120f, 876f);
-            Label(Serif, _left, $"“{Tr.Get(OwnerQuotes[PlacesFacts.Pick(ShownName, "owner", OwnerQuotes.Length)])}”", 20f, _ink, 120f, 906f, 600f);
+            var latest = Services.ReviewHistory.Where(r => !r.WalkedOut && !string.IsNullOrEmpty(r.Line)).OrderByDescending(r => r.Day).ThenByDescending(r => r.RatedStars).FirstOrDefault();
+            if (latest != null)
+                return (latest.Line, latest.Guest);
+            return (Tr.Get(OwnerQuotes[PlacesFacts.Pick(ShownName, "owner", OwnerQuotes.Length)]), Tr.Get("the owner"));
         }
 
-        private enum Icon { Pin, Clock, Money, Person, Trend }
-
-        // An info row: a small drawn icon, then the text, cut to one line. Returns the next baseline.
-        private float InfoRow(Icon icon, string text, float baseline, float pitch = 40f)
-        {
-            DrawIcon(icon, 132f, baseline - 7f);
-            Label(Medium, _left, text, 18f, _ink, 158f, baseline, 562f);
-            return baseline + pitch;
-        }
-
-        // Icons drawn from shapes (no icon font): centred on (cx, cy), about 18 px.
-        private void DrawIcon(Icon icon, float cx, float cy)
-        {
-            var c = _muted;
-            switch (icon)
-            {
-                case Icon.Pin:
-                    UiKit.Ellipse(_left, "Pin", c, cx - 7f, cy - 10f, 14f, 14f);
-                    var tip = UiKit.RoundBox(_left, "PinTip", c, cx - 4.5f, cy - 2f, 9f, 9f, 1f);
-                    tip.rectTransform.pivot = new Vector2(0.5f, 0.5f);
-                    tip.rectTransform.anchoredPosition += new Vector2(4.5f, -4.5f);
-                    tip.rectTransform.localEulerAngles = new Vector3(0f, 0f, 45f);
-                    UiKit.Ellipse(_left, "PinHole", _paper, cx - 3f, cy - 6f, 6f, 6f);
-                    break;
-                case Icon.Clock:
-                    UiKit.StrokedCircle(_left, "Clock", _paper, c, 2.5f, cx - 9f, cy - 9f, 18f);
-                    UiKit.RoundBox(_left, "Hand", c, cx - 1f, cy - 6f, 2f, 7f, 1f);
-                    UiKit.RoundBox(_left, "Hand", c, cx - 1f, cy - 1f, 6f, 2f, 1f);
-                    break;
-                case Icon.Money:
-                    UiKit.StrokedBox(_left, "Note", _paper, c, 2.5f, cx - 10f, cy - 6f, 20f, 12f, 2f);
-                    UiKit.Ellipse(_left, "Coin", c, cx - 2.5f, cy - 2.5f, 5f, 5f);
-                    break;
-                case Icon.Person:
-                    UiKit.Ellipse(_left, "Head", c, cx - 4f, cy - 10f, 8f, 8f);
-                    UiKit.RoundBox(_left, "Body", c, cx - 8f, cy - 1f, 16f, 10f, 5f);
-                    break;
-                default:
-                    for (var i = 0; i < 3; i++)
-                        UiKit.RoundBox(_left, "Bar", c, cx - 9f + i * 7f, cy + 8f - (6f + i * 5f), 4f, 6f + i * 5f, 1f);
-                    break;
-            }
-        }
-
-        // The round buttons' pictures: directions (a turn arrow), save (a bookmark), send to Mum (a
-        // phone), share (three dots joined).
-        private void ActionIcon(int which, float cx, float cy)
-        {
-            var c = _goodText;
-            switch (which)
-            {
-                case 0:
-                    var sign = UiKit.RoundBox(_left, "Sign", c, cx - 9f, cy - 9f, 18f, 18f, 3f);
-                    sign.rectTransform.pivot = new Vector2(0.5f, 0.5f);
-                    sign.rectTransform.anchoredPosition += new Vector2(9f, -9f);
-                    sign.rectTransform.localEulerAngles = new Vector3(0f, 0f, 45f);
-                    UiKit.RoundBox(_left, "Arrow", _cardLight, cx - 4f, cy - 1f, 8f, 3f, 1f);
-                    break;
-                case 1:
-                    UiKit.RoundBox(_left, "Bookmark", c, cx - 7f, cy - 10f, 14f, 18f, 2f);
-                    var notch = UiKit.RoundBox(_left, "Notch", _cardLight, cx - 4f, cy + 4f, 8f, 8f, 0f);
-                    notch.rectTransform.pivot = new Vector2(0.5f, 0.5f);
-                    notch.rectTransform.anchoredPosition += new Vector2(4f, -4f);
-                    notch.rectTransform.localEulerAngles = new Vector3(0f, 0f, 45f);
-                    break;
-                case 2:
-                    UiKit.StrokedBox(_left, "Phone", _cardLight, c, 2.5f, cx - 6f, cy - 11f, 12f, 21f, 3f);
-                    UiKit.Ellipse(_left, "Heart", _bad, cx - 3f, cy - 4f, 6f, 6f);
-                    break;
-                default:
-                    UiKit.Ellipse(_left, "Dot", c, cx + 3f, cy - 9f, 7f, 7f);
-                    UiKit.Ellipse(_left, "Dot", c, cx - 9f, cy - 3f, 7f, 7f);
-                    UiKit.Ellipse(_left, "Dot", c, cx + 3f, cy + 3f, 7f, 7f);
-                    break;
-            }
-        }
+        private static string Capitalised(string text) =>
+            string.IsNullOrEmpty(text) ? text : char.ToUpperInvariant(text[0]) + text.Substring(1);
 
         // ---- Tabs ----
 
@@ -1382,8 +1223,11 @@ namespace Game.Presentation.Hud
                 UiKit.RoundBox(_hints, "StartFill", Hex(0xc8901e), x, top, Mathf.Max(height, width * fill), height, height / 2f);
             Badge(_hints, "A", _buttonA, x + 36f, top + 25f, 32f, 16f);
             Label(Bold, _hints, Tr.Get("HOLD"), 11f, _ink, x + 36f, top + 54f, 60f, HorizontalAlignmentOptions.Center, 1.2f);
-            // One hold from Review or Plan straight into Prep, so one label.
-            var text = Tr.Get("Start prep");
+            // forkcast is the end-of-day summary (the user's call, 2026-11-10): its one button starts
+            // the next day, straight into Prep. After a service that's tomorrow; arriving in a
+            // morning (from the office, or a new restaurant's day 1), it's the day about to be played.
+            var next = Services.Days.Phase == DayPhase.Review ? Services.Days.Day + 1 : Services.Days.Day;
+            var text = Tr.Format("Start day {day}", ("day", next));
             Label(ExtraBold, _hints, text, 28f, _ink, x + 66f, top + 40f, width - 150f, tracking: -0.5f);
 
             var players = PlayerInput.all.OrderBy(p => p.playerIndex).ToList();

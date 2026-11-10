@@ -77,13 +77,8 @@ namespace Game.Tests.PlayMode
             for (var i = 0; i < 3; i++)
                 yield return null;
 
-            // The morning of day 1, as you arrive, in each of the listing card's three looks.
-            for (var look = 0; look < 3; look++)
-            {
-                dashboard.SetPlacesLook(look);
-                yield return Shoot(dashboard, -1, Path.Combine(folder, $"forkcast_plan_overview_look{look + 1}.png"));
-            }
-            dashboard.SetPlacesLook(0);
+            // The morning of day 1, as you arrive.
+            yield return Shoot(dashboard, -1, Path.Combine(folder, "forkcast_plan_overview_day1.png"));
 
             // An evening one service before the collection, with the money short: the card turns urgent.
             typeof(DayCycle).GetProperty(nameof(DayCycle.DaysTowardsFee)).SetValue(days, days.Fee.EveryDays - 2);
@@ -108,6 +103,16 @@ namespace Game.Tests.PlayMode
                 yield return null;
             Assert.That(days.Phase, Is.EqualTo(DayPhase.Plan));
             yield return Shoot(dashboard, -1, Path.Combine(folder, "forkcast_plan_overview_urgent.png"));
+
+            // Start day: straight into Prep, where the strip says how many guests to expect.
+            days.Advance();
+            yield return new WaitForSecondsRealtime(1.5f);
+            Assert.That(days.Phase, Is.EqualTo(DayPhase.Prep));
+            Assert.That(dashboard.IsShowing, Is.False);
+            yield return new WaitForEndOfFrame();
+            var prep = ScreenCapture.CaptureScreenshotAsTexture();
+            File.WriteAllBytes(Path.Combine(folder, "prep_expected_guests.png"), prep.EncodeToPNG());
+            Object.Destroy(prep);
 
             foreach (var pad in pads)
                 InputSystem.RemoveDevice(pad);

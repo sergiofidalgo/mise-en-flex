@@ -4,9 +4,8 @@ namespace Game.Simulation.Service
 {
     /// <summary>
     /// The facts behind forkcast's listing card, after a Google Places card in the game's comic voice
-    /// (the user's call, 2026-11-10): real where the game knows them (street, menu prices, how many
-    /// guests reviewed), and stable made-up details where it doesn't (a house number, which joke).
-    /// Stable means the same restaurant always gets the same ones.
+    /// (the user's call, 2026-11-10): real where the game knows them (menu prices), and a stable pick
+    /// where it doesn't (which of the owner's lines): the same restaurant always gets the same one.
     /// </summary>
     public static class PlacesFacts
     {
@@ -21,9 +20,6 @@ namespace Game.Simulation.Service
                 return hash & 0x7fffffff;
             }
         }
-
-        /// <summary>A house number for the restaurant's street, 2 to 89.</summary>
-        public static int HouseNumber(string restaurant) => 2 + Seed(restaurant) % 88;
 
         /// <summary>Which of <paramref name="count"/> lines this restaurant gets, for a kind of line.</summary>
         public static int Pick(string restaurant, string kind, int count) =>
@@ -54,8 +50,5 @@ namespace Game.Simulation.Service
                 to = from + 5;
             return (System.Math.Max(0, from), to);
         }
-
-        /// <summary>Of the diners who reported a price, how many were sober: about a third, the joke goes.</summary>
-        public static int Sober(int reporters) => reporters <= 0 ? 0 : System.Math.Max(1, reporters / 3);
     }
 }
