@@ -41,7 +41,7 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 **Our calls:**
 - The tower's street is closed to traffic for a night market. That removes every moving vehicle from the shot and gives the stalls a place.
 - The avenue is cut back to its mouth, because the camera never looks down it now.
-- Furniture is a modelled kit shared by the opening and the game (`Kit.cs`), and the game's vendor stalls use its stall.
+- Furniture is a modelled kit shared by the opening and the game (`Kit.cs`), and the game's vendor stalls use its stall. The stall keeps the station's size and behaviour: a 1.8 m counter, a crate for each thing it sells (slabs for the butcher), and the closed stall under a cloth.
 - The tower's rooms and lift switch off with the street after landing.
 
 **Reason:** the opening has to sell the game's subject at a glance and hold up at the kitchen's level of finish.

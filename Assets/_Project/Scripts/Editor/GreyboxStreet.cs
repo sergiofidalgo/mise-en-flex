@@ -150,28 +150,37 @@ namespace Game.Editor
             root.localPosition = new Vector3(StallSpots[index].x, 0f, StallSpots[index].y);
             root.localRotation = Quaternion.Euler(0f, 180f, 0f); // its front faces the pavement, south
 
-            var counter = Box(root, "Body", Mat("StallCounter", StallCounter), new Vector3(0f, CounterSize.y / 2f, 0f), CounterSize);
-            var pole = Mat("StallPole", Pole);
-            var canopy = Mat($"StallCanopy_{index}", Canopies[index % Canopies.Length]);
-            foreach (var x in new[] { -1f, 1f })
-                foreach (var z in new[] { -0.7f, 0.7f })
-                    Box(root, "Pole", pole, new Vector3(x * (CounterSize.x / 2f + 0.15f), CanopyHeight / 2f, z * 0.75f - 0.25f), new Vector3(0.06f, CanopyHeight, 0.06f));
-            var roof = Box(root, "Canopy", canopy, new Vector3(0f, CanopyHeight + 0.15f, -0.25f), new Vector3(CounterSize.x + 0.7f, 0.08f, 1.7f));
-            roof.transform.localRotation = Quaternion.Euler(-8f, 0f, 0f); // tipped towards the front, like an awning
-
+            // The modelled stall (Kit.cs; the user's note, 2026-11-10: improve the vendor stalls):
+            // a panelled counter under a striped canopy, a crate of each thing it sells, scales, a
+            // slate, bulbs. Without the kit's model, the greybox boxes stand in.
+            GameObject counter;
+            if (Kit.Available)
+            {
+                counter = Kit.StallParts(root, Canopies[index % Canopies.Length], produce, slabs: name.Contains("Butcher"), closed: goods == null);
+                foreach (var part in root.GetComponentsInChildren<Transform>())
+                    part.gameObject.isStatic = false; // the counter shakes when a chef can't buy
+            }
+            else
+            {
+                counter = Box(root, "Body", Mat("StallCounter", StallCounter), new Vector3(0f, CounterSize.y / 2f, 0f), CounterSize);
+                var pole = Mat("StallPole", Pole);
+                var canopy = Mat($"StallCanopy_{index}", Canopies[index % Canopies.Length]);
+                foreach (var x in new[] { -1f, 1f })
+                    foreach (var z in new[] { -0.7f, 0.7f })
+                        Box(root, "Pole", pole, new Vector3(x * (CounterSize.x / 2f + 0.15f), CanopyHeight / 2f, z * 0.75f - 0.25f), new Vector3(0.06f, CanopyHeight, 0.06f));
+                var roof = Box(root, "Canopy", canopy, new Vector3(0f, CanopyHeight + 0.15f, -0.25f), new Vector3(CounterSize.x + 0.7f, 0.08f, 1.7f));
+                roof.transform.localRotation = Quaternion.Euler(-8f, 0f, 0f); // tipped towards the front, like an awning
+                if (goods == null)
+                    Box(root, "Cover", canopy, new Vector3(0f, CounterSize.y + 0.03f, 0f), new Vector3(CounterSize.x + 0.04f, 0.06f, CounterSize.z + 0.04f));
+                else
+                    for (var i = 0; i < produce.Length; i++)
+                    {
+                        var x = (i - (produce.Length - 1) / 2f) * 0.5f;
+                        Box(root, "Goods", Mat($"StallGoods_{ColorUtility.ToHtmlStringRGB(produce[i])}", produce[i]), new Vector3(x, CounterSize.y + 0.06f, 0f), new Vector3(0.38f, 0.12f, 0.3f));
+                    }
+            }
             if (goods == null)
-            {
-                // Closed: a cloth over the counter.
-                Box(root, "Cover", canopy, new Vector3(0f, CounterSize.y + 0.03f, 0f), new Vector3(CounterSize.x + 0.04f, 0.06f, CounterSize.z + 0.04f));
-                return;
-            }
-
-            // What it sells, laid out on the counter so it reads from above.
-            for (var i = 0; i < produce.Length; i++)
-            {
-                var x = (i - (produce.Length - 1) / 2f) * 0.5f;
-                Box(root, "Goods", Mat($"StallGoods_{ColorUtility.ToHtmlStringRGB(produce[i])}", produce[i]), new Vector3(x, CounterSize.y + 0.06f, 0f), new Vector3(0.38f, 0.12f, 0.3f));
-            }
+                return; // closed
 
             var blocker = root.gameObject.AddComponent<BoxCollider>();
             blocker.size = new Vector3(CounterSize.x, StationBlockerHeight, CounterSize.z);

@@ -95,16 +95,19 @@ namespace Game.Editor
                 return counter;
             }
             Part(root, Street, "StallSlate", Toon("KitSlate", new Color(0.16f, 0.18f, 0.17f)));
-            Part(root, Street, "StallScale", Toon("KitSteel", Steel));
             produce ??= System.Array.Empty<Color>();
-            // Crates along the counter, leaving the scales' end free when there's room.
-            var room = produce.Length <= 2 ? 1.2f : 1.84f;
-            var pitch = Mathf.Min(0.5f, room / Mathf.Max(1, produce.Length));
-            var middle = produce.Length <= 2 ? -0.25f : 0f;
+            // Crates along the counter. Up to three leave the scales' end of it free; with more,
+            // the crates take the whole counter and the scales go.
+            var crowded = produce.Length > 3;
+            if (!crowded)
+                Part(root, Street, "StallScale", Toon("KitSteel", Steel));
+            var pitch = crowded ? 1.84f / produce.Length : 0.48f;
             for (var i = 0; i < produce.Length; i++)
             {
-                // The models' +x is the game's −x, so lay them out mirrored to keep the builder's order left to right.
-                var at = new Vector3(-(middle + (i - (produce.Length - 1) / 2f) * pitch), 0.9f, 0f);
+                // From the counter's +x end (the scales stand at the other), in the builder's order;
+                // a crowded counter is filled from its middle out.
+                var x = crowded ? ((produce.Length - 1) / 2f - i) * pitch : 0.62f - i * pitch;
+                var at = new Vector3(x, 0.9f, 0f);
                 Part(root, Street, "StallCrate", Toon("KitCrate", new Color(0.7f, 0.55f, 0.35f)), at);
                 Part(root, Street, slabs ? "StallProduceSlabs" : "StallProduceRound", Toon($"KitProduce_{ColorUtility.ToHtmlStringRGB(produce[i])}", produce[i]), at);
             }
