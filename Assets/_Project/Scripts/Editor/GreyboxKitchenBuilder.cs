@@ -270,6 +270,7 @@ namespace Game.Editor
                 ServiceConfig = GreyboxAssets.EnsureAsset<ServiceConfig>(ServiceConfigPath),
                 StaffConfig = GreyboxAssets.EnsureAsset<StaffConfig>(StaffConfigPath),
                 Cookbook = GreyboxAssets.EnsureAsset<CookbookConfig>(CookbookConfigPath),
+                Restaurant = RestaurantDefinitions.EnsureGrill(),
                 FloorPlan = GreyboxAssets.EnsureAsset<FloorPlanConfig>(FloorPlanPath),
                 Catalog = GreyboxIngredients.BuildCatalog(
                     (GreyboxKitchenware.PanTypeId, GreyboxKitchenware.BuildPan()),
@@ -313,6 +314,7 @@ namespace Game.Editor
             public ServiceConfig ServiceConfig;
             public StaffConfig StaffConfig;
             public CookbookConfig Cookbook;
+            public RestaurantDefinition Restaurant;
             public FurnitureCatalog Furniture;
             public FloorPlanConfig FloorPlan;
             public ItemCatalog Catalog;
@@ -541,6 +543,7 @@ namespace Game.Editor
             rootSo.FindProperty("_serviceConfig").objectReferenceValue = assets.ServiceConfig;
             rootSo.FindProperty("_staffConfig").objectReferenceValue = assets.StaffConfig;
             rootSo.FindProperty("_cookbook").objectReferenceValue = assets.Cookbook;
+            rootSo.FindProperty("_restaurant").objectReferenceValue = assets.Restaurant;
             rootSo.FindProperty("_floorPlan").objectReferenceValue = assets.FloorPlan;
             rootSo.FindProperty("_furniture").objectReferenceValue = assets.Furniture;
             rootSo.FindProperty("_playerInputManager").objectReferenceValue = manager;

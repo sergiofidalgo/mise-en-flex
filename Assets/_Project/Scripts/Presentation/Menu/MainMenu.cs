@@ -140,8 +140,8 @@ namespace Game.Presentation.Menu
             // Reviews saved as English sentences are traced to their templates, to show in any language.
             foreach (var save in _saves)
             {
-                if (save != null)
-                    Game.Simulation.Service.ReviewTextRecovery.Recover(save.Reviews, _service.StyleVoice(), _service.GenericVoice());
+                foreach (var restaurant in save?.Restaurants ?? new System.Collections.Generic.List<RestaurantSave>())
+                    Game.Simulation.Service.ReviewTextRecovery.Recover(restaurant.Reviews, _service.StyleVoice(), _service.GenericVoice());
             }
             _dirty = true;
         }

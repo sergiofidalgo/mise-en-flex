@@ -4,6 +4,34 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-10 — A campaign of restaurants: how the save is split
+
+**Decision (Phase 6, milestone 1; our calls within the agreed plan):** the campaign file (version 2) holds a list of restaurant records and which one is current. Each field went where it belongs:
+
+| Field | Where | Why |
+| --- | --- | --- |
+| Balance | campaign | One pocket: every restaurant pays in and out of it, and debt to the boss is the campaign's. |
+| Loan (new, 0) | campaign | The accountant lends to the campaign; each collection takes one instalment (2026-11-10). |
+| Played time, last played, cooks | campaign | They describe the players' time, shown on the slot card. |
+| Recent review lines | campaign | The same players read every restaurant's listing, so lines shouldn't repeat across places either. |
+| Unlocked recipes | campaign | Bought once with the campaign's money; cookable anywhere. The shared cookbook file is untouched. |
+| Day | restaurant | Days are counted per restaurant, on days played there; the slot card shows the current one's. |
+| Days towards the fee, period ledger, history | restaurant | Each restaurant has its own fee clock and cut (2026-11-10), paused while idle. |
+| Stations, items, broken plates, dirt | restaurant | The room and what's in it. |
+| Staff | restaurant | Staff work in a place; moving them between restaurants is a later call. |
+| Reviews, dish tally | restaurant | Guests review a place, and a bought restaurant can keep its old reviews. |
+| Prices | restaurant | The same steak can fairly cost more in a dining room than at a counter (service styles, 6b). |
+| Name, style, area, definition id | restaurant | Who the place is. |
+
+- **Restaurants are data:** `RestaurantDefinition` (id, name, size, seats, price, fee scale, inherited appliances, previous style, old reviews, street, vendors) becomes plain `RestaurantSettings` for the simulation. *Tools/Game/Build Restaurant Definitions* creates `RES_Grill.asset` for today's kitchen (Build Greybox Kitchen runs it too and wires it into the kitchen). The grill's fee scale is 1, so the fee doesn't change.
+- **Migration:** a version-1 file is read twice, once as the campaign and once for the restaurant fields at its top (`Version1Restaurant`, frozen), and `SaveMigration.Upgrade` makes them restaurant 1 with the grill's id. The fixture `Tests/EditMode/Fixtures/campaign_v1.json` keeps a version-1 file for the test.
+- **Idle restaurants:** saving replaces only the current restaurant's record; every other record is written back exactly as it was read.
+- **Names:** a restaurant keeps the name and style in its record; only a record without one takes the Service Config's, so a renamed restaurant (milestone 2) stays renamed. The kitchen still shows the Service Config's name for now.
+
+**Reason:** milestones 2 (the miniature) and 4 (the boss) both build on this, so the records stay flat and simple, and everything that differs per place lives in one record that can sit idle untouched.
+
+---
+
 ## 2026-11-10 — Phase 6 plan: two halves, and how the campaign's money works
 
 **Decision (user's calls, taking the recommendations in `plans/phase-6.md`):**

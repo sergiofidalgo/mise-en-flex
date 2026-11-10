@@ -49,8 +49,8 @@ namespace Game.Gameplay.Saving
                 return null;
             try
             {
-                var save = JsonUtility.FromJson<CampaignSave>(File.ReadAllText(Path));
-                if (SaveMigration.Upgrade(save))
+                var save = Parse(File.ReadAllText(Path));
+                if (save != null)
                     return save;
                 Debug.LogWarning($"The save at {Path} is from a newer version of the game; starting a new campaign instead.");
             }
@@ -59,6 +59,18 @@ namespace Game.Gameplay.Saving
                 Debug.LogWarning($"The save at {Path} couldn't be read ({exception.Message}); starting a new campaign instead.");
             }
             return null;
+        }
+
+        /// <summary>
+        /// A campaign from the file's text, brought up to date; null if it's from a newer game. A
+        /// version-1 file is read twice: once as the campaign, once for the restaurant whose fields sat
+        /// at its top (they become restaurant 1).
+        /// </summary>
+        public static CampaignSave Parse(string json)
+        {
+            var save = JsonUtility.FromJson<CampaignSave>(json);
+            var version1 = save != null && save.Version == 1 ? JsonUtility.FromJson<Version1Restaurant>(json) : null;
+            return SaveMigration.Upgrade(save, version1) ? save : null;
         }
 
         /// <summary>

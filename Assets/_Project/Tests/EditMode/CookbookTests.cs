@@ -298,13 +298,14 @@ namespace Game.Tests.EditMode
             book.SetPrice("onions", 11);
             book.SetPrice("steak", 18);
 
+            // Recipes are the campaign's, prices the restaurant's (Phase 6).
             var save = new CampaignSave();
             save.Recipes.AddRange(book.UnlockedIds());
-            save.Prices.AddRange(book.PriceRecords());
+            save.Add(new RestaurantSave()).Prices.AddRange(book.PriceRecords());
             var loaded = JsonUtility.FromJson<CampaignSave>(JsonUtility.ToJson(save));
 
             var again = Book();
-            again.Load(loaded.Recipes, loaded.Prices);
+            again.Load(loaded.Recipes, loaded.Current.Prices);
             Assert.That(again.Menu.Select(r => r.Id), Is.EqualTo(new[] { "steak", "onions" }));
             Assert.That(again.PriceOf("onions"), Is.EqualTo(11));
             Assert.That(again.PriceOf("steak"), Is.EqualTo(18));
@@ -314,11 +315,11 @@ namespace Game.Tests.EditMode
         [Test]
         public void ASaveFromBeforeTheCookbookStartsWithTheStarters()
         {
-            var save = JsonUtility.FromJson<CampaignSave>("{\"Version\":1,\"Day\":4,\"Balance\":10}");
+            var save = Game.Gameplay.Saving.SaveFile.Parse("{\"Version\":1,\"Day\":4,\"Balance\":10}");
             Assert.That(save.Recipes, Is.Empty);
-            Assert.That(save.Prices, Is.Empty);
+            Assert.That(save.Current.Prices, Is.Empty);
             var book = Book();
-            book.Load(save.Recipes, save.Prices);
+            book.Load(save.Recipes, save.Current.Prices);
             Assert.That(book.Menu.Select(r => r.Id), Is.EqualTo(new[] { "steak" }));
         }
 

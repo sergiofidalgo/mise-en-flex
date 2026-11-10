@@ -27,6 +27,8 @@ namespace Game.Gameplay
         [SerializeField] private CookbookConfig _cookbook;
         [SerializeField] private StaffConfig _staffConfig;
         [SerializeField] private FloorPlanConfig _floorPlan;
+        [Tooltip("Which restaurant this kitchen is (Phase 6): its fee scale, and the record a new campaign starts with.")]
+        [SerializeField] private RestaurantDefinition _restaurant;
         [Tooltip("Rebuilds furniture bought in earlier days when a save is loaded.")]
         [SerializeField] private FurnitureCatalog _furniture;
         [SerializeField] private PlayerInputManager _playerInputManager;
@@ -45,23 +47,27 @@ namespace Game.Gameplay
             PlayerSettings.Load(_realism).ApplyTo(_realism);
 
             // Continuing: the furniture goes where it was before anything binds (decision 2026-11-08).
-            var save = CampaignLaunch.WantsSave ? SaveFile.Read() : null;
-            _loaded = save;
+            // The campaign holds every restaurant; this kitchen plays the current one (Phase 6).
+            var campaign = CampaignLaunch.WantsSave ? SaveFile.Read() : null;
+            _loaded = campaign;
+            var save = campaign?.Current;
             var placed = save != null ? CampaignSnapshot.ApplyLayout(save, FindStations(), _furniture) : null;
             var stations = new StationRegistry(FindStations());
 
             var cooking = new CookingSimulation(_tuning.AmbientTemperature, _realism.SpoilageMultiplier);
             var fee = _serviceConfig.ToFeeSettings();
+            if (_restaurant != null)
+                fee = _restaurant.ToSettings().ScaleFee(fee);
             var days = save != null
-                ? DayCycle.Continuing(save.Day, save.Balance, fee, save.DaysTowardsFee, Ledger.FromArray(save.Period), save.History)
+                ? DayCycle.Continuing(save.Day, campaign.Balance, fee, save.DaysTowardsFee, Ledger.FromArray(save.Period), save.History)
                 : new DayCycle(_staffConfig.StartingMoney, fee);
             days.PhaseChanged += HandlePhaseChanged;
-            _reviewLines.Load(save?.RecentLines);
+            _reviewLines.Load(campaign?.RecentLines);
             var service = NewService(days.Day);
             Services = new KitchenServices(cooking, new ItemViewRegistry(_itemCatalog), _itemCatalog, _equipment, _tuning, _realism, service, _serviceConfig, days, new StaffRoster(), _staffConfig, stations, _floorPlan);
             Services.Staff.Candidates = _staffConfig.CandidatesFor(days.Day);
             Services.ReviewLines = _reviewLines;
-            Services.Cookbook = NewCookbook(save);
+            Services.Cookbook = NewCookbook(campaign, save);
 
             foreach (var station in stations.All)
                 station.Bind(Services);
@@ -78,13 +84,14 @@ namespace Game.Gameplay
         }
 
         // This campaign's recipes and prices; whatever it unlocks joins the shared cookbook too.
-        private Game.Simulation.Cookbook.RecipeBook NewCookbook(Game.Simulation.Saving.CampaignSave save)
+        // Recipes are the campaign's; prices are the restaurant's.
+        private Game.Simulation.Cookbook.RecipeBook NewCookbook(Game.Simulation.Saving.CampaignSave campaign, Game.Simulation.Saving.RestaurantSave restaurant)
         {
             if (_cookbook == null)
                 return null;
             var book = _cookbook.NewBook(_itemCatalog);
-            if (save != null)
-                book.Load(save.Recipes, save.Prices);
+            if (campaign != null)
+                book.Load(campaign.Recipes, restaurant?.Prices ?? new System.Collections.Generic.List<Game.Simulation.Cookbook.PriceRecord>());
             foreach (var id in book.UnlockedIds())
                 SharedCookbookFile.Add(id);
             book.Unlocked += recipe => SharedCookbookFile.Add(recipe.Id);
@@ -94,9 +101,10 @@ namespace Game.Gameplay
         // Review and reply lines used lately, across days and sessions, so words don't repeat.
         private readonly LineMemory _reviewLines = new LineMemory();
 
-        // The campaign as it was loaded, for what the card keeps across sessions (play time, cooks).
+        // The campaign as it was loaded: its other restaurants, and what the card keeps across sessions (play time, cooks).
         private Game.Simulation.Saving.CampaignSave _loaded;
         private float _sessionSeconds;
+        private float? _playedBefore;
 
         /// <summary>The slot this campaign is saved in.</summary>
         public int Slot => CampaignLaunch.Slot;
@@ -148,16 +156,25 @@ namespace Game.Gameplay
         public void SaveCampaign()
         {
             var players = PlayerInput.all.Select(p => p.GetComponent<PlayerInteractor>()).Where(p => p != null);
-            var save = CampaignSnapshot.Capture(Services, players);
+            var restaurant = CampaignSnapshot.Capture(Services, players);
 
-            // What the slot card shows in the main menu.
-            save.RestaurantName = _serviceConfig.RestaurantName;
-            save.StyleName = _serviceConfig.StyleName;
-            save.Area = _serviceConfig.Area;
-            save.PlayedSeconds = (_loaded?.PlayedSeconds ?? 0f) + _sessionSeconds;
+            // Who this restaurant is, and what the slot card shows in the main menu. The record
+            // keeps the name and style it was given; one from before definitions takes the config's.
+            var previous = _loaded?.Current;
+            restaurant.DefinitionId = !string.IsNullOrEmpty(previous?.DefinitionId) ? previous.DefinitionId : _restaurant != null ? _restaurant.Id : "";
+            restaurant.Name = !string.IsNullOrEmpty(previous?.Name) ? previous.Name : _serviceConfig.RestaurantName;
+            restaurant.StyleName = !string.IsNullOrEmpty(previous?.StyleName) ? previous.StyleName : _serviceConfig.StyleName;
+            restaurant.Area = !string.IsNullOrEmpty(previous?.Area) ? previous.Area : _serviceConfig.Area;
+
+            // Played time counts from what was loaded: _sessionSeconds keeps growing, so it's added
+            // to the loaded total once, never to a total that already has it.
+            var playedBefore = _playedBefore ??= _loaded?.PlayedSeconds ?? 0f;
+            var save = CampaignSnapshot.CaptureCampaign(_loaded, restaurant, Services);
+            save.PlayedSeconds = playedBefore + _sessionSeconds;
             save.LastPlayedTicks = System.DateTime.Now.Ticks;
-            save.Cooks = (_loaded?.Cooks ?? new System.Collections.Generic.List<int>())
+            save.Cooks = (save.Cooks ?? new System.Collections.Generic.List<int>())
                 .Concat(PlayerInput.all.Select(p => p.playerIndex)).Distinct().OrderBy(i => i).ToList();
+            _loaded = save;
             try
             {
                 SaveFile.Write(save);
