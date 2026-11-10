@@ -59,7 +59,8 @@ namespace Game.Presentation.Menu
         [SerializeField, Min(0.1f)] private float _holdToReady = 0.6f;
 
         [Header("Look")]
-        [SerializeField] private Color _veil = new Color(0.04f, 0.04f, 0.06f, 0.6f);
+        [Tooltip("Dims the game behind the menu. The project is in Linear colour space, where UI blends in linear light: 0.6 kept two thirds of the apparent brightness and barely read as dimmed, 0.85 keeps under half.")]
+        [SerializeField] private Color _veil = new Color(0.04f, 0.04f, 0.06f, 0.85f);
         [SerializeField] private Color _rowColor = new Color(1f, 1f, 1f, 0.06f);
         [SerializeField] private Color _quietText = new Color(0.66f, 0.68f, 0.72f);
         [SerializeField] private Color _warning = new Color(0.96f, 0.76f, 0.25f);
@@ -359,7 +360,7 @@ namespace Game.Presentation.Menu
 
         // ---- Drawing (1920×1080, centred; the card sits mid-screen so no edge clips it) ----
 
-        private const float CardWidth = 920f;
+        private const float CardWidth = 1040f;
         private const float CardHeight = 820f;
         private const float CardX = (1920f - CardWidth) / 2f;
         private const float CardY = (1080f - CardHeight) / 2f;

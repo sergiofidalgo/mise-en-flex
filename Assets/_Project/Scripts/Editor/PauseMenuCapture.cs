@@ -56,7 +56,6 @@ namespace Game.Editor
                 Shoot(folder, "kitchen_advanced.png", PauseMenu.CapturePage.Advanced, owner: 1, unsaved: true, day: 3, row: 3);
                 Shoot(folder, "kitchen_confirm_office.png", PauseMenu.CapturePage.ConfirmOffice, owner: 1, unsaved: true, day: 3);
                 Game.Data.Locale.Language = "es";
-                Debug.Log($"[PauseMenuCapture] Spanish check: {Game.Data.Tr.Get("Settings")}");
                 Shoot(folder, "kitchen_settings_es.png", PauseMenu.CapturePage.Settings, owner: 2, unsaved: true, day: 3);
                 Game.Data.Locale.Language = "en";
 

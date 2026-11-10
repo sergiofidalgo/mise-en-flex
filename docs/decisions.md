@@ -31,6 +31,9 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 - **The pause and the lost-controller pause share one switch** (`DayLoop`: time scale 0 and `KitchenServices.Paused`). While a lost controller holds the service, Menu still means "carry on without them", not pause. If the player who opened the menu loses their controller, the menu closes and the lost-controller card takes over. In the office, which has no day loop, the menu stops the time scale itself.
 - **Sound pauses with the menu** (`AudioListener.pause`). The lost-controller pause still lets the sizzle play on (2026-11-09).
 - **Quit to the office** carries the players up (`PlayerRoster`) and skips the opening: the camera starts on the floor and everyone is in. The kitchen loads the slot's last save next time.
+- **Fixed while capturing the menu:** the `LanguageTables` asset that links `es.csv` to `HudStyle` had never been committed, so in any fresh checkout Spanish didn't exist (the Language row offered only English and the test pseudo-language). It's committed now; `es.csv` is unchanged by it. Running Tools/Game/Update Language Tables also marks about 80 keys `unused` (some, like "Reviews {count}", may still be in use) and adds about 360 untranslated review-voice keys: that rewrite was left out and needs a look by whoever owns the translations.
+- **The veil behind the menu is 85% black.** The project is in Linear colour space, where UI blends in linear light, so 60% kept about two thirds of the apparent brightness and barely read as dimmed.
+- **Tools/Game/Capture Pause Menu** saves its pages at 1920×1080 to `Screenshots/PauseMenu/`.
 
 **Reason:** the user's answers to milestone 6's open questions. Hold-to-ready also stops accidental readies, which a single press allowed.
 
