@@ -4,6 +4,22 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-10 — The office scene is built, not kept in git
+
+**User's call:** `Office_Greybox.unity` is no longer committed.
+- **Why it's big:** the office builder places about 23,000 objects for the tower and city (19,000 of them meshes), which makes a 55 MB scene. GitHub warns over 50 MB and refuses files over 100 MB.
+- **Why not Git LFS:** every rebuild would store a new copy of about 50 MB, which uses up the free LFS quota (1 GB) within about 20 rebuilds.
+
+**How it works:**
+- **In git:** the scene and its `.meta` are in `.gitignore`.
+- **In the Editor:** when the scene is missing (a fresh clone or a new worktree), `GeneratedScenes` builds it from `OfficeBuilder` the first time the Editor opens. That takes a minute or two.
+- **In batch runs:** they build it explicitly with `-executeMethod Game.Editor.OfficeBuilder.Build` (Tools/Game/Build Office), as Main build already does before each test run.
+- **Build settings:** `BootOrder` registers the scene by path, so a rebuilt scene slots straight back in. Its GUID changes on a fresh build, which only touches the build settings asset.
+
+**Still worth doing later:** 19,000 separate meshes is also a lot for the 60 fps target with four players. Combining the city and tower's static pieces into fewer meshes would help performance as well as size. That's work for the 3D environment side, to raise with the user.
+
+---
+
 ## 2026-11-10 — The opening starts at the tower's door
 
 **User's notes:**
