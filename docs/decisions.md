@@ -4,6 +4,18 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-10 — Phase 5 cleaning and fire: trace a shape, a medium mess, dirt in reviews, no ruined hobs
+
+**User's calls (milestone 5):**
+- **The stick game is tracing a shape.** A path lies on the dirt and the chef follows it with the stick, pulling a marker round it; each loop wipes a layer. The cloth draws small circles, the mop a wide figure-eight, the extinguisher side-to-side sweeps across the flames. It's about moving, so it plays differently from the sink, which is about holding still.
+- **A medium mess.** Each diner leaves a small smudge on their table, a plate dropped by a waiter or broken at the sink leaves a big floor spill, a pan burnt on the heat leaves a scorch on the counter next to its hob, every few guests scuff the dining floor, and a fire put out leaves foam. A tidy service leaves about a minute of cleaning for one chef; a chaotic one, two or three. All of it is tunable in `TuningConfig`.
+- **Dirt counts in reviews only, for now.** A guest seated at a dirty table or next to floor dirt scores a little lower and may mention it. Health inspections come in Phase 7.
+- **Appliances have no lifespan for now.** A fire never ruins its hob: it burns until it's put out. This replaces "left too long, the hob is ruined" (2026-11-07).
+
+**Reason:** the user's answers to the milestone's open questions.
+
+---
+
 ## 2026-11-10 — Hair and snug hats follow the head and end in a crisp lip
 
 **Decision:** The short crop, the hair at the back, the cap's crown and the bandana are now built by `add_head_shell` in `blender/build_pilot_models.py` instead of as loose ellipsoids.
