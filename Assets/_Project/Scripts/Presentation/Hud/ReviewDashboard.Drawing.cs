@@ -171,7 +171,11 @@ namespace Game.Presentation.Hud
             }
 
             var hours = Services.Service.Settings.DurationSeconds;
-            var band = config.MainPrice < 15f ? 1 : config.MainPrice < 30f ? 2 : 3;
+            // The price band follows the menu's dearest main dish, as listings do.
+            var mainPrice = Services.Cookbook != null && Services.Cookbook.Menu.Any()
+                ? Services.Cookbook.Menu.Max(r => Services.Cookbook.PriceOf(r.Id))
+                : config.MainPrice;
+            var band = mainPrice < 15f ? 1 : mainPrice < 30f ? 2 : 3;
             Label(Medium, _left, Tr.Format("{band} · {style} · Open {from}–{to}", ("band", Locale.PriceBand(band)), ("style", Tr.Get(config.StyleName)), ("from", ClockAt(0f)), ("to", ClockAt(hours))), 21.33f, _body, 120f, 673f, 600f);
 
             DrawChart();
@@ -606,13 +610,21 @@ namespace Game.Presentation.Hud
                 top += 119f;
             }
 
+            top = DrawMenuCard(top);
+
             if (dishes.Count == 0)
             {
                 Label(Serif, _content, Tr.Get("Nobody has ordered yet."), 26.67f, _muted, RightX, top + 40f);
+                Label(Medium, _content, Tr.Get("Prices and the menu are set in the cookbook."), 18.67f, _muted, RightX, top + 84f, 900f);
                 return;
             }
 
             const float headerHeight = 52f, rowHeight = 64f;
+            // Only as many rows as fit above the footer, with room for the note under the table;
+            // the most troubled dishes come first, so what's left off is what's going well.
+            var fits = Mathf.Max(1, Mathf.FloorToInt((FooterTop - 56f - top - headerHeight) / rowHeight));
+            if (dishes.Count > fits)
+                dishes = dishes.Take(fits).ToList();
             var tableHeight = headerHeight + dishes.Count * rowHeight;
             UiKit.RoundBox(_content, "Table", _card, RightX, top, RightWidth, tableHeight, 18f);
             float[] columns = { 790f, 1134f, 1274f, 1493f, 1633f };
@@ -646,6 +658,44 @@ namespace Game.Presentation.Hud
                 y += rowHeight;
             }
             Label(Medium, _content, Tr.Get("Prices and the menu are set in the cookbook."), 18.67f, _muted, RightX, top + tableHeight + 34f, 900f);
+        }
+
+        // Tonight's menu from the cookbook (decision 2026-11-10): each dish at the price it sold for,
+        // with the suggestion beside a price that's moved off it. Returns the top for what follows.
+        private float DrawMenuCard(float top)
+        {
+            var book = Services.Cookbook;
+            if (book == null)
+                return top;
+            var dishes = book.Menu.ToList();
+            if (dishes.Count == 0)
+                return top;
+
+            const float pillHeight = 42f, rowGap = 12f, pad = 24f;
+            // The pills are laid out first to know how many rows they take; the card that fits
+            // them goes in behind afterwards.
+            var behind = _content.childCount;
+            Label(Bold, _content, Tr.Get("ON THE MENU"), 15f, _muted, RightX + pad, top + 34f, 400f, tracking: 1.6f);
+            var x = RightX + pad;
+            var y = top + 50f;
+            foreach (var recipe in dishes)
+            {
+                var price = book.PriceOf(recipe.Id);
+                var text = $"{Tr.Get(recipe.Name)} · {Money(price)}";
+                if (price != recipe.SuggestedPrice)
+                    text += "  " + Tr.Format("(suggested {price})", ("price", Money(recipe.SuggestedPrice)));
+                var end = Pill(_content, text, SemiBold, 19.5f, _paper, _ink, x, y, pillHeight, 18f, 28f, RightEdge - pad);
+                if (end < 0f && x > RightX + pad)
+                {
+                    x = RightX + pad;
+                    y += pillHeight + rowGap;
+                    end = Pill(_content, text, SemiBold, 19.5f, _paper, _ink, x, y, pillHeight, 18f, 28f, RightEdge - pad);
+                }
+                x = (end < 0f ? x : end) + 12f;
+            }
+            var height = y + pillHeight + pad - top;
+            UiKit.RoundBox(_content, "MenuCard", _card, RightX, top, RightWidth, height, 18f).transform.SetSiblingIndex(behind);
+            return top + height + 23f;
         }
 
         // One guest's night, whether or not they reviewed it.

@@ -4,6 +4,7 @@ using System.Linq;
 using Game.Data;
 using Game.Gameplay.Staff;
 using Game.Gameplay.Stations;
+using Game.Simulation.Cookbook;
 using Game.Simulation.Days;
 using Game.Simulation.Furniture;
 using Game.Simulation.Movement;
@@ -53,6 +54,15 @@ namespace Game.Gameplay
             public int ShopIndex;
             public bool ShopStickHeld;
 
+            /// <summary>Which page of the Y panel is showing: the shop, or the cookbook (decision 2026-11-10).</summary>
+            public bool CookbookOpen;
+            public int CookbookIndex;
+            /// <summary>What the last A press in the cookbook did, for the label.</summary>
+            public UnlockResult? CookbookResult;
+            // The stick held left or right on a price: one step at once, then repeating while held.
+            public int PriceStickDirection;
+            public float PriceRepeatIn;
+
             /// <summary>The colliders turned off while it's carried, to turn back on when it lands.</summary>
             public readonly List<Collider> Ghosted = new List<Collider>();
         }
@@ -73,6 +83,10 @@ namespace Game.Gameplay
         [SerializeField, Min(0.001f)] private float _turnSmoothing = 0.05f;
         [Tooltip("How far the stick has to go to move down the shop's list.")]
         [SerializeField, Range(0.1f, 1f)] private float _shopStickThreshold = 0.5f;
+        [Tooltip("Seconds the stick is held on a price before it starts stepping by itself.")]
+        [SerializeField, Min(0.05f)] private float _priceRepeatDelay = 0.4f;
+        [Tooltip("Seconds between steps of a price while the stick stays held.")]
+        [SerializeField, Min(0.01f)] private float _priceRepeatInterval = 0.07f;
         [Tooltip("Metres kept clear around a body when placing furniture, on top of its own radius, so a piece never lands touching a chef's capsule.")]
         [SerializeField, Min(0f)] private float _personalSpace = 0.1f;
 
@@ -87,6 +101,11 @@ namespace Game.Gameplay
         public IReadOnlyList<FurnitureCatalog.Entry> Shop => _catalog.Entries;
 
         public bool CanAfford(FurnitureCatalog.Entry entry) => _root.Services.Days.Balance >= entry.Price;
+
+        /// <summary>This campaign's cookbook, or null in a scene built before it.</summary>
+        public RecipeBook Cookbook => _root.Services.Cookbook;
+
+        public bool CanAfford(Recipe recipe) => _root.Services.Days.Balance >= recipe.UnlockCost;
 
         /// <summary>The station under a cursor, or null.</summary>
         public Interactable StationUnder(Cursor cursor)
@@ -383,6 +402,22 @@ namespace Game.Gameplay
                 return;
             }
 
+            // LB and RB turn between the shop and the cookbook, as they turn the forkcast tabs.
+            if (Cookbook != null && (actions[RotateLeftAction].WasPressedThisFrame() || actions[RotateRightAction].WasPressedThisFrame()))
+            {
+                cursor.CookbookOpen = !cursor.CookbookOpen;
+                cursor.Result = Placement.Ok;
+                cursor.CookbookResult = null;
+                cursor.ShopStickHeld = true;
+                cursor.PriceStickDirection = 0;
+                return;
+            }
+            if (cursor.CookbookOpen && Cookbook != null)
+            {
+                UpdateCookbook(cursor);
+                return;
+            }
+
             var stick = actions[MoveAction].ReadValue<Vector2>().y;
             if (Mathf.Abs(stick) < _shopStickThreshold)
             {
@@ -404,6 +439,59 @@ namespace Game.Gameplay
                 else if (!Buy(cursor, entry))
                     cursor.Result = Placement.CantAfford;
             }
+        }
+
+        // The cookbook page: up and down browse, A unlocks, and left and right set an unlocked dish's
+        // price in steps of 1, repeating while held so a big change doesn't take forty presses.
+        private void UpdateCookbook(Cursor cursor)
+        {
+            var actions = cursor.Player.actions;
+            var book = Cookbook;
+            var count = book.Recipes.Count;
+            if (count == 0)
+                return;
+            cursor.CookbookIndex = Mathf.Clamp(cursor.CookbookIndex, 0, count - 1);
+
+            var stick = actions[MoveAction].ReadValue<Vector2>();
+            var vertical = Mathf.Abs(stick.y) >= _shopStickThreshold && Mathf.Abs(stick.y) >= Mathf.Abs(stick.x);
+            if (!vertical)
+            {
+                cursor.ShopStickHeld = false;
+            }
+            else if (!cursor.ShopStickHeld)
+            {
+                cursor.ShopStickHeld = true;
+                cursor.CookbookIndex = (cursor.CookbookIndex + (stick.y > 0f ? count - 1 : 1)) % count;
+                cursor.CookbookResult = null;
+            }
+
+            var recipe = book.Recipes[cursor.CookbookIndex];
+            var direction = !vertical && Mathf.Abs(stick.x) >= _shopStickThreshold ? (stick.x > 0f ? 1 : -1) : 0;
+            if (direction == 0 || !book.IsUnlocked(recipe.Id))
+            {
+                cursor.PriceStickDirection = 0;
+            }
+            else if (direction != cursor.PriceStickDirection)
+            {
+                cursor.PriceStickDirection = direction;
+                cursor.PriceRepeatIn = _priceRepeatDelay;
+                book.Nudge(recipe.Id, direction);
+            }
+            else
+            {
+                cursor.PriceRepeatIn -= Time.unscaledDeltaTime;
+                while (cursor.PriceRepeatIn <= 0f)
+                {
+                    cursor.PriceRepeatIn += _priceRepeatInterval;
+                    book.Nudge(recipe.Id, direction);
+                }
+            }
+
+            if (actions[PickAction].WasPressedThisFrame())
+                cursor.CookbookResult = book.TryUnlock(recipe.Id, _root.Services.Days.TrySpend);
+            // X on an unlocked dish puts its price back to the suggestion.
+            else if (actions[SellAction].WasPressedThisFrame() && book.IsUnlocked(recipe.Id))
+                book.SetPrice(recipe.Id, recipe.SuggestedPrice);
         }
 
         /// <summary>
