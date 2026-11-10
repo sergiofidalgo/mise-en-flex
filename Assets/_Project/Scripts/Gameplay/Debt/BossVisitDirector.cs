@@ -164,7 +164,7 @@ namespace Game.Gameplay.Debt
                     if (_root.LoseRestaurant(services.Boss.PendingAt))
                     {
                         yield return Leave();
-                        Finish();
+                        Finish(stayBusy: true); // the room is his now: nobody readies up on the way out
                         LeftForOffice?.Invoke();
                         yield break;
                     }
@@ -174,7 +174,7 @@ namespace Game.Gameplay.Debt
                     _root.EraseCampaign();
                     Saying = "";
                     yield return new WaitForSeconds(0.6f);
-                    Finish();
+                    Finish(stayBusy: true);
                     Erased?.Invoke();
                     yield break;
             }
@@ -185,7 +185,7 @@ namespace Game.Gameplay.Debt
             RingIfNear();
         }
 
-        private void Finish()
+        private void Finish(bool stayBusy = false)
         {
             Saying = "";
             Visit = BossVisit.None;
@@ -194,6 +194,8 @@ namespace Game.Gameplay.Debt
                 if (visitor != null)
                     Destroy(visitor.gameObject);
             _visitors.Clear();
+            if (stayBusy)
+                return;
             if (_layoutEditor != null)
                 _layoutEditor.Closed = false;
             Busy = false;
@@ -212,7 +214,11 @@ namespace Game.Gameplay.Debt
                 var station = stations[i];
                 if (station is StallStation || station is StreetDoor)
                     continue;
-                var forSale = !string.IsNullOrEmpty(station.FurnitureId) && station.IsClear;
+                // A piece built into another (a board in a counter) goes only with it, so neither is
+                // taken: carrying one out would leave the other working in thin air.
+                var builtIn = station.GetComponentsInChildren<Interactable>().Length > 1
+                    || (station.transform.parent != null && station.transform.parent.GetComponentInParent<Interactable>() != null);
+                var forSale = !string.IsNullOrEmpty(station.FurnitureId) && station.IsClear && !builtIn;
                 var price = _layoutEditor != null ? _layoutEditor.SellPriceOf(station) : 0f;
                 room.Add(new Appliance(i, RoleOf(station), price, forSale && price > 0f));
             }
@@ -271,7 +277,8 @@ namespace Game.Gameplay.Debt
         // the kitchen (no one can use or move it) from the moment he touches it.
         private IEnumerator Pack(VisitorAgent guard, Interactable station)
         {
-            _layoutEditor.Repossess(station);
+            if (_layoutEditor != null)
+                _layoutEditor.Repossess(station);
             foreach (var collider in station.GetComponentsInChildren<Collider>())
                 collider.enabled = false;
             Packed?.Invoke(station);

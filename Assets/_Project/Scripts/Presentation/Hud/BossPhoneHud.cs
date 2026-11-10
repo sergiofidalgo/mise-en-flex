@@ -152,7 +152,7 @@ namespace Game.Presentation.Hud
             var up = _lines != null && _age < callLength;
             _shown = Mathf.MoveTowards(_shown, up ? 1f : 0f, Time.unscaledDeltaTime / _slideSeconds);
             var eased = _shown * _shown * (3f - 2f * _shown);
-            _phone.anchoredPosition = new Vector2(_phone.anchoredPosition.x, -(1080f - Margin - Height) - (1f - eased) * (Height + Margin + 20f));
+            _phone.anchoredPosition = new Vector2(1920f - Margin - Width, -(1080f - Margin - Height) - (1f - eased) * (Height + Margin + 20f));
 
             if (_lines == null)
             {
