@@ -557,6 +557,7 @@ namespace Game.Editor
             GreyboxStaff.Build(root, assets.Furniture);
 
             GreyboxHud.BuildCanvas(GreyboxHud.EnsureStyle(), settings, root, assets.Catalog);
+            GreyboxBoss.Build(root, camera, GreyboxHud.EnsureStyle()); // the boss's visits and phone (Phase 6)
 
             var framing = new SerializedObject(camera.gameObject.AddComponent<FramingCamera>());
             framing.FindProperty("_root").objectReferenceValue = root;

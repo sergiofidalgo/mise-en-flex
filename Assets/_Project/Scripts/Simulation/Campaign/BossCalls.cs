@@ -70,6 +70,28 @@ namespace Game.Simulation.Campaign
             return new string[0];
         }
 
+        /// <summary>Every line he can say, for the language tables.</summary>
+        public static IEnumerable<string> AllLines()
+        {
+            var kinds = new[] { BossCallKind.Near, BossCallKind.Paid, BossCallKind.BackInGoodBooks, BossCallKind.Missed };
+            var visits = (BossVisit[])System.Enum.GetValues(typeof(BossVisit));
+            foreach (var kind in kinds)
+                foreach (var visit in visits)
+                    foreach (var line in Lines(kind, visit))
+                        yield return line;
+            foreach (var visit in visits)
+                foreach (var line in VisitLines(visit))
+                    yield return line;
+            foreach (var line in Asides)
+                yield return line;
+        }
+
+        /// <summary>What he says when a visit turns out differently: the debt cleared overnight, a restaurant elsewhere taken.</summary>
+        public static readonly string[] Asides =
+        {
+            "Huh. Found the money, did ya?", "Lucky you.", "Next time, I take the rest.", "Not this one, mind. Yet.",
+        };
+
         /// <summary>What the boss says in person, the morning after.</summary>
         public static IReadOnlyList<string> VisitLines(BossVisit visit)
         {

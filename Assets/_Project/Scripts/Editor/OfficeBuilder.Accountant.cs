@@ -1,4 +1,5 @@
 using Game.Data;
+using Game.Gameplay.Debt;
 using Game.Gameplay.Office;
 using Game.Presentation.Hud;
 using Game.Presentation.Office;
@@ -15,6 +16,9 @@ namespace Game.Editor
     /// </summary>
     public static partial class OfficeBuilder
     {
+        private const string BossVisitorPrefabPath = "Assets/_Project/Prefabs/PF_BossVisitor.prefab";
+        private const string BodyguardPrefabPath = "Assets/_Project/Prefabs/PF_Bodyguard.prefab";
+
         // The desk faces the visitors' chairs (south, toward the camera): a borrower stands there.
         private static void AddAccountantDesk(Transform rooms)
         {
@@ -57,6 +61,35 @@ namespace Game.Editor
             for (var i = 0; i < slots.Count; i++)
                 list.GetArrayElementAtIndex(i).objectReferenceValue = slots[i];
             portraits.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        /// <summary>
+        /// The boss and a bodyguard as walking prefabs for the kitchen (BossVisitDirector), dressed
+        /// as they are in the office. No colliders: they walk the free floor and step round nobody.
+        /// </summary>
+        public static (VisitorAgent Boss, VisitorAgent Guard) BuildVisitorPrefabs()
+        {
+            GreyboxAssets.EnsureFolder(System.IO.Path.GetDirectoryName(BossVisitorPrefabPath));
+            var holder = new GameObject("Visitors").transform;
+            Boss(holder, Vector3.zero);
+            Bodyguard(holder, "Bodyguard_L", Vector3.zero);
+            var boss = SaveVisitor(holder.Find("Boss"), BossVisitorPrefabPath);
+            var guard = SaveVisitor(holder.Find("Bodyguard_L"), BodyguardPrefabPath);
+            Object.DestroyImmediate(holder.gameObject);
+            return (boss, guard);
+        }
+
+        private static VisitorAgent SaveVisitor(Transform person, string path)
+        {
+            person.SetParent(null, true);
+            person.localPosition = Vector3.zero;
+            person.localRotation = Quaternion.identity;
+            foreach (var collider in person.GetComponentsInChildren<Collider>())
+                Object.DestroyImmediate(collider);
+            person.gameObject.AddComponent<VisitorAgent>();
+            var prefab = PrefabUtility.SaveAsPrefabAsset(person.gameObject, path);
+            Object.DestroyImmediate(person.gameObject);
+            return prefab.GetComponent<VisitorAgent>();
         }
 
         private static T FindAsset<T>() where T : Object

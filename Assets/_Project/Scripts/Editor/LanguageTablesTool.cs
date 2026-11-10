@@ -78,6 +78,10 @@ namespace Game.Editor
             foreach (var key in new[] { "Raw", "Burnt", "raw", "burnt" })
                 yield return (key, "data: doneness tags");
 
+            // What the boss says on the phone and in person.
+            foreach (var key in Game.Simulation.Campaign.BossCalls.AllLines())
+                yield return (key, "boss");
+
             // The voices as the code writes them, and as the service config holds them now.
             foreach (var voice in ReviewVoiceDefaults.All())
             {
