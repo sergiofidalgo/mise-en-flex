@@ -25,7 +25,11 @@ namespace Game.Gameplay.Stations
         [Tooltip("Its chairs, in the order they're added. One: it isn't up to the player.")]
         [SerializeField] private Chair[] _chairs = Array.Empty<Chair>();
 
+        [Tooltip("Chairs it has before anyone changes them: 1 for one bought in the shop, more for a table a restaurant comes with (Casa Lucía's have 4).")]
+        [SerializeField, Min(1)] private int _startingChairs = 1;
+
         private int _chairCount = 1;
+        private bool _chairsChosen;
 
         public override bool BelongsInDiningRoom => true;
 
@@ -37,6 +41,11 @@ namespace Game.Gameplay.Stations
         public override void Bind(KitchenServices services)
         {
             base.Bind(services);
+            if (!_chairsChosen)
+            {
+                _chairCount = Math.Max(1, Math.Min(_startingChairs, Math.Max(1, _chairs.Length)));
+                _chairsChosen = true;
+            }
             ArrangeChairs();
         }
 
@@ -65,6 +74,7 @@ namespace Game.Gameplay.Stations
         public void RestoreChairs(int count)
         {
             _chairCount = System.Math.Max(1, count);
+            _chairsChosen = true;
             ArrangeChairs();
         }
 

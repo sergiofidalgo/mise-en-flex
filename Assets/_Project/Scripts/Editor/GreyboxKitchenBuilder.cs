@@ -76,29 +76,18 @@ namespace Game.Editor
         public const string ScenePath = "Assets/_Project/Scenes/Kitchen_Greybox.unity";
         private const string JoinActionPath = "Gameplay/Join";
 
-        // Greybox layout, in metres. The kitchen is 10 x 8 with the camera looking north (+Z).
-        private const float FloorWidth = 8f;
-        private const float FloorNorth = 2f;
-        private const float FloorSouth = -7f;
-        private const float DividingWallZ = -3f;
+        // Greybox layout, in metres, with the camera looking north (+Z): where things go is each
+        // restaurant's KitchenLayout (Phase 6, milestone 3); the grill's is the original greybox.
         private const float PictureHeight = 0.78f;
         private static readonly Color PictureSage = new Color(0.56f, 0.66f, 0.5f);
         private static readonly Color PictureBlue = new Color(0.5f, 0.62f, 0.72f);
         private const float KitchenDoorThickness = 0.08f;
         private static readonly Color KitchenDoorColor = new Color(0.45f, 0.33f, 0.22f);
-        // One per player, up to four (decision 2026-11-09): P1 and P2 beside the island's ends,
-        // P3 and P4 in the aisle in front of it, clear of the island, the plate stack and the door.
-        private static readonly Vector3[] SpawnPositions =
-        {
-            new Vector3(-2.45f, 0f, -0.8f), new Vector3(2.45f, 0f, -0.8f),
-            new Vector3(-1.0f, 0f, -1.75f), new Vector3(0.3f, 0f, -1.75f),
-        };
         private const float WallHeight = 1f;
         private const float WallThickness = 0.2f;
 
         // Fixed overhead camera (decision 2026-11-02): high and tilted so the whole kitchen
         // and everyone in it stay in view.
-        private static readonly Vector3 CameraPosition = new Vector3(0f, 11f, -8f);
         private static readonly Vector3 CameraEuler = new Vector3(55f, 0f, 0f);
         private const float CameraFieldOfView = 45f;
 
@@ -135,9 +124,6 @@ namespace Game.Editor
         // Prep zone on the back wall, left: a counter with the kitchen's one knife lying on it, and the
         // cutting board, a counter-sized piece of its own (decision 2026-11-08).
         private static readonly Color PrepColor = new Color(0.78f, 0.64f, 0.45f);
-        // On the west wall, by prep: the back-left corner is the tall storage (decision 2026-11-07).
-        private static readonly Vector3 KnifeCounterPosition = new Vector3(-3.4f, 0f, -0.6f);
-        private static readonly Vector3 PrepCounterPosition = new Vector3(-1.4f, 0f, 1.4f);
         // The board's size: most of its counter, and thick; its top is the cutting surface. Must
         // match build_board() in the Blender script.
         private static readonly Vector3 CuttingBoardScale = new Vector3(0.88f, 0.07f, 0.75f);
@@ -177,22 +163,16 @@ namespace Game.Editor
         // -> pass and the path crosses the middle, where the island is the hand-off point.
         // Pass and bin are plain counters until later milestones give them real behaviour; each
         // zone has its own colour so it reads from the overhead camera.
-        private static readonly (string Name, Color Color, float Size, float Height, Vector3[] Positions)[] CounterZones =
+        // Their positions are the layout's: the island, and extra counters along the walls, for
+        // testing containers and trays (2026-11-04). The one by the sink is where the dirty pile
+        // stood: dirty plates now pile on any counter (2026-11-08).
+        private static readonly (string Name, Color Color, float Size, float Height)[] CounterZones =
         {
-            ("Island", new Color(0.70f, 0.58f, 0.42f), CounterSize, CounterHeight,
-                new[] { new Vector3(-1.5f, 0f, -0.5f), new Vector3(-0.5f, 0f, -0.5f), new Vector3(0.5f, 0f, -0.5f), new Vector3(1.5f, 0f, -0.5f) }),
-            // Extra counters along the walls, for testing containers and trays (2026-11-04). The one
-            // by the sink is where the dirty pile stood: dirty plates now pile on any counter (2026-11-08).
-            ("WallCounter", new Color(0.50f, 0.46f, 0.42f), CounterSize, CounterHeight,
-                new[] { new Vector3(3.4f, 0f, -0.6f) }),
+            ("Island", new Color(0.70f, 0.58f, 0.42f), CounterSize, CounterHeight),
+            ("WallCounter", new Color(0.50f, 0.46f, 0.42f), CounterSize, CounterHeight),
         };
 
-        // The pass along the front, facing the dining side: plates put here are served and scored.
-        private static readonly Vector3[] BarTablePositions = { new Vector3(-1.6f, 0f, -3.35f), new Vector3(-0.6f, 0f, -3.35f), new Vector3(0.4f, 0f, -3.35f) };
-
-
-        // One hob on the back wall, right of prep, with its burner ring and its own pan. More are bought.
-        private static readonly Vector3[] HobPositions = { new Vector3(0.6f, 0f, 1.4f) };
+        // One hob on the grill's back wall, right of prep, with its burner ring and its own pan. More are bought.
         private static readonly Color HobColor = new Color(0.22f, 0.22f, 0.25f);
 
         // An induction hob: a black glass top with a flat cooking zone that glows deep red with the
@@ -227,17 +207,12 @@ namespace Game.Editor
         private const float ChipHeightAbovePan = 0.4f;
 
         // Plate stack next to the pass, and the bin on the east wall.
-        private static readonly Vector3 PlateStackPosition = new Vector3(1.4f, 0f, -2.4f);
         private static readonly Color PlateStackColor = new Color(0.80f, 0.80f, 0.78f);
         private const int PlateStackVisualCount = 6;
-        private static readonly Vector3 TrayRackPosition = new Vector3(1.6f, 0f, 1.4f);
-        private static readonly Vector3 ContainerRackPosition = new Vector3(-0.4f, 0f, 1.4f);
         private static readonly Color RackColor = new Color(0.46f, 0.48f, 0.52f);
-        private static readonly Vector3 SinkPosition = new Vector3(3.4f, 0f, 0.4f);
         private const float SinkYaw = 90f; // back (+z) to the east wall
         private static readonly Color SinkColor = new Color(0.55f, 0.62f, 0.68f);
         private static readonly Color DirtyPlateColor = new Color(0.45f, 0.36f, 0.25f);
-        private static readonly Vector3 BinPosition = new Vector3(3.4f, 0f, 1.4f);
         private static readonly Color BinColor = new Color(0.25f, 0.55f, 0.30f);
         private const float BinSize = 0.7f;
         private const float BinHeight = 0.8f;
@@ -253,14 +228,79 @@ namespace Game.Editor
             Debug.Log("[GreyboxKitchenBuilder] Rebuilt the shop's furniture.");
         }
 
+        /// <summary>
+        /// Builds the shared assets (items, chef, furniture) and one kitchen scene per restaurant that
+        /// has one (Phase 6, milestone 3): the grill's Kitchen_Greybox first, then the others.
+        /// </summary>
         [MenuItem("Tools/Game/Build Greybox Kitchen")]
         public static void BuildAll()
         {
+            var kitchens = RestaurantDefinitions.EnsureKitchens();
+            AssetDatabase.SaveAssets();
+            var built = new System.Collections.Generic.List<string>();
+            var first = true;
+            foreach (var restaurant in kitchens)
+            {
+                BuildKitchen(restaurant.Id, buildShared: first);
+                built.Add(restaurant.KitchenScene);
+                first = false;
+            }
+            HouseStyle.ApplyToMaterials();
+            RenderLook.Apply(); // ink, ambient occlusion and shadows in the PC pipeline
+            AssetDatabase.SaveAssets();
+            Debug.Log($"[GreyboxKitchenBuilder] Built {PlayerPrefabPath}, ingredients and the kitchens: {string.Join(", ", built)}.");
+
+            // The main menu comes first in a build and loads this kitchen (decision 2026-11-08); it
+            // also sets the build's scene order, which lists every kitchen.
+            MainMenuBuilder.Build();
+        }
+
+        /// <summary>
+        /// Builds any restaurant's kitchen scene that's missing, after the shared assets exist: in a
+        /// fresh clone or worktree only the grill's kitchen is in git (GeneratedScenes calls this).
+        /// </summary>
+        public static void BuildMissingKitchens()
+        {
+            var missing = RestaurantDefinitions.EnsureKitchens()
+                .Where(r => !System.IO.File.Exists(RestaurantDefinitions.ScenePath(r.KitchenScene))).ToList();
+            if (missing.Count == 0)
+                return;
+            // Without the shared assets (a project never built), build everything.
+            if (AssetDatabase.LoadAssetAtPath<ItemCatalog>(GreyboxIngredients.CatalogAssetPath) == null
+                || AssetDatabase.LoadAssetAtPath<FurnitureCatalog>(FurnitureCatalogPath) == null
+                || AssetDatabase.LoadAssetAtPath<GameObject>(PlayerPrefabPath) == null)
+            {
+                BuildAll();
+                return;
+            }
+            foreach (var restaurant in missing)
+                BuildKitchen(restaurant.Id, buildShared: false);
+            AssetDatabase.SaveAssets();
+            BootOrder.Apply();
+        }
+
+        /// <summary>Tools/Game/Build Kitchen For Casa Lucía: only its scene, using the shared assets already built.</summary>
+        [MenuItem("Tools/Game/Build Casa Lucia Kitchen")]
+        public static void BuildDiningRoomKitchen()
+        {
+            BuildKitchen(RestaurantDefinitions.DiningRoomId, buildShared: false);
+            AssetDatabase.SaveAssets();
+            BootOrder.Apply();
+        }
+
+        // One restaurant's kitchen scene. The shared assets are built once, with the first scene;
+        // later scenes load them from disk.
+        private static void BuildKitchen(string restaurantId, bool buildShared)
+        {
             // Create the scene before loading any assets: opening a new scene unloads assets
             // nothing references yet, which would leave the references below dead and saved
-            // into the scene as empty.
+            // into the scene as empty. Each kitchen's assets are loaded after its own new scene.
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
 
+            var restaurant = RestaurantDefinitions.EnsureKitchens().FirstOrDefault(r => r.Id == restaurantId);
+            if (restaurant == null)
+                throw new System.InvalidOperationException($"No restaurant definition {restaurantId} with a kitchen scene.");
+            var layout = KitchenLayout.For(restaurant.ToSettings());
             var assets = new SceneAssets
             {
                 Settings = GreyboxAssets.EnsureAsset<CoopSettings>(CoopSettingsPath),
@@ -270,28 +310,52 @@ namespace Game.Editor
                 ServiceConfig = GreyboxAssets.EnsureAsset<ServiceConfig>(ServiceConfigPath),
                 StaffConfig = GreyboxAssets.EnsureAsset<StaffConfig>(StaffConfigPath),
                 Cookbook = GreyboxAssets.EnsureAsset<CookbookConfig>(CookbookConfigPath),
-                Restaurant = RestaurantDefinitions.EnsureGrill(),
-                FloorPlan = GreyboxAssets.EnsureAsset<FloorPlanConfig>(FloorPlanPath),
-                Catalog = GreyboxIngredients.BuildCatalog(
+                Restaurant = restaurant,
+                Restaurants = RestaurantDefinitions.EnsureMiniature(),
+                FloorPlan = EnsureFloorPlan(restaurant, layout),
+            };
+            if (buildShared)
+            {
+                assets.Catalog = GreyboxIngredients.BuildCatalog(
                     (GreyboxKitchenware.PanTypeId, GreyboxKitchenware.BuildPan()),
                     (Game.Simulation.Items.Plate.PlateTypeId, GreyboxKitchenware.BuildPlate()),
                     (Game.Simulation.Items.Knife.KnifeTypeId, GreyboxKitchenware.BuildKnife()),
                     (Game.Simulation.Items.Tray.TrayTypeId, GreyboxKitchenware.BuildTray()),
-                    (Game.Simulation.Items.FoodContainer.ContainerTypeId, GreyboxKitchenware.BuildContainer())),
-            };
-            SetMenu(assets.ServiceConfig, assets.Catalog);
-            // Pictures for menus, from the food prefabs just built; only missing ones are rendered.
-            IngredientIconRenderer.Render(force: false);
-            assets.PlayerPrefab = BuildPlayerPrefab(assets.Settings, assets.Tuning);
-            assets.Furniture = BuildFurniture();
-            BuildScene(scene, assets);
-            HouseStyle.ApplyToMaterials();
-            RenderLook.Apply(); // ink, ambient occlusion and shadows in the PC pipeline
-            AssetDatabase.SaveAssets();
-            Debug.Log($"[GreyboxKitchenBuilder] Built {PlayerPrefabPath}, ingredients and {ScenePath}.");
+                    (Game.Simulation.Items.FoodContainer.ContainerTypeId, GreyboxKitchenware.BuildContainer()));
+                SetMenu(assets.ServiceConfig, assets.Catalog);
+                // Pictures for menus, from the food prefabs just built; only missing ones are rendered.
+                IngredientIconRenderer.Render(force: false);
+                assets.PlayerPrefab = BuildPlayerPrefab(assets.Settings, assets.Tuning);
+                assets.Furniture = BuildFurniture();
+            }
+            else
+            {
+                assets.Catalog = AssetDatabase.LoadAssetAtPath<ItemCatalog>(GreyboxIngredients.CatalogAssetPath);
+                assets.PlayerPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(PlayerPrefabPath);
+                assets.Furniture = AssetDatabase.LoadAssetAtPath<FurnitureCatalog>(FurnitureCatalogPath);
+            }
+            BuildScene(scene, assets, layout);
+            Debug.Log($"[GreyboxKitchenBuilder] Built {layout.ScenePath} for {restaurant.DisplayName} ({layout.Seats} seats).");
+        }
 
-            // The main menu comes first in a build and loads this kitchen (decision 2026-11-08).
-            MainMenuBuilder.Build();
+        // The grill keeps the floor plan every save before milestone 3 was laid out in (its tuning
+        // lives in that asset). Another restaurant's is generated from its layout next to its
+        // definition, and rewritten on every build so it always matches the walls.
+        private static FloorPlanConfig EnsureFloorPlan(RestaurantDefinition restaurant, KitchenLayout layout)
+        {
+            if (restaurant.Id == Game.Simulation.Saving.Version1Restaurant.GrillId)
+                return GreyboxAssets.EnsureAsset<FloorPlanConfig>(FloorPlanPath);
+            var path = $"{RestaurantDefinitions.Folder}/FloorPlan_{layout.Scene}.asset";
+            var plan = GreyboxAssets.EnsureAsset<FloorPlanConfig>(path);
+            var half = layout.HalfWidth;
+            plan.SetBuilding(
+                roomMin: new Vector2(-half + 0.4f, layout.FloorSouth + 0.4f), roomMax: new Vector2(half - 0.4f, layout.FloorNorth - 0.4f),
+                walls: layout.InsideWalls(), kitchenDoorHinge: layout.KitchenDoorHinge, kitchenDoorWidth: layout.KitchenDoorWidth,
+                kitchenAreaMin: new Vector2(-half + 0.6f, KitchenLayout.DividingWallZ + 0.6f), kitchenAreaMax: new Vector2(half - 0.6f, layout.FloorNorth - 0.6f),
+                diningAreaMin: new Vector2(-half + 0.6f, layout.FloorSouth + 0.6f), diningAreaMax: new Vector2(half - 0.6f, KitchenLayout.DividingWallZ - 0.6f),
+                doorLineMin: new Vector2(-half + 0.45f, layout.FloorSouth + 0.45f), doorLineMax: new Vector2(half - 0.45f, KitchenLayout.DividingWallZ - 0.7f));
+            EditorUtility.SetDirty(plan);
+            return plan;
         }
 
         /// <summary>
@@ -315,6 +379,7 @@ namespace Game.Editor
             public StaffConfig StaffConfig;
             public CookbookConfig Cookbook;
             public RestaurantDefinition Restaurant;
+            public MiniatureConfig Restaurants;
             public FurnitureCatalog Furniture;
             public FloorPlanConfig FloorPlan;
             public ItemCatalog Catalog;
@@ -484,33 +549,33 @@ namespace Game.Editor
             return prefab;
         }
 
-        private static void BuildScene(UnityEngine.SceneManagement.Scene scene, SceneAssets assets)
+        private static void BuildScene(UnityEngine.SceneManagement.Scene scene, SceneAssets assets, KitchenLayout layout)
         {
             var settings = assets.Settings;
             var light = new GameObject("Directional Light").AddComponent<Light>();
             light.type = LightType.Directional;
             HouseStyle.LightScene(light); // also aims it
-            KitchenLighting.Add(); // gentle, even lamps (decision 2026-11-09)
+            KitchenLighting.Add(layout); // gentle, even lamps (decision 2026-11-09)
 
             var camera = new GameObject("Main Camera").AddComponent<Camera>();
             camera.tag = "MainCamera";
-            camera.transform.SetPositionAndRotation(CameraPosition, Quaternion.Euler(CameraEuler));
+            camera.transform.SetPositionAndRotation(layout.CameraPosition, Quaternion.Euler(CameraEuler));
             camera.fieldOfView = CameraFieldOfView;
             HouseStyle.SmoothEdges(camera);
             RenderLook.Backdrop(camera);
 
             var floor = GameObject.CreatePrimitive(PrimitiveType.Plane);
             floor.name = "Floor";
-            floor.transform.localScale = new Vector3(FloorWidth / 10f, 1f, (FloorNorth - FloorSouth) / 10f); // plane is 10x10
-            floor.transform.localPosition = new Vector3(0f, 0f, (FloorNorth + FloorSouth) / 2f);
+            floor.transform.localScale = new Vector3(layout.FloorWidth / 10f, 1f, (layout.FloorNorth - layout.FloorSouth) / 10f); // plane is 10x10
+            floor.transform.localPosition = new Vector3(0f, 0f, (layout.FloorNorth + layout.FloorSouth) / 2f);
             floor.GetComponent<Renderer>().sharedMaterial = HouseStyle.KitchenFloor();
-            BuildDiningFloor();
-            BuildWalls(assets.FloorPlan);
-            BuildStations();
+            BuildDiningFloor(layout);
+            BuildWalls(assets.FloorPlan, layout);
+            BuildStations(layout);
             CabinetArt.JoinAll(); // side by side counters as one surface, in the saved scene too
 
             var spawnRoot = new GameObject("SpawnPoints").transform;
-            var spawnPoints = SpawnPositions.Select((position, i) =>
+            var spawnPoints = layout.SpawnPositions.Select((position, i) =>
             {
                 var point = new GameObject($"Spawn_P{i + 1}").transform;
                 point.SetParent(spawnRoot, false);
@@ -544,6 +609,7 @@ namespace Game.Editor
             rootSo.FindProperty("_staffConfig").objectReferenceValue = assets.StaffConfig;
             rootSo.FindProperty("_cookbook").objectReferenceValue = assets.Cookbook;
             rootSo.FindProperty("_restaurant").objectReferenceValue = assets.Restaurant;
+            rootSo.FindProperty("_restaurants").objectReferenceValue = assets.Restaurants;
             rootSo.FindProperty("_floorPlan").objectReferenceValue = assets.FloorPlan;
             rootSo.FindProperty("_furniture").objectReferenceValue = assets.Furniture;
             rootSo.FindProperty("_playerInputManager").objectReferenceValue = manager;
@@ -553,8 +619,8 @@ namespace Game.Editor
             SetReference(overlay, "_root", root);
             root.gameObject.AddComponent<QualityCardOverlay>();
             SetReference(root.gameObject.AddComponent<DayLoop>(), "_root", root);
-            GreyboxService.Build(root);
-            GreyboxStaff.Build(root, assets.Furniture);
+            GreyboxService.Build(root, layout.StreetDoorPosition);
+            GreyboxStaff.Build(root, assets.Furniture, layout.StaffSpawn);
 
             GreyboxHud.BuildCanvas(GreyboxHud.EnsureStyle(), settings, root, assets.Catalog);
             GreyboxBoss.Build(root, camera, GreyboxHud.EnsureStyle()); // the boss's visits and phone (Phase 6)
@@ -567,40 +633,43 @@ namespace Game.Editor
             framing.ApplyModifiedPropertiesWithoutUndo();
 
             // Out of the front door: the pavement, the road and the market stalls (Phase 5).
-            GreyboxStreet.Build(camera);
+            GreyboxStreet.Build(camera, layout, root);
 
             GreyboxAudio.AddTo(root, camera);
             CleaningArt.AddTo(root);
 
-            GreyboxAssets.EnsureFolder(System.IO.Path.GetDirectoryName(ScenePath));
-            EditorSceneManager.SaveScene(scene, ScenePath);
-            EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(ScenePath, true) };
+            GreyboxAssets.EnsureFolder(System.IO.Path.GetDirectoryName(layout.ScenePath));
+            EditorSceneManager.SaveScene(scene, layout.ScenePath);
+            BootOrder.Apply(); // every kitchen built so far, after the office
         }
 
         // The dining room's floor, in its own colour. Walkable and without a collider; a few
         // millimetres up to avoid z-fighting with the floor.
-        private static void BuildDiningFloor()
+        private static void BuildDiningFloor(KitchenLayout layout)
         {
             const float lift = 0.005f;
-            var depth = DividingWallZ - FloorSouth;
+            var depth = KitchenLayout.DividingWallZ - layout.FloorSouth;
             var floor = GreyboxAssets.CreatePrimitive(
                 PrimitiveType.Cube, "DiningFloor", null, HouseStyle.DiningFloor(), keepCollider: false);
-            floor.transform.localScale = new Vector3(FloorWidth, lift, depth);
-            floor.transform.localPosition = new Vector3(0f, lift / 2f, FloorSouth + depth / 2f);
+            floor.transform.localScale = new Vector3(layout.FloorWidth, lift, depth);
+            floor.transform.localPosition = new Vector3(0f, lift / 2f, layout.FloorSouth + depth / 2f);
         }
 
         // Low walls around the building so players can't walk off the edge, and between its rooms.
-        private static void BuildWalls(FloorPlanConfig floorPlan)
+        private static void BuildWalls(FloorPlanConfig floorPlan, KitchenLayout layout)
         {
             var walls = new GameObject("Walls").transform;
             var material = HouseStyle.Wall();
-            var halfWidth = FloorWidth / 2f;
-            var depth = FloorNorth - FloorSouth;
-            var centreZ = (FloorNorth + FloorSouth) / 2f;
+            var floorWidth = layout.FloorWidth;
+            var floorNorth = layout.FloorNorth;
+            var floorSouth = layout.FloorSouth;
+            var halfWidth = floorWidth / 2f;
+            var depth = floorNorth - floorSouth;
+            var centreZ = (floorNorth + floorSouth) / 2f;
             var y = WallHeight / 2f;
 
-            CreateWall("Wall_North", new Vector3(0f, y, FloorNorth), new Vector3(FloorWidth, WallHeight, WallThickness));
-            CreateWall("Wall_South", new Vector3(0f, y, FloorSouth), new Vector3(FloorWidth, WallHeight, WallThickness));
+            CreateWall("Wall_North", new Vector3(0f, y, floorNorth), new Vector3(floorWidth, WallHeight, WallThickness));
+            CreateWall("Wall_South", new Vector3(0f, y, floorSouth), new Vector3(floorWidth, WallHeight, WallThickness));
             CreateWall("Wall_East", new Vector3(halfWidth, y, centreZ), new Vector3(WallThickness, WallHeight, depth));
             CreateWall("Wall_West", new Vector3(-halfWidth, y, centreZ), new Vector3(WallThickness, WallHeight, depth));
 
@@ -611,7 +680,7 @@ namespace Game.Editor
             }
 
             // Pictures on the dining room's side walls, above the panelling (decision 2026-11-08).
-            var diningMiddle = (DividingWallZ + FloorSouth) / 2f;
+            var diningMiddle = (KitchenLayout.DividingWallZ + floorSouth) / 2f;
             var inside = halfWidth - WallThickness / 2f;
             DiningArt.HangPicture(walls, "Picture_West", new Vector3(-inside, PictureHeight, diningMiddle), Vector3.right, PictureSage);
             DiningArt.HangPicture(walls, "Picture_East", new Vector3(inside, PictureHeight, diningMiddle), Vector3.left, PictureBlue);
@@ -636,38 +705,56 @@ namespace Game.Editor
             }
         }
 
-        private static void BuildStations()
+        private static void BuildStations(KitchenLayout layout)
         {
             var stations = new GameObject("Stations").transform;
 
-            foreach (var zone in CounterZones)
+            var zonePositions = new[] { layout.IslandPositions, layout.WallCounterPositions };
+            for (var z = 0; z < CounterZones.Length; z++)
             {
+                var zone = CounterZones[z];
+                var positions = zonePositions[z];
                 var zoneRoot = new GameObject($"Zone_{zone.Name}").transform;
                 zoneRoot.SetParent(stations, false);
                 var material = GreyboxAssets.EnsureMaterial(zone.Name, zone.Color);
-                for (var i = 0; i < zone.Positions.Length; i++)
+                for (var i = 0; i < positions.Length; i++)
                 {
                     DressCabinet(CreateStation<CounterStation>(
-                        $"{zone.Name}_{i + 1:00}", zone.Positions[i], zone.Size, zone.Height, material, zoneRoot, CounterFurniture));
+                        $"{zone.Name}_{i + 1:00}", positions[i], zone.Size, zone.Height, material, zoneRoot, CounterFurniture));
                 }
             }
 
-            BuildPrepZone(stations);
+            BuildPrepZone(stations, layout);
 
             var hobs = new GameObject("Zone_Hob").transform;
             hobs.SetParent(stations, false);
             var hobMaterial = GreyboxAssets.EnsureMaterial("Hob", HobColor);
-            for (var i = 0; i < HobPositions.Length; i++)
-                CreateHob($"Hob_{i + 1:00}", HobPositions[i], hobMaterial, hobs);
+            for (var i = 0; i < layout.HobPositions.Length; i++)
+                CreateHob($"Hob_{i + 1:00}", layout.HobPositions[i], hobMaterial, hobs);
 
-            // The first seats: bar tables along the dining side of the wall, served across it.
-            var bars = new GameObject("Zone_BarTables").transform;
-            bars.SetParent(stations, false);
-            for (var i = 0; i < BarTablePositions.Length; i++)
-                BuildBarTable($"BarTable_{i + 1:00}", BarTablePositions[i], bars);
+            // The grill's first seats: bar tables along the dining side of the wall, served across it.
+            if (layout.BarTablePositions.Length > 0)
+            {
+                var bars = new GameObject("Zone_BarTables").transform;
+                bars.SetParent(stations, false);
+                for (var i = 0; i < layout.BarTablePositions.Length; i++)
+                    BuildBarTable($"BarTable_{i + 1:00}", layout.BarTablePositions[i], bars);
+            }
+
+            // A dining room's tables, four chairs each (Casa Lucía's, milestone 3).
+            if (layout.TablePositions.Length > 0)
+            {
+                var tables = new GameObject("Zone_Tables").transform;
+                tables.SetParent(stations, false);
+                for (var i = 0; i < layout.TablePositions.Length; i++)
+                {
+                    var table = BuildTable($"Table_{i + 1:00}", layout.TablePositions[i], tables);
+                    SetInt(table, "_startingChairs", KitchenLayout.ChairsPerTable); // the previous owner's chairs come too
+                }
+            }
 
             var plateStack = DressCabinet(CreateStation<PlateStackStation>(
-                "PlateStack", PlateStackPosition, CounterSize, CounterHeight,
+                "PlateStack", layout.PlateStackPosition, CounterSize, CounterHeight,
                 GreyboxAssets.EnsureMaterial("PlateStack", PlateStackColor), stations));
             // Clean plates stand in a wire rack, like a real plate stack.
             var plateStackDiscs = KitchenwareArt.CreatePlates(plateStack.transform, CounterHeight, PlateStackVisualCount,
@@ -678,7 +765,7 @@ namespace Game.Editor
             stackPile.ApplyModifiedPropertiesWithoutUndo();
 
             var sink = CreateStation<SinkStation>(
-                "Sink", SinkPosition, CounterSize, CounterHeight, GreyboxAssets.EnsureMaterial("Sink", SinkColor), stations);
+                "Sink", layout.SinkPosition, CounterSize, CounterHeight, GreyboxAssets.EnsureMaterial("Sink", SinkColor), stations);
             // Its back, where the tap is, against the east wall; players turn it as they like.
             sink.transform.localRotation = Quaternion.Euler(0f, SinkYaw, 0f);
             var sinkPile = new SerializedObject(sink.gameObject.AddComponent<PlatePileView>());
@@ -701,11 +788,11 @@ namespace Game.Editor
             SetObjects(sinkPile.FindProperty("_dirty"), sinkPlates);
             sinkPile.ApplyModifiedPropertiesWithoutUndo();
 
-            CreateRack("TrayRack", RackStation.RackKind.Trays, TrayRackPosition, 4, GreyboxKitchenware.TrayColor, stations);
-            CreateRack("ContainerRack", RackStation.RackKind.Containers, ContainerRackPosition, 6, GreyboxKitchenware.ContainerColor, stations);
+            CreateRack("TrayRack", RackStation.RackKind.Trays, layout.TrayRackPosition, 4, GreyboxKitchenware.TrayColor, stations);
+            CreateRack("ContainerRack", RackStation.RackKind.Containers, layout.ContainerRackPosition, 6, GreyboxKitchenware.ContainerColor, stations);
 
             var bin = CreateStation<BinStation>(
-                "Bin", BinPosition, BinSize, BinHeight, GreyboxAssets.EnsureMaterial("Bin", BinColor), stations);
+                "Bin", layout.BinPosition, BinSize, BinHeight, GreyboxAssets.EnsureMaterial("Bin", BinColor), stations);
             // Smaller than its slot, it slides within it to sit snug against what's beside it (the
             // user's note, 2026-11-08): its body hangs from a "Snug" frame the station moves, so the
             // highlight's shake still works on the body itself.
@@ -720,25 +807,40 @@ namespace Game.Editor
 
             var storage = new GameObject("Zone_Storage").transform;
             storage.SetParent(stations, false);
-            foreach (var unit in StorageUnits)
+            var storagePositions = new[] { layout.FridgePosition, layout.ShelfPosition };
+            for (var i = 0; i < StorageUnits.Length; i++)
             {
+                var template = StorageUnits[i];
+                var unit = new GreyboxStorage.Unit
+                {
+                    Name = template.Name, FurnitureId = template.FurnitureId, Position = storagePositions[i],
+                    Refrigerated = template.Refrigerated, Color = template.Color, SlotCapacity = template.SlotCapacity,
+                    Deliveries = template.Deliveries,
+                };
                 GreyboxStorage.Build(unit, (name, position, material) =>
                     CreateStation<StorageStation>(name, position, CounterSize, StorageArt.Height(unit.Refrigerated), material, storage, unit.FurnitureId));
             }
         }
 
-        private static void BuildPrepZone(Transform stations)
+        private static void BuildPrepZone(Transform stations, KitchenLayout layout)
         {
             var zone = new GameObject("Zone_Prep").transform;
             zone.SetParent(stations, false);
             var material = GreyboxAssets.EnsureMaterial("Prep", PrepColor);
 
-            var knifeCounter = DressCabinet(CreateStation<CounterStation>("KnifeCounter", KnifeCounterPosition, CounterSize, CounterHeight, material, zone, CounterFurniture));
+            var knifeCounter = DressCabinet(CreateStation<CounterStation>("KnifeCounter", layout.KnifeCounterPosition, CounterSize, CounterHeight, material, zone, CounterFurniture));
             var knifeSo = new SerializedObject(knifeCounter);
             knifeSo.FindProperty("_startsWithKnife").boolValue = true;
             knifeSo.ApplyModifiedPropertiesWithoutUndo();
 
-            BuildCuttingBoard("CuttingBoard", PrepCounterPosition, material, zone);
+            BuildCuttingBoard("CuttingBoard", layout.PrepCounterPosition, material, zone);
+
+            // A knife rack the previous owner left (Casa Lucía's): empty until knives are bought.
+            for (var i = 0; i < layout.KnifeRackPositions.Length; i++)
+            {
+                var rack = BuildKnifeRack($"KnifeRack_{i + 1:00}", zone);
+                rack.transform.localPosition = layout.KnifeRackPositions[i];
+            }
         }
 
         private static GrillStation BuildGrill(string name, Vector3 position, Transform parent)
@@ -1138,10 +1240,10 @@ namespace Game.Editor
 
         // A regular table: a chair's place on each side, with a plate towards it. They start hidden;
         // the table shows the ones it has.
-        private static TableStation BuildTable()
+        private static TableStation BuildTable(string name = "PF_Table", Vector3 position = default, Transform parent = null)
         {
             var table = CreateStation<TableStation>(
-                "PF_Table", Vector3.zero, CounterSize, TableHeight, GreyboxAssets.EnsureMaterial("Table", TableColor), null, TableFurniture);
+                name, position, CounterSize, TableHeight, GreyboxAssets.EnsureMaterial("Table", TableColor), parent, TableFurniture);
             DiningArt.DressTable(table.transform, bar: false);
             var directions = new[] { Vector3.back, Vector3.left, Vector3.right, Vector3.forward };
             AddChairs(table, TableHeight, directions, ChairDistance, TablePlateOffset);
@@ -1236,6 +1338,13 @@ namespace Game.Editor
             entry.FindPropertyRelative("_prefab").objectReferenceValue = prefab;
             entry.FindPropertyRelative("_itemTypeId").stringValue = itemTypeId;
             entry.FindPropertyRelative("_section").enumValueIndex = section;
+        }
+
+        private static void SetInt(Object target, string field, int value)
+        {
+            var so = new SerializedObject(target);
+            so.FindProperty(field).intValue = value;
+            so.ApplyModifiedPropertiesWithoutUndo();
         }
 
         private static void SetReference(Object target, string field, Object value)

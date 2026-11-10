@@ -21,8 +21,12 @@ namespace Game.Editor
         // How much the kitchen's lamps count; the office's is 3. Low, so they warm rather than light.
         private const float Strength = 1.4f;
 
-        /// <summary>Adds the kitchen's lamps. The kitchen spans x −4…4, z −7…2; the dining room is z −7…−3.</summary>
-        public static void Add()
+        /// <summary>
+        /// Adds the kitchen's lamps where its layout says (the grill spans x −4…4, z −7…2, its dining
+        /// room z −7…−3): ceiling lights over the kitchen, pendants over the dining room, sconces on
+        /// the dining room's side walls.
+        /// </summary>
+        public static void Add(KitchenLayout layout)
         {
             var root = new GameObject("KitchenLamps").transform;
             var switchOn = new SerializedObject(root.gameObject.AddComponent<LampLighting>());
@@ -30,18 +34,19 @@ namespace Game.Editor
             switchOn.ApplyModifiedPropertiesWithoutUndo();
 
             // Three wide ceiling lights over the kitchen, overlapping, so the light is even.
-            foreach (var x in new[] { -2.7f, 0f, 2.7f })
+            foreach (var x in layout.CeilingLightXs)
                 Point(root, "CeilingLight", new Vector3(x, 4f, -0.4f), Ceiling, 7.5f, 0.9f);
             // Two pendants over the dining room, a touch warmer.
-            foreach (var x in new[] { -2f, 2f })
-                Point(root, "DiningPendant", new Vector3(x, 3.6f, -5f), Pendant, 6.5f, 0.8f);
+            foreach (var at in layout.PendantPositions)
+                Point(root, "DiningPendant", at, Pendant, 6.5f, 0.8f);
             // Sconces on the dining room's side walls: you see where the light comes from, and
             // each throws only a small, soft glow.
             var brass = StyleTest.EnsureToonMaterial("SconceBrass", new Color(0.86f, 0.62f, 0.26f));
             var glow = PilotArt.EnsureUnlitMaterial("SconceGlow", new Color(1f, 0.86f, 0.6f));
             glow.SetColor("_BaseColor", new Color(1f, 0.86f, 0.6f));
-            foreach (var x in new[] { -3.85f, 3.85f })
-            foreach (var z in new[] { -4.2f, -6.0f })
+            var wall = layout.HalfWidth - 0.15f;
+            foreach (var x in new[] { -wall, wall })
+            foreach (var z in layout.SconceZs)
             {
                 var sconce = new GameObject("Sconce").transform;
                 sconce.SetParent(root, false);

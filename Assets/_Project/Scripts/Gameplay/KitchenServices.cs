@@ -95,6 +95,15 @@ namespace Game.Gameplay
         public int RestaurantsOwned { get; set; } = 1;
 
         /// <summary>
+        /// Who this restaurant is (Phase 6, milestone 3): its own name, style and street, from its
+        /// record (as bought, or renamed), else its definition, else the Service Config's. The sign
+        /// and the dashboard show these.
+        /// </summary>
+        public string RestaurantName { get; set; } = "";
+        public string StyleName { get; set; } = "";
+        public string Area { get; set; } = "";
+
+        /// <summary>
         /// This campaign's cookbook: the recipes it has unlocked, which are its menu, and their prices
         /// (decision 2026-11-10). Null in a scene built before the cookbook, which keeps the
         /// service config's single dish.

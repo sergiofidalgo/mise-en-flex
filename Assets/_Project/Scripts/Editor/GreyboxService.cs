@@ -14,8 +14,8 @@ namespace Game.Editor
     {
         private const string CustomerPrefabPath = "Assets/_Project/Prefabs/PF_Customer.prefab";
 
-        // The street door is in the south wall; customers wait along the east wall until a seat's free.
-        private static readonly Vector3 DoorPosition = new Vector3(2f, 0f, -6.55f);
+        // The street door is in the south wall (where is each restaurant's KitchenLayout); customers
+        // wait along the east wall until a seat's free.
         private const float DoorPanelBehind = -0.32f;
         private const float DoorMatAhead = 0.1f;
 
@@ -35,14 +35,14 @@ namespace Game.Editor
         private static readonly Color CustomerColor = new Color(0.55f, 0.60f, 0.70f);
         private const float CustomerBodyRadius = 0.3f;
 
-        public static void Build(KitchenCompositionRoot root)
+        public static void Build(KitchenCompositionRoot root, Vector3 doorPosition)
         {
             var zone = new GameObject("Zone_Dining").transform;
 
             // The street door: its root is the doorway people step through, facing into the room.
             var door = new GameObject("Street door").transform;
             door.SetParent(zone, false);
-            door.localPosition = DoorPosition;
+            door.localPosition = doorPosition;
 
             // The wall hides the door from the camera, so a mat on the floor shows where it is.
             var panel = GreyboxAssets.CreatePrimitive(PrimitiveType.Cube, "DoorPanel", door, GreyboxAssets.EnsureMaterial("Door", DoorColor), keepCollider: false);

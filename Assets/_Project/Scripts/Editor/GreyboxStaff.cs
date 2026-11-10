@@ -11,17 +11,17 @@ namespace Game.Editor
     {
         private const string AgentPrefabPath = "Assets/_Project/Prefabs/PF_Staff.prefab";
 
-        private static readonly Vector3 SpawnPosition = new Vector3(2.45f, 0f, -1.4f);
         private static readonly Vector3 BodyScale = new Vector3(0.62f, 0.82f, 0.62f);
         private static readonly Color BodyColor = new Color(0.30f, 0.62f, 0.55f);
         private static readonly Vector3 CarryPosition = new Vector3(0f, 1.0f, 0.42f);
 
-        public static void Build(KitchenCompositionRoot root, Game.Data.FurnitureCatalog furniture)
+        /// <param name="spawnPosition">Where hired staff appear: beside the island's east end (KitchenLayout).</param>
+        public static void Build(KitchenCompositionRoot root, Game.Data.FurnitureCatalog furniture, Vector3 spawnPosition)
         {
             var zone = new GameObject("Zone_Staff");
             var spawn = new GameObject("StaffSpawn").transform;
             spawn.SetParent(zone.transform, false);
-            spawn.localPosition = SpawnPosition;
+            spawn.localPosition = spawnPosition;
 
             var director = new SerializedObject(zone.AddComponent<StaffDirector>());
             director.FindProperty("_root").objectReferenceValue = root;
