@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Game.Data;
@@ -12,8 +13,9 @@ using UnityEngine.InputSystem;
 namespace Game.Presentation.Hud
 {
     /// <summary>
-    /// The service's progress on screen: how to join, the Plan and Prep cards, and the Review
-    /// afterwards. The day, phase and clock are on the day card (DayCardHud, decision 2026-11-10).
+    /// The service's progress on screen: how to join, the Prep strip and the lost-controller pause.
+    /// The day, phase and clock are on the day card (DayCardHud, decision 2026-11-10); Plan and Review
+    /// are the forkcast dashboard's (ReviewDashboard, the user's call 2026-11-10).
     /// </summary>
     public sealed class ServiceStatusHud : MonoBehaviour
     {
@@ -35,11 +37,11 @@ namespace Game.Presentation.Hud
 
         [Header("Text")]
         [SerializeField] private string _joinText = "Press A to join";
-        [SerializeField] private string _candidatesText = "Looking for work:";
-        [SerializeField] private string _manageText = "Press Select to rearrange the kitchen";
         [SerializeField] private string _deliveryText = "Delivered to storage:";
-        [SerializeField] private string _prepText = "Prep   [Select] rearrange   hold [Menu] open up";
-        [SerializeField] private string _readyText = "Hold Menu when ready";
+        // The strip's words; its buttons are drawn (HintStrip), since hints name only Xbox buttons.
+        [SerializeField] private string _rearrangeHint = "Rearrange";
+        [SerializeField] private string _forkcastHint = "forkcast";
+        [SerializeField] private string _openUpHint = "Hold: open up";
         [SerializeField] private string _playerReadyText = "READY";
         [SerializeField] private string _playerWaitingText = "not ready";
         [SerializeField] private string _playerLostText = "controller lost";
@@ -49,11 +51,11 @@ namespace Game.Presentation.Hud
         [SerializeField] private Color _goodColor = new Color(0.45f, 0.85f, 0.40f);
         [SerializeField] private Color _badColor = new Color(0.95f, 0.30f, 0.26f);
 
-        private static readonly PromptControl[] HireButtons = { PromptControl.South, PromptControl.West, PromptControl.North };
-
         private readonly StringBuilder _text = new StringBuilder();
         private WorldLabel _card;
         private WorldLabel _strip;
+        private HintStrip _keys;
+        private readonly List<(string Key, string Text)> _hints = new List<(string, string)>();
         private float _prepStartedAt = -1f;
 
         private void Start()
@@ -62,6 +64,7 @@ namespace Game.Presentation.Hud
             _card.FontSize = _cardFontSize;
             _strip = WorldLabel.Create(_style, _canvas, "PrepStrip", _stripPadding, new Vector2(0.5f, 0f));
             _strip.FontSize = _stripFontSize;
+            _keys = new HintStrip(_style, _canvas, "PhaseHints");
         }
 
         private void LateUpdate()
@@ -70,26 +73,31 @@ namespace Game.Presentation.Hud
                 return;
 
             var days = _root.Services.Days;
+            _keys.Tick(Time.unscaledDeltaTime);
 
             if (days.Phase != DayPhase.Prep)
             {
                 _prepStartedAt = -1f;
                 _strip.Hide();
+                _keys.Hide();
             }
             else if (_prepStartedAt < 0f)
             {
                 _prepStartedAt = Time.unscaledTime;
             }
 
-            if (_root.Services.Days.Phase == DayPhase.Review)
+            // forkcast is up (Review, and Plan until it's put away): it says everything, joining included.
+            if (_root.Services.Forkcast.IsOpen)
             {
                 _card.Hide();
+                _keys.Hide();
                 return;
             }
 
             if (PlayerInput.all.Count == 0)
             {
                 _card.ShowAt(Tr.Get(_joinText), Vector2.zero);
+                _keys.Hide();
                 return;
             }
 
@@ -98,6 +106,7 @@ namespace Game.Presentation.Hud
             {
                 _card.Hide();
                 _strip.Hide();
+                _keys.Hide();
                 return;
             }
 
@@ -110,17 +119,15 @@ namespace Game.Presentation.Hud
 
             switch (days.Phase)
             {
-                case DayPhase.Plan:
-                    _card.ShowAt(WithReady(PlanText(days)), Vector2.zero);
-                    break;
                 case DayPhase.Prep:
                     // Players work through this phase and need to see the kitchen: a strip, not a card.
                     _card.Hide();
-                    _strip.ShowAt(PrepText(), new Vector2(0f, -_canvas.rect.height / 2f + _stripBottomMargin));
+                    ShowStrip(DayPhase.Prep, _openUpHint, forkcast: false);
                     break;
-                case DayPhase.Review:
-                    // The forkcast dashboard shows the day now (decision 2026-11-08).
+                case DayPhase.Plan:
+                    // forkcast put away to walk around: Y brings it back (its Start button starts prep), View rearranges.
                     _card.Hide();
+                    ShowStrip(DayPhase.Plan, null, forkcast: true);
                     break;
                 default:
                     _card.Hide();
@@ -128,52 +135,44 @@ namespace Game.Presentation.Hud
             }
         }
 
-        private string PrepText()
+        // The buttons on a drawn strip at the bottom; who's ready and the delivery just above it.
+        private void ShowStrip(DayPhase phase, string holdHint, bool forkcast)
+        {
+            var bottom = -_canvas.rect.height / 2f + _stripBottomMargin;
+            _hints.Clear();
+            if (forkcast)
+                _hints.Add(("Y", Tr.Get(_forkcastHint)));
+            _hints.Add((HintStrip.View, Tr.Get(_rearrangeHint)));
+            if (holdHint != null)
+            {
+                var holder = HoldBar.Holder();
+                var hold = Tr.Get(holdHint);
+                if (holder != null)
+                    hold += "  " + HoldBar.Text(holder, _settings.GetPlayerColor(holder.playerIndex), _waitingColor);
+                _hints.Add((HintStrip.Menu, hold));
+            }
+            _keys.Show(DayCardText.Phase(phase), _hints, _stripBottomMargin);
+
+            var above = StripText();
+            if (string.IsNullOrEmpty(above))
+                _strip.Hide();
+            else
+                _strip.ShowAt(above, new Vector2(0f, bottom + _keys.StripHeight + 6f));
+        }
+
+        private string StripText()
         {
             var services = _root.Services;
-            var text = Tr.Get(_prepText);
-            if (PlayerInput.all.Count > 1)
-                text += $"\n{ReadyLine()}";
+            var text = PlayerInput.all.Count > 1 ? ReadyLine() : "";
 
             // Just long enough to read: the stock shows on the storage itself.
-            if (services.LastDelivery.Count > 0 && Time.unscaledTime - _prepStartedAt < _deliverySeconds)
+            if (_prepStartedAt >= 0f && services.LastDelivery.Count > 0 && Time.unscaledTime - _prepStartedAt < _deliverySeconds)
             {
                 var parts = services.LastDelivery.Select(d => Tr.Format("{count} {what}", ("count", d.Count), ("what", services.Catalog.DisplayName(d.TypeId))));
-                text += $"\n{Tr.Get(_deliveryText)} {string.Join(", ", parts)}";
+                text += (text.Length > 0 ? "\n" : "") + $"{Tr.Get(_deliveryText)} {string.Join(", ", parts)}";
             }
             return text;
         }
-
-        // Lists who works here and who could; the buttons are HiringMenu's.
-        private string PlanText(DayCycle days)
-        {
-            var staff = _root.Services.Staff;
-            var plan = new StringBuilder();
-            plan.AppendLine("<b>" + Tr.Format("Day {day}: plan", ("day", days.Day)) + "</b>");
-            plan.AppendLine(Tr.Format("Balance {amount}", ("amount", FormatMoney(days.Balance))));
-            plan.AppendLine();
-
-            foreach (var member in staff.Hired)
-                plan.AppendLine(Tr.Format("{name}, {role}: {description}, {mood}, {wage}/day", ("name", member.Name), ("role", RoleName(member.Role)), ("description", Tr.Get(member.Description)), ("mood", Mood(member)), ("wage", FormatMoney(member.DailyWage)))
-                    + $"   {Button(PromptControl.East)} " + Tr.Get("let go"));
-            if (staff.Hired.Count > 0)
-                plan.AppendLine();
-
-            plan.AppendLine(Tr.Get(_candidatesText));
-            for (var i = 0; i < staff.Candidates.Count && i < HireButtons.Length; i++)
-            {
-                var candidate = staff.Candidates[i];
-                var line = $"{Button(HireButtons[i])}  " + Tr.Format("{name}, {role}: {description}, {wage}/day", ("name", candidate.Name), ("role", RoleName(candidate.Role)), ("description", Tr.Get(candidate.Description)), ("wage", FormatMoney(candidate.DailyWage)));
-                plan.AppendLine(staff.CanHire(candidate, days.Balance) ? line : HudStyle.Colored(line, _waitingColor));
-            }
-            plan.AppendLine();
-            plan.AppendLine(Tr.Get(_manageText));
-            return plan.ToString().TrimEnd();
-        }
-
-        // A button as an Xbox controller shows it: players are only ever shown those.
-        private static string Button(PromptControl control) =>
-            $"[{HudStyle.Glyph(control, true)}]";
 
         // Words, not numbers, like the candidates' descriptions. New staff haven't settled in yet.
         internal static string Mood(StaffMember member)
@@ -202,18 +201,6 @@ namespace Game.Presentation.Hud
             StaffRole.Waiter => Tr.Format("{name} carried {jobs} plates, dropped {mistakes}", ("name", member.Name), ("jobs", member.JobsToday), ("mistakes", member.MistakesToday)),
             _ => Tr.Format("{name} washed {jobs}, broke {mistakes}", ("name", member.Name), ("jobs", member.JobsToday), ("mistakes", member.MistakesToday)),
         };
-
-        // The button prompt, plus who's ready when there's more than one player. (With one player,
-        // being ready moves the day on at once, so there's nothing to show.)
-        // While someone holds Menu, a bar fills in their colour beside the prompt (decision 2026-11-10).
-        private string WithReady(string text)
-        {
-            var holder = HoldBar.Holder();
-            var prompt = holder != null
-                ? $"{Tr.Get(_readyText)}  {HoldBar.Text(holder, _settings.GetPlayerColor(holder.playerIndex), _waitingColor)}"
-                : Tr.Get(_readyText);
-            return PlayerInput.all.Count <= 1 ? $"{text}\n{prompt}" : $"{text}\n{prompt}\n{ReadyLine()}";
-        }
 
         private string PausedText()
         {

@@ -5,6 +5,7 @@ using Game.Gameplay;
 using Game.Simulation.Days;
 using Game.Simulation.Saving;
 using Game.Simulation.Service;
+using Game.Simulation.Staff;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
@@ -14,7 +15,9 @@ namespace Game.Presentation.Hud
     /// <summary>
     /// The Review dashboard (decisions 2026-11-06 and 2026-11-08, after the user's mockup; drawn to the
     /// Art Director's dashboard mockups, 2026-11-09; four tabs since 2026-11-10): forkcast, a
-    /// review-listing app over the kitchen while Review lasts. LB and RB switch tabs.
+    /// review-listing app over the kitchen. LB and RB switch tabs. Since 2026-11-10 it's also the
+    /// morning's screen: it stays up from Review into Plan and opens when a kitchen loads into Plan;
+    /// in Plan, B puts it away and Y brings it back (<see cref="ForkcastScreen"/>).
     /// <list type="bullet">
     /// <item>Overview: the boss's debt first, the night's numbers, then every review; the stick
     /// browses them (and rises to their filters), Y opens the reply wheel.</item>
@@ -22,7 +25,8 @@ namespace Game.Presentation.Hud
     /// <item>Cookbook: the first player (Player 1) browses recipes, unlocks them (A) and sets prices
     /// (stick left and right, X back to the suggestion). Saved at once; it counts from the next
     /// service.</item>
-    /// <item>Staff: the team, read-only. Hiring stays on the Plan card for now.</item>
+    /// <item>Staff: the team and today's candidates. In Plan anyone browses them with the D-pad, A
+    /// hires and Y lets someone go; in Review it's read-only.</item>
     /// </list>
     /// Menu readies up for the next day as usual.
     /// This file holds the state, input and data; ReviewDashboard.Drawing.cs draws it.
@@ -76,6 +80,10 @@ namespace Game.Presentation.Hud
         [SerializeField, Min(0.05f)] private float _priceRepeatDelay = 0.4f;
         [Tooltip("Seconds between steps of a price while the stick stays held.")]
         [SerializeField, Min(0.01f)] private float _priceRepeatInterval = 0.07f;
+        [Tooltip("Real seconds A is held to fill the Start button (a shorter press is a tap: hire, unlock).")]
+        [SerializeField, Min(0.1f)] private float _startHoldSeconds = 0.8f;
+        [Tooltip("Pulses a second of the boss card's glow while the collection is short and two days or fewer away.")]
+        [SerializeField, Min(0.1f)] private float _bossPulsePerSecond = 0.8f;
         [Tooltip("Seconds after the last price change before the campaign is saved, so holding the stick doesn't write the file every step.")]
         [SerializeField, Min(0.1f)] private float _priceSaveDelay = 0.8f;
 
@@ -98,6 +106,17 @@ namespace Game.Presentation.Hud
         private float _saveCookbookAt = -1f;
         // What the last A press in the cookbook did, until the next move.
         private Game.Simulation.Cookbook.UnlockResult? _unlockResult;
+        // What the last press on the Staff tab did, and to whom, until the next move.
+        private StaffBoard.Outcome _staffResult;
+        private string _staffResultName;
+        private bool _photoTaken;
+        private int _openedFrame = -1;
+        // Last night's money, for the receipt in the morning; null until a Review has been seen.
+        private Ledger _lastNight;
+        // Everyone's A: a tap acts, a hold readies (StartHold).
+        private readonly StartHold _start = new StartHold();
+        // The boss card's glow, pulsing while the collection is short and close.
+        private Image _bossGlow;
         private bool _dirty = true;
         private int _shownForDay = -1;
 
@@ -108,6 +127,10 @@ namespace Game.Presentation.Hud
             Build();
             _canvasObject.SetActive(false);
             Services.Days.PhaseChanged += HandlePhaseChanged;
+            Services.Forkcast.Changed += HandleForkcastChanged;
+            // A kitchen that loads into Plan (or Review) opens on forkcast.
+            if (Services.Forkcast.IsOpen)
+                HandleForkcastChanged(true);
             if (Services.Days.Phase == DayPhase.Review)
                 HandlePhaseChanged(DayPhase.Review);
         }
@@ -115,20 +138,44 @@ namespace Game.Presentation.Hud
         private void OnDestroy()
         {
             if (_root != null && _root.Services != null)
+            {
                 Services.Days.PhaseChanged -= HandlePhaseChanged;
+                Services.Forkcast.Changed -= HandleForkcastChanged;
+            }
             if (_photoTexture != null)
                 _photoTexture.Release();
             if (_blurTexture != null)
                 _blurTexture.Release();
         }
 
-        private void HandlePhaseChanged(DayPhase phase)
+        // Up for Review and Plan, until B puts it away in Plan (ForkcastScreen decides).
+        private void HandleForkcastChanged(bool open)
         {
-            var show = phase == DayPhase.Review;
-            _canvasObject.SetActive(show);
-            if (!show)
+            _canvasObject.SetActive(open);
+            _openedFrame = Time.frameCount;
+            _start.DisarmAll();
+            if (!open)
             {
                 SaveCookbookNow();
+                _choosingReply = false;
+                return;
+            }
+            // Arriving in the morning there's no close yet: the kitchen as it is stands in for it.
+            if (!_photoTaken && Services.Days.Phase == DayPhase.Plan)
+                TakePhoto(atClose: false);
+            _staffResult = StaffBoard.Outcome.Nothing;
+            _hintsShown = null;
+            _dirty = true;
+        }
+
+        private void HandlePhaseChanged(DayPhase phase)
+        {
+            if (phase != DayPhase.Review)
+            {
+                SaveCookbookNow();
+                // From Review into the morning it stays up: what it says (the hold, the Staff tab) changes.
+                _staffResult = StaffBoard.Outcome.Nothing;
+                _dirty = true;
                 return;
             }
 
@@ -142,10 +189,17 @@ namespace Game.Presentation.Hud
                 _filter = Filter.All;
                 _onFilters = false;
                 _unlockResult = null;
-                TakePhoto();
+                _staffResult = StaffBoard.Outcome.Nothing;
+                // Kept for the morning's receipt: the day's books are cleared as the next day starts.
+                _lastNight = new Ledger();
+                _lastNight.Add(Services.Days.Today);
+                TakePhoto(atClose: true);
             }
             _dirty = true;
         }
+
+        /// <summary>Whether the dashboard is on screen now.</summary>
+        public bool IsShowing => _canvasObject != null && _canvasObject.activeSelf;
 
         /// <summary>For the capture test: shows a tab with a review chosen and, if asked, the reply wheel open, at once.</summary>
         public Canvas ShowForCapture(int tab, int selected, bool choosingReply, int filter = 0, bool onFilters = false)
@@ -157,6 +211,7 @@ namespace Game.Presentation.Hud
             _filter = (Filter)Mathf.Clamp(filter, 0, 4);
             _onFilters = onFilters;
             Refresh();
+            UpdateMoney(0f);
             _dirty = false;
             return _canvasObject.GetComponent<Canvas>();
         }
@@ -165,7 +220,10 @@ namespace Game.Presentation.Hud
         {
             if (!_canvasObject.activeSelf)
                 return;
+            _start.HoldSeconds = _startHoldSeconds;
             ReadInput();
+            PulseBoss();
+            UpdateMoney(Time.unscaledDeltaTime);
             if (_saveCookbookAt >= 0f && Time.unscaledTime >= _saveCookbookAt)
                 SaveCookbookNow();
             if (_dirty)
@@ -180,11 +238,44 @@ namespace Game.Presentation.Hud
 
         private void ReadInput()
         {
+            // The press that brought it back (Y) mustn't also act on it, e.g. let someone go.
+            if (Time.frameCount == _openedFrame)
+                return;
             foreach (var player in PlayerInput.all)
             {
+                // A: a tap acts on what's chosen (hire, unlock), a hold fills the Start button and
+                // readies this player (the user's call, 2026-11-10). Read for everyone, so the press
+                // that joined a player is seen and ignored.
+                var a = player.actions.FindAction("Interact");
+                var startPress = _start.Update(player.playerIndex, a != null && a.IsPressed(), Time.unscaledDeltaTime);
                 if (!_dayLoop.WasHereLastFrame(player))
                     continue;
                 var actions = player.actions;
+                var tap = startPress == MenuPress.Result.Tap;
+                if (startPress == MenuPress.Result.Hold && !_choosingReply)
+                {
+                    _dayLoop.Ready.Toggle(player.playerIndex);
+                    continue;
+                }
+
+                // In Plan, B puts forkcast away so the chefs can walk and rearrange; Y brings it
+                // back (LayoutEditor). The reply wheel takes B first.
+                if (!_choosingReply && Services.Forkcast.CanToggle && Pressed(actions, "ButtonB"))
+                {
+                    Services.Forkcast.Close();
+                    return;
+                }
+
+                if (_tab == Tab.Staff)
+                {
+                    if (Pressed(actions, "RotateLeft"))
+                        SwitchTab(-1);
+                    else if (Pressed(actions, "RotateRight"))
+                        SwitchTab(1);
+                    else
+                        ReadStaff(actions, tap);
+                    continue;
+                }
 
                 if (_tab == Tab.Cookbook)
                 {
@@ -193,7 +284,7 @@ namespace Game.Presentation.Hud
                     else if (Pressed(actions, "RotateRight"))
                         SwitchTab(1);
                     else if (player == CookbookPlayer())
-                        ReadCookbook(actions);
+                        ReadCookbook(actions, tap);
                     continue;
                 }
 
@@ -212,6 +303,8 @@ namespace Game.Presentation.Hud
                     }
                     if (Pressed(actions, "Interact"))
                     {
+                        // On the press, as the wheel's other buttons: this press won't fill Start.
+                        _start.Disarm(player.playerIndex);
                         Reply(ReviewReply.StandYourGround);
                         continue;
                     }
@@ -263,6 +356,7 @@ namespace Game.Presentation.Hud
             _tab = (Tab)(((int)_tab + step + count) % count);
             _selected = 0;
             _unlockResult = null;
+            _staffResult = StaffBoard.Outcome.Nothing;
             _priceDirection = 0;
             _choosingReply = false;
             _onFilters = false;
@@ -272,6 +366,13 @@ namespace Game.Presentation.Hud
         private void Browse(int step)
         {
             _choosingReply = false;
+            if (_tab == Tab.Staff)
+            {
+                _selected = StaffBoard.Step(_selected, step, StaffBoard.Rows(Services.Staff).Count);
+                _staffResult = StaffBoard.Outcome.Nothing;
+                _dirty = true;
+                return;
+            }
             if (_tab == Tab.Cookbook)
             {
                 var recipes = Services.Cookbook?.Recipes.Count ?? 0;
@@ -333,6 +434,47 @@ namespace Game.Presentation.Hud
             SetChoosing(false);
         }
 
+        // ---- The Staff tab (the user's call, 2026-11-10) ----
+
+        // Hiring is for the morning: in Review the tab only shows.
+        private bool StaffEditable => Services.Days.Phase == DayPhase.Plan;
+
+        // Anyone at the dashboard: up and down browse, A hires the chosen candidate, Y lets the chosen
+        // team member go. A refusal says why rather than doing nothing.
+        private void ReadStaff(InputActionAsset actions, bool tap)
+        {
+            var move = actions["Gameplay/Navigate"].ReadValue<Vector2>();
+            if (move.magnitude < _stickThreshold || Mathf.Abs(move.y) < Mathf.Abs(move.x))
+                _nextStickStep = 0f;
+            else if (Time.unscaledTime >= _nextStickStep)
+            {
+                _nextStickStep = Time.unscaledTime + _stickRepeat;
+                Browse(move.y > 0f ? -1 : 1);
+            }
+
+            var rows = StaffBoard.Rows(Services.Staff);
+            _selected = Mathf.Clamp(_selected, 0, Mathf.Max(0, rows.Count - 1));
+            if (rows.Count == 0)
+                return;
+            var row = rows[_selected];
+            if (tap && row.IsCandidate)
+            {
+                _staffResultName = row.Candidate.Name;
+                _staffResult = StaffBoard.Hire(Services.Staff, _selected, Services.Days.Balance, StaffEditable);
+                // The new member joins the team at the bottom of it: the choice follows them there.
+                if (_staffResult == StaffBoard.Outcome.Hired)
+                    _selected = Services.Staff.Hired.Count - 1;
+                _dirty = true;
+            }
+            else if (Pressed(actions, "ButtonY") && !row.IsCandidate)
+            {
+                _staffResultName = row.Member.Name;
+                _staffResult = StaffBoard.LetGo(Services.Staff, _selected, StaffEditable);
+                _selected = StaffBoard.Step(_selected, 0, StaffBoard.Rows(Services.Staff).Count);
+                _dirty = true;
+            }
+        }
+
         // ---- The cookbook (decision 2026-11-10) ----
 
         // Player 1 sets the menu: the lowest player slot here, so someone always can.
@@ -349,7 +491,7 @@ namespace Game.Presentation.Hud
 
         // Up and down browse; left and right step the chosen dish's price by 1, at once and then
         // repeating while held; A unlocks; X puts the price back to the suggestion.
-        private void ReadCookbook(InputActionAsset actions)
+        private void ReadCookbook(InputActionAsset actions, bool tap)
         {
             var book = Services.Cookbook;
             if (book == null || book.Recipes.Count == 0)
@@ -386,7 +528,7 @@ namespace Game.Presentation.Hud
                 }
             }
 
-            if (Pressed(actions, "Interact") && !book.IsUnlocked(recipe.Id))
+            if (tap && !book.IsUnlocked(recipe.Id))
             {
                 _unlockResult = book.TryUnlock(recipe.Id, Services.Days.TrySpend);
                 if (_unlockResult == Game.Simulation.Cookbook.UnlockResult.Unlocked)
@@ -421,6 +563,8 @@ namespace Game.Presentation.Hud
             if (!force && _saveCookbookAt < 0f)
                 return;
             _saveCookbookAt = -1f;
+            // In Plan nothing saves mid-day (the campaign saves as Review starts): a recipe unlocked
+            // in the morning is kept with the rest of the day.
             if (_root != null && _root.Services != null && Services.Days.Phase == DayPhase.Review)
                 _root.SaveCampaign();
         }
@@ -467,8 +611,10 @@ namespace Game.Presentation.Hud
         private static string Money(float amount, bool cents = false) =>
             Money(amount, cents, false);
 
+        // Whole amounts everywhere in forkcast, as on the money card (the user's call, 2026-11-10):
+        // "$557", not "$556.56". The cents flag is kept so callers read as before.
         private static string Money(float amount, bool cents, bool signed) =>
-            Game.Data.Locale.Money(amount, cents ? Game.Data.MoneyStyle.Cents : Game.Data.MoneyStyle.Auto, signed);
+            Game.Data.Locale.Money(amount, Game.Data.MoneyStyle.Whole, signed);
 
         private string ClockAt(float serviceSeconds)
         {
@@ -513,7 +659,7 @@ namespace Game.Presentation.Hud
 
         // The dining room as the doors close, from the game camera, without the HUD. A small, soft copy
         // of it is the dashboard's backdrop: the kitchen, blurred, as in the mockup.
-        private void TakePhoto()
+        private void TakePhoto(bool atClose)
         {
             var camera = Camera.main;
             if (camera == null)
@@ -525,8 +671,12 @@ namespace Game.Presentation.Hud
             camera.Render();
             camera.targetTexture = previous;
             _photo.texture = _photoTexture;
+            _photoTaken = true;
+            _caption.text = atClose ? Tr.Get("Your photo · captured at close") : Tr.Get("Your kitchen this morning");
             Blur();
-            KeepPhotoForTheMenu();
+            // The menu's slot card shows the latest close, not a morning.
+            if (atClose)
+                KeepPhotoForTheMenu();
         }
 
         // Halving twice and then down to a tiny texture, each step filtered, and stretched back up:

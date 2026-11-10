@@ -148,10 +148,18 @@ namespace Game.Gameplay
 
                 if (player.actions[ManageAction].WasPressedThisFrame())
                 {
-                    if (IsManaging(player))
-                        Leave(player);
-                    else
-                        Enter(player);
+                    PressView(player);
+                    continue;
+                }
+
+                // Y, walking in the morning, brings forkcast back (the user's call, 2026-11-10).
+                // It covers the whole screen, so everyone stops rearranging.
+                if (phase == DayPhase.Plan && !IsManaging(player) && !_root.Services.Forkcast.IsOpen
+                    && player.actions[ShopAction].WasPressedThisFrame())
+                {
+                    foreach (var other in _cursors.Keys.ToList())
+                        Leave(other);
+                    _root.Services.Forkcast.Reopen();
                     continue;
                 }
 
@@ -209,6 +217,19 @@ namespace Game.Gameplay
                         StationUnder(cursor)?.NotifyDenied();
                 }
             }
+        }
+
+        // View toggles rearranging, one press, in Plan as in Prep (the user's call, 2026-11-10). With
+        // forkcast up in the morning, that press also puts it away.
+        private void PressView(PlayerInput player)
+        {
+            if (IsManaging(player))
+            {
+                Leave(player);
+                return;
+            }
+            _root.Services.Forkcast.Close();
+            Enter(player);
         }
 
         public Cursor Enter(PlayerInput player)

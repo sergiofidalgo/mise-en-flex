@@ -3278,3 +3278,51 @@ It hides (fading over the HUD's 0.12 s) behind the Review dashboard, the pause m
 **Reason:** The user asked for a day and time indicator in the restaurant, with the money card's visual treatment but less present. The bottom left was free (the boss's phone is bottom right, the Prep strip bottom centre).
 
 **Not covered:** world-anchored prompts and tickets aren't told to avoid the corner, so a station near the bottom-left edge can put one over the card.
+
+## 2026-11-10 — forkcast is the morning's screen; hiring moves to its Staff tab
+
+**User's calls:**
+- **forkcast opens on arrival.** When a kitchen loads into Plan, the dashboard opens on the Overview. It also stays up from Review into the next morning instead of closing as the day changes. Review keeps its own behaviour: the close photo, the reset to Overview for a new day, and "Hold: start day N".
+- **In Plan, B puts forkcast away** so the chefs can walk around. **Y, while walking, brings it back.** Holding Menu still readies up with it open or closed.
+- **View stays the rearrange toggle,** one press, in Plan as in Prep. Pressed with forkcast up, it also puts forkcast away. (Asked because View already toggled rearranging; the user chose this over "View reopens forkcast".)
+- **Hiring moves to the Staff tab,** for anyone, at any time in Plan. The D-pad picks a row, A hires the chosen candidate and Y lets the chosen team member go. In Review the tab is read-only. This replaces "Hiring stays on the Plan card for now" from the shop-cards entry above, and the face-button hiring of 2026-11-04.
+- **The old Plan card goes** ("Looking for work: [A] … [X] … [Y] …", "Press Select…", "Hold Menu when ready"), along with `HiringMenu`. The lost-controller pause card stays.
+
+**Done:**
+- `ForkcastScreen` (Simulation, on `KitchenServices.Forkcast`) holds the open/closed rules: open for Plan and Review as they start, B and Y only in Plan. The chef waits while it's open (`PlayerInteractor.IsReviewing`), and the money card, day card and centre card hide behind it.
+- `StaffBoard` (Simulation) holds the Staff tab's rules. The list is the team first, then today's candidates; anyone hired today leaves the candidates. A refusal gives a reason ("job taken", "out of reach") shown in red under the list, and in Review it says "Hire in the morning, before prep."
+- Staff tab: "Your team" cards (wage, skill and speed bars, mood, today's work, wages a day), then "Looking for work today" cards with the candidate's own words and wage, greyed and with the reason when they're out of reach. The chosen row has a gold edge.
+- forkcast in Plan: a "Plan · opens 18:00" pill in the header, since the day card is behind it. Its hint bar adds B Close, View Rearrange and "Hold: start prep", plus A Join when nobody's here. With no close photo yet, it shows the kitchen as you arrive ("Your kitchen this morning"); the menu's slot photo still comes only from a close.
+- **The Prep strip's hints are drawn buttons,** not "[Select]" and "[Menu]" text (`HintStrip`). Plan gets the same strip when forkcast is put away: Y forkcast, View Rearrange, Menu "Hold: start prep". Who's ready and the morning's delivery sit just above it.
+
+**Side effects to know:**
+- **The Cookbook tab works in Plan too** (Player 1). Nothing saves mid-day, so a morning unlock or price change is kept with the rest of the day as Review starts, and quitting before then undoes it, as with hiring.
+- **Bringing forkcast back with Y takes every player out of rearranging** (anything carried goes back), because forkcast covers the whole screen.
+
+**Capture:** `ForkcastPlanCapture` (explicit PlayMode, visible editor) shoots the Staff tab and Overview in Plan at 1920×1080.
+
+**Not checked in play:** whether players find Y to reopen forkcast, how the shared dashboard feels when one player puts it away mid-browse, and the Staff tab with four players at once.
+
+## 2026-11-10 — forkcast after the playtest: a Start button, tonight's receipt, a boss card with urgency
+
+**User's calls** (from playing the morning and Review):
+- **A big Start button replaces holding Menu,** bottom right in forkcast: "Start day N" in Review, "Start prep" in Plan. Holding A fills it like a progress bar, and with two or more cooks each has a pip on it, lit when they're ready. Holding Menu now readies up only in Prep; in Plan and Review a tap on Menu opens the pause menu at once.
+- **The A clash, solved the way the user suggested first:** a tap of A acts on what's chosen (hire a candidate, unlock a recipe), on release; only a hold (0.8 s, `_startHoldSeconds`) fills Start. The reply wheel's A still acts on the press, and that press never fills Start.
+- **The left column's "Tonight's guests" chart goes** for a receipt of tonight's money: meals, tips and anything else in; ingredients, wages, energy, purchases and walk-outs out; the profit or loss in big type. The boss's collection and loan instalment stay off it (the boss card has them). In the morning it's last night's. The left column is shared by every tab, so the receipt is on all of them.
+- **The boss card leads with the collection:** "Collection in 3 days: $610" ("tonight" or "tomorrow" when it's next). Under it, a bar of how much the balance covers, red when short, with "You have $X" and "Short by $Y". A last line says what missing it brings, from `BossEscalation`'s next step ("Miss it and he comes to warn you."). On collection night it says what he took and what comes tomorrow. Short with two days or fewer left, the card's glow pulses gently and the boss appears, frowning.
+- **The footer lists only LB/RB (tabs) and the D-pad (browse).** Every other action is on the UI it acts on: Y Reply on the chosen review (as before), A Hire and Y Let go on the chosen Staff row, A Unlock and X Suggested in the Cookbook, the Start button, and in the morning B Close and View Rearrange as chips beside Start. The old left-hand "P1 ready" line is gone; the pips replace it.
+- **Whole amounts throughout forkcast,** as on the money card ($557, not $556.56), Menu & Books included.
+
+**Done:**
+- Plain logic with EditMode tests: `StartHold` (tap vs hold per player, built on `MenuPress`), `BossCard` (due, covered, shortfall, urgent, the next step), `NightReceipt`.
+- PlayMode: holding A on the Overview starts Prep with one cook and hires nobody; holding Menu in Plan no longer starts the day.
+- The boss's phone call rises above forkcast's footer while forkcast is open, so it never covers Start.
+- Captures (1920×1080): the Overview in Plan (day 1, and the morning of a short collection) and in Review (urgent), plus the Staff tab.
+
+**Not checked in play:** whether 0.8 s feels right for the hold, whether a tap-on-release hire feels late, the pulse's strength, and four pips on the button.
+
+## 2026-11-10 — forkcast's header shows the money, not the phase
+
+**User's call:** the header's top right shows the balance as a chip (coin and amount) at the very right, animated as the money card is everywhere else, so an unlocked recipe or a hire shows its cost there. The phase and opening time ("Plan · opens 18:00") go from the header: the day card carries them on screen through Prep and Service.
+
+**Done:** `ReviewDashboard` runs its own `MoneyTicker` (the money card's rules: money in rolls up in green, money out drops at once with a short red shake, owed money in red) for a chip right-aligned at the header's edge. It's sized for where a roll ends, and the Day pill and new-review pill sit to its left. A change made while forkcast is closed plays when it opens again, as the money card does.

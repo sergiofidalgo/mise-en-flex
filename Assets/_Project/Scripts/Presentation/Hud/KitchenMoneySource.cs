@@ -6,7 +6,7 @@ namespace Game.Presentation.Hud
 {
     /// <summary>
     /// The money card's balance in a kitchen: the day's balance, and during service each payment as
-    /// it's made (decision 2026-11-10). Hidden behind the Review dashboard.
+    /// it's made (decision 2026-11-10). Hidden behind the forkcast dashboard (Review, and Plan until it's put away).
     /// </summary>
     public sealed class KitchenMoneySource : MonoBehaviour, IMoneySource
     {
@@ -34,7 +34,7 @@ namespace Game.Presentation.Hud
             get
             {
                 var services = _root != null ? _root.Services : null;
-                return services != null && services.Days != null && services.Days.Phase == DayPhase.Review;
+                return services != null && services.Forkcast != null && services.Forkcast.IsOpen;
             }
         }
     }

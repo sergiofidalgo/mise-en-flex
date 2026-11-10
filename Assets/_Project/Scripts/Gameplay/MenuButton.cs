@@ -20,7 +20,7 @@ namespace Game.Gameplay
         private static readonly Dictionary<PlayerInput, (int Frame, MenuPress.Result Result)> ThisFrame = new Dictionary<PlayerInput, (int, MenuPress.Result)>();
         private static readonly List<PlayerInput> Gone = new List<PlayerInput>();
 
-        /// <summary>True where a hold readies up (Plan, Prep, Review). Set by the day loop each frame.</summary>
+        /// <summary>True where a hold readies up (Prep only since 2026-11-10: forkcast has its Start button). Set by the day loop each frame.</summary>
         public static bool HoldReadies { get; set; }
 
         /// <summary>Seconds Menu is held to ready up.</summary>

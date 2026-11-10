@@ -2,7 +2,7 @@ namespace Game.Simulation.Days
 {
     /// <summary>
     /// One player's Menu button (decision 2026-11-10): a tap opens the pause menu, a hold readies up
-    /// (and starts the next day from forkcast). Where holding means nothing (service, the office), a
+    /// in Prep. forkcast's Start button tells a tap of A from a hold the same way (StartHold). Where holding means nothing (service, the office), a
     /// press is a tap at once, so the pause menu opens on the press, without waiting for the release.
     /// A button already down when the player arrives (the press that joined them) is ignored until
     /// it's let go.

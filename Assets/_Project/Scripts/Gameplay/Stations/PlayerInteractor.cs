@@ -97,8 +97,8 @@ namespace Game.Gameplay.Stations
         /// <summary>The stick right now, for a station that has taken over the chef.</summary>
         public Vector2 MoveInput => _playerInput.actions[MoveActionName].ReadValue<Vector2>();
 
-        /// <summary>True while the Review dashboard is up: the chef waits.</summary>
-        public bool IsReviewing => _services != null && _services.Days.Phase == DayPhase.Review;
+        /// <summary>True while the forkcast dashboard is up (Review, and Plan until it's put away): the chef waits.</summary>
+        public bool IsReviewing => _services != null && _services.Forkcast.IsOpen;
 
         public bool CanAct => _services != null && !IsManaging && !_services.Paused &&
             (_services.Days.Phase == DayPhase.Prep || _services.Days.Phase == DayPhase.Service);

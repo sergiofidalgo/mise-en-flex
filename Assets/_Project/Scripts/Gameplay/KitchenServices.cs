@@ -42,6 +42,8 @@ namespace Game.Gameplay
             Service = service;
             ServiceConfig = serviceConfig;
             Days = days;
+            Forkcast = new ForkcastScreen(days.Phase);
+            days.PhaseChanged += Forkcast.PhaseChanged;
             Staff = staff;
             StaffConfig = staffConfig;
             Stations = stations;
@@ -84,6 +86,9 @@ namespace Game.Gameplay
         public ServiceConfig ServiceConfig { get; }
 
         public DayCycle Days { get; }
+
+        /// <summary>Whether the forkcast dashboard is up: Review, and Plan until a player puts it away (2026-11-10).</summary>
+        public ForkcastScreen Forkcast { get; }
 
         /// <summary>
         /// How far the boss has gone over missed collections (§15.3), loaded with the campaign and

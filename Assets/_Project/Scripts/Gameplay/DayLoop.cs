@@ -39,7 +39,9 @@ namespace Game.Gameplay
         private void Update()
         {
             var days = _root.Services.Days;
-            MenuButton.HoldReadies = days.Phase != DayPhase.Service;
+            // Holding Menu readies up only in Prep: in Plan and Review, forkcast's Start button does
+            // (A held, the user's call 2026-11-10), so a tap on Menu opens the pause menu at once.
+            MenuButton.HoldReadies = days.Phase == DayPhase.Prep;
             UpdatePresence(days.Phase == DayPhase.Service);
             if (days.Phase == DayPhase.Service)
             {
@@ -64,7 +66,8 @@ namespace Game.Gameplay
             }
             else if (!GamePause.MenuOpen && (_boss == null || !_boss.Busy))
             {
-                ReadPresses();
+                if (days.Phase == DayPhase.Prep)
+                    ReadPresses();
                 if (Ready.IsEveryoneReady(_present))
                 {
                     Ready.Clear();
