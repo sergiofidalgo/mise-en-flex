@@ -62,6 +62,27 @@ namespace Game.Simulation.Saving
 
         /// <summary>Every order ever taken, per dish: not every guest reviews, so reviews can't count them.</summary>
         public List<DishCount> Dishes = new List<DishCount>();
+
+        /// <summary>Dirt left from service, cleaned the next morning (decision 2026-11-06). Empty in older files.</summary>
+        public List<DirtRecord> Dirt = new List<DirtRecord>();
+    }
+
+    /// <summary>One patch of dirt (see <see cref="Cleaning.DirtSpot"/>).</summary>
+    [Serializable]
+    public sealed class DirtRecord
+    {
+        public int Kind;
+        public int Surface;
+
+        /// <summary>The table or counter it's on, as an index into <see cref="CampaignSave.Stations"/>; -1 on the floor.</summary>
+        public int Station = -1;
+
+        /// <summary>In the room on the floor; from the station's centre, in its own axes, on a station.</summary>
+        public float X;
+        public float Z;
+
+        public float Amount;
+        public float Peak;
     }
 
     [Serializable]
