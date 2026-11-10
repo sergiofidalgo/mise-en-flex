@@ -25,7 +25,7 @@ namespace Game.Simulation.Items
         public float NudgeInterval { get; set; } = 0.5f;
 
         /// <summary>The target drawn in the centre to aim for: scrubbing there is close to full speed.</summary>
-        public float GoodRadius { get; set; } = 0.3f;
+        public float GoodRadius { get; set; } = 0.4f;
 
         /// <summary>
         /// Beyond this distance from the centre nothing gets clean; inside it scrubbing speeds up the

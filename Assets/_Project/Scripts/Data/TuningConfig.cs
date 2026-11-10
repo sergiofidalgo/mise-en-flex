@@ -90,7 +90,7 @@ namespace Game.Data
         [Tooltip("Size of the random nudge. Keep below instability × ok radius, or doing nothing could clean a plate.")]
         [SerializeField, Min(0f)] private float _washNudge = 1.0f;
         [Tooltip("Fraction of the circle: the target drawn in the centre to aim for.")]
-        [SerializeField, Range(0f, 1f)] private float _washGoodRadius = 0.3f;
+        [SerializeField, Range(0f, 1f)] private float _washGoodRadius = 0.4f;
         [Tooltip("Fraction of the circle beyond which nothing gets clean; inside, the closer the quicker.")]
         [SerializeField, Range(0f, 1f)] private float _washOkRadius = 0.6f;
         [Tooltip("Seconds of full-speed scrubbing per plate; scrubbing slows the further the soap is from the centre.")]

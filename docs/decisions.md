@@ -13,6 +13,7 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 - **Bigger target:** 0.3 of the circle (was 0.25). Its arc goes green as the current third comes clean, and it's tinted in the washer's colour, which no longer shows on the rim.
 - **Grime to water:** each rim segment blends from grime brown to water blue as the plate's progress passes through it.
 - **LS cue:** 84 px (was 46), the cap travelling 18 px, popping in at 1.5× and settling, so it's noticed at once.
+- **Then, after looking at it:** the target is bigger again and bolder: 0.4 of the circle, a thicker, taller ring in the washer's full colour (was a pale tint). The soap shrinks as it nears the centre and grows as it drifts out (60% of its size at the centre, 130% at the rim), so at the centre it fits inside the target and how far off it is reads at a glance. Scrubbing speed still depends only on distance.
 - The minigame complexity dial now passes `SecondsPerPlate` through instead of the removed hold time.
 
 ---

@@ -50,9 +50,11 @@ namespace Game.Presentation
         [SerializeField, Min(0f)] private float _segmentHeight = 0.07f;
         [SerializeField, Min(0f)] private float _soapFloat = 0.1f;
         [SerializeField] private Vector3 _soapSize = new Vector3(0.34f, 0.22f, 0.24f);
+        [Tooltip("The soap's size at the centre and at the rim, as shares of _soapSize: it shrinks into the target as it nears the centre.")]
+        [SerializeField, Min(0.1f)] private float _soapSizeCentre = 0.6f;
+        [SerializeField, Min(0.1f)] private float _soapSizeRim = 1.3f;
         [SerializeField] private Color _good = new Color(0.45f, 0.85f, 0.40f);
         [SerializeField] private Color _bad = new Color(0.95f, 0.30f, 0.26f);
-        [SerializeField] private Color _targetIdle = new Color(0.97f, 0.97f, 0.95f);
         [Tooltip("A rim segment still to clean: the plate's grime (the user's call, 2026-11-10).")]
         [SerializeField] private Color _grime = new Color(0.36f, 0.23f, 0.12f);
         [Tooltip("A rim segment cleaned: water. Segments blend from grime to water as the plate cleans.")]
@@ -121,7 +123,7 @@ namespace Game.Presentation
         private float _popLeft;
         private Color _rimColor = new Color(0.91f, 0.53f, 0.23f);
         // The game's target size (0.3 of the circle by default), and the size the kit was built at.
-        private float _targetRadius = 0.3f;
+        private float _targetRadius = 0.4f;
         private float _builtRadius;
         private Vector2 _shownPoint;
         private Vector2 _lastPoint;
@@ -231,9 +233,10 @@ namespace Game.Presentation
                 var color = Color.Lerp(Color.Lerp(_grime, _water, clean), Color.white, flash);
                 Paint(_segments[i], color);
             }
-            // The target in the washer's colour (who's washing, with two at the sinks), its arc
-            // going green as the current third of the plate comes clean; the next push comes when full.
-            var idle = Color.Lerp(_rimColor, _targetIdle, 0.55f);
+            // The target in the washer's full colour (who's washing, with two at the sinks; bold so
+            // it's the first thing seen, the user's call), its arc going green as the current third
+            // of the plate comes clean; the next push comes when full.
+            var idle = _rimColor;
             for (var i = 0; i < _target.Count; i++)
             {
                 var filled = hold > 0f && (i + 0.5f) / _target.Count < hold;
@@ -247,6 +250,9 @@ namespace Game.Presentation
             var point = _shownPoint * RimRadius;
             var bob = Mathf.Sin(Time.time * 4f) * 0.015f;
             _soap.localPosition = new Vector3(point.x, _segmentHeight + _soapFloat + bob, point.y);
+            // Small at the centre, where it fits inside the target, and bigger the further out it
+            // drifts (the user's call), so how far off it is reads at a glance.
+            _soap.localScale = _soapSize * Mathf.Lerp(_soapSizeCentre, _soapSizeRim, Mathf.Clamp01(_shownPoint.magnitude));
             var lean = Vector3.ClampMagnitude(new Vector3(velocity.y, 0f, -velocity.x) * 6f, 20f);
             var shake = rate < 0.2f ? Mathf.Sin(Time.time * 40f) * 6f : 0f;
             _soap.localRotation = Quaternion.Euler(lean.x + shake, 25f, lean.z);
@@ -309,7 +315,7 @@ namespace Game.Presentation
             var targetRadius = _targetRadius * RimRadius;
             var targetStep = Mathf.PI * 2f / TargetSegments;
             for (var i = 0; i < TargetSegments; i++)
-                _target.Add(Piece("Target", StationKitMeshes.RingSector(targetRadius - 0.035f, targetRadius + 0.035f, (i + 0.08f) * targetStep, (i + 0.92f) * targetStep, _segmentHeight * 0.6f, 0.012f), _root, TargetOrder));
+                _target.Add(Piece("Target", StationKitMeshes.RingSector(targetRadius - 0.055f, targetRadius + 0.055f, (i + 0.08f) * targetStep, (i + 0.92f) * targetStep, _segmentHeight * 0.9f, 0.016f), _root, TargetOrder));
 
             _soapRenderer = Primitive("Soap", PrimitiveType.Sphere, _root, SoapOrder);
             _soap = _soapRenderer.transform;
