@@ -40,6 +40,63 @@ namespace Game.Editor
             Capture(args[index + 1]);
         }
 
+        /// <summary>
+        /// The terrace shot (decision 2026-11-10), as the camera holds it with a chef out there, and
+        /// the same with the rail's pigeons caught along their flight off it. Run with
+        /// -executeMethod Game.Editor.OfficeCapture.CaptureTerraceFromCommandLine -captureFolder &lt;folder&gt;.
+        /// </summary>
+        public static void CaptureTerraceFromCommandLine()
+        {
+            var args = Environment.GetCommandLineArgs();
+            var index = Array.IndexOf(args, "-captureFolder");
+            CaptureTerrace(index >= 0 && index + 1 < args.Length ? args[index + 1] : "Screenshots/Office");
+        }
+
+        [MenuItem("Tools/Game/Capture Office Terrace")]
+        public static void CaptureTerraceToScreenshots() => CaptureTerrace("Screenshots/Office");
+
+        private static void CaptureTerrace(string folder)
+        {
+            Directory.CreateDirectory(folder);
+            EditorSceneManager.OpenScene(OfficeBuilder.ScenePath, OpenSceneMode.Single);
+            var camera = Camera.main;
+            camera.aspect = Width / (float)Height;
+            var rotation = Quaternion.Euler(Tilt, 0f, 0f);
+            var follow = new SerializedObject(camera.GetComponent<OfficeCamera>());
+            var min = follow.FindProperty("_terraceMin").vector2Value;
+            var max = follow.FindProperty("_terraceMax").vector2Value;
+            var chef = new System.Collections.Generic.List<System.Numerics.Vector2> { new System.Numerics.Vector2(3f, 16f) };
+            var shot = Game.Simulation.Movement.TerraceFraming.Fit(chef, new System.Numerics.Vector2(min.x, min.y), new System.Numerics.Vector2(max.x, max.y),
+                follow.FindProperty("_beyondRail").floatValue, follow.FindProperty("_doorwaySlack").floatValue, Tilt, camera.fieldOfView, camera.aspect,
+                follow.FindProperty("_margin").floatValue, follow.FindProperty("_minHeight").floatValue, follow.FindProperty("_maxHeight").floatValue,
+                follow.FindProperty("_screenTop").floatValue);
+            var at = new Vector3(shot.X, shot.Y, shot.Z);
+            Render(camera, at, rotation, Path.Combine(folder, "office_terrace_vista.png"));
+            Debug.Log($"[OfficeCapture] Terrace shot at {at}");
+
+            // The rail's pigeons a third and two thirds of the way along their flight, wings out,
+            // as if a chef had stepped up from the south.
+            var view = UnityEngine.Object.FindFirstObjectByType<Game.Presentation.Office.Ambience.TerraceBirdsView>();
+            var birds = new SerializedObject(view).FindProperty("_birds");
+            var settings = new Game.Simulation.Office.BirdSettings();
+            for (var i = 0; i < birds.arraySize; i++)
+            {
+                var bird = birds.GetArrayElementAtIndex(i).objectReferenceValue as Transform;
+                if (bird == null)
+                    continue;
+                var perch = new System.Numerics.Vector3(bird.position.x, bird.position.y, bird.position.z);
+                var way = Game.Simulation.Office.TerraceBird.FleeDirection(new System.Numerics.Vector2(perch.X, perch.Z),
+                    new System.Numerics.Vector2(perch.X - 1f, perch.Z - 1.5f), settings.Outward, settings.OutwardWeight);
+                var p = Game.Simulation.Office.TerraceBird.Arc(perch, way, i % 2 == 0 ? 0.15f : 0.35f, settings);
+                bird.SetPositionAndRotation(new Vector3(p.X, p.Y, p.Z), Quaternion.LookRotation(new Vector3(way.X, 0f, way.Y)));
+                foreach (Transform part in bird.Find("Bird"))
+                    if (part.name.StartsWith("Wing_"))
+                        part.gameObject.SetActive(true);
+            }
+            Render(camera, at, rotation, Path.Combine(folder, "office_terrace_birds.png"));
+            Debug.Log($"[OfficeCapture] Saved terrace shots to {folder}");
+        }
+
         [MenuItem("Tools/Game/Capture Office")]
         public static void CaptureToScreenshots() => Capture("Screenshots/Office");
 

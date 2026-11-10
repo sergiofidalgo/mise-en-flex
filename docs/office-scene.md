@@ -171,7 +171,7 @@ All models come from `blender/build_pilot_models.py` (generated, reviewable as t
 **Life (user's note, 2026-11-09: looking at the surroundings should bring joy):**
 - **Near roofs** each have one recognisable thing going on: a heliport with a helicopter warming up, roof gardens with twinkling pergola lights and a gardener, a yellow crane swinging its jib, a giant spinning steak sign, a pool with someone on a rubber ring, washing on a line.
 - **People** smoke on their roof decks.
-- **Birds:** pigeons wheel round the roofs and peck along the terrace rail; gulls circle high.
+- **Birds:** pigeons wheel round the roofs and peck along the terrace rail, flying off when a chef comes close and coming back later (decision 2026-11-10); gulls circle high.
 - **A helicopter** laps the skyline.
 - **Windows** light up and go dark, and a few flicker with televisions.
 - **Lights:** red aviation lights blink on the tallest towers.

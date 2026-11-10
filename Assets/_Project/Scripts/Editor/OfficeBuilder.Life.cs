@@ -682,12 +682,20 @@ namespace Game.Editor
             flyer.gameObject.AddComponent<FlyLoop>().Set(new Vector3(0f, 16f, 40f), new Vector2(95f, 60f), 2f, 75f, 0.15f, false, 12f);
             MakeDynamic(flyer.gameObject);
 
-            // Pigeons on the boss's terrace: along the rail and on his helipad, pecking.
+            // Pigeons on the boss's terrace: along the rail and on his helipad, pecking. They fly off
+            // when a chef steps close, and come back a while later (TerraceBirdsView).
             var terrace = rooms.Find("Terrace");
+            var pigeons = new List<Transform>();
             foreach (var x in new[] { -15.6f, -15.2f, -6.8f, 2.4f, 2.8f, 9.1f })
-                PerchedBird(terrace, new Vector3(x, 1.04f, TerraceNorth), (float)_random.NextDouble() * 360f);
+                pigeons.Add(PerchedBird(terrace, new Vector3(x, 1.04f, TerraceNorth), (float)_random.NextDouble() * 360f, canFly: true));
             foreach (var at in new[] { new Vector3(11.2f, 0.05f, 15.2f), new Vector3(14.3f, 0.05f, 17.9f), new Vector3(-4.4f, 0.01f, 15.6f) })
-                PerchedBird(terrace, at, (float)_random.NextDouble() * 360f);
+                pigeons.Add(PerchedBird(terrace, at, (float)_random.NextDouble() * 360f, canFly: true));
+            var flights = new SerializedObject(terrace.gameObject.AddComponent<TerraceBirdsView>());
+            var list = flights.FindProperty("_birds");
+            list.arraySize = pigeons.Count;
+            for (var i = 0; i < pigeons.Count; i++)
+                list.GetArrayElementAtIndex(i).objectReferenceValue = pigeons[i];
+            flights.ApplyModifiedPropertiesWithoutUndo();
 
             // The office's people breathe; the bodyguards glance along the room now and then.
             // (One Oscillate per person: two would fight over the same transform.)
@@ -737,8 +745,9 @@ namespace Game.Editor
             return bird;
         }
 
-        // A bird standing still, now and then dipping its head to peck.
-        private static void PerchedBird(Transform parent, Vector3 at, float facing)
+        // A bird standing still, now and then dipping its head to peck. One that can fly has its
+        // wings folded away (inactive) until it takes off.
+        private static Transform PerchedBird(Transform parent, Vector3 at, float facing, bool canFly = false)
         {
             var root = new GameObject("PerchedBird").transform;
             root.SetParent(parent, false);
@@ -746,7 +755,30 @@ namespace Game.Editor
             root.localRotation = Quaternion.Euler(0f, facing, 0f);
             var body = BirdBody(root, "Bird", gull: false);
             Wobble(body.gameObject, Oscillate.Shape.Pulse, Vector3.zero, new Vector3(38f, 0f, 0f), 2.5f + (float)_random.NextDouble() * 3f, 0.18f);
+            if (canFly)
+                Wings(body, gull: false, phase: Mathf.Repeat(at.x * 0.37f, 1f)).ForEach(wing => wing.SetActive(false));
             MakeDynamic(root.gameObject);
+            return root;
+        }
+
+        // A bird's two wings on their shoulders, flapping. The phase is passed in rather than drawn,
+        // so adding wings doesn't change the random draws of everything built after.
+        private static List<GameObject> Wings(Transform bird, bool gull, float phase)
+        {
+            var shoulders = new List<GameObject>();
+            foreach (var side in new[] { -1f, 1f })
+            {
+                var shoulder = new GameObject(side < 0 ? "Wing_L" : "Wing_R").transform;
+                shoulder.SetParent(bird, false);
+                shoulder.localPosition = new Vector3(side * 0.06f, 0.18f, 0f);
+                var wing = Model(shoulder, "Wing", OfficeModel, "OfficeBirdWing", Toon(gull ? "OfficeGull" : "OfficePigeon", gull ? Gull : Pigeon), Vector3.zero, 0f);
+                if (wing != null)
+                    wing.transform.localScale = new Vector3(side, 1f, 1f);
+                shoulder.gameObject.AddComponent<Oscillate>().Set(Oscillate.Shape.Wave, Vector3.zero, new Vector3(0f, 0f, side * (gull ? 25f : 40f)),
+                    Vector3.zero, gull ? 0.9f : 0.28f, 0.2f, phase);
+                shoulders.Add(shoulder.gameObject);
+            }
+            return shoulders;
         }
 
         private static Transform BirdBody(Transform parent, string name, bool gull)
