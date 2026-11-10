@@ -173,7 +173,7 @@ namespace Game.Presentation.Menu
                 Line.Precision => new Row(Tr.Get("Cooking precision"), $"{dials.CookingPrecision * 100f:0}%", Tr.Get("How narrow the doneness windows are")),
                 Line.Spoilage => new Row(Tr.Get("Spoilage"), $"×{dials.Spoilage:0.##}", Tr.Get("How fast food loses freshness")),
                 Line.Patience => new Row(Tr.Get("Customer patience"), $"×{dials.Patience:0.##}", Tr.Get("How long guests wait")),
-                Line.Complexity => new Row(Tr.Get("Minigame complexity"), $"{dials.MinigameComplexity * 100f:0}%", Tr.Get("How demanding washing, cleaning and the extinguisher are")),
+                Line.Complexity => new Row(Tr.Get("Minigame complexity"), $"{dials.MinigameComplexity * 100f:0}%", Tr.Get("How hard washing, cleaning and fires are")),
                 _ => new Row(Tr.Get("Hygiene"), $"×{dials.Hygiene:0.##}", Tr.Get("How much mess a service leaves")),
             };
         }

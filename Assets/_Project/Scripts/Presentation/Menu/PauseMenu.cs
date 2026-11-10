@@ -69,6 +69,10 @@ namespace Game.Presentation.Menu
         private RectTransform _canvas;
         private RectTransform _card;
         private PlayerInput _owner;
+        private int _ownerIndex;
+        // Set only by DrawForCapture: what the kitchen would say, without a running kitchen.
+        private bool? _captureUnsaved;
+        private int _captureDay;
         private Page _page;
         private int _row;
         private bool _open;
@@ -142,6 +146,7 @@ namespace Game.Presentation.Menu
         {
             _open = true;
             _owner = owner;
+            _ownerIndex = owner.playerIndex;
             _openedFrame = Time.frameCount;
             _page = Page.Main;
             _row = 0;
@@ -301,7 +306,7 @@ namespace Game.Presentation.Menu
             return items;
         }
 
-        private bool UnsavedDay => _root != null && _root.HasUnsavedDay;
+        private bool UnsavedDay => _captureUnsaved ?? (_root != null && _root.HasUnsavedDay);
 
         private void Choose(Item item)
         {
@@ -374,16 +379,15 @@ namespace Game.Presentation.Menu
             scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.Expand;
             _canvas = canvasObject.GetComponent<RectTransform>();
 
-            var veil = UiKit.RoundBox(_canvas, "Veil", _veil, 0f, 0f, 0f, 0f, 0f).rectTransform;
-            UiKit.Fill(veil);
-
             var layout = UiKit.Rect(_canvas, "Layout", 0f, 0f, 1920f, 1080f);
             layout.anchorMin = layout.anchorMax = layout.pivot = new Vector2(0.5f, 0.5f);
             layout.anchoredPosition = Vector2.zero;
+            // The veil reaches well past the 1920×1080 frame, so any screen shape is dimmed edge to edge.
+            UiKit.RoundBox(layout, "Veil", _veil, -1920f, -1080f, 1920f * 3f, 1080f * 3f, 0f);
             _card = UiKit.Rect(layout, "Card", 0f, 0f, 1920f, 1080f);
         }
 
-        private Color OwnerColor => _owner != null && _coop != null ? _coop.GetPlayerColor(_owner.playerIndex) : Color.white;
+        private Color OwnerColor => _coop != null ? _coop.GetPlayerColor(_ownerIndex) : Color.white;
 
         private TMP_FontAsset Words => _style.ExtraBold;
         private TMP_FontAsset Numbers => _style.DisplayFont;
@@ -392,7 +396,10 @@ namespace Game.Presentation.Menu
         {
             UiKit.Clear(_card);
             var owner = OwnerColor;
-            UiKit.StrokedBox(_card, "Card", _style.CardBackground, owner, 4f, CardX, CardY, CardWidth, CardHeight, 24f);
+            // Opaque, so the border's colour doesn't show through the card.
+            var fill = _style.CardBackground;
+            fill.a = 1f;
+            UiKit.StrokedBox(_card, "Card", fill, owner, 4f, CardX, CardY, CardWidth, CardHeight, 24f);
 
             var title = _page switch
             {
@@ -404,7 +411,7 @@ namespace Game.Presentation.Menu
             UiKit.TextAt(Words, _card, "Title", title, 48f, _style.TextColor, CardX + Pad, CardY + 92f, CardWidth - 2f * Pad - 120f);
             // Whose menu it is, in their colour.
             UiKit.RoundBox(_card, "Owner", owner, CardX + CardWidth - Pad - 88f, CardY + 50f, 88f, 52f, 26f);
-            UiKit.TextAt(Numbers, _card, "OwnerText", $"P{_owner.playerIndex + 1}", 32f, _style.CardBackground, CardX + CardWidth - Pad - 44f, CardY + 88f, 88f, HorizontalAlignmentOptions.Center);
+            UiKit.TextAt(Numbers, _card, "OwnerText", $"P{_ownerIndex + 1}", 32f, _style.CardBackground, CardX + CardWidth - Pad - 44f, CardY + 88f, 88f, HorizontalAlignmentOptions.Center);
 
             var hints = new List<(PromptControl? Control, string Label)>();
             switch (_page)
@@ -480,7 +487,7 @@ namespace Game.Presentation.Menu
 
         private void DrawConfirm()
         {
-            var day = _root != null ? _root.Services.Days.Day + 1 : 1;
+            var day = _captureUnsaved.HasValue ? _captureDay : _root != null ? _root.Services.Days.Day + 1 : 1;
             var body = _page == Page.ConfirmOffice
                 ? Tr.Get("You'll go back up to the boss's floor.")
                 : Tr.Get("The game closes.");
@@ -508,6 +515,55 @@ namespace Game.Presentation.Menu
                 UiKit.TextAt(Numbers, _card, "Glyph", glyph, 28f, _style.CardBackground, right - badgeWidth / 2f, baseline - 2f, badgeWidth, HorizontalAlignmentOptions.Center);
                 right -= badgeWidth + 36f;
             }
+        }
+
+        /// <summary>The pages a capture can draw.</summary>
+        public enum CapturePage
+        {
+            Main,
+            Settings,
+            Advanced,
+            ConfirmOffice,
+        }
+
+        /// <summary>
+        /// Draws one page at once, without Play mode, for the capture tool (Tools/Game/Capture Pause
+        /// Menu): as player <paramref name="ownerIndex"/> would see it, on day <paramref name="day"/>.
+        /// </summary>
+        public Canvas DrawForCapture(CapturePage page, int ownerIndex, bool unsavedDay, int day, int row = 0)
+        {
+            if (_canvas != null)
+                DestroyImmediate(_canvas.gameObject);
+            if (_style != null && _style.Languages != null)
+                _style.Languages.Reload();
+            _settings = new SettingsModel(_realism, _style);
+            Build();
+            _ownerIndex = ownerIndex;
+            _captureUnsaved = unsavedDay;
+            _captureDay = day;
+            _row = row;
+            switch (page)
+            {
+                case CapturePage.Settings:
+                    _page = Page.Settings;
+                    _settings.Handle(new Vector2Int(0, row), false, false);
+                    break;
+                case CapturePage.Advanced:
+                    _page = Page.Settings;
+                    _settings.Handle(new Vector2Int(0, 2), false, false); // down to Advanced
+                    _settings.Handle(Vector2Int.zero, true, false);       // and open it
+                    _settings.Handle(new Vector2Int(0, row), false, false);
+                    break;
+                case CapturePage.ConfirmOffice:
+                    _page = Page.ConfirmOffice;
+                    break;
+                default:
+                    _page = Page.Main;
+                    break;
+            }
+            Redraw();
+            _captureUnsaved = null;
+            return _canvas.GetComponent<Canvas>();
         }
 
         private static Color Alpha(Color colour, float alpha) => new Color(colour.r, colour.g, colour.b, alpha);
