@@ -15,12 +15,17 @@ namespace Game.Tests.EditMode
     {
         private const string GameNamespacePrefix = "Game.";
         private const string KitchenScenePath = "Assets/_Project/Scenes/Kitchen_Greybox.unity";
+        // Every restaurant's own kitchen (Phase 6, milestone 3); only the grill's is in git.
+        private const string DiningRoomScenePath = "Assets/_Project/Scenes/Kitchen_CasaLucia.unity";
         private const string PrefabFolder = "Assets/_Project/Prefabs";
 
-        [Test]
-        public void KitchenSceneHasNoEmptyReferences()
+        [TestCase(KitchenScenePath)]
+        [TestCase(DiningRoomScenePath)]
+        public void KitchenSceneHasNoEmptyReferences(string path)
         {
-            var scene = EditorSceneManager.OpenScene(KitchenScenePath, OpenSceneMode.Single);
+            if (path != KitchenScenePath && !System.IO.File.Exists(path))
+                Assert.Ignore($"{path} isn't built yet: run Tools/Game/Build Greybox Kitchen.");
+            var scene = EditorSceneManager.OpenScene(path, OpenSceneMode.Single);
             var components = scene.GetRootGameObjects()
                 .SelectMany(root => root.GetComponentsInChildren<MonoBehaviour>(true));
 
@@ -29,11 +34,14 @@ namespace Game.Tests.EditMode
 
         // Regression: chefs could climb onto low crates. Every station's collider must reach above
         // a chef's head (1.7 m), so the capsule only meets vertical sides.
-        [Test]
-        public void StationCollidersAreTooTallToClimb()
+        [TestCase(KitchenScenePath)]
+        [TestCase(DiningRoomScenePath)]
+        public void StationCollidersAreTooTallToClimb(string path)
         {
             const float chefHeight = 1.7f;
-            var scene = EditorSceneManager.OpenScene(KitchenScenePath, OpenSceneMode.Single);
+            if (path != KitchenScenePath && !System.IO.File.Exists(path))
+                Assert.Ignore($"{path} isn't built yet: run Tools/Game/Build Greybox Kitchen.");
+            var scene = EditorSceneManager.OpenScene(path, OpenSceneMode.Single);
             var stations = scene.GetRootGameObjects()
                 .SelectMany(root => root.GetComponentsInChildren<Game.Gameplay.Stations.Interactable>(true))
                 .Where(station => !(station is Game.Gameplay.Stations.StreetDoor)) // walked through, not around
