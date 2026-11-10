@@ -1,6 +1,4 @@
 using System.Collections.Generic;
-using System.Linq;
-using Game.Simulation.Cookbook;
 using Game.Data;
 using Game.Gameplay;
 using Game.Gameplay.Stations;
@@ -26,9 +24,9 @@ namespace Game.Presentation.Hud
         [SerializeField] private CoopSettings _settings;
         [SerializeField] private KitchenCompositionRoot _root;
         [SerializeField] private GameObject _framePrefab;
+        [Tooltip("The players' shop cards; without them the shop shows in the cursor's label.")]
+        [SerializeField] private ManagementCardsHud _cards;
         [SerializeField] private Color _blocked = new Color(0.95f, 0.30f, 0.26f);
-        [Tooltip("Cookbook recipes not unlocked yet, but affordable.")]
-        [SerializeField] private Color _muted = new Color(0.75f, 0.72f, 0.66f);
         [Tooltip("Metres above the floor where the label sits.")]
         [SerializeField, Min(0f)] private float _labelHeight = 1.4f;
         [SerializeField] private Vector2 _padding = new Vector2(12f, 6f);
@@ -68,7 +66,11 @@ namespace Game.Presentation.Hud
                 var position = cursor.Held != null ? cursor.Landing : cursor.Position;
                 view.Frame.transform.position = new Vector3(position.X, 0.02f, position.Y);
 
-                view.Label.Show(Text(cursor), new Vector3(position.X, _labelHeight, position.Y), camera, _canvas);
+                // With the shop open its card says it all, so the label above the cursor steps aside.
+                if (_cards != null && _cards.Shows(cursor))
+                    view.Label.Hide();
+                else
+                    view.Label.Show(Text(cursor), new Vector3(position.X, _labelHeight, position.Y), camera, _canvas);
             }
 
             _gone.Clear();
@@ -88,7 +90,7 @@ namespace Game.Presentation.Hud
         private string Text(LayoutEditor.Cursor cursor)
         {
             if (cursor.ShopOpen)
-                return cursor.CookbookOpen && _editor.Cookbook != null ? CookbookText(cursor) : ShopText(cursor);
+                return ShopText(cursor);
 
             if (cursor.Held != null)
             {
@@ -137,68 +139,14 @@ namespace Game.Presentation.Hud
             return problem.Length > 0 ? HudStyle.Colored(problem, _blocked) : null;
         }
 
-        // The two pages of the Y panel, the one showing underlined, so LB/RB reads as turning pages.
-        private string Tabs(bool cookbook) => _editor.Cookbook == null
-            ? ""
-            : $"[LB] {(cookbook ? Tr.Get("Shop") : "<u>" + Tr.Get("Shop") + "</u>")}   {(cookbook ? "<u>" + Tr.Get("Cookbook") + "</u>" : Tr.Get("Cookbook"))} [RB]\n";
-
-        /// <summary>
-        /// The cookbook page (decision 2026-11-10): every recipe, unlocked ones with their price, and
-        /// the chosen one's details: how hard it is, what it needs, what it costs to make and earns.
-        /// </summary>
-        private string CookbookText(LayoutEditor.Cursor cursor)
-        {
-            var book = _editor.Cookbook;
-            var text = new System.Text.StringBuilder();
-            text.Append(Tabs(true));
-            text.AppendLine(Tr.Format("{amount} to spend", ("amount", Money(_root.Services.Days.Balance))));
-            for (var i = 0; i < book.Recipes.Count; i++)
-            {
-                var recipe = book.Recipes[i];
-                var mark = i == cursor.CookbookIndex ? "> " : "  ";
-                string line;
-                if (book.IsUnlocked(recipe.Id))
-                    line = $"{mark}{Tr.Get(recipe.Name)}  {Money(book.PriceOf(recipe.Id))}";
-                else
-                {
-                    line = $"{mark}{Tr.Get(recipe.Name)}  " + Tr.Format("unlock {price}", ("price", Money(recipe.UnlockCost)));
-                    line = _editor.CanAfford(recipe) ? HudStyle.Colored(line, _muted) : HudStyle.Colored(line, _blocked);
-                }
-                text.AppendLine(line);
-            }
-
-            var chosen = book.Recipes[Mathf.Clamp(cursor.CookbookIndex, 0, book.Recipes.Count - 1)];
-            text.AppendLine();
-            text.AppendLine(ComplexityWord(chosen.Complexity) + "  · " + string.Join(", ", chosen.Appliances.Select(Tr.Get)));
-            text.AppendLine(string.Join(", ", chosen.Ingredients.Select(Tr.Get)) + "  · " + Tr.Format("about {cost} a serving", ("cost", Money(chosen.IngredientCost))));
-            var unlocked = book.IsUnlocked(chosen.Id);
-            var price = book.PriceOf(chosen.Id);
-            text.AppendLine(Tr.Format("suggested {price}", ("price", Money(chosen.SuggestedPrice)))
-                + "  · " + Tr.Format("earns about {value}", ("value", Money((unlocked ? price : chosen.SuggestedPrice) - chosen.IngredientCost))));
-
-            if (cursor.CookbookResult == UnlockResult.CantAfford)
-                text.AppendLine(HudStyle.Colored(Tr.Get("not enough money"), _blocked));
-            else if (cursor.CookbookResult == UnlockResult.Unlocked)
-                text.AppendLine(Tr.Get("on tonight's menu"));
-
-            text.Append(unlocked
-                ? $"[LS] {Tr.Get("price")}   {Glyph(PromptControl.West)} {Tr.Get("suggested")}   {Glyph(PromptControl.East)} {Tr.Get("close")}"
-                : $"{Glyph(PromptControl.South)} {Tr.Get("unlock")}   {Glyph(PromptControl.East)} {Tr.Get("close")}");
-            return text.ToString();
-        }
-
-        private static string ComplexityWord(int complexity) => complexity <= 1
-            ? Tr.Get("simple")
-            : complexity == 2 ? Tr.Get("some work") : Tr.Get("demanding");
-
         private string ShopText(LayoutEditor.Cursor cursor)
         {
             var text = new System.Text.StringBuilder();
-            text.Append(Tabs(false));
             text.AppendLine(Tr.Format("{amount} to spend", ("amount", Money(_root.Services.Days.Balance))));
-            for (var i = 0; i < _editor.Shop.Count; i++)
+            var page = _editor.ShopPage(cursor);
+            for (var i = 0; i < page.Count; i++)
             {
-                var entry = _editor.Shop[i];
+                var entry = page[i];
                 var line = $"{(i == cursor.ShopIndex ? "> " : "  ")}{Tr.Get(entry.DisplayName)}  {Money(entry.Price)}";
                 text.AppendLine(_editor.CanAfford(entry) ? line : HudStyle.Colored(line, _blocked));
             }

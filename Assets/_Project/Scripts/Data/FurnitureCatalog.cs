@@ -3,6 +3,15 @@ using UnityEngine;
 
 namespace Game.Data
 {
+    /// <summary>The shop card's pages (2026-11-10), turned with LB and RB. A page with nothing on it is skipped.</summary>
+    public enum ShopSection
+    {
+        Furniture,
+        Appliances,
+        Kitchenware,
+        Decoration,
+    }
+
     /// <summary>
     /// What can be bought for the kitchen: furniture, which is placed and can be sold back, and
     /// kitchenware such as knives and pans, which appears on a free counter. Prices are tuned here.
@@ -21,6 +30,8 @@ namespace Game.Data
             [SerializeField] private GameObject _prefab;
             [Tooltip("Kitchenware rather than furniture (a knife, a pan): bought straight onto the first free counter. Empty for furniture.")]
             [SerializeField] private string _itemTypeId;
+            [Tooltip("Which page of the shop it's on. Kitchenware is always on the kitchenware page.")]
+            [SerializeField] private ShopSection _section;
 
             public string Id => _id;
             public string DisplayName => _displayName;
@@ -29,6 +40,7 @@ namespace Game.Data
             public GameObject Prefab => _prefab;
             public string ItemTypeId => _itemTypeId;
             public bool IsItem => !string.IsNullOrEmpty(_itemTypeId);
+            public ShopSection Section => IsItem ? ShopSection.Kitchenware : _section;
         }
 
         [SerializeField] private Entry[] _entries = Array.Empty<Entry>();

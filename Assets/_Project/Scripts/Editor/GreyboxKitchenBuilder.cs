@@ -1201,8 +1201,12 @@ namespace Game.Editor
             return prefab;
         }
 
+        // Pieces that cook, cut or keep food are appliances in the shop; the rest is furniture.
+        private static readonly string[] Appliances = { HobFurniture, InductionFurniture, GrillFurniture, BoardFurniture, FridgeFurniture };
+
         private static void SetFurniture(SerializedProperty entries, string id, string displayName, float price, bool keepOne, GameObject prefab, string itemTypeId = "")
         {
+            var section = (int)(System.Array.IndexOf(Appliances, id) >= 0 ? ShopSection.Appliances : ShopSection.Furniture);
             for (var i = 0; i < entries.arraySize; i++)
             {
                 var existing = entries.GetArrayElementAtIndex(i);
@@ -1210,6 +1214,7 @@ namespace Game.Editor
                 {
                     existing.FindPropertyRelative("_prefab").objectReferenceValue = prefab;
                     existing.FindPropertyRelative("_itemTypeId").stringValue = itemTypeId;
+                    existing.FindPropertyRelative("_section").enumValueIndex = section;
                     return;
                 }
             }
@@ -1222,6 +1227,7 @@ namespace Game.Editor
             entry.FindPropertyRelative("_keepOne").boolValue = keepOne;
             entry.FindPropertyRelative("_prefab").objectReferenceValue = prefab;
             entry.FindPropertyRelative("_itemTypeId").stringValue = itemTypeId;
+            entry.FindPropertyRelative("_section").enumValueIndex = section;
         }
 
         private static void SetReference(Object target, string field, Object value)
