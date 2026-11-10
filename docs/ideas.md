@@ -50,7 +50,7 @@ Doing this before players have long campaigns avoids a save migration for old re
 
 *Added 2026-11-08 · Relevant phase: 7 (content) · Pillars: cooking is a craft*
 
-An onion now cuts into rings and then on into dice (`decisions.md`, 2026-11-08), but no dish on the menu uses rings yet, so for now there's no reason to stop at rings. A dish that asks for rings (a burger, a steak with fried rings) would make stopping a real choice. A customer asking for rings and getting dice, or the reverse, should cost quality.
+An onion now cuts into rings and then on into dice (`decisions.md`, 2026-11-08), but no dish on the menu uses rings yet, so for now there's no reason to stop at rings. A dish that asks for rings (a burger, a steak with fried rings) would make stopping a real choice. *Update 2026-11-10: the cookbook's "Steak with onion rings" is the first one.* A customer asking for rings and getting dice, or the reverse, should cost quality.
 
 ---
 
@@ -357,6 +357,8 @@ It stays alongside the office's test kitchen (decision 2026-11-09): the test kit
 
 To work out when we get there: which campaign's restaurants it offers (with three campaign slots, and after an erasure), and whether it's greyed out until a first restaurant is bought.
 
+*Update 2026-11-10 (the user's call):* the recipes it offers are every recipe any campaign has unlocked, kept in the shared `cookbook.json` (`SharedCookbookFile`). Campaigns still buy their own.
+
 ## Stirring with the stick (for the wok cuisine)
 
 *Proposed 2026-11-09, from the user's minigame mockup.* At a wok or saucepan, the chef locks to the station the way washing does, and the stick circles the pan to chase a puck drawn round it (the station is the interface, decision 2026-11-09). Too slow scorches, too fast spills, so the craft is a steady rhythm. The lock and the camera-relative stick already work at the sink.
@@ -366,3 +368,12 @@ To work out when we get there: what scorching and spilling cost (quality, lost f
 ## Prefabs for the office's city (proposed 2026-11-09)
 
 *From the office's rooftop detail.* The office scene file is about 23 MB because every roof's machinery, window frame and person is written into it as separate objects. Making the roof kit (plant room, air conditioner, stack, vents, dish), the special roofs and the people into prefabs would shrink the scene to references, and make each piece editable in one place. Worth doing before the art phase or if the scene gets slow to open.
+
+## Cookbook follow-ups (proposed 2026-11-10)
+
+*From building Phase 5, milestone 4.* Left out to keep the milestone small:
+- **Taking a dish off the menu** without losing the unlock, for a night when its ingredients ran out. Today every unlocked recipe is on the menu.
+- **Price in the reviews' words:** "great, but €35 for a steak?" or "a steal". The stars already move with price, but no line mentions it, so players have to infer the cause from the stars alone.
+- **Tally orders per recipe,** not per main and doneness ("steak, medium"). Steak with a side counts with plain steak in the forkcast Menu tab's table today. Changing the tally's key touches saved reviews and their translation (`ReviewText.Order`).
+- **A real cookbook screen** in the forkcast style, instead of the cursor's world label, once the UI pass comes (Phase 9). It could show each dish's photo, its stars and orders so far, and a demand preview while setting the price.
+

@@ -4,6 +4,37 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-10 — The cookbook and menu pricing (Phase 5, milestone 4)
+
+**User's calls:**
+- **Each campaign unlocks its own recipes.** They're bought at that campaign's restaurant, so a new campaign starts again from the starter dish. Everything any campaign has unlocked is also kept in one shared cookbook, which the Free kitchen sandbox will offer once it's built.
+  - This replaces "recipes carried over from an earlier campaign work at any restaurant" (2026-11-06; `game-design.md` §11 and §15.5, and `CLAUDE.md`'s "the cookbook survives it"). Those texts are now out of date, and they're the user's to update.
+- **Four starter recipes** from what can already be cooked:
+  - Steak: free, the boss's dish, on every new menu.
+  - Steak with onion rings and steak with sautéed onions: paid.
+  - Sautéed onions on their own: a cheap filler, paid.
+- **Price moves both how many come and how they rate** (r = price ÷ suggested price):
+  - Arrivals scale by r^−1.5, kept between 0.15× and 1.5×. 20% over the suggestion brings about 24% fewer guests, and 20% under about 40% more.
+  - Each guest's stars shift by −2.5 × (r − 1), clamped to ±1 star. A perfect steak at 20% over the odds earns 4.5 stars.
+  - Within the menu, a dish is ordered in proportion to r^−1, so a dear dish is picked less.
+  - Every number is a tuning value in `CookbookConfig`.
+- **The cookbook is a second page of the Y panel in management mode.** LB/RB switches between Shop and Cookbook. Up/down browses, A unlocks, and left/right sets an unlocked dish's price in steps of 1 (it repeats while held).
+
+**How it works (proposed while building; flagged for review):**
+- **Unlocks and prices are saved in the campaign** (`CampaignSave.Recipes`, `Prices`, both with defaults, no version bump). An older file loads with just the starter dish.
+- **The shared cookbook is `cookbook.json`** beside `profile.json` and the settings, outside the slots. It's written as soon as a campaign unlocks something new to it.
+- **The menu is set as the doors open** (`ServiceSimulation.SetMenu`), so prices changed in Plan or Prep count that same night.
+- **A recipe's side keeps its share of the price** (for example €5 of the steak with onions' €27). A plate missing the side isn't paid that share, as before.
+- **X resets an unlocked dish to its suggested price.**
+- **Prices run from 1 to 5× the suggestion.** An unlock is paid like a shop purchase and can't go into debt.
+- **Onion rings take fewer cuts than diced onion** (2 against 5), so steak with rings is the cheaper unlock (€40, suggested €25) and steak with sautéed onions the dearer one (€60, suggested €27). This swaps what was first proposed: harder recipes pay more.
+- **The forkcast Menu tab** shows "On the menu" with each dish at tonight's price, and the suggestion beside any price that's moved. Today's orders follow. The listing's price band follows the dearest dish.
+- **Orders are still tallied as "steak, medium"**, so steak with a side counts with plain steak in the Menu tab's table.
+
+**Reason:** The menu becomes the players' own choice. Pricing is learned from how many guests come and what they say, not from a refusal.
+
+---
+
 ## 2026-11-10 — Hair and snug hats follow the head and end in a crisp lip
 
 **Decision:** The short crop, the hair at the back, the cap's crown and the bandana are now built by `add_head_shell` in `blender/build_pilot_models.py` instead of as loose ellipsoids.
