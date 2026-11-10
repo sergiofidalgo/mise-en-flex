@@ -2701,3 +2701,14 @@ Enter also joins and submits. WASD no longer moves.
 **Decision:** The main menu backdrop is a modelled low night city (`SM_City.fbx`, built by `blender/build_pilot_models.py`) in the kitchen's toon look: bevelled blocks with cornices, framed lit windows with sills, shopfronts with striped awnings, roof water towers, lantern lampposts, rounded cars with head- and taillights, and round-crowned trees. `MainMenuBuilder` swaps the models onto its greybox pieces and keeps the primitives as a fallback when the FBX is missing. The menu UI and camera are unchanged.
 
 **Reason:** The user asked for the menu city to follow the kitchen's 3D toon style (chunky models, toon ramp, soft ink), matching their mockup: a skyline under stars, warm windows, and glowing city lights in the lower corners that show around the UI panels.
+
+## 2026-11-10 — Claude drives the open Editor through the Unity CLI, within limits
+
+**Decision:** The project has the `com.unity.pipeline` package (0.10.0-exp.1), so Claude Code can drive the user's open Editor with the `unity` CLI. Its uses are running `Tools/Game/...` builders, reading the console and compile errors, entering Play mode, taking Game view screenshots and inspecting the live scene. Rules:
+- Only one session uses it at a time, normally the orchestrator (Main build).
+- It never hand-edits scene or prefab objects. Builder scripts stay the source of truth, because the next rebuild would wipe live edits.
+- Claude asks before entering Play mode or forcing a recompile, since that interrupts the user's own play.
+
+**Reason:** It removes most of the "close Unity / run this menu item / send me a screenshot" round trips. It doesn't replace batch-mode tests: `unity test` refuses a project that's open in an Editor, so EditMode tests still need the Editor closed until we find a reliable way to run them inside it.
+
+**Cost:** The package is experimental. If it breaks the Editor or the build, remove the line from `Packages/manifest.json`.
