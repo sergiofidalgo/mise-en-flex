@@ -102,6 +102,7 @@ namespace Game.Simulation.Saving
         Knife,
         Tray,
         Container,
+        Crate,
     }
 
     /// <summary>
@@ -123,6 +124,9 @@ namespace Game.Simulation.Saving
 
         /// <summary>Pans: °C.</summary>
         public float Temperature;
+
+        /// <summary>Crates: how many portions it holds when full (0 in older saves, which had none).</summary>
+        public int Capacity;
 
         /// <summary>Only meaningful when <see cref="Kind"/> is <see cref="ItemKind.Ingredient"/>.</summary>
         public IngredientState Ingredient = new IngredientState();

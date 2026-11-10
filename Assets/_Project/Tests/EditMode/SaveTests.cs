@@ -105,6 +105,25 @@ namespace Game.Tests.EditMode
         }
 
         [Test]
+        public void AHalfUnloadedCrateComesBackWithItsStockAndSize()
+        {
+            var crate = new Crate(6);
+            var cheap = _factory.Ingredient("Steak");
+            cheap.SetStartingFreshness(0.7f);
+            crate.Put(cheap);
+            crate.Put(_factory.Ingredient("Steak"));
+            var records = new List<ItemRecord>();
+            ItemRecords.Write(crate, -1, 0, records);
+
+            var back = (Crate)ItemRecords.Read(records, _factory).Single().Item;
+
+            Assert.That(back.Capacity, Is.EqualTo(6));
+            Assert.That(back.Items, Has.Count.EqualTo(2));
+            Assert.That(((Ingredient)back.Items[0]).Freshness, Is.EqualTo(0.7f).Within(1e-5f));
+            Assert.That(((Ingredient)back.Items[1]).Freshness, Is.EqualTo(1f).Within(1e-5f));
+        }
+
+        [Test]
         public void FoodWhoseContainerIsGoneIsDiscardedNotLeftTicking()
         {
             var records = new List<ItemRecord>
