@@ -8,6 +8,7 @@ using Game.Simulation.Characters;
 using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.Rendering;
 using UnityEngine.UI;
 
 namespace Game.Presentation.Office
@@ -62,6 +63,12 @@ namespace Game.Presentation.Office
         private const float ShoulderWidth = 50f;
         // A second still this long after joining, once the chef has settled into their first pose.
         private const float SettleDelay = 0.5f;
+        // A still draws only the chef: for that one render their renderers move to this layer, which
+        // nothing else uses (unnamed in the Tag Manager), so a closed lift door or a chef standing
+        // in front can't hide them. Put back the same frame.
+        private const int StillLayer = 31;
+        private const float PortraitRadius = 16f;
+        private const float StillBackdropTint = 0.22f; // the still's backdrop: the card, a touch of the player's colour
 
         [SerializeField] private HudStyle _style;
         [SerializeField] private CoopSettings _coop;
@@ -73,6 +80,7 @@ namespace Game.Presentation.Office
         private readonly List<float> _lefts = new List<float>();
         private readonly List<float> _widths = new List<float>();
         private Canvas _canvas;
+        private readonly List<(GameObject Part, int Layer)> _moved = new List<(GameObject, int)>();
 
         // For a still outside Play mode: who stands in for each slot, and their dressing if any.
         private readonly Dictionary<int, (Transform Chef, TailorSession Session)> _staged = new Dictionary<int, (Transform, TailorSession)>();
@@ -222,11 +230,8 @@ namespace Game.Presentation.Office
             var square = CompactHeight - 24f;
             slot.Compact = UiKit.Rect(_canvas.transform, $"Player{index + 1}", 0f, 0f, CompactWidth, CompactHeight);
             UiKit.StrokedBox(slot.Compact, "Back", _style.CardBackground, colour, 4f, 0f, 0f, CompactWidth, CompactHeight, 18f);
-            UiKit.RoundBox(slot.Compact, "PortraitBack", new Color(0f, 0f, 0f, 0.25f), 12f, 12f, square, square, 10f);
-            var still = UiKit.Rect(slot.Compact, "Portrait", 12f, 12f, square, square).gameObject.AddComponent<RawImage>();
-            still.texture = texture;
+            var still = RoundedPicture(slot.Compact, texture, 12f, 12f, square, square);
             still.uvRect = new Rect(0.5f - 0.5f * 360f / 512f, 0f, 360f / 512f, 1f); // the middle square
-            still.raycastTarget = false;
             UiKit.TextAt(_style.DisplayFont, slot.Compact, "Number", $"P{index + 1}", 34f, colour, CompactHeight + 4f, 46f, 80f);
 
             BuildOpenSeat(slot, colour);
@@ -234,9 +239,7 @@ namespace Game.Presentation.Office
             // Dressing: the portrait on top, then the controls.
             slot.Dressing = UiKit.Rect(_canvas.transform, $"Player{index + 1}Dressing", 0f, 0f, Width, DressingHeight);
             UiKit.StrokedBox(slot.Dressing, "Back", _style.CardBackground, colour, 4f, 0f, 0f, Width, DressingHeight, 22f);
-            var picture = UiKit.Rect(slot.Dressing, "Portrait", 14f, 14f, Width - 28f, PortraitHeight - 14f).gameObject.AddComponent<RawImage>();
-            picture.texture = texture;
-            picture.raycastTarget = false;
+            RoundedPicture(slot.Dressing, texture, 14f, 14f, Width - 28f, PortraitHeight - 14f);
             var rows = UiKit.Rect(slot.Dressing, "Rows", 0f, PortraitHeight, Width, RowsHeight);
             DrawShoulder(rows, "LB", 12f, 12f);
             DrawShoulder(rows, "RB", Width - 12f - ShoulderWidth, 12f);
@@ -260,6 +263,17 @@ namespace Game.Presentation.Office
             UiKit.TextAt(_style.Font, rows, "Done", Tr.Get("Done"), 28f, _style.TextColor, Width - 86f, 179f, 80f);
             slot.Dressing.gameObject.SetActive(false);
             return slot;
+        }
+
+        // A rendered picture clipped to rounded corners: a rounded mask holding the picture.
+        private static RawImage RoundedPicture(RectTransform parent, Texture texture, float x, float y, float width, float height)
+        {
+            var frame = UiKit.RoundBox(parent, "PortraitFrame", new Color(0f, 0f, 0f, 0.25f), x, y, width, height, PortraitRadius);
+            frame.gameObject.AddComponent<Mask>().showMaskGraphic = true;
+            var picture = UiKit.Rect(frame.transform, "Portrait", 0f, 0f, width, height).gameObject.AddComponent<RawImage>();
+            picture.texture = texture;
+            picture.raycastTarget = false;
+            return picture;
         }
 
         // The open seat: no picture, the number and "A Join" centred as one block, a dashed edge.
@@ -443,6 +457,8 @@ namespace Game.Presentation.Office
             Fill(slot, session);
             Animate(slot, dt);
             Frame(slot, chef, (int)session.Module, dt);
+            slot.Portrait.cullingMask = ~0;
+            slot.Portrait.backgroundColor = _style.CardBackground;
             slot.Portrait.enabled = true;
         }
 
@@ -498,13 +514,45 @@ namespace Game.Presentation.Office
                 slot.SettleAt = -1f;
                 take = true;
             }
+            slot.Portrait.enabled = false;
             if (take)
             {
-                Frame(slot, chef, FaceFraming, 10f); // straight to the face, no easing
+                TakeStill(slot, chef);
                 slot.Stale = false;
             }
-            slot.Portrait.enabled = take;
             return slot.Compact;
+        }
+
+        // Photographs the chef's face, and only the chef, into the slot's picture, right now.
+        private void TakeStill(Slot slot, Transform chef)
+        {
+            Frame(slot, chef, FaceFraming, 10f); // straight to the face, no easing
+            var camera = slot.Portrait;
+            camera.cullingMask = 1 << StillLayer;
+            camera.backgroundColor = Color.Lerp(_style.CardBackground, PlayerColour(slot.Index), StillBackdropTint);
+            _moved.Clear();
+            foreach (var part in chef.GetComponentsInChildren<Renderer>(true))
+            {
+                _moved.Add((part.gameObject, part.gameObject.layer));
+                part.gameObject.layer = StillLayer;
+            }
+            // Outside Play mode (a still for the art team) shaders may still be compiling on the first draw.
+            for (var pass = 0; pass < (_staging ? 2 : 1); pass++)
+                Render(camera);
+            foreach (var (part, layer) in _moved)
+                if (part != null)
+                    part.layer = layer;
+            _moved.Clear();
+            camera.cullingMask = ~0;
+        }
+
+        private static void Render(Camera camera)
+        {
+            var request = new RenderPipeline.StandardRequest { destination = camera.targetTexture };
+            if (RenderPipeline.SupportsRenderRequest(camera, request))
+                RenderPipeline.SubmitRenderRequest(camera, request);
+            else
+                camera.Render();
         }
 
         private void Fill(Slot slot, TailorSession session)
