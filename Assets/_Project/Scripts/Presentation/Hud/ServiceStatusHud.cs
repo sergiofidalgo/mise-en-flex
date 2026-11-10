@@ -42,7 +42,6 @@ namespace Game.Presentation.Hud
         [SerializeField] private string _rearrangeHint = "Rearrange";
         [SerializeField] private string _forkcastHint = "forkcast";
         [SerializeField] private string _openUpHint = "Hold: open up";
-        [SerializeField] private string _startPrepHint = "Hold: start prep";
         [SerializeField] private string _playerReadyText = "READY";
         [SerializeField] private string _playerWaitingText = "not ready";
         [SerializeField] private string _playerLostText = "controller lost";
@@ -126,9 +125,9 @@ namespace Game.Presentation.Hud
                     ShowStrip(DayPhase.Prep, _openUpHint, forkcast: false);
                     break;
                 case DayPhase.Plan:
-                    // forkcast put away to walk around: Y brings it back, View rearranges, a hold starts prep.
+                    // forkcast put away to walk around: Y brings it back (its Start button starts prep), View rearranges.
                     _card.Hide();
-                    ShowStrip(DayPhase.Plan, _startPrepHint, forkcast: true);
+                    ShowStrip(DayPhase.Plan, null, forkcast: true);
                     break;
                 default:
                     _card.Hide();
@@ -144,11 +143,14 @@ namespace Game.Presentation.Hud
             if (forkcast)
                 _hints.Add(("Y", Tr.Get(_forkcastHint)));
             _hints.Add((HintStrip.View, Tr.Get(_rearrangeHint)));
-            var holder = HoldBar.Holder();
-            var hold = Tr.Get(holdHint);
-            if (holder != null)
-                hold += "  " + HoldBar.Text(holder, _settings.GetPlayerColor(holder.playerIndex), _waitingColor);
-            _hints.Add((HintStrip.Menu, hold));
+            if (holdHint != null)
+            {
+                var holder = HoldBar.Holder();
+                var hold = Tr.Get(holdHint);
+                if (holder != null)
+                    hold += "  " + HoldBar.Text(holder, _settings.GetPlayerColor(holder.playerIndex), _waitingColor);
+                _hints.Add((HintStrip.Menu, hold));
+            }
             _keys.Show(DayCardText.Phase(phase), _hints, _stripBottomMargin);
 
             var above = StripText();

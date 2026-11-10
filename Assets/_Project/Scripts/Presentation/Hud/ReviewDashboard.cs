@@ -80,6 +80,10 @@ namespace Game.Presentation.Hud
         [SerializeField, Min(0.05f)] private float _priceRepeatDelay = 0.4f;
         [Tooltip("Seconds between steps of a price while the stick stays held.")]
         [SerializeField, Min(0.01f)] private float _priceRepeatInterval = 0.07f;
+        [Tooltip("Real seconds A is held to fill the Start button (a shorter press is a tap: hire, unlock).")]
+        [SerializeField, Min(0.1f)] private float _startHoldSeconds = 0.8f;
+        [Tooltip("Pulses a second of the boss card's glow while the collection is short and two days or fewer away.")]
+        [SerializeField, Min(0.1f)] private float _bossPulsePerSecond = 0.8f;
         [Tooltip("Seconds after the last price change before the campaign is saved, so holding the stick doesn't write the file every step.")]
         [SerializeField, Min(0.1f)] private float _priceSaveDelay = 0.8f;
 
@@ -107,6 +111,12 @@ namespace Game.Presentation.Hud
         private string _staffResultName;
         private bool _photoTaken;
         private int _openedFrame = -1;
+        // Last night's money, for the receipt in the morning; null until a Review has been seen.
+        private Ledger _lastNight;
+        // Everyone's A: a tap acts, a hold readies (StartHold).
+        private readonly StartHold _start = new StartHold();
+        // The boss card's glow, pulsing while the collection is short and close.
+        private Image _bossGlow;
         private bool _dirty = true;
         private int _shownForDay = -1;
 
@@ -143,6 +153,7 @@ namespace Game.Presentation.Hud
         {
             _canvasObject.SetActive(open);
             _openedFrame = Time.frameCount;
+            _start.DisarmAll();
             if (!open)
             {
                 SaveCookbookNow();
@@ -179,6 +190,9 @@ namespace Game.Presentation.Hud
                 _onFilters = false;
                 _unlockResult = null;
                 _staffResult = StaffBoard.Outcome.Nothing;
+                // Kept for the morning's receipt: the day's books are cleared as the next day starts.
+                _lastNight = new Ledger();
+                _lastNight.Add(Services.Days.Today);
                 TakePhoto(atClose: true);
             }
             _dirty = true;
@@ -205,7 +219,9 @@ namespace Game.Presentation.Hud
         {
             if (!_canvasObject.activeSelf)
                 return;
+            _start.HoldSeconds = _startHoldSeconds;
             ReadInput();
+            PulseBoss();
             if (_saveCookbookAt >= 0f && Time.unscaledTime >= _saveCookbookAt)
                 SaveCookbookNow();
             if (_dirty)
@@ -225,9 +241,20 @@ namespace Game.Presentation.Hud
                 return;
             foreach (var player in PlayerInput.all)
             {
+                // A: a tap acts on what's chosen (hire, unlock), a hold fills the Start button and
+                // readies this player (the user's call, 2026-11-10). Read for everyone, so the press
+                // that joined a player is seen and ignored.
+                var a = player.actions.FindAction("Interact");
+                var startPress = _start.Update(player.playerIndex, a != null && a.IsPressed(), Time.unscaledDeltaTime);
                 if (!_dayLoop.WasHereLastFrame(player))
                     continue;
                 var actions = player.actions;
+                var tap = startPress == MenuPress.Result.Tap;
+                if (startPress == MenuPress.Result.Hold && !_choosingReply)
+                {
+                    _dayLoop.Ready.Toggle(player.playerIndex);
+                    continue;
+                }
 
                 // In Plan, B puts forkcast away so the chefs can walk and rearrange; Y brings it
                 // back (LayoutEditor). The reply wheel takes B first.
@@ -244,7 +271,7 @@ namespace Game.Presentation.Hud
                     else if (Pressed(actions, "RotateRight"))
                         SwitchTab(1);
                     else
-                        ReadStaff(actions);
+                        ReadStaff(actions, tap);
                     continue;
                 }
 
@@ -255,7 +282,7 @@ namespace Game.Presentation.Hud
                     else if (Pressed(actions, "RotateRight"))
                         SwitchTab(1);
                     else if (player == CookbookPlayer())
-                        ReadCookbook(actions);
+                        ReadCookbook(actions, tap);
                     continue;
                 }
 
@@ -274,6 +301,8 @@ namespace Game.Presentation.Hud
                     }
                     if (Pressed(actions, "Interact"))
                     {
+                        // On the press, as the wheel's other buttons: this press won't fill Start.
+                        _start.Disarm(player.playerIndex);
                         Reply(ReviewReply.StandYourGround);
                         continue;
                     }
@@ -410,7 +439,7 @@ namespace Game.Presentation.Hud
 
         // Anyone at the dashboard: up and down browse, A hires the chosen candidate, Y lets the chosen
         // team member go. A refusal says why rather than doing nothing.
-        private void ReadStaff(InputActionAsset actions)
+        private void ReadStaff(InputActionAsset actions, bool tap)
         {
             var move = actions["Gameplay/Navigate"].ReadValue<Vector2>();
             if (move.magnitude < _stickThreshold || Mathf.Abs(move.y) < Mathf.Abs(move.x))
@@ -426,7 +455,7 @@ namespace Game.Presentation.Hud
             if (rows.Count == 0)
                 return;
             var row = rows[_selected];
-            if (Pressed(actions, "Interact") && row.IsCandidate)
+            if (tap && row.IsCandidate)
             {
                 _staffResultName = row.Candidate.Name;
                 _staffResult = StaffBoard.Hire(Services.Staff, _selected, Services.Days.Balance, StaffEditable);
@@ -460,7 +489,7 @@ namespace Game.Presentation.Hud
 
         // Up and down browse; left and right step the chosen dish's price by 1, at once and then
         // repeating while held; A unlocks; X puts the price back to the suggestion.
-        private void ReadCookbook(InputActionAsset actions)
+        private void ReadCookbook(InputActionAsset actions, bool tap)
         {
             var book = Services.Cookbook;
             if (book == null || book.Recipes.Count == 0)
@@ -497,7 +526,7 @@ namespace Game.Presentation.Hud
                 }
             }
 
-            if (Pressed(actions, "Interact") && !book.IsUnlocked(recipe.Id))
+            if (tap && !book.IsUnlocked(recipe.Id))
             {
                 _unlockResult = book.TryUnlock(recipe.Id, Services.Days.TrySpend);
                 if (_unlockResult == Game.Simulation.Cookbook.UnlockResult.Unlocked)
@@ -580,8 +609,10 @@ namespace Game.Presentation.Hud
         private static string Money(float amount, bool cents = false) =>
             Money(amount, cents, false);
 
+        // Whole amounts everywhere in forkcast, as on the money card (the user's call, 2026-11-10):
+        // "$557", not "$556.56". The cents flag is kept so callers read as before.
         private static string Money(float amount, bool cents, bool signed) =>
-            Game.Data.Locale.Money(amount, cents ? Game.Data.MoneyStyle.Cents : Game.Data.MoneyStyle.Auto, signed);
+            Game.Data.Locale.Money(amount, Game.Data.MoneyStyle.Whole, signed);
 
         private string ClockAt(float serviceSeconds)
         {

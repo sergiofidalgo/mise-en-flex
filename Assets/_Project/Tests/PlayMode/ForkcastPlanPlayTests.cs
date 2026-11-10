@@ -90,6 +90,41 @@ namespace Game.Tests.PlayMode
         }
 
         [UnityTest]
+        public IEnumerator HoldingAFillsStartAndOpensPrep()
+        {
+            yield return Arrive();
+            yield return Join();
+            var hired = _root.Services.Staff.Hired.Count;
+
+            // A held on the Overview: no tap, so nothing's hired, and the Start button fills.
+            InputSystem.QueueStateEvent(_pad, new GamepadState().WithButton(GamepadButton.South));
+            yield return new WaitForSecondsRealtime(0.4f);
+            Assert.That(_root.Services.Days.Phase, Is.EqualTo(DayPhase.Plan), "not full yet");
+            yield return new WaitForSecondsRealtime(0.7f);
+            InputSystem.QueueStateEvent(_pad, new GamepadState());
+            yield return null;
+
+            Assert.That(_root.Services.Days.Phase, Is.EqualTo(DayPhase.Prep), "one cook: ready is everyone");
+            Assert.That(_root.Services.Forkcast.IsOpen, Is.False);
+            Assert.That(_root.Services.Staff.Hired.Count, Is.EqualTo(hired));
+        }
+
+        [UnityTest]
+        public IEnumerator HoldingMenuInPlanNoLongerStartsTheDay()
+        {
+            yield return Arrive();
+            yield return Join();
+            InputSystem.QueueStateEvent(_pad, new GamepadState().WithButton(GamepadButton.Start));
+            yield return new WaitForSecondsRealtime(1f);
+            InputSystem.QueueStateEvent(_pad, new GamepadState());
+            yield return null;
+            Assert.That(_root.Services.Days.Phase, Is.EqualTo(DayPhase.Plan));
+            // It opened the pause menu instead: close it so the next test starts clean.
+            Game.Gameplay.GamePause.MenuOpen = false;
+            Time.timeScale = 1f;
+        }
+
+        [UnityTest]
         public IEnumerator BPutsItAwayAndYBringsItBack()
         {
             yield return Arrive();

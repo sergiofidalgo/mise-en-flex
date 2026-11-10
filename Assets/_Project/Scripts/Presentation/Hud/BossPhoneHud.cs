@@ -25,6 +25,8 @@ namespace Game.Presentation.Hud
     public sealed class BossPhoneHud : MonoBehaviour
     {
         private const float Width = 420f, Height = 178f, Margin = 32f;
+        // How far the phone rises while forkcast is open: above its footer and Start button.
+        private const float ForkcastLift = 112f;
 
         private static readonly Color Body = new Color(0.10f, 0.09f, 0.09f, 0.96f);
         private static readonly Color Screen = new Color(0.17f, 0.14f, 0.13f);
@@ -152,7 +154,9 @@ namespace Game.Presentation.Hud
             var up = _lines != null && _age < callLength;
             _shown = Mathf.MoveTowards(_shown, up ? 1f : 0f, Time.unscaledDeltaTime / _slideSeconds);
             var eased = _shown * _shown * (3f - 2f * _shown);
-            _phone.anchoredPosition = new Vector2(1920f - Margin - Width, -(1080f - Margin - Height) - (1f - eased) * (Height + Margin + 20f));
+            // Over forkcast it rings above the footer, clear of the Start button (2026-11-10).
+            var lift = _root.Services != null && _root.Services.Forkcast.IsOpen ? ForkcastLift : 0f;
+            _phone.anchoredPosition = new Vector2(1920f - Margin - Width, -(1080f - Margin - Height - lift) - (1f - eased) * (Height + Margin + 20f + lift));
 
             if (_lines == null)
             {
