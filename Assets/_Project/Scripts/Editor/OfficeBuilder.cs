@@ -189,6 +189,8 @@ namespace Game.Editor
             var framing = new SerializedObject(follow);
             framing.FindProperty("_floorMin").vector2Value = new Vector2(West, South);
             framing.FindProperty("_floorMax").vector2Value = new Vector2(East, TerraceNorth);
+            framing.FindProperty("_terraceMin").vector2Value = new Vector2(West, North);
+            framing.FindProperty("_terraceMax").vector2Value = new Vector2(East, TerraceNorth);
             framing.ApplyModifiedPropertiesWithoutUndo();
             camera.transform.SetPositionAndRotation(follow.Wanted(), Quaternion.Euler(55f, 0f, 0f));
             NightLighting(sun, camera); // the moon, the night haze, lamps on (OfficeBuilder.Lighting.cs)

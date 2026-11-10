@@ -3041,3 +3041,9 @@ Enter also joins and submits. WASD no longer moves.
 **Reason:** It removes most of the "close Unity / run this menu item / send me a screenshot" round trips. Tests run inside the open Editor too: `unity command test run --mode editor` ran all 730 EditMode tests in about 12 s on 2026-11-10, with no need to close Unity. (`unity test`, the batch-mode command, still refuses a project that's open; use it only when the Editor is closed.) PlayMode tests enter Play mode, so Claude asks before running them.
 
 **Cost:** The package is experimental. If it breaks the Editor or the build, remove the line from `Packages/manifest.json`.
+
+## 2026-11-10 — The office camera pulls back on the terrace
+
+**Decision:** While any player is on the office terrace, `OfficeCamera` holds a still shot of the whole terrace and 20 m of ground past its rail, over the near rooftops (about 26–30 m up at 55°, instead of 10–14 m following a chef). Players walking around the terrace don't move it; anyone still inside is kept in the shot, up to the usual 55 m. A 0.5 m band at the terrace's edge keeps the shot as it was, so standing in the doorway doesn't flip it. The move out uses the kitchen's 0.45 s smooth time and the move back in its 0.7 s (decision 2026-11-08), one arc each that starts at once; once closed in, the usual 0.5 s follow takes over. The tilt stays at 55°; a lower tilt (say 45°) for a wider view of the skyline is the first thing to try if the view feels cramped. The maths is `TerraceFraming` (simulation), tested in `TerraceFramingTests`.
+
+**Reason:** The user asked for the camera to pull back on the terrace so players can see and enjoy the detailed rooftops, and close in again inside. The office scene's follow camera stopped at the building's edge, the rail, so the roofs never showed.

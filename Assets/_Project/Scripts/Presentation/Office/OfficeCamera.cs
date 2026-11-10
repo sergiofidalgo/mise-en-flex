@@ -10,6 +10,8 @@ namespace Game.Presentation.Office
     /// The office's camera (spec: docs/office-scene.md §2). Before anyone joins it holds a wide shot
     /// of the whole floor; once someone has, it follows the players at the kitchen's tilt, zooming
     /// out as they spread apart, and never shows past the floor's edges more than it must.
+    /// While anyone's on the terrace it pulls back to a still shot of it and the rooftops past the rail,
+    /// and closes in again when they're all back inside, with the kitchen's timings.
     /// A simpler cousin of the kitchen's FramingCamera, which is tied to the kitchen's systems.
     /// </summary>
     [RequireComponent(typeof(Camera))]
@@ -37,9 +39,26 @@ namespace Game.Presentation.Office
         [Tooltip("Seconds to most of the way to a new framing.")]
         [SerializeField, Min(0.01f)] private float _ease = 0.5f;
 
+        [Header("Terrace shot")]
+        [Tooltip("The terrace's corners on the ground (X, Z). While anyone's on it, the camera pulls back over the rooftops (user's request, 2026-11-10).")]
+        [SerializeField] private Vector2 _terraceMin = new Vector2(-17.5f, 13.5f);
+        [SerializeField] private Vector2 _terraceMax = new Vector2(17.5f, 19.5f);
+        [Tooltip("Metres of ground the terrace shot shows past the rail, over the near rooftops.")]
+        [SerializeField, Min(0f)] private float _beyondRail = 20f;
+        [Tooltip("Metres either side of the terrace's edge that keep the shot as it was, so standing in the doorway doesn't flip it.")]
+        [SerializeField, Min(0f)] private float _doorwaySlack = 0.5f;
+        [Tooltip("Smooth time pulling back to the terrace shot: mostly there in about twice this. The kitchen's 0.45 (decision 2026-11-08).")]
+        [SerializeField, Min(0.01f)] private float _zoomOutSeconds = 0.45f;
+        [Tooltip("Smooth time closing in again when everyone's back inside. The kitchen's 0.7.")]
+        [SerializeField, Min(0.01f)] private float _zoomInSeconds = 0.7f;
+        [Tooltip("Metres from its goal at which closing in counts as done, and the usual follow ease takes over.")]
+        [SerializeField, Min(0.01f)] private float _settledWithin = 0.3f;
+
         private readonly List<SimVector2> _points = new List<SimVector2>();
         private Camera _camera;
         private Vector3 _velocity;
+        private bool _onTerrace;
+        private bool _closingIn;
 
         private void Awake()
         {
@@ -51,10 +70,19 @@ namespace Game.Presentation.Office
         private void LateUpdate()
         {
             transform.rotation = Quaternion.Euler(_tilt, 0f, 0f);
-            transform.position = Vector3.SmoothDamp(transform.position, Wanted(), ref _velocity, _ease);
+            var wasOnTerrace = _onTerrace;
+            var wanted = Wanted();
+            if (wasOnTerrace && !_onTerrace)
+                _closingIn = true;
+            if (_closingIn && Vector3.Distance(transform.position, wanted) < _settledWithin)
+                _closingIn = false;
+            // One eased arc, height and ground position together, starting at once (as the kitchen's).
+            // Switching smooth time keeps the velocity, so there's no jolt where one ease hands over.
+            var ease = _onTerrace ? _zoomOutSeconds : _closingIn ? _zoomInSeconds : _ease;
+            transform.position = Vector3.SmoothDamp(transform.position, wanted, ref _velocity, ease);
         }
 
-        /// <summary>Where the camera should be now: on the players, or on the whole floor before anyone joins.</summary>
+        /// <summary>Where the camera should be now: on the players, on the terrace and the roofs past it while anyone's out there, or on the whole floor before anyone joins.</summary>
         public Vector3 Wanted()
         {
             _points.Clear();
@@ -66,7 +94,15 @@ namespace Game.Presentation.Office
             var aspect = _camera != null ? _camera.aspect : 16f / 9f;
             var fov = _camera != null ? _camera.fieldOfView : 45f;
             System.Numerics.Vector3 at;
-            if (_points.Count == 0)
+            var terraceMin = new SimVector2(_terraceMin.x, _terraceMin.y);
+            var terraceMax = new SimVector2(_terraceMax.x, _terraceMax.y);
+            _onTerrace = _points.Count > 0 && TerraceFraming.AnyoneOnTerrace(_points, terraceMin, terraceMax, _onTerrace, _doorwaySlack);
+            if (_onTerrace)
+            {
+                at = TerraceFraming.Fit(_points, terraceMin, terraceMax, _beyondRail, _doorwaySlack, _tilt, fov, aspect, _margin,
+                    _minHeight, _maxHeight, _screenTop);
+            }
+            else if (_points.Count == 0)
             {
                 _points.Add(min);
                 _points.Add(max);
