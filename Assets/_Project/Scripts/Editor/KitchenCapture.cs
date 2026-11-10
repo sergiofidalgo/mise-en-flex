@@ -23,6 +23,7 @@ namespace Game.Editor
         private const float CloseHeight = 2.6f;
         private const float PlayHeight = 6.5f;      // the closest the game camera comes
         private const float WholeKitchenHeight = 11f;
+        private const float StreetHeight = 22f;
 
         private const int PlateRow = 7;
         private const float PlateSpacing = 0.4f;
@@ -30,7 +31,7 @@ namespace Game.Editor
         private static readonly Vector3 PlateRowStart = new Vector3(20f, 0f, 0f);
 
         // Stations to look at closely, by name in the scene.
-        private static readonly string[] CloseUps = { "Hob_01", "Sink", "PlateStack", "WallCounter_01", "CuttingBoard", "Fridge", "DiningFloor", "Wall_West" };
+        private static readonly string[] CloseUps = { "Hob_01", "Sink", "PlateStack", "WallCounter_01", "CuttingBoard", "Fridge", "DiningFloor", "Wall_West", "Stall_Butcher", "Stall_Greengrocer" };
 
         [MenuItem("Tools/Game/Art/Capture Kitchen")]
         private static void CaptureFromMenu()
@@ -67,6 +68,8 @@ namespace Game.Editor
             Render(camera, target, new Vector3(0f, 0.9f, -1.5f), WholeKitchenHeight, null);
             Render(camera, target, new Vector3(0f, 0.9f, -1.5f), WholeKitchenHeight, Path.Combine(folder, "kitchen_whole.png"));
             Render(camera, target, new Vector3(0f, 0.9f, 0.3f), PlayHeight, Path.Combine(folder, "kitchen_play.png"));
+            // The street outside, with the market stalls (Phase 5): as the camera shows it with someone out shopping.
+            Render(camera, target, new Vector3(-3f, 0.9f, -4f), StreetHeight, Path.Combine(folder, "street_whole.png"));
             // Food sitting on a counter, at the size counters show it (only seen in play).
             var counterAnchor = GameObject.Find("WallCounter_01")?.transform.Find("ItemAnchor");
             if (counterAnchor != null)

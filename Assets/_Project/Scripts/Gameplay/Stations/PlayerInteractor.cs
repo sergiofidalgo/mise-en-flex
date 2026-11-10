@@ -170,8 +170,11 @@ namespace Game.Gameplay.Stations
             for (var i = 0; i < _interactables.Count; i++)
             {
                 // Walls stop reaching, unless the station's against them: out of range is out of reach.
+                // Outer walls always do: indoors and the street outside don't reach each other.
                 var position = _interactables[i].transform.position;
-                _candidatePositions.Add(_services.Building.CanReach(origin, _interactables[i].Footprint)
+                var building = _services.Building;
+                var sameSide = building.IsIndoors(origin) == building.IsIndoors(new SimVector2(position.x, position.z));
+                _candidatePositions.Add(sameSide && building.CanReach(origin, _interactables[i].Footprint)
                     ? new SimVector2(position.x, position.z)
                     : origin + new SimVector2(float.MaxValue / 2f, 0f));
                 if (_interactables[i] == _target)
@@ -329,6 +332,10 @@ namespace Game.Gameplay.Stations
             }
             else
             {
+                // A market crate that's been emptied has done its job and goes (decision 2026-11-10).
+                if (_hands.Current is Crate crate && crate.IsEmpty)
+                    _services.ItemViews.Release(_hands.Take());
+
                 // Re-place both sides; only views whose place changed move. Brand-new items
                 // (from a rack or the plate stack) appear at the station and fly to the hands.
                 RefreshHeld(_target.ItemAnchor.position);

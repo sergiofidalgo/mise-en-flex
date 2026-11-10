@@ -274,7 +274,8 @@ namespace Game.Editor
                     (Game.Simulation.Items.Plate.PlateTypeId, GreyboxKitchenware.BuildPlate()),
                     (Game.Simulation.Items.Knife.KnifeTypeId, GreyboxKitchenware.BuildKnife()),
                     (Game.Simulation.Items.Tray.TrayTypeId, GreyboxKitchenware.BuildTray()),
-                    (Game.Simulation.Items.FoodContainer.ContainerTypeId, GreyboxKitchenware.BuildContainer())),
+                    (Game.Simulation.Items.FoodContainer.ContainerTypeId, GreyboxKitchenware.BuildContainer()),
+                    (Game.Simulation.Items.Crate.CrateTypeId, GreyboxStreet.BuildCrate())),
             };
             SetMenu(assets.ServiceConfig, assets.Catalog);
             // Pictures for menus, from the food prefabs just built; only missing ones are rendered.
@@ -545,6 +546,9 @@ namespace Game.Editor
             framing.FindProperty("_editor").objectReferenceValue = Object.FindFirstObjectByType<LayoutEditor>();
             framing.FindProperty("_tilt").floatValue = CameraEuler.x;
             framing.ApplyModifiedPropertiesWithoutUndo();
+
+            // Out of the front door: the pavement, the road and the market stalls (Phase 5).
+            GreyboxStreet.Build(camera);
 
             GreyboxAudio.AddTo(root, camera);
 
