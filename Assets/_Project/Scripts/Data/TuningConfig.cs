@@ -89,13 +89,13 @@ namespace Game.Data
         [SerializeField, Min(0f)] private float _washDamping = 4.2f;
         [Tooltip("Size of the random nudge. Keep below instability × ok radius, or doing nothing could clean a plate.")]
         [SerializeField, Min(0f)] private float _washNudge = 1.0f;
-        [Tooltip("Fraction of the circle: the centre the point must be held in.")]
-        [SerializeField, Range(0f, 1f)] private float _washGoodRadius = 0.25f;
-        [Tooltip("Fraction of the circle: how far out the point still shows as close (its colour).")]
-        [SerializeField, Range(0f, 1f)] private float _washOkRadius = 0.55f;
-        [Tooltip("Seconds the point must stay in the centre for it to count; passing through doesn't.")]
-        [SerializeField, Min(0f)] private float _washHoldSeconds = 0.3f;
-        [Tooltip("Pushes to correct per plate after the first centring (the user's call, 2026-11-09: 2, so 3 centrings a plate).")]
+        [Tooltip("Fraction of the circle: the target drawn in the centre to aim for.")]
+        [SerializeField, Range(0f, 1f)] private float _washGoodRadius = 0.3f;
+        [Tooltip("Fraction of the circle beyond which nothing gets clean; inside, the closer the quicker.")]
+        [SerializeField, Range(0f, 1f)] private float _washOkRadius = 0.6f;
+        [Tooltip("Seconds of full-speed scrubbing per plate; scrubbing slows the further the soap is from the centre.")]
+        [SerializeField, Min(0.1f)] private float _washSecondsPerPlate = 2.4f;
+        [Tooltip("Pushes per plate, one as each share of it comes clean (the user's call: 2, so each plate is tipped three ways).")]
         [SerializeField, Min(0)] private int _washCorrections = 2;
         [Tooltip("How hard each push kicks the point away (circle radii per second).")]
         [SerializeField, Min(0f)] private float _washPushSpeed = 3.5f;
@@ -207,7 +207,7 @@ namespace Game.Data
             Nudge = _washNudge,
             GoodRadius = _washGoodRadius,
             OkRadius = _washOkRadius,
-            HoldSeconds = _washHoldSeconds,
+            SecondsPerPlate = _washSecondsPerPlate,
             Corrections = _washCorrections,
             PushSpeed = _washPushSpeed,
             PushSpreadDegrees = _washPushSpread,

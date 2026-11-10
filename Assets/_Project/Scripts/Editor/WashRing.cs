@@ -129,8 +129,8 @@ namespace Game.Editor
             so.FindProperty("_style").objectReferenceValue = style;
             so.FindProperty("_ring").objectReferenceValue = ControlGlyphArt.Sprite(ControlGlyphArt.StickTopBase);
             so.FindProperty("_capTop").objectReferenceValue = ControlGlyphArt.Sprite(ControlGlyphArt.StickTopCap);
-            so.FindProperty("_size").floatValue = 46f;
-            so.FindProperty("_travel").floatValue = 10f;
+            so.FindProperty("_size").floatValue = 84f;
+            so.FindProperty("_travel").floatValue = 18f;
             so.ApplyModifiedPropertiesWithoutUndo();
         }
 

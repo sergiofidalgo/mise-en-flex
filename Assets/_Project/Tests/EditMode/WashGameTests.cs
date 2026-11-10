@@ -60,7 +60,7 @@ namespace Game.Tests.EditMode
             for (var seed = 0; seed < 10; seed++)
             {
                 var plates = Plates(RealSettings, (point, velocity) => Clamp(-point - velocity * 0.35f), 30f, seed);
-                // Holding the centre, then three corrections (2026-11-09): about 5 s a plate.
+                // Continuous scrubbing, quicker nearer the centre, three shares (2026-11-10): about 4 s a plate.
                 Assert.That(plates, Is.GreaterThan(4f), $"seed {seed}: under 7.5 s a plate");
             }
         }
@@ -89,61 +89,68 @@ namespace Game.Tests.EditMode
         }
 
         [Test]
-        public void WashingRateFollowsTheDistance()
+        public void ScrubbingIsQuickestAtTheCentreAndStopsAtTheOkRadius()
         {
-            var settings = new WashGameSettings { Nudge = 0f, Instability = 0f, Damping = 0f, StartRadius = 0.1f };
-            Assert.That(new WashGame(settings, 1).Rate, Is.EqualTo(1f), "in the target");
+            // The user's call (2026-11-10): the closer to the centre, the quicker.
+            var settings = new WashGameSettings { Nudge = 0f, Instability = 0f, Damping = 0f, OkRadius = 0.6f, StartRadius = 0f };
+            Assert.That(new WashGame(settings, 1).Rate, Is.EqualTo(1f), "full speed at the very centre");
 
-            settings.StartRadius = 0.4f;
-            Assert.That(new WashGame(settings, 1).Rate, Is.EqualTo(0.5f).Within(0.01f), "halfway out");
+            settings.StartRadius = 0.3f;
+            Assert.That(new WashGame(settings, 1).Rate, Is.EqualTo(0.5f).Within(0.01f), "half speed halfway out");
 
             settings.StartRadius = 0.7f;
-            Assert.That(new WashGame(settings, 1).Rate, Is.EqualTo(0f));
+            Assert.That(new WashGame(settings, 1).Rate, Is.EqualTo(0f), "nothing beyond the OK radius");
+        }
+
+        [Test]
+        public void ThePlateCleansAllTheTimeTheSoapIsClose()
+        {
+            // A still point (no drift, no stick): it washes every frame, more the closer it sits.
+            float WashedAt(float radius)
+            {
+                var settings = new WashGameSettings { Nudge = 0f, Instability = 0f, Damping = 0f, StartRadius = radius, SecondsPerPlate = 2.4f };
+                var game = new WashGame(settings, 1);
+                var washed = 0f;
+                for (var i = 0; i < 12; i++) // 0.2 s, well short of a share
+                    washed += game.Tick(Frame, Vector2.Zero);
+                return washed;
+            }
+
+            Assert.That(WashedAt(0.1f), Is.GreaterThan(WashedAt(0.4f)));
+            Assert.That(WashedAt(0.4f), Is.GreaterThan(0f), "not only in the target");
+            Assert.That(WashedAt(0.65f), Is.EqualTo(0f));
         }
 
         // A calm, still point in the centre with no drift: only the rules act on it.
         private static WashGameSettings StillSettings => new WashGameSettings
         {
-            Nudge = 0f, Instability = 0f, Damping = 6f, StartRadius = 0f, HoldSeconds = 0.3f, Corrections = 2, PushSpeed = 3.5f,
+            Nudge = 0f, Instability = 0f, Damping = 6f, StartRadius = 0f, SecondsPerPlate = 2.4f, Corrections = 2, PushSpeed = 3.5f,
         };
 
         [Test]
-        public void HoldingTheCentreScrubsAPartThenPushesThePointAway()
+        public void EachThirdCleanPushesThePointAway()
         {
+            // At full speed a third of a plate takes 2.4 / 3 = 0.8 s.
             var game = new WashGame(StillSettings, 1);
             var pushes = 0;
             game.Pushed += _ => pushes++;
             var washed = 0f;
-            for (var i = 0; i < 15; i++) // 0.25 s
+            for (var i = 0; i < 45; i++) // 0.75 s
                 washed += game.Tick(Frame, Vector2.Zero);
-            Assert.That(washed, Is.EqualTo(0f), "not held long enough yet");
+            Assert.That(pushes, Is.EqualTo(0), "the first share isn't clean yet");
+            Assert.That(game.ShareProgress, Is.GreaterThan(0.9f));
 
-            for (var i = 0; i < 6; i++) // past 0.3 s
+            for (var i = 0; i < 6; i++) // past 0.8 s
                 washed += game.Tick(Frame, Vector2.Zero);
-            Assert.That(washed, Is.EqualTo(1f / 3f).Within(1e-5f), "one of three parts");
             Assert.That(pushes, Is.EqualTo(1));
+            Assert.That(washed, Is.EqualTo(1f / 3f).Within(0.02f), "a share's worth, nothing carried past it");
             for (var i = 0; i < 30; i++)
                 game.Tick(Frame, Vector2.Zero);
             Assert.That(game.Point.Length(), Is.GreaterThan(game.GoodRadius), "kicked out of the centre");
         }
 
         [Test]
-        public void PassingThroughTheCentreDoesntCount()
-        {
-            var settings = StillSettings;
-            settings.StartRadius = 0.9f;
-            settings.Damping = 0f;
-            var game = new WashGame(settings, 3);
-            var washed = 0f;
-            // Fling it straight across: it crosses the centre in well under the hold time.
-            var across = -Vector2.Normalize(game.Point);
-            for (var t = 0f; t < 1f; t += Frame)
-                washed += game.Tick(Frame, across);
-            Assert.That(washed, Is.EqualTo(0f));
-        }
-
-        [Test]
-        public void APlateTakesThreeCentringsFromThreeSides()
+        public void APlateIsWashedInThreeSharesFromThreeSides()
         {
             // An ideal hand pulls the point straight back to the centre.
             var game = new WashGame(StillSettings, 7);
@@ -153,8 +160,8 @@ namespace Game.Tests.EditMode
             for (var t = 0f; t < 20f && washed < 1f - 1e-4f; t += Frame)
                 washed += game.Tick(Frame, Clamp(-game.Point * 4f));
 
-            Assert.That(washed, Is.EqualTo(1f).Within(1e-4f), "a whole plate");
-            Assert.That(game.StagesDone, Is.EqualTo(3), "the first centring and two corrections (the user's call)");
+            Assert.That(washed, Is.EqualTo(1f).Within(1e-4f), "a whole plate, exactly");
+            Assert.That(game.StagesDone, Is.EqualTo(3), "three shares (the user's call)");
             Assert.That(directions.Count, Is.EqualTo(2), "no push after the last one");
             // Evenly spread with a little randomness: the pushes about 120° apart, at least 80°.
             for (var i = 0; i < directions.Count; i++)
@@ -163,18 +170,6 @@ namespace Game.Tests.EditMode
                 var angle = Math.Acos(Math.Clamp(Vector2.Dot(directions[i], directions[j]), -1f, 1f)) * 180.0 / Math.PI;
                 Assert.That(angle, Is.GreaterThan(80.0), $"pushes {i} and {j}");
             }
-        }
-
-        [Test]
-        public void LeavingTheCentreStartsTheHoldAgain()
-        {
-            var game = new WashGame(StillSettings, 1);
-            for (var t = 0f; t < 0.2f; t += Frame)
-                game.Tick(Frame, Vector2.Zero);
-            Assert.That(game.HoldFraction, Is.GreaterThan(0.5f));
-            for (var i = 0; i < 40; i++)
-                game.Tick(Frame, new Vector2(1f, 0f));
-            Assert.That(game.HoldFraction, Is.EqualTo(0f));
         }
 
         [Test]

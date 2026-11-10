@@ -4,6 +4,19 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-10 — Washing cleans continuously, quicker nearer the centre; the rim turns from grime to water
+
+**User's calls, after playing:** the ring should fill all the time, faster the closer the soap is to the centre; the LS cue was too small to notice; the target should be a little bigger; the rim should go from dark brown to blue, like water cleaning the grime.
+
+- **Continuous scrubbing** (`WashGame`): the plate cleans every frame the soap is within `OkRadius` (0.6 of the circle, was 0.55), at full speed at the very centre and slowing straight down to nothing at that edge (`Rate`). 2.4 s of full-speed scrubbing per plate (`SecondsPerPlate`). The 0.3 s hold is gone.
+- **Still three sides:** the plate is washed in three shares; as each third comes clean the soap is kicked to the plate's next side, about 120° apart, so every plate is still tipped every way. Measured with simulated hands: a steady hand takes about 4.1 s a plate; slamming the stick about almost never finishes one; doing nothing never cleans.
+- **Bigger target:** 0.3 of the circle (was 0.25). Its arc goes green as the current third comes clean, and it's tinted in the washer's colour, which no longer shows on the rim.
+- **Grime to water:** each rim segment blends from grime brown to water blue as the plate's progress passes through it.
+- **LS cue:** 84 px (was 46), the cap travelling 18 px, popping in at 1.5× and settling, so it's noticed at once.
+- The minigame complexity dial now passes `SecondsPerPlate` through instead of the removed hold time.
+
+---
+
 ## 2026-11-10 — Menus and lists are browsed with the D-pad, not the stick
 
 **Decision (user's call):** every menu and list steps with the D-pad, or the arrow keys on the keyboard. The left stick no longer browses them. This covers the main menu, the pause menu, the Review dashboard (browsing, filter chips, cookbook prices), the tailor, the accountant, the city miniature and the layout editor's shop list. A new `Navigate` action in the Gameplay map (D-pad + arrows, rebindable) drives them; the UI map's `Navigate` moved from the stick to the D-pad. Hints show a drawn D-pad cross instead of "LS". Walking, the layout editor's free cursor and the sink's balancing still use the stick.

@@ -24,19 +24,22 @@ namespace Game.Simulation.Items
         /// <summary>Seconds between new nudge directions.</summary>
         public float NudgeInterval { get; set; } = 0.5f;
 
-        /// <summary>The centre the point must be held in.</summary>
-        public float GoodRadius { get; set; } = 0.25f;
+        /// <summary>The target drawn in the centre to aim for: scrubbing there is close to full speed.</summary>
+        public float GoodRadius { get; set; } = 0.3f;
 
-        /// <summary>How far out the point still counts as close, for its colour (0 beyond, 1 inside GoodRadius).</summary>
-        public float OkRadius { get; set; } = 0.55f;
+        /// <summary>
+        /// Beyond this distance from the centre nothing gets clean; inside it scrubbing speeds up the
+        /// closer the point gets, to full speed at the very centre (the user's call, 2026-11-10).
+        /// </summary>
+        public float OkRadius { get; set; } = 0.6f;
 
-        /// <summary>Seconds the point must stay in the centre for it to count: passing through doesn't.</summary>
-        public float HoldSeconds { get; set; } = 0.3f;
+        /// <summary>Seconds of full-speed scrubbing per plate (a steady hand takes about 4 s in all).</summary>
+        public float SecondsPerPlate { get; set; } = 2.4f;
 
-        /// <summary>Pushes per plate after the first centring; each must be corrected. A plate takes this + 1 centrings.</summary>
+        /// <summary>Pushes per plate, one each time another share of it is clean; each must be corrected. A plate has this + 1 shares.</summary>
         public int Corrections { get; set; } = 2;
 
-        /// <summary>Speed the point is kicked away with once it's been held in the centre (circle radii per second).</summary>
+        /// <summary>Speed the point is kicked away with when a share of the plate is clean (circle radii per second).</summary>
         public float PushSpeed { get; set; } = 3.5f;
 
         /// <summary>Random spread, in degrees either way, around the sides the plate is tipped to, evenly spaced round the circle.</summary>
@@ -50,10 +53,10 @@ namespace Game.Simulation.Items
     /// Washing a plate by hand (decisions 2026-11-04 and 2026-11-09): balance a point in the centre
     /// of a circle with the stick. It behaves like balancing a stick on your palm: the further it's
     /// off centre, the harder it runs away, so doing nothing loses it, and over-correcting does too.
-    /// Holding it in the centre for a moment scrubs one part of the plate; then the plate gets
-    /// kicked off in a new direction to be brought back (3 centrings a plate, the user's call).
-    /// The start and the kicks go evenly round the circle (with a little randomness), so every
-    /// plate is tipped every way before it's clean.
+    /// The plate gets clean all the time the point is near the centre, the quicker the closer it
+    /// is (the user's call, 2026-11-10). Each time another third is clean the plate gets kicked off
+    /// in a new direction to be brought back. The start and the kicks go evenly round the circle
+    /// (with a little randomness), so every plate is tipped every way before it's clean.
     /// </summary>
     public sealed class WashGame
     {
@@ -62,7 +65,7 @@ namespace Game.Simulation.Items
         private Vector2 _velocity;
         private Vector2 _nudge;
         private float _nudgeLeft;
-        private float _held;
+        private float _share;
         private float _pushAngle;
         private int _pushes;
 
@@ -76,22 +79,22 @@ namespace Game.Simulation.Items
         /// <summary>The point, with 1 as the circle's edge.</summary>
         public Vector2 Point { get; private set; }
 
-        /// <summary>Inside this distance from the centre, washing goes at full speed.</summary>
+        /// <summary>The target to aim for in the centre.</summary>
         public float GoodRadius => _settings.GoodRadius;
 
         /// <summary>Beyond this distance from the centre, nothing gets clean.</summary>
         public float OkRadius => _settings.OkRadius;
 
-        /// <summary>0..1: how close to the centre the point is (1 inside it), for its colour.</summary>
+        /// <summary>0..1: how fast it's scrubbing right now: 1 at the very centre, 0 from OkRadius out.</summary>
         public float Rate => RateAt(Point.Length());
 
-        /// <summary>0..1: how long it has been held in the centre, towards <see cref="WashGameSettings.HoldSeconds"/>.</summary>
-        public float HoldFraction => _settings.HoldSeconds > 0f ? Math.Clamp(_held / _settings.HoldSeconds, 0f, 1f) : 0f;
+        /// <summary>0..1: how much of the current share of the plate is clean (the next push comes at 1).</summary>
+        public float ShareProgress => Math.Clamp(_share, 0f, 1f);
 
-        /// <summary>Centrings a plate takes.</summary>
+        /// <summary>Shares a plate is washed in, with a push between each.</summary>
         public int Stages => Math.Max(1, _settings.Corrections + 1);
 
-        /// <summary>Centrings done on this plate.</summary>
+        /// <summary>Shares done on this plate.</summary>
         public int StagesDone { get; private set; }
 
         /// <summary>Raised when the point is kicked away, with the direction it goes.</summary>
@@ -106,12 +109,12 @@ namespace Game.Simulation.Items
             var start = _pushAngle - SideSpacing;
             Point = new Vector2((float)Math.Cos(start), (float)Math.Sin(start)) * _settings.StartRadius;
             _velocity = Vector2.Zero;
-            _held = 0f;
+            _share = 0f;
             StagesDone = 0;
             _pushes = 0;
         }
 
-        // The angle between the sides a plate is tipped to: one per centring.
+        // The angle between the sides a plate is tipped to: one per share.
         private double SideSpacing => 2.0 * Math.PI / Stages;
 
         /// <summary>Moves the point.</summary>
@@ -146,21 +149,22 @@ namespace Game.Simulation.Items
                     _velocity -= outward * along;
             }
 
-            // Held in the centre long enough: that part's scrubbed. Leaving starts the hold again.
-            if (Point.Length() > _settings.GoodRadius)
-            {
-                _held = 0f;
+            // Scrubbing, the quicker the closer to the centre. A share that fills is done and the
+            // plate's kicked to its next side; what's past the end of a share isn't carried over,
+            // so a plate always takes exactly its shares.
+            var washed = Rate * seconds / Math.Max(0.01f, _settings.SecondsPerPlate);
+            if (washed <= 0f)
                 return 0f;
-            }
-            _held += seconds;
-            if (_held < _settings.HoldSeconds)
-                return 0f;
+            _share += washed * Stages;
+            if (_share < 1f)
+                return washed;
 
-            _held = 0f;
+            washed -= (_share - 1f) / Stages;
+            _share = 0f;
             StagesDone++;
             if (StagesDone < Stages)
                 Push();
-            return 1f / Stages;
+            return washed;
         }
 
         // Kicks the point off to the plate's next side, nudged a little, so over a plate it's
@@ -175,13 +179,9 @@ namespace Game.Simulation.Items
             Pushed?.Invoke(direction);
         }
 
-        private float RateAt(float distance)
-        {
-            if (distance <= _settings.GoodRadius)
-                return 1f;
-            var span = _settings.OkRadius - _settings.GoodRadius;
-            return span > 0f ? Math.Clamp(1f - (distance - _settings.GoodRadius) / span, 0f, 1f) : 0f;
-        }
+        // Straight from full at the centre to nothing at OkRadius: every bit closer pays.
+        private float RateAt(float distance) =>
+            _settings.OkRadius > 0f ? Math.Clamp(1f - distance / _settings.OkRadius, 0f, 1f) : 0f;
 
         private Vector2 RandomDirection()
         {

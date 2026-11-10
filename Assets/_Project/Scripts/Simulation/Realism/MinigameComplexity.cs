@@ -50,7 +50,7 @@ namespace Game.Simulation.Realism
                 NudgeInterval = wash.NudgeInterval,
                 GoodRadius = Math.Min(okRadius, wash.GoodRadius * ease),
                 OkRadius = okRadius,
-                HoldSeconds = wash.HoldSeconds,
+                SecondsPerPlate = wash.SecondsPerPlate,
                 Corrections = Math.Max(0, wash.Corrections + (int)Math.Round((Math.Clamp(complexity, 0f, 1f) - 0.5f) * settings.CorrectionsSpan, MidpointRounding.AwayFromZero)),
                 PushSpeed = wash.PushSpeed,
                 PushSpreadDegrees = wash.PushSpreadDegrees,

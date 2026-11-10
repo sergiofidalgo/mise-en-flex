@@ -23,9 +23,9 @@ namespace Game.Presentation.Hud
         [SerializeField] private Sprite _capTop;
 
         [Tooltip("Canvas pixels: the ring's width.")]
-        [SerializeField, Min(16f)] private float _size = 46f;
+        [SerializeField, Min(16f)] private float _size = 84f;
         [Tooltip("Canvas pixels the cap travels at the far end of a push.")]
-        [SerializeField, Min(0f)] private float _travel = 10f;
+        [SerializeField, Min(0f)] private float _travel = 18f;
         [Tooltip("Pushes per second.")]
         [SerializeField, Min(0f)] private float _pushes = 1.6f;
         [Tooltip("How see-through the cue is at most, so the target shows through it.")]
@@ -92,7 +92,8 @@ namespace Game.Presentation.Hud
             var canvasSize = _canvas.rect.size;
             var local = Vector2.Scale((Vector2)at - new Vector2(0.5f, 0.5f), canvasSize);
             hint.Root.anchoredPosition = local;
-            hint.Root.localScale = Vector3.one * (1f + 0.15f * (1f - amount)); // settles in as it appears
+            // Pops in big and settles, so it's noticed at once (the user's call, 2026-11-10).
+            hint.Root.localScale = Vector3.one * (1f + 0.5f * (1f - amount) * (1f - amount));
             HudBounds.KeepInside(hint.Root, _canvas, _style != null ? _style.ScreenMargin : 12f);
 
             // Push, hold, let go: the cap eases out the way to go and springs back.

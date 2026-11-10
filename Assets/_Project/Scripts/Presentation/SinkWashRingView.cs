@@ -53,8 +53,10 @@ namespace Game.Presentation
         [SerializeField] private Color _good = new Color(0.45f, 0.85f, 0.40f);
         [SerializeField] private Color _bad = new Color(0.95f, 0.30f, 0.26f);
         [SerializeField] private Color _targetIdle = new Color(0.97f, 0.97f, 0.95f);
-        [Tooltip("How dark an unlit segment is, as a share of the player's colour.")]
-        [SerializeField, Range(0f, 1f)] private float _unlit = 0.32f;
+        [Tooltip("A rim segment still to clean: the plate's grime (the user's call, 2026-11-10).")]
+        [SerializeField] private Color _grime = new Color(0.36f, 0.23f, 0.12f);
+        [Tooltip("A rim segment cleaned: water. Segments blend from grime to water as the plate cleans.")]
+        [SerializeField] private Color _water = new Color(0.33f, 0.66f, 0.92f);
 
         [Header("Fades")]
         [Tooltip("Seconds to pop in or out when washing starts or stops.")]
@@ -118,6 +120,9 @@ namespace Game.Presentation
         private float _lastRawProgress;
         private float _popLeft;
         private Color _rimColor = new Color(0.91f, 0.53f, 0.23f);
+        // The game's target size (0.3 of the circle by default), and the size the kit was built at.
+        private float _targetRadius = 0.3f;
+        private float _builtRadius;
         private Vector2 _shownPoint;
         private Vector2 _lastPoint;
 
@@ -171,7 +176,8 @@ namespace Game.Presentation
                     _rimColor = _settings.GetPlayerColor(player.playerIndex);
                 _progress = Mathf.SmoothDamp(_progress, Mathf.Clamp01(raw), ref _progressVelocity, _progressSmoothing);
                 rate = game.Rate;
-                hold = game.HoldFraction;
+                hold = game.ShareProgress;
+                _targetRadius = game.GoodRadius;
                 UpdateStuck(game.Point.Length() > game.GoodRadius, _sink.Washer.MoveInput, dt);
             }
             else
@@ -191,7 +197,8 @@ namespace Game.Presentation
             EnsureKit();
             _root.gameObject.SetActive(true);
             var popT = _popLeft / _popSeconds;               // 1 at the start of the pop, 0 at its end
-            var pulse = washing ? _pulse * Mathf.Sin(Time.time * _pulseRate * 2f * Mathf.PI) * hold : 0f;
+            // Pulses while scrubbing, more the quicker it goes.
+            var pulse = washing ? _pulse * Mathf.Sin(Time.time * _pulseRate * 2f * Mathf.PI) * rate : 0f;
             // Pops in with a little overshoot, and out again when washing stops.
             var appear = Mathf.Max(EaseOutBack(_fade), popT > 0f ? 1f : 0f);
             Draw(appear * (1f + pulse + _pop * popT * popT), rate, hold, popT, _hintShown, dt);
@@ -216,17 +223,21 @@ namespace Game.Presentation
             // The quad is the old flat ring, Size across: one kit unit is half of it.
             _root.localScale = Vector3.one * (_ring.transform.lossyScale.x * 0.5f * Mathf.Max(0.001f, scale));
 
+            // The rim fills continuously, clockwise from the top: each segment turns from grime to
+            // water as the plate's progress passes through it, like the plate coming clean.
             for (var i = 0; i < _segments.Count; i++)
             {
-                var lit = (i + 0.5f) / _segments.Count < _progress;
-                var color = lit ? _rimColor : _rimColor * _unlit;
-                color = Color.Lerp(color, Color.white, flash);
+                var clean = Mathf.Clamp01(_progress * _segments.Count - i);
+                var color = Color.Lerp(Color.Lerp(_grime, _water, clean), Color.white, flash);
                 Paint(_segments[i], color);
             }
+            // The target in the washer's colour (who's washing, with two at the sinks), its arc
+            // going green as the current third of the plate comes clean; the next push comes when full.
+            var idle = Color.Lerp(_rimColor, _targetIdle, 0.55f);
             for (var i = 0; i < _target.Count; i++)
             {
                 var filled = hold > 0f && (i + 0.5f) / _target.Count < hold;
-                Paint(_target[i], filled ? _good : _targetIdle);
+                Paint(_target[i], filled ? _good : idle);
             }
 
             // The soap: where the game's point is, bobbing; it leans the way it's sliding, and
@@ -277,8 +288,12 @@ namespace Game.Presentation
 
         private void EnsureKit()
         {
+            // The target follows the game's size (the complexity dial changes it): rebuild if it moved.
+            if (_root != null && Mathf.Abs(_builtRadius - _targetRadius) > 0.005f)
+                DestroyKit();
             if (_root != null)
                 return;
+            _builtRadius = _targetRadius;
             _block ??= new MaterialPropertyBlock();
             _root = new GameObject($"{name} WashKit") { hideFlags = HideFlags.DontSave }.transform;
 
@@ -290,8 +305,8 @@ namespace Game.Presentation
                 _segments.Add(Piece("Segment", StationKitMeshes.RingSector(RimRadius - RimWidth / 2f, RimRadius + RimWidth / 2f, from, to, _segmentHeight, 0.025f), _root, RingOrder));
             }
 
-            // The target's centre radius matches the game's (0.25 of the circle).
-            var targetRadius = 0.25f * RimRadius;
+            // The target's radius matches the game's (in kit units: the point's 1 is the rim's middle).
+            var targetRadius = _targetRadius * RimRadius;
             var targetStep = Mathf.PI * 2f / TargetSegments;
             for (var i = 0; i < TargetSegments; i++)
                 _target.Add(Piece("Target", StationKitMeshes.RingSector(targetRadius - 0.035f, targetRadius + 0.035f, (i + 0.08f) * targetStep, (i + 0.92f) * targetStep, _segmentHeight * 0.6f, 0.012f), _root, TargetOrder));
