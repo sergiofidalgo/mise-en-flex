@@ -490,7 +490,9 @@ namespace Game.Presentation.Menu
 
         private void DrawConfirm()
         {
-            var day = _captureUnsaved.HasValue ? _captureDay : _root != null ? _root.Services.Days.Day + 1 : 1;
+            // The day being played, counted from 1: the one that starts again. (Saves store finished
+            // days, which is why the main menu adds 1; the live DayCycle already counts today.)
+            var day = _captureUnsaved.HasValue ? _captureDay : _root != null ? _root.Services.Days.Day : 1;
             var body = _page == Page.ConfirmOffice
                 ? Tr.Get("You'll go back up to the boss's floor.")
                 : Tr.Get("The game closes.");
