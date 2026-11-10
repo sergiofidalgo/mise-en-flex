@@ -95,6 +95,29 @@ namespace Game.Presentation.Hud
         [SerializeField, Min(1f)] private float _meterMinWidth = 56f;
         [SerializeField, Min(0f)] private float _meterGap = 4f;
 
+        [Header("Money card, top right (decision 2026-11-10)")]
+        [Tooltip("Canvas pixels: the same height as the office's player cards.")]
+        [SerializeField, Min(40f)] private float _moneyCardHeight = 108f;
+        [SerializeField, Min(28f)] private float _moneyFontSize = 44f;
+        [Tooltip("The card's outline and the coin.")]
+        [SerializeField] private Color _moneyEdge = new Color(0.96f, 0.76f, 0.25f);
+        [Tooltip("Rolling up, after money comes in.")]
+        [SerializeField] private Color _moneyGain = new Color(0.45f, 0.85f, 0.40f);
+        [Tooltip("The shake after money goes out, and the amount while it's below zero (owed to the boss).")]
+        [SerializeField] private Color _moneyLoss = new Color(0.95f, 0.30f, 0.26f);
+        [Tooltip("Seconds the number rolls up to a higher balance.")]
+        [SerializeField, Min(0f)] private float _moneyRollSeconds = 0.6f;
+        [Tooltip("Seconds it stays green once it's there.")]
+        [SerializeField, Min(0f)] private float _moneyHoldSeconds = 0.8f;
+        [Tooltip("Seconds the green or red fades back to the normal colour.")]
+        [SerializeField, Min(0f)] private float _moneyFadeSeconds = 0.4f;
+        [Tooltip("Seconds the card shakes after the balance drops.")]
+        [SerializeField, Min(0f)] private float _moneyShakeSeconds = 0.4f;
+        [Tooltip("Canvas pixels of the first, widest wiggle.")]
+        [SerializeField, Min(0f)] private float _moneyShakeDistance = 6f;
+        [Tooltip("Full side-to-side wiggles in one shake.")]
+        [SerializeField, Min(0f)] private float _moneyShakeWiggles = 3f;
+
         [Header("Shapes (Unity's built-in UI sprites)")]
         [SerializeField] private Sprite _circle;
         [SerializeField] private Sprite _rounded;
@@ -155,6 +178,22 @@ namespace Game.Presentation.Hud
         public float MeterHeight => _meterHeight;
         public float MeterMinWidth => _meterMinWidth;
         public float MeterGap => _meterGap;
+        public float MoneyCardHeight => _moneyCardHeight;
+        public float MoneyFontSize => _moneyFontSize;
+        public Color MoneyEdge => _moneyEdge;
+        public Color MoneyGain => _moneyGain;
+        public Color MoneyLoss => _moneyLoss;
+
+        /// <summary>The money card's animation timings.</summary>
+        public MoneyTickerSettings MoneyTicker => new MoneyTickerSettings
+        {
+            RollSeconds = _moneyRollSeconds,
+            HoldSeconds = _moneyHoldSeconds,
+            FadeSeconds = _moneyFadeSeconds,
+            ShakeSeconds = _moneyShakeSeconds,
+            ShakeDistance = _moneyShakeDistance,
+            ShakeWiggles = _moneyShakeWiggles,
+        };
 
         /// <summary>Colour for a 0..1 rating, the same red-to-green as the patience meter.</summary>
         public Color RatingColor(float rating) => PatienceColor(rating);
