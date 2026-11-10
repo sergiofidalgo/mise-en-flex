@@ -3241,3 +3241,26 @@ Enter also joins and submits. WASD no longer moves.
 **Proposed with it (flagged for review):** the pigeons come back. After 20–40 s each glides back to its own perch along the same arc in 2.5 s, slowing to land, but only once no chef is within 4 m of the perch (wider than the startle distance, so it doesn't land and flee at once). A chef stepping up to a landing bird sends it off again. Setting the shortest time away below zero keeps them away for the rest of the visit.
 
 **Reason:** The user asked for the terrace's birds to react to players, as part of making the terrace a place to enjoy the city.
+
+## 2026-11-10 — The money card: the campaign's balance top right, at all times
+
+**Decision:** A money card in the top-right corner shows the campaign's balance everywhere players are: the office floor and every kitchen, through Plan, Prep and Service. It mirrors the office's player cards on the right: 108 px tall (a player card's height), at least as wide as one, 24 px from the edges, the same 18 px corners and 4 px outline (gold here, the card's colour), a gold coin and the amount in the display face (Fredoka) at 44 px, cream. The user's calls:
+- **Money in:** the number rolls up to the new figure in green (0.6 s, easing out so the last digits land readably), holds green 0.8 s and fades back to cream over 0.4 s.
+- **Money out:** the new figure at once, red, with a gentle shake (3 wiggles, at most 6 px, dying away over 0.4 s), then fades back over 0.4 s. Changes of a few cents don't flash the card.
+- **Below zero (owed to the boss):** a minus sign and the amount in red, e.g. `−$120` (`−120 €` in Spanish), through `Locale`.
+- **During service it counts each payment as it's made:** the card shows the balance plus this service's takings (payments and tips less walk-outs), although the books bank them as Review starts. Wages, energy and the boss's collection come off as Review starts.
+- **The old money beside the clock is gone** (in Prep the balance, in service the takings, with +/− pops and a red flinch on purchases). The card replaces all of it, and the clock is centred.
+
+It hides (fading over the HUD's 0.12 s) behind the Review dashboard, the pause menu and the city miniature's panel, and stays off on the street menu and through the opening until the camera lands. A change made while it's hidden plays when it comes back, so a purchase on the miniature still shakes the card as the panel closes. Every timing, the size and the colours are in `HudStyle` (Money card). The animation is `MoneyTicker` and the in-service sum `KitchenMoneySource.Live`, plain C# tested in `MoneyTickerTests`. The office reads the balance on `OfficeCampaign.BalanceChanged` (new: a purchase or a loan), not every frame. `Tools/Game/Art/Capture Money Card` takes 1920×1080 stills.
+
+**Reason:** The user asked for the money on screen at all times, in the game's style, with green numbers rolling up and a gentle red shake going down, so the balance is felt as it moves without being alarming.
+
+**Not covered:** world-anchored labels (tickets, shop lists) aren't told to avoid the corner, so a station near the top-right edge can put one over the card. In the office, four players all dressing at once at a 4:3 screen or narrower would bring the fourth dressing card close to it.
+
+## 2026-11-10 — The day card: day, phase and clock, bottom left in the kitchens
+
+**Decision:** In every kitchen (not the office), a day card sits in the bottom-left corner, 24 px from the edges: "Day 3" on top in the display face (32 px), and under it the phase and the game clock in the body face (28 px), "Service · 18:42". In Plan and Prep the clock gives the opening time ("Prep · opens 18:00"); near the end the phase word gives way to "Last orders · 20:50" or "Closed · 21:00" in the notice amber. It's the money card's quieter sibling (the user's calls): 88 px tall, the card a little see-through (78%), a thin 3 px muted sand outline instead of gold, softer cream text, and nothing moves but the minutes. **The top-centre clock is gone**; the card carries it. It hides with the money card behind the Review dashboard and the pause menu. `DayCardText` (plain C#, `DayCardTextTests`) writes it, `DayCardHud` draws it, and the look is tunable in `HudStyle` (Day card). The day is `DayCycle.Day`, which already counts from 1.
+
+**Reason:** The user asked for a day and time indicator in the restaurant, with the money card's visual treatment but less present. The bottom left was free (the boss's phone is bottom right, the Prep strip bottom centre).
+
+**Not covered:** world-anchored prompts and tickets aren't told to avoid the corner, so a station near the bottom-left edge can put one over the card.

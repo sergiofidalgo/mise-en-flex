@@ -12,8 +12,8 @@ using UnityEngine.InputSystem;
 namespace Game.Presentation.Hud
 {
     /// <summary>
-    /// The service's progress on screen: how to join, the Plan and Prep cards, the clock with
-    /// last orders during service, and the Review afterwards.
+    /// The service's progress on screen: how to join, the Plan and Prep cards, and the Review
+    /// afterwards. The day, phase and clock are on the day card (DayCardHud, decision 2026-11-10).
     /// </summary>
     public sealed class ServiceStatusHud : MonoBehaviour
     {
@@ -24,19 +24,13 @@ namespace Game.Presentation.Hud
         [SerializeField] private CoopSettings _settings;
 
         [Header("Layout")]
-        [Tooltip("Canvas pixels below the top of the screen for the clock.")]
-        [SerializeField, Min(0f)] private float _clockTopMargin = 16f;
-        [Tooltip("Canvas pixels from the centre of the screen: the money is on the other side.")]
-        [SerializeField, Min(0f)] private float _besideMoney = 6f;
         [Tooltip("Canvas pixels above the bottom of the screen for the small Prep strip.")]
         [SerializeField, Min(0f)] private float _stripBottomMargin = 14f;
         [SerializeField, Min(8f)] private float _stripFontSize = 28f;
         [SerializeField] private Vector2 _stripPadding = new Vector2(14f, 6f);
         [Tooltip("Real seconds the morning's delivery stays on the Prep strip.")]
         [SerializeField, Min(0f)] private float _deliverySeconds = 6f;
-        [SerializeField, Min(8f)] private float _clockFontSize = 32f;
         [SerializeField, Min(8f)] private float _cardFontSize = 32f;
-        [SerializeField] private Vector2 _clockPadding = new Vector2(16f, 6f);
         [SerializeField] private Vector2 _cardPadding = new Vector2(36f, 24f);
 
         [Header("Text")]
@@ -52,25 +46,18 @@ namespace Game.Presentation.Hud
         [SerializeField] private string _pausedText = "Paused: {players}, reconnect your controller";
         [SerializeField] private string _carryOnText = "Press Menu to carry on without them";
         [SerializeField] private Color _waitingColor = new Color(0.60f, 0.62f, 0.66f);
-        [SerializeField] private string _lastOrdersText = "Last orders";
-        [SerializeField] private string _closedText = "Closed: finish up";
-        [SerializeField] private Color _noticeColor = new Color(0.96f, 0.76f, 0.25f);
         [SerializeField] private Color _goodColor = new Color(0.45f, 0.85f, 0.40f);
         [SerializeField] private Color _badColor = new Color(0.95f, 0.30f, 0.26f);
 
         private static readonly PromptControl[] HireButtons = { PromptControl.South, PromptControl.West, PromptControl.North };
 
         private readonly StringBuilder _text = new StringBuilder();
-        private WorldLabel _clock;
         private WorldLabel _card;
         private WorldLabel _strip;
         private float _prepStartedAt = -1f;
 
         private void Start()
         {
-            _clock = WorldLabel.Create(_style, _canvas, "ServiceClock", _clockPadding, new Vector2(1f, 1f));
-            _clock.FontSize = _clockFontSize;
-            _clock.Font = _style.DisplayFont;
             _card = WorldLabel.Create(_style, _canvas, "ServiceCard", _cardPadding, new Vector2(0.5f, 0.5f));
             _card.FontSize = _cardFontSize;
             _strip = WorldLabel.Create(_style, _canvas, "PrepStrip", _stripPadding, new Vector2(0.5f, 0f));
@@ -79,17 +66,10 @@ namespace Game.Presentation.Hud
 
         private void LateUpdate()
         {
-            if (_clock == null || _root.Services == null)
+            if (_card == null || _root.Services == null)
                 return;
 
             var days = _root.Services.Days;
-            var service = _root.Services.Service;
-            var top = _canvas.rect.height / 2f;
-
-            if (days.Phase == DayPhase.Prep || days.Phase == DayPhase.Service)
-                _clock.ShowAt(ClockText(service), new Vector2(-_besideMoney, top - _clockTopMargin));
-            else
-                _clock.Hide();
 
             if (days.Phase != DayPhase.Prep)
             {
@@ -265,17 +245,5 @@ namespace Game.Presentation.Hud
 
         // In the player's language and currency (Locale).
         private static string FormatMoney(float money) => Game.Data.Locale.Money(money, Game.Data.MoneyStyle.Whole);
-
-        private string ClockText(ServiceSimulation service)
-        {
-            var minutes = _root.Services.ServiceConfig.OpensAt * 60f + service.Elapsed / 60f;
-            var clock = $"{(int)(minutes / 60f) % 24:00}:{(int)minutes % 60:00}";
-            return service.Phase switch
-            {
-                ServicePhase.LastOrders => $"{clock}  {HudStyle.Colored(Tr.Get(_lastOrdersText), _noticeColor)}",
-                ServicePhase.Closed => $"{clock}  {HudStyle.Colored(Tr.Get(_closedText), _noticeColor)}",
-                _ => clock,
-            };
-        }
     }
 }

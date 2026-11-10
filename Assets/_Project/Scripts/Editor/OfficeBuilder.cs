@@ -199,6 +199,7 @@ namespace Game.Editor
             NightSky(camera); // OfficeBuilder.Sky.cs: stars, the moon, clouds, planes
             AddOpening(camera, follow, manager, coop); // OfficeBuilder.Opening.cs: street, menu, climb, join
             AddMiniature(rooms); // OfficeBuilder.Miniature.cs: the lots, the campaign, the card's data
+            AddMoneyCard(); // OfficeBuilder.Money.cs: the campaign's money, top right
 
             GreyboxAssets.EnsureFolder(System.IO.Path.GetDirectoryName(ScenePath));
             EditorSceneManager.SaveScene(scene, ScenePath);

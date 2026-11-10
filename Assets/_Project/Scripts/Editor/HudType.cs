@@ -74,13 +74,10 @@ namespace Game.Editor
         private static int UpdateOpenScenes()
         {
             var count = 0;
-            foreach (var money in Object.FindObjectsByType<MoneyHud>(FindObjectsInactive.Include, FindObjectsSortMode.None))
-                count += Update(money, so => Raise(so, "_fontSize", 32f));
             foreach (var status in Object.FindObjectsByType<ServiceStatusHud>(FindObjectsInactive.Include, FindObjectsSortMode.None))
                 count += Update(status, so =>
                 {
                     Raise(so, "_stripFontSize", 28f);
-                    Raise(so, "_clockFontSize", 32f);
                     Raise(so, "_cardFontSize", 32f);
                 });
             // The doneness tag above the gauge grew with the bigger text: move the gauge down to clear it.

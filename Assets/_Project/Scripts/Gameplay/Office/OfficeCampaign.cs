@@ -26,6 +26,9 @@ namespace Game.Gameplay.Office
         /// <summary>Raised after a purchase, for feedback and the miniature's pins.</summary>
         public event Action<RestaurantSave> Bought;
 
+        /// <summary>Raised after the money changes here: a purchase or a loan (the money card).</summary>
+        public event Action BalanceChanged;
+
         public MiniatureConfig Config => _config;
 
         /// <summary>Every lot on the miniature, in the config's order.</summary>
@@ -57,6 +60,7 @@ namespace Game.Gameplay.Office
             var record = RestaurantPurchase.Buy(Campaign, Lots[lot], name, style);
             Save();
             Bought?.Invoke(record);
+            BalanceChanged?.Invoke();
             return record;
         }
 
@@ -69,6 +73,7 @@ namespace Game.Gameplay.Office
             if (!Game.Gameplay.Debt.AccountantBooks.Borrow(Campaign, amount, terms))
                 return false;
             Save();
+            BalanceChanged?.Invoke();
             return true;
         }
 
