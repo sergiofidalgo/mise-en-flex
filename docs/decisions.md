@@ -4,6 +4,48 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-10 — Shop cards per player; forkcast becomes four tabs with the cookbook and staff
+
+**User's calls:**
+- **The shop gets the tailor's card treatment:** each player who opens it gets their own card, so up to four can shop at once. It's for furniture, appliances and (later) decoration.
+- **The cookbook belongs in the forkcast dashboard at Review,** not in management mode. Only Player 1 uses it. This replaces "the cookbook is a second page of the Y panel" from the cookbook entry below.
+- **forkcast goes from four tabs to four different ones:**
+  - Overview and Reviews merge into **Overview**, which puts the boss's debt first;
+  - Menu and Books merge into **Menu & Books**;
+  - **Cookbook** and **Staff** are new.
+- **Hiring stays on the Plan card for now,** so Staff is read-only.
+
+**Done (shop, `ManagementCardsHud`):**
+- **A 360 × 500 card per player,** in their colour, docked in a row from the top-left corner in player-slot order. It starts 96 px down to clear the clock and money, and cards slide along as others open and close. Four take about 78% of the width.
+- **The pages sit between LB and RB,** with a dot per page, as the dressing card's sections do: Furniture, Appliances, Kitchenware, and Decoration once there is some (a page with nothing on it is skipped). `FurnitureCatalog.Entry` has a `Section`, which the builder sets; kitchenware is always on its own page.
+- **The list shows each piece and its price,** red when it's out of reach. Under it, a line says how the chosen piece arrives: carried and paid for where it's put down, or paid now and put on a free counter.
+- **Every press answers:** a new row pops, a purchase flashes the border white, and a refusal shakes the row with the reason in red.
+- **The cursor's text label steps aside** while that player's card is open.
+
+**Done (forkcast, `ReviewDashboard`):**
+- **Overview:**
+  - The boss card is the headline: "You owe him $76.40" in big orange letters when the money is below zero, otherwise the balance.
+  - Under it: the next fee and its days as segments, and "Short by…" when the balance won't cover the fee.
+  - Served, walked out and turned away sit beside it as small tiles.
+  - Below come the review filters, then every review, today's first. The stick browses (up from the top review reaches the filters) and Y replies, as on the old Reviews tab.
+  - The "Guests mention" chips are gone: the filters and the Menu & Books tab cover the same ground.
+- **Menu & Books:** today's money in and out, beside tonight's menu. Each dish shows its price (and how far it is from the suggestion), how many ordered it, how many walked out and its stars. Below: where the money went and the trend, as before.
+  - The old per-doneness order table and the "…are costing you" alert are gone. Walk-outs now tint the dish's row.
+- **Cookbook:**
+  - A list of recipes on the left: on the menu at a price, or what unlocking costs (red when out of reach), with dots for how demanding each is.
+  - The chosen recipe on the right: what it needs, its ingredients with pictures, and the cost of a serving.
+    - A dish on the menu shows its price between ‹ ›, the suggestion, and what the prices mean: "Guests: about 24% fewer" (the whole menu's demand) and "Stars: 0.5 fewer for the same dish".
+    - A dish not on the menu shows its unlock price and the money in hand.
+  - Only Player 1 (the lowest player slot present) can use it, and the hints say whose it is. The stick browses and, sideways, steps a price by 1 (repeating while held). A unlocks; X goes back to the suggested price.
+  - An unlock saves the campaign at once. A price change saves 0.8 s after the last step, or on leaving the tab or Review. Both count from the next service.
+- **Staff:** a card per member with their role, how they describe themselves, wage, skill and speed bars, mood and today's work, plus the wages per day. With nobody hired, it points to the Plan card.
+
+**Review is no longer read-only:** replies and now the cookbook change things during Review, and each saves at once, so quitting can't undo them. This revises the 2026-11-06 "Review is read-only" decision, and `game-design.md` §4 is now out of date on that point.
+
+**Not checked in play:** the card and dashboard sizes, the price stick's repeat timing, and whether Player-1-only feels right with four players.
+
+---
+
 ## 2026-11-10 — The cookbook and menu pricing (Phase 5, milestone 4)
 
 **User's calls:**
@@ -18,12 +60,12 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
   - Each guest's stars shift by −2.5 × (r − 1), clamped to ±1 star. A perfect steak at 20% over the odds earns 4.5 stars.
   - Within the menu, a dish is ordered in proportion to r^−1, so a dear dish is picked less.
   - Every number is a tuning value in `CookbookConfig`.
-- **The cookbook is a second page of the Y panel in management mode.** LB/RB switches between Shop and Cookbook. Up/down browses, A unlocks, and left/right sets an unlocked dish's price in steps of 1 (it repeats while held).
+- **The cookbook is a tab of the forkcast dashboard at Review, used by Player 1** (moved there the same day; see the entry above). Up/down browses, A unlocks, and left/right sets an unlocked dish's price in steps of 1 (it repeats while held).
 
 **How it works (proposed while building; flagged for review):**
 - **Unlocks and prices are saved in the campaign** (`CampaignSave.Recipes`, `Prices`, both with defaults, no version bump). An older file loads with just the starter dish.
 - **The shared cookbook is `cookbook.json`** beside `profile.json` and the settings, outside the slots. It's written as soon as a campaign unlocks something new to it.
-- **The menu is set as the doors open** (`ServiceSimulation.SetMenu`), so prices changed in Plan or Prep count that same night.
+- **The menu is set as the doors open** (`ServiceSimulation.SetMenu`), so whatever was unlocked or priced at the last Review counts from the next service.
 - **A recipe's side keeps its share of the price** (for example €5 of the steak with onions' €27). A plate missing the side isn't paid that share, as before.
 - **X resets an unlocked dish to its suggested price.**
 - **Prices run from 1 to 5× the suggestion.** An unlock is paid like a shop purchase and can't go into debt.

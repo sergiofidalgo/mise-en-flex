@@ -47,6 +47,9 @@ namespace Game.Simulation.Cookbook
         /// <summary>The ingredients it's made from, as players read them.</summary>
         public IReadOnlyList<string> Ingredients { get; set; } = Array.Empty<string>();
 
+        /// <summary>The same ingredients as item type ids, for their pictures.</summary>
+        public IReadOnlyList<string> IngredientTypeIds { get; set; } = Array.Empty<string>();
+
         /// <summary>About what the ingredients for one serving cost.</summary>
         public float IngredientCost { get; set; }
 

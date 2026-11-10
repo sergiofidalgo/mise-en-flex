@@ -53,19 +53,25 @@ namespace Game.Tests.PlayMode
             var folder = Folder();
 
             var dashboard = Object.FindFirstObjectByType<ReviewDashboard>();
+            // Four tabs since 2026-11-10: Overview (with the reviews), Menu & Books, Cookbook, Staff.
             yield return Shoot(dashboard, 0, 0, false, Path.Combine(folder, "dashboard_overview.png"));
-            yield return Shoot(dashboard, 1, 0, false, Path.Combine(folder, "dashboard_reviews.png"));
-            yield return Shoot(dashboard, 1, 0, true, Path.Combine(folder, "dashboard_reply_wheel.png"));
-            yield return Shoot(dashboard, 1, 0, false, Path.Combine(folder, "dashboard_filter_walkouts.png"), 1, true);
-            yield return Shoot(dashboard, 2, 0, false, Path.Combine(folder, "dashboard_menu.png"));
-            yield return Shoot(dashboard, 3, 0, false, Path.Combine(folder, "dashboard_books.png"));
+            yield return Shoot(dashboard, 0, 0, true, Path.Combine(folder, "dashboard_reply_wheel.png"));
+            yield return Shoot(dashboard, 0, 0, false, Path.Combine(folder, "dashboard_filter_walkouts.png"), 1, true);
+            yield return Shoot(dashboard, 1, 0, false, Path.Combine(folder, "dashboard_menu_books.png"));
+            yield return Shoot(dashboard, 2, 1, false, Path.Combine(folder, "dashboard_cookbook_locked.png"));
+            services.Cookbook.SetPrice(services.Cookbook.Recipes[0].Id, services.Cookbook.Recipes[0].SuggestedPrice + 4);
+            yield return Shoot(dashboard, 2, 0, false, Path.Combine(folder, "dashboard_cookbook_priced.png"));
+            yield return Shoot(dashboard, 3, 0, false, Path.Combine(folder, "dashboard_staff_empty.png"));
+            foreach (var candidate in services.Staff.Candidates.Take(2))
+                services.Staff.Restore(new Game.Simulation.Staff.StaffMember(candidate));
+            yield return Shoot(dashboard, 3, 0, false, Path.Combine(folder, "dashboard_staff.png"));
             root.ReplyTo(services.ReviewHistory.First(r => r.Guest == "Megan R."), ReviewReply.Apologise);
-            yield return Shoot(dashboard, 1, 0, false, Path.Combine(folder, "dashboard_reply_thread.png"));
+            yield return Shoot(dashboard, 0, 0, false, Path.Combine(folder, "dashboard_reply_thread.png"));
             // A long reply, built from parts, wraps to two lines and its card makes room.
             var tony = services.ReviewHistory.First(r => r.Guest == "Tony L.");
             tony.Reply = (int)ReviewReply.StandYourGround;
             tony.ReplyText = "Listen, Tony. Maybe try the chain place by the highway. They have a laminated menu. Bon appétit somewhere else.";
-            yield return Shoot(dashboard, 1, 0, false, Path.Combine(folder, "dashboard_reply_long.png"));
+            yield return Shoot(dashboard, 0, 1, false, Path.Combine(folder, "dashboard_reply_long.png"));
             Debug.Log($"[DashboardCapture] Saved screenshots to {folder}");
         }
 

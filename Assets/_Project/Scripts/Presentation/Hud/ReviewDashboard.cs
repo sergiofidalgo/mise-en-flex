@@ -13,9 +13,18 @@ namespace Game.Presentation.Hud
 {
     /// <summary>
     /// The Review dashboard (decisions 2026-11-06 and 2026-11-08, after the user's mockup; drawn to the
-    /// Art Director's dashboard mockups, 2026-11-09): forkcast, a review-listing app over the kitchen
-    /// while Review lasts. It's read-only, except for replying to reviews. LB and RB switch tabs, the
-    /// stick browses reviews, Y opens the reply wheel, and Menu readies up for the next day as usual.
+    /// Art Director's dashboard mockups, 2026-11-09; four tabs since 2026-11-10): forkcast, a
+    /// review-listing app over the kitchen while Review lasts. LB and RB switch tabs.
+    /// <list type="bullet">
+    /// <item>Overview: the boss's debt first, the night's numbers, then every review; the stick
+    /// browses them (and rises to their filters), Y opens the reply wheel.</item>
+    /// <item>Menu &amp; Books: tonight's menu and how each dish did, and the money.</item>
+    /// <item>Cookbook: the first player (Player 1) browses recipes, unlocks them (A) and sets prices
+    /// (stick left and right, X back to the suggestion). Saved at once; it counts from the next
+    /// service.</item>
+    /// <item>Staff: the team, read-only. Hiring stays on the Plan card for now.</item>
+    /// </list>
+    /// Menu readies up for the next day as usual.
     /// This file holds the state, input and data; ReviewDashboard.Drawing.cs draws it.
     /// </summary>
     public sealed partial class ReviewDashboard : MonoBehaviour
@@ -23,12 +32,12 @@ namespace Game.Presentation.Hud
         private enum Tab
         {
             Overview,
-            Reviews,
-            Menu,
-            Books,
+            MenuAndBooks,
+            Cookbook,
+            Staff,
         }
 
-        // The Reviews tab's filters, in the order of their chips.
+        // The Overview's review filters, in the order of their chips.
         private enum Filter
         {
             All,
@@ -54,6 +63,8 @@ namespace Game.Presentation.Hud
         [SerializeField] private KitchenCompositionRoot _root;
         [SerializeField] private DayLoop _dayLoop;
         [SerializeField] private CoopSettings _settings;
+        [Tooltip("Ingredient pictures for the cookbook tab.")]
+        [SerializeField] private IngredientIcons _icons;
         [SerializeField] private Vector2Int _photoSize = new Vector2Int(1280, 680);
 
         [Header("Feel")]
@@ -61,6 +72,12 @@ namespace Game.Presentation.Hud
         [SerializeField, Range(0.1f, 1f)] private float _stickThreshold = 0.5f;
         [Tooltip("Real seconds between steps while the stick is held.")]
         [SerializeField, Min(0.05f)] private float _stickRepeat = 0.22f;
+        [Tooltip("Seconds the stick is held on a price before it starts stepping by itself.")]
+        [SerializeField, Min(0.05f)] private float _priceRepeatDelay = 0.4f;
+        [Tooltip("Seconds between steps of a price while the stick stays held.")]
+        [SerializeField, Min(0.01f)] private float _priceRepeatInterval = 0.07f;
+        [Tooltip("Seconds after the last price change before the campaign is saved, so holding the stick doesn't write the file every step.")]
+        [SerializeField, Min(0.1f)] private float _priceSaveDelay = 0.8f;
 
         // Named afresh (2026-11-09) so the scene's saved copies of the old impersonal lines give way.
         [Header("Replies ({0} is the guest's first name)")]
@@ -75,6 +92,12 @@ namespace Game.Presentation.Hud
         // On the Reviews tab, the stick can rise from the top review to the filter chips.
         private bool _onFilters;
         private float _nextStickStep;
+        // The cookbook's price stick: its direction, and when it steps again.
+        private int _priceDirection;
+        private float _nextPriceStep;
+        private float _saveCookbookAt = -1f;
+        // What the last A press in the cookbook did, until the next move.
+        private Game.Simulation.Cookbook.UnlockResult? _unlockResult;
         private bool _dirty = true;
         private int _shownForDay = -1;
 
@@ -104,7 +127,10 @@ namespace Game.Presentation.Hud
             var show = phase == DayPhase.Review;
             _canvasObject.SetActive(show);
             if (!show)
+            {
+                SaveCookbookNow();
                 return;
+            }
 
             // A new day's Review starts on its overview, with the photo taken as the doors close.
             if (_shownForDay != Services.Days.Day)
@@ -115,6 +141,7 @@ namespace Game.Presentation.Hud
                 _choosingReply = false;
                 _filter = Filter.All;
                 _onFilters = false;
+                _unlockResult = null;
                 TakePhoto();
             }
             _dirty = true;
@@ -139,6 +166,8 @@ namespace Game.Presentation.Hud
             if (!_canvasObject.activeSelf)
                 return;
             ReadInput();
+            if (_saveCookbookAt >= 0f && Time.unscaledTime >= _saveCookbookAt)
+                SaveCookbookNow();
             if (_dirty)
             {
                 _dirty = false;
@@ -156,6 +185,17 @@ namespace Game.Presentation.Hud
                 if (!_dayLoop.WasHereLastFrame(player))
                     continue;
                 var actions = player.actions;
+
+                if (_tab == Tab.Cookbook)
+                {
+                    if (Pressed(actions, "RotateLeft"))
+                        SwitchTab(-1);
+                    else if (Pressed(actions, "RotateRight"))
+                        SwitchTab(1);
+                    else if (player == CookbookPlayer())
+                        ReadCookbook(actions);
+                    continue;
+                }
 
                 // The wheel puts each reply on the face button in its place: X left, Y top, A bottom.
                 if (_choosingReply)
@@ -218,8 +258,12 @@ namespace Game.Presentation.Hud
         private void SwitchTab(int step)
         {
             var count = System.Enum.GetValues(typeof(Tab)).Length;
+            if (_tab == Tab.Cookbook)
+                SaveCookbookNow();
             _tab = (Tab)(((int)_tab + step + count) % count);
             _selected = 0;
+            _unlockResult = null;
+            _priceDirection = 0;
             _choosingReply = false;
             _onFilters = false;
             _dirty = true;
@@ -228,7 +272,16 @@ namespace Game.Presentation.Hud
         private void Browse(int step)
         {
             _choosingReply = false;
-            if (_tab == Tab.Reviews)
+            if (_tab == Tab.Cookbook)
+            {
+                var recipes = Services.Cookbook?.Recipes.Count ?? 0;
+                if (recipes > 0)
+                    _selected = Mathf.Clamp(_selected + step, 0, recipes - 1);
+                _unlockResult = null;
+                _dirty = true;
+                return;
+            }
+            if (_tab == Tab.Overview)
             {
                 // Up from the top review reaches the filters; down from them returns to the list.
                 if (_onFilters)
@@ -280,6 +333,98 @@ namespace Game.Presentation.Hud
             SetChoosing(false);
         }
 
+        // ---- The cookbook (decision 2026-11-10) ----
+
+        // Player 1 sets the menu: the lowest player slot here, so someone always can.
+        private PlayerInput CookbookPlayer()
+        {
+            PlayerInput first = null;
+            foreach (var player in PlayerInput.all)
+            {
+                if (_dayLoop.WasHereLastFrame(player) && (first == null || player.playerIndex < first.playerIndex))
+                    first = player;
+            }
+            return first;
+        }
+
+        // Up and down browse; left and right step the chosen dish's price by 1, at once and then
+        // repeating while held; A unlocks; X puts the price back to the suggestion.
+        private void ReadCookbook(InputActionAsset actions)
+        {
+            var book = Services.Cookbook;
+            if (book == null || book.Recipes.Count == 0)
+                return;
+            var recipe = book.Recipes[Mathf.Clamp(_selected, 0, book.Recipes.Count - 1)];
+
+            var move = actions["Move"].ReadValue<Vector2>();
+            var vertical = move.magnitude >= _stickThreshold && Mathf.Abs(move.y) >= Mathf.Abs(move.x);
+            var horizontal = move.magnitude >= _stickThreshold && !vertical ? (move.x > 0f ? 1 : -1) : 0;
+            if (!vertical)
+                _nextStickStep = 0f;
+            else if (Time.unscaledTime >= _nextStickStep)
+            {
+                _nextStickStep = Time.unscaledTime + _stickRepeat;
+                Browse(move.y > 0f ? -1 : 1);
+            }
+
+            if (horizontal == 0 || !book.IsUnlocked(recipe.Id))
+            {
+                _priceDirection = 0;
+            }
+            else if (horizontal != _priceDirection)
+            {
+                _priceDirection = horizontal;
+                _nextPriceStep = Time.unscaledTime + _priceRepeatDelay;
+                StepPrice(book, recipe, horizontal);
+            }
+            else
+            {
+                while (Time.unscaledTime >= _nextPriceStep)
+                {
+                    _nextPriceStep += _priceRepeatInterval;
+                    StepPrice(book, recipe, horizontal);
+                }
+            }
+
+            if (Pressed(actions, "Interact") && !book.IsUnlocked(recipe.Id))
+            {
+                _unlockResult = book.TryUnlock(recipe.Id, Services.Days.TrySpend);
+                if (_unlockResult == Game.Simulation.Cookbook.UnlockResult.Unlocked)
+                    SaveCookbookNow(force: true);
+                _dirty = true;
+            }
+            else if (Pressed(actions, "Use") && book.IsUnlocked(recipe.Id) && book.PriceOf(recipe.Id) != recipe.SuggestedPrice)
+            {
+                book.SetPrice(recipe.Id, recipe.SuggestedPrice);
+                PriceChanged();
+            }
+        }
+
+        private void StepPrice(Game.Simulation.Cookbook.RecipeBook book, Game.Simulation.Cookbook.Recipe recipe, int steps)
+        {
+            var before = book.PriceOf(recipe.Id);
+            book.Nudge(recipe.Id, steps);
+            if (book.PriceOf(recipe.Id) != before)
+                PriceChanged();
+        }
+
+        private void PriceChanged()
+        {
+            _unlockResult = null;
+            _saveCookbookAt = Time.unscaledTime + _priceSaveDelay;
+            _dirty = true;
+        }
+
+        // Anything done here saves, as replies do, so quitting can't undo a purchase.
+        private void SaveCookbookNow(bool force = false)
+        {
+            if (!force && _saveCookbookAt < 0f)
+                return;
+            _saveCookbookAt = -1f;
+            if (_root != null && _root.Services != null && Services.Days.Phase == DayPhase.Review)
+                _root.SaveCampaign();
+        }
+
         // ---- Data ----
 
         // Walk-outs first, then the lowest ratings: what needs a reply most (the mockup's sort). By the
@@ -292,8 +437,7 @@ namespace Game.Presentation.Hud
 
         private List<ReviewRecord> ListedReviews() => _tab switch
         {
-            Tab.Overview => TodaysReviews(),
-            Tab.Reviews => AllReviews().Where(r => Matches(r, _filter)).ToList(),
+            Tab.Overview => AllReviews().Where(r => Matches(r, _filter)).ToList(),
             _ => new List<ReviewRecord>(),
         };
 
@@ -313,7 +457,7 @@ namespace Game.Presentation.Hud
         // Nothing is chosen while the filters have the focus, so Y does nothing there.
         private ReviewRecord SelectedReview()
         {
-            if (_tab == Tab.Reviews && _onFilters)
+            if (_tab != Tab.Overview || _onFilters)
                 return null;
             var list = ListedReviews();
             return _selected >= 0 && _selected < list.Count ? list[_selected] : null;

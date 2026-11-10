@@ -375,5 +375,6 @@ To work out when we get there: what scorching and spilling cost (quality, lost f
 - **Taking a dish off the menu** without losing the unlock, for a night when its ingredients ran out. Today every unlocked recipe is on the menu.
 - **Price in the reviews' words:** "great, but €35 for a steak?" or "a steal". The stars already move with price, but no line mentions it, so players have to infer the cause from the stars alone.
 - **Tally orders per recipe,** not per main and doneness ("steak, medium"). Steak with a side counts with plain steak in the forkcast Menu tab's table today. Changing the tally's key touches saved reviews and their translation (`ReviewText.Order`).
-- **A real cookbook screen** in the forkcast style, instead of the cursor's world label, once the UI pass comes (Phase 9). It could show each dish's photo, its stars and orders so far, and a demand preview while setting the price.
+- **Hiring in forkcast's Staff tab** (the user's call, 2026-11-10: "leave hiring for now"). The tab is read-only. Hiring at Review, alongside the cookbook, would put all management in one place, and would replace the Plan card's A/X/Y.
+- **Player 1 only in the cookbook** was the user's call. If it feels limiting with four players, a single shared cursor that anyone can drive is the alternative.
 

@@ -100,6 +100,7 @@ namespace Game.Data
                     Complexity = _complexity,
                     Appliances = _appliances ?? Array.Empty<string>(),
                     Ingredients = Ingredients.Select(id => catalog != null && catalog.Find(id) != null ? catalog.Find(id).DisplayName : id).ToArray(),
+                    IngredientTypeIds = Ingredients.ToArray(),
                     IngredientCost = Ingredients.Sum(id => catalog != null && catalog.Find(id) != null ? catalog.Find(id).Price : 0f),
                     Popularity = _popularity,
                 };
