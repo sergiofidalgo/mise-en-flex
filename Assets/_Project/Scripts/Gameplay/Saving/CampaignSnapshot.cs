@@ -90,6 +90,8 @@ namespace Game.Gameplay.Saving
             var campaign = loaded ?? new CampaignSave();
             campaign.StoreCurrent(restaurant);
             campaign.Balance = services.Days.Balance;
+            campaign.StoreLoan(services.Days.Loan);
+            campaign.StoreEscalation(services.Boss);
             campaign.RecentLines = services.ReviewLines.ToList();
             if (services.Cookbook != null)
                 campaign.Recipes = services.Cookbook.UnlockedIds().ToList();

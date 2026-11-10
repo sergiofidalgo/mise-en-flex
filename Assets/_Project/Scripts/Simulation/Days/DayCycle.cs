@@ -1,6 +1,7 @@
 using Game.Simulation.Cooking;
 using System;
 using System.Collections.Generic;
+using Game.Simulation.Campaign;
 using Game.Simulation.Service;
 
 namespace Game.Simulation.Days
@@ -36,18 +37,19 @@ namespace Game.Simulation.Days
     /// </summary>
     public sealed class DayCycle
     {
-        public DayCycle(float startingBalance = 0f, FeeSettings fee = null)
+        public DayCycle(float startingBalance = 0f, FeeSettings fee = null, LoanAccount loan = null)
         {
             Balance = startingBalance;
             Fee = fee ?? new FeeSettings();
+            Loan = loan ?? new LoanAccount();
         }
 
         /// <summary>Carries on from a save: the morning after the day that was played (decision 2026-11-08).</summary>
         /// <param name="daysTowardsFee">Finished days since the last fee.</param>
         /// <param name="period">Money in and out since the last fee.</param>
-        public static DayCycle Continuing(int dayPlayed, float balance, FeeSettings fee = null, int daysTowardsFee = 0, Ledger period = null, IEnumerable<DayRecord> history = null)
+        public static DayCycle Continuing(int dayPlayed, float balance, FeeSettings fee = null, int daysTowardsFee = 0, Ledger period = null, IEnumerable<DayRecord> history = null, LoanAccount loan = null)
         {
-            var days = new DayCycle(balance, fee) { Day = Math.Max(1, dayPlayed + 1), DaysTowardsFee = daysTowardsFee };
+            var days = new DayCycle(balance, fee, loan) { Day = Math.Max(1, dayPlayed + 1), DaysTowardsFee = daysTowardsFee };
             if (period != null && daysTowardsFee > 0)
                 days.Period.Add(period);
             if (history != null)
@@ -58,6 +60,15 @@ namespace Game.Simulation.Days
         private readonly List<DayRecord> _history = new List<DayRecord>();
 
         public FeeSettings Fee { get; }
+
+        /// <summary>The campaign's loan: each collection takes one instalment (decision 2026-11-10).</summary>
+        public LoanAccount Loan { get; }
+
+        /// <summary>The collection worked out as today's Review started; null on other days.</summary>
+        public Collection? LastCollection { get; private set; }
+
+        /// <summary>What the next collection would be if it fell due now: the cut plus the next instalment.</summary>
+        public Collection NextCollection => Collection.Preview(Balance, Fee.Amount, Loan);
 
         /// <summary>Money in and out today.</summary>
         public Ledger Today { get; } = new Ledger();
@@ -119,6 +130,7 @@ namespace Game.Simulation.Days
                     if (FeeCollectedToday)
                         Period.Clear();
                     FeeCollectedToday = false;
+                    LastCollection = null;
                     SetPhase(DayPhase.Plan);
                     break;
                 default:
@@ -141,11 +153,16 @@ namespace Game.Simulation.Days
             Book(LedgerLine.Wages, wages);
             Book(LedgerLine.Energy, energy.Total);
 
-            // The fee is collected as Review starts, once enough days are finished (decision 2026-11-08).
+            // The collection is worked out as Review starts, once enough days are finished (decision
+            // 2026-11-08): the restaurant's cut plus one loan instalment (2026-11-10). Whatever isn't
+            // there goes below zero, owed to the boss (see Collection).
             DaysTowardsFee++;
             if (DaysTowardsFee >= Fee.EveryDays)
             {
-                Book(LedgerLine.Fee, Fee.Amount);
+                var collection = Collection.Take(Balance, Fee.Amount, Loan);
+                Book(LedgerLine.Fee, collection.Cut);
+                Book(LedgerLine.Loan, collection.Instalment);
+                LastCollection = collection;
                 DaysTowardsFee = 0;
                 FeeCollectedToday = true;
             }
@@ -176,6 +193,9 @@ namespace Game.Simulation.Days
 
         /// <summary>Money from outside a service, such as selling furniture.</summary>
         public void Receive(float amount) => Book(LedgerLine.Sales, amount);
+
+        /// <summary>Appliances taken by the bodyguards, knocked off the debt at resale value.</summary>
+        public void CreditRepossessed(float amount) => Book(LedgerLine.Repossessed, amount);
 
         /// <summary>A bill that's paid whatever the balance, such as stock from a street stall: it can go into debt.</summary>
         public void Charge(LedgerLine line, float amount)

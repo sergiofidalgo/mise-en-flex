@@ -16,7 +16,7 @@ The office is the **penthouse floor of the boss's skyscraper**, in the same city
 - The boss is rich and a little absurd: a helipad, a hall of trophies, a red carpet up to his door.
 - Everything leads to him: the carpet, the bodyguards and the lighting all point at his door.
 - The empire grows here: the city miniature fills with your restaurants, and the hall of fame fills with plinths.
-- People lose here too: in the hall of fame, erased chefs leave dusty portraits, and their cookbook sits waiting for the next chef (§15.3).
+- People lose here too: in the hall of fame, erased chefs leave dusty portraits, and their cookbook sits waiting for the next chef (§15.3). The wall starts empty: one portrait goes up for each campaign the boss erases (2026-11-10).
 
 ## 2. Layout
 
@@ -58,9 +58,9 @@ Each room has one job and one hero prop that says that job from above.
 | --- | --- | --- | --- |
 | **Reception + elevator** | Join; arrive back from a restaurant | **The elevator** (see below) and the reception desk | None: joining is a button press anywhere |
 | **Tailor** | Change look; saves at once (§15.4) | Three-way mirror and colour plinths (the coloured discs in the draft) | Stand on a plinth: A = change look |
-| **The boss's office** | Meet the boss; borrow money; story beats | Desk with the boss behind it, pool of lamplight | A at the desk = Ask for a loan (draft 08) |
+| **The boss's office** | Meet the boss; story beats | Desk with the boss behind it, pool of lamplight | Story beats (borrowing moved to the accountant, user's call 2026-11-10) |
 | **Back room** | Buy restaurants; **start a day** in one (§15.2) | **City miniature** table, built from `SM_City` pieces at about 1/50 scale | A at the table = look at the miniature. A day starts only when **every joined player** is at the table looking at it (user's call, 2026-11-09) |
-| **Accountant** | For fun: characters and objects to poke at, easter eggs (user's call, 2026-11-09). The books stay on the Review dashboard | Desk, adding machine, filing cabinets | Small one-off interactions, no menus |
+| **Accountant** | **Borrowing** (user's call, 2026-11-10), plus characters and objects to poke at, easter eggs (2026-11-09). The books stay on the Review dashboard | Desk, adding machine, filing cabinets | Stand at the visitors' chairs: A = sit down to the books; left and right pick an amount; A borrows (saved at once); B leaves |
 | **Hall of fame** | The cookbook; owned restaurants; past chefs | Lectern holding the **cookbook**, plinths with each restaurant's trophy, portraits of erased chefs | A at the lectern = cookbook |
 | **Test kitchen** | Practise any learned recipe (new, see below) | Minimal kitchen island | Normal kitchen controls |
 | **Guarded doors** | Antechamber; the bodyguards' post; they eat and review the test kitchen's food | Two bodyguards flanking the boss's door, red carpet | Serve them a plate from the test kitchen (see below) |

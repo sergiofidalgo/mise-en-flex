@@ -360,17 +360,28 @@ namespace Game.Presentation.Hud
             for (var i = 0; i < segments; i++)
                 UiKit.RoundBox(_content, "Day", i < done ? _gold : _wellLight, x + BossWidth - 26f - barsWidth + i * (segment + 6f), y + 24f, segment, 10f, 5f);
 
+            // The collection: the restaurant's cut plus one loan instalment (decision 2026-11-10).
+            // On a collection day, what he took and whether it was all of it; otherwise the next one.
             string fee;
-            if (days.FeeCollectedToday)
-                fee = Tr.Format("Fee of {amount} collected today", ("amount", Money(days.Fee.Amount)));
+            var collection = days.LastCollection;
+            if (collection.HasValue)
+                fee = collection.Value.PaidInFull
+                    ? Tr.Format("Collection of {amount} paid today", ("amount", Money(collection.Value.Due)))
+                    : Tr.Format("Paid {paid} of {amount} today", ("paid", Money(collection.Value.Paid)), ("amount", Money(collection.Value.Due)));
             else
             {
                 var left = Tr.Plural(days.DaysUntilFee, "1 day", "{n} days");
-                fee = Tr.Format("Next fee {amount} in {days}", ("amount", Money(days.Fee.Amount)), ("days", HudStyle.Colored(left, _gold)));
+                fee = Tr.Format("Next collection {amount} in {days}", ("amount", Money(days.NextCollection.Due)), ("days", HudStyle.Colored(left, _gold)));
             }
             Label(Bold, _content, fee, 21.33f, _sand, x + 26f, y + 128f, 360f);
-            if (days.OwedToBoss <= 0f && !days.FeeCollectedToday && days.Balance < days.Fee.Amount)
-                Label(Bold, _content, Tr.Format("Short by {amount}", ("amount", Money(days.Fee.Amount - days.Balance, true))), 19.5f, _shortBy, x + BossWidth - 26f, y + 128f, 300f, HorizontalAlignmentOptions.Right);
+            if (collection.HasValue && !collection.Value.PaidInFull)
+                Label(Bold, _content, Tr.Get("Missed: he visits tomorrow"), 19.5f, _shortBy, x + BossWidth - 26f, y + 128f, 300f, HorizontalAlignmentOptions.Right);
+            else if (!collection.HasValue && days.OwedToBoss <= 0f && !days.NextCollection.PaidInFull)
+                Label(Bold, _content, Tr.Format("Short by {amount}", ("amount", Money(days.NextCollection.Shortfall, true))), 19.5f, _shortBy, x + BossWidth - 26f, y + 128f, 300f, HorizontalAlignmentOptions.Right);
+
+            // The loan, beside the card's title: what's left of it and what each collection takes.
+            if (days.Loan.Owed > 0f)
+                Label(Medium, _content, Tr.Format("Loan left {owed}", ("owed", Money(days.Loan.Owed))), 17f, _sand, x + 150f, y + 34f, 190f);
         }
 
         private void SmallStat(float x, float width, string number, string label, bool alarm)
@@ -952,6 +963,8 @@ namespace Game.Presentation.Hud
             LedgerLine.Energy => _gold,
             LedgerLine.Purchases => _body,
             LedgerLine.Fee => _ink,
+            LedgerLine.Loan => Hex(0x6b4f3a),
+            LedgerLine.Repossessed => Hex(0x8a7a66),
             _ => _quiet,
         };
 
@@ -965,7 +978,9 @@ namespace Game.Presentation.Hud
             LedgerLine.Wages => Tr.Get("Wages"),
             LedgerLine.Energy => Tr.Get("Energy"),
             LedgerLine.Purchases => Tr.Get("Bought"),
-            LedgerLine.Fee => Tr.Get("Fee to the boss"),
+            LedgerLine.Fee => Tr.Get("The boss's cut"),
+            LedgerLine.Loan => Tr.Get("Loan instalment"),
+            LedgerLine.Repossessed => Tr.Get("Repossessed"),
             _ => line.ToString(),
         };
 

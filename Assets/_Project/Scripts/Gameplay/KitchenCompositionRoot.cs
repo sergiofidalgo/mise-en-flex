@@ -58,9 +58,11 @@ namespace Game.Gameplay
             var fee = _serviceConfig.ToFeeSettings();
             if (_restaurant != null)
                 fee = _restaurant.ToSettings().ScaleFee(fee);
+            // The loan is the campaign's (decision 2026-11-10), borrowed at the accountant in the
+            // office. A campaign saved there before its first day keeps its money and loan too.
             var days = save != null
-                ? DayCycle.Continuing(save.Day, campaign.Balance, fee, save.DaysTowardsFee, Ledger.FromArray(save.Period), save.History)
-                : new DayCycle(_staffConfig.StartingMoney, fee);
+                ? DayCycle.Continuing(save.Day, campaign.Balance, fee, save.DaysTowardsFee, Ledger.FromArray(save.Period), save.History, campaign.ToLoan())
+                : new DayCycle(campaign != null ? campaign.Balance : _staffConfig.StartingMoney, fee, campaign?.ToLoan());
             days.PhaseChanged += HandlePhaseChanged;
             _reviewLines.Load(campaign?.RecentLines);
             var service = NewService(days.Day);
@@ -68,6 +70,8 @@ namespace Game.Gameplay
             Services.Staff.Candidates = _staffConfig.CandidatesFor(days.Day);
             Services.ReviewLines = _reviewLines;
             Services.Cookbook = NewCookbook(campaign, save);
+            Services.Boss = campaign?.ToEscalation() ?? new Game.Simulation.Campaign.BossEscalation();
+            Services.RestaurantsOwned = System.Math.Max(1, campaign?.Restaurants?.Count ?? 1);
 
             foreach (var station in stations.All)
                 station.Bind(Services);
@@ -141,6 +145,85 @@ namespace Game.Gameplay
                 var id = review.Customer?.Id ?? 0;
                 var (slot, initial) = _serviceConfig.GuestSlot(id, day);
                 Services.ReviewHistory.Add(Game.Simulation.Saving.SaveConversions.ToRecord(review, day, _serviceConfig.GuestName(id, day), slot, initial));
+            }
+        }
+
+        /// <summary>The personal mobile: the boss calls when a collection is near, missed or paid.</summary>
+        public Debt.BossPhone Phone { get; } = new Debt.BossPhone();
+
+        /// <summary>
+        /// If today was a collection day, moves the escalation on (or resets it) and rings the phone.
+        /// Called as Review starts, after the day's money is in and before it's saved.
+        /// </summary>
+        public void RecordCollection()
+        {
+            var collection = Services.Days.LastCollection;
+            if (!collection.HasValue)
+                return;
+            var stepBefore = Services.Boss.Step;
+            var visit = Services.Boss.Record(collection.Value, Services.RestaurantsOwned, RestaurantId);
+            var kind = Game.Simulation.Campaign.BossCalls.After(collection.Value, stepBefore);
+            Phone.Ring(kind, Game.Simulation.Campaign.BossCalls.Lines(kind, visit));
+        }
+
+        /// <summary>The definition id of the restaurant this kitchen plays.</summary>
+        public string RestaurantId =>
+            !string.IsNullOrEmpty(_loaded?.Current?.DefinitionId) ? _loaded.Current.DefinitionId : _restaurant != null ? _restaurant.Id : "";
+
+        /// <summary>
+        /// The boss takes a restaurant (§15.3 step 3): its record goes from the file at once, with the
+        /// visit marked as made. The current restaurant's record is the one saved as the last Review
+        /// started, so nothing from this unplayed morning is kept.
+        /// </summary>
+        /// <returns>True if it was the restaurant being played, so the players have to leave.</returns>
+        public bool LoseRestaurant(string definitionId)
+        {
+            var wasHere = definitionId == RestaurantId;
+            Services.Boss.Visited();
+            if (_loaded == null || !_loaded.Remove(definitionId))
+                return false;
+            Services.RestaurantsOwned = _loaded.Restaurants.Count;
+            _loaded.StoreEscalation(Services.Boss);
+            WriteLoaded();
+            return wasHere;
+        }
+
+        /// <summary>
+        /// Erasure (§15.3 step 4): the campaign ends. Its slot is emptied (the file kept aside as a
+        /// backup, as a new campaign does), the cookbook stays, and a dusty portrait goes up in the
+        /// hall of fame.
+        /// </summary>
+        public void EraseCampaign()
+        {
+            var days = _loaded?.Restaurants?.Sum(r => r.Day) ?? Services.Days.Day;
+            SharedCookbookFile.Current.Erased.Add(new Game.Simulation.Cookbook.ErasedChef
+            {
+                Restaurant = !string.IsNullOrEmpty(_loaded?.Current?.Name) ? _loaded.Current.Name : _serviceConfig.RestaurantName,
+                Days = days,
+                Cooks = (_loaded?.Cooks ?? new System.Collections.Generic.List<int>()).Concat(PlayerInput.all.Select(p => p.playerIndex)).Distinct().OrderBy(i => i).ToList(),
+                Ticks = System.DateTime.Now.Ticks,
+            });
+            SharedCookbookFile.Save();
+            try
+            {
+                SaveFile.Retire();
+            }
+            catch (System.Exception exception)
+            {
+                Debug.LogError($"Couldn't clear the erased campaign: {exception.Message}");
+            }
+            _loaded = null;
+        }
+
+        private void WriteLoaded()
+        {
+            try
+            {
+                SaveFile.Write(_loaded);
+            }
+            catch (System.Exception exception)
+            {
+                Debug.LogError($"Couldn't save the campaign: {exception.Message}");
             }
         }
 

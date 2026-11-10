@@ -18,6 +18,8 @@ namespace Game.Gameplay
     public sealed class DayLoop : MonoBehaviour
     {
         [SerializeField] private KitchenCompositionRoot _root;
+        [Tooltip("The boss's morning visits: nobody readies up while he's in.")]
+        [SerializeField] private Debt.BossVisitDirector _boss;
 
         // Menu also joins: a player joining with it shouldn't ready up with the same press.
         private readonly HashSet<PlayerInput> _seenLastFrame = new HashSet<PlayerInput>();
@@ -52,12 +54,15 @@ namespace Game.Gameplay
                     days.FinishService(summary, services.Staff.TotalWages, _root.CloseKitchen(), energy);
                     _root.Services.Staff.EndDay(summary, _root.Services.StaffConfig.ToSettings());
 
+                    // The boss's collection moves the escalation on or resets it, before the save.
+                    _root.RecordCollection();
+
                     // Saved as Review starts, once the day's results are in (decision 2026-11-06).
                     _root.ListTodaysReviews();
                     _root.SaveCampaign();
                 }
             }
-            else if (!GamePause.MenuOpen)
+            else if (!GamePause.MenuOpen && (_boss == null || !_boss.Busy))
             {
                 ReadPresses();
                 if (Ready.IsEveryoneReady(_present))

@@ -132,7 +132,8 @@ namespace Game.Gameplay
         private void Update()
         {
             var phase = _root.Services.Days.Phase;
-            var open = phase == DayPhase.Plan || phase == DayPhase.Prep;
+            // Nobody rearranges the room while the boss's men are carrying it out.
+            var open = (phase == DayPhase.Plan || phase == DayPhase.Prep) && !Closed;
 
             foreach (var player in PlayerInput.all)
             {
@@ -557,6 +558,25 @@ namespace Game.Gameplay
             _root.Services.Days.Receive(ChairRefund);
             LayoutChanged?.Invoke();
             return true;
+        }
+
+        /// <summary>Set while the boss is in (Debt.BossVisitDirector): management mode can't open.</summary>
+        public bool Closed { get; set; }
+
+        /// <summary>
+        /// The bodyguards take a piece (§15.3): it leaves the kitchen as a sale would, but its body
+        /// stays in the scene for them to carry out, and nothing is paid here (the director credits
+        /// it against the debt).
+        /// </summary>
+        public void Repossess(Interactable station)
+        {
+            var services = _root.Services;
+            station.Retire(services);
+            services.Messes?.Sold(station);
+            services.Stations.Remove(station);
+            _plan.Remove(station);
+            Physics.SyncTransforms();
+            LayoutChanged?.Invoke();
         }
 
         /// <summary>Sells what's under the cursor, if it can be sold.</summary>

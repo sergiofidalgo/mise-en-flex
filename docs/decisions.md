@@ -4,6 +4,46 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-10 — The boss and money trouble: loans, collections, escalation
+
+**User's calls (Phase 6, milestone 4):**
+- **Loan terms:** the accountant lends in steps of 250, up to 2,000 borrowed in all. The boss adds a flat 20% when you borrow (borrow 1,000, owe 1,200), with no compounding. Each collection takes a fifth of what was owed right after the latest loan, so borrowing again spreads the whole debt over five more collections.
+- **Tone: comic menace.**
+  1. The warning: the boss and his two bodyguards walk in on the next morning's Plan and he says a few lines.
+  2. Repossession: the guards carry out appliances, most valuable first, until they cover the debt, each credited at resale value.
+  3. Losing a restaurant: he takes the restaurant that missed the collection.
+  4. Erasure: the campaign ends.
+- **Step 3 with only one restaurant:** he doesn't take it. The guards strip it to the bare minimum, and he gives a last warning. The ladder stays four steps.
+- **Borrowing happens at the accountant's desk**, the room by the elevator. The boss's desk is kept for story beats. This changes `office-scene.md`, which is updated.
+
+**Our calls within those:**
+- **Partial payment:** he takes whatever is in the pocket, and the rest stays as money below zero, owed to him, as debt already was (2026-11-08). A collection is **paid in full only if the balance is at zero or above afterwards**, so older debt (stock bought on credit, an earlier shortfall) has to be cleared too. Paying part still helps: there's less to clear next time.
+  - *Why:* one number to read (the balance), no separate arrears to track or explain, and "paid in full" means exactly what it says. A partial payment can't reset the escalation, or a token payment would dodge it.
+- **The instalment is taken even when the money isn't there.** The loan goes down and the shortfall moves into the negative balance, so the debt is never counted twice.
+- **The bare minimum is never taken:** one hob (or grill), one board, the pass, one storage and one table. The cheapest of each is kept. A repossession leaves the restaurant able to earn its way back, and stripping (step 3 with one restaurant) takes everything else.
+  - Pieces with food, pans or plates on them stay put. Taking them would also mean throwing their contents away mid-save.
+- **The visit happens the next morning played, in whichever restaurant that is,** so switching restaurants doesn't dodge him. A repossession is sized by the debt that morning: borrowing overnight to clear it means the guards take nothing ("Found the money, did ya?"). Step 3 takes the restaurant that missed the collection. If that's the one you're in, you're sent back to the office.
+- **Nothing from the visit's morning is saved until the next Review** (the rule that leaving mid-day loses the day). The exceptions are losing a restaurant and erasure, which are written at once. Quit after a repossession, and it happens again next time from the saved state.
+- **The phone needs no button.** It rings for 1.2 s, shows each line for 2.6 s and hangs up. It never competes with the dashboard or the kitchen for a press, and it never names a key. It rings:
+  - the morning of a collection day, if the money isn't there yet;
+  - as Review starts on a collection day, whether the collection was paid or missed.
+- **Visitors walk the free floor** (the customers' pathfinding), and nobody readies up or opens management mode while they're in. A carried piece is packed down into the guard's arms (about 0.4 m), so it never sweeps through walls or furniture.
+- **Erasure:**
+  - the slot's file is set aside as a backup, as a new campaign does, so the slot is free;
+  - a record goes into the cookbook file (`SharedCookbook.Erased`), which outlives campaigns;
+  - the game goes back to the start.
+  The hall of fame's portraits now show one per erased chef, so the wall starts empty and fills as players lose.
+- **The save:** new fields with defaults (`LoanInstalment`, `BossStep`, `BossVisit`, `BossVisitAt`), so the save version stays 2. The Books tab's new lines (`Loan`, `Repossessed`) go at the end of the ledger, so older amounts keep their places.
+- **Names:** the dashboard calls the fee "the boss's cut", and the next payment "the next collection" (cut plus instalment).
+
+**To watch when playing:**
+- Whether 20% over five collections bites hard enough to make borrowing a decision, without ruining a slow week.
+- Whether the walk-in, the lines and the carry-out read from the game camera.
+- Whether a packed-down appliance reads as "they took my fridge".
+- Whether the phone at 2.6 s a line is long enough to read mid-Review.
+
+---
+
 ## 2026-11-10 — A campaign of restaurants: how the save is split
 
 **Decision (Phase 6, milestone 1; our calls within the agreed plan):** the campaign file (version 2) holds a list of restaurant records and which one is current. Each field went where it belongs:

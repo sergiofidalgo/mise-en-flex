@@ -86,6 +86,15 @@ namespace Game.Gameplay
         public DayCycle Days { get; }
 
         /// <summary>
+        /// How far the boss has gone over missed collections (§15.3), loaded with the campaign and
+        /// saved with it as Review starts.
+        /// </summary>
+        public Game.Simulation.Campaign.BossEscalation Boss { get; set; } = new Game.Simulation.Campaign.BossEscalation();
+
+        /// <summary>How many restaurants the campaign owns: with one, the boss can't take it.</summary>
+        public int RestaurantsOwned { get; set; } = 1;
+
+        /// <summary>
         /// This campaign's cookbook: the recipes it has unlocked, which are its menu, and their prices
         /// (decision 2026-11-10). Null in a scene built before the cookbook, which keeps the
         /// service config's single dish.
