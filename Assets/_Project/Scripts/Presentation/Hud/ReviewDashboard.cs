@@ -21,7 +21,7 @@ namespace Game.Presentation.Hud
     /// <list type="bullet">
     /// <item>Overview: the boss's debt first, the night's numbers, then every review; the stick
     /// browses them (and rises to their filters), Y opens the reply wheel.</item>
-    /// <item>Menu &amp; Books: tonight's menu and how each dish did, and the money.</item>
+    /// <item>Books: the finished day's money line by line, what was ordered, and the trend.</item>
     /// <item>Cookbook: the first player (Player 1) browses recipes, unlocks them (A) and sets prices
     /// (stick left and right, X back to the suggestion). Saved at once; it counts from the next
     /// service.</item>
@@ -36,7 +36,7 @@ namespace Game.Presentation.Hud
         private enum Tab
         {
             Overview,
-            MenuAndBooks,
+            Books,
             Cookbook,
             Staff,
         }
@@ -192,6 +192,9 @@ namespace Game.Presentation.Hud
             }
             _dirty = true;
         }
+
+        /// <summary>The finished day the summary describes (and "Start day N" follows), for tests.</summary>
+        public DaySummary ShownDay => DaySummary.Of(Services.Days);
 
         /// <summary>Whether the dashboard is on screen now.</summary>
         public bool IsShowing => _canvasObject != null && _canvasObject.activeSelf;
@@ -577,7 +580,7 @@ namespace Game.Presentation.Hud
             reviews.OrderBy(r => r.WalkedOut ? 0 : 1).ThenBy(r => r.Stars).ThenBy(r => r.ArrivedAt);
 
         private List<ReviewRecord> TodaysReviews() =>
-            NeedsAttentionFirst(Services.ReviewHistory.Where(r => r.Day == Services.Days.Day)).ToList();
+            NeedsAttentionFirst(Services.ReviewHistory.Where(r => r.Day == Summary.Day)).ToList();
 
         private List<ReviewRecord> ListedReviews() => _tab switch
         {

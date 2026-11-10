@@ -194,6 +194,13 @@ namespace Game.Gameplay
         /// <summary>Today's reviews join the listing as the day ends, before it's saved; today's orders join the tally.</summary>
         public void ListTodaysReviews()
         {
+            // The night's dishes go on the finished day's record, saved next, so the end-of-day
+            // summary redraws them after a relaunch (2026-11-11).
+            var history = Services.Days.History;
+            if (history.Count > 0 && history[history.Count - 1].Day == Services.Days.Day)
+                history[history.Count - 1].Dishes = DaySummary.DishesOf(Services.Service.Customers,
+                    id => Services.Cookbook != null ? Services.Cookbook.PriceOf(id) : 0);
+
             foreach (var customer in Services.Service.Customers)
             {
                 if (customer.Order == null || (customer.Satisfaction == null && !customer.WalkedOut))
