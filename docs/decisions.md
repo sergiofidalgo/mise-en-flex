@@ -2709,6 +2709,6 @@ Enter also joins and submits. WASD no longer moves.
 - It never hand-edits scene or prefab objects. Builder scripts stay the source of truth, because the next rebuild would wipe live edits.
 - Claude asks before entering Play mode or forcing a recompile, since that interrupts the user's own play.
 
-**Reason:** It removes most of the "close Unity / run this menu item / send me a screenshot" round trips. It doesn't replace batch-mode tests: `unity test` refuses a project that's open in an Editor, so EditMode tests still need the Editor closed until we find a reliable way to run them inside it.
+**Reason:** It removes most of the "close Unity / run this menu item / send me a screenshot" round trips. Tests run inside the open Editor too: `unity command test run --mode editor` ran all 730 EditMode tests in about 12 s on 2026-11-10, with no need to close Unity. (`unity test`, the batch-mode command, still refuses a project that's open; use it only when the Editor is closed.) PlayMode tests enter Play mode, so Claude asks before running them.
 
 **Cost:** The package is experimental. If it breaks the Editor or the build, remove the line from `Packages/manifest.json`.
