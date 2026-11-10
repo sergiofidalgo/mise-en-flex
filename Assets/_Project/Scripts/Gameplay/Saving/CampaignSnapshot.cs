@@ -75,7 +75,7 @@ namespace Game.Gameplay.Saving
 
         /// <summary>
         /// Puts the furniture where the save had it, before anything binds. Pieces already in the scene
-        /// are reused and moved where they can be (so the starting fridge keeps its deliveries), bought
+        /// are reused and moved where they can be (so the starting fridge keeps its starter stock), bought
         /// pieces are made from the catalogue, and sold pieces go.
         /// </summary>
         /// <returns>The station for each saved record, in the save's order; null where one couldn't be made.</returns>

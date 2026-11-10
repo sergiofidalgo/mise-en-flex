@@ -47,7 +47,10 @@ namespace Game.Editor
             // The wall hides the door from the camera, so a mat on the floor shows where it is.
             var panel = GreyboxAssets.CreatePrimitive(PrimitiveType.Cube, "DoorPanel", door, GreyboxAssets.EnsureMaterial("Door", DoorColor), keepCollider: false);
             panel.transform.localScale = DoorScale;
-            panel.transform.localPosition = new Vector3(0f, DoorScale.y / 2f, DoorPanelBehind);
+            // Propped open outwards against the doorway's side, so chefs walk out to the street's
+            // stalls through the opening StreetDoorway makes in the wall (Phase 5).
+            panel.transform.localRotation = Quaternion.Euler(0f, 90f, 0f);
+            panel.transform.localPosition = new Vector3(-DoorClearance.x + DoorScale.z / 2f, DoorScale.y / 2f, DoorPanelBehind - DoorScale.x / 2f);
             var mat = GreyboxAssets.CreatePrimitive(PrimitiveType.Cube, "DoorMat", door, GreyboxAssets.EnsureMaterial("DoorMat", DoorMatColor), keepCollider: false);
             mat.transform.localScale = DoorMatScale;
             mat.transform.localPosition = new Vector3(0f, DoorMatScale.y / 2f, DoorMatAhead);

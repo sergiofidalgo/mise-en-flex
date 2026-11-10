@@ -74,6 +74,32 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 - **Orders are still tallied as "steak, medium"**, so steak with a side counts with plain steak in the Menu tab's table.
 
 **Reason:** The menu becomes the players' own choice. Pricing is learned from how many guests come and what they say, not from a refusal.
+## 2026-11-10 — Street vendors: stalls outside the front door, stock straight into storage, starter stock instead of the delivery
+
+**User's calls (Phase 5, milestone 3):**
+- **The vendor street is outside the restaurant, in the kitchen scene,** following the user's mockup: a brick pavement and a road with passing cars along the front, a plaza with stalls to the left, a parking lot and one trash container to the right, houses behind as backdrop. The restaurant keeps running while chefs shop, so a trip during service costs real time. (Not the office scene's city: that would mean loading scenes mid-service.)
+- **Two stalls to start: a butcher (steak) and a greengrocer (onion, tomato),** each item in a cheap and a premium grade. The mockup's third canopy stands closed, for a future cuisine.
+- **Buying works like storage:** hold RT at a stall to open its menu, and a face button buys up to 6 portions (a full storage slot). It's paid at once to the day's ingredients line, even into debt.
+- **Bought stock goes straight into storage, not into a chef's hands** (the user's call, replacing "crates carried back by hand"). Food that keeps cold (`IngredientDefinition.KeepCold`; steak) goes to a fridge first and onto a shelf when the fridges are full. Everything else goes to a shelf first and into a fridge when the shelves are full. Only what fits is bought and paid for. The menu shows how many fit and their price, greyed out at none; with no room at all the stall shakes. The walk to the stall is still the time cost.
+- **Every purchase is felt** (the user's call):
+  - the storage it went to gives a gentle double hop, distinct from the sideways "can't" shake, with a set-down clack;
+  - a fridge also pops its lid a moment with a breath of cold mist;
+  - the till rings at the stall;
+  - the money at the top turns red and shakes, with the amount in red beside it.
+  The money label now shows in Prep too, as the balance; in service it still shows what the service has made.
+- **The free morning delivery goes.** A new campaign's first morning finds the storeroom stocked once, with what the delivery used to bring; everything after that is bought.
+
+**Details (proposed while building; flagged for review):**
+- **Premium is better through freshness alone.** Cheap stock starts at 70% freshness, premium at 100%, and costs 1.6× the ingredient's price. Both age alike, so cheap stock spoils sooner. Note that freshness weighs only 0.1 in the quality score today, so in play the score difference is small. If premium should matter more, raise the weight or lower cheap freshness (`MarketConfig`, `DishScorer` settings).
+- **The starter stock is free** (it was charged at the ingredients' prices as the morning delivery).
+- **The outer wall opens where the street door stands** (`StreetDoorway`), following the door when it's moved. The door panel is shown propped open. Pictures hung where the doorway is come down until the door moves.
+- **Nobody reaches through an outer wall:** a chef outside can't work a table inside against the wall, and the other way round.
+- **While anyone's outside, the camera may show the street** instead of stopping at the building's walls.
+- **Customers still appear at the door inside;** walking in from the pavement is left for later.
+
+- **The money total also shows red whenever the balance is below zero** (in Prep), a standing cue for debt.
+
+**Reason:** Shopping becomes a planning and budget choice (`plans/phase-5.md`). Going out costs time, and grades trade money against freshness. Stock going straight into storage keeps the trip about time and choice rather than carrying chores, and the feedback shows each purchase where it went and what it cost.
 
 ---
 

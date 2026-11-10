@@ -562,6 +562,9 @@ namespace Game.Editor
             framing.FindProperty("_tilt").floatValue = CameraEuler.x;
             framing.ApplyModifiedPropertiesWithoutUndo();
 
+            // Out of the front door: the pavement, the road and the market stalls (Phase 5).
+            GreyboxStreet.Build(camera);
+
             GreyboxAudio.AddTo(root, camera);
 
             GreyboxAssets.EnsureFolder(System.IO.Path.GetDirectoryName(ScenePath));

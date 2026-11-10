@@ -39,6 +39,9 @@ namespace Game.Data
 
         public float Price => _price;
 
+        /// <summary>Bought stock goes to a fridge first (decision 2026-11-10).</summary>
+        public bool KeepCold => _keepCold;
+
         [SerializeField] private GameObject _prefab;
 
         [Header("Heat")]
@@ -68,6 +71,8 @@ namespace Game.Data
         [SerializeField] private Doneness[] _donenessLevels = Array.Empty<Doneness>();
 
         [Header("Storage")]
+        [Tooltip("Bought stock goes to a fridge first, and onto a shelf only when the fridges are full. Off: shelves first, fridges when they're full.")]
+        [SerializeField] private bool _keepCold;
         [Tooltip("°C when taken out of storage (fridge ≈ 4).")]
         [SerializeField] private float _startTemperature = 4f;
         [Tooltip("Freshness lost per in-game hour at 20 °C (1/24 = spoiled in a day at room temperature).")]

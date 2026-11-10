@@ -77,7 +77,7 @@ namespace Game.Gameplay
         /// </summary>
         public Game.Simulation.Cookbook.RecipeBook Cookbook { get; set; }
 
-        /// <summary>What this morning's delivery brought, as (type id, portions).</summary>
+        /// <summary>What was put in storage this morning (a new campaign's starter stock), as (type id, portions).</summary>
         public List<(string TypeId, int Count)> LastDelivery { get; set; } = new List<(string, int)>();
 
         public StaffRoster Staff { get; }

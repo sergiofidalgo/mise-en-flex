@@ -51,6 +51,15 @@ namespace Game.Simulation.Movement
         }
 
         /// <summary>
+        /// True if a point is inside the building's outer walls (which stand a walker's radius beyond
+        /// the room's bounds), false out on the street. Nobody reaches through an outer wall: a chef
+        /// on the pavement can't work a table just inside, nor one inside a stall outside.
+        /// </summary>
+        public bool IsIndoors(Vector2 point) =>
+            point.X >= RoomMin.X - WalkerRadius && point.X <= RoomMax.X + WalkerRadius
+            && point.Y >= RoomMin.Y - WalkerRadius && point.Y <= RoomMax.Y + WalkerRadius;
+
+        /// <summary>
         /// True if someone here can reach this station. A wall is in the way, unless the station is
         /// right up against that wall: then it works like a hatch, from both sides.
         /// </summary>

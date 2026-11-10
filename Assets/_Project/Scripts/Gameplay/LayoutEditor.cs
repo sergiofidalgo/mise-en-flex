@@ -120,6 +120,9 @@ namespace Game.Gameplay
             _plan.GiveArea(_streetDoor, floor.RoomMin - SimVector2.One, floor.RoomMax + SimVector2.One);
             foreach (var station in _root.Services.Stations.All)
             {
+                // The street's stalls aren't the restaurant's to move or sell.
+                if (station is StallStation)
+                    continue;
                 _plan.Add(station, Floor(station.transform.position), station.transform.eulerAngles.y, station.HalfSize);
                 if (station.BelongsInDiningRoom)
                     _plan.GiveArea(station, floor.DiningAreaMin, floor.DiningAreaMax);
@@ -566,9 +569,9 @@ namespace Game.Gameplay
             var services = _root.Services;
             services.Days.Receive(SellPriceOf(station));
 
-            // Morning deliveries need somewhere to go; there's always another, as the last can't be sold.
+            // The first morning's starter stock needs somewhere to go; there's always another, as the last can't be sold.
             if (station is StorageStation storage)
-                storage.PassDeliveriesTo(services.Stations.All.OfType<StorageStation>().First(other => other != storage && other.FurnitureId == storage.FurnitureId));
+                storage.PassStarterStockTo(services.Stations.All.OfType<StorageStation>().First(other => other != storage && other.FurnitureId == storage.FurnitureId));
 
             station.Retire(services);
             services.Stations.Remove(station);

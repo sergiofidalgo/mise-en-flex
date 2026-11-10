@@ -6,6 +6,7 @@ using Game.Simulation.Cooking;
 using Game.Simulation.Items;
 using Game.Simulation.Storage;
 using UnityEngine;
+using UnityEngine.Serialization;
 using Game.Gameplay.Saving;
 
 namespace Game.Gameplay.Stations
@@ -14,8 +15,8 @@ namespace Game.Gameplay.Stations
     /// A fridge or shelf with four slots, one per face button, in two tiers seen from the front. Holding RT opens its radial menu;
     /// while it's open, a face button takes one portion from that slot (empty hands). With food in
     /// hand, Interact puts it in a slot with that ingredient or a free one, no menu needed: anything can go anywhere, though meat on a shelf spoils fast. With a tray,
-    /// the menu loads onto the tray. Purchases arrive straight here (decision 2026-11-04): free
-    /// each morning until shopping arrives in Phase 5.
+    /// the menu loads onto the tray. Stock bought at the street's stalls arrives straight here (decision
+    /// 2026-11-10), and so does a new campaign's starter stock, once.
     /// </summary>
     public sealed class StorageStation : Interactable, IFaceButtonTarget, IStationPrompt, ISlotMenuStation, ISavedContents
     {
@@ -31,7 +32,7 @@ namespace Game.Gameplay.Stations
         }
 
         [Serializable]
-        public sealed class Delivery
+        public sealed class StarterStock
         {
             [SerializeField] private string _typeId;
             [SerializeField, Min(0)] private int _count;
@@ -46,8 +47,9 @@ namespace Game.Gameplay.Stations
         [Tooltip("One per face button, in FaceButton order: South (A), East (B), West (X), North (Y).")]
         [SerializeField] private SlotSetup[] _slots = new SlotSetup[4];
 
-        [Tooltip("What arrives here each morning, while there's room. Until shopping (Phase 5).")]
-        [SerializeField] private Delivery[] _deliveries = Array.Empty<Delivery>();
+        [Tooltip("What's here on a new campaign's first morning, while there's room. After that, stock is bought at the street's stalls.")]
+        [FormerlySerializedAs("_deliveries")]
+        [SerializeField] private StarterStock[] _starterStock = Array.Empty<StarterStock>();
 
         private StorageUnit _unit;
         private StoreBack _container;
@@ -55,15 +57,20 @@ namespace Game.Gameplay.Stations
 
         public StorageUnit Unit => _unit;
 
+        /// <summary>Raised when stock bought at a stall arrives here, with how many portions: for the feedback.</summary>
+        public event Action<int> Stocked;
+
+        public void NotifyStocked(int portions) => Stocked?.Invoke(portions);
+
         public bool IsRefrigerated => _refrigerated;
 
         public override bool IsClear => _unit != null && _unit.Slots.All(slot => slot.Count == 0);
 
-        /// <summary>This one's being sold: what arrives here each morning arrives there instead.</summary>
-        public void PassDeliveriesTo(StorageStation other)
+        /// <summary>This one's being sold before the first morning: its starter stock goes there instead.</summary>
+        public void PassStarterStockTo(StorageStation other)
         {
-            other._deliveries = other._deliveries.Concat(_deliveries).ToArray();
-            _deliveries = Array.Empty<Delivery>();
+            other._starterStock = other._starterStock.Concat(_starterStock).ToArray();
+            _starterStock = Array.Empty<StarterStock>();
         }
 
         public override IItemContainer Container => _container;
@@ -107,18 +114,18 @@ namespace Game.Gameplay.Stations
             return true;
         }
 
-        /// <summary>The morning delivery, up to each slot's capacity.</summary>
-        /// <returns>What arrived, as (type id, portions).</returns>
-        public List<(string TypeId, int Count)> TakeDelivery()
+        /// <summary>A new campaign's starter stock, up to each slot's capacity. Free, and only once.</summary>
+        /// <returns>What was put in, as (type id, portions).</returns>
+        public List<(string TypeId, int Count)> StockStarter()
         {
-            var delivered = new List<(string, int)>();
-            foreach (var delivery in _deliveries)
+            var stocked = new List<(string, int)>();
+            foreach (var stock in _starterStock)
             {
-                var count = _unit.Stock(delivery.TypeId, () => (Ingredient)_services.CreateItem(delivery.TypeId, _unit.Temperature), delivery.Count);
+                var count = _unit.Stock(stock.TypeId, () => (Ingredient)_services.CreateItem(stock.TypeId, _unit.Temperature), stock.Count);
                 if (count > 0)
-                    delivered.Add((delivery.TypeId, count));
+                    stocked.Add((stock.TypeId, count));
             }
-            return delivered;
+            return stocked;
         }
 
         public Transform BinAnchor(int slotIndex) =>
