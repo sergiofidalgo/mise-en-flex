@@ -47,7 +47,9 @@ namespace Game.Presentation.Hud
             foreach (var player in PlayerInput.all)
             {
                 var card = CardFor(player);
-                if (!player.TryGetComponent(out PlayerInteractor interactor) || !interactor.CanAct || interactor.Target == null)
+                // While cleaning, the shape on the dirt is the interface, as at the sink: no card.
+                if (!player.TryGetComponent(out PlayerInteractor interactor) || !interactor.CanAct || interactor.Target == null ||
+                    (interactor.Cleaning != null && interactor.Cleaning.IsCleaning))
                 {
                     card.Hide();
                     continue;
@@ -63,6 +65,7 @@ namespace Game.Presentation.Hud
                 else
                 {
                     prompt?.DescribeActions(interactor, _lines);
+                    interactor.Cleaning?.DescribeActions(interactor.Target, _lines);
                     diamond = prompt != null && prompt.PromptAsDiamond(interactor);
                     if (interactor.CanOpenTrayMenu)
                         _lines.Add(new PromptLine(PromptControl.Triggers, Tr.Get("choose from tray")));

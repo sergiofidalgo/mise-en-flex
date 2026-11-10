@@ -62,6 +62,8 @@ namespace Game.Gameplay
 
             foreach (var station in stations.All)
                 station.Bind(Services);
+            ApplyCleaningTuning();
+            Services.Messes = new Cleaning.KitchenMess(Services);
 
             if (save != null)
                 CampaignSnapshot.RestoreContents(save, placed, Services);
@@ -177,9 +179,22 @@ namespace Game.Gameplay
             // The kitchen is live while players work in it; Plan and Review happen between shifts.
             var phase = Services.Days.Phase;
             if (phase == DayPhase.Prep || phase == DayPhase.Service)
+            {
                 cooking.Tick(gameSeconds * _tuning.CookingSpeed);
+                // Fires keep real time: the alarm's few seconds of warning are seconds you live through.
+                if (Application.isEditor)
+                    ApplyCleaningTuning();
+                Services.Fires.Tick(cooking.Hobs, Time.deltaTime);
+            }
             if (phase == DayPhase.Service)
                 Services.Service.Tick(gameSeconds);
+        }
+
+        // Dirt and fire tuning, read again each frame in the Editor so Inspector edits apply live.
+        private void ApplyCleaningTuning()
+        {
+            Services.Dirt.Settings = _tuning.Dirt;
+            Services.Fires.Settings = _tuning.Fire;
         }
 
         private ServiceSimulation NewService(int day)
@@ -199,6 +214,8 @@ namespace Game.Gameplay
         public CloseReport CloseKitchen()
         {
             var cooking = Services.Cooking;
+            // A fire still burning at closing goes out, and its foam waits for the morning.
+            Services.Fires.PutOutAll();
             cooking.SkipClosedTime(_tuning.OvernightSeconds);
 
             var spoiled = 0;

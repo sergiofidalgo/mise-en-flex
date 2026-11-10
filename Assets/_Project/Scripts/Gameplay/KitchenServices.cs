@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Game.Data;
 using Game.Gameplay.Items;
+using Game.Simulation.Cleaning;
 using Game.Simulation.Cooking;
 using Game.Simulation.Days;
 using Game.Simulation.Items;
@@ -55,6 +56,20 @@ namespace Game.Gameplay
         /// stands still and no chef can act, so nobody gains or loses while a friend reconnects.
         /// </summary>
         public bool Paused { get; set; }
+
+        /// <summary>Dirt on the floors, tables and counters, kept overnight (Phase 5, decision 2026-11-10).</summary>
+        public DirtMap Dirt { get; } = new DirtMap();
+
+        /// <summary>Turns what happens in service into dirt.</summary>
+        public MessMaker Mess => _mess ??= new MessMaker(Dirt);
+
+        private MessMaker _mess;
+
+        /// <summary>Says where in the room messes happen. Set by the composition root.</summary>
+        public Game.Gameplay.Cleaning.KitchenMess Messes { get; set; }
+
+        /// <summary>Watches the gas hobs for pan fires.</summary>
+        public FireSafety Fires { get; } = new FireSafety();
 
         /// <summary>Reads the hobs once a day for the energy bill.</summary>
         public EnergyMeter Energy { get; } = new EnergyMeter();

@@ -58,6 +58,17 @@ namespace Game.Gameplay.Saving
                     ItemRecords.Write(player.Tool, -1, 0, save.Items);
             }
 
+            // Dirt on furniture points at its station record; on the floor, it's where it lies.
+            DirtRecords.Write(services.Dirt, host =>
+            {
+                for (var s = 0; s < stations.Count; s++)
+                {
+                    if (ReferenceEquals(stations[s], host))
+                        return s;
+                }
+                return -1;
+            }, save.Dirt);
+
             save.Staff.AddRange(services.Staff.Hired.Select(SaveConversions.ToRecord));
             save.Reviews.AddRange(services.ReviewHistory);
             save.RecentLines.AddRange(services.ReviewLines.ToList());
@@ -172,6 +183,7 @@ namespace Game.Gameplay.Saving
             services.ReviewHistory.AddRange(save.Reviews);
             foreach (var dish in save.Dishes ?? new System.Collections.Generic.List<DishCount>())
                 services.DishTally[dish.Dish] = dish.Count;
+            DirtRecords.Read(save.Dirt, i => i >= 0 && i < placed.Length ? placed[i] : null, services.Dirt);
         }
 
         private static void Move(Transform transform, StationRecord record, float height)

@@ -539,6 +539,7 @@ namespace Game.Gameplay
                 storage.PassDeliveriesTo(services.Stations.All.OfType<StorageStation>().First(other => other != storage && other.FurnitureId == storage.FurnitureId));
 
             station.Retire(services);
+            services.Messes?.Sold(station);
             services.Stations.Remove(station);
             _plan.Remove(station);
             station.gameObject.SetActive(false); // gone this frame, for anything looking before it's destroyed

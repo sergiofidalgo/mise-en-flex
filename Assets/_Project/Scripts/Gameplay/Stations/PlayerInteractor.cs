@@ -46,6 +46,7 @@ namespace Game.Gameplay.Stations
         private IReadOnlyList<Interactable> _interactables;
         private KitchenServices _services;
         private Interactable _target;
+        private Game.Gameplay.Cleaning.ChefCleaning _cleaning;
 
         public int PlayerIndex => _playerInput.playerIndex;
 
@@ -73,6 +74,9 @@ namespace Game.Gameplay.Stations
             _hands.Current is Tray tray && !tray.IsEmpty && _target != null && !(_target is ISlotMenuStation) && !(_target is IHeatControl);
 
         public Interactable Target => _target;
+
+        /// <summary>Cleaning and putting out fires with X (Phase 5). Null until bound.</summary>
+        public Game.Gameplay.Cleaning.ChefCleaning Cleaning => _cleaning;
 
         /// <summary>Chefs work in Prep and Service; Plan and Review happen between shifts.</summary>
         /// <summary>
@@ -112,6 +116,9 @@ namespace Game.Gameplay.Stations
         {
             _interactables = interactables;
             _services = services;
+            if (!TryGetComponent(out _cleaning))
+                _cleaning = gameObject.AddComponent<Game.Gameplay.Cleaning.ChefCleaning>();
+            _cleaning.Bind(this, services);
         }
 
         private void Awake()
@@ -339,13 +346,23 @@ namespace Game.Gameplay.Stations
 
         private void HandleUse(InputAction.CallbackContext context)
         {
-            if (!CanAct || _target == null || TryFaceButton(FaceButton.West))
+            // Cleaning runs while X is held; a press mid-way changes nothing.
+            if (!CanAct || (_cleaning != null && _cleaning.IsCleaning))
+                return;
+            // Facing nothing, X still mops the floor at the chef's feet.
+            if (_target == null)
+            {
+                _cleaning?.TryStart(null);
+                return;
+            }
+            if (TryFaceButton(FaceButton.West))
                 return;
 
-            if (!(_target is IUsable usable) || !usable.TryUse(this))
-                _target.NotifyDenied();
-            else
+            // The station's own action first; cleaning is what X does when it has none.
+            if (_target is IUsable usable && usable.TryUse(this))
                 Acted?.Invoke(_target);
+            else if (_cleaning == null || IsBusy || !_cleaning.TryStart(_target))
+                _target.NotifyDenied();
         }
     }
 }

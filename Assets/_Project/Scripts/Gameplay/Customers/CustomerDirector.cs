@@ -76,6 +76,7 @@ namespace Game.Gameplay.Customers
         private readonly List<SimVector2> _others = new List<SimVector2>();
         private readonly List<Customer> _gone = new List<Customer>();
         private ServiceSimulation _service;
+        private readonly HashSet<Customer> _walkedOut = new HashSet<Customer>();
         private StationLayout _layout;
 
         // The same, keeping clear of every chair: for planning a way, not for where they can step.
@@ -178,6 +179,9 @@ namespace Game.Gameplay.Customers
                             agent.Face(StationAt(customer.Seat).transform.position - agent.transform.position);
                         break;
                     case CustomerState.Leaving:
+                        // Each guest on their way out counts towards a scuff on the floor (Phase 5).
+                        if (_walkedOut.Add(customer))
+                            _root.Services.Messes?.GuestWalked(Vector3.Lerp(agent.transform.position, _door.position, 0.35f));
                         // Even with the door blocked they always get out, so a service can finish.
                         if (Walk(agent, _door.position, stride) == WalkResult.NoWay)
                             agent.WalkTowards(_door.position, stride, ArriveDistance);

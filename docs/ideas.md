@@ -4,6 +4,19 @@ Ideas worth keeping that aren't decided or scheduled yet. When one is accepted, 
 
 ---
 
+## Cleaning and fire: what's left after Phase 5's first pass
+
+*Added 2026-11-10 · Relevant phase: 7 (inspections) and 9 (polish) · Pillars: chaos you can plan for*
+
+- **Replies to a "dirty table" review** use the food replies for now (`TopicGroup.Food`), so "we're proud of that dish" can answer "sticky table". A "the room" reply group (with grill lines) would fit better.
+- **Sounds:** a wipe, a mop squelch, the extinguisher's hiss and a whoosh when a pan catches. Today the alarm is the only sound.
+- **A clean pop:** a sparkle when a patch comes clean or a fire goes out, like the sink's flash.
+- **Dirt under furniture:** floor dirt that ends up under a piece moved in the layout editor stays there, out of reach, until the piece moves again.
+- **The cleaner** (decisions 2026-11-05) could wipe tables and mop between washing, once hired staff learn surfaces.
+- **Fire that spreads** to a neighbouring hob or counter, and health inspections reading the dirt (Phase 7).
+
+---
+
 ## Localising reviews and replies
 
 *Added 2026-11-09 · Relevant phase: before any translation; best before saves pile up · Pillars: your restaurant, your identity*

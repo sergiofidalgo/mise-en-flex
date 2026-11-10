@@ -547,6 +547,7 @@ namespace Game.Editor
             framing.ApplyModifiedPropertiesWithoutUndo();
 
             GreyboxAudio.AddTo(root, camera);
+            CleaningArt.AddTo(root);
 
             GreyboxAssets.EnsureFolder(System.IO.Path.GetDirectoryName(ScenePath));
             EditorSceneManager.SaveScene(scene, ScenePath);
