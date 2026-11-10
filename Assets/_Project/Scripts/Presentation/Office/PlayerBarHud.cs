@@ -81,6 +81,7 @@ namespace Game.Presentation.Office
         private readonly List<float> _widths = new List<float>();
         private Canvas _canvas;
         private readonly List<(GameObject Part, int Layer)> _moved = new List<(GameObject, int)>();
+        private readonly List<Renderer> _parts = new List<Renderer>();
 
         // For a still outside Play mode: who stands in for each slot, and their dressing if any.
         private readonly Dictionary<int, (Transform Chef, TailorSession Session)> _staged = new Dictionary<int, (Transform, TailorSession)>();
@@ -168,8 +169,8 @@ namespace Game.Presentation.Office
         /// <summary>
         /// For a still outside Play mode (TailorCapture): the bar as play would show it, with
         /// <paramref name="staged"/> standing in for the joined players by slot, each dressing if
-        /// they have a session. The canvas draws through <paramref name="main"/>. Returns the
-        /// portrait cameras to render before the main camera.
+        /// they have a session. The canvas draws through <paramref name="main"/>. Portraits are drawn
+        /// here, so the cameras returned (any still enabled) are normally none.
         /// </summary>
         public IReadOnlyList<Camera> PreviewBar(IReadOnlyDictionary<int, (Transform Chef, TailorSession Session)> staged, Camera main)
         {
@@ -457,9 +458,8 @@ namespace Game.Presentation.Office
             Fill(slot, session);
             Animate(slot, dt);
             Frame(slot, chef, (int)session.Module, dt);
-            slot.Portrait.cullingMask = ~0;
-            slot.Portrait.backgroundColor = _style.CardBackground;
-            slot.Portrait.enabled = true;
+            // Live while dressing, so every try-on shows, but still only the chef: no tailor in front.
+            DrawChefOnly(slot, chef);
         }
 
         // Stepped off the ladder: back in what's worn, which drops a locked item still being looked at.
@@ -527,11 +527,18 @@ namespace Game.Presentation.Office
         private void TakeStill(Slot slot, Transform chef)
         {
             Frame(slot, chef, FaceFraming, 10f); // straight to the face, no easing
+            DrawChefOnly(slot, chef);
+        }
+
+        // Renders the slot's camera now, with only <paramref name="chef"/> in the picture.
+        private void DrawChefOnly(Slot slot, Transform chef)
+        {
             var camera = slot.Portrait;
             camera.cullingMask = 1 << StillLayer;
             camera.backgroundColor = Color.Lerp(_style.CardBackground, PlayerColour(slot.Index), StillBackdropTint);
             _moved.Clear();
-            foreach (var part in chef.GetComponentsInChildren<Renderer>(true))
+            chef.GetComponentsInChildren(true, _parts); // no allocation: the dressing card does this every frame
+            foreach (var part in _parts)
             {
                 _moved.Add((part.gameObject, part.gameObject.layer));
                 part.gameObject.layer = StillLayer;
