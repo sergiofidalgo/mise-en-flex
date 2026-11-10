@@ -222,6 +222,7 @@ namespace Game.Presentation.Hud
             ReadInput();
             PulseBoss();
             UpdateMoney(Time.unscaledDeltaTime);
+            UpdateStart(Time.unscaledDeltaTime);
             if (_saveCookbookAt >= 0f && Time.unscaledTime >= _saveCookbookAt)
                 SaveCookbookNow();
             if (_dirty)
