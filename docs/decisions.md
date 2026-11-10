@@ -3344,3 +3344,18 @@ It hides (fading over the HUD's 0.12 s) behind the Review dashboard, the pause m
 **Plan is no longer a phase players stay in:** it's passed through between Review and Prep, and is only seen as the arrival screen from the office. `docs/game-design.md` §4 (the daily loop) is now out of date: its table gives Plan the menu and prices, suppliers, hiring and layout editing. Those now happen in forkcast between days (prices, hiring) and in Prep (layout, the street vendors). §4's line 226 ("Layout editing happens in Plan") and the drop-in line 39 ("during Plan/Prep") are out of date too. I haven't edited the design doc.
 
 **Not checked in play:** whether "about N guests" matches what turns up often enough to trust, and the tiles with long dish names.
+
+## 2026-11-11 — forkcast always describes the last finished day; "Books"; day 1 starts in Prep
+
+**User's calls** (from leaving and rejoining mid-day, which showed the new day's empty books):
+- **The summary is the day summary.** The game saves as it opens (Review starts). Leaving during the next day and joining again lands on the same summary, with no new save: the header ("Day 2 · Tue"), the Overview's stats, the boss card, the review cards and the money all describe the last finished day, and the button says "Start day N" for the day after it.
+- **No summary before day 1:** a brand-new restaurant starts straight in day 1's Prep.
+- **The money tab is one word: "Books"** (the user chose it over "Bookings", which reads as reservations). It shows the finished day: money in and out line by line and the net, what was ordered (per dish: how many, walk-outs, stars, the price it sold at), where the money went, and the trend.
+
+**Done:**
+- **The finished day keeps what the summary shows.** `DayRecord` (saved with the restaurant's history as Review starts) gains the ledger's lines, the night's dishes (`DishNight`), and whether the boss collected and how much of it was paid. All have defaults. An older save has no lines, and its Books fall back to the day's In/Out totals.
+- **`DaySummary`** reads the last finished day; forkcast draws everything from it. The boss card counts the next collection from the end of that day ("tomorrow" is the next service).
+- **`DayLoop.NewRestaurantsStartInPrep`** moves a restaurant with no finished day from Plan to Prep on its first frame. The play-test suite turns it off (`SaveIsolation`) so its tests can still drive a new kitchen's day by hand from Plan; `ForkcastSummaryPlayTests` turns it on and checks the real start.
+- Tests: `DaySummaryTests` (EditMode: Review, the next morning, a JSON round trip, an older save, a collection night); `ForkcastSummaryPlayTests` (day 1 starts in Prep; finish days 1 and 2, leave during day 3's Prep, rejoin: the summary is day 2's, Books match day 2's ledger, Start says day 3).
+
+**Not checked in play:** a real relaunch through the office with several restaurants, and an older save's fallback.
