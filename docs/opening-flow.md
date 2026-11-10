@@ -11,10 +11,10 @@ The first half-minute takes players from the city's streets up the boss's tower 
 | 1 | **Logos** (engine, production) | Open, to work out later (user, 2026-11-09). Unity 6 no longer requires its splash. Proposed: 2–3 s each, first launch only, any button skips afterwards. |
 | 2 | **Save notice**: what the save icon means, and not to quit or turn off while it shows | Replaces the bad-language disclaimer idea (user, 2026-11-09). Whether there's a content note too is open. Proposed: one card, about 3 s, first launch only and then from Settings. The same icon shows as Review starts and whenever the office saves (`decisions.md`, 2026-11-06). |
 | 3 | **Fade out, fade in** | Agreed. Short, about 0.5 s each, so it doesn't feel like loading. |
-| 4 | **The fly-through**: the camera starts low in a busy street at night and rises through the city: clutter, movement, details, graffiti, people walking, birds, lit windows and people passing behind them | Agreed; starts in a street, not a park (user, 2026-11-09). 8–10 s. Uses the office's `Ambience` life (walkers, flocks, windows, silhouettes). **Skippable every time** with A, which jumps to step 5 (user, 2026-11-09). |
-| 5 | **The stop**: the camera eases to rest with the boss's tower framed on the left, the sign hanging in front of its spire, and the menu fades in | Agreed. The framing of the main menu mockup. The lit penthouse is the teaser. |
+| 4 | **The approach**: at street level close to the tower, from the avenue's mouth, the camera walks in through the crowd to the tower's main entrance | User, 2026-11-10: no long run up the road. 8 s. **Skippable every time** with A, which jumps to step 5 (user, 2026-11-09). |
+| 5 | **The stop**: right in front of the main entrance, with the boss's restaurant on the ground floor, its queue, its marquee and the flashes. After a 2 s beat on the bustle the menu fades in; A brings it at once | User, 2026-11-10. The menu covers most of the frame, so the beat is when the entrance is seen whole. |
 | 6 | **The menu**: New campaign or Continue (Free kitchen fades to the kitchen) | Agreed. The menu's city needs reworking with this in mind (user, 2026-11-09): see *The city* below. |
-| 7 | **The climb**: the menu fades out, the camera carries on up the avenue, rises up the tower's glass beside the glass lift with a chef riding up in it, and tips over onto the office's wide shot, looking at the elevator | Agreed. See *The hand-over* below. |
+| 7 | **In and up**: the menu fades out; player 1's chef walks in through the tower's door to the lift, which stands inside the lobby where the boss's elevator is upstairs; the camera watches, then rises up the glass beside the cab, past real floors, over the cornice and onto the office's wide shot, looking at the elevator | User, 2026-11-10. See *The hand-over* below. |
 | 8 | **Joining**: a hint to press A; each join rings the elevator and a chef steps out | **Four join slots** (user, 2026-11-09). Whoever drove the menu is already player 1 on that controller, so they don't press A twice; the other three press A (user left it to us, 2026-11-09). |
 | 9 | **Free play** on the floor | Proposed. Later, the guided first day (Phase 8) starts here: the boss's call or a first task. |
 
@@ -23,8 +23,19 @@ The first half-minute takes players from the city's streets up the boss's tower 
 ## The city
 
 The fly-through, the menu's resting shot and the office have to be one city:
-- **The avenue** (the user's diagram, 2026-11-09): a straight road running south from the tower's street, shops on both sides, the tower standing at its end. The camera comes in at the far end, glides up the middle of the road at eye height and stops in the road with the tower straight ahead.
-- **The same tower:** the boss's tower, with the penthouse floor as built in `Office_Greybox`. It's glass all the way down, every floor lit alike, in the city's own style: a stone podium, stone piers, ledges, bronze mullions and louvred plant floors. A glass lift runs up its front.
+- **The tower's front** (user, 2026-11-10): the ground floor is the boss's restaurant, MISE EN FLEX in pink neon over five stars, packed, seen through clear glass: a lit bar with bottles, pendant lights, diners at high tables, a waiter. Outside:
+  - a queue behind a rope, most of it on phones;
+  - a red carpet with a couple posing and photographers flashing;
+  - selfies by the glass, and an influencer filming under a ring light;
+  - people going in and out;
+  - the tower's own door with its doorman.
+- **Social media first** (user, 2026-11-10: the game is about social media and reviews): flashes every few seconds on every phone, and hearts, stars and comments popping over them (`SocialPop`).
+- **The avenue** (the user's diagram, 2026-11-09) is still there, but now only as the backdrop behind the camera's start.
+- **The same tower:** the boss's tower, with the penthouse floor as built in `Office_Greybox`. It's glass all the way down, in the city's own style: a stone podium, stone piers, ledges, bronze mullions and louvred plant floors.
+- **Floors you can see into** (user, 2026-11-10; "Mixed" chosen):
+  - Where the camera climbs (the middle of the front), clear glass shows real rooms, one of five kinds per floor: open-plan, meeting room, kitchen with a sofa, a creative floor with ping-pong, a floor being fitted out. They're varied, mostly lit, with people about.
+  - Every other window paints its room with depth (`SH_InteriorCard`, interior mapping): lit or dark, desks, someone at the back, blinds, a TV's flicker.
+- **The lift is inside** (user, 2026-11-10): a glass cab between bronze posts, in the same place as the boss's floor's elevator, seen through the glass on the way up.
 - **The sky** (user, 2026-11-09: "the sky is super important too"): stars that twinkle, a big moon with a halo in the open sky beside the tower's top, slow clouds silvered near the moon, and airliners crossing high over the city, blinking.
 - **Hustle all along the avenue** (user, 2026-11-09), dense with clutter, movement and detail, built from the city kit and the office's `Ambience` life:
   - **clutter:** parked cars and scooters, bins and bin bags, newspaper boxes, fire hydrants, café tables, crates;
@@ -40,15 +51,25 @@ The fly-through, the menu's resting shot and the office have to be one city:
 
 **One scene** (user, 2026-11-09): the office scene holds the street, the menu and the floor, so there's nothing to load between them. The climb runs from wherever the camera is drifting at the stop, up the tower's glass, and turns onto the office camera's pre-join wide shot. The first thing players see is the whole floor and the elevator they'll come out of.
 
-## How it's built (2026-11-09)
+## How it's built (2026-11-09, reworked 2026-11-10)
 
-- **`OpeningSequence`** (Presentation/Office) runs the steps: save notice (first launch only, a `PlayerPrefs` flag; A skips it) → 0.5 s fade in → the flight, 15 s, eased (A skips, every time) → the menu fades in over a slow drift → the climb, 13 s → land. The user found the first version (9 s and 5 s) rushed. On landing the follow camera takes over, joining opens, the menu's controller joins as player 1, the lift's chef has gone in (the empty cab sinks back down), and the street level switches off, since nobody sees it from the floor.
-- **The camera path** is a centripetal Catmull-Rom curve through poses set in `OfficeBuilder.Opening.cs` (`OpeningPath`, tested). It's sampled by distance, so the pace is even however far apart the poses are. The flight runs up the avenue at eye height. The climb continues up the avenue, crosses the tower's street, and goes up the face to the top.
-- **The lift** (`OpeningElevator`) rides just above the camera's height on the climb, so the chef stays in frame.
+- **`OpeningSequence`** (Presentation/Office) runs the steps:
+  1. save notice (first launch only, a `PlayerPrefs` flag; A skips it);
+  2. 0.5 s fade in;
+  3. the approach, 8 s (A skips, every time);
+  4. a 2 s beat, then the menu fades in;
+  5. the chef walks in, about 6 s, the camera easing in to watch;
+  6. the climb, 12 s;
+  7. land.
+
+  On landing, the follow camera takes over and joining opens. The menu's controller joins as player 1, coming out of the floor's elevator: the chef who rode up. The cab's chef hides, the empty cab sinks back down, and the street level switches off, since nobody sees it from the floor.
+- **`OpeningChef`**: player 1's chef, in their look from the tailor (`ChefProfileFile`) and their colour, waits at the kerb. They walk a set path through the tower's door, round the shaft to the cab's doors (which slide open), and ride up.
+- **The camera path** is a centripetal Catmull-Rom curve through poses set in `OfficeBuilder.Opening.cs` (`OpeningPath`, tested). It's sampled by distance, so the pace is even however far apart the poses are. The climb goes straight up the front, about 11 m off the glass, beside the lift, then over the cornice.
+- **The lift** (`OpeningElevator`) rides level with the camera on the climb, so the chef stays in the middle of the frame.
 - **The haze** is thinner (170–650 m) in the street and over the menu, and eases back to the office's on the climb, so the tower reads from the street.
 - **`OpeningHud`**: the black veil for fades, the save card (turning icon and two lines), "A Skip" bottom right, and the four join slots in player colours along the bottom.
 - **`MainMenu`** starts hidden in the office (`_startHidden`). When the office listens to `Launching`, the menu hands over instead of loading the kitchen.
-- **Captures:** *Tools/Game/Capture Office* renders `opening_flight_*` and `opening_climb_*` along the path.
+- **Captures:** *Tools/Game/Capture Office* renders `opening_flight_*`, `opening_entering_*`, `opening_climb_*` and `opening_climbing_*` along the path. For the stills it freezes a believable instant: one flash in five going off, every other phone popping, the cab and chef where they'd be.
 
 - **Leaving for the kitchen:** `MiniatureTable` in the back room. Once every joined player stands around the table, any of them presses A and the kitchen loads. A hint above the join slots counts who's there ("Everyone to the table: 2 of 3"), then shows "A Start the day". The players walk into the kitchen as they are, on the same controllers and in the same order, so the same colours and chefs, without joining again (`PlayerRoster`, user's call 2026-11-09). A player whose controller went away on the way joins as usual.
 - **Boot order** (`BootOrder`, run by the office and menu builders): `Office_Greybox`, then `Kitchen_Greybox`. `MainMenu.unity` stays in the project for the menu's UI captures but isn't in builds.

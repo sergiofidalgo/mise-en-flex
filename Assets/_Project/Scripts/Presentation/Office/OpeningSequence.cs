@@ -5,16 +5,17 @@ using UnityEngine.InputSystem;
 namespace Game.Presentation.Office
 {
     /// <summary>
-    /// The first half-minute (docs/opening-flow.md; decisions 2026-11-09): the save notice on first
-    /// launch, a fade into the street at the foot of the boss's tower, the camera's glide up the avenue
-    /// to rest in the road with the tower ahead (A skips it, every time), the main menu, and once a
-    /// campaign is chosen the climb: on up the avenue, up the tower's glass, over onto the floor's
-    /// wide shot (the user's diagram, 2026-11-09). Then the follow camera takes
-    /// over, joining opens, and the player who chose in the menu is already in as player 1.
+    /// The first half-minute (docs/opening-flow.md; decisions 2026-11-09 and 2026-11-10): the save
+    /// notice on first launch, a fade into the street close to the boss's tower, the camera's short
+    /// approach to its main entrance through the crowd (A skips it, every time), a beat to take in
+    /// the bustle, the main menu, and once a campaign is chosen the chef walks in and into the lift,
+    /// which the camera follows up the glass and over onto the floor's wide shot. Then the follow
+    /// camera takes over, joining opens, and the player who chose in the menu is already in as
+    /// player 1: the chef who rode up.
     /// </summary>
     public sealed class OpeningSequence : MonoBehaviour
     {
-        private enum Stage { SaveNotice, FadeIn, Flight, Menu, Climb, Landed }
+        private enum Stage { SaveNotice, FadeIn, Flight, Menu, Entering, Climb, Landed }
 
         private const string SaveNoticeKey = "Opening.SaveNoticeShown";
 
@@ -25,6 +26,8 @@ namespace Game.Presentation.Office
         [SerializeField] private OpeningHud _hud;
         [Tooltip("The glass lift on the tower's front, which rides up with the camera on the climb; optional.")]
         [SerializeField] private OpeningElevator _elevator;
+        [Tooltip("The chef who walks in and rides up once a campaign is chosen; optional.")]
+        [SerializeField] private OpeningChef _chef;
         [Tooltip("The street and avenue 120 m below, with all their people, cars and lights: switched off once the camera lands, as nobody sees them from the floor (the 60 fps budget with four players).")]
         [SerializeField] private GameObject _streetLevel;
         [Tooltip("The flight from the street to the stop where the menu shows; the last pose is the stop.")]
@@ -35,11 +38,15 @@ namespace Game.Presentation.Office
         [Header("Timing (seconds)")]
         [SerializeField, Min(0.5f)] private float _saveNotice = 3.5f;
         [SerializeField, Min(0.05f)] private float _fade = 0.5f;
-        [SerializeField, Min(1f)] private float _flightSeconds = 15f;
-        [SerializeField, Min(1f)] private float _climbSeconds = 13f;
+        [SerializeField, Min(1f)] private float _flightSeconds = 8f;
+        [SerializeField, Min(1f)] private float _climbSeconds = 12f;
         [Tooltip("How far through the climb (0–1) the camera starts turning from the tower's glass onto the floor's view.")]
         [SerializeField, Range(0.5f, 0.98f)] private float _turnFrom = 0.86f;
         [SerializeField, Min(0.05f)] private float _menuFade = 0.45f;
+        [Tooltip("How long the camera rests on the busy entrance before the menu comes up (A skips).")]
+        [SerializeField, Min(0f)] private float _menuDelay = 2f;
+        [Tooltip("How far the camera eases in while it watches the chef walk to the lift (m).")]
+        [SerializeField] private Vector3 _enterPush = new Vector3(-1.2f, 0.4f, 3f);
 
         [Header("Haze")]
         [Tooltip("Fog distances during the flight and the menu, thinner so the tower shows from the street.")]
@@ -50,6 +57,7 @@ namespace Game.Presentation.Office
         private Vector2 _officeFog;
         private CameraPose[] _climbPath;
         private Quaternion _landingRotation;
+        private Vector3 _enterFrom;
 
         private void Awake()
         {
@@ -117,14 +125,30 @@ namespace Game.Presentation.Office
                     }
                     break;
                 case Stage.Menu:
-                    _menu.SetShown(true, Mathf.Clamp01(_clock / _menuFade));
+                    // A beat on the bustle first, then the menu (A brings it at once).
+                    if (_clock < _menuDelay && PressedA())
+                        _clock = _menuDelay;
+                    if (_clock < _menuDelay)
+                        _menu.SetShown(false, 0f);
+                    else
+                        _menu.SetShown(true, Mathf.Clamp01((_clock - _menuDelay) / _menuFade));
                     // A slow drift, so the city lives behind the menu.
                     var stop = _flight[_flight.Length - 1];
                     var drift = new Vector3(Mathf.Sin(_clock * 0.15f), Mathf.Sin(_clock * 0.11f) * 0.5f, 0f) * 1.2f;
                     Place(new CameraPose(stop.Position + drift, stop.Target), null);
                     break;
-                case Stage.Climb:
+                case Stage.Entering:
+                    // The menu goes; the camera eases in and watches the chef walk in to the lift.
                     _menu.SetShown(false, 1f - Mathf.Clamp01(_clock / _menuFade));
+                    var rest = _flight[_flight.Length - 1];
+                    var look = Mathf.SmoothStep(0f, 0.75f, _clock / 1.2f);
+                    var push = OpeningPath.Ease(Mathf.Clamp01(_clock / 5f));
+                    Place(new CameraPose(_enterFrom + _enterPush * push, Vector3.Lerp(rest.Target, _chef.Head, look)), null);
+                    if (_chef.Aboard && _clock > 0.8f)
+                        StartClimb();
+                    break;
+                case Stage.Climb:
+                    _menu.SetShown(false, 0f);
                     var t = Mathf.Clamp01(_clock / _climbSeconds);
                     var eased = OpeningPath.Ease(t);
                     var pose = OpeningPath.SampleEven(_climbPath, eased);
@@ -144,11 +168,23 @@ namespace Game.Presentation.Office
 
         private void HandleLaunching(int slot, bool continuing)
         {
-            // From wherever the camera is now (drifting at the stop), up the tower, onto the wide shot.
+            _enterFrom = _camera.transform.position;
+            if (_chef != null)
+            {
+                _chef.Begin();
+                Enter(Stage.Entering);
+                return;
+            }
+            StartClimb();
+        }
+
+        private void StartClimb()
+        {
+            // From wherever the camera is now, up the tower beside the lift, onto the wide shot.
             var landing = _follow.Wanted();
             _landingRotation = Quaternion.Euler(55f, 0f, 0f);
             var path = new CameraPose[_climb.Length + 2];
-            path[0] = new CameraPose(_camera.transform.position, _flight[_flight.Length - 1].Target);
+            path[0] = new CameraPose(_camera.transform.position, _camera.transform.position + _camera.transform.forward * 15f);
             for (var i = 0; i < _climb.Length; i++)
                 path[i + 1] = _climb[i];
             path[path.Length - 1] = new CameraPose(landing, landing + _landingRotation * Vector3.forward * 30f);

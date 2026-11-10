@@ -57,7 +57,7 @@ namespace Game.Editor
                 Block(street, "Kerb", Toon("StreetKerb", Kerb), new Vector3(x, 0f, SouthKerb), new Vector3(length, 0.18f, 0.25f));
             }
 
-            TowerLobby(street);
+            TowerEntrance(street); // OfficeBuilder.Entrance.cs: the restaurant, the queue, the chef
             StreetRow(street);
             StreetFurniture(street);
             StreetTraffic(street);
@@ -65,25 +65,8 @@ namespace Game.Editor
             BuildAvenue(street); // OfficeBuilder.Avenue.cs: the avenue the opening glides up
         }
 
-        // The boss's tower at street level: a lit glass lobby, a brass canopy over the doors, his own
-        // red carpet out to the kerb between brass posts, a doorman.
-        private static void TowerLobby(Transform street)
-        {
-            var glass = Unlit("StreetLobbyGlow", new Color(1f, 0.85f, 0.6f));
-            Cube(street, "LobbyGlass", glass, new Vector3(0f, 0.15f, TowerFace - 0.05f), new Vector3(16f, 4.2f, 0.05f));
-            for (var x = -8f; x <= 8.01f; x += 2f)
-                Block(street, "LobbyMullion", Toon("OfficeTowerBronze", new Color(0.45f, 0.32f, 0.2f)), new Vector3(x, 0.15f, TowerFace - 0.08f), new Vector3(0.12f, 4.2f, 0.12f));
-            Block(street, "Canopy", Toon("OfficeBrass", Brass), new Vector3(0f, 4.4f, TowerFace - 1.6f), new Vector3(7f, 0.3f, 3.2f));
-            foreach (var x in new[] { -3.2f, 3.2f })
-                Block(street, "CanopyPost", Toon("OfficeBrass", Brass), new Vector3(x, 0.15f, TowerFace - 3f), new Vector3(0.12f, 4.25f, 0.12f));
-            Cube(street, "LobbyCarpet", Toon("OfficeCarpet", Burgundy), new Vector3(0f, 0.16f, (TowerFace + NorthKerb) / 2f), new Vector3(2.2f, 0.01f, TowerFace - NorthKerb));
-            for (var z = TowerFace - 1.2f; z > NorthKerb + 0.5f; z -= 1.5f)
-            foreach (var x in new[] { -1.6f, 1.6f })
-                Block(street, "Stanchion", Toon("OfficeBrass", Brass), new Vector3(x, 0.15f, z), new Vector3(0.1f, 0.9f, 0.1f));
-            Point(street, "CanopyLight", new Vector3(0f, 3.8f, TowerFace - 2f), Incandescent, 9f, 3.5f);
-            Person(street, "Doorman", new Vector3(2.4f, 0.15f, TowerFace - 1.2f), 180f, Burgundy, Suit, 1f,
-                look => { look.Hat = CharacterArt.HatKind.Cap; look.HatColor = Burgundy; look.Tie = true; look.TieColor = new Color(0.86f, 0.62f, 0.26f); });
-        }
+        // In front of the tower's entrance, where the restaurant's crowd stands.
+        private static bool InFrontOfTower(float x) => Mathf.Abs(x) < 17f;
 
         // The row across the road: low shops and flats, their fronts facing the tower, with a gap
         // where the avenue comes in (OfficeBuilder.Avenue.cs).
@@ -187,7 +170,7 @@ namespace Game.Editor
                 StreetLight(street, new Vector3(x, 0.15f, NorthKerb + 0.6f));
                 if (!InAvenueMouth(x + 6.5f))
                     StreetLight(street, new Vector3(x + 6.5f, 0.15f, SouthKerb - 0.6f));
-                if (Mathf.Abs(x) > 5f)
+                if (!InFrontOfTower(x + 3f))
                     Tree(street, new Vector3(x + 3f, 0.15f, NorthKerb + 1.4f));
             }
             var red = Toon("StreetHydrant", new Color(0.82f, 0.2f, 0.18f));
@@ -196,7 +179,7 @@ namespace Game.Editor
             {
                 var x = -StreetEnd + 10f + k * 25f + (float)_random.NextDouble() * 6f;
                 var z = k % 2 == 0 ? southWalk + 1f : northWalk;
-                if (InAvenueMouth(x, 5f))
+                if (InAvenueMouth(x, 5f) || InFrontOfTower(x - 3f) || InFrontOfTower(x + 0.7f))
                     continue;
                 Model(street, "Bin", "SM_Bin", "BinBody", Toon("StreetBin", new Color(0.25f, 0.42f, 0.32f)), new Vector3(x, 0.15f, z), (float)_random.NextDouble() * 360f);
                 Shape(street, PrimitiveType.Sphere, "BinBag", bags, new Vector3(x + 0.7f, 0.45f, z), new Vector3(0.7f, 0.6f, 0.6f));
@@ -244,7 +227,7 @@ namespace Game.Editor
             for (var k = 0; k < 8; k++)
             {
                 var x = -StreetEnd + 15f + k * 21f + (float)_random.NextDouble() * 5f;
-                if (Mathf.Abs(x) < 5f || Mathf.Abs(x + 50f) < 6f || (k % 2 == 1 && InAvenueMouth(x, 3f)))
+                if (Mathf.Abs(x) < 5f || Mathf.Abs(x + 50f) < 6f || (k % 2 == 1 && InAvenueMouth(x, 3f)) || (k % 2 == 0 && InFrontOfTower(x)))
                     continue;
                 var car = Car(street, k % 2 == 0 ? NorthKerb - 1.1f : SouthKerb + 1.1f, x);
                 car.localRotation = Quaternion.Euler(0f, k % 2 == 0 ? 90f : -90f, 0f);
@@ -266,12 +249,13 @@ namespace Game.Editor
         // Cars driving both ways, a delivery rider weaving through.
         private static void StreetTraffic(Transform street)
         {
-            var lanes = new[] { (-25.9f, 1f), (-22.1f, -1f) };
-            for (var k = 0; k < 6; k++)
+            // Only the far lane: the near one runs right under the camera where it stops for the menu.
+            var lanes = new[] { (-22.1f, -1f) };
+            for (var k = 0; k < 3; k++)
             {
-                var (z, dir) = lanes[k % 2];
+                var (z, dir) = lanes[k % lanes.Length];
                 var car = Car(street, z, 0f, driving: true);
-                car.gameObject.AddComponent<LaneMover>().Set(new Vector3(-dir * StreetEnd, 0f, z), new Vector3(dir * StreetEnd, 0f, z), 8f + (float)_random.NextDouble() * 3f, false, 0f, k / 6f);
+                car.gameObject.AddComponent<LaneMover>().Set(new Vector3(-dir * StreetEnd, 0f, z), new Vector3(dir * StreetEnd, 0f, z), 8f, false, 0f, k / 3f);
                 MakeDynamic(car.gameObject);
             }
             // The delivery rider on a scooter, a box on the back.
@@ -299,6 +283,9 @@ namespace Game.Editor
                 var z = (k % 2 == 0 ? northWalk : southWalk) + ((float)_random.NextDouble() - 0.5f) * 1.2f;
                 var start = -60f + (float)_random.NextDouble() * 100f;
                 var length = 12f + (float)_random.NextDouble() * 20f;
+                // The tower's front has its own crowd (OfficeBuilder.Entrance.cs): walkers keep clear of it.
+                if (k % 2 == 0 && start < 18f && start + length > -18f)
+                    start = start < 0f ? -50f - (float)_random.NextDouble() * 10f : 19f + (float)_random.NextDouble() * 20f;
                 var walker = Passerby(street, "Walker", new Vector3(start, 0.15f, z), 90f);
                 walker.gameObject.AddComponent<LaneMover>().Set(new Vector3(start, 0.15f, z), new Vector3(start + length, 0.15f, z),
                     1.1f + (float)_random.NextDouble() * 0.5f, true, 0.5f + (float)_random.NextDouble() * 3f, (float)_random.NextDouble());

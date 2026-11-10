@@ -86,6 +86,70 @@ namespace Game.Editor
             return Additive(key, texture);
         }
 
+        /// <summary>The social-media pops over the opening's phones: a heart, a star, a comment.</summary>
+        public enum Social { Heart, Star, Comment }
+
+        /// <summary>
+        /// A round badge with a white icon on it, like a notification: a pink heart, a yellow star, a
+        /// blue comment bubble (user's note, 2026-11-10: the game is about social media and reviews).
+        /// </summary>
+        public static Material SocialIcon(Social kind)
+        {
+            var key = $"Social_{kind}";
+            const int size = 64;
+            var badge = kind == Social.Heart ? new Color(0.98f, 0.33f, 0.52f) : kind == Social.Star ? new Color(1f, 0.74f, 0.18f) : new Color(0.28f, 0.6f, 0.98f);
+            var texture = Texture(key, size, size, (px, py) =>
+            {
+                var p = new Vector2((px + 0.5f) / size - 0.5f, (py + 0.5f) / size - 0.5f);
+                var r = p.magnitude;
+                if (r > 0.49f)
+                    return new Color(1f, 1f, 1f, 0f);
+                var edge = Mathf.Clamp01((0.49f - r) * size); // soft outer edge
+                if (r > 0.43f)
+                    return new Color(1f, 1f, 1f, edge); // a white rim
+                var icon = false;
+                switch (kind)
+                {
+                    case Social.Heart:
+                        // Two circles over a point.
+                        var q = p * 1.25f + new Vector2(0f, -0.03f);
+                        icon = (q - new Vector2(-0.1f, 0.06f)).magnitude < 0.12f || (q - new Vector2(0.1f, 0.06f)).magnitude < 0.12f
+                            || (q.y < 0.08f && q.y > -0.24f && Mathf.Abs(q.x) < (q.y + 0.24f) * 0.85f);
+                        break;
+                    case Social.Star:
+                        // Five points: the radius swings with the angle.
+                        var angle = Mathf.Atan2(p.y, p.x) + Mathf.PI / 2f;
+                        var reach = 0.13f + 0.13f * Mathf.Pow(Mathf.Abs(Mathf.Cos(angle * 2.5f)), 3f);
+                        icon = r < reach;
+                        break;
+                    default:
+                        // A speech bubble with three dots and a tail.
+                        var inBubble = Mathf.Abs(p.x) < 0.24f && Mathf.Abs(p.y - 0.04f) < 0.15f;
+                        var tail = p.y < -0.1f && p.y > -0.22f && p.x > -0.16f && p.x < -0.16f + (p.y + 0.22f);
+                        var dot = false;
+                        for (var d = -1; d <= 1; d++)
+                            dot |= (p - new Vector2(d * 0.12f, 0.04f)).magnitude < 0.04f;
+                        icon = (inBubble || tail) && !dot;
+                        break;
+                }
+                return icon ? Color.white : new Color(badge.r, badge.g, badge.b, 1f);
+            });
+            var material = Ensure(key);
+            material.SetTexture("_BaseMap", texture);
+            material.SetColor("_BaseColor", Color.white);
+            material.SetFloat("_Surface", 1f);
+            material.SetFloat("_Blend", 0f); // alpha
+            material.SetFloat("_SrcBlend", (float)BlendMode.SrcAlpha);
+            material.SetFloat("_DstBlend", (float)BlendMode.OneMinusSrcAlpha);
+            material.SetFloat("_ZWrite", 0f);
+            material.SetFloat("_Cull", (float)CullMode.Off);
+            material.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+            material.SetOverrideTag("RenderType", "Transparent");
+            material.renderQueue = (int)RenderQueue.Transparent + 10;
+            EditorUtility.SetDirty(material);
+            return material;
+        }
+
         /// <summary>A light box: <paramref name="icon"/> in cream on <paramref name="colour"/>, the word below it.</summary>
         public static Material LightBox(Icon icon, string word, Color colour)
         {
@@ -202,6 +266,7 @@ namespace Game.Editor
             ['U'] = new[] { "#...#", "#...#", "#...#", "#...#", "#...#", "#...#", ".###." },
             ['V'] = new[] { "#...#", "#...#", "#...#", "#...#", "#...#", ".#.#.", "..#.." },
             ['W'] = new[] { "#...#", "#...#", "#...#", "#.#.#", "#.#.#", "##.##", "#...#" },
+            ['X'] = new[] { "#...#", "#...#", ".#.#.", "..#..", ".#.#.", "#...#", "#...#" },
             ['Y'] = new[] { "#...#", "#...#", ".#.#.", "..#..", "..#..", "..#..", "..#.." },
             ['Z'] = new[] { "#####", "....#", "...#.", "..#..", ".#...", "#....", "#####" },
             ['2'] = new[] { ".###.", "#...#", "....#", "...#.", "..#..", ".#...", "#####" },

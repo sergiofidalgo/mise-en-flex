@@ -157,5 +157,34 @@ namespace Game.Tests.EditMode
             Assert.That(FirstPop(0f), Is.GreaterThanOrEqualTo(0f));
             Assert.That(FirstPop(6f), Is.Not.EqualTo(FirstPop(0f)).Within(0.05f));
         }
+    
+        [Test]
+        public void PopRisesOncePerPeriodForItsDuration()
+        {
+            var pops = 0;
+            var showing = 0f;
+            var was = false;
+            for (var t = 0f; t < 5f; t += 0.01f)
+            {
+                var p = AmbientMotion.Pop(t, 5f, 1.5f, 3f);
+                var on = p >= 0f;
+                if (on)
+                {
+                    Assert.That(p, Is.InRange(0f, 1f));
+                    showing += 0.01f;
+                }
+                if (on && !was) pops++;
+                was = on;
+            }
+            Assert.That(pops, Is.EqualTo(1));
+            Assert.That(showing, Is.EqualTo(1.5f).Within(0.05f));
+        }
+
+        [Test]
+        public void PopKindStaysInRange()
+        {
+            for (var t = 0f; t < 100f; t += 1.3f)
+                Assert.That(AmbientMotion.PopKind(t, 4f, 1f, 3), Is.InRange(0, 2));
+        }
     }
 }

@@ -70,6 +70,7 @@ namespace Game.Editor
         // The opening's flight and climb, sampled along the scene's own path, in the street's thinner haze.
         private static void OpeningFrames(Camera camera, string folder)
         {
+            FreezeAMoment();
             var sequence = UnityEngine.Object.FindFirstObjectByType<OpeningSequence>();
             if (sequence == null)
                 return;
@@ -80,7 +81,7 @@ namespace Game.Editor
             var officeFog = new Vector2(RenderSettings.fogStartDistance, RenderSettings.fogEndDistance);
             RenderSettings.fogStartDistance = fog.x;
             RenderSettings.fogEndDistance = fog.y;
-            foreach (var t in new[] { 0f, 0.25f, 0.4f, 0.5f, 0.6f, 0.75f, 0.875f, 1f })
+            foreach (var t in new[] { 0f, 0.5f, 1f })
             {
                 var pose = OpeningPath.SampleEven(flight, t);
                 Render(camera, pose.Position, pose.Rotation, Path.Combine(folder, $"opening_flight_{Mathf.RoundToInt(t * 100):000}.png"));
@@ -91,6 +92,25 @@ namespace Game.Editor
             // The glass lift rides with the camera on the climb (OpeningElevator): put the cab where it would be.
             var lift = UnityEngine.Object.FindFirstObjectByType<OpeningElevator>();
             var liftSo = lift != null ? new SerializedObject(lift) : null;
+            // The chef walking in (OpeningChef): partway along the walk, watched from the stop.
+            var chef = UnityEngine.Object.FindFirstObjectByType<OpeningChef>();
+            if (chef != null)
+            {
+                var chefSo = new SerializedObject(chef);
+                var walkList = chefSo.FindProperty("_path");
+                var walk = new Vector3[walkList.arraySize];
+                for (var i = 0; i < walk.Length; i++)
+                    walk[i] = walkList.GetArrayElementAtIndex(i).vector3Value;
+                var stop = flight[flight.Length - 1];
+                foreach (var share in new[] { 0.35f, 0.8f })
+                {
+                    chef.transform.position = OpeningPath.PointAlong(walk, OpeningPath.Length(walk) * share, out var heading);
+                    chef.transform.rotation = Quaternion.LookRotation(new Vector3(heading.x, 0f, heading.z));
+                    var target = Vector3.Lerp(stop.Target, chef.Head, 0.75f);
+                    var from = stop.Position + new Vector3(-1.2f, 0.4f, 3f) * share;
+                    Render(camera, from, Quaternion.LookRotation(target - from), Path.Combine(folder, $"opening_entering_{Mathf.RoundToInt(share * 100):000}.png"));
+                }
+            }
             void PlaceCab(float cameraHeight)
             {
                 if (liftSo == null)
@@ -98,6 +118,9 @@ namespace Game.Editor
                 var cab = (Transform)liftSo.FindProperty("_cab").objectReferenceValue;
                 var y = Mathf.Clamp(cameraHeight + liftSo.FindProperty("_lead").floatValue, liftSo.FindProperty("_bottom").floatValue, liftSo.FindProperty("_top").floatValue);
                 cab.position = new Vector3(cab.position.x, y, cab.position.z);
+                // The chef rides in it, looking out.
+                if (chef != null)
+                    chef.transform.SetPositionAndRotation(new Vector3(cab.position.x, y, cab.position.z), Quaternion.LookRotation(Vector3.back));
             }
             for (var i = 1; i < path.Length; i++)
             {
@@ -113,6 +136,41 @@ namespace Game.Editor
             }
             RenderSettings.fogStartDistance = officeFog.x;
             RenderSettings.fogEndDistance = officeFog.y;
+        }
+
+        // A believable instant for stills: in the editor every flash would be on and every pop
+        // showing all its icons at once. One flash in five going off, every other phone popping.
+        private static void FreezeAMoment()
+        {
+            var flashes = UnityEngine.Object.FindObjectsByType<Game.Presentation.Office.Ambience.CameraFlash>(FindObjectsSortMode.InstanceID);
+            for (var i = 0; i < flashes.Length; i++)
+            {
+                var so = new SerializedObject(flashes[i]);
+                var on = i % 5 == 0;
+                if (so.FindProperty("_light").objectReferenceValue is Light light)
+                    light.enabled = on;
+                if (so.FindProperty("_spark").objectReferenceValue is GameObject spark)
+                    spark.SetActive(on);
+            }
+            var pops = UnityEngine.Object.FindObjectsByType<Game.Presentation.Office.Ambience.SocialPop>(FindObjectsSortMode.InstanceID);
+            for (var i = 0; i < pops.Length; i++)
+            {
+                var so = new SerializedObject(pops[i]);
+                var icons = so.FindProperty("_icons");
+                var size = so.FindProperty("_size").floatValue;
+                var rise = so.FindProperty("_rise").floatValue;
+                for (var k = 0; k < icons.arraySize; k++)
+                {
+                    var icon = icons.GetArrayElementAtIndex(k).objectReferenceValue as GameObject;
+                    if (icon == null)
+                        continue;
+                    var show = i % 2 == 0 && k == (i / 2) % icons.arraySize;
+                    icon.SetActive(show);
+                    icon.transform.localPosition = Vector3.up * rise * 0.6f;
+                    icon.transform.localScale = Vector3.one * size;
+                    icon.transform.rotation = Camera.main.transform.rotation;
+                }
+            }
         }
 
         private static CameraPose[] ReadPoses(SerializedProperty list)

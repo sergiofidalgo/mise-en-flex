@@ -59,6 +59,20 @@ namespace Game.Tests.EditMode
         }
 
         [Test]
+        public void WalksAlongThePointsAndFacesTheWayItGoes()
+        {
+            var walk = new[] { new Vector3(0f, 0f, 0f), new Vector3(4f, 0f, 0f), new Vector3(4f, 0f, 3f) };
+            Assert.That(OpeningPath.Length(walk), Is.EqualTo(7f).Within(1e-4f));
+            var at = OpeningPath.PointAlong(walk, 2f, out var heading);
+            Assert.That(Vector3.Distance(at, new Vector3(2f, 0f, 0f)), Is.LessThan(1e-4f));
+            Assert.That(Vector3.Distance(heading, Vector3.right), Is.LessThan(1e-4f));
+            at = OpeningPath.PointAlong(walk, 5f, out heading);
+            Assert.That(Vector3.Distance(at, new Vector3(4f, 0f, 1f)), Is.LessThan(1e-4f));
+            Assert.That(Vector3.Distance(heading, Vector3.forward), Is.LessThan(1e-4f), "turned the corner");
+            Assert.That(Vector3.Distance(OpeningPath.PointAlong(walk, 50f, out _), walk[2]), Is.LessThan(1e-4f), "stops at the end");
+        }
+
+        [Test]
         public void EasesInAndOut()
         {
             Assert.That(OpeningPath.Ease(0f), Is.EqualTo(0f));

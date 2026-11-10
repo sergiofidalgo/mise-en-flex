@@ -109,6 +109,29 @@ namespace Game.Presentation.Office.Ambience
         // A flash from its first instant: full at once, fading over about 0.2 s.
         private static float Pop(float since) => since < 0f || since > 0.22f ? 0f : Mathf.Exp(-since / 0.05f);
 
+        /// <summary>
+        /// A social-media pop over a phone (user's note, 2026-11-10: the game is about social media
+        /// and reviews): once in each <paramref name="period"/> seconds, at a different moment each
+        /// time, a heart or star rises for <paramref name="duration"/> seconds. Returns how far
+        /// through its rise it is (0–1), or −1 between pops.
+        /// </summary>
+        public static float Pop(float time, float period, float duration, float seed)
+        {
+            period = Mathf.Max(period, duration + 0.1f);
+            var cycle = Mathf.FloorToInt(time / period);
+            var into = time - cycle * period;
+            var start = Hash01(cycle, seed + 2f) * (period - duration);
+            var progress = (into - start) / Mathf.Max(duration, 0.01f);
+            return progress < 0f || progress >= 1f ? -1f : progress;
+        }
+
+        /// <summary>Which of <paramref name="kinds"/> icons this period's pop shows.</summary>
+        public static int PopKind(float time, float period, float seed, int kinds)
+        {
+            var cycle = Mathf.FloorToInt(time / Mathf.Max(period, 0.1f));
+            return Mathf.Min(kinds - 1, Mathf.FloorToInt(Hash01(cycle + 17, seed) * kinds));
+        }
+
         // A repeatable 0–1 from a whole number and a seed.
         private static float Hash01(int n, float seed)
         {

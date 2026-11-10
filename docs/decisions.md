@@ -4,6 +4,28 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-10 — The opening starts at the tower's door
+
+**User's notes:**
+- No long run up the road. The camera starts at street level near the tower and walks in to the main entrance, where the menu comes up.
+- The ground floor is the boss's restaurant, with a queue, selfies and flashes.
+- Stress social media and reviews.
+- On a new campaign, the chef walks in and takes the lift. The lift is inside the building, where the boss's floor's elevator is.
+- Each floor is seen through glass, as real floors.
+- At the top, the view goes from outside to inside.
+
+**User's choices among options:**
+- Real rooms only where the camera climbs, with painted rooms (interior mapping) everywhere else. This keeps the 60 fps budget.
+- Over the cornice onto the wide shot, with no cut.
+- Hearts, stars and comments popping over phones, not just flashes.
+- The chef is player 1's, in their tailor look; with no profile, the default chef.
+
+**Our call:** a 2 s beat on the entrance before the menu, because the menu covers most of the frame. A brings the menu at once. The near lane of the tower's street has no traffic, because it runs under the camera's stop.
+
+**Reason:** the opening sells the game's subject (restaurants, reviews, social media) in its first seconds, and the chef's walk to the lift makes the arrival upstairs one continuous story.
+
+---
+
 ## 2026-11-10 — Shop cards per player; forkcast becomes four tabs with the cookbook and staff
 
 **User's calls:**

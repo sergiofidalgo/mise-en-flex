@@ -64,6 +64,41 @@ namespace Game.Presentation.Office
             return of(poses[k]);
         }
 
+        /// <summary>The length of the walk through <paramref name="points"/>, in straight lines.</summary>
+        public static float Length(Vector3[] points)
+        {
+            var length = 0f;
+            for (var i = 1; points != null && i < points.Length; i++)
+                length += Vector3.Distance(points[i - 1], points[i]);
+            return length;
+        }
+
+        /// <summary>
+        /// Where someone walking <paramref name="distance"/> metres along <paramref name="points"/>
+        /// is, and which way they're heading (the opening's chef on his way to the lift). Clamped to
+        /// the ends.
+        /// </summary>
+        public static Vector3 PointAlong(Vector3[] points, float distance, out Vector3 heading)
+        {
+            heading = Vector3.forward;
+            if (points == null || points.Length == 0)
+                return Vector3.zero;
+            if (points.Length == 1)
+                return points[0];
+            distance = Mathf.Max(0f, distance);
+            for (var i = 1; i < points.Length; i++)
+            {
+                var leg = points[i] - points[i - 1];
+                var length = leg.magnitude;
+                if (length > 1e-5f)
+                    heading = leg / length;
+                if (distance <= length || i == points.Length - 1)
+                    return points[i - 1] + heading * Mathf.Min(distance, length);
+                distance -= length;
+            }
+            return points[points.Length - 1];
+        }
+
         /// <summary>
         /// As <see cref="Sample"/>, but <paramref name="t"/> is the share of the distance travelled
         /// rather than of the poses passed, so the camera keeps one pace through long and short
