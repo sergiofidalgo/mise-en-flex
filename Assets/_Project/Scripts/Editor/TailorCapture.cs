@@ -20,6 +20,7 @@ namespace Game.Editor
     /// ladder's foot (a compact card), player 4's slot empty (translucent), and the tailor measuring
     /// player 2. Staged by hand, as the bar and the tailor only run in Play mode. Nothing is saved.
     /// Batch mode: -executeMethod Game.Editor.TailorCapture.CaptureFromCommandLine -captureFolder &lt;folder&gt;
+    /// (add -barOnly for the second still: one player joined and three open seats).
     /// </summary>
     public static class TailorCapture
     {
@@ -37,7 +38,17 @@ namespace Game.Editor
             var folder = EditorUtility.SaveFolderPanel("Save tailor captures", "", "");
             if (string.IsNullOrEmpty(folder) || !EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
                 return;
-            Capture(folder);
+            Capture(folder, false);
+            EditorUtility.RevealInFinder(folder);
+        }
+
+        [MenuItem("Tools/Game/Art/Capture Player Bar (1 joined)")]
+        private static void CaptureBarFromMenu()
+        {
+            var folder = EditorUtility.SaveFolderPanel("Save player bar capture", "", "");
+            if (string.IsNullOrEmpty(folder) || !EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
+                return;
+            Capture(folder, true);
             EditorUtility.RevealInFinder(folder);
         }
 
@@ -47,10 +58,14 @@ namespace Game.Editor
             var index = Array.IndexOf(args, "-captureFolder");
             if (index < 0 || index + 1 >= args.Length)
                 throw new ArgumentException("Pass -captureFolder <folder>.");
-            Capture(args[index + 1]);
+            Capture(args[index + 1], Array.IndexOf(args, "-barOnly") >= 0);
         }
 
-        private static void Capture(string folder)
+        /// <summary>
+        /// <paramref name="barOnly"/>: just player 1, standing at a ladder's foot, and three open seats,
+        /// the bar as most sessions start. Otherwise every state at once (see the class summary).
+        /// </summary>
+        public static void Capture(string folder, bool barOnly)
         {
             Directory.CreateDirectory(folder);
             EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
@@ -69,7 +84,10 @@ namespace Game.Editor
             };
             var staged = new Dictionary<int, (Transform, TailorSession)>();
             var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(PlayerPrefabPath);
-            for (var i = 0; i < stagings.Length && i < ladders.Count; i++)
+            var players = barOnly ? 1 : stagings.Length;
+            if (barOnly)
+                stagings[0] = (stagings[2].Look, false, WardrobeModule.Hat, "");
+            for (var i = 0; i < players && i < ladders.Count; i++)
             {
                 var (look, dressing, section, browse) = stagings[i];
                 var chef = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
@@ -97,7 +115,7 @@ namespace Game.Editor
 
             // The tailor beside the second ladder, facing its chef, as if measuring.
             var tailor = GameObject.Find("TailorWalk");
-            if (tailor != null && ladders.Count > 1)
+            if (tailor != null && ladders.Count > 1 && !barOnly)
             {
                 var ladder = ladders[1].transform;
                 tailor.transform.position = ladder.position - ladder.forward * 0.5f + ladder.right * 0.62f;
@@ -125,7 +143,7 @@ namespace Game.Editor
                     Draw(portrait, portrait.targetTexture);
                 Draw(camera, target);
             }
-            Save(target, Path.Combine(folder, "tailor_player_bar.png"));
+            Save(target, Path.Combine(folder, barOnly ? "office_player_bar_one_joined.png" : "tailor_player_bar.png"));
 
             target.Release();
             UnityEngine.Object.DestroyImmediate(camera.gameObject);

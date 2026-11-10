@@ -16,10 +16,11 @@ namespace Game.Presentation.Office
     /// The office's player bar (the user's notes, 2026-11-09): one card per player slot, always
     /// there, docked in a row from the top-left corner inside the office camera's reserved top band.
     /// <list type="bullet">
-    /// <item>A slot nobody has joined: a translucent card, "A Join", with that slot's number.</item>
-    /// <item>A joined player: a compact card with a live portrait of their chef's head (redrawn a few
-    /// times a second, to keep four portraits cheap) and their number, from the moment they appear
-    /// in the elevator.</item>
+    /// <item>A slot nobody has joined: an open seat, a soft see-through card ringed with dashes in the
+    /// slot's colour, its number and "A Join" centred, the A gently breathing.</item>
+    /// <item>A joined player: a compact card with a still portrait of their chef's head and their
+    /// number, from the moment they appear in the elevator. The portrait is taken when they join, and
+    /// again when their look changes or they step off the tailor's ladder; nothing renders between.</item>
     /// <item>A player dressing at the tailor: their card grows into the dressing card: a portrait
     /// framed on what's being changed, the section between LB and RB, the item between arrows with
     /// its place in the list (or a note when it's locked), and B Done. Every press answers at once:
@@ -38,7 +39,16 @@ namespace Game.Presentation.Office
         // band (15% of the screen), so chefs never walk under it.
         private const float CompactWidth = 210f;
         private const float CompactHeight = 108f;
-        private const float EmptyOpacity = 0.4f;
+        // The open seat: a see-through fill (the user's call: empty slots translucent) with opaque
+        // dashes and text, so it reads as "free" yet stays legible over the bright attic.
+        private const float OpenFillOpacity = 0.55f;
+        private const float OpenTint = 0.18f;          // how much of the slot's colour is in the fill
+        private const float DashLength = 14f;
+        private const float DashGap = 9f;
+        private const float DashStroke = 4f;
+        private const float OpenRadius = 18f;
+        private const float BreathePeriod = 1.8f;      // the A badge's slow pulse, seconds
+        private const float BreatheScale = 0.07f;
         // The dressing card.
         private const float Width = 340f;
         private const float PortraitHeight = 230f;
@@ -50,8 +60,8 @@ namespace Game.Presentation.Office
         private const float Badge = 40f;
         private const float PopTime = 0.16f;
         private const float ShoulderWidth = 50f;
-        // Compact portraits redraw this many times a second; a dressing one every frame.
-        private const float CompactRefresh = 6f;
+        // A second still this long after joining, once the chef has settled into their first pose.
+        private const float SettleDelay = 0.5f;
 
         [SerializeField] private HudStyle _style;
         [SerializeField] private CoopSettings _coop;
@@ -77,10 +87,9 @@ namespace Game.Presentation.Office
         private sealed class Slot
         {
             public int Index;
-            public RectTransform Compact;
-            public CanvasGroup CompactGroup;
-            public RawImage CompactPortrait;
-            public GameObject JoinHint;
+            public RectTransform Compact;     // a joined player's card
+            public RectTransform Open;        // the open seat
+            public RectTransform OpenBadge;   // the A that breathes
             public RectTransform Dressing;
             public TextMeshProUGUI Section;
             public Image[] Dots;
@@ -92,7 +101,9 @@ namespace Game.Presentation.Office
             public Camera Portrait;        // a little camera in front of the chef, for both cards
             public float Height = 1.38f;   // its framing now, eased towards the wanted one
             public float Distance = 1.05f;
-            public float NextRefresh;
+            public Transform Seen;         // the chef in this slot last frame, to notice a join
+            public bool Stale = true;      // the still needs taking again
+            public float SettleAt = -1f;   // when the settling still is due, or -1
             public ChefWardrobe Wardrobe;
             public ChefLook Shown;         // what the chef shows while dressing
             public string Text;
@@ -135,10 +146,12 @@ namespace Game.Presentation.Office
                 _prompts[plinth] = BuildPrompt();
                 plinth.Stepped += direction => HandleStepped(plinth, direction);
             }
+            ChefProfileFile.LookChanged += HandleLookChanged;
         }
 
         private void OnDestroy()
         {
+            ChefProfileFile.LookChanged -= HandleLookChanged;
             foreach (var slot in _slots)
                 if (slot.Portrait != null && slot.Portrait.targetTexture != null)
                     slot.Portrait.targetTexture.Release();
@@ -205,21 +218,18 @@ namespace Game.Presentation.Office
             slot.Portrait.backgroundColor = _style.CardBackground;
             slot.Portrait.enabled = false;
 
-            // Compact: the head in a square on the left, the player's number, and "A Join" while empty.
+            // Compact: the head in a square on the left and the player's number.
             var square = CompactHeight - 24f;
             slot.Compact = UiKit.Rect(_canvas.transform, $"Player{index + 1}", 0f, 0f, CompactWidth, CompactHeight);
-            slot.CompactGroup = slot.Compact.gameObject.AddComponent<CanvasGroup>();
             UiKit.StrokedBox(slot.Compact, "Back", _style.CardBackground, colour, 4f, 0f, 0f, CompactWidth, CompactHeight, 18f);
             UiKit.RoundBox(slot.Compact, "PortraitBack", new Color(0f, 0f, 0f, 0.25f), 12f, 12f, square, square, 10f);
-            slot.CompactPortrait = UiKit.Rect(slot.Compact, "Portrait", 12f, 12f, square, square).gameObject.AddComponent<RawImage>();
-            slot.CompactPortrait.texture = texture;
-            slot.CompactPortrait.uvRect = new Rect(0.5f - 0.5f * 360f / 512f, 0f, 360f / 512f, 1f); // the middle square
-            slot.CompactPortrait.raycastTarget = false;
+            var still = UiKit.Rect(slot.Compact, "Portrait", 12f, 12f, square, square).gameObject.AddComponent<RawImage>();
+            still.texture = texture;
+            still.uvRect = new Rect(0.5f - 0.5f * 360f / 512f, 0f, 360f / 512f, 1f); // the middle square
+            still.raycastTarget = false;
             UiKit.TextAt(_style.DisplayFont, slot.Compact, "Number", $"P{index + 1}", 34f, colour, CompactHeight + 4f, 46f, 80f);
-            var hint = UiKit.Rect(slot.Compact, "JoinHint", 0f, 0f, CompactWidth, CompactHeight);
-            DrawBadge(hint, PromptControl.South, CompactHeight + 4f, 58f, 34f);
-            UiKit.TextAt(_style.Bold, hint, "Join", Tr.Get("Join"), 28f, _style.TextColor, CompactHeight + 46f, 86f, 60f);
-            slot.JoinHint = hint.gameObject;
+
+            BuildOpenSeat(slot, colour);
 
             // Dressing: the portrait on top, then the controls.
             slot.Dressing = UiKit.Rect(_canvas.transform, $"Player{index + 1}Dressing", 0f, 0f, Width, DressingHeight);
@@ -250,6 +260,85 @@ namespace Game.Presentation.Office
             UiKit.TextAt(_style.Font, rows, "Done", Tr.Get("Done"), 28f, _style.TextColor, Width - 86f, 179f, 80f);
             slot.Dressing.gameObject.SetActive(false);
             return slot;
+        }
+
+        // The open seat: no picture, the number and "A Join" centred as one block, a dashed edge.
+        private void BuildOpenSeat(Slot slot, Color colour)
+        {
+            slot.Open = UiKit.Rect(_canvas.transform, $"Player{slot.Index + 1}Open", 0f, 0f, CompactWidth, CompactHeight);
+            var fill = Color.Lerp(_style.CardBackground, colour, OpenTint);
+            fill.a = OpenFillOpacity;
+            UiKit.RoundBox(slot.Open, "Back", fill, 0f, 0f, CompactWidth, CompactHeight, OpenRadius);
+            DashedOutline(slot.Open, colour, CompactWidth, CompactHeight, OpenRadius);
+
+            var middle = CompactWidth / 2f;
+            UiKit.TextAt(_style.DisplayFont, slot.Open, "Number", $"P{slot.Index + 1}", 34f, colour, middle, 44f, CompactWidth - 24f, HorizontalAlignmentOptions.Center);
+            // The badge and the word, centred together whatever the word's length in the language.
+            const float badge = 32f;
+            const float gap = 8f;
+            var join = UiKit.TextAt(_style.Bold, slot.Open, "Join", Tr.Get("Join"), 28f, _style.TextColor, 0f, 85f, CompactWidth - badge - gap - 24f);
+            var width = Mathf.Min(UiKit.Width(join), join.rectTransform.sizeDelta.x);
+            var left = middle - (badge + gap + width) / 2f;
+            join.rectTransform.anchoredPosition = new Vector2(left + badge + gap, join.rectTransform.anchoredPosition.y);
+            // The badge in its own holder, pivoted on its centre, so it can breathe in place.
+            slot.OpenBadge = UiKit.Rect(slot.Open, "JoinBadge", left, 57f, badge, badge);
+            slot.OpenBadge.pivot = new Vector2(0.5f, 0.5f);
+            slot.OpenBadge.anchoredPosition = new Vector2(left + badge / 2f, -57f - badge / 2f);
+            DrawBadge(slot.OpenBadge, PromptControl.South, 0f, 0f, badge);
+        }
+
+        // Short rounded dashes evenly round a rounded rectangle (its edge centred on the card's),
+        // each turned along the edge; at the corners they follow the arc as short chords.
+        private static void DashedOutline(RectTransform parent, Color colour, float width, float height, float radius)
+        {
+            var straightX = width - 2f * radius;
+            var straightY = height - 2f * radius;
+            var arc = Mathf.PI * radius / 2f;
+            var perimeter = 2f * (straightX + straightY) + 4f * arc;
+            var count = Mathf.Max(4, Mathf.RoundToInt(perimeter / (DashLength + DashGap)));
+            var pitch = perimeter / count;
+            var sprite = UiKit.RoundedSprite(DashStroke / 2f);
+            for (var i = 0; i < count; i++)
+            {
+                var (point, along) = PointOnRoundedRect(i * pitch, width, height, radius, straightX, straightY, arc);
+                var dash = UiKit.Rect(parent, "Dash", 0f, 0f, DashLength, DashStroke);
+                dash.pivot = new Vector2(0.5f, 0.5f);
+                dash.anchoredPosition = new Vector2(point.x, -point.y);
+                // Canvas y points down here and up in the UI: flip it for the angle.
+                dash.localRotation = Quaternion.Euler(0f, 0f, -Mathf.Atan2(along.y, along.x) * Mathf.Rad2Deg);
+                var image = dash.gameObject.AddComponent<Image>();
+                image.sprite = sprite;
+                image.type = Image.Type.Sliced;
+                image.color = colour;
+                image.raycastTarget = false;
+            }
+        }
+
+        // The point <paramref name="s"/> pixels clockwise round the rectangle from the top edge's
+        // left end, in canvas pixels from the top-left (y down), and the edge's direction there.
+        private static (Vector2 Point, Vector2 Along) PointOnRoundedRect(float s, float width, float height, float r, float straightX, float straightY, float arc)
+        {
+            // Four straight edges and four quarter arcs, clockwise from the top edge.
+            var corners = new[] { new Vector2(width - r, r), new Vector2(width - r, height - r), new Vector2(r, height - r), new Vector2(r, r) };
+            var starts = new[] { new Vector2(r, 0f), new Vector2(width, r), new Vector2(width - r, height), new Vector2(0f, height - r) };
+            // Right along the top, down the right side (y points down), left along the bottom, up the left.
+            var directions = new[] { new Vector2(1f, 0f), new Vector2(0f, 1f), new Vector2(-1f, 0f), new Vector2(0f, -1f) };
+            var lengths = new[] { straightX, straightY, straightX, straightY };
+            for (var side = 0; side < 4; side++)
+            {
+                if (s <= lengths[side])
+                    return (starts[side] + directions[side] * s, directions[side]);
+                s -= lengths[side];
+                if (s <= arc)
+                {
+                    // The arc turns from this edge's direction to the next's: -90°, 0°, 90°, 180° start angles.
+                    var angle = (side * 90f - 90f) * Mathf.Deg2Rad + s / r;
+                    var radial = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle));
+                    return (corners[side] + radial * r, new Vector2(-radial.y, radial.x));
+                }
+                s -= arc;
+            }
+            return (starts[0], Vector2.right);
         }
 
         // A round Xbox face-button badge, as in the prompts.
@@ -300,8 +389,7 @@ namespace Game.Presentation.Office
                 else
                 {
                     LeaveDressing(slot);
-                    ShowCompact(slot, chef, dt);
-                    Dock(slot.Compact, ref x, CompactWidth);
+                    Dock(ShowCompact(slot, chef), ref x, CompactWidth);
                 }
             }
 
@@ -344,6 +432,7 @@ namespace Game.Presentation.Office
         private void ShowDressing(Slot slot, Transform chef, TailorSession session, float dt)
         {
             slot.Compact.gameObject.SetActive(false);
+            slot.Open.gameObject.SetActive(false);
             slot.Dressing.gameObject.SetActive(true);
             slot.Wardrobe ??= chef.GetComponentInChildren<ChefWardrobe>(true);
             if (slot.Wardrobe != null && (slot.Shown == null || !slot.Shown.SameAs(session.Preview)))
@@ -361,32 +450,61 @@ namespace Game.Presentation.Office
         private void LeaveDressing(Slot slot)
         {
             slot.Dressing.gameObject.SetActive(false);
-            if (slot.Shown != null && slot.Wardrobe != null)
+            if (slot.Shown == null)
+                return;
+            if (slot.Wardrobe != null)
                 slot.Wardrobe.Show(ChefProfileFile.Current.Look(slot.Index));
             slot.Shown = null;
+            slot.Stale = true; // the dressing card used the camera: take the face again
         }
 
-        private void ShowCompact(Slot slot, Transform chef, float dt)
+        // The tailor saved a new look: retake that player's still.
+        private void HandleLookChanged(int index)
         {
-            slot.Compact.gameObject.SetActive(true);
+            if (index >= 0 && index < _slots.Count)
+                _slots[index].Stale = true;
+        }
+
+        // The joined card or the open seat; returns the one shown. A joined card's portrait is a
+        // still: the camera renders only on the frame a picture is taken, then stays off.
+        private RectTransform ShowCompact(Slot slot, Transform chef)
+        {
             var joined = chef != null;
-            slot.CompactGroup.alpha = joined ? 1f : EmptyOpacity; // the user's call: empty slots translucent
-            slot.JoinHint.SetActive(!joined);
-            slot.CompactPortrait.enabled = joined;
+            slot.Compact.gameObject.SetActive(joined);
+            slot.Open.gameObject.SetActive(!joined);
             if (!joined)
             {
                 slot.Wardrobe = null;
+                slot.Seen = null;
+                slot.SettleAt = -1f;
                 slot.Portrait.enabled = false;
-                return;
+                // A slow breath on the A, so the open seat invites without shouting.
+                var breath = 0.5f - 0.5f * Mathf.Cos(2f * Mathf.PI * Time.unscaledTime / BreathePeriod);
+                slot.OpenBadge.localScale = Vector3.one * (1f + BreatheScale * (_staging ? 0f : breath));
+                return slot.Open;
             }
             slot.Wardrobe ??= chef.GetComponentInChildren<ChefWardrobe>(true);
-            Frame(slot, chef, FaceFraming, dt);
-            // Redrawn a few times a second: four live heads at full rate would cost too much.
             var now = Time.unscaledTime;
-            var redraw = _staging || now >= slot.NextRefresh;
-            if (redraw)
-                slot.NextRefresh = now + 1f / CompactRefresh;
-            slot.Portrait.enabled = redraw;
+            var take = _staging || slot.Stale;
+            if (slot.Seen != chef)
+            {
+                // Just joined: a still at once, and one more when they've settled into their first pose.
+                slot.Seen = chef;
+                slot.SettleAt = now + SettleDelay;
+                take = true;
+            }
+            else if (slot.SettleAt >= 0f && now >= slot.SettleAt)
+            {
+                slot.SettleAt = -1f;
+                take = true;
+            }
+            if (take)
+            {
+                Frame(slot, chef, FaceFraming, 10f); // straight to the face, no easing
+                slot.Stale = false;
+            }
+            slot.Portrait.enabled = take;
+            return slot.Compact;
         }
 
         private void Fill(Slot slot, TailorSession session)
