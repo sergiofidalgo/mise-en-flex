@@ -36,6 +36,9 @@ namespace Game.Gameplay
             Carried.AddRange(seats.OrderBy(seat => seat.Index));
         }
 
+        /// <summary>True while players are waiting to join the next scene (coming back from the kitchen).</summary>
+        public static bool HasCarried => Carried.Count > 0;
+
         /// <summary>Remembers everyone playing now, for the next scene.</summary>
         public static void CarryEveryone() =>
             Carry(PlayerInput.all.Select(player => new Seat(player.playerIndex, player.currentControlScheme, player.devices.ToArray())));

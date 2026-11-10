@@ -31,6 +31,9 @@ namespace Game.Presentation.Hud
         [SerializeField] private string _confirmQuitYes = "Quit";
         [SerializeField] private string _stay = "Keep playing";
 
+        /// <summary>Set when the pause menu has already asked (decision 2026-11-10), so the game just quits.</summary>
+        public static bool QuitConfirmed { get; set; }
+
         private WorldLabel _label;
         private Card _card;
         private bool _quitConfirmed;
@@ -48,7 +51,7 @@ namespace Game.Presentation.Hud
         // Quitting mid-day loses that day, so players are told first (decision 2026-11-06).
         private bool AllowQuit()
         {
-            if (_quitConfirmed || !_root.HasUnsavedDay)
+            if (_quitConfirmed || QuitConfirmed || !_root.HasUnsavedDay)
                 return true;
             _card = Card.ConfirmQuit;
             return false;

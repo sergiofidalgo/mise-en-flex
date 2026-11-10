@@ -391,3 +391,6 @@ To work out when we get there: what scorching and spilling cost (quality, lost f
 - **Hiring in forkcast's Staff tab** (the user's call, 2026-11-10: "leave hiring for now"). The tab is read-only. Hiring at Review, alongside the cookbook, would put all management in one place, and would replace the Plan card's A/X/Y.
 - **Player 1 only in the cookbook** was the user's call. If it feels limiting with four players, a single shared cursor that anyone can drive is the alternative.
 
+## Controller rebinding (logged 2026-11-10, Phase 5 milestone 6)
+
+`CLAUDE.md` says controls are rebindable in the in-game settings; the pause menu (decision 2026-11-10) doesn't have it yet. The user chose to leave it for later. Proposal: a Controls page in Settings, per player (each rebinds their own controller), using the Input System's interactive rebinding, saved as binding overrides in `settings.json`. On-screen hints would then need to follow the bindings rather than naming fixed Xbox buttons, which touches every prompt.

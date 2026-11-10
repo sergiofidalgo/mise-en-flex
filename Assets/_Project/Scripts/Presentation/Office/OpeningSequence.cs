@@ -59,8 +59,14 @@ namespace Game.Presentation.Office
         private Quaternion _landingRotation;
         private Vector3 _enterFrom;
 
+        // Back from the kitchen (the pause menu's Quit to the office, decision 2026-11-10): the same
+        // players rejoin on their own controllers (PlayerJoinController), so the opening and the menu
+        // are skipped and the camera starts on the floor.
+        private bool _returning;
+
         private void Awake()
         {
+            _returning = Game.Gameplay.Saving.CampaignLaunch.Decided && Game.Gameplay.PlayerRoster.HasCarried;
             _officeFog = new Vector2(RenderSettings.fogStartDistance, RenderSettings.fogEndDistance);
             SetFog(0f);
             if (_follow != null)
@@ -78,6 +84,14 @@ namespace Game.Presentation.Office
 
         private void Start()
         {
+            if (_returning)
+            {
+                _hud.Veil = 0f;
+                // Straight onto the floor, not a glide up from the street.
+                _camera.transform.position = _follow.Wanted();
+                Land();
+                return;
+            }
             _hud.Veil = 1f;
             if (PlayerPrefs.GetInt(SaveNoticeKey, 0) == 0)
             {
@@ -208,7 +222,7 @@ namespace Game.Presentation.Office
             _players.onPlayerLeft += HandleJoined;
             // The player who chose in the menu is in already, on the controller they chose with.
             var device = MainMenu.LastDevice;
-            if (device != null)
+            if (device != null && !_returning)
                 _players.JoinPlayer(-1, -1, device is Gamepad ? "Gamepad" : "Keyboard&Mouse", device);
             _hud.SetJoined(_players.playerCount);
         }

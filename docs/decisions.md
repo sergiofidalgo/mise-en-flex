@@ -23,6 +23,38 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 **Our call:** a 2 s beat on the entrance before the menu, because the menu covers most of the frame. A brings the menu at once. The near lane of the tower's street has no traffic, because it runs under the camera's stop.
 
 **Reason:** the opening sells the game's subject (restaurants, reviews, social media) in its first seconds, and the chef's walk to the lift makes the arrival upstairs one continuous story.
+## 2026-11-10 — A pause menu with the realism settings; tap Menu pauses, hold Menu readies up (Phase 5, milestone 6)
+
+**User's calls:**
+- **Tap Menu (≡) opens the pause menu, everywhere players are:** the office, Prep, service and Review. **Holding Menu (0.6 s) readies up** in Plan, Prep and Review, and starts the next day from forkcast. A bar fills in the player's colour while they hold. This replaces "press Menu to ready up" (2026-11-03). In service and the office, where a hold means nothing, the menu opens on the press.
+- **Pausing freezes the game for everyone, always.** Only the player who opened it drives it, shown in their colour with their P-number; everyone else's controls stand still, and nobody can join until it closes. B, or Menu again, resumes.
+- **Presets Relaxed / Standard / Chef, with the five dials under Advanced** (game design §12). Standard is the tuning as designed, so play doesn't change unless you choose:
+
+  | Dial | Relaxed | Standard | Chef |
+  | --- | --- | --- | --- |
+  | Cooking precision | 20% | 50% | 80% |
+  | Spoilage speed | ×0.5 | ×1 | ×1.5 |
+  | Customer patience | ×1.5 | ×1 | ×0.75 |
+  | Minigame complexity | 25% | 50% | 80% |
+  | Hygiene (dirt left) | ×0.5 | ×1 | ×1.5 |
+
+  Changing any dial shows the preset as **Custom**; turning it back shows the preset again (the preset isn't stored, it's read back from the dials).
+- **In the menu now:** Resume, Settings (preset, language, Advanced), Quit to the office (from the kitchen) and Quit the game. Mid-day, both quits say that today isn't saved and the day starts again from this morning.
+- **Controller rebinding waits** (`ideas.md`). `CLAUDE.md` still says controls are rebindable in settings.
+
+**How (proposed while building):**
+- **Minigame complexity** bends the sink's balance game and the cleaning and extinguisher trace through one "ease" factor, 2^(0.5 − complexity): at 50% nothing changes; Relaxed is about 1.19× as forgiving, Chef about 0.81×. The sink's centre and OK ring grow by it and its run-away force shrinks by it (so a player doing nothing still never cleans a plate), and the pushes per plate go 1 (Relaxed), 2 (Standard), 3 (Chef). The trace's band round the path and its fastest loops a second grow by it. Strengths are on the `RealismSettings` asset. It applies to the next plate or patch started.
+- **Hygiene multiplies how much dirt each event leaves** (`MessMaker`), not how often: a scuff still comes every 6 guests, it just takes more or fewer wipes. The design doc's §12 says hygiene is about cross-contamination and inspections; that part waits for Phase 7, and the doc is out of date there.
+- **The dials change live:** cooking precision, spoilage, patience and hygiene apply at once; complexity from the next game started. Saved at once to `settings.json` with the language, shared by every slot; older files get the new dials' defaults.
+- **The office's main menu shows the same Settings rows** (`SettingsModel`), so the old settings page is reused rather than removed. It's only reachable during the opening.
+- **The pause and the lost-controller pause share one switch** (`DayLoop`: time scale 0 and `KitchenServices.Paused`). While a lost controller holds the service, Menu still means "carry on without them", not pause. If the player who opened the menu loses their controller, the menu closes and the lost-controller card takes over. In the office, which has no day loop, the menu stops the time scale itself.
+- **Sound pauses with the menu** (`AudioListener.pause`). The lost-controller pause still lets the sizzle play on (2026-11-09).
+- **Quit to the office** carries the players up (`PlayerRoster`) and skips the opening: the camera starts on the floor and everyone is in. The kitchen loads the slot's last save next time.
+- **Fixed while capturing the menu:** the `LanguageTables` asset that links `es.csv` to `HudStyle` had never been committed, so in any fresh checkout Spanish didn't exist (the Language row offered only English and the test pseudo-language). It's committed now; `es.csv` is unchanged by it. Running Tools/Game/Update Language Tables also marks about 80 keys `unused` (some, like "Reviews {count}", may still be in use) and adds about 360 untranslated review-voice keys: that rewrite was left out and needs a look by whoever owns the translations.
+- **The veil behind the menu is 85% black.** The project is in Linear colour space, where UI blends in linear light, so 60% kept about two thirds of the apparent brightness and barely read as dimmed.
+- **Tools/Game/Capture Pause Menu** saves its pages at 1920×1080 to `Screenshots/PauseMenu/`.
+
+**Reason:** the user's answers to milestone 6's open questions. Hold-to-ready also stops accidental readies, which a single press allowed.
 
 ---
 

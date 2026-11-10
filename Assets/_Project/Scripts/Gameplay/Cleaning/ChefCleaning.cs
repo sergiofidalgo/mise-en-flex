@@ -155,7 +155,9 @@ namespace Game.Gameplay.Cleaning
             Fire = fire;
             // Each job starts somewhere new round its shape, so no two look alike.
             var start = (_starts++ * 0.37f) % 1f;
-            Game = new TraceGame(ShapeOf(tool), _services.Tuning.TraceGame, start);
+            // The minigame complexity dial bends the trace too (decision 2026-11-10).
+            var realism = _services.Realism;
+            Game = new TraceGame(ShapeOf(tool), global::Game.Simulation.Realism.MinigameComplexity.Scale(_services.Tuning.TraceGame, realism.MinigameComplexity, realism.Complexity), start);
             _chef.IsBusy = true;
             _chef.BackOut = Stop;
 

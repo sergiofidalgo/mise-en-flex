@@ -44,8 +44,8 @@ namespace Game.Presentation.Hud
         [SerializeField] private string _candidatesText = "Looking for work:";
         [SerializeField] private string _manageText = "Press Select to rearrange the kitchen";
         [SerializeField] private string _deliveryText = "Delivered to storage:";
-        [SerializeField] private string _prepText = "Prep   [Select] rearrange   [Menu] open up";
-        [SerializeField] private string _readyText = "Press Menu when ready";
+        [SerializeField] private string _prepText = "Prep   [Select] rearrange   hold [Menu] open up";
+        [SerializeField] private string _readyText = "Hold Menu when ready";
         [SerializeField] private string _playerReadyText = "READY";
         [SerializeField] private string _playerWaitingText = "not ready";
         [SerializeField] private string _playerLostText = "controller lost";
@@ -225,8 +225,15 @@ namespace Game.Presentation.Hud
 
         // The button prompt, plus who's ready when there's more than one player. (With one player,
         // being ready moves the day on at once, so there's nothing to show.)
-        private string WithReady(string text) =>
-            PlayerInput.all.Count <= 1 ? $"{text}\n{Tr.Get(_readyText)}" : $"{text}\n{Tr.Get(_readyText)}\n{ReadyLine()}";
+        // While someone holds Menu, a bar fills in their colour beside the prompt (decision 2026-11-10).
+        private string WithReady(string text)
+        {
+            var holder = HoldBar.Holder();
+            var prompt = holder != null
+                ? $"{Tr.Get(_readyText)}  {HoldBar.Text(holder, _settings.GetPlayerColor(holder.playerIndex), _waitingColor)}"
+                : Tr.Get(_readyText);
+            return PlayerInput.all.Count <= 1 ? $"{text}\n{prompt}" : $"{text}\n{prompt}\n{ReadyLine()}";
+        }
 
         private string PausedText()
         {

@@ -64,7 +64,7 @@ namespace Game.Presentation.Menu
         private Item _item;
         private int _card;
         private Page _openPage;
-        private int _settingRow;
+        private SettingsModel _settingsPage;
         private float _nextStep;
         private bool _dirty = true;
         private bool _shown = true;
@@ -273,7 +273,9 @@ namespace Game.Presentation.Menu
                         Launch(free, false);
                     break;
                 case Item.Settings:
-                    _settingRow = 0;
+                    // The same settings as the pause menu (decision 2026-11-10).
+                    _settingsPage ??= NewSettingsPage();
+                    _settingsPage.Reload();
                     Open(Page.Settings);
                     break;
                 case Item.Credits:
@@ -306,42 +308,31 @@ namespace Game.Presentation.Menu
             _dirty = true;
         }
 
-        // The three dials that exist, adjusted with the stick and saved at once.
+        private SettingsModel NewSettingsPage()
+        {
+            var page = new SettingsModel(_realism, _style);
+            page.LanguageChanged += () =>
+            {
+                _settings = page.Settings;
+                ApplyLanguage();
+                ReadSlots(); // reviews and names in the new language
+            };
+            return page;
+        }
+
+        // The shared settings rows, adjusted with the stick and saved at once.
         private void SettingsInput(Vector2Int step)
         {
-            if (Pressed(Face.East) || Pressed(Face.South))
+            var south = Pressed(Face.South);
+            var east = Pressed(Face.East);
+            if (!_settingsPage.Handle(step, south, east))
             {
+                _settings = _settingsPage.Settings;
                 Open(Page.None);
                 return;
             }
-            if (step.y != 0)
-            {
-                _settingRow = Mathf.Clamp(_settingRow + step.y, 0, 3);
+            if (step != Vector2Int.zero || south || east)
                 _dirty = true;
-            }
-            if (step.x == 0)
-                return;
-            switch (_settingRow)
-            {
-                case 0:
-                    _settings.CookingPrecision = Mathf.Clamp01(Mathf.Round((_settings.CookingPrecision + step.x * 0.1f) * 10f) / 10f);
-                    break;
-                case 1:
-                    _settings.Spoilage = Mathf.Clamp(Mathf.Round((_settings.Spoilage + step.x * 0.25f) * 4f) / 4f, 0f, 3f);
-                    break;
-                case 3:
-                    // The next language along; everything redraws in it at once, old reviews included.
-                    var choices = _style.Languages != null ? _style.Languages.Choices().Select(c => c.Code).ToList() : new System.Collections.Generic.List<string> { "en" };
-                    var index = Mathf.Max(0, choices.IndexOf(_settings.Language));
-                    _settings.Language = choices[(index + step.x + choices.Count) % choices.Count];
-                    ApplyLanguage();
-                    break;
-                default:
-                    _settings.Patience = Mathf.Clamp(Mathf.Round((_settings.Patience + step.x * 0.25f) * 4f) / 4f, 0.25f, 3f);
-                    break;
-            }
-            _settings.Save();
-            _dirty = true;
         }
 
         private enum Face

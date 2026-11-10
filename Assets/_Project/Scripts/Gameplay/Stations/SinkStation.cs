@@ -79,7 +79,9 @@ namespace Game.Gameplay.Stations
             _washer = player;
             _washer.IsBusy = true;
             _washer.BackOut = StopWashing;
-            Game = new WashGame(_services.Tuning.WashGame, _nextSeed++);
+            // The minigame complexity dial bends the balance game (decision 2026-11-10).
+            var realism = _services.Realism;
+            Game = new WashGame(global::Game.Simulation.Realism.MinigameComplexity.Scale(_services.Tuning.WashGame, realism.MinigameComplexity, realism.Complexity), _nextSeed++);
             return true;
         }
 

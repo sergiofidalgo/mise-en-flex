@@ -184,10 +184,6 @@ namespace Game.Presentation.Menu
             }
         }
 
-        // The language's own name for itself, as Settings lists it.
-        private string LanguageName(string code) =>
-            _style.Languages != null ? _style.Languages.Choices().FirstOrDefault(c => c.Code == code).Name ?? "English" : "English";
-
         private string Name(CampaignSave save) =>
             string.IsNullOrEmpty(save?.RestaurantName) ? _service.RestaurantName : save.RestaurantName;
 
@@ -375,7 +371,7 @@ namespace Game.Presentation.Menu
             UiKit.RoundBox(_page, "HeaderFoot", _ink, 0f, HeaderHeight - 24f, AppWidth, 24f, 0f);
             var title = _openPage switch
             {
-                Page.Settings => Tr.Get("Settings"),
+                Page.Settings => _settingsPage.Title,
                 Page.Credits => Tr.Get("Credits"),
                 Page.ConfirmDelete => Tr.Format("Delete {restaurant}?", ("restaurant", Name(_saves[_card]))),
                 _ => Tr.Get("All three slots are taken"),
@@ -385,12 +381,12 @@ namespace Game.Presentation.Menu
             switch (_openPage)
             {
                 case Page.Settings:
+                    // The rows the pause menu shows too (SettingsModel, decision 2026-11-10).
                     UiKit.TextAt(_serifItalic, _page, "Note", Tr.Get("For every campaign. Saved as you change them."), 20f, _tan, 48f, 128f, 900f);
-                    SettingRow(0, Tr.Get("Cooking precision"), $"{_settings.CookingPrecision * 100f:0}%", Tr.Get("How narrow the doneness windows are"), 160f);
-                    SettingRow(1, Tr.Get("Spoilage"), $"×{_settings.Spoilage:0.##}", Tr.Get("How fast food loses freshness"), 280f);
-                    SettingRow(2, Tr.Get("Customer patience"), $"×{_settings.Patience:0.##}", Tr.Get("How long guests wait"), 400f);
-                    SettingRow(3, Tr.Get("Language"), LanguageName(_settings.Language), Tr.Get("Everything, old reviews included, switches at once"), 520f);
-                    UiKit.TextAt(_serifItalic, _page, "Later", Tr.Get("Presets and changing the controls come later."), 18f, _tan, 48f, 680f, 900f);
+                    var rows = _settingsPage.Rows;
+                    var pitch = rows.Count > 4 ? 104f : 120f;
+                    for (var i = 0; i < rows.Count; i++)
+                        SettingRow(i, rows[i], 160f + i * pitch);
                     break;
                 case Page.Credits:
                     UiKit.TextAt(_medium, _page, "Body", Tr.Get(_credits), 26.67f, _ink, 48f, 150f, 900f, lines: 20);
@@ -406,14 +402,15 @@ namespace Game.Presentation.Menu
             }
         }
 
-        private void SettingRow(int row, string name, string value, string what, float y)
+        private void SettingRow(int index, SettingsModel.Row row, float y)
         {
-            var selected = _settingRow == row;
+            var selected = _settingsPage.Selected == index;
             if (selected)
                 UiKit.StrokedBox(_page, "Selected", _paper, _gold, Stroke, 32f, y, 960f, 96f, 12f);
-            UiKit.TextAt(_bold, _page, "Name", name, 29f, _ink, 56f, y + 44f, 520f);
-            UiKit.TextAt(_medium, _page, "What", what, 18f, _brown, 56f, y + 74f, 520f);
-            UiKit.TextAt(_bold, _page, "Value", selected ? $"‹  {value}  ›" : value, 29f, _ink, 968f, y + 58f, 320f, HorizontalAlignmentOptions.Right);
+            UiKit.TextAt(_bold, _page, "Name", row.Name, 29f, _ink, 56f, y + 44f, 520f);
+            UiKit.TextAt(_medium, _page, "What", row.What, 18f, _brown, 56f, y + 74f, 620f);
+            var value = row.Opens ? "›" : selected ? $"‹  {row.Value}  ›" : row.Value;
+            UiKit.TextAt(_bold, _page, "Value", value, 29f, _ink, 968f, y + 58f, 320f, HorizontalAlignmentOptions.Right);
         }
 
         // ---- The button hints along the bottom ----
@@ -426,6 +423,8 @@ namespace Game.Presentation.Menu
             {
                 case Page.Settings:
                     hints.Add(("LS", Tr.Get("Choose and change")));
+                    if (_settingsPage.Rows[_settingsPage.Selected].Opens)
+                        hints.Add(("A", Tr.Get("Open")));
                     hints.Add(("B", Tr.Get("Back")));
                     break;
                 case Page.ConfirmDelete:

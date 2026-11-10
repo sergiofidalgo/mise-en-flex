@@ -157,6 +157,9 @@ namespace Game.Editor
             campaign.FindProperty("_root").objectReferenceValue = root;
             campaign.ApplyModifiedPropertiesWithoutUndo();
 
+            // Tap Menu: the pause menu, with the realism settings (decision 2026-11-10).
+            PauseMenuBuilder.Add(style, settings, root, root.GetComponent<DayLoop>());
+
             var money = new SerializedObject(hud.AddComponent<MoneyHud>());
             money.FindProperty("_canvas").objectReferenceValue = hud.GetComponent<RectTransform>();
             money.FindProperty("_style").objectReferenceValue = style;

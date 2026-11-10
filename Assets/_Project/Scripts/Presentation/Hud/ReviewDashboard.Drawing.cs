@@ -982,7 +982,8 @@ namespace Game.Presentation.Hud
             var recipe = _tab == Tab.Cookbook && book != null && book.Recipes.Count > 0 ? book.Recipes[Mathf.Clamp(_selected, 0, book.Recipes.Count - 1)] : null;
             var onMenu = recipe != null && book.IsUnlocked(recipe.Id);
             var cook = CookbookPlayer();
-            var state = $"{_tab}|{canReply}|{filtering}|{recipe?.Id}|{onMenu}|{cook?.playerIndex}|{Services.Days.Day}|" + string.Join(",", PlayerInput.all.Select(p => $"{p.playerIndex}:{_dayLoop.Ready.IsReady(p.playerIndex)}:{_dayLoop.ControllerPause.IsLost(p.playerIndex)}"));
+            var state = $"{_tab}|{canReply}|{filtering}|{recipe?.Id}|{onMenu}|{cook?.playerIndex}|{Services.Days.Day}|" + string.Join(",", PlayerInput.all.Select(p => $"{p.playerIndex}:{_dayLoop.Ready.IsReady(p.playerIndex)}:{_dayLoop.ControllerPause.IsLost(p.playerIndex)}"))
+                + $"|{HoldBar.Holder()?.playerIndex}:{HoldBar.Filled(HoldBar.Holder())}";
             if (state == _hintsShown)
                 return;
             _hintsShown = state;
@@ -1007,7 +1008,12 @@ namespace Game.Presentation.Hud
                     hints.Add((new[] { "A" }, Tr.Get("Unlock")));
                 }
             }
-            hints.Add((new[] { "≡" }, Tr.Format("Start day {day}", ("day", Services.Days.Day + 1))));
+            // Held, not tapped: a tap opens the pause menu (decision 2026-11-10). A bar fills while it's held.
+            var holder = HoldBar.Holder();
+            var start = Tr.Format("Hold: start day {day}", ("day", Services.Days.Day + 1));
+            if (holder != null)
+                start += " " + HoldBar.Text(holder, _settings.GetPlayerColor(holder.playerIndex), _quiet);
+            hints.Add((new[] { "≡" }, start));
 
             // From the right edge leftwards: label, 10 px, keys 10 px apart, then 32 px to the next.
             var right = 1799f;
