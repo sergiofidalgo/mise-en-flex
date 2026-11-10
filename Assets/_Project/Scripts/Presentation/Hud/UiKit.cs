@@ -43,6 +43,19 @@ namespace Game.Presentation.Hud
             return rect;
         }
 
+        /// <summary>
+        /// The D-pad as hints draw it: a plus centred on (<paramref name="centreX"/>,
+        /// <paramref name="centreY"/>), <paramref name="size"/> across. Menus are browsed with the
+        /// D-pad, not the stick (the user's call, 2026-11-10); no font has a D-pad glyph, so it's drawn.
+        /// </summary>
+        public static void DPad(Transform parent, Color color, float centreX, float centreY, float size)
+        {
+            var arm = Mathf.Round(size * 0.36f);
+            var radius = Mathf.Max(1f, arm * 0.25f);
+            RoundBox(parent, "DPadAcross", color, centreX - size / 2f, centreY - arm / 2f, size, arm, radius);
+            RoundBox(parent, "DPadDown", color, centreX - arm / 2f, centreY - size / 2f, arm, size, radius);
+        }
+
         /// <summary>A box with corners of exactly <paramref name="radius"/> canvas pixels (0 for square).</summary>
         public static Image RoundBox(Transform parent, string name, Color color, float x, float y, float width, float height, float radius)
         {

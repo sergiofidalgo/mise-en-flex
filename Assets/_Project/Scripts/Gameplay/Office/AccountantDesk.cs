@@ -21,7 +21,7 @@ namespace Game.Gameplay.Office
     {
         private const string InteractAction = "Interact";
         private const string BackAction = "ButtonB";
-        private const string MoveAction = "Move";
+        private const string NavigateAction = "Navigate"; // the D-pad or arrows, not the stick (2026-11-10)
 
         [Tooltip("The office's one copy of the campaign, shared with the miniature, which saves it.")]
         [SerializeField] private OfficeCampaign _office;
@@ -83,7 +83,7 @@ namespace Game.Gameplay.Office
                 Borrow();
                 return;
             }
-            Browse(_borrower.actions[MoveAction].ReadValue<Vector2>().x + DPad(_borrower));
+            Browse(_borrower.actions[NavigateAction].ReadValue<Vector2>().x);
         }
 
         private void OnDisable()
@@ -177,13 +177,6 @@ namespace Game.Gameplay.Office
             return nearest;
         }
 
-        private static float DPad(PlayerInput player)
-        {
-            foreach (var device in player.devices)
-                if (device is Gamepad pad)
-                    return pad.dpad.x.ReadValue();
-            return 0f;
-        }
 
         private static bool Pressed(PlayerInput player, string action) =>
             player.actions[action].WasPressedThisFrame();

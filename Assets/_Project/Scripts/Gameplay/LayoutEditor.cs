@@ -26,6 +26,7 @@ namespace Game.Gameplay
     {
         private const string ManageAction = "Manage";
         private const string MoveAction = "Move";
+        private const string NavigateAction = "Navigate"; // lists step with the D-pad or arrows (2026-11-10)
         private const string PickAction = "Interact";
         private const string CancelAction = "ButtonB";
         private const string RotateLeftAction = "RotateLeft";
@@ -418,7 +419,7 @@ namespace Game.Gameplay
             var page = ShopPage(cursor);
             cursor.ShopIndex = Mathf.Clamp(cursor.ShopIndex, 0, page.Count - 1);
 
-            var stick = actions[MoveAction].ReadValue<Vector2>().y;
+            var stick = actions[NavigateAction].ReadValue<Vector2>().y;
             if (Mathf.Abs(stick) < _shopStickThreshold)
             {
                 cursor.ShopStickHeld = false;

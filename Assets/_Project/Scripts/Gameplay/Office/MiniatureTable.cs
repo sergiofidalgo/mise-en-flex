@@ -36,7 +36,7 @@ namespace Game.Gameplay.Office
         private const string BackAction = "ButtonB";
         private const string DeleteAction = "Use"; // X
         private const string RerollAction = "ButtonY";
-        private const string MoveAction = "Move";
+        private const string NavigateAction = "Navigate"; // the D-pad or arrows, not the stick (2026-11-10)
 
         [Tooltip("Half the size of the area around the table that counts as at it (m, local X and Z): the table plus an arm's reach.")]
         [SerializeField] private Vector2 _halfArea = new Vector2(3.4f, 2.5f);
@@ -384,10 +384,10 @@ namespace Game.Gameplay.Office
             return spots;
         }
 
-        // The stick or the D-pad as one step (x right, y up): on the push, then, with repeat, again while held.
+        // The D-pad (or arrow keys) as one step (x right, y up): on the push, then, with repeat, again while held.
         private Vector2Int Push(PlayerInput player, bool repeat)
         {
-            var value = player.actions[MoveAction].ReadValue<Vector2>() + DPad(player);
+            var value = player.actions[NavigateAction].ReadValue<Vector2>();
             var direction = Vector2Int.zero;
             if (Mathf.Max(Mathf.Abs(value.x), Mathf.Abs(value.y)) >= _threshold)
             {
@@ -418,14 +418,6 @@ namespace Game.Gameplay.Office
             return direction;
         }
 
-        // The D-pad, which Move doesn't include.
-        private static Vector2 DPad(PlayerInput player)
-        {
-            foreach (var device in player.devices)
-                if (device is Gamepad pad)
-                    return pad.dpad.ReadValue();
-            return Vector2.zero;
-        }
 
         private static bool WasPressed(PlayerInput player, string action) =>
             player.actions[action].WasPressedThisFrame();

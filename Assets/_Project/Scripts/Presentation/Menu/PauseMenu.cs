@@ -421,13 +421,13 @@ namespace Game.Presentation.Menu
             {
                 case Page.Main:
                     DrawMain();
-                    hints.Add((PromptControl.LeftStick, Tr.Get("Choose")));
+                    hints.Add((PromptControl.DPad, Tr.Get("Choose")));
                     hints.Add((PromptControl.South, Tr.Get("Select")));
                     hints.Add((PromptControl.East, Tr.Get("Resume")));
                     break;
                 case Page.Settings:
                     DrawSettings();
-                    hints.Add((PromptControl.LeftStick, Tr.Get("Choose and change")));
+                    hints.Add((PromptControl.DPad, Tr.Get("Choose and change")));
                     if (_settings.Rows[_settings.Selected].Opens)
                         hints.Add((PromptControl.South, Tr.Get("Open")));
                     hints.Add((PromptControl.East, Tr.Get("Back")));
@@ -512,10 +512,14 @@ namespace Game.Presentation.Menu
                 right -= width + 12f;
                 var control = hints[i].Control ?? PromptControl.South;
                 var glyph = HudStyle.Glyph(control, true);
-                var badgeWidth = control == PromptControl.LeftStick ? 64f : 44f;
-                var colour = control == PromptControl.LeftStick ? _quietText : _style.BadgeColor(control, true);
+                var quiet = control == PromptControl.LeftStick || control == PromptControl.DPad;
+                var badgeWidth = quiet ? 64f : 44f;
+                var colour = quiet ? _quietText : _style.BadgeColor(control, true);
                 UiKit.RoundBox(_card, "Badge", colour, right - badgeWidth, baseline - 34f, badgeWidth, 44f, 22f);
-                UiKit.TextAt(Numbers, _card, "Glyph", glyph, 28f, _style.CardBackground, right - badgeWidth / 2f, baseline - 2f, badgeWidth, HorizontalAlignmentOptions.Center);
+                if (control == PromptControl.DPad)
+                    UiKit.DPad(_card, _style.CardBackground, right - badgeWidth / 2f, baseline - 12f, 28f);
+                else
+                    UiKit.TextAt(Numbers, _card, "Glyph", glyph, 28f, _style.CardBackground, right - badgeWidth / 2f, baseline - 2f, badgeWidth, HorizontalAlignmentOptions.Center);
                 right -= badgeWidth + 36f;
             }
         }

@@ -24,6 +24,8 @@ namespace Game.Gameplay.Stations
         Triggers,
         /// <summary>The left stick, for station games played with it (the sink's balancing).</summary>
         LeftStick,
+        /// <summary>The D-pad, which browses menus and lists (the user's call, 2026-11-10).</summary>
+        DPad,
     }
 
     /// <summary>One line of a station's button prompt, e.g. "A  Steak ×6".</summary>

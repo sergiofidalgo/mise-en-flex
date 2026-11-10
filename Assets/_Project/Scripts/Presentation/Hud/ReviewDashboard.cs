@@ -230,9 +230,9 @@ namespace Game.Presentation.Hud
                 else if (!_choosingReply && Pressed(actions, "ButtonY") && SelectedReview() is ReviewRecord review && review.Reply < 0)
                     SetChoosing(true);
 
-                // The stick or the arrow keys (both are Move): up and down browse, left and right
-                // change the filter while the chips have the focus.
-                var move = actions["Move"].ReadValue<Vector2>();
+                // The D-pad or the arrow keys (Navigate; the stick is too loose for lists, the user's
+                // call 2026-11-10): up and down browse, left and right change the filter on the chips.
+                var move = actions["Gameplay/Navigate"].ReadValue<Vector2>();
                 if (move.magnitude < _stickThreshold)
                 {
                     _nextStickStep = 0f;
@@ -356,7 +356,7 @@ namespace Game.Presentation.Hud
                 return;
             var recipe = book.Recipes[Mathf.Clamp(_selected, 0, book.Recipes.Count - 1)];
 
-            var move = actions["Move"].ReadValue<Vector2>();
+            var move = actions["Gameplay/Navigate"].ReadValue<Vector2>();
             var vertical = move.magnitude >= _stickThreshold && Mathf.Abs(move.y) >= Mathf.Abs(move.x);
             var horizontal = move.magnitude >= _stickThreshold && !vertical ? (move.x > 0f ? 1 : -1) : 0;
             if (!vertical)

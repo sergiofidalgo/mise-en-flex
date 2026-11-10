@@ -372,7 +372,7 @@ namespace Game.Presentation.Menu
         {
             foreach (var pad in Gamepad.all)
             {
-                var value = pad.leftStick.ReadValue() + pad.dpad.ReadValue();
+                var value = pad.dpad.ReadValue(); // not the stick: too loose for a list (2026-11-10)
                 if (value.sqrMagnitude > 0.01f)
                     return value;
             }

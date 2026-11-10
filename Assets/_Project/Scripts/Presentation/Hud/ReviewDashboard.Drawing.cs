@@ -1005,17 +1005,17 @@ namespace Game.Presentation.Hud
             UiKit.Clear(_hints);
             var hints = new List<(string[] Keys, string Text)> { (new[] { "LB", "RB" }, Tr.Get("Tabs")) };
             if (_tab == Tab.Overview)
-                hints.Add((new[] { "LS" }, filtering ? Tr.Get("Filter") : Tr.Get("Browse")));
+                hints.Add((new[] { "DPad" }, filtering ? Tr.Get("Filter") : Tr.Get("Browse")));
             if (canReply)
                 hints.Add((new[] { "Y" }, Tr.Get("Reply")));
             // The cookbook answers only the first player; the others see whose it is.
             if (recipe != null)
             {
                 var who = cook != null ? $"P{cook.playerIndex + 1}: " : "";
-                hints.Add((new[] { "LS" }, who + Tr.Get("Browse")));
+                hints.Add((new[] { "DPad" }, who + Tr.Get("Browse")));
                 if (onMenu)
                 {
-                    hints.Add((new[] { "LS" }, Tr.Get("Price, sideways")));
+                    hints.Add((new[] { "DPad" }, Tr.Get("Price, sideways")));
                     hints.Add((new[] { "X" }, Tr.Get("Suggested price")));
                 }
                 else
@@ -1053,7 +1053,7 @@ namespace Game.Presentation.Hud
                         x -= 31f + 10f;
                         continue;
                     }
-                    var keyWidth = key == "LS" ? 44f : 50f;
+                    var keyWidth = key == "DPad" ? 44f : 50f;
                     Keycap(_hints, key, x - keyWidth, 971f, keyWidth, 34f);
                     x -= keyWidth + 10f;
                 }
@@ -1087,6 +1087,12 @@ namespace Game.Presentation.Hud
                 UiKit.StrokedBox(parent, key, _ink, Color.white, 4f, x, y, width, height, 8f);
             else
                 UiKit.RoundBox(parent, key, _ink, x, y, width, height, 8f);
+            if (key == "DPad")
+            {
+                // Lists browse with the D-pad, not the stick (2026-11-10): drawn, as no font has it.
+                UiKit.DPad(parent, _paper, x + width / 2f, y + height / 2f, 20f);
+                return;
+            }
             if (key == "≡")
             {
                 for (var i = 0; i < 3; i++)

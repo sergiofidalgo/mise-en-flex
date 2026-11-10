@@ -84,6 +84,16 @@ namespace Game.Tests.EditMode
             Assert.That(paths, Does.Not.Contain("<Keyboard>/w"));
         }
 
+        // Menus and lists step with the D-pad or the arrow keys; the stick is too loose (2026-11-10).
+        [TestCase("Gameplay")]
+        [TestCase("UI")]
+        public void MenusNavigateWithTheDPadNotTheStick(string map)
+        {
+            var paths = _controls.FindActionMap(map, true).FindAction("Navigate", true).bindings.Select(b => b.path).ToArray();
+            Assert.That(paths, Does.Contain("<Gamepad>/dpad").And.Contain("<Keyboard>/upArrow"));
+            Assert.That(paths, Does.Not.Contain("<Gamepad>/leftStick"));
+        }
+
         [Test]
         public void PlayerPrefabUsesGameControlsStartingInGameplay()
         {

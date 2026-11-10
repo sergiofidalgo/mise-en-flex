@@ -20,6 +20,9 @@ namespace Game.Presentation.Menu
     /// </summary>
     public sealed partial class MainMenu
     {
+        // The hint for browsing: menus step with the D-pad, drawn as a cross (2026-11-10).
+        private const string DPadHint = "DPad";
+
         [Header("Fonts (Inter and Lora, SIL Open Font License)")]
         [SerializeField] private TMP_FontAsset _medium;
         [SerializeField] private TMP_FontAsset _semiBold;
@@ -449,7 +452,7 @@ namespace Game.Presentation.Menu
             switch (_openPage)
             {
                 case Page.Settings:
-                    hints.Add(("LS", Tr.Get("Choose and change")));
+                    hints.Add((DPadHint, Tr.Get("Choose and change")));
                     if (_settingsPage.Rows[_settingsPage.Selected].Opens)
                         hints.Add(("A", Tr.Get("Open")));
                     hints.Add(("B", Tr.Get("Back")));
@@ -463,7 +466,7 @@ namespace Game.Presentation.Menu
                     hints.Add(("B", Tr.Get("Back")));
                     break;
                 default:
-                    hints.Add(("LS", Tr.Get("Browse")));
+                    hints.Add((DPadHint, Tr.Get("Browse")));
                     hints.Add(("A", Tr.Get("Select")));
                     if (_onCards)
                     {
@@ -482,10 +485,10 @@ namespace Game.Presentation.Menu
                 var width = UiKit.Width(label);
                 label.rectTransform.anchoredPosition = new Vector2(right - width, label.rectTransform.anchoredPosition.y);
                 var glyphRight = right - width - 11f;
-                if (hints[i].Button == "LS")
+                if (hints[i].Button == DPadHint)
                 {
-                    UiKit.RoundBox(_hints, "LS", _cream, glyphRight - 44f, 1032f, 44f, 32f, 9f);
-                    UiKit.TextAt(_bold, _hints, "LSText", "LS", 16f, _ink, glyphRight - 22f, 1054f, 44f, HorizontalAlignmentOptions.Center);
+                    UiKit.RoundBox(_hints, "DPad", _cream, glyphRight - 44f, 1032f, 44f, 32f, 9f);
+                    UiKit.DPad(_hints, _ink, glyphRight - 22f, 1048f, 22f);
                     right = glyphRight - 44f - 38f;
                 }
                 else

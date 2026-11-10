@@ -23,7 +23,7 @@ namespace Game.Gameplay.Office
 
         private const string InteractAction = "Interact";
         private const string BackAction = "ButtonB";
-        private const string MoveAction = "Move";
+        private const string NavigateAction = "Navigate"; // the D-pad or arrows, not the stick (2026-11-10)
         // LB and RB (keyboard Z and C) change section, as tabs do on the Review dashboard.
         private const string PreviousSectionAction = "RotateLeft";
         private const string NextSectionAction = "RotateRight";
@@ -108,7 +108,7 @@ namespace Game.Gameplay.Office
                 Stepped?.Invoke(0);
                 return;
             }
-            Browse(_dresser.actions[MoveAction].ReadValue<Vector2>().x + DPad(_dresser));
+            Browse(_dresser.actions[NavigateAction].ReadValue<Vector2>().x);
         }
 
         // After the chef's own movement: carry them through the hop.
@@ -211,14 +211,6 @@ namespace Game.Gameplay.Office
             Stepped?.Invoke(direction);
         }
 
-        // The D-pad's left and right, which Move doesn't include: -1, 0 or 1.
-        private static float DPad(PlayerInput player)
-        {
-            foreach (var device in player.devices)
-                if (device is Gamepad pad)
-                    return pad.dpad.x.ReadValue();
-            return 0f;
-        }
 
         // The nearest player at the ladder's foot who isn't already dressing on another ladder.
         private PlayerInput FindStanding()

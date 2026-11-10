@@ -4,6 +4,12 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-10 — Menus and lists are browsed with the D-pad, not the stick
+
+**Decision (user's call):** every menu and list steps with the D-pad, or the arrow keys on the keyboard. The left stick no longer browses them. This covers the main menu, the pause menu, the Review dashboard (browsing, filter chips, cookbook prices), the tailor, the accountant, the city miniature and the layout editor's shop list. A new `Navigate` action in the Gameplay map (D-pad + arrows, rebindable) drives them; the UI map's `Navigate` moved from the stick to the D-pad. Hints show a drawn D-pad cross instead of "LS". Walking, the layout editor's free cursor and the sink's balancing still use the stick.
+
+**Reason:** the stick made menus hard to move around: it overshoots and repeats. The D-pad steps once per press.
+
 ## 2026-11-10 — Merging milestones 2 and 4: one office campaign, and the starting loan is paid back
 
 **Found when merging** (Main build): the two branches were built side by side and met in two places.
