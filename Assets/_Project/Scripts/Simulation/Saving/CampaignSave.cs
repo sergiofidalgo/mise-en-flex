@@ -35,9 +35,63 @@ namespace Game.Simulation.Saving
 
         /// <summary>
         /// What the accountant has lent and is still to be paid back (decision 2026-11-10: the loan
-        /// belongs to the campaign, and each collection takes one instalment). 0 until milestone 4.
+        /// belongs to the campaign, and each collection takes one instalment), the boss's 20% included.
         /// </summary>
         public float Loan;
+
+        // ---- The boss and money trouble (Phase 6, milestone 4). New fields with defaults: an older
+        // file loads with no loan and nothing owed beyond its balance. ----
+
+        /// <summary>What each collection takes off <see cref="Loan"/>; 0 with no loan.</summary>
+        public float LoanInstalment;
+
+        /// <summary>How far the escalation has gone, a <see cref="Campaign.BossStep"/>: 0, nothing.</summary>
+        public int BossStep;
+
+        /// <summary>What the boss does the next morning, a <see cref="Campaign.BossVisit"/>: 0, nothing.</summary>
+        public int BossVisit;
+
+        /// <summary>The definition id of the restaurant he'll visit.</summary>
+        public string BossVisitAt = "";
+
+        /// <summary>The loan as the simulation works with it.</summary>
+        public Campaign.LoanAccount ToLoan() => new Campaign.LoanAccount(Loan, LoanInstalment);
+
+        public void StoreLoan(Campaign.LoanAccount loan)
+        {
+            Loan = loan.Owed;
+            LoanInstalment = loan.Instalment;
+        }
+
+        /// <summary>The escalation as the simulation works with it.</summary>
+        public Campaign.BossEscalation ToEscalation() =>
+            new Campaign.BossEscalation((Campaign.BossStep)BossStep, (Campaign.BossVisit)BossVisit, BossVisitAt);
+
+        public void StoreEscalation(Campaign.BossEscalation escalation)
+        {
+            BossStep = (int)escalation.Step;
+            BossVisit = (int)escalation.Pending;
+            BossVisitAt = escalation.PendingAt;
+        }
+
+        /// <summary>
+        /// The boss takes a restaurant (§15.3 step 3): its record goes, and if it was the current one,
+        /// the first left becomes current. False if it isn't owned or is the last one.
+        /// </summary>
+        public bool Remove(string definitionId)
+        {
+            if (Restaurants == null || Restaurants.Count <= 1)
+                return false;
+            var index = Restaurants.FindIndex(r => r.DefinitionId == definitionId);
+            if (index < 0)
+                return false;
+            Restaurants.RemoveAt(index);
+            if (CurrentRestaurant == index)
+                CurrentRestaurant = 0;
+            else if (CurrentRestaurant > index)
+                CurrentRestaurant--;
+            return true;
+        }
 
         /// <summary>Real seconds played in this campaign, in any restaurant.</summary>
         public float PlayedSeconds;
@@ -318,6 +372,7 @@ namespace Game.Simulation.Saving
             save.Cooks ??= new List<int>();
             save.RecentLines ??= new List<string>();
             save.Recipes ??= new List<string>();
+            save.BossVisitAt ??= "";
             if (save.CurrentRestaurant >= save.Restaurants.Count || (save.CurrentRestaurant < 0 && save.Restaurants.Count > 0))
                 save.CurrentRestaurant = save.Restaurants.Count > 0 ? 0 : -1;
             return true;

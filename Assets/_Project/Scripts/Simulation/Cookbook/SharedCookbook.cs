@@ -30,6 +30,12 @@ namespace Game.Simulation.Cookbook
         public bool Has(string id) => Unlocked.Contains(id);
 
         /// <summary>
+        /// Chefs the boss erased (§15.3), oldest first: a dusty portrait each in the hall of fame. Kept
+        /// here because, like the cookbook, the hall outlives campaigns. Empty in older files.
+        /// </summary>
+        public List<ErasedChef> Erased = new List<ErasedChef>();
+
+        /// <summary>
         /// Brings an older file up to date; false for one from a newer game, which is then left alone.
         /// Version 1 is the first, so there are no steps yet.
         /// </summary>
@@ -38,8 +44,26 @@ namespace Game.Simulation.Cookbook
             if (Version > CurrentVersion)
                 return false;
             Unlocked ??= new List<string>();
+            Erased ??= new List<ErasedChef>();
             Version = CurrentVersion;
             return true;
         }
+    }
+
+    /// <summary>A portrait in the hall of fame: who was erased, and how far they got.</summary>
+    [Serializable]
+    public sealed class ErasedChef
+    {
+        /// <summary>The restaurant they were last running, for the plaque.</summary>
+        public string Restaurant = "";
+
+        /// <summary>Days played across all their restaurants.</summary>
+        public int Days;
+
+        /// <summary>Player numbers who cooked, for the portrait's colours.</summary>
+        public List<int> Cooks = new List<int>();
+
+        /// <summary>When, as <see cref="DateTime.Ticks"/> in local time.</summary>
+        public long Ticks;
     }
 }

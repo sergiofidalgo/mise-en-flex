@@ -15,6 +15,12 @@ namespace Game.Simulation.Days
         Energy,
         Purchases,
         Fee,
+
+        /// <summary>A loan instalment, taken with a collection (Phase 6). New lines go at the end: saves keep amounts in this order.</summary>
+        Loan,
+
+        /// <summary>Appliances the bodyguards carried out, credited at resale value against the debt.</summary>
+        Repossessed,
     }
 
     /// <summary>Money in and out over some stretch of time (a day, or the days since the last fee).</summary>
@@ -25,7 +31,8 @@ namespace Game.Simulation.Days
         private readonly float[] _amounts = new float[LineCount];
 
         /// <summary>Money in on these lines, out on the rest.</summary>
-        public static bool IsIncome(LedgerLine line) => line == LedgerLine.Payments || line == LedgerLine.Tips || line == LedgerLine.Sales;
+        public static bool IsIncome(LedgerLine line) =>
+            line == LedgerLine.Payments || line == LedgerLine.Tips || line == LedgerLine.Sales || line == LedgerLine.Repossessed;
 
         public float Of(LedgerLine line) => _amounts[(int)line];
 
