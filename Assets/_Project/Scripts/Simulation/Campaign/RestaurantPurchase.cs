@@ -15,7 +15,7 @@ namespace Game.Simulation.Campaign
         /// from the boss, enough to buy the grill and stock its first morning (decision 2026-11-10).
         /// The loan is both in the pocket and owed, and paid back over the terms' instalments, one per
         /// collection. The boss's 20% is added only to what's borrowed at the accountant, not to the
-        /// money he starts players with (Main build's call when merging milestones 2 and 4; to confirm).
+        /// money he starts players with (the user's call, 2026-11-10).
         /// </summary>
         public static CampaignSave NewCampaign(float loan, LoanSettings terms = null)
         {
