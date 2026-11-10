@@ -29,6 +29,7 @@ namespace Game.Presentation
 
         private readonly Dictionary<SoundCue, CueHistory> _history = new Dictionary<SoundCue, CueHistory>();
         private readonly Dictionary<PrepStation, System.Action<ChopGrade>> _boards = new Dictionary<PrepStation, System.Action<ChopGrade>>();
+        private readonly Dictionary<StorageStation, System.Action<int>> _stockings = new Dictionary<StorageStation, System.Action<int>>();
         private readonly Dictionary<FridgeDoorView, (System.Action Opened, System.Action Closed)> _fridges =
             new Dictionary<FridgeDoorView, (System.Action, System.Action)>();
         private AudioSource[] _pool;
@@ -180,9 +181,17 @@ namespace Game.Presentation
                 fridge.Closed += closed;
             }
 
-            // A market stall: the till, at the stall, for every crate bought.
+            // A market stall: the till, at the stall, for every purchase.
             if (station is StallStation stall)
                 stall.Bought += _ => Play(_sounds.Till, stall.transform.position);
+
+            // Bought stock arriving: set down where it went, fridge or shelf (decision 2026-11-10).
+            if (station is StorageStation storage && !_stockings.ContainsKey(storage))
+            {
+                System.Action<int> stocked = _ => Play(_sounds.Clack, storage.transform.position);
+                _stockings[storage] = stocked;
+                storage.Stocked += stocked;
+            }
 
             if (!(station is PrepStation board) || _boards.ContainsKey(board))
                 return;
@@ -199,6 +208,12 @@ namespace Game.Presentation
                 fridge.Opened -= handlers.Opened;
                 fridge.Closed -= handlers.Closed;
                 _fridges.Remove(fridge);
+            }
+
+            if (station is StorageStation storage && _stockings.TryGetValue(storage, out var stocked))
+            {
+                storage.Stocked -= stocked;
+                _stockings.Remove(storage);
             }
 
             if (station is PrepStation board && _boards.TryGetValue(board, out var handler))

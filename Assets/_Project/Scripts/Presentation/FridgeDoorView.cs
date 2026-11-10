@@ -7,7 +7,8 @@ namespace Game.Presentation
     /// Lifts a chest fridge's glass lid while anyone has its menu open (RT held), with a breath of
     /// cold air as it opens (decision 2026-11-08). A chef's <see cref="StorageUseView"/> keeps it open
     /// each frame, so two players at one fridge keep it open until both let go. Opened and Closed are
-    /// for sound.
+    /// for sound. When stock bought at a stall arrives, the lid pops open a moment with the same
+    /// breath of cold air (decision 2026-11-10), so the purchase shows where it went.
     ///
     /// The lid hinges along the back of the top and opens to no more than upright, so it stays over
     /// the fridge's own footprint: no wall, furniture or chef can be in its way, wherever the fridge
@@ -30,7 +31,12 @@ namespace Game.Presentation
         [Tooltip("Puffs a second that keep spilling out while it stays open; none by default.")]
         [SerializeField, Min(0f)] private float _mistWhileOpen;
 
+        [Tooltip("Seconds the lid stays up when bought stock arrives.")]
+        [SerializeField, Min(0f)] private float _stockedOpenSeconds = 0.35f;
+
         private float _amount;
+        private float _poppedUntil = -1f;
+        private Game.Gameplay.Stations.StorageStation _storage;
         // Never yet. Not int.MinValue: "frame now minus it" overflowed to a negative number, which
         // read as "kept open just now", so the lid stood open from the start of the day until someone
         // opened and closed it (the user's bug report, 2026-11-08).
@@ -41,13 +47,33 @@ namespace Game.Presentation
 
         public bool IsOpen { get; private set; }
 
+        private void Awake()
+        {
+            _storage = GetComponent<Game.Gameplay.Stations.StorageStation>();
+        }
+
+        private void OnEnable()
+        {
+            if (_storage != null)
+                _storage.Stocked += Pop;
+        }
+
+        private void OnDisable()
+        {
+            if (_storage != null)
+                _storage.Stocked -= Pop;
+        }
+
+        // Up a moment and down again; the mist and the sounds come with the opening as usual.
+        private void Pop(int portions) => _poppedUntil = Time.time + _stockedOpenSeconds;
+
         /// <summary>Call every frame something should hold the lid open. Who opens it doesn't matter.</summary>
         public void KeepOpen(Transform opener = null) => _keptOpenOnFrame = Time.frameCount;
 
         private void Update()
         {
             // One frame's grace, so the order scripts run in doesn't make it flicker shut.
-            var open = Time.frameCount - _keptOpenOnFrame <= 1;
+            var open = Time.frameCount - _keptOpenOnFrame <= 1 || Time.time < _poppedUntil;
             if (open != IsOpen)
             {
                 IsOpen = open;
