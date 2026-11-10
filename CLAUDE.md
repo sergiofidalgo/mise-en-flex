@@ -21,7 +21,7 @@ Key systems (see the design doc for detail):
 - **Station interactions in the kitchen view** (no close-up panel, decision 2026-11-02): Interact picks up and puts down, Use performs the station's action (e.g. flip at a hob), triggers adjust a hob's heat while facing it. Storage with capacity and serving temperature are the main differentiators.
 - **Quality score** per dish (doneness, serving temperature, seasoning, freshness, plating) drives payment, tips and reviews.
 - **Cuisines** each have a signature mechanic (steakhouse, sushi, French bistro, pizzeria, Spanish home cooking, wok). Service styles: fast casual, bistro, fine dining.
-- **Restaurant building:** size tiers (counter to full dining room) as a tradeoff, kitchen zones, equipment tiers, health inspections.
+- **Restaurant building:** size comes from which restaurant you buy (counter to full dining room) and is a tradeoff; kitchen zones, equipment tiers, decoration, health inspections.
 - **Customers and reputation:** custom orders, allergies and cross-contamination, patience, an in-game review listing, incognito critics, influencers.
 - **Economy:** street vendors (cheap vs. premium), menu pricing, rent, wages, debt to the boss. A **cookbook** sets the menu and lasts across campaigns.
 - **Campaign:** the boss funds an empire of restaurants, bought from a city miniature in his office. A restaurant only runs while players are in it, and fees fall due every 7 days played there.
@@ -106,9 +106,9 @@ Work one phase at a time. Each phase ends with something playable.
 | 1. Cooking core | Cooking simulation with tests, hob/board/storage/pass/bin stations, in-world hob controls, serving temperature, steak and onion |
 | 2. First service | Customers, orders, patience, quality scoring, payment, review lines, end-of-service summary → **first vertical slice** |
 | 3. Daily loop and staff | Plan/Prep/Service/Close/Review phases; hireable dishwasher and prep assistant |
-| 4. Building | Layout editing with per-player cursors, buying furniture, tables, waiter, equipment tiers (size tiers under review, see `docs/plans/phase-4.md`) |
+| 4. Building | Layout editing with per-player cursors, buying furniture, tables, waiter, equipment tiers |
 | 5. Persistence and economy | Save as Review starts, read-only Review dashboard, street vendors, cookbook and paid recipes, pricing, rent, wages, debt, dirt and cleaning, realism settings menu |
-| 6. Campaign | Boss's office and city miniature, buying and naming restaurants, a second restaurant, idle restaurants and 7-day fees, the boss's mobile calls and escalation, tablet station and listing, service styles and decoration, the empire takeover |
+| 6. Campaign | Boss's office and city miniature, buying and naming restaurants of different sizes, a second restaurant, idle restaurants and 7-day fees, the boss's mobile calls and escalation, tablet station and listing, service styles and decoration, the empire takeover |
 | 7. Content | Cuisines one at a time, allergies, health inspections, critics, influencers, unusual combinations |
 | 8. Guided first day | The first-day story and task list, built on the real game once mechanics have settled |
 | 9. Art and polish | Blender assets, food-state shaders, audio, VFX, UI polish |
