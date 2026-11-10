@@ -77,6 +77,16 @@ namespace Game.Presentation.Hud
                 _canvas.enabled = false;
                 var scene = Render(sceneCamera, null);
                 _canvas.enabled = true;
+                SaveOver(scene, file);
+            }
+
+            /// <summary>
+            /// Composites the canvas over <paramref name="background"/>, 1920×1080 pixels bottom row
+            /// first (as Texture2D.GetPixels32 gives them), such as an earlier capture of the scene.
+            /// </summary>
+            public void SaveOver(Color32[] background, string file)
+            {
+                var scene = background;
                 _camera.backgroundColor = Color.black;
                 var overBlack = Render(_camera, _target);
                 _camera.backgroundColor = Color.white;
