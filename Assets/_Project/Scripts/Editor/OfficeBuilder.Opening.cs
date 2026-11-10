@@ -95,6 +95,9 @@ namespace Game.Editor
             tableHud.FindProperty("_style").objectReferenceValue = style;
             tableHud.FindProperty("_table").objectReferenceValue = table;
             tableHud.ApplyModifiedPropertiesWithoutUndo();
+
+            // Tap Menu on the floor: the pause menu (decision 2026-11-10). No day loop here, so it stops time itself.
+            PauseMenuBuilder.Add(style, coop);
         }
 
         private static void Poses(SerializedProperty list, CameraPose[] poses)
