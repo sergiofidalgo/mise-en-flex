@@ -38,6 +38,9 @@ namespace Game.Gameplay.Stations
             public Grade Grade => _grade;
         }
 
+        // Premium prices in the menu.
+        private static readonly Color PremiumGold = new Color(0.98f, 0.78f, 0.3f);
+
         [SerializeField] private MarketConfig _market;
 
         [Tooltip("Up to four, one per face button, in FaceButton order: South (A), East (B), West (X), North (Y).")]
@@ -119,8 +122,11 @@ namespace Game.Gameplay.Stations
                     : Tr.Format("{what}, budget", ("what", what));
                 // As many as storage has room for: none, and it's greyed out.
                 var fits = offer.PortionsThatFit(StorageInOrder(offer.TypeId).Select(s => s.Unit));
+                // The menu shows the icon and this: premium's price is in gold, so the two grades read
+                // apart (the HUD font has no star). A proper premium badge is for the art pass.
+                var price = Locale.Money(offer.PriceFor(fits), MoneyStyle.Whole);
                 lines.Add(new PromptLine(control, $"{label} ×{fits}", fits > 0,
-                    iconId: offer.TypeId, iconLabel: Locale.Money(offer.PriceFor(fits), MoneyStyle.Whole)));
+                    iconId: offer.TypeId, iconLabel: offer.Grade == Grade.Premium ? $"<color=#{ColorUtility.ToHtmlStringRGB(PremiumGold)}>{price}</color>" : price));
             }
         }
     }

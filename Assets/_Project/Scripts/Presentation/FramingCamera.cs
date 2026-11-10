@@ -139,6 +139,10 @@ namespace Game.Presentation
                 {
                     var kitchen = KitchenHeight(floor, walls);
                     UseWhole(floor);
+                    // The whole restaurant isn't everyone any more: anyone out on the street counts too.
+                    foreach (var person in _people)
+                        if (!_root.Services.Building.IsIndoors(person))
+                            _points.Add(person);
                     var whole = Fit(floor, walls, _minHeight, _maxHeight, _screenTopForWhole, _wholeFarMargin);
                     _wentWhole = CameraFraming.ShowWhole(kitchen, whole.Y, _maxHeight, _wholeWithin);
                     if (_wentWhole)
