@@ -36,7 +36,7 @@ Every feature must serve at least one.
 - **1–4 local players** (decision 2026-11-09; it was 1–2, with 3–4 a stretch goal).
 - macOS (Apple Silicon) first. Default: player 1 on keyboard, player 2 on an Xbox controller over Bluetooth. Every action has both bindings, and all controls can be rebound from a Controls screen in the settings.
 - Movement is snappy (full speed in about 0.08 s), with no dash for now. **Interact** (A) picks up and places; **Use** (X) works a station or enters its close-up. The keyboard mirrors the face buttons as W/A/D/X with arrow keys to move, and is mainly for testing.
-- Join by pressing a button (drop-in during Plan/Prep). **Open:** can a second player join mid-service?
+- Join by pressing a button (drop-in at the end-of-day summary and during Prep). **Open:** can a second player join mid-service?
 - Performance target: steady 60 fps on a MacBook with four players.
 
 **Open:** how solo play scales. A solo player can't be in two places, so either service pacing scales with player count, or solo players lean on staff earlier. Recommendation: scale customer arrival rate and patience via tuning per player count, and keep staff as an option rather than a requirement.
@@ -74,15 +74,14 @@ With two players, each close-up panel can be large (roughly a third of the scree
 
 ## 4. The daily loop
 
-Each in-game day runs **Plan → Prep → Service → Close → Review**, then the next day.
+Each in-game day runs **Prep → Service → Close → Review**, and Review's summary leads into the next day's Prep (decision 2026-11-11; Plan is no longer a phase players stay in).
 
 | Phase | What happens | Time pressure |
 | --- | --- | --- |
-| **Plan** | Set the menu and prices, order from suppliers, hire/fire staff, edit layout (each player has their own cursor in a shared view) | None |
-| **Prep** | Clean up yesterday's mess. Mise en place: stock station storage and board rails, pre-cut, make stocks and sauces, preheat | Soft (a clock, but no customers) |
+| **Prep** | Clean up yesterday's mess. Rearrange the kitchen (each player has their own cursor in a shared view) and buy from the shop. Shop at the street vendors. Mise en place: stock storage, pre-cut, make stocks and sauces, preheat. The strip shows about how many guests to expect | Soft (a clock, but no customers) |
 | **Service** | Customers arrive, order, wait, eat, pay and review | High |
 | **Close** | Store leftovers, deal with waste and spoilage | Low |
-| **Review** | A read-only dashboard scene, starting as soon as the last customer leaves: the service, customers, dishes, money lost and earned, overall progress | None |
+| **Review** | The end-of-day summary (the forkcast dashboard), starting as soon as the last customer leaves, when the game saves: the service, reviews and replies, money in and out, the boss's next collection. Between days, players also set the menu and prices in the cookbook and hire or let go of staff. Holding A on **Start day N** goes straight into the next day's Prep. Arriving from the office lands here too | None |
 
 **Open:** length of a service in real minutes (recommendation: start around 6–8 minutes and tune); whether Prep has a hard time limit or ends when players ready up; whether Close is played or summarised.
 
@@ -132,7 +131,7 @@ Hob, board, fridge, pass, bin. More stations arrive with cuisines and as kinds o
 
 **Since 2026-11-07:** the cutting board and the knife rack sit on counters and take each one over; they're moved only in management mode. The kitchen starts with one knife lying on a counter and no rack, and chopping needs the knife.
 
-**Proposal — storage with capacity** (`ideas.md`): ingredients come from fridges and shelves with limited capacity rather than endless crates, so where and how things are stored is planned in Plan/Prep. The Phase 0 crates are placeholders for this.
+**Proposal — storage with capacity** (`ideas.md`): ingredients come from fridges and shelves with limited capacity rather than endless crates, so where and how things are stored is planned in Prep. The Phase 0 crates are placeholders for this.
 
 ### 6.2 Board station with mise en place rail (superseded 2026-11-02)
 
@@ -223,7 +222,7 @@ Service style is chosen per restaurant, separately from cuisine, and any combina
 - **Kitchenware:** cutting boards, knife racks, knives and pans are bought too. Boards and racks use up a counter each; knives and pans appear on a free counter. Pots, skewers and oven trays arrive with their dishes.
 - **Health inspections:** hygiene, storage and cross-contamination practices (scaled by the hygiene dial).
 
-Layout editing happens in Plan, with a per-player cursor in a shared view. **Everything in the kitchen can be moved there**: stations, counters, storage units and the pass. The greybox layout is only a starting arrangement.
+Layout editing happens in Prep (decision 2026-11-11), with a per-player cursor in a shared view. **Everything in the kitchen can be moved there**: stations, counters, storage units and the pass. The greybox layout is only a starting arrangement.
 
 ---
 
