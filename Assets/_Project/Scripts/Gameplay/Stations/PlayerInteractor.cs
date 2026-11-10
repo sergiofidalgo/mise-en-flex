@@ -332,10 +332,6 @@ namespace Game.Gameplay.Stations
             }
             else
             {
-                // A market crate that's been emptied has done its job and goes (decision 2026-11-10).
-                if (_hands.Current is Crate crate && crate.IsEmpty)
-                    _services.ItemViews.Release(_hands.Take());
-
                 // Re-place both sides; only views whose place changed move. Brand-new items
                 // (from a rack or the plate stack) appear at the station and fly to the hands.
                 RefreshHeld(_target.ItemAnchor.position);

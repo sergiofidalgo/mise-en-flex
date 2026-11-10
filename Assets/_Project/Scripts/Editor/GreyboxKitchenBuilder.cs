@@ -274,8 +274,7 @@ namespace Game.Editor
                     (Game.Simulation.Items.Plate.PlateTypeId, GreyboxKitchenware.BuildPlate()),
                     (Game.Simulation.Items.Knife.KnifeTypeId, GreyboxKitchenware.BuildKnife()),
                     (Game.Simulation.Items.Tray.TrayTypeId, GreyboxKitchenware.BuildTray()),
-                    (Game.Simulation.Items.FoodContainer.ContainerTypeId, GreyboxKitchenware.BuildContainer()),
-                    (Game.Simulation.Items.Crate.CrateTypeId, GreyboxStreet.BuildCrate())),
+                    (Game.Simulation.Items.FoodContainer.ContainerTypeId, GreyboxKitchenware.BuildContainer())),
             };
             SetMenu(assets.ServiceConfig, assets.Catalog);
             // Pictures for menus, from the food prefabs just built; only missing ones are rendered.

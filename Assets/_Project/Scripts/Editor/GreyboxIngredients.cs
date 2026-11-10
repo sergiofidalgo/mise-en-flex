@@ -80,6 +80,7 @@ namespace Game.Editor
                     // Heat reaches the middle soon enough that well done comes before burnt, even at full heat.
                     so.FindProperty("_surfaceCoreConductance").floatValue = 1.2f;
                     so.FindProperty("_browningRate").floatValue = 1f / 14824f;
+                    so.FindProperty("_keepCold").boolValue = true; // bought into a fridge first
                     SetDoneness(so,
                     ("Rare", 45f, 50f), ("Medium", 55f, 60f), ("Well done", 65f, 70f));
                 },

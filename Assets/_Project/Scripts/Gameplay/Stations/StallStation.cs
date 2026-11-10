@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Game.Data;
 using Game.Simulation.Cooking;
+using System.Linq;
 using Game.Simulation.Items;
 using Game.Simulation.Market;
 using UnityEngine;
@@ -10,9 +11,10 @@ namespace Game.Gameplay.Stations
 {
     /// <summary>
     /// A market stall on the street outside (Phase 5, milestone 3; decision 2026-11-10). It works like
-    /// storage: holding RT opens its menu, and a face button buys that crate into empty hands. It's
-    /// paid at once, as ingredients, even into debt. The crate is carried in by hand and unloaded at a
-    /// fridge or shelf. Open in Prep and Service, like everything chefs work at; going out during
+    /// storage: holding RT opens its menu, and a face button buys that stock. It goes straight into the
+    /// restaurant's storage: food that keeps cold to a fridge first, the rest to a shelf first, each
+    /// spilling over into the other when full. Only what fits is bought, paid at once as ingredients,
+    /// even into debt. Open in Prep and Service, like everything chefs work at; going out during
     /// service costs the time the walk takes.
     /// </summary>
     public sealed class StallStation : Interactable, IFaceButtonTarget, IStationPrompt, ISlotMenuStation
@@ -43,7 +45,7 @@ namespace Game.Gameplay.Stations
 
         private KitchenServices _services;
 
-        /// <summary>Raised when a crate is bought, with what it cost.</summary>
+        /// <summary>Raised when stock is bought, with what it cost.</summary>
         public event Action<float> Bought;
 
         public override IItemContainer Container => null;
@@ -67,26 +69,38 @@ namespace Game.Gameplay.Stations
 
         public bool TryPress(FaceButton button, PlayerInteractor player)
         {
-            if (!player.IsSlotMenuOpen || !player.Hands.IsEmpty)
+            if (!player.IsSlotMenuOpen)
                 return false;
             var offer = OfferAt((int)button);
             if (offer == null)
                 return false;
 
-            var crate = offer.Buy(_services.Days, () => (Ingredient)_services.CreateItem(offer.TypeId));
-            player.ReceiveItem(crate, ItemAnchor.position);
-            Bought?.Invoke(offer.CratePrice);
+            var storage = StorageInOrder(offer.TypeId);
+            var stocked = offer.BuyInto(_services.Days, storage.Select(s => s.Unit),
+                unit => (Ingredient)_services.CreateItem(offer.TypeId, unit.Temperature));
+            if (stocked.Count == 0)
+                return false; // no room anywhere: the stall shakes "can't"
+
+            foreach (var (unit, count) in stocked)
+                storage.First(s => s.Unit == unit).NotifyStocked(count);
+            Bought?.Invoke(offer.PriceFor(stocked.Sum(s => s.Count)));
             return true;
+        }
+
+        // The restaurant's fridges and shelves, in the order this food fills them.
+        private List<StorageStation> StorageInOrder(string typeId)
+        {
+            var keepsCold = _services.Catalog.Find(typeId)?.KeepCold ?? false;
+            return StorageOrder.For(_services.Stations.All.OfType<StorageStation>().Where(s => s.Unit != null), s => s.IsRefrigerated, keepsCold);
         }
 
         public void DescribeActions(PlayerInteractor player, List<PromptLine> lines)
         {
             if (_services == null)
                 return;
-            var empty = player.Hands.IsEmpty;
             if (!player.IsSlotMenuOpen)
             {
-                lines.Add(new PromptLine(PromptControl.Triggers, Tr.Get("open"), empty));
+                lines.Add(new PromptLine(PromptControl.Triggers, Tr.Get("open"), player.Hands.IsEmpty));
                 return;
             }
 
@@ -103,8 +117,10 @@ namespace Game.Gameplay.Stations
                 var label = offer.Grade == Grade.Premium
                     ? Tr.Format("{what}, premium", ("what", what))
                     : Tr.Format("{what}, budget", ("what", what));
-                lines.Add(new PromptLine(control, $"{label} ×{offer.Portions}", empty,
-                    iconId: offer.TypeId, iconLabel: Locale.Money(offer.CratePrice, MoneyStyle.Whole)));
+                // As many as storage has room for: none, and it's greyed out.
+                var fits = offer.PortionsThatFit(StorageInOrder(offer.TypeId).Select(s => s.Unit));
+                lines.Add(new PromptLine(control, $"{label} ×{fits}", fits > 0,
+                    iconId: offer.TypeId, iconLabel: Locale.Money(offer.PriceFor(fits), MoneyStyle.Whole)));
             }
         }
     }

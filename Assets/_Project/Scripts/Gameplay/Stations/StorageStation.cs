@@ -15,8 +15,8 @@ namespace Game.Gameplay.Stations
     /// A fridge or shelf with four slots, one per face button, in two tiers seen from the front. Holding RT opens its radial menu;
     /// while it's open, a face button takes one portion from that slot (empty hands). With food in
     /// hand, Interact puts it in a slot with that ingredient or a free one, no menu needed: anything can go anywhere, though meat on a shelf spoils fast. With a tray,
-    /// the menu loads onto the tray. With a crate from the street's stalls, Interact unloads as much
-    /// of it as fits (Phase 5). A new campaign's first morning finds it stocked, once (decision 2026-11-10).
+    /// the menu loads onto the tray. Stock bought at the street's stalls arrives straight here (decision
+    /// 2026-11-10), and so does a new campaign's starter stock, once.
     /// </summary>
     public sealed class StorageStation : Interactable, IFaceButtonTarget, IStationPrompt, ISlotMenuStation, ISavedContents
     {
@@ -56,6 +56,11 @@ namespace Game.Gameplay.Stations
         private KitchenServices _services;
 
         public StorageUnit Unit => _unit;
+
+        /// <summary>Raised when stock bought at a stall arrives here, with how many portions: for the feedback.</summary>
+        public event Action<int> Stocked;
+
+        public void NotifyStocked(int portions) => Stocked?.Invoke(portions);
 
         public bool IsRefrigerated => _refrigerated;
 
@@ -162,8 +167,6 @@ namespace Game.Gameplay.Stations
                 lines.Add(new PromptLine(PromptControl.Triggers, Tr.Get("open"), held == null || (held is Tray openTray && openTray.HasRoom)));
                 if (held is Tray tray)
                     lines.Add(new PromptLine(PromptControl.South, Tr.Get("put back"), tray.Items.Any(_unit.CanAccept)));
-                else if (held is Crate crate)
-                    lines.Add(new PromptLine(PromptControl.South, Tr.Get("unload"), crate.Items.Any(_unit.CanAccept)));
                 else if (held != null)
                     lines.Add(new PromptLine(PromptControl.South, Tr.Get("put back"), _unit.CanAccept(held)));
                 return;

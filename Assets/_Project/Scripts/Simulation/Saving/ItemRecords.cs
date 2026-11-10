@@ -51,9 +51,6 @@ namespace Game.Simulation.Saving
                 case Plate plate:
                     record.Dirty = plate.IsDirty;
                     break;
-                case Crate crate:
-                    record.Capacity = crate.Capacity;
-                    break;
             }
 
             into.Add(record);
@@ -130,8 +127,6 @@ namespace Game.Simulation.Saving
                     return factory.Tray();
                 case ItemKind.Container:
                     return factory.Container();
-                case ItemKind.Crate:
-                    return new Crate(Math.Max(1, record.Capacity));
                 default:
                     return factory.Plain(record.TypeId);
             }
@@ -153,8 +148,6 @@ namespace Game.Simulation.Saving
                     return ItemKind.Tray;
                 case FoodContainer _:
                     return ItemKind.Container;
-                case Crate _:
-                    return ItemKind.Crate;
                 default:
                     return ItemKind.Plain;
             }

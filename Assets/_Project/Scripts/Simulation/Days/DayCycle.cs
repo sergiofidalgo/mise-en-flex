@@ -177,8 +177,16 @@ namespace Game.Simulation.Days
         /// <summary>Money from outside a service, such as selling furniture.</summary>
         public void Receive(float amount) => Book(LedgerLine.Sales, amount);
 
-        /// <summary>A bill that's paid whatever the balance, such as a crate from a street stall: it can go into debt.</summary>
-        public void Charge(LedgerLine line, float amount) => Book(line, amount);
+        /// <summary>A bill that's paid whatever the balance, such as stock from a street stall: it can go into debt.</summary>
+        public void Charge(LedgerLine line, float amount)
+        {
+            Book(line, amount);
+            if (amount != 0f)
+                Charged?.Invoke(line, amount);
+        }
+
+        /// <summary>Raised after <see cref="Charge"/> takes money, with the line and amount: the money on screen flinches.</summary>
+        public event Action<LedgerLine, float> Charged;
 
         // Every movement of money goes through here, so the books always add up to the balance.
         private void Book(LedgerLine line, float amount)

@@ -74,6 +74,25 @@ namespace Game.Simulation.Storage
             return added;
         }
 
+        /// <summary>
+        /// How many raw portions of <paramref name="typeId"/> could still go in: the room left in
+        /// slots already holding it raw, plus every free slot.
+        /// </summary>
+        public int RoomFor(string typeId)
+        {
+            var room = 0;
+            foreach (var slot in _slots)
+            {
+                if (!slot.IsUsed)
+                    continue;
+                if (slot.Count == 0)
+                    room += slot.Capacity;
+                else if (slot.TypeId == typeId && !slot.HoldsCooked)
+                    room += slot.Capacity - slot.Count;
+            }
+            return room;
+        }
+
         /// <summary>Takes one portion from a slot (the oldest first), or returns false if it's empty.</summary>
         public bool TryTake(int slotIndex, out Ingredient ingredient)
         {

@@ -1,10 +1,8 @@
 using Game.Data;
 using Game.Gameplay;
-using Game.Gameplay.Items;
 using Game.Gameplay.Stations;
 using Game.Presentation;
 using Game.Presentation.Office.Ambience;
-using Game.Simulation.Items;
 using Game.Simulation.Market;
 using UnityEditor;
 using UnityEngine;
@@ -59,14 +57,9 @@ namespace Game.Editor
         private static readonly Color Pole = new Color(0.55f, 0.55f, 0.58f);
         private static readonly Color Bin = new Color(0.2f, 0.36f, 0.3f);
         private static readonly Color Wood = new Color(0.45f, 0.32f, 0.22f);
-        private static readonly Color CrateWood = new Color(0.72f, 0.56f, 0.36f);
         private static readonly Color[] Canopies = { new Color(0.3f, 0.45f, 0.75f), new Color(0.75f, 0.3f, 0.27f), new Color(0.38f, 0.6f, 0.35f) };
         private static readonly Color[] HouseWalls = { new Color(0.55f, 0.62f, 0.75f), new Color(0.6f, 0.62f, 0.64f), new Color(0.7f, 0.66f, 0.6f) };
         private static readonly Color[] CarPaints = { new Color(0.35f, 0.5f, 0.6f), new Color(0.85f, 0.8f, 0.72f), new Color(0.7f, 0.3f, 0.25f), new Color(0.3f, 0.32f, 0.38f) };
-
-        // Crates: an open wooden box, six portions in two rows of three.
-        private static readonly Vector3 CrateSize = new Vector3(0.62f, 0.2f, 0.42f);
-        private const float CrateFloor = 0.05f;
 
         /// <summary>Builds the street and the doorway into the scene being built. Run after the walls and the street door exist.</summary>
         public static void Build(Camera camera)
@@ -89,40 +82,6 @@ namespace Game.Editor
                 so.FindProperty("_groundsMax").vector2Value = new Vector2(GroundsEast, GroundsNorth);
                 so.ApplyModifiedPropertiesWithoutUndo();
             }
-        }
-
-        /// <summary>The crate's prefab, for the item catalogue: an open box with six places for portions.</summary>
-        public static GameObject BuildCrate()
-        {
-            var root = new GameObject($"PF_Item_{Crate.CrateTypeId}");
-            var wood = Mat("Crate", CrateWood);
-            Box(root.transform, "Floor", wood, new Vector3(0f, CrateFloor / 2f, 0f), new Vector3(CrateSize.x, CrateFloor, CrateSize.z));
-            const float side = 0.03f;
-            Box(root.transform, "SideN", wood, new Vector3(0f, CrateSize.y / 2f, CrateSize.z / 2f - side / 2f), new Vector3(CrateSize.x, CrateSize.y, side));
-            Box(root.transform, "SideS", wood, new Vector3(0f, CrateSize.y / 2f, -CrateSize.z / 2f + side / 2f), new Vector3(CrateSize.x, CrateSize.y, side));
-            Box(root.transform, "SideE", wood, new Vector3(CrateSize.x / 2f - side / 2f, CrateSize.y / 2f, 0f), new Vector3(side, CrateSize.y, CrateSize.z));
-            Box(root.transform, "SideW", wood, new Vector3(-CrateSize.x / 2f + side / 2f, CrateSize.y / 2f, 0f), new Vector3(side, CrateSize.y, CrateSize.z));
-
-            var slots = new Transform[6];
-            for (var i = 0; i < slots.Length; i++)
-            {
-                slots[i] = new GameObject($"Slot_{i + 1}").transform;
-                slots[i].SetParent(root.transform, false);
-                slots[i].localPosition = new Vector3((i % 3 - 1) * 0.19f, CrateFloor, (i / 3 - 0.5f) * 0.19f);
-                slots[i].localScale = Vector3.one * 0.7f; // portions packed in, smaller than loose
-            }
-            var view = new SerializedObject(root.AddComponent<ItemView>());
-            var list = view.FindProperty("_slotAnchors");
-            list.arraySize = slots.Length;
-            for (var i = 0; i < slots.Length; i++)
-                list.GetArrayElementAtIndex(i).objectReferenceValue = slots[i];
-            view.ApplyModifiedPropertiesWithoutUndo();
-
-            const string folder = "Assets/_Project/Prefabs/Items";
-            GreyboxAssets.EnsureFolder(folder);
-            var prefab = PrefabUtility.SaveAsPrefabAsset(root, $"{folder}/PF_Item_{Crate.CrateTypeId}.prefab");
-            Object.DestroyImmediate(root);
-            return prefab;
         }
 
         // Grass under everything, with the one collider the outside is walked on. Just below the
@@ -218,7 +177,7 @@ namespace Game.Editor
             blocker.size = new Vector3(CounterSize.x, StationBlockerHeight, CounterSize.z);
             blocker.center = new Vector3(0f, StationBlockerHeight / 2f, 0f);
 
-            // Bought crates appear at the front edge of the counter and fly to the chef.
+            // The front edge of the counter: where its prompts and highlight sit.
             var anchor = new GameObject("ItemAnchor").transform;
             anchor.SetParent(root, false);
             anchor.localPosition = new Vector3(0f, CounterSize.y, CounterSize.z / 2f);
