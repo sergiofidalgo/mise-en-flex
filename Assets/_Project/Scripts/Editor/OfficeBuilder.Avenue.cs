@@ -188,10 +188,8 @@ namespace Game.Editor
                 Name = name,
                 Top = CasualTops[_random.Next(CasualTops.Length)],
                 Bottom = new Color(0.2f + (float)_random.NextDouble() * 0.2f, 0.22f, 0.3f),
-                Skin = CharacterArt.SkinTones[_random.Next(CharacterArt.SkinTones.Length)],
-                HairStyle = (CharacterArt.HairKind)_random.Next(5),
-                Hair = CharacterArt.NaturalHair[_random.Next(CharacterArt.NaturalHair.Length)],
             };
+            Dress(look, 0.42f);
             var rig = CharacterArt.Build(person, look, swingArms: false);
             if (rig == null)
                 Object.DestroyImmediate(person.gameObject);

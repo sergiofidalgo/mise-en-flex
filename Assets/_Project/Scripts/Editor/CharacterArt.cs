@@ -48,8 +48,11 @@ namespace Game.Editor
         // Moving it moves the knife's belt pose (ChefArmsView) by the same amount.
         public static readonly Vector3 SheathShift = new Vector3(0f, -0.2f, -0.06f);
 
-        public enum HatKind { None, Toque, Cap, Bandana, Headband, Horns, SunHat }
-        public enum HairKind { Bald, Fringe, Crop, Bun, Afro }
+        // From Cowboy on: the wardrobe's hats (CharacterArt.Wardrobe.cs) on anyone, so a crowd can
+        // tell its people apart by their hats (the user's note, 2026-11-10). New kinds go at the end.
+        public enum HatKind { None, Toque, Cap, Bandana, Headband, Horns, SunHat, Cowboy, Straw, Captain, Headphones, Plumed, Party, Propeller }
+        // Bob: long hair to the jaw (HairLengths), which shows under any hat. New kinds go at the end.
+        public enum HairKind { Bald, Fringe, Crop, Bun, Afro, Bob }
         public enum NoseKind { Button, Big }
         public enum PropKind { Cane, Bottle, Newspaper, Handbag, Backpack, Satchel }
         /// <summary>
@@ -536,7 +539,7 @@ namespace Game.Editor
 
         private static void Hair(Transform waist, Look look)
         {
-            var hatted = look.Hat != HatKind.None && look.Hat != HatKind.Headband && look.Hat != HatKind.Horns;
+            var hatted = look.Hat != HatKind.None && look.Hat != HatKind.Headband && look.Hat != HatKind.Horns && look.Hat != HatKind.Headphones;
             switch (look.HairStyle)
             {
                 case HairKind.Bald:
@@ -546,7 +549,10 @@ namespace Game.Editor
                     return;
             }
             // Under a hat only the back shows: what's on top would poke through (the under-hat rule).
+            // Long hair hangs below any hat.
             Part(waist, "HairBack", look.Hair);
+            if (look.HairStyle == HairKind.Bob)
+                Part(waist, "HairLengths", look.Hair);
             if (hatted)
                 return;
             Part(waist, look.HairStyle == HairKind.Afro ? "HairAfro" : "HairCrop", look.Hair);
@@ -579,6 +585,49 @@ namespace Game.Editor
                 case HatKind.SunHat:
                     Part(rig.Waist, "HatSunHat", look.HatColor);
                     Coloured(rig, rig.Waist, "HatSunHatBand", look.HatAccent);
+                    break;
+                // The wardrobe's hats, as its chefs wear them: the same parts, pivots and sway.
+                case HatKind.Cowboy:
+                    Part(rig.Waist, "HatCowboy", look.HatColor);
+                    Coloured(rig, rig.Waist, "HatCowboyBand", look.HatAccent);
+                    break;
+                case HatKind.Straw:
+                    Part(rig.Waist, "HatStraw", new Color(0.82f, 0.68f, 0.42f));
+                    Part(rig.Waist, "HatStrawRibs", new Color(0.62f, 0.48f, 0.28f));
+                    Coloured(rig, rig.Waist, "HatStrawStrap", look.HatAccent);
+                    break;
+                case HatKind.Captain:
+                    Part(rig.Waist, "HatCaptain", look.HatColor);
+                    Part(rig.Waist, "HatCaptainPeak", new Color(0.1f, 0.1f, 0.12f));
+                    Part(rig.Waist, "HatCaptainBraid", Gold);
+                    Coloured(rig, rig.Waist, "HatCaptainBand", look.HatAccent);
+                    break;
+                case HatKind.Headphones:
+                    Part(rig.Waist, "HatHeadphonesBand", new Color(0.15f, 0.15f, 0.17f));
+                    Coloured(rig, rig.Waist, "HatHeadphonesCups", look.HatAccent);
+                    Part(rig.Waist, "HatHeadphonesPads", new Color(0.15f, 0.15f, 0.17f));
+                    break;
+                case HatKind.Plumed:
+                    Part(rig.Waist, "HatPlumed", look.HatColor);
+                    Coloured(rig, rig.Waist, "HatPlumedBand", look.HatAccent);
+                    Part(Sway(rig.Waist, "Feather", new Vector3(0.2f, 0.1f, 0.27f), 55f, 4.5f, 9f, 1.6f, 7f, 40f),
+                        "HatPlumedFeather", new Color(0.96f, 0.95f, 0.92f));
+                    break;
+                case HatKind.Party:
+                    var cone = Sway(rig.Waist, "PartyCone", new Vector3(0f, 0.02f, 0.27f), 110f, 5f, 4f, 1.4f, 2f, 25f);
+                    Coloured(rig, cone, "HatPartyCone", look.HatAccent);
+                    Part(cone, "HatPartyPompom", Shine);
+                    Part(rig.Waist, "HatPartyStrap", Shine);
+                    break;
+                case HatKind.Propeller:
+                    foreach (var (panel, colour) in new[] { ("A", new Color(0.85f, 0.18f, 0.16f)), ("B", new Color(0.2f, 0.32f, 0.7f)),
+                        ("C", new Color(0.95f, 0.78f, 0.2f)), ("D", new Color(0.18f, 0.5f, 0.3f)) })
+                        Part(rig.Waist, "HatPropellerPanel" + panel, colour);
+                    Coloured(rig, rig.Waist, "HatPropellerPeak", look.HatAccent);
+                    Part(rig.Waist, "HatPropellerStem", new Color(0.95f, 0.5f, 0.2f));
+                    var hub = Frame(rig.Waist, "PropellerHub", PropellerHub, Vector3.one);
+                    Part(hub, "HatPropellerBlades", new Color(0.98f, 0.55f, 0.15f));
+                    hub.gameObject.AddComponent<Game.Presentation.PropellerSpin>();
                     break;
             }
         }

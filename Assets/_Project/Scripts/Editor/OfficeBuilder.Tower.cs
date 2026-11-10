@@ -24,6 +24,8 @@ namespace Game.Editor
         // and real rooms behind clear glass; everywhere else the panes paint their rooms (SH_InteriorCard).
         private const float BandWest = -9.0f;
         private const float BandEast = 8.6f;
+        // East of that, an open-plan wing on every floor, as far as the opening's camera sees while it climbs.
+        private const float WingEast = 15.2f;
         private const float RoomDepth = 7.4f;
         // The lift's shaft: the same place as the boss's floor's elevator (OfficeBuilder.BuildElevator).
         private const float ShaftHalfWidth = 2.0f;
@@ -119,18 +121,25 @@ namespace Game.Editor
                         var face = side == 0 ? new Vector3(a, 0f, middle - depth / 2f) : new Vector3(side * width / 2f, 0f, middle + a);
                         // Clear glass where the camera climbs, onto real rooms; painted rooms elsewhere.
                         var centreX = a + TowerBay / 2f;
-                        var clearGlass = side == 0 && centreX > BandWest && centreX < BandEast;
+                        var clearGlass = side == 0 && centreX > BandWest && centreX < WingEast;
                         Shape(tower, PrimitiveType.Quad, clearGlass ? "Glass" : "Window", clearGlass ? clear : card,
                             face + along * (TowerBay / 2f) + outward * 0.02f + Vector3.up * paneMiddle, new Vector3(TowerBay - 0.3f, paneHeight, 1f), turn);
                     }
                 }
             }
 
+            // Stone between the podium's ledge and the lowest floor: without it there was a gap there,
+            // through which the street saw under that floor.
+            var lowest = top - floors * TowerStorey;
+            Block(tower, "Apron", stone, new Vector3(0f, podiumTop + 0.35f, middle), new Vector3(width + 0.12f, lowest - podiumTop - 0.35f, depth + 0.12f));
+
             var rooms = new GameObject("Rooms").transform;
             rooms.SetParent(tower, false);
+            _indoors = true; // its people dress for work (Dress, OfficeBuilder.Street.cs)
             for (var f = 0; f < floors; f++)
                 if (f % 10 != 9)
                     TowerRoom(rooms, top - f * TowerStorey - TowerStorey, f);
+            _indoors = false;
             TowerLift(tower, ground + 0.15f, top - TowerStorey);
         }
 
@@ -148,8 +157,61 @@ namespace Game.Editor
             material.shader = shader;
             material.SetVector("_PaneSize", new Vector4(TowerBay - 0.3f, TowerStorey - 1.3f, 0f, 0f));
             material.SetFloat("_RoomDepth", 5.5f);
+            material.SetFloat("_LitChance", 0.72f); // the boss's people work late: most windows lit, someone moving in them
             EditorUtility.SetDirty(material);
             return material;
+        }
+
+        /// <summary>
+        /// A facade's worth of windows for a neighbouring building, drawn on one quad (SH_InteriorCard
+        /// with a pitch): rooms behind each, some lit, people moving in a few. The quad's size sets how
+        /// many windows; the building's own wall shows between them.
+        /// </summary>
+        private static Material FacadeCards()
+        {
+            const string path = "Assets/_Project/Art/Materials/MAT_Facade_InteriorCard.mat";
+            var shader = Shader.Find("Game/InteriorCard");
+            var material = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (material == null)
+            {
+                material = new Material(shader);
+                AssetDatabase.CreateAsset(material, path);
+            }
+            material.shader = shader;
+            material.SetVector("_PaneSize", new Vector4(0.9f, 1.2f, 0f, 0f));
+            material.SetVector("_Pitch", new Vector4(FacadePitch.x, FacadePitch.y, 0f, 0f));
+            material.SetFloat("_RoomDepth", 4f);
+            material.SetFloat("_LitChance", 0.4f);
+            material.SetFloat("_SrcBlend", (float)UnityEngine.Rendering.BlendMode.SrcAlpha);
+            material.SetFloat("_DstBlend", (float)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+            material.SetFloat("_ZWrite", 0f);
+            material.SetOverrideTag("RenderType", "Transparent");
+            material.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent - 20; // before glass and glows
+            EditorUtility.SetDirty(material);
+            return material;
+        }
+
+        private static readonly Vector2 FacadePitch = new Vector2(2.3f, 3.2f);
+
+        // Windows down a building's face below its modelled rows, to `above` metres over the street:
+        // one quad (FacadeCards). `side` as in Windows: 0 the south face, −1 west, 1 east.
+        private static void FacadeWindows(Transform building, float w, float d, float height, int rows, int side, float above)
+        {
+            // In step with the modelled rows above (Windows): the same columns, the next row down.
+            var top = 2.2f + rows * FacadePitch.y - FacadePitch.y / 2f;
+            var span = side == 0 ? w : d;
+            var across = Mathf.CeilToInt((span - 2.3f) / FacadePitch.x);
+            var up = Mathf.FloorToInt((height - top - above) / FacadePitch.y);
+            if (across < 1 || up < 2)
+                return;
+            var size = new Vector2(across * FacadePitch.x, up * FacadePitch.y);
+            var quad = GreyboxAssets.CreatePrimitive(PrimitiveType.Quad, "FacadeWindows", building, FacadeCards(), keepCollider: false);
+            var y = -top - size.y / 2f;
+            var middle = -span / 2f + 1.8f + (across - 1) * FacadePitch.x / 2f;
+            quad.transform.localPosition = side == 0 ? new Vector3(middle, y, -d / 2f - 0.03f) : new Vector3(side * (w / 2f + 0.03f), y, middle);
+            quad.transform.localRotation = Quaternion.Euler(0f, side == 0 ? 0f : side * -90f, 0f);
+            quad.transform.localScale = new Vector3(size.x, size.y, 1f);
+            quad.isStatic = false; // the shader counts its windows from its own size
         }
 
         // One floor behind the clear glass where the camera climbs (the user's notes, 2026-11-10:
@@ -182,21 +244,23 @@ namespace Game.Editor
             // The room's shell: floor and ceiling either side of and behind the lift shaft (so
             // neither cuts through the cab), the back wall with a door, the band's side walls,
             // a skirting board, light panels in the ceiling.
-            foreach (var (x0, x1, z0) in new[] { (BandWest, -ShaftHalfWidth - 0.1f, front), (ShaftHalfWidth + 0.1f, BandEast, front), (-ShaftHalfWidth - 0.1f, ShaftHalfWidth + 0.1f, ShaftNorth + 0.1f) })
+            foreach (var (x0, x1, z0) in new[] { (BandWest, -ShaftHalfWidth - 0.1f, front), (ShaftHalfWidth + 0.1f, WingEast, front), (-ShaftHalfWidth - 0.1f, ShaftHalfWidth + 0.1f, ShaftNorth + 0.1f) })
             {
-                Cube(room, "Floor", floor, new Vector3((x0 + x1) / 2f, 0.005f, (z0 + back) / 2f), new Vector3(x1 - x0, 0.02f, back - z0));
+                // A slab's thickness, not a sheet: from the street the floors are seen from below, and
+                // a sheet let the soles of whoever walked on it show (the user's screenshot, 2026-11-10).
+                Cube(room, "Floor", floor, new Vector3((x0 + x1) / 2f, -0.3f, (z0 + back) / 2f), new Vector3(x1 - x0, 0.32f, back - z0));
                 Cube(room, "Ceiling", white, new Vector3((x0 + x1) / 2f, ceiling - 0.06f, (z0 + back) / 2f), new Vector3(x1 - x0, 0.05f, back - z0));
             }
-            Block(room, "BackWall", wall, new Vector3((BandWest + BandEast) / 2f, 0f, back), new Vector3(BandEast - BandWest, ceiling, 0.12f));
-            Block(room, "Skirting", white, new Vector3((BandWest + BandEast) / 2f, 0f, back - 0.08f), new Vector3(BandEast - BandWest, 0.12f, 0.04f));
-            foreach (var x in new[] { BandWest, BandEast })
+            Block(room, "BackWall", wall, new Vector3((BandWest + WingEast) / 2f, 0f, back), new Vector3(WingEast - BandWest, ceiling, 0.12f));
+            Block(room, "Skirting", white, new Vector3((BandWest + WingEast) / 2f, 0f, back - 0.08f), new Vector3(WingEast - BandWest, 0.12f, 0.04f));
+            foreach (var x in new[] { BandWest, WingEast })
                 Block(room, "SideWall", wall, new Vector3(x, 0f, (front + back) / 2f), new Vector3(0.12f, ceiling, back - front));
             var doorX = f % 2 == 0 ? -8.3f : 8f;
             Block(room, "Door", Toon("OfficeTeak", new Color(0.55f, 0.38f, 0.24f)), new Vector3(doorX, 0f, back - 0.07f), new Vector3(1f, 2.1f, 0.04f));
-            foreach (var x in new[] { -6.9f, -4.1f, 4f, 6.8f })
+            foreach (var x in new[] { -6.9f, -4.1f, 4f, 6.8f, 10.6f, 13.4f })
                 Kit.CeilingPanel(room, new Vector3(x, ceiling - 0.06f, front + RoomDepth * 0.45f), glow, lit: !fitOut);
             if (!fitOut)
-                foreach (var x in new[] { -5.5f, 5.4f })
+                foreach (var x in new[] { -5.5f, 5.4f, 12f })
                     Point(room, "RoomLight", new Vector3(x, ceiling - 0.5f, front + RoomDepth * 0.45f), warm ? Incandescent : new Color(0.85f, 0.92f, 1f), 9f, 3.2f);
 
             var westMid = (BandWest - ShaftHalfWidth) / 2f;   // the middle of the room west of the lift
@@ -237,7 +301,7 @@ namespace Game.Editor
                     Kit.Softbox(room, new Vector3(westMid + 2f, 0f, back - 3.2f), -40f);
                     var camera = Kit.TripodCamera(room, new Vector3(westMid + 0.3f, 0f, front + 2.2f), 0f);
                     Flash(camera, camera, 2.5f + (f % 3) * 0.7f, new Vector3(0f, 0.08f, 0.05f));
-                    var shooter = Passerby(room, "Shooter", new Vector3(westMid - 0.5f, 0f, front + 1.7f), 10f);
+                    var shooter = Staffer(room, "Shooter", new Vector3(westMid - 0.5f, 0f, front + 1.7f), 10f);
                     Walk(shooter, new Vector3(westMid - 1.3f, 0f, front + 1.7f), new Vector3(westMid - 0.4f, 0f, front + 1.7f), 0.6f, 2.5f, 0.2f);
                     Talker(room, "Stylist", new Vector3(westMid + 1.1f, 0f, back - 2.6f), -120f);
                     Desk(room, new Vector3(eastMid - 1f, 0f, front + 2.6f), new Color(0.6f, 0.8f, 1f));
@@ -256,7 +320,7 @@ namespace Game.Editor
                     for (var i = -1; i <= 1; i++)
                         Desk(room, new Vector3(mid + i * 1.9f, 0f, front + 2.3f), i == 0 ? pink : blue);
                     Talker(room, "Poster", new Vector3(westMid + 1f, 0f, front + 4.2f), 0f);
-                    var pacer = Passerby(room, "Poster", new Vector3(eastMid - 1.4f, 0f, front + 4.4f), 90f);
+                    var pacer = Staffer(room, "Poster", new Vector3(eastMid - 1.4f, 0f, front + 4.4f), 90f);
                     Walk(pacer, new Vector3(eastMid - 1.6f, 0f, front + 4.4f), new Vector3(eastMid + 1.6f, 0f, front + 4.4f), 0.8f, 2f, 0.6f);
                     // The feeds never stop: the walls' light jumps as the posts change.
                     foreach (var (mid, colour) in new[] { (westMid, pink), (eastMid, gold) })
@@ -277,7 +341,7 @@ namespace Game.Editor
                         if (i < 1)
                             Kit.Cubicle(room, new Vector3(mid + i * 1.8f + 0.9f, 0f, z - 0.2f), 90f, new Color(0.35f, 0.5f, 0.6f));
                     }
-                    var supervisor = Passerby(room, "Supervisor", new Vector3(westMid - 2.4f, 0f, front + 3.6f), 90f);
+                    var supervisor = Staffer(room, "Supervisor", new Vector3(westMid - 2.4f, 0f, front + 3.6f), 90f);
                     Walk(supervisor, new Vector3(westMid - 2.4f, 0f, front + 3.6f), new Vector3(westMid + 2.4f, 0f, front + 3.6f), 0.8f, 1.5f, 0.1f);
                     Talker(room, "Operator", new Vector3(eastMid - 0.3f, 0f, front + 3.5f), -70f);
                     break;
@@ -298,7 +362,7 @@ namespace Game.Editor
                     Desk(room, new Vector3(eastMid - 1.2f, 0f, front + 2.4f), new Color(0.75f, 0.95f, 0.7f));
                     Desk(room, new Vector3(eastMid + 1f, 0f, front + 2.4f), new Color(0.75f, 0.95f, 0.7f));
                     Talker(room, "Counting", new Vector3(westMid + 1.7f, 0f, back - 1.9f), -100f);
-                    var carrier = Passerby(room, "Accountant", new Vector3(eastMid - 2f, 0f, front + 4.6f), 90f);
+                    var carrier = Staffer(room, "Accountant", new Vector3(eastMid - 2f, 0f, front + 4.6f), 90f);
                     Walk(carrier, new Vector3(eastMid - 2f, 0f, front + 4.6f), new Vector3(eastMid + 2f, 0f, front + 4.6f), 0.9f, 2.2f, 0.4f);
                     break;
                 }
@@ -330,7 +394,7 @@ namespace Game.Editor
                     Kit.Vending(room, new Vector3(BandEast - 1.9f, 0f, back - 0.6f), 180f, new Color(0.2f, 0.45f, 0.7f));
                     Kit.WaterCooler(room, new Vector3(ShaftHalfWidth + 0.6f, 0f, back - 0.4f), 180f);
                     Talker(room, "Colleague", new Vector3(westMid + 0.6f, 0f, back - 1.5f), 0f);
-                    var queuer = Passerby(room, "Colleague", new Vector3(eastMid - 1.5f, 0f, back - 1.6f), 90f);
+                    var queuer = Staffer(room, "Colleague", new Vector3(eastMid - 1.5f, 0f, back - 1.6f), 90f);
                     Walk(queuer, new Vector3(eastMid - 1.5f, 0f, back - 1.6f), new Vector3(BandEast - 1.4f, 0f, back - 1.6f), 0.8f, 3f, 0.5f);
                     break;
                 }
@@ -346,7 +410,7 @@ namespace Game.Editor
                     Sofa(room, new Vector3(eastMid + 0.4f, 0f, front + 2.2f), 180f, new Color(0.3f, 0.45f, 0.6f));
                     Cook(room, new Vector3(westMid + 0.2f, 0f, front + 2.6f), 160f);
                     Talker(room, "Tailor", new Vector3(westMid - 0.8f, 0f, front + 3f), 100f);
-                    var fitter = Passerby(room, "Fitter", new Vector3(westMid - 2.4f, 0f, back - 2.3f), 90f);
+                    var fitter = Staffer(room, "Fitter", new Vector3(westMid - 2.4f, 0f, back - 2.3f), 90f);
                     Walk(fitter, new Vector3(westMid - 2.4f, 0f, back - 2.3f), new Vector3(westMid + 2.6f, 0f, back - 2.3f), 0.8f, 2f, 0.3f);
                     Seated(room, "Waiting", new Vector3(eastMid + 0.4f, 0f, front + 2.2f), 180f, 0.42f);
                     break;
@@ -369,12 +433,20 @@ namespace Game.Editor
                 // Every floor is busy (the user's note, 2026-11-10: activity and movement on each):
                 // people walk the aisle by the window either side of the lift, back and forth,
                 // stopping at each end; cooks on the kitchen floors.
+                // The wing east of each floor: an open-plan office that goes with whatever the floor
+                // is, more desks with people at them, someone on the phone.
+                var screen = new Color(0.65f, 0.85f, 1f);
+                Desk(room, new Vector3(BandEast + 1.7f, 0f, front + 2.5f), screen);
+                Desk(room, new Vector3(BandEast + 3.6f, 0f, front + 2.5f), screen);
+                Desk(room, new Vector3(BandEast + 5.5f, 0f, front + 2.5f), screen);
+                Talker(room, "Colleague", new Vector3(BandEast + 2.6f + (f % 3) * 1.1f, 0f, front + 4.7f), 150f + (f % 4) * 20f);
+                PottedPlant(room, new Vector3(WingEast - 0.6f, 0f, front + 0.8f), 1.05f);
                 var cooks = kind == 0 || kind == 5;
-                foreach (var (x0, x1) in new[] { (BandWest + 1.5f, -ShaftHalfWidth - 0.7f), (ShaftHalfWidth + 0.7f, BandEast - 0.9f) })
+                foreach (var (x0, x1) in new[] { (BandWest + 1.5f, -ShaftHalfWidth - 0.7f), (ShaftHalfWidth + 0.7f, BandEast - 0.4f), (BandEast + 0.6f, WingEast - 1.3f) })
                 {
                     var from = new Vector3(x0, 0f, front + 0.7f);
                     var to = new Vector3(x1, 0f, front + 0.7f);
-                    var walker = cooks && x0 < 0f ? Cook(room, from, 90f) : Passerby(room, "Walker", from, 90f);
+                    var walker = cooks && x0 < 0f ? Cook(room, from, 90f) : Staffer(room, "Walker", from, 90f);
                     if (walker != null)
                         Walk(walker, from, to, 0.9f + (float)_random.NextDouble() * 0.5f, 1f + (float)_random.NextDouble() * 2.5f, (float)_random.NextDouble());
                 }

@@ -18,17 +18,23 @@ namespace Game.Presentation.Office.Ambience
         [SerializeField, Min(0f)] private float _rise = 0.8f;
         [SerializeField, Min(0.05f)] private float _size = 0.45f;
         [SerializeField] private float _seed;
+        [Tooltip("What it rises over (a phone). This object stays out of that one's hierarchy, which may be turned or mirrored (a character's right arm is), and follows it instead, so the card is never seen back to front.")]
+        [SerializeField] private Transform _anchor;
+        [Tooltip("How far above the anchor the pop starts (m).")]
+        [SerializeField] private float _lift = 0.3f;
 
         private int _showing = -1;
         private Camera _camera;
 
-        public void Set(GameObject[] icons, float period, float duration, float rise, float size, float seed) =>
-            (_icons, _period, _duration, _rise, _size, _seed) = (icons, period, duration, rise, size, seed);
+        public void Set(GameObject[] icons, Transform anchor, float lift, float period, float duration, float rise, float size, float seed) =>
+            (_icons, _anchor, _lift, _period, _duration, _rise, _size, _seed) = (icons, anchor, lift, period, duration, rise, size, seed);
 
         private void Awake() => Show(-1);
 
         private void LateUpdate()
         {
+            if (_anchor != null)
+                transform.position = _anchor.position + Vector3.up * _lift;
             var progress = AmbientMotion.Pop(Time.time, _period, _duration, _seed);
             var kind = progress < 0f ? -1 : AmbientMotion.PopKind(Time.time, _period, _seed, _icons.Length);
             Show(kind);

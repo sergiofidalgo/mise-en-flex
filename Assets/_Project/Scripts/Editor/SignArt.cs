@@ -165,6 +165,42 @@ namespace Game.Editor
             return Additive(key, texture);
         }
 
+        /// <summary>
+        /// The restaurant's emblem for its fascia: a crossed fork and spoon in gold on a dark roundel
+        /// with a gold ring, after the crossed utensils of the game's own logo.
+        /// </summary>
+        public static Material Emblem()
+        {
+            const string key = "Emblem";
+            const int size = 128;
+            var gold = new Color(0.93f, 0.72f, 0.35f);
+            var ink = new Color(0.16f, 0.11f, 0.09f);
+            var texture = Texture(key, size, size, (px, py) =>
+            {
+                var p = new Vector2((px + 0.5f) / size - 0.5f, (py + 0.5f) / size - 0.5f);
+                var r = p.magnitude;
+                if (r > 0.49f)
+                    return new Color(gold.r, gold.g, gold.b, 0f);
+                if (r > 0.43f)
+                    return gold; // the ring
+                // The spoon: a handle up to the right, a bowl at its end.
+                var spoon = Segment(p, new Vector2(-0.2f, -0.26f), new Vector2(0.1f, 0.12f)) < 0.026f;
+                var bowl = p - new Vector2(0.16f, 0.2f);
+                bowl = new Vector2(bowl.x * 0.79f + bowl.y * 0.62f, -bowl.x * 0.62f + bowl.y * 0.79f); // along the handle
+                spoon |= (bowl.x * bowl.x) / (0.075f * 0.075f) + (bowl.y * bowl.y) / (0.11f * 0.11f) < 1f;
+                // The fork: a handle up to the left, three tines.
+                var fork = Segment(p, new Vector2(0.2f, -0.26f), new Vector2(-0.11f, 0.13f)) < 0.026f;
+                var along = new Vector2(-0.62f, 0.79f);
+                var across = new Vector2(0.79f, 0.62f);
+                var neck = new Vector2(-0.11f, 0.13f);
+                fork |= Segment(p, neck - across * 0.07f, neck + across * 0.07f) < 0.022f;
+                for (var t = -1; t <= 1; t++)
+                    fork |= Segment(p, neck + across * (t * 0.07f), neck + across * (t * 0.07f) + along * 0.14f) < 0.02f;
+                return spoon || fork ? gold : ink;
+            });
+            return Transparent(key, texture, false);
+        }
+
         /// <summary>A capsule in <paramref name="colour"/> with a dark outline: the back of a like or rating pill (3 : 1).</summary>
         public static Material Pill(Color colour)
         {

@@ -792,6 +792,8 @@ namespace Game.Editor
             holder.SetParent(parent, false);
             holder.localPosition = at;
             var lamp = Shape(holder, PrimitiveType.Sphere, "Bulb", bulb, Vector3.zero, Vector3.one * 0.09f);
+            // Its glow goes out with it (a child of the bulb).
+            Kit.Halo(lamp.transform, Vector3.zero, 0.55f, Bulb, 0.7f);
             holder.gameObject.AddComponent<Blink>().Set(lamp, period, onFraction, (float)_random.NextDouble());
             MakeDynamic(holder.gameObject);
         }

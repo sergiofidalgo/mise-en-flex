@@ -50,10 +50,12 @@ namespace Game.Editor
         private enum PhoneUse { Selfie, Film, Scroll }
 
         private static int _popCount;
+        private static Transform _streetRoot;
 
         private static void TowerEntrance(Transform street)
         {
             _popCount = 0;
+            _streetRoot = street;
             var entrance = new GameObject("TowerEntrance").transform;
             entrance.SetParent(street, false);
             GroundFloorGlass(entrance);
@@ -64,7 +66,7 @@ namespace Game.Editor
             Queue(entrance);
             WestPlace(entrance);
             EntranceMoments(entrance);
-            WaitingChef(street);
+            LiftChef();
         }
 
         // The ground floor's front: clear glass between bronze mullions from the lobby to the
@@ -258,35 +260,89 @@ namespace Game.Editor
             fire.gameObject.isStatic = false;
         }
 
-        // The restaurant's name over its front (the user's note, 2026-11-10: the screen, the neon
-        // and the stars didn't belong; something better integrated): a walnut fascia board with
-        // brass edges across the lintel, the name on it in the logo's own lettering, lit from above
-        // by gooseneck lamps.
+        // The restaurant's branding (the user's notes, 2026-11-10: the screen, the neon and the stars
+        // didn't belong; then: the first fascia's lettering didn't feel right and it was bare).
+        // A dark fascia board with gold edges across the lintel; over the door the name set as the
+        // game's own logo is, "Mise en" in gold serif italic beside a heavy rounded "FLEX", between
+        // two gold roundels of a crossed fork and spoon; further along, "RESTAURANT & BAR" spaced
+        // out in small capitals; a row of bulbs along its foot; and over the dining room's windows a
+        // striped awning in the house burgundy and cream.
         private static void Fascia(Transform entrance)
         {
             var z = TowerFace - 0.36f;
             var middle = (DividerX + RestaurantEast) / 2f;
             var width = RestaurantEast - DividerX - 0.6f;
-            Block(entrance, "Fascia", Toon("OfficeWalnut", Walnut), new Vector3(middle, 4.4f, z), new Vector3(width, 0.62f, 0.1f));
+            var gold = new Color(0.93f, 0.72f, 0.35f);
+            var cream = new Color(0.98f, 0.93f, 0.8f);
+            Block(entrance, "Fascia", Toon("RestaurantFascia", new Color(0.2f, 0.13f, 0.1f)), new Vector3(middle, 4.4f, z), new Vector3(width, 0.62f, 0.1f));
             foreach (var y in new[] { 4.4f, 4.97f })
                 Block(entrance, "FasciaEdge", Toon("OfficeBrass", Brass), new Vector3(middle, y, z - 0.01f), new Vector3(width + 0.06f, 0.05f, 0.12f));
-            var name = new GameObject("Name").AddComponent<TextMeshPro>();
-            name.transform.SetParent(entrance, false);
-            // Over the door, where the opening's camera has it clear of the menu and the street lamps.
-            name.transform.localPosition = new Vector3(RestaurantDoorX + 0.4f, 4.71f, z - 0.07f);
-            name.font = MenuArt.Font("Lora-Italic");
-            name.text = "Mise en Flex";
-            name.fontSize = 5.6f;
-            name.color = new Color(0.98f, 0.9f, 0.7f);
-            name.alignment = TextAlignmentOptions.Center;
-            name.textWrappingMode = TextWrappingModes.NoWrap;
-            name.rectTransform.sizeDelta = new Vector2(8f, 0.7f);
-            name.ForceMeshUpdate();
-            foreach (var x in new[] { RestaurantDoorX - 1.4f, RestaurantDoorX + 2.2f, middle + 2.4f, middle + 5.6f })
+
+            // The lockup over the door, laid out from the lettering's own widths.
+            var face = z - 0.07f;
+            var first = Lettering(entrance, "Mise en", "Lora-Italic", 4.1f, gold, 0f);
+            var second = Lettering(entrance, "FLEX", "Fredoka-SemiBold", 5.6f, cream, 6f);
+            const float gap = 0.22f;
+            const float emblem = 0.5f;
+            var a = first.GetPreferredValues().x;
+            var b = second.GetPreferredValues().x;
+            var total = emblem + gap + a + gap + b + gap + emblem;
+            var x = RestaurantDoorX + 0.5f - total / 2f;
+            var mark = SignArt.Emblem();
+            Sign(entrance, "Emblem", mark, new Vector3(x + emblem / 2f, 4.71f, face), new Vector2(emblem, emblem), 1);
+            x += emblem + gap;
+            first.transform.localPosition = new Vector3(x, 4.69f, face);
+            x += a + gap;
+            second.transform.localPosition = new Vector3(x, 4.71f, face);
+            x += b + gap;
+            Sign(entrance, "Emblem", mark, new Vector3(x + emblem / 2f, 4.71f, face), new Vector2(emblem, emblem), 1);
+            // What it is, further along, over the dining room.
+            var strap = Lettering(entrance, "RESTAURANT  &  BAR", "Inter-SemiBold", 2.2f, gold, 34f);
+            strap.transform.localPosition = new Vector3(11.1f - strap.GetPreferredValues().x / 2f, 4.71f, face); // inside the frame the camera stops on
+
+            // Bulbs along the fascia's foot, every third one with its glow, and warm light on the board.
+            var bulb = Unlit("OfficeBulb", Bulb);
+            var count = Mathf.FloorToInt(width / 0.45f);
+            for (var i = 0; i <= count; i++)
             {
-                Kit.SignLamp(entrance, new Vector3(x, 5.0f, TowerFace - 0.3f), 180f);
-                Point(entrance, "SignLight", new Vector3(x, 5.0f, z - 0.7f), Incandescent, 3.2f, 1.6f);
+                var at = new Vector3(middle - width / 2f + i * width / count, 4.36f, z - 0.08f);
+                Shape(entrance, PrimitiveType.Sphere, "FasciaBulb", bulb, at, Vector3.one * 0.07f);
+                if (i % 3 == 1)
+                    Kit.Halo(entrance, at, 0.5f, Bulb, 0.6f);
             }
+            foreach (var lx in new[] { RestaurantDoorX + 0.5f, 9.4f, 12.9f, 16.2f })
+                Point(entrance, "SignLight", new Vector3(lx, 4.9f, z - 0.8f), Incandescent, 3.4f, 1.5f);
+
+            // The awning over the dining room's windows: high, so the room shows under it.
+            var awning = new GameObject("Awning").transform;
+            awning.SetParent(entrance, false);
+            awning.localPosition = new Vector3(0f, 0.15f, TowerFace - 0.12f);
+            awning.localRotation = Quaternion.Euler(0f, 180f, 0f); // the modules' wall side is their local −z
+            var stripe = Toon("RestaurantAwning", Burgundy);
+            var pale = Toon("CityAwningCream", new Color(0.93f, 0.88f, 0.78f));
+            for (var ax = PlatformX + 0.4f; ax < RestaurantEast - 0.6f; ax += 1f)
+            {
+                Model(awning, "Awning", CityModel, "CityAwningA", stripe, new Vector3(-ax - 0.5f, 4.12f, 0f), 180f);
+                Model(awning, "Awning", CityModel, "CityAwningB", pale, new Vector3(-ax - 0.5f, 4.12f, 0f), 180f);
+            }
+        }
+
+        // A line of lettering for a sign, in one of the game's fonts: its left end at its position.
+        private static TextMeshPro Lettering(Transform parent, string text, string font, float size, Color colour, float spacing)
+        {
+            var label = new GameObject("Lettering").AddComponent<TextMeshPro>();
+            label.transform.SetParent(parent, false);
+            label.font = MenuArt.Font(font);
+            label.text = text;
+            label.fontSize = size;
+            label.color = colour;
+            label.characterSpacing = spacing;
+            label.alignment = TextAlignmentOptions.MidlineLeft;
+            label.textWrappingMode = TextWrappingModes.NoWrap;
+            label.rectTransform.pivot = new Vector2(0f, 0.5f);
+            label.rectTransform.sizeDelta = new Vector2(12f, 1f);
+            label.ForceMeshUpdate();
+            return label;
         }
 
         // From the restaurant's door to the kerb: a red carpet between brass posts and ropes, a
@@ -355,7 +411,6 @@ namespace Game.Editor
             var (icon, word) = Logos[0];
             Shape(place, PrimitiveType.Quad, "LogoBox", SignArt.LightBox(icon, word, BoxColours[0]), new Vector3(w * 0.36f, 2.1f, 0.12f), new Vector3(1.2f, 1.5f, 1f), Quaternion.Euler(0f, 180f, 0f));
             WindowNeon(place, new Vector3(-w * 0.25f, 1.9f, 0.08f), 0);
-            var bulb = Unlit("OfficeBulb", Bulb);
             for (var t = 0; t < 3; t++)
             {
                 var at = new Vector3(-16f + t * 2.5f, 0.15f, TowerFace - 2.4f);
@@ -367,8 +422,7 @@ namespace Game.Editor
                 else
                     PhoneUp(entrance, at + new Vector3(0.65f, 0f, -0.1f), -90f, PhoneUse.Film); // photographing the food
             }
-            for (var b = 0; b < 14; b++)
-                TwinklingBulb(entrance, bulb, new Vector3(-17.2f + b * 0.6f, 3.6f - Mathf.Sin(b / 13f * Mathf.PI) * 0.35f, TowerFace - 3.3f), 6f + (float)_random.NextDouble() * 4f, 0.95f);
+            StringLights(entrance, new Vector3(-17.2f, 3.6f, TowerFace - 3.3f), new Vector3(-9.4f, 3.6f, TowerFace - 3.3f), 14, 0.35f);
         }
 
         // More of it along the front: someone filming the sign, an influencer under a ring light,
@@ -385,15 +439,28 @@ namespace Game.Editor
             Point(light, "RingGlow", new Vector3(0f, 1.6f, 0.4f), new Color(1f, 0.97f, 0.92f), 3.5f, 2.6f);
             HeartStream(light, new Vector3(0f, 1.95f, 0f), 6f);
 
-            // Delivery riders by the kerb, bags on their backs, scooters parked, checking the next order.
+            // Delivery riders (the user's note, 2026-11-10: he liked them; keep them in view beside the
+            // menu): three scooters at the kerb in front of the restaurant, one rider checking the
+            // next order on their phone, one waiting by the door, one to and fro between the door
+            // and their scooter, each with a bag on their back.
             var orange = new Color(0.95f, 0.45f, 0.25f);
             var teal = new Color(0.25f, 0.7f, 0.65f);
-            for (var r = 0; r < 2; r++)
+            var yellow = new Color(0.98f, 0.8f, 0.25f);
+            Color[] paints = { new Color(0.35f, 0.75f, 0.55f), new Color(0.85f, 0.3f, 0.25f), new Color(0.3f, 0.45f, 0.8f) };
+            Color[] bags = { orange, teal, yellow };
+            for (var r = 0; r < 3; r++)
+                Kit.Scooter(entrance, new Vector3(1.9f + r * 1.15f, 0.02f, NorthKerb - 0.75f - (r % 2) * 0.15f), 78f + r * 9f, paints[r], bags[r]);
+            var checking = PhoneUp(entrance, new Vector3(2.3f, 0.15f, NorthKerb + 1.0f), 195f, PhoneUse.Scroll);
+            if (checking != null)
+                Kit.DeliveryBag(checking.Waist, new Vector3(0f, 0.02f, -0.33f), 180f, orange);
+            var waiting = Figure(entrance, "Rider", new Vector3(3.2f, 0.15f, TowerFace - 1.5f), 150f);
+            if (waiting != null)
+                Kit.DeliveryBag(waiting.Waist, new Vector3(0f, 0.02f, -0.33f), 180f, teal);
+            var runner = Figure(entrance, "Rider", new Vector3(3.0f, 0.15f, NorthKerb + 0.7f), 0f);
+            if (runner != null)
             {
-                Kit.Scooter(entrance, new Vector3(-1.4f + r * 1.5f, 0.02f, NorthKerb - 0.75f), 80f + r * 15f, r == 0 ? new Color(0.35f, 0.75f, 0.55f) : new Color(0.85f, 0.3f, 0.25f), r == 0 ? orange : teal);
-                var rider = PhoneUp(entrance, new Vector3(-1.1f + r * 1.3f, 0.15f, NorthKerb + 0.9f + r * 0.4f), r == 0 ? 200f : -150f, PhoneUse.Scroll);
-                if (rider != null)
-                    Kit.DeliveryBag(rider.Waist, new Vector3(0f, 0.02f, -0.33f), 180f, r == 0 ? orange : teal);
+                Kit.DeliveryBag(runner.Waist, new Vector3(0f, 0.02f, -0.33f), 180f, yellow);
+                Walk(runner.Figure.parent, new Vector3(3.0f, 0.15f, NorthKerb + 0.7f), new Vector3(2.9f, 0.15f, TowerFace - 2.6f), 1.2f, 2.5f, 0.2f);
             }
         }
 
@@ -422,19 +489,10 @@ namespace Game.Editor
                 Kit.Barrier(market, new Vector3(x, 0.02f, z), 90f);
 
             // Bulbs strung across the avenue's mouth, and from the row's roofs to the tower's podium.
-            var bulb = Unlit("OfficeBulb", Bulb);
             foreach (var z in new[] { -45f, -41f, -37f, -33f })
-            for (var b = 0; b < 18; b++)
-            {
-                var t = b / 17f;
-                TwinklingBulb(market, bulb, new Vector3(Mathf.Lerp(-AvenueFronts, AvenueFronts, t), 6.2f - Mathf.Sin(t * Mathf.PI) * 1.1f, z), 6f + (float)_random.NextDouble() * 5f, 0.95f);
-            }
+                StringLights(market, new Vector3(-AvenueFronts, 6.2f, z), new Vector3(AvenueFronts, 6.2f, z), 18, 1.1f);
             foreach (var x in new[] { -15f, -9.5f, 10.5f, 16f })
-            for (var b = 0; b < 16; b++)
-            {
-                var t = b / 15f;
-                TwinklingBulb(market, bulb, new Vector3(x, Mathf.Lerp(6.4f, 5.3f, t) - Mathf.Sin(t * Mathf.PI) * 0.9f, Mathf.Lerp(SouthFronts, TowerFace - 0.4f, t)), 6f + (float)_random.NextDouble() * 5f, 0.95f);
-            }
+                StringLights(market, new Vector3(x, 6.4f, SouthFronts), new Vector3(x, 5.3f, TowerFace - 0.4f), 16, 0.9f);
 
             // Selfies where the camera passes, the tower behind them (they face it coming), and in the road.
             SelfiePair(market, new Vector3(0.4f, 0.02f, -33.4f), 190f);
@@ -495,6 +553,30 @@ namespace Game.Editor
                 Kit.Planter(place, new Vector3(-3.6f + t * 3.2f, 0f, 4.4f), 0f);
             }
             Point(place, "TerraceLight", new Vector3(0f, 2.6f, 2.4f), Incandescent, 7f, 1.8f);
+        }
+
+        // A string of bulbs from `from` to `to`, sagging by `sag` in the middle, on its wire: without
+        // the wire and their glow they were dots floating in the sky (the user's note, 2026-11-10).
+        private static void StringLights(Transform parent, Vector3 from, Vector3 to, int bulbs, float sag)
+        {
+            var bulb = Unlit("OfficeBulb", Bulb);
+            var wire = Toon("StreetIron", Iron);
+            Vector3 At(float t) => Vector3.Lerp(from, to, t) + Vector3.down * (Mathf.Sin(t * Mathf.PI) * sag);
+            for (var b = 0; b < bulbs; b++)
+            {
+                var t = b / (bulbs - 1f);
+                TwinklingBulb(parent, bulb, At(t) + Vector3.down * 0.07f, 6f + (float)_random.NextDouble() * 5f, 0.95f);
+                if (b == 0)
+                    continue;
+                // The wire's stretch from the bulb before.
+                var a = At((b - 1) / (bulbs - 1f));
+                var c = At(t);
+                var piece = GreyboxAssets.CreatePrimitive(PrimitiveType.Cube, "Wire", parent, wire, keepCollider: false);
+                piece.transform.localPosition = (a + c) / 2f;
+                piece.transform.localRotation = Quaternion.LookRotation(c - a);
+                piece.transform.localScale = new Vector3(0.025f, 0.025f, (c - a).magnitude);
+                piece.isStatic = true;
+            }
         }
 
         // One stall of the market: the kit's stall, its holder behind the counter, a light, and someone
@@ -597,7 +679,7 @@ namespace Game.Editor
                 Bottom = new Color(0.12f, 0.12f, 0.14f),
                 Apron = true,
                 Skin = CharacterArt.SkinTones[_random.Next(CharacterArt.SkinTones.Length)],
-                HairStyle = (CharacterArt.HairKind)_random.Next(5),
+                HairStyle = StreetHair[_random.Next(StreetHair.Length)],
                 Hair = CharacterArt.NaturalHair[_random.Next(CharacterArt.NaturalHair.Length)],
             };
             var rig = CharacterArt.Build(waiter, look, swingArms: false);
@@ -629,7 +711,11 @@ namespace Game.Editor
             if (k % 4 != 1)
                 return;
             var period = 8f + (float)_random.NextDouble() * 6f;
-            switch ((k / 4) % 3)
+            // Left of the lift and near the camera's last stop the menu covers the street: a card
+            // there would peek out from behind it (seen in the captures), so those phones get hearts.
+            var where = _streetRoot != null ? _streetRoot.InverseTransformPoint(owner.position) : Vector3.zero;
+            var underMenu = where.x < 1.2f && where.z > PushTo - 2f && where.z < TowerFace;
+            switch (underMenu ? 0 : (k / 4) % 3)
             {
                 case 0:
                     HeartStream(owner, at, period);
@@ -690,14 +776,15 @@ namespace Game.Editor
         // One of `cards` at a time rises over the phone, facing the camera (SocialPop).
         private static void PopCards(Transform owner, Vector3 at, float period, params GameObject[] cards)
         {
+            // Not under the phone: a character's right arm is a mirrored copy of the left, so anything
+            // under it shows back to front (the user's screenshot, 2026-11-10: a review card with its
+            // text mirrored). It follows the phone from the street's own space instead.
             var holder = new GameObject("SocialPop").transform;
-            holder.SetParent(owner, false);
-            holder.localPosition = at;
+            holder.SetParent(_streetRoot, false);
+            holder.position = owner.position + Vector3.up * (at.y + 0.1f);
             foreach (var card in cards)
                 card.transform.SetParent(holder, false);
-            // Sized in the world, whatever the owner's scale.
-            var scale = owner.lossyScale.x > 1e-4f ? 1f / owner.lossyScale.x : 1f;
-            holder.gameObject.AddComponent<SocialPop>().Set(cards, period, 2.4f, 1.0f * scale, scale, (float)_random.NextDouble() * 50f);
+            holder.gameObject.AddComponent<SocialPop>().Set(cards, owner, at.y + 0.1f, period, 2.4f, 1.0f, 1f, (float)_random.NextDouble() * 50f);
             MakeDynamic(holder.gameObject);
         }
 
@@ -766,51 +853,29 @@ namespace Game.Editor
             label.ForceMeshUpdate();
         }
 
-        // Player 1's chef, waiting at the kerb by the tower's door; OpeningChef walks them in to the
-        // lift. Built with the whole tailor's rail, so they wear player 1's look.
-        private static void WaitingChef(Transform street)
+        // Player 1's chef, already in the lift at the street (the user's note, 2026-11-10: the walk
+        // in was hard to notice; be in the lift already, and go up at once). Built with the whole
+        // tailor's rail, so OpeningChef shows player 1's look; the lift carries them up.
+        private static void LiftChef()
         {
             var cab = GameObject.Find("City/BossTower/TowerLift/Cab")?.transform;
+            if (cab == null)
+                return;
             var chef = new GameObject("OpeningChef").transform;
-            chef.SetParent(street, false);
-            var waiting = new Vector3(TowerDoorX - 1.2f, 0.15f, NorthKerb + 1.0f);
-            chef.localPosition = waiting;
-            chef.localRotation = Quaternion.Euler(0f, 20f, 0f);
+            chef.SetParent(cab, false);
+            chef.localPosition = new Vector3(0.3f, 0f, -0.3f);
+            chef.localRotation = Quaternion.Euler(0f, 168f, 0f); // looking out over the street
             var visuals = new GameObject("Visuals").transform;
             visuals.SetParent(chef, false);
             var rig = CharacterArt.BuildChef(visuals, swingArms: true);
-            if (rig == null || cab == null)
+            if (rig == null)
             {
                 Object.DestroyImmediate(chef.gameObject);
                 return;
             }
             MakeDynamic(chef.gameObject);
-            // In through the tower's door, round the west side of the lift's shaft to its doors
-            // at the back, and in.
-            var cabCentre = cab.position;
-            var path = new[]
-            {
-                street.TransformPoint(waiting),
-                street.TransformPoint(new Vector3(TowerDoorX, 0.15f, TowerFace - 2.4f)),
-                street.TransformPoint(new Vector3(TowerDoorX, 0.15f, TowerFace + 0.9f)),
-                street.TransformPoint(new Vector3(-ShaftHalfWidth - 0.7f, 0.15f, ShaftNorth + 0.6f)),
-                street.TransformPoint(new Vector3(0f, 0.15f, ShaftNorth + 0.6f)),
-                new Vector3(cabCentre.x, street.TransformPoint(new Vector3(0f, 0.15f, 0f)).y, cabCentre.z),
-            };
-            var doors = new System.Collections.Generic.List<Transform>();
-            foreach (Transform part in cab)
-                if (part.name == "Door")
-                    doors.Add(part);
+            Breathe(chef.gameObject);
             var so = new SerializedObject(chef.gameObject.AddComponent<OpeningChef>());
-            var list = so.FindProperty("_path");
-            list.arraySize = path.Length;
-            for (var i = 0; i < path.Length; i++)
-                list.GetArrayElementAtIndex(i).vector3Value = path[i];
-            so.FindProperty("_cab").objectReferenceValue = cab;
-            var doorList = so.FindProperty("_doors");
-            doorList.arraySize = doors.Count;
-            for (var i = 0; i < doors.Count; i++)
-                doorList.GetArrayElementAtIndex(i).objectReferenceValue = doors[i];
             so.FindProperty("_wardrobe").objectReferenceValue = rig.Figure.GetComponent<ChefWardrobe>();
             var tinted = so.FindProperty("_tinted");
             tinted.arraySize = rig.Tinted.Count;
@@ -819,15 +884,13 @@ namespace Game.Editor
             so.FindProperty("_coop").objectReferenceValue = GreyboxAssets.EnsureAsset<CoopSettings>(SettingsFolder + "/CoopSettings.asset");
             so.ApplyModifiedPropertiesWithoutUndo();
 
-            // The lift carries the chef up, and lets them go once the camera has landed.
             var lift = Object.FindFirstObjectByType<OpeningElevator>();
-            if (lift != null)
-            {
-                var liftSo = new SerializedObject(lift);
-                liftSo.FindProperty("_rider").objectReferenceValue = chef.gameObject;
-                liftSo.FindProperty("_lead").floatValue = -1.1f; // the cab level with the camera, the chef in the middle of the frame
-                liftSo.ApplyModifiedPropertiesWithoutUndo();
-            }
+            if (lift == null)
+                return;
+            var liftSo = new SerializedObject(lift);
+            liftSo.FindProperty("_rider").objectReferenceValue = chef.gameObject;
+            liftSo.FindProperty("_lead").floatValue = -1.1f; // the cab level with the camera, the chef in the middle of the frame
+            liftSo.ApplyModifiedPropertiesWithoutUndo();
         }
     }
 }

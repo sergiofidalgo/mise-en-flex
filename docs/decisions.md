@@ -4,6 +4,42 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-10 — The opening, fourth pass: hair that reads as hair, hats in the crowd, the chef already in the lift
+
+**User's notes after the third pass:**
+- Hair looks like a silicone swimming cap, on players too; customers should wear some of the modelled hats, so people can be told apart.
+- Only six windows a floor look alive in the tower.
+- The chef walking in to take the lift is hard to notice: have them in the lift already, and start the climb as soon as the option is chosen.
+- The buildings round the tower feel like placeholders.
+- A review popup in the first shot looks buggy.
+- The delivery riders and their scooters are a good detail and should show more, also once the menu is up.
+- Too long a gap between the end of the shot and the menu.
+- Some people on the floors have their feet under the floor.
+- Some lights are solid circles with no glow.
+- The font of "mise en flex" on the restaurant doesn't feel right, and the branding looks empty.
+
+**What we did (our calls within those notes):**
+- **Hair (the whole game, not only the opening):** the hair meshes in `SM_Characters` are rebuilt. The old hair was a thin, even shell that followed the head, which is exactly what a swimming cap is. Now every style is a thick mass with locks:
+  - short hair has a side parting, a fringe swept across the brow in three pointed locks, locks back over the crown and down the back;
+  - whatever shows under a hat ends in uneven locks down the nape and a short lock in front of each ear;
+  - the afro is a cloud of curls that stays clear of the face (it used to reach the eyes);
+  - the retiree's fringe gains a puff over each ear;
+  - **new: long hair** (`HairKind.Bob`, the `HairLengths` mesh), locks to the jaw round the back and sides that hang below any hat.
+  The hairline's crisp lip from earlier today stays. Everything keeps within the reach limit (`CharacterProportionTests`, which now checks the new mesh too).
+- **Hats:** `CharacterArt.HatKind` gains the wardrobe's hats (cowboy, straw, captain, headphones, plumed, party, propeller), so anyone can wear them, not only players. In the opening about four in ten street people wear a hat; the tower's staff only the odd cap or headphones.
+- **Not done, to decide:** the in-game customers (the archetypes in `CharacterArt.CustomerLooks`) don't use the new hats or the long hair yet. That changes how customers read in service, so it's the user's call.
+- **The chef and the lift:** the chef stands in the cab from the start. Choosing a campaign starts the climb at once; the walk-in stage is gone. The menu now fades in 0.25 s after the camera stops (it was 2 s).
+- **The tower's floors:** an open-plan wing east of the modelled rooms on every floor, as far as the climbing camera sees; the painted windows are mostly lit (72%, from 45%) with a figure moving in most lit rooms. Floors are slabs 0.3 m thick and a stone apron closes the gap under the lowest one, which is what showed feet below the floor.
+- **The neighbours:** windows down the full height of the tall buildings round the tower (one quad a face, drawn by `SH_InteriorCard` in a new facade mode), and framed windows on the avenue-facing side of the two corner buildings.
+- **The review popup:** it was drawn mirrored, because a character's right arm is a mirrored copy of the left and the card hung from the phone. Cards now follow the phone from the street's own space. Phones the menu would cover send up hearts instead of cards.
+- **Riders:** three scooters and three riders moved to the kerb between the two doors, right of the menu, one of them walking a bag back and forth.
+- **Lights:** a halo (`SH_Halo`) on string bulbs, street lamps, pendants and stall bulbs; wires on the string lights.
+- **Branding:** the fascia carries the logo's own lockup ("Mise en" in Lora italic, gold; "FLEX" in Fredoka, cream) between two fork-and-spoon roundels, a "RESTAURANT & BAR" strap line, a row of bulbs, and a burgundy and cream awning. The gooseneck lamps are gone: seen from below they read as yellow triangles.
+
+**Reason:** the user's notes, one by one. The hair was fixed in the model rather than per scene because the same meshes dress players, customers and staff.
+
+---
+
 ## 2026-11-10 — The office scene is built, not kept in git
 
 **User's call:** `Office_Greybox.unity` is no longer committed.

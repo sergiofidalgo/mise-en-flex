@@ -46,6 +46,35 @@ namespace Game.Editor
             return material;
         }
 
+        /// <summary>
+        /// A soft glow round a lamp at <paramref name="at"/>, <paramref name="size"/> metres across
+        /// (SH_Halo: it faces the camera by itself). The user's note, 2026-11-10: bulbs were solid
+        /// circles with no glow.
+        /// </summary>
+        public static GameObject Halo(Transform parent, Vector3 at, float size, Color colour, float strength = 0.9f)
+        {
+            var key = $"{ColorUtility.ToHtmlStringRGB(colour)}_{Mathf.RoundToInt(strength * 100f)}";
+            var path = $"Assets/_Project/Art/Materials/MAT_Halo_{key}.mat";
+            var material = AssetDatabase.LoadAssetAtPath<Material>(path);
+            var shader = Shader.Find("Game/Halo");
+            if (material == null)
+            {
+                material = new Material(shader);
+                AssetDatabase.CreateAsset(material, path);
+            }
+            material.shader = shader;
+            material.SetColor("_BaseColor", colour);
+            material.SetFloat("_Strength", strength);
+            material.enableInstancing = true;
+            EditorUtility.SetDirty(material);
+            var halo = GreyboxAssets.CreatePrimitive(PrimitiveType.Quad, "Halo", parent, material, keepCollider: false);
+            halo.transform.localPosition = at;
+            var scale = parent.lossyScale.x;
+            halo.transform.localScale = Vector3.one * (size / Mathf.Max(1e-4f, Mathf.Abs(scale)));
+            halo.isStatic = false; // it turns to the camera in the shader, from its own transform
+            return halo;
+        }
+
         /// <summary>One mesh of a kit model, under <paramref name="parent"/>.</summary>
         public static GameObject Part(Transform parent, string model, string mesh, Material material, Vector3 at = default, float yaw = 0f, float scale = 1f)
         {
@@ -89,6 +118,8 @@ namespace Game.Editor
             Part(root, Street, "StallCanopyB", Toon("KitCanopyCream", Cream));
             Part(root, Street, "StallShades", Toon("KitIron", Iron));
             Part(root, Street, "StallBulbs", Glow("KitBulb", BulbColour));
+            foreach (var x in new[] { -0.55f, 0.55f })
+                Halo(root, new Vector3(x, 1.9f, 0.3f), 0.8f, BulbColour, 0.6f);
             if (closed)
             {
                 Part(root, Street, "StallCover", Toon($"KitCanopy_{ColorUtility.ToHtmlStringRGB(canopy)}", canopy));
@@ -320,6 +351,7 @@ namespace Game.Editor
         {
             Part(parent, Street, "PendantShade", Toon($"KitShade_{ColorUtility.ToHtmlStringRGB(shade)}", shade), at);
             Part(parent, Street, "PendantBulb", Glow("KitBulb", BulbColour), at);
+            Halo(parent, at + Vector3.up * 0.08f, 0.9f, BulbColour, 0.6f);
         }
 
         // ---- Entrances ----------------------------------------------------------------------------------

@@ -866,6 +866,12 @@ namespace Game.Editor
 
             var rows = detail == 2 ? 6 : 4;
             Windows(building, w, d, rows, trim, side: 0, framed: detail == 2); // the haze hides frames further out
+            // And windows all the way down, drawn on one quad a face (OfficeBuilder.Tower.cs): from
+            // the street these towers were blank slabs under their top storeys (the user's note,
+            // 2026-11-10: the buildings round the tower felt like placeholders).
+            FacadeWindows(building, w, d, height, rows, 0, 7f);
+            if (detail == 2 && Mathf.Abs(at.x) > 14f)
+                FacadeWindows(building, w, d, height, rows, at.x > 0f ? -1 : 1, 7f);
             // The side towards the tower, which the camera sees at an angle.
             if (detail == 2 && Mathf.Abs(at.x) > 14f)
                 Windows(building, w, d, rows, trim, side: at.x > 0f ? -1 : 1, framed: true);

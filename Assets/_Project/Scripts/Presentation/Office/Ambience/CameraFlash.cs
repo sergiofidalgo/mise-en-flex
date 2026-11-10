@@ -49,7 +49,9 @@ namespace Game.Presentation.Office.Ambience
                     return;
                 // Sized in the world, whatever it hangs from.
                 var parent = _spark.transform.parent;
-                var scale = parent != null && parent.lossyScale.x > 1e-4f ? 1f / parent.lossyScale.x : 1f;
+                // (An arm may be mirrored, so its scale can be negative: only its size matters here.)
+                var size = parent != null ? Mathf.Abs(parent.lossyScale.x) : 1f;
+                var scale = size > 1e-4f ? 1f / size : 1f;
                 _spark.transform.localScale = Vector3.one * (_sparkSize * (0.3f + 0.7f * brightness) * scale);
                 if (!_faceCamera)
                     return;

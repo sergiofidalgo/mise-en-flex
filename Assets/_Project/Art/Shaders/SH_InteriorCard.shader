@@ -16,14 +16,26 @@ Shader "Game/InteriorCard"
         _Warm ("Warm light", Color) = (1, 0.82, 0.58, 1)
         _Cool ("Cool light", Color) = (0.82, 0.9, 1, 1)
         _Glass ("Glass tint", Color) = (0.1, 0.13, 0.22, 1)
+        _Pitch ("Facade: metres from window to window (0 = one pane)", Vector) = (0, 0, 0, 0)
+        _Trim ("Facade: frame colour", Color) = (0.5, 0.45, 0.42, 1)
+        [HideInInspector] _SrcBlend ("Src", Float) = 1
+        [HideInInspector] _DstBlend ("Dst", Float) = 0
+        [HideInInspector] _ZWrite ("ZWrite", Float) = 1
     }
     SubShader
     {
         Tags { "RenderType" = "Opaque" "Queue" = "Geometry" "RenderPipeline" = "UniversalPipeline" }
 
+        // A whole facade of windows on one quad (the user's note, 2026-11-10: the buildings round the
+        // tower felt like placeholders): with _Pitch set, the quad is cut into windows that far apart,
+        // each _PaneSize big with a frame round it, and nothing drawn between them, so the building's
+        // own wall shows. The count comes from the quad's size, so one material does every facade;
+        // that material blends (alpha) and doesn't write depth.
         Pass
         {
             Tags { "LightMode" = "UniversalForward" }
+            Blend [_SrcBlend] [_DstBlend]
+            ZWrite [_ZWrite]
             HLSLPROGRAM
             #pragma vertex Vert
             #pragma fragment Frag
@@ -37,6 +49,8 @@ Shader "Game/InteriorCard"
                 half4 _Warm;
                 half4 _Cool;
                 half4 _Glass;
+                float4 _Pitch;
+                half4 _Trim;
             CBUFFER_END
 
             struct Attributes
@@ -55,6 +69,7 @@ Shader "Game/InteriorCard"
                 float3 normalWS : TEXCOORD2;
                 float3 tangentWS : TEXCOORD3;
                 float fog : TEXCOORD4;
+                float2 size : TEXCOORD5; // the quad's width and height in metres
             };
 
             Varyings Vert(Attributes input)
@@ -66,6 +81,8 @@ Shader "Game/InteriorCard"
                 output.tangentWS = TransformObjectToWorldDir(input.tangentOS.xyz);
                 output.uv = input.uv;
                 output.fog = ComputeFogFactor(output.positionCS.z);
+                float3 origin = TransformObjectToWorld(float3(0, 0, 0));
+                output.size = float2(length(TransformObjectToWorld(float3(1, 0, 0)) - origin), length(TransformObjectToWorld(float3(0, 1, 0)) - origin));
                 return output;
             }
 
@@ -93,7 +110,23 @@ Shader "Game/InteriorCard"
                 float3 d = float3(dot(view, t), dot(view, up), max(dot(view, -n), 1e-3));
                 float w = _PaneSize.x;
                 float h = _PaneSize.y;
-                float3 p = float3((input.uv.x - 0.5) * w, (input.uv.y - 0.5) * h, 0.0);
+                // Which window of a facade this is, and where in it; one pane otherwise.
+                float2 paneUV = input.uv;
+                if (_Pitch.x > 0.0)
+                {
+                    float2 tiles = max(1.0, round(input.size / _Pitch.xy));
+                    float2 tile = frac(input.uv * tiles) * (input.size / tiles); // metres into this window's cell
+                    float2 margin = (input.size / tiles - _PaneSize.xy) * 0.5;
+                    float2 into = tile - margin;
+                    float2 out2 = max(-into, into - _PaneSize.xy);
+                    float outside = max(out2.x, out2.y);
+                    if (outside > 0.1)
+                        return half4(0, 0, 0, 0); // the wall, which the building draws itself
+                    if (outside > 0.0)
+                        return half4(MixFog(_Trim.rgb * 0.75, input.fog), 1.0); // the frame
+                    paneUV = into / _PaneSize.xy;
+                }
+                float3 p = float3((paneUV.x - 0.5) * w, (paneUV.y - 0.5) * h, 0.0);
 
                 // The room: a little wider than the pane, its floor under the sill and its ceiling
                 // above the head of the window.
@@ -165,6 +198,30 @@ Shader "Game/InteriorCard"
                     colour = wallColour * 0.7;
                 }
 
+                // Someone about in most lit rooms (the user's note, 2026-11-10: every window alive, not
+                // only the modelled ones): a figure part-way into the room, walking from side to side at
+                // their own pace, turning at the walls. Drawn where the view ray crosses their plane.
+                if (lit && h5 > 0.3)
+                {
+                    float depth = _RoomDepth * (0.3 + 0.3 * h3);
+                    float tPlane = depth / d.z;
+                    if (tPlane < hitT)
+                    {
+                        float2 q = (p + d * tPlane).xy;
+                        // Two in three pace the room; the rest only shift where they stand.
+                        float reach = (w * 0.5 - 0.15) * (h1 * 3.0 / max(_LitChance, 0.01) > 1.0 ? 1.0 : 0.12);
+                        float walkX = (h3 - 0.5) * 0.5 + sin(_Time.y * (0.22 + 0.3 * h2) + h4 * 6.2832) * reach;
+                        float body = Box(q, float2(walkX, floorY + 0.72), float2(0.17, 0.4), 0.03);
+                        float legs = Box(q, float2(walkX, floorY + 0.18), float2(0.12, 0.2), 0.03);
+                        float head = saturate(1.0 - (length(q - float2(walkX, floorY + 1.36)) - 0.19) / 0.03);
+                        half3 shirt = lerp(half3(0.85, 0.35, 0.3), half3(0.3, 0.5, 0.8), h3);
+                        shirt = lerp(shirt, half3(0.92, 0.92, 0.9), step(0.6, h2));
+                        colour = lerp(colour, half3(0.2, 0.2, 0.26), legs);
+                        colour = lerp(colour, shirt * 0.8, body);
+                        colour = lerp(colour, half3(0.78, 0.58, 0.45), head);
+                    }
+                }
+
                 // The room's light: lit rooms glow (they're seen at night), dark ones keep a little of
                 // the city's light, and now and then a television flickers in one.
                 if (lit)
@@ -185,16 +242,16 @@ Shader "Game/InteriorCard"
                 if (h4 > 0.72)
                 {
                     float level = 0.55 + 0.35 * h2;
-                    if (input.uv.y > level)
+                    if (paneUV.y > level)
                     {
-                        float slat = step(0.35, frac(input.uv.y * 26.0));
+                        float slat = step(0.35, frac(paneUV.y * 26.0));
                         half3 blind = lit ? half3(0.95, 0.88, 0.72) * light * 0.9 : half3(0.18, 0.18, 0.22);
                         colour = lerp(colour, blind * (0.8 + 0.2 * slat), 0.92);
                     }
                 }
 
                 // The glass itself: a tint, a diagonal reflection, more of the sky at a glancing angle.
-                float streak = saturate(1.0 - abs((input.uv.x + input.uv.y * 0.6) - 0.75) * 9.0) * 0.12;
+                float streak = saturate(1.0 - abs((paneUV.x + paneUV.y * 0.6) - 0.75) * 9.0) * 0.08;
                 float glance = 1.0 - d.z;
                 colour = colour * (1.0 - 0.25 * glance) + _Glass.rgb * (0.35 + glance * 0.6) + streak;
 
@@ -209,7 +266,7 @@ Shader "Game/InteriorCard"
         {
             Name "DepthOnly"
             Tags { "LightMode" = "DepthOnly" }
-            ZWrite On
+            ZWrite [_ZWrite]
             ColorMask R
 
             HLSLPROGRAM

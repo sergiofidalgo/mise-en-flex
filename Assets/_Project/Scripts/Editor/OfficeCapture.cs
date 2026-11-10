@@ -119,24 +119,6 @@ namespace Game.Editor
             // The glass lift rides with the camera on the climb (OpeningElevator): put the cab where it would be.
             var lift = UnityEngine.Object.FindFirstObjectByType<OpeningElevator>();
             var liftSo = lift != null ? new SerializedObject(lift) : null;
-            // The chef walking in (OpeningChef): partway along the walk, watched from the stop.
-            var chef = UnityEngine.Object.FindFirstObjectByType<OpeningChef>();
-            if (chef != null)
-            {
-                var chefSo = new SerializedObject(chef);
-                var walkList = chefSo.FindProperty("_path");
-                var walk = new Vector3[walkList.arraySize];
-                for (var i = 0; i < walk.Length; i++)
-                    walk[i] = walkList.GetArrayElementAtIndex(i).vector3Value;
-                var stop = flight[flight.Length - 1];
-                foreach (var share in new[] { 0.35f, 0.8f })
-                {
-                    chef.transform.position = OpeningPath.PointAlong(walk, OpeningPath.Length(walk) * share, out var heading);
-                    chef.transform.rotation = Quaternion.LookRotation(new Vector3(heading.x, 0f, heading.z));
-                    // The camera holds still at the stop while the chef walks in.
-                    Render(camera, stop.Position, stop.Rotation, Path.Combine(folder, $"opening_entering_{Mathf.RoundToInt(share * 100):000}.png"));
-                }
-            }
             void PlaceCab(float cameraHeight)
             {
                 if (liftSo == null)
@@ -144,9 +126,6 @@ namespace Game.Editor
                 var cab = (Transform)liftSo.FindProperty("_cab").objectReferenceValue;
                 var y = Mathf.Clamp(cameraHeight + liftSo.FindProperty("_lead").floatValue, liftSo.FindProperty("_bottom").floatValue, liftSo.FindProperty("_top").floatValue);
                 cab.position = new Vector3(cab.position.x, y, cab.position.z);
-                // The chef rides in it, looking out.
-                if (chef != null)
-                    chef.transform.SetPositionAndRotation(new Vector3(cab.position.x, y, cab.position.z), Quaternion.LookRotation(Vector3.back));
             }
             for (var i = 1; i < path.Length; i++)
             {

@@ -32,7 +32,7 @@ namespace Game.Tests.EditMode
         private static readonly string[] Worn =
         {
             "CharHips", "CharDress", "CharApron", "CharTorso", "CharScarf", "CharHead",
-            "HairBack", "HairCrop", "HairAfro", "HairBun", "HairFringe",
+            "HairBack", "HairCrop", "HairAfro", "HairBun", "HairFringe", "HairLengths",
             "HatToque", "HatToqueBand", "HatCap", "HatCapPeak", "HatBandana", "HatHeadband", "HatHorns",
             "HatSunHat", "HatSunHatBand",
             "PropBackpack", "PropSatchel",

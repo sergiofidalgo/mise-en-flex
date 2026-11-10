@@ -90,7 +90,9 @@ namespace Game.Editor
                     var w = 8f + (float)_random.NextDouble() * 6f;
                     const float d = 12f;
                     var height = 12f + (float)_random.NextDouble() * 10f; // 4–7 storeys: the camera looks over them
-                    RowBuilding(street, new Vector3(side * (x + w / 2f), 0f, SouthFronts - d / 2f), 0f, w, d, height, i, tags, murals);
+                    // The two at the avenue's mouth have windows down the side that faces it too.
+                    var corner = Mathf.Approximately(x, AvenueFronts);
+                    RowBuilding(street, new Vector3(side * (x + w / 2f), 0f, SouthFronts - d / 2f), 0f, w, d, corner ? Mathf.Max(height, 17f) : height, i, tags, murals, corner ? (side < 0f ? 1 : -1) : 0);
                     x += w + 2f; // an alley between buildings
                     i++;
                 }
@@ -100,7 +102,7 @@ namespace Game.Editor
         // A low building of shops and flats, its front (local +Z) turned `yaw` degrees: a lit shop
         // under an awning (or a tagged shutter), flats above with framed windows, neon, fire escapes,
         // a mural on some side walls. `at` is the middle of its footprint, on the ground.
-        private static Transform RowBuilding(Transform parent, Vector3 at, float yaw, float w, float d, float height, int i, Material[] tags, Material[] murals)
+        private static Transform RowBuilding(Transform parent, Vector3 at, float yaw, float w, float d, float height, int i, Material[] tags, Material[] murals, int sideWindows = 0)
         {
             var c = _random.Next(FacadeColors.Length);
             var wall = Toon($"OfficeFacade{c}", Color.Lerp(FacadeColors[c], Dusk, 0.18f)); // as the city's, same material
@@ -113,6 +115,8 @@ namespace Game.Editor
             Model(building, "Cornice", CityModel, "CityCornice", trim, Vector3.zero, 0f, scale3: new Vector3(w + 0.4f, 1f, d + 0.4f));
             // Flats above, their windows facing the street (side 2), framed.
             Windows(building, w, d, Mathf.FloorToInt((height - 4.5f) / 3.2f), trim, side: 2, framed: true);
+            if (sideWindows != 0) // above the restaurant that fronts on this side (OfficeBuilder.Entrance.cs)
+                Windows(building, w, d, Mathf.FloorToInt((height - 6.5f) / 3.2f), trim, side: sideWindows, framed: true);
             var front = new Vector3(0f, -height, d / 2f);
 
             // The ground floor: a lit shop under an awning, or a shutter covered in tags.
@@ -283,12 +287,77 @@ namespace Game.Editor
         // Someone in the street, in the players' character kit, dressed at random.
         private static Transform Passerby(Transform parent, string name, Vector3 at, float facing) =>
             Person(parent, name, at, facing, CasualTops[_random.Next(CasualTops.Length)],
-                new Color(0.18f + (float)_random.NextDouble() * 0.2f, 0.2f, 0.28f), 0.95f + (float)_random.NextDouble() * 0.1f, look =>
-                {
-                    look.Skin = CharacterArt.SkinTones[_random.Next(CharacterArt.SkinTones.Length)];
-                    look.HairStyle = (CharacterArt.HairKind)_random.Next(5);
-                    look.Hair = CharacterArt.NaturalHair[_random.Next(CharacterArt.NaturalHair.Length)];
-                });
+                new Color(0.18f + (float)_random.NextDouble() * 0.2f, 0.2f, 0.28f), 0.95f + (float)_random.NextDouble() * 0.1f, look => Dress(look, 0.42f));
+
+        // Someone at work on one of the tower's floors: the same, with only the odd cap or pair of
+        // headphones for a hat.
+        private static Transform Staffer(Transform parent, string name, Vector3 at, float facing) =>
+            Person(parent, name, at, facing, CasualTops[_random.Next(CasualTops.Length)],
+                new Color(0.18f + (float)_random.NextDouble() * 0.2f, 0.2f, 0.28f), 0.95f + (float)_random.NextDouble() * 0.1f, look => Dress(look, 0.12f, OfficeHats));
+
+        // Set while the tower's floors are built (OfficeBuilder.Tower.cs): its people dress for work.
+        private static bool _indoors;
+
+        // The hats a night out brings (the user's note, 2026-11-10: the hats we modelled, to tell the
+        // crowd's people apart): listed more than once to be likelier.
+        private static readonly CharacterArt.HatKind[] StreetHats =
+        {
+            CharacterArt.HatKind.Cap, CharacterArt.HatKind.Cap, CharacterArt.HatKind.Cap, CharacterArt.HatKind.Headphones, CharacterArt.HatKind.Headphones,
+            CharacterArt.HatKind.Cowboy, CharacterArt.HatKind.Straw, CharacterArt.HatKind.Captain, CharacterArt.HatKind.Plumed, CharacterArt.HatKind.Party,
+            CharacterArt.HatKind.Propeller, CharacterArt.HatKind.SunHat, CharacterArt.HatKind.Bandana, CharacterArt.HatKind.Headband,
+        };
+        private static readonly CharacterArt.HatKind[] OfficeHats = { CharacterArt.HatKind.Headphones, CharacterArt.HatKind.Headphones, CharacterArt.HatKind.Cap };
+        private static readonly Color[] HatColours =
+        {
+            new Color(0.2f, 0.22f, 0.3f), new Color(0.62f, 0.2f, 0.18f), new Color(0.9f, 0.86f, 0.76f), new Color(0.24f, 0.4f, 0.34f),
+            new Color(0.5f, 0.34f, 0.2f), new Color(0.3f, 0.22f, 0.36f), new Color(0.86f, 0.62f, 0.22f),
+        };
+        private static readonly Color[] HatAccents =
+        {
+            new Color(0.95f, 0.78f, 0.25f), new Color(0.9f, 0.3f, 0.32f), new Color(0.3f, 0.62f, 0.85f), new Color(0.95f, 0.93f, 0.88f),
+            new Color(0.4f, 0.75f, 0.45f), new Color(0.95f, 0.5f, 0.7f), new Color(0.16f, 0.15f, 0.18f),
+        };
+        private static readonly CharacterArt.HairKind[] StreetHair =
+        {
+            CharacterArt.HairKind.Crop, CharacterArt.HairKind.Crop, CharacterArt.HairKind.Crop, CharacterArt.HairKind.Bob, CharacterArt.HairKind.Bob,
+            CharacterArt.HairKind.Bob, CharacterArt.HairKind.Bun, CharacterArt.HairKind.Bun, CharacterArt.HairKind.Afro, CharacterArt.HairKind.Afro,
+            CharacterArt.HairKind.Fringe, CharacterArt.HairKind.Bald,
+        };
+        private static readonly CharacterArt.Garment[] StreetGarments =
+        {
+            CharacterArt.Garment.Shirt, CharacterArt.Garment.Shirt, CharacterArt.Garment.Jacket, CharacterArt.Garment.Jacket,
+            CharacterArt.Garment.Hoodie, CharacterArt.Garment.Hoodie, CharacterArt.Garment.Vest, CharacterArt.Garment.TankTop,
+        };
+
+        // One of the crowd, told apart at a glance: skin, hair, what they wear on top, and for
+        // `hats` of them a hat, with the odd pair of glasses, scarf or moustache.
+        private static void Dress(CharacterArt.Look look, float hats, CharacterArt.HatKind[] from = null)
+        {
+            if (_indoors) // at work on one of the tower's floors, whoever builds them
+                (hats, from) = (Mathf.Min(hats, 0.12f), OfficeHats);
+            look.Skin = CharacterArt.SkinTones[_random.Next(CharacterArt.SkinTones.Length)];
+            look.HairStyle = StreetHair[_random.Next(StreetHair.Length)];
+            look.Hair = _random.NextDouble() < 0.12
+                ? CharacterArt.GreyHair[_random.Next(CharacterArt.GreyHair.Length)]
+                : CharacterArt.NaturalHair[_random.Next(CharacterArt.NaturalHair.Length)];
+            look.Garment = StreetGarments[_random.Next(StreetGarments.Length)];
+            look.Under = CharacterArt.ShirtColours[_random.Next(CharacterArt.ShirtColours.Length)];
+            look.Nose = _random.NextDouble() < 0.4 ? CharacterArt.NoseKind.Big : CharacterArt.NoseKind.Button;
+            look.Build = 0.94f + (float)_random.NextDouble() * 0.16f;
+            look.HatColor = HatColours[_random.Next(HatColours.Length)];
+            look.HatAccent = HatAccents[_random.Next(HatAccents.Length)]; // never the player's colour: nobody tints these
+            look.Accent = HatAccents[_random.Next(HatAccents.Length)];
+            if (_random.NextDouble() < hats)
+            {
+                from ??= StreetHats;
+                look.Hat = from[_random.Next(from.Length)];
+            }
+            var extra = _random.NextDouble();
+            look.Glasses = extra < 0.16;
+            look.Sunglasses = extra > 0.95;
+            look.Scarf = _random.NextDouble() < 0.14;
+            look.Moustache = _random.NextDouble() < 0.1;
+        }
 
         // The street's cars (SM_Cars, from the Blender script): sedans, hatchbacks, taxis and vans,
         // each in its paint with dark trim, chrome hubs and lit lamps. Front along +Z (the models'
@@ -342,6 +411,7 @@ namespace Game.Editor
         {
             Model(parent, "LampPost", CityModel, "CityLampPost", Toon("CityLampIron", new Color(0.12f, 0.16f, 0.14f)), at, 0f);
             Model(parent, "LampGlass", CityModel, "CityLampGlass", Unlit("OfficeLampGlow", new Color(1f, 0.86f, 0.55f)), at, 0f);
+            Kit.Halo(parent, at + Vector3.up * 4.3f, 2.2f, new Color(1f, 0.86f, 0.55f), 0.55f);
             Point(parent, "StreetLampLight", at + Vector3.up * 4.2f, Incandescent, 9f, 3f);
         }
 

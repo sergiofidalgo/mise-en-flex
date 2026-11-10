@@ -86,7 +86,6 @@ namespace Game.Editor
             sequence.FindProperty("_players").objectReferenceValue = manager;
             sequence.FindProperty("_hud").objectReferenceValue = hud;
             sequence.FindProperty("_elevator").objectReferenceValue = Object.FindFirstObjectByType<OpeningElevator>();
-            sequence.FindProperty("_chef").objectReferenceValue = Object.FindFirstObjectByType<OpeningChef>();
             Objects(sequence.FindProperty("_offAfterLanding"), GameObject.Find("City/Street"), GameObject.Find("City/BossTower/Rooms"), GameObject.Find("City/BossTower/TowerLift"));
             var bar = Object.FindFirstObjectByType<PlayerBarHud>();
             Objects(sequence.FindProperty("_hudAfterLanding"), bar != null ? bar.gameObject : null);

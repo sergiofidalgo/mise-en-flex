@@ -651,6 +651,104 @@ def add_head_shell(bm, c, front, side, back, thick, rings=14, segments=40, tuck=
             bm.faces.new([here[i], there[i], there[i + 1], here[i + 1]])
 
 
+def add_tuft(bm, c, elevation, phi, radii, lift=0.0, twist=0.0, rings=8, segments=12):
+    """A lock of hair lying on the head: an ellipsoid at `elevation` up from the head's equator and
+    `phi` round from the front (degrees; + towards Blender +x, 180 the back), its centre `lift` off
+    the head. `radii` are (across, down the head, out from it); `twist` turns it about the way out,
+    so a lock can sweep to one side. A smooth shell alone reads as a swimming cap (the user's note,
+    2026-11-10): locks break the outline and the hairline, and give the light something to catch.
+    Keep `lift` well under the way-out radius: a lock that sits low meets the head at a steep
+    angle, which is a crisp line, where one that barely touches it wanders."""
+    e, p = math.radians(elevation), math.radians(phi)
+    out = Vector((math.cos(e) * math.sin(p), -math.cos(e) * math.cos(p), math.sin(e)))
+    across = Vector((math.cos(p), math.sin(p), 0.0))
+    down = out.cross(across)
+    frame = Matrix((across, down, out)).transposed().to_4x4()
+    centre = Vector((0.0, 0.0, c)) + out * (CHAR_HEAD_RADIUS + lift)
+    transform = (Matrix.Translation(centre) @ frame @ Matrix.Rotation(math.radians(twist), 4, 'Z')
+                 @ Matrix.Diagonal((*radii, 1.0)))
+    created = bmesh.ops.create_uvsphere(bm, u_segments=segments, v_segments=rings, radius=1.0)
+    bmesh.ops.transform(bm, matrix=transform, verts=created["verts"])
+
+
+def add_lock_through(bm, centres, outs, sizes, segments=12, steps=5):
+    """A lock of hair through `centres`, `outs` the way out from the head at each and `sizes` the
+    lock's (half-width across, half-depth out) there; (0, 0) at an end closes it to a point. The
+    few points given are joined by a smooth curve and the lock swells and tapers smoothly along
+    it: drawn straight from point to point it comes out as a crystal, not a lock."""
+    count = len(centres)
+
+    def at(values, i):
+        return values[min(max(i, 0), count - 1)]
+
+    def spline(values, i, t):  # Catmull-Rom between values[i] and values[i + 1]
+        p0, p1, p2, p3 = at(values, i - 1), at(values, i), at(values, i + 1), at(values, i + 2)
+        return 0.5 * ((2.0 * p1) + (p2 - p0) * t + (2.0 * p0 - 5.0 * p1 + 4.0 * p2 - p3) * t * t
+                      + (3.0 * p1 - p0 - 3.0 * p2 + p3) * t * t * t)
+
+    samples = []
+    for i in range(count - 1):
+        for k in range(steps):
+            t = k / steps
+            ease = t * t * (3.0 - 2.0 * t)
+            # A closed end rounds off like a fingertip rather than running to a needle.
+            w0, w1 = Vector(sizes[i]), Vector(sizes[i + 1])
+            if w0.length <= 1e-5:
+                size = w1 * math.sqrt(max(t, 0.0)) if k > 0 else w0
+            elif w1.length <= 1e-5:
+                size = w0 * math.sqrt(max(1.0 - t, 0.0))
+            else:
+                size = w0.lerp(w1, ease)
+            samples.append((spline(centres, i, t), outs[i].lerp(outs[i + 1], t).normalized(), size))
+    samples.append((centres[-1], outs[-1], Vector(sizes[-1])))
+    rings = []
+    for i, (centre, out, size) in enumerate(samples):
+        if size.length <= 1e-5:
+            rings.append([bm.verts.new(centre)])
+            continue
+        tangent = (samples[min(i + 1, len(samples) - 1)][0] - samples[max(i - 1, 0)][0]).normalized()
+        across = tangent.cross(out).normalized()
+        rings.append([bm.verts.new(centre + across * (size.x * math.cos(2 * math.pi * k / segments))
+                                   + out * (size.y * math.sin(2 * math.pi * k / segments))) for k in range(segments)])
+    connect_rings(bm, rings)
+
+
+def add_lock(bm, c, path, sizes, segments=12):
+    """A lock of hair lying along the head, from its root to its tip: `path` gives (elevation, phi,
+    lift) at each step (degrees, degrees, metres off the head), `sizes` the lock's (half-width
+    across, half-depth out from the head) there; (0, 0) closes an end. Locks that sweep across the
+    brow and end in points are what tell hair from a cap (the user's note, 2026-11-10)."""
+    centres, outs = [], []
+    for elevation, phi, lift in path:
+        e, p = math.radians(elevation), math.radians(phi)
+        out = Vector((math.cos(e) * math.sin(p), -math.cos(e) * math.cos(p), math.sin(e)))
+        centres.append(Vector((0.0, 0.0, c)) + out * (CHAR_HEAD_RADIUS + lift))
+        outs.append(out)
+    add_lock_through(bm, centres, outs, sizes, segments=segments)
+
+
+def add_hanging_lock(bm, c, phi, top, bottom, width, depth, lean=0.0, segments=12):
+    """A long lock hanging beside or behind the head at `phi` (degrees round from the front), from
+    `top` to `bottom` (metres above the head's centre): it follows the head down to its widest,
+    falls straight from there, and turns in under at its end. `lean` (degrees) sweeps the end round
+    the head. For hair long enough to show under a hat."""
+    R = CHAR_HEAD_RADIUS
+    centres, outs, sizes = [], [], []
+    stops = 5
+    for i in range(stops):
+        v = i / (stops - 1)
+        dz = top + (bottom - top) * v
+        p = math.radians(phi + lean * v * v)
+        around = math.sqrt(max(R * R - dz * dz, 0.0)) if dz > 0.0 else R
+        lift = 0.012 + 0.03 * math.sin(math.pi * min(v * 1.2, 1.0)) - 0.03 * max(0.0, v - 0.75) / 0.25
+        out = Vector((math.sin(p), -math.cos(p), 0.0))
+        centres.append(Vector((0.0, 0.0, c + dz)) + out * (around + lift))
+        outs.append(out)
+        swell = math.sin(math.pi * (0.12 + 0.76 * v)) if 0 < i < stops - 1 else 0.0
+        sizes.append((width * swell, depth * swell))
+    add_lock_through(bm, centres, outs, sizes, segments=segments)
+
+
 def build_characters():
     """The body kit, chunky and soft-edged like the kitchen's props: legs that swing from the
     hips, a barrel body, sleeves with mitten hands, and a big round head with a friendly dot-eyed
@@ -776,23 +874,87 @@ def build_characters():
     add_box(bm, (0.36, 0.025, 0.025), (0.0, head_surface(0.0, 0.07) - 0.035, c + 0.07), bevel=0.008)
     part("CharSunglasses", bm, "waist", head=True)
 
-    # Hair. Under a hat only the back shows (HairBack); bare heads add a cap or a shape on top.
+    # Hair (reshaped 2026-11-10, the user's note: a smooth shell that follows the head reads as a
+    # silicone swimming cap). Every style is a thick mass with a lip, plus locks (add_tuft) that
+    # break its outline and its hairline. Under a hat only the back shows (HairBack); bare heads
+    # add a top (HairCrop or HairAfro), and long hair hangs below either (HairLengths).
+    def smooth(t):
+        t = min(max(t, 0.0), 1.0)
+        return t * t * (3.0 - 2.0 * t)
+
+    def back_thick(e):  # thin under a hat's band, standing off the nape below any hat
+        return 0.012 + 0.026 * smooth((math.radians(-8.0) - e) / math.radians(26.0))
+
     bm = bmesh.new()  # the back and sides, down to the nape: always there, and all a hat leaves
-    add_head_shell(bm, c, front=60.0, side=8.0, back=-38.0, thick=lambda e: 0.012)
+    add_head_shell(bm, c, front=60.0, side=8.0, back=-38.0, thick=back_thick)
+    # The hair's ends: locks down the nape, uneven, so the edge isn't a cap's.
+    for phi, reach, width in ((180.0, -46.0, 0.1), (146.0, -42.0, 0.095), (214.0, -43.0, 0.095), (116.0, -36.0, 0.08), (244.0, -37.0, 0.08)):
+        lean = (phi - 180.0) * 0.1
+        add_lock(bm, c, [(-4.0, phi, 0.012), (-18.0, phi, 0.032), (-31.0, phi + lean, 0.032), (reach, phi + lean * 2.0, 0.026)],
+                 [(0.0, 0.0), (width, 0.034), (width * 0.8, 0.03), (0.0, 0.0)])
+    for side in (1.0, -1.0):  # and a short lock down in front of each ear
+        add_lock(bm, c, [(13.0, side * 70.0, 0.006), (3.0, side * 71.0, 0.016), (-8.0, side * 72.0, 0.012), (-16.0, side * 73.0, 0.006)],
+                 [(0.0, 0.0), (0.034, 0.018), (0.028, 0.016), (0.0, 0.0)], segments=8)
     part("HairBack", bm, "waist", head=True)
-    bm = bmesh.new()  # a short crop over the top, its hairline above the brows
-    add_head_shell(bm, c, front=32.0, side=10.0, back=-38.0,
-                   thick=lambda e: 0.02 + 0.035 * max(0.0, math.sin(e)) ** 1.5)  # fuller on the crown
+
+    def crop_thick(e):  # a head of hair: full on the crown, and always clear of HairBack beneath it
+        return 0.034 + 0.046 * max(0.0, math.sin(e)) ** 1.5 + 0.02 * smooth((math.radians(-8.0) - e) / math.radians(26.0))
+
+    bm = bmesh.new()  # short hair over the top: parted on one side, the fringe swept across the brow
+    add_head_shell(bm, c, front=33.0, side=10.0, back=-38.0, thick=crop_thick)
+    lock = [(0.0, 0.0), (0.085, 0.05), (0.09, 0.052), (0.06, 0.036), (0.0, 0.0)]
+    # The fringe: three locks from the parting across the brow, each ending in a point.
+    add_lock(bm, c, [(66.0, 34.0, 0.04), (55.0, 10.0, 0.056), (43.0, -12.0, 0.054), (32.0, -32.0, 0.034), (24.0, -45.0, 0.014)], lock)
+    add_lock(bm, c, [(70.0, 8.0, 0.045), (59.0, -22.0, 0.058), (46.0, -46.0, 0.05), (32.0, -62.0, 0.03), (21.0, -71.0, 0.012)], lock)
+    add_lock(bm, c, [(62.0, 30.0, 0.04), (50.0, 20.0, 0.054), (39.0, 8.0, 0.046), (30.0, -3.0, 0.022)],
+             [(0.0, 0.0), (0.07, 0.046), (0.055, 0.034), (0.0, 0.0)])
+    # The short side of the parting, combed the other way, down to the temple.
+    add_lock(bm, c, [(64.0, 46.0, 0.04), (52.0, 58.0, 0.052), (38.0, 67.0, 0.04), (24.0, 73.0, 0.014)],
+             [(0.0, 0.0), (0.08, 0.046), (0.062, 0.036), (0.0, 0.0)])
+    # Back over the top from the parting, either side of it, then down the back of the head.
+    add_lock(bm, c, [(68.0, 52.0, 0.045), (78.0, 115.0, 0.066), (62.0, 160.0, 0.06), (42.0, 176.0, 0.04)],
+             [(0.0, 0.0), (0.1, 0.05), (0.1, 0.048), (0.0, 0.0)])
+    add_lock(bm, c, [(74.0, -4.0, 0.05), (80.0, -95.0, 0.068), (62.0, -148.0, 0.06), (42.0, -166.0, 0.04)],
+             [(0.0, 0.0), (0.1, 0.05), (0.1, 0.048), (0.0, 0.0)])
+    for side in (1.0, -1.0):
+        add_lock(bm, c, [(58.0, 180.0 + side * 14.0, 0.05), (38.0, 180.0 + side * 22.0, 0.05), (16.0, 180.0 + side * 28.0, 0.046),
+                         (-4.0, 180.0 + side * 31.0, 0.04)],
+                 [(0.0, 0.0), (0.11, 0.042), (0.105, 0.04), (0.0, 0.0)])
     part("HairCrop", bm, "waist", head=True)
     bm = bmesh.new()  # a bun on the crown
-    add_ball(bm, (0.0, 0.12, c + 0.33), 0.12, segments=16)
+    add_ellipsoid(bm, (0.0, 0.12, c + 0.35), (0.13, 0.13, 0.115), rings=10, segments=16)
     part("HairBun", bm, "waist", head=True)
-    bm = bmesh.new()  # an afro
-    add_ellipsoid(bm, (0.0, 0.04, c + 0.12), (0.4, 0.37, 0.35), rings=12, segments=24)
+
+    bm = bmesh.new()  # an afro: a cloud of curls over a full head of hair, clear of the face
+    add_head_shell(bm, c, front=33.0, side=4.0, back=-36.0,
+                   thick=lambda e: 0.05 + 0.05 * max(0.0, math.sin(e)))
+    curls = 34
+    for k in range(curls):  # spread evenly over the top of a sphere (a golden-angle spiral)
+        elevation = math.degrees(math.asin(1.0 - 1.25 * (k + 0.5) / curls))
+        phi = math.degrees(k * math.pi * (3.0 - math.sqrt(5.0)))
+        edge = 34.0 if abs((phi + 180.0) % 360.0 - 180.0) < 62.0 else -24.0  # the hairline: high over the face
+        if elevation < edge:
+            continue
+        up = max(0.0, math.sin(math.radians(elevation)))
+        # Bigger curls on top, where nothing limits them (CHAR_REACH at the sides); no two the same.
+        size = (0.09 + 0.04 * up) * (0.92 + 0.16 * ((k * 0.618) % 1.0))
+        add_tuft(bm, c, elevation, phi, (size, size, size), lift=0.012 + 0.045 * up, rings=7, segments=12)
     part("HairAfro", bm, "waist", head=True)
-    bm = bmesh.new()  # a retiree's fringe round the back of a bald head
+
+    bm = bmesh.new()  # a retiree's fringe round a bald head: a band round the back, a puff over each ear
     add_ellipsoid(bm, (0.0, 0.12, c - 0.03), (0.32, 0.22, 0.15), rings=10, segments=24)
+    for side in (1.0, -1.0):
+        add_tuft(bm, c, 6.0, side * 104.0, (0.085, 0.085, 0.055), lift=0.012)
     part("HairFringe", bm, "waist", head=True)
+
+    bm = bmesh.new()  # long hair: locks to the jaw round the back and sides; they show under any hat
+    for k in range(9):
+        phi = 68.0 + (360.0 - 136.0) * k / 8.0
+        side = 1.0 if phi < 180.0 else -1.0
+        beside_face = abs(phi - 180.0) > 90.0
+        add_hanging_lock(bm, c, phi, top=0.16, bottom=-0.27 - (0.03 if k % 2 else 0.0) - (0.03 if beside_face else 0.0),
+                         width=0.135, depth=0.042, lean=0.0 if abs(phi - 180.0) < 1.0 else -side * 5.0)
+    part("HairLengths", bm, "waist", head=True)
 
     # Hats, each with a part the game colours: the player's colour on a player, anything on a guest.
     bm = bmesh.new()  # the toque's puff: short and round, a mushroom over the band (v16), kept

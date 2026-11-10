@@ -7,15 +7,15 @@ namespace Game.Presentation.Office
     /// <summary>
     /// The first half-minute (docs/opening-flow.md; decisions 2026-11-09 and 2026-11-10): the save
     /// notice on first launch, a fade into the street close to the boss's tower, the camera's short
-    /// approach to its main entrance through the crowd (A skips it, every time), a beat to take in
-    /// the bustle, the main menu, and once a campaign is chosen the chef walks in and into the lift,
-    /// which the camera follows up the glass and over onto the floor's wide shot. Then the follow
+    /// approach to its main entrance through the crowd (A skips it, every time), the main menu, and
+    /// the moment a campaign is chosen the camera rises beside the lift, the chef in it, up the
+    /// glass and over onto the floor's wide shot (A skips that too). Then the follow
     /// camera takes over, joining opens, and the player who chose in the menu is already in as
     /// player 1: the chef who rode up.
     /// </summary>
     public sealed class OpeningSequence : MonoBehaviour
     {
-        private enum Stage { SaveNotice, FadeIn, Flight, Menu, Entering, Climb, Landed }
+        private enum Stage { SaveNotice, FadeIn, Flight, Menu, Climb, Landed }
 
         private const string SaveNoticeKey = "Opening.SaveNoticeShown";
 
@@ -26,8 +26,6 @@ namespace Game.Presentation.Office
         [SerializeField] private OpeningHud _hud;
         [Tooltip("The glass lift on the tower's front, which rides up with the camera on the climb; optional.")]
         [SerializeField] private OpeningElevator _elevator;
-        [Tooltip("The chef who walks in and rides up once a campaign is chosen; optional.")]
-        [SerializeField] private OpeningChef _chef;
         [Tooltip("Everything below the floor that only the opening sees (the street 120 m down with its people and lights, the tower's rooms, the lift): switched off once the camera lands, as nobody sees it from the floor (the 60 fps budget with four players).")]
         [SerializeField] private GameObject[] _offAfterLanding = System.Array.Empty<GameObject>();
         [Tooltip("The floor's own HUD (the player bar): hidden until the camera lands (the user's note, 2026-11-10).")]
@@ -45,8 +43,8 @@ namespace Game.Presentation.Office
         [Tooltip("How far through the climb (0–1) the camera starts turning from the tower's glass onto the floor's view.")]
         [SerializeField, Range(0.5f, 0.98f)] private float _turnFrom = 0.86f;
         [SerializeField, Min(0.05f)] private float _menuFade = 0.45f;
-        [Tooltip("How long the camera rests on the busy entrance before the menu comes up (A skips).")]
-        [SerializeField, Min(0f)] private float _menuDelay = 2f;
+        [Tooltip("How long the camera rests on the entrance before the menu comes up (A skips). Short: the user found two seconds too long.")]
+        [SerializeField, Min(0f)] private float _menuDelay = 0.25f;
 
         [Header("Haze")]
         [Tooltip("Fog distances during the flight and the menu, thinner so the tower shows from the street.")]
@@ -57,7 +55,7 @@ namespace Game.Presentation.Office
         private Vector2 _officeFog;
         private CameraPose[] _climbPath;
         private Quaternion _landingRotation;
-        // The press that chose the campaign mustn't also skip the chef's walk.
+        // The press that chose the campaign mustn't also skip the climb.
         private const float SkipGuard = 0.4f;
 
         // Back from the kitchen (the pause menu's Quit to the office, decision 2026-11-10): the same
@@ -175,20 +173,12 @@ namespace Game.Presentation.Office
                     // The camera holds still under the menu (the user's note, 2026-11-10): the street does the moving.
                     Place(_flight[_flight.Length - 1], null);
                     break;
-                case Stage.Entering:
-                    // The menu goes; the camera stays where it is, with no pan (the user's note,
-                    // 2026-11-10), while the chef walks in to the lift. A skips to the floor.
+                case Stage.Climb:
+                    // The menu goes as the camera starts up beside the lift, the chef already in it
+                    // (the user's note, 2026-11-10: no walk in between). A skips to the floor.
                     _menu.SetShown(false, 1f - Mathf.Clamp01(_clock / _menuFade));
                     _hud.SkipShown = _clock > SkipGuard;
                     if (_clock > SkipGuard && PressedA())
-                        Land();
-                    else if (_chef.Aboard && _clock > 0.8f)
-                        StartClimb();
-                    break;
-                case Stage.Climb:
-                    _menu.SetShown(false, 0f);
-                    _hud.SkipShown = true;
-                    if (PressedA())
                     {
                         Land();
                         break;
@@ -212,12 +202,6 @@ namespace Game.Presentation.Office
 
         private void HandleLaunching(int slot, bool continuing)
         {
-            if (_chef != null)
-            {
-                _chef.Begin();
-                Enter(Stage.Entering);
-                return;
-            }
             StartClimb();
         }
 
