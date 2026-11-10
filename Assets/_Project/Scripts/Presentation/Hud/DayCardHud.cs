@@ -13,7 +13,7 @@ namespace Game.Presentation.Hud
     /// and under it the phase and the game clock, "Service · 18:42". The money card's sibling but
     /// quieter: shorter, a little see-through, a thin sand outline and softer text, and nothing
     /// moves but the minutes. Last orders and Closed show in the notice amber. It hides with the
-    /// money card behind the Review dashboard and the pause menu. Built in code on its own canvas,
+    /// money card behind the forkcast dashboard and the pause menu. Built in code on its own canvas,
     /// inside the screen's margin at any resolution or aspect; the boss's phone is bottom right.
     /// </summary>
     public sealed class DayCardHud : MonoBehaviour
@@ -82,7 +82,7 @@ namespace Game.Presentation.Hud
             if (_canvas == null)
                 return;
             var services = _root != null ? _root.Services : null;
-            var shown = services != null && services.Days != null && services.Days.Phase != DayPhase.Review && !(_pause != null && _pause.IsOpen);
+            var shown = services != null && services.Days != null && !services.Forkcast.IsOpen && !(_pause != null && _pause.IsOpen);
             var fade = _style.Fade;
             var goal = shown ? 1f : 0f;
             _group.alpha = fade <= 0f ? goal : Mathf.MoveTowards(_group.alpha, goal, Time.unscaledDeltaTime / fade);

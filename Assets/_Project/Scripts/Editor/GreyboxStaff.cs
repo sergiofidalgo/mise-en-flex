@@ -55,10 +55,7 @@ namespace Game.Editor
             door.FindProperty("_staff").objectReferenceValue = zone.GetComponent<StaffDirector>();
             door.ApplyModifiedPropertiesWithoutUndo();
 
-            var menu = new SerializedObject(zone.AddComponent<HiringMenu>());
-            menu.FindProperty("_root").objectReferenceValue = root;
-            menu.FindProperty("_dayLoop").objectReferenceValue = root.GetComponent<DayLoop>();
-            menu.ApplyModifiedPropertiesWithoutUndo();
+            // Hiring is on forkcast's Staff tab (ReviewDashboard, 2026-11-10): no HiringMenu any more.
         }
 
         /// <summary>The frame a cursor shows on the floor in management mode.</summary>

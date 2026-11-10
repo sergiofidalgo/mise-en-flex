@@ -3,6 +3,7 @@ using System.Linq;
 using Game.Simulation.Days;
 using Game.Simulation.Saving;
 using Game.Simulation.Service;
+using Game.Simulation.Staff;
 using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -76,6 +77,7 @@ namespace Game.Presentation.Hud
         private RectTransform _list;
         private RectTransform _popover;
         private RectTransform _hints;
+        private TextMeshProUGUI _caption;
         private Sprite _hatch;
 
         private TMP_FontAsset Medium => _style.Medium;
@@ -140,7 +142,10 @@ namespace Game.Presentation.Hud
             var right = 1804f;
             if (today > 0)
                 right = HeaderPill(today == 1 ? "1 new review" : $"{today} new reviews", _wellLight, right) - 22f;
-            HeaderPill(Tr.Format("Day {day} · {weekday}", ("day", days.Day), ("weekday", Weekday(days.Day))), _well, right);
+            right = HeaderPill(Tr.Format("Day {day} · {weekday}", ("day", days.Day), ("weekday", Weekday(days.Day))), _well, right) - 22f;
+            // The morning: the day card is behind forkcast, so the header says what part of the day it is.
+            if (days.Phase == DayPhase.Plan)
+                HeaderPill(DayCardText.Line(DayPhase.Plan, ServicePhase.Open, config.OpensAt, 0f).Text, _wellLight, right);
         }
 
         // A pill whose right edge is at right; returns its left edge.
@@ -775,37 +780,109 @@ namespace Game.Presentation.Hud
                 Label(Bold, _content, Tr.Get("On the menu from tomorrow"), 22f, _goodText, x, top + 630f, width - 56f);
         }
 
-        // ---- Staff: the team, read-only (hiring stays on the Plan card for now) ----
+        // ---- Staff: the team, then today's candidates (the user's call, 2026-11-10) ----
+
+        private const float MemberHeight = 96f, CandidateHeight = 76f, RowGap = 10f;
 
         private void DrawStaff()
         {
-            var team = Services.Staff.Hired;
-            if (team.Count == 0)
-            {
-                Label(Serif, _content, Tr.Get("Nobody on the team yet."), 26.67f, _muted, RightX, 320f);
-                Label(Medium, _content, Tr.Get("Hire help on the Plan card each morning."), 21.33f, _body, RightX, 362f, 900f);
-                return;
-            }
-
-            const float height = 118f;
+            var staff = Services.Staff;
+            var rows = StaffBoard.Rows(staff);
+            var selected = Mathf.Clamp(_selected, 0, Mathf.Max(0, rows.Count - 1));
+            var balance = Services.Days.Balance;
             var y = 262f;
-            foreach (var member in team.Take(5))
-            {
-                UiKit.StrokedBox(_content, "Member", _cardLight, _cardEdge, 2.67f, CardLeft, y, CardWidth, height, 15f);
-                UiKit.StrokedEllipse(_content, "Avatar", UiKit.AvatarColour(member.Name), _ink, 4f, CardLeft + 24f, y + 22f, 49f, 61f);
-                var name = Label(Bold, _content, member.Name, 22f, _ink, 857f, y + 38f, 300f);
-                Label(Medium, _content, "· " + ServiceStatusHud.RoleName(member.Role), 19f, _muted, 857f + UiKit.Width(name) + 10f, y + 38f, 300f);
-                Label(Serif, _content, $"“{Tr.Get(member.Description)}”", 22f, _ink, 857f, y + 72f, 600f);
-                Label(Medium, _content, ServiceStatusHud.WorkDone(member), 17.33f, _body, 857f, y + 102f, 620f);
 
-                Label(Bold, _content, Tr.Format("{wage} a day", ("wage", Money(member.DailyWage))), 21.33f, _ink, 1776f, y + 38f, 260f, HorizontalAlignmentOptions.Right);
-                Meter(Tr.Get("Skill"), member.Skill, 1500f, y + 52f);
-                Meter(Tr.Get("Speed"), member.Speed / 2f, 1500f, y + 74f); // 1 is an average pace: the middle of the bar
-                Label(SemiBold, _content, ServiceStatusHud.Mood(member), 17.33f, _body, 1776f, y + 108f, 260f, HorizontalAlignmentOptions.Right);
-                y += height + 14f;
+            Caps(_content, Tr.Get("YOUR TEAM"), RightX, y + 18f);
+            if (staff.Hired.Count > 0)
+                Label(Medium, _content, Tr.Format("Wages {amount} a day", ("amount", Money(staff.TotalWages))), 19.5f, _muted, RightEdge, y + 18f, 500f, HorizontalAlignmentOptions.Right);
+            y += 32f;
+            if (staff.Hired.Count == 0)
+            {
+                Label(Serif, _content, Tr.Get("Nobody on the team yet."), 24f, _muted, RightX, y + 28f, 900f);
+                y += 44f;
             }
-            var wages = team.Sum(m => m.DailyWage);
-            Label(Medium, _content, Tr.Format("Wages {amount} a day · hiring is on the Plan card", ("amount", Money(wages))), 19.5f, _muted, RightX, Mathf.Min(y + 24f, 936f), 900f);
+
+            for (var i = 0; i < rows.Count && !rows[i].IsCandidate; i++)
+            {
+                MemberCard(rows[i].Member, y, i == selected);
+                y += MemberHeight + RowGap;
+            }
+
+            y += 8f;
+            Caps(_content, Tr.Get("LOOKING FOR WORK TODAY"), RightX, y + 18f);
+            y += 32f;
+            var candidates = 0;
+            for (var i = 0; i < rows.Count; i++)
+            {
+                if (!rows[i].IsCandidate)
+                    continue;
+                CandidateCard(rows[i].Candidate, StaffBoard.WhyNot(staff, rows[i].Candidate, balance), y, i == selected);
+                y += CandidateHeight + RowGap;
+                candidates++;
+            }
+            if (candidates == 0)
+            {
+                Label(Serif, _content, Tr.Get("Nobody else is looking for work today."), 24f, _muted, RightX, y + 28f, 900f);
+                y += 44f;
+            }
+
+            // What the last press did, or, in Review, when hiring happens.
+            var (text, colour) = StaffNote();
+            if (!string.IsNullOrEmpty(text))
+                Label(SemiBold, _content, text, 19.5f, colour, RightX, Mathf.Min(y + 18f, 940f), 1030f);
+        }
+
+        private (string Text, Color Colour) StaffNote()
+        {
+            var name = _staffResultName ?? "";
+            switch (_staffResult)
+            {
+                case StaffBoard.Outcome.Hired:
+                    return (Tr.Format("{name} starts today.", ("name", name)), _goodText);
+                case StaffBoard.Outcome.LetGo:
+                    return (Tr.Format("{name} has been let go.", ("name", name)), _body);
+                case StaffBoard.Outcome.CantAfford:
+                    return (Tr.Format("Not enough money for {name}: wages are paid each night.", ("name", name)), _badText);
+                case StaffBoard.Outcome.RoleTaken:
+                    return (Tr.Get("Someone already does that job: let them go first."), _badText);
+                case StaffBoard.Outcome.ReadOnly:
+                    return (Tr.Get("Hiring is for the morning, before prep."), _badText);
+            }
+            return StaffEditable ? (null, _body) : (Tr.Get("Hire in the morning, before prep."), _muted);
+        }
+
+        private void MemberCard(Game.Simulation.Staff.StaffMember member, float y, bool chosen)
+        {
+            UiKit.StrokedBox(_content, "Member", _cardLight, chosen ? _gold : _cardEdge, chosen ? 4f : 2.67f, CardLeft, y, CardWidth, MemberHeight, 15f);
+            UiKit.StrokedEllipse(_content, "Avatar", UiKit.AvatarColour(member.Name), _ink, 4f, CardLeft + 24f, y + 18f, 49f, 61f);
+            var name = Label(Bold, _content, member.Name, 22f, _ink, 857f, y + 32f, 300f);
+            Label(Medium, _content, "· " + ServiceStatusHud.RoleName(member.Role), 19f, _muted, 857f + UiKit.Width(name) + 10f, y + 32f, 300f);
+            Label(Serif, _content, $"“{Tr.Get(member.Description)}”", 21f, _ink, 857f, y + 60f, 600f);
+            Label(Medium, _content, ServiceStatusHud.WorkDone(member), 17.33f, _body, 857f, y + 86f, 620f);
+
+            Label(Bold, _content, Tr.Format("{wage} a day", ("wage", Money(member.DailyWage))), 21.33f, _ink, 1776f, y + 32f, 260f, HorizontalAlignmentOptions.Right);
+            Meter(Tr.Get("Skill"), member.Skill, 1500f, y + 42f);
+            Meter(Tr.Get("Speed"), member.Speed / 2f, 1500f, y + 62f); // 1 is an average pace: the middle of the bar
+            Label(SemiBold, _content, ServiceStatusHud.Mood(member), 17.33f, _body, 1776f, y + 88f, 260f, HorizontalAlignmentOptions.Right);
+        }
+
+        // Someone looking for work: their words, not numbers (as on the old Plan card), and the wage.
+        // Greyed, with the reason, when they're out of reach.
+        private void CandidateCard(Game.Simulation.Staff.Candidate candidate, StaffBoard.Outcome whyNot, float y, bool chosen)
+        {
+            var reachable = whyNot == StaffBoard.Outcome.Nothing;
+            var text = reachable ? _ink : _quiet;
+            UiKit.StrokedBox(_content, "Candidate", reachable ? _card : Alpha(_card, 0.55f), chosen ? _gold : _cardEdge, chosen ? 4f : 2.67f, CardLeft, y, CardWidth, CandidateHeight, 15f);
+            UiKit.StrokedEllipse(_content, "Avatar", reachable ? UiKit.AvatarColour(candidate.Name) : _rule, reachable ? _ink : _sand, 4f, CardLeft + 28f, y + 14f, 40f, 50f);
+            var name = Label(Bold, _content, candidate.Name, 22f, text, 857f, y + 32f, 300f);
+            Label(Medium, _content, "· " + ServiceStatusHud.RoleName(candidate.Role), 19f, reachable ? _muted : _quiet, 857f + UiKit.Width(name) + 10f, y + 32f, 300f);
+            Label(Serif, _content, $"“{Tr.Get(candidate.Description)}”", 21f, text, 857f, y + 62f, 600f);
+
+            Label(Bold, _content, Tr.Format("{wage} a day", ("wage", Money(candidate.DailyWage))), 21.33f, reachable ? _ink : _badText, 1776f, y + 32f, 260f, HorizontalAlignmentOptions.Right);
+            var reason = whyNot == StaffBoard.Outcome.RoleTaken ? Tr.Get("job taken")
+                : whyNot == StaffBoard.Outcome.CantAfford ? Tr.Get("out of reach") : "";
+            if (reason.Length > 0)
+                Label(SemiBold, _content, reason, 17.33f, _badText, 1776f, y + 62f, 260f, HorizontalAlignmentOptions.Right);
         }
 
         // A label and a short bar, 0..1, right-aligned to the card's edge.
@@ -1001,13 +1078,28 @@ namespace Game.Presentation.Hud
             var recipe = _tab == Tab.Cookbook && book != null && book.Recipes.Count > 0 ? book.Recipes[Mathf.Clamp(_selected, 0, book.Recipes.Count - 1)] : null;
             var onMenu = recipe != null && book.IsUnlocked(recipe.Id);
             var cook = CookbookPlayer();
-            var state = $"{_tab}|{canReply}|{filtering}|{recipe?.Id}|{onMenu}|{cook?.playerIndex}|{Services.Days.Day}|" + string.Join(",", PlayerInput.all.Select(p => $"{p.playerIndex}:{_dayLoop.Ready.IsReady(p.playerIndex)}:{_dayLoop.ControllerPause.IsLost(p.playerIndex)}"))
+            var plan = Services.Days.Phase == DayPhase.Plan;
+            var staffRows = _tab == Tab.Staff ? StaffBoard.Rows(Services.Staff) : null;
+            var staffRow = staffRows != null && staffRows.Count > 0 ? staffRows[Mathf.Clamp(_selected, 0, staffRows.Count - 1)] : (StaffBoard.Row?)null;
+            var state = $"{_tab}|{plan}|{staffRows?.Count}|{staffRow?.IsCandidate}|{PlayerInput.all.Count}|{canReply}|{filtering}|{recipe?.Id}|{onMenu}|{cook?.playerIndex}|{Services.Days.Day}|" + string.Join(",", PlayerInput.all.Select(p => $"{p.playerIndex}:{_dayLoop.Ready.IsReady(p.playerIndex)}:{_dayLoop.ControllerPause.IsLost(p.playerIndex)}"))
                 + $"|{HoldBar.Holder()?.playerIndex}:{HoldBar.Filled(HoldBar.Holder())}";
             if (state == _hintsShown)
                 return;
             _hintsShown = state;
             UiKit.Clear(_hints);
             var hints = new List<(string[] Keys, string Text)> { (new[] { "LB", "RB" }, Tr.Get("Tabs")) };
+            // Nobody's here yet (a kitchen opened straight into Plan): forkcast covers the join card.
+            if (PlayerInput.all.Count == 0)
+                hints.Add((new[] { "A" }, Tr.Get("Join")));
+            // Anyone hires in the morning; in Review the tab only shows.
+            if (staffRow != null)
+            {
+                hints.Add((new[] { "DPad" }, Tr.Get("Browse")));
+                if (plan && staffRow.Value.IsCandidate)
+                    hints.Add((new[] { "A" }, Tr.Get("Hire")));
+                else if (plan)
+                    hints.Add((new[] { "Y" }, Tr.Get("Let go")));
+            }
             if (_tab == Tab.Overview)
                 hints.Add((new[] { "DPad" }, filtering ? Tr.Get("Filter") : Tr.Get("Browse")));
             if (canReply)
@@ -1028,8 +1120,14 @@ namespace Game.Presentation.Hud
                 }
             }
             // Held, not tapped: a tap opens the pause menu (decision 2026-11-10). A bar fills while it's held.
+            // In the morning: B puts forkcast away to walk around, View goes straight to rearranging.
+            if (plan)
+            {
+                hints.Add((new[] { "B" }, Tr.Get("Close")));
+                hints.Add((new[] { "View" }, Tr.Get("Rearrange")));
+            }
             var holder = HoldBar.Holder();
-            var start = Tr.Format("Hold: start day {day}", ("day", Services.Days.Day + 1));
+            var start = plan ? Tr.Get("Hold: start prep") : Tr.Format("Hold: start day {day}", ("day", Services.Days.Day + 1));
             if (holder != null)
                 start += " " + HoldBar.Text(holder, _settings.GetPlayerColor(holder.playerIndex), _quiet);
             hints.Add((new[] { "≡" }, start));
@@ -1051,9 +1149,9 @@ namespace Game.Presentation.Hud
                         x -= 31f + 10f;
                         continue;
                     }
-                    if (key == "A" || key == "X")
+                    if (key == "A" || key == "X" || key == "B")
                     {
-                        Badge(_hints, key, key == "A" ? _buttonA : _buttonX, x - 15.5f, 987.5f, 31f, 15.5f);
+                        Badge(_hints, key, key == "A" ? _buttonA : key == "B" ? _buttonB : _buttonX, x - 15.5f, 987.5f, 31f, 15.5f);
                         x -= 31f + 10f;
                         continue;
                     }
@@ -1095,6 +1193,13 @@ namespace Game.Presentation.Hud
             {
                 // Lists browse with the D-pad, not the stick (2026-11-10): drawn, as no font has it.
                 UiKit.DPad(parent, _paper, x + width / 2f, y + height / 2f, 20f);
+                return;
+            }
+            if (key == "View")
+            {
+                // The View button's two overlapping windows, drawn (no font has it).
+                UiKit.StrokedBox(parent, "Back", _ink, _paper, 2f, x + width / 2f - 9f, y + height / 2f - 8f, 13f, 11f, 2f);
+                UiKit.StrokedBox(parent, "Front", _ink, _paper, 2f, x + width / 2f - 4f, y + height / 2f - 3f, 13f, 11f, 2f);
                 return;
             }
             if (key == "≡")
@@ -1209,7 +1314,7 @@ namespace Game.Presentation.Hud
             var aspect = 600f / 338f / ((float)_photoSize.x / _photoSize.y);
             _photo.uvRect = new UnityEngine.Rect((1f - aspect) / 2f, 0f, aspect, 1f);
             UiKit.RoundBox(_layout, "Caption", Alpha(_ink, 0.85f), 438f, 466f, 270f, 32f, 8f);
-            UiKit.TextAt(_style.Medium, _layout, "CaptionText", Tr.Get("Your photo · captured at close"), 17.33f, _paper, 573f, 488f, 270f, HorizontalAlignmentOptions.Center);
+            _caption = UiKit.TextAt(_style.Medium, _layout, "CaptionText", Tr.Get("Your photo · captured at close"), 17.33f, _paper, 573f, 488f, 270f, HorizontalAlignmentOptions.Center);
             UiKit.RoundBox(_layout, "Guests", _card, 120f, 700f, 600f, 222f, 18f);
 
             _header = UiKit.Rect(_layout, "HeaderState", 0f, 0f, 1920f, 1080f);
