@@ -23,6 +23,8 @@ namespace Game.Gameplay
         [SerializeField] private EquipmentTier _equipment;
         [SerializeField] private RealismSettings _realism;
         [SerializeField] private ServiceConfig _serviceConfig;
+        [Tooltip("The recipes on offer and how price moves customers. Without it, the service config's single dish is the menu.")]
+        [SerializeField] private CookbookConfig _cookbook;
         [SerializeField] private StaffConfig _staffConfig;
         [SerializeField] private FloorPlanConfig _floorPlan;
         [Tooltip("Rebuilds furniture bought in earlier days when a save is loaded.")]
@@ -59,6 +61,7 @@ namespace Game.Gameplay
             Services = new KitchenServices(cooking, new ItemViewRegistry(_itemCatalog), _itemCatalog, _equipment, _tuning, _realism, service, _serviceConfig, days, new StaffRoster(), _staffConfig, stations, _floorPlan);
             Services.Staff.Candidates = _staffConfig.CandidatesFor(days.Day);
             Services.ReviewLines = _reviewLines;
+            Services.Cookbook = NewCookbook(save);
 
             foreach (var station in stations.All)
                 station.Bind(Services);
@@ -70,6 +73,20 @@ namespace Game.Gameplay
             ReviewTextRecovery.Recover(Services.ReviewHistory, _serviceConfig.StyleVoice(), _serviceConfig.GenericVoice());
             // Who might come back today, now the history is loaded.
             Services.Service.Settings.Reviews.Guests?.Rebuild(Services.ReviewHistory, days.Day);
+        }
+
+        // This campaign's recipes and prices; whatever it unlocks joins the shared cookbook too.
+        private Game.Simulation.Cookbook.RecipeBook NewCookbook(Game.Simulation.Saving.CampaignSave save)
+        {
+            if (_cookbook == null)
+                return null;
+            var book = _cookbook.NewBook(_itemCatalog);
+            if (save != null)
+                book.Load(save.Recipes, save.Prices);
+            foreach (var id in book.UnlockedIds())
+                SharedCookbookFile.Add(id);
+            book.Unlocked += recipe => SharedCookbookFile.Add(recipe.Id);
+            return book;
         }
 
         // Review and reply lines used lately, across days and sessions, so words don't repeat.
@@ -220,6 +237,9 @@ namespace Game.Gameplay
         {
             if (phase == DayPhase.Service)
             {
+                // Prices can change right up to opening, so the menu is set as the doors open.
+                if (Services.Cookbook != null && Services.Service.Customers.Count == 0)
+                    Services.Service.SetMenu(Services.Cookbook.BuildMenu());
                 OpenSeats();
                 return;
             }

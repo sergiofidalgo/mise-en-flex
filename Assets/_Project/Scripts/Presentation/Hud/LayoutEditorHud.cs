@@ -24,6 +24,8 @@ namespace Game.Presentation.Hud
         [SerializeField] private CoopSettings _settings;
         [SerializeField] private KitchenCompositionRoot _root;
         [SerializeField] private GameObject _framePrefab;
+        [Tooltip("The players' shop cards; without them the shop shows in the cursor's label.")]
+        [SerializeField] private ManagementCardsHud _cards;
         [SerializeField] private Color _blocked = new Color(0.95f, 0.30f, 0.26f);
         [Tooltip("Metres above the floor where the label sits.")]
         [SerializeField, Min(0f)] private float _labelHeight = 1.4f;
@@ -64,7 +66,11 @@ namespace Game.Presentation.Hud
                 var position = cursor.Held != null ? cursor.Landing : cursor.Position;
                 view.Frame.transform.position = new Vector3(position.X, 0.02f, position.Y);
 
-                view.Label.Show(Text(cursor), new Vector3(position.X, _labelHeight, position.Y), camera, _canvas);
+                // With the shop open its card says it all, so the label above the cursor steps aside.
+                if (_cards != null && _cards.Shows(cursor))
+                    view.Label.Hide();
+                else
+                    view.Label.Show(Text(cursor), new Vector3(position.X, _labelHeight, position.Y), camera, _canvas);
             }
 
             _gone.Clear();
@@ -137,9 +143,10 @@ namespace Game.Presentation.Hud
         {
             var text = new System.Text.StringBuilder();
             text.AppendLine(Tr.Format("{amount} to spend", ("amount", Money(_root.Services.Days.Balance))));
-            for (var i = 0; i < _editor.Shop.Count; i++)
+            var page = _editor.ShopPage(cursor);
+            for (var i = 0; i < page.Count; i++)
             {
-                var entry = _editor.Shop[i];
+                var entry = page[i];
                 var line = $"{(i == cursor.ShopIndex ? "> " : "  ")}{Tr.Get(entry.DisplayName)}  {Money(entry.Price)}";
                 text.AppendLine(_editor.CanAfford(entry) ? line : HudStyle.Colored(line, _blocked));
             }

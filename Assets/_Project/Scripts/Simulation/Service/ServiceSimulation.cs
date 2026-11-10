@@ -105,7 +105,7 @@ namespace Game.Simulation.Service
                 {
                     if (customer.Satisfaction == null)
                         continue;
-                    total += customer.Satisfaction.Stars;
+                    total += customer.RatedStars ?? 0f;
                     count++;
                 }
                 return count > 0 ? total / count : (float?)null;
@@ -174,6 +174,18 @@ namespace Game.Simulation.Service
             }
             _nextArrivalIn -= remaining;
             Elapsed += remaining;
+        }
+
+        /// <summary>
+        /// Sets what customers order, as the doors open: prices can change right up to then. The
+        /// first arrival is timed again for the menu's demand.
+        /// </summary>
+        public void SetMenu(OrderMenu menu)
+        {
+            if (_customers.Count > 0)
+                throw new InvalidOperationException("The menu is set before the first customer.");
+            Settings.Menu = menu;
+            _nextArrivalIn = NextGap(Elapsed);
         }
 
         /// <summary>Gameplay: the customer has reached their stool.</summary>
@@ -439,7 +451,8 @@ namespace Game.Simulation.Service
         private float NextGap(float at)
         {
             var fraction = Settings.DurationSeconds > 0f ? at / Settings.DurationSeconds : 0f;
-            var interval = Settings.ArrivalIntervalSeconds;
+            // Prices shift how many come (decision 2026-11-10): twice the demand, half the gap.
+            var interval = Settings.ArrivalIntervalSeconds / Math.Max(0.01f, Settings.Menu?.Demand ?? 1f);
             if (fraction >= Settings.RushStart && fraction < Settings.RushEnd)
                 interval /= Math.Max(0.01f, Settings.RushMultiplier);
             var jitter = 1f + Settings.ArrivalJitter * (float)(_random.NextDouble() * 2.0 - 1.0);

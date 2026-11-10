@@ -48,9 +48,9 @@ namespace Game.Simulation.Service
         {
             if (customer.WalkedOut || customer.Satisfaction == null)
                 return CustomerMood.Unhappy;
-            if (customer.Satisfaction.Stars >= happyFrom)
+            if (customer.RatedStars >= happyFrom)
                 return CustomerMood.Happy;
-            return customer.Satisfaction.Stars >= neutralFrom ? CustomerMood.Neutral : CustomerMood.Unhappy;
+            return customer.RatedStars >= neutralFrom ? CustomerMood.Neutral : CustomerMood.Unhappy;
         }
     }
 }

@@ -19,7 +19,7 @@ namespace Game.Gameplay
     /// rotate, B puts what's held back where it was, and Select returns to the chef. Furniture goes exactly where they put it, snapping
     /// to what's around it when close. What's on a station moves with it. Each player has their own
     /// cursor, and two can't hold the same thing. Y opens the shop, whose furniture is carried like any
-    /// other and paid for when it goes down, and X sells what's under the cursor. The cutting board and
+    /// other and paid for when it goes down (LB and RB turn its pages), and X sells what's under the cursor. The cutting board and
     /// the knife rack are each built into a counter of their own (decision 2026-11-08), moved like any piece.
     /// </summary>
     public sealed class LayoutEditor : MonoBehaviour
@@ -50,8 +50,13 @@ namespace Game.Gameplay
             public FurnitureCatalog.Entry Buying;
 
             public bool ShopOpen;
+            /// <summary>The row chosen on the shop's page showing.</summary>
             public int ShopIndex;
             public bool ShopStickHeld;
+            /// <summary>The shop's page showing, turned with LB and RB (2026-11-10).</summary>
+            public ShopSection ShopSection;
+            /// <summary>A presses in the shop so far, so its card can answer each one, even a repeated refusal.</summary>
+            public int Presses;
 
             /// <summary>The colliders turned off while it's carried, to turn back on when it lands.</summary>
             public readonly List<Collider> Ghosted = new List<Collider>();
@@ -85,6 +90,14 @@ namespace Game.Gameplay
         public event Action LayoutChanged;
 
         public IReadOnlyList<FurnitureCatalog.Entry> Shop => _catalog.Entries;
+
+        /// <summary>The shop's pages that have something on them, in order.</summary>
+        public IReadOnlyList<ShopSection> ShopSections =>
+            ((ShopSection[])Enum.GetValues(typeof(ShopSection))).Where(s => _catalog.Entries.Any(e => e.Section == s)).ToList();
+
+        /// <summary>What's on the page a cursor's shop shows.</summary>
+        public IReadOnlyList<FurnitureCatalog.Entry> ShopPage(Cursor cursor) =>
+            _catalog.Entries.Where(e => e.Section == cursor.ShopSection).ToList();
 
         public bool CanAfford(FurnitureCatalog.Entry entry) => _root.Services.Days.Balance >= entry.Price;
 
@@ -383,6 +396,24 @@ namespace Game.Gameplay
                 return;
             }
 
+            // LB and RB turn the pages, as on the tailor's dressing card; the list starts at its top.
+            var sections = ShopSections.ToList();
+            if (sections.Count == 0)
+                return;
+            if (!sections.Contains(cursor.ShopSection))
+                cursor.ShopSection = sections[0];
+            var turn = actions[RotateRightAction].WasPressedThisFrame() ? 1 : actions[RotateLeftAction].WasPressedThisFrame() ? -1 : 0;
+            if (turn != 0)
+            {
+                var at = sections.IndexOf(cursor.ShopSection);
+                cursor.ShopSection = sections[(at + turn + sections.Count) % sections.Count];
+                cursor.ShopIndex = 0;
+                cursor.Result = Placement.Ok;
+                return;
+            }
+            var page = ShopPage(cursor);
+            cursor.ShopIndex = Mathf.Clamp(cursor.ShopIndex, 0, page.Count - 1);
+
             var stick = actions[MoveAction].ReadValue<Vector2>().y;
             if (Mathf.Abs(stick) < _shopStickThreshold)
             {
@@ -391,14 +422,15 @@ namespace Game.Gameplay
             else if (!cursor.ShopStickHeld)
             {
                 cursor.ShopStickHeld = true;
-                var count = _catalog.Entries.Length;
+                var count = page.Count;
                 cursor.ShopIndex = (cursor.ShopIndex + (stick > 0f ? count - 1 : 1)) % count;
                 cursor.Result = Placement.Ok;
             }
 
             if (actions[PickAction].WasPressedThisFrame())
             {
-                var entry = _catalog.Entries[cursor.ShopIndex];
+                cursor.Presses++;
+                var entry = page[cursor.ShopIndex];
                 if (entry.IsItem)
                     cursor.Result = BuyItem(entry);
                 else if (!Buy(cursor, entry))

@@ -1,0 +1,110 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1cacbe4b75547464da382d3791dceb65, type: 3}
+  m_Name: CookbookConfig
+  m_EditorClassIdentifier: Game.Data::Game.Data.CookbookConfig
+  _recipes:
+  - _id: steak
+    _name: Steak
+    _main: Steak
+    _donenesses:
+    - _doneness: Rare
+      _weight: 3
+    - _doneness: Medium
+      _weight: 5
+    - _doneness: Well done
+      _weight: 2
+    _side: 
+    _suggestedPrice: 20
+    _suggestedSidePrice: 0
+    _unlockCost: 0
+    _startsUnlocked: 1
+    _complexity: 1
+    _appliances:
+    - Hob
+    _ingredients:
+    - Steak
+    _popularity: 1
+  - _id: steak-rings
+    _name: Steak with onion rings
+    _main: Steak
+    _donenesses:
+    - _doneness: Rare
+      _weight: 3
+    - _doneness: Medium
+      _weight: 5
+    - _doneness: Well done
+      _weight: 2
+    _side: OnionRings
+    _suggestedPrice: 25
+    _suggestedSidePrice: 4
+    _unlockCost: 40
+    _startsUnlocked: 0
+    _complexity: 2
+    _appliances:
+    - Hob
+    - Board
+    _ingredients:
+    - Steak
+    - Onion
+    _popularity: 1
+  - _id: steak-onions
+    _name: "Steak with saut\xE9ed onions"
+    _main: Steak
+    _donenesses:
+    - _doneness: Rare
+      _weight: 3
+    - _doneness: Medium
+      _weight: 5
+    - _doneness: Well done
+      _weight: 2
+    _side: DicedOnion
+    _suggestedPrice: 27
+    _suggestedSidePrice: 5
+    _unlockCost: 60
+    _startsUnlocked: 0
+    _complexity: 3
+    _appliances:
+    - Hob
+    - Board
+    _ingredients:
+    - Steak
+    - Onion
+    _popularity: 1
+  - _id: onions
+    _name: "Saut\xE9ed onions"
+    _main: DicedOnion
+    _donenesses:
+    - _doneness: Softened
+      _weight: 1
+    - _doneness: Cooked
+      _weight: 1
+    _side: 
+    _suggestedPrice: 8
+    _suggestedSidePrice: 0
+    _unlockCost: 30
+    _startsUnlocked: 0
+    _complexity: 2
+    _appliances:
+    - Hob
+    - Board
+    _ingredients:
+    - Onion
+    _popularity: 0.5
+  _minPrice: 1
+  _maxPriceFactor: 5
+  _demandElasticity: 1.5
+  _minDemand: 0.15
+  _maxDemand: 1.5
+  _choiceElasticity: 1
+  _starsPerRatio: 2.5
+  _maxStarShift: 1

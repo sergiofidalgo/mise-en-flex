@@ -209,7 +209,7 @@ namespace Game.Presentation.Hud
             return HudStyle.Colored(Tr.Get("fed up"), new Color(0.95f, 0.30f, 0.26f));
         }
 
-        private static string RoleName(StaffRole role) => role switch
+        internal static string RoleName(StaffRole role) => role switch
         {
             StaffRole.PrepAssistant => Tr.Get("helper"),
             StaffRole.Waiter => Tr.Get("waiter"),

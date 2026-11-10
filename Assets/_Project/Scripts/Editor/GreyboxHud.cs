@@ -97,6 +97,13 @@ namespace Game.Editor
             tags.FindProperty("_root").objectReferenceValue = root;
             tags.ApplyModifiedPropertiesWithoutUndo();
 
+            var cards = new SerializedObject(hud.AddComponent<ManagementCardsHud>());
+            cards.FindProperty("_style").objectReferenceValue = style;
+            cards.FindProperty("_coop").objectReferenceValue = settings;
+            cards.FindProperty("_editor").objectReferenceValue = Object.FindFirstObjectByType<LayoutEditor>();
+            cards.FindProperty("_root").objectReferenceValue = root;
+            cards.ApplyModifiedPropertiesWithoutUndo();
+
             var layoutHud = new SerializedObject(hud.AddComponent<LayoutEditorHud>());
             layoutHud.FindProperty("_canvas").objectReferenceValue = hud.GetComponent<RectTransform>();
             layoutHud.FindProperty("_style").objectReferenceValue = style;
@@ -104,6 +111,7 @@ namespace Game.Editor
             layoutHud.FindProperty("_settings").objectReferenceValue = settings;
             layoutHud.FindProperty("_root").objectReferenceValue = root;
             layoutHud.FindProperty("_framePrefab").objectReferenceValue = GreyboxStaff.BuildCursorFrame();
+            layoutHud.FindProperty("_cards").objectReferenceValue = cards.targetObject;
             layoutHud.ApplyModifiedPropertiesWithoutUndo();
 
             var markers = new SerializedObject(hud.AddComponent<CustomerIndicatorHud>());
@@ -140,6 +148,7 @@ namespace Game.Editor
             dashboard.FindProperty("_root").objectReferenceValue = root;
             dashboard.FindProperty("_dayLoop").objectReferenceValue = root.GetComponent<DayLoop>();
             dashboard.FindProperty("_settings").objectReferenceValue = settings;
+            dashboard.FindProperty("_icons").objectReferenceValue = IngredientIconRenderer.Catalog();
             dashboard.ApplyModifiedPropertiesWithoutUndo();
 
             var campaign = new SerializedObject(hud.AddComponent<CampaignCardHud>());

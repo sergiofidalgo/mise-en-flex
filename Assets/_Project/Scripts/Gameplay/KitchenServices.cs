@@ -70,6 +70,13 @@ namespace Game.Gameplay
 
         public DayCycle Days { get; }
 
+        /// <summary>
+        /// This campaign's cookbook: the recipes it has unlocked, which are its menu, and their prices
+        /// (decision 2026-11-10). Null in a scene built before the cookbook, which keeps the
+        /// service config's single dish.
+        /// </summary>
+        public Game.Simulation.Cookbook.RecipeBook Cookbook { get; set; }
+
         /// <summary>What this morning's delivery brought, as (type id, portions).</summary>
         public List<(string TypeId, int Count)> LastDelivery { get; set; } = new List<(string, int)>();
 
