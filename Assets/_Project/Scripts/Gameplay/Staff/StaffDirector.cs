@@ -277,7 +277,14 @@ namespace Game.Gameplay.Staff
             return new Dishwasher(member, _sink.Sink, _stack.Stack, _clearable, _counters, settings, seed);
         }
 
-        private void HandleItemGone(Item item) => _root.Services.ItemViews.Release(item);
+        // A plate gone from a member of staff was dropped and broken: a spill where it fell (Phase 5).
+        private void HandleItemGone(Item item)
+        {
+            var services = _root.Services;
+            if (item is Plate && services.ItemViews.TryGetView(item, out var view))
+                services.Messes?.PlateBroken(view.transform.position);
+            services.ItemViews.Release(item);
+        }
 
         private void HandleFoodChanged()
         {

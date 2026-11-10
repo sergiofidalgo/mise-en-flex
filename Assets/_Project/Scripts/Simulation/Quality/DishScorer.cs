@@ -84,8 +84,29 @@ namespace Game.Simulation.Quality
         /// <summary>How the plate compared with the order when served, or null without an order.</summary>
         public OrderMatch? Match { get; }
 
-        /// <summary>0..1: the average of the items' scores.</summary>
+        /// <summary>0..1: the average of the items' scores, less <see cref="Dirt"/>.</summary>
         public float Overall { get; }
+
+        /// <summary>0..1: what dirt at the guest's table took off <see cref="Overall"/> (decision 2026-11-10).</summary>
+        public float Dirt { get; private set; }
+
+        /// <summary>True if the dirt was bad enough that it's what the guest remembers, after the food.</summary>
+        public bool DirtNoticed { get; private set; }
+
+        /// <summary>The same score with a dirty table or floor taken off it.</summary>
+        /// <param name="penalty">0..1, taken off <see cref="Overall"/>.</param>
+        /// <param name="noticedFrom">From this penalty up, the dirt is what the review may be about.</param>
+        public DishScore WithDirt(float penalty, float noticedFrom)
+        {
+            if (penalty <= 0f)
+                return this;
+            penalty = Math.Min(penalty, Overall);
+            return new DishScore(Items, Overall - penalty, Order, Missing, Match)
+            {
+                Dirt = penalty,
+                DirtNoticed = penalty >= noticedFrom,
+            };
+        }
 
         /// <summary>0 to 5 in half stars.</summary>
         public float Stars => (float)Math.Round(Overall * 10f, MidpointRounding.AwayFromZero) / 2f;

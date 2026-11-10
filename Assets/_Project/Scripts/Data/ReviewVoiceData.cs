@@ -249,6 +249,8 @@ namespace Game.Data
                 new ReviewVoiceData.Lines(ReviewTopic.WalkedOut, Who.Anyone, "Waited {wait} minutes. Left at {left}."),
                 new ReviewVoiceData.Lines(ReviewTopic.WalkedOut, Who.Critic, "I cannot review the food. I never met it."),
                 new ReviewVoiceData.Lines(ReviewTopic.Cold, Who.Anyone, "Lukewarm {main}. Like a limp handshake."),
+                new ReviewVoiceData.Lines(ReviewTopic.Dirty, Who.Anyone, "Crumbs from the last guy. Still there."),
+                new ReviewVoiceData.Lines(ReviewTopic.Dirty, Who.Critic, "The food was fine. The table was not."),
             },
             new[]
             {
@@ -398,6 +400,10 @@ namespace Game.Data
                 L(ReviewTopic.SlowService, Who.Influencer, "Waited so long my phone died."),
                 L(ReviewTopic.SlowService, Who.Tourist, "Nearly missed our train for it."),
                 L(ReviewTopic.SlowService, Who.Local, "My kids aged a year. Steak was good."),
+
+                L(ReviewTopic.Dirty, Who.Anyone, "Great {main}. Shame about the table.", "Grease on the table, ash on the floor."),
+                L(ReviewTopic.Dirty, Who.Influencer, "Had to crop the sticky table out."),
+                L(ReviewTopic.Dirty, Who.Local, "My shoes stuck to the floor. Again."),
 
                 L(ReviewTopic.WalkedOut, Who.Anyone, "{wait} minutes, no {main}. Left at {left}.", "Watched three tables eat. Not mine.", "Smelled great. Never found out why.", "Left hungry. Got pizza on the way."),
                 L(ReviewTopic.WalkedOut, Who.Regular, "First time I've walked out. Last, I hope."),

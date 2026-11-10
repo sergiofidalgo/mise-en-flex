@@ -493,6 +493,7 @@ namespace Game.Presentation.Hud
             ReviewTopic.SideOff => Game.Data.Tr.Get("The side was off"),
             ReviewTopic.SlowService => Game.Data.Tr.Get("Slow service"),
             ReviewTopic.WalkedOut => Game.Data.Tr.Get("Gave up waiting"),
+            ReviewTopic.Dirty => Game.Data.Tr.Get("Dirty table"),
             _ => topic.ToString(),
         };
 

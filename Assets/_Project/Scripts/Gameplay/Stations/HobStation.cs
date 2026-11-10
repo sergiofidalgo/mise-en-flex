@@ -32,15 +32,20 @@ namespace Game.Gameplay.Stations
         /// <summary>Null until bound.</summary>
         public KitchenServices Services => _services;
 
-        public override IItemContainer Container => _slot;
+        // A pan on fire can't be touched (decision 2026-11-07): Interact finds nothing to take or give.
+        public override IItemContainer Container => IsOnFire ? null : _slot;
+
+        /// <summary>True while its pan is on fire.</summary>
+        public bool IsOnFire => _services != null && _services.Fires.IsBurning(Hob);
 
         public bool PromptAsDiamond(PlayerInteractor player) => false;
 
         // Its own pan goes with it, so the pan has to be home and empty.
-        public override bool IsClear => Hob?.Pan != null && Hob.Pan.Contents.Count == 0;
+        public override bool IsClear => Hob?.Pan != null && Hob.Pan.Contents.Count == 0 && !IsOnFire;
 
         public override void Retire(KitchenServices services)
         {
+            services.Fires.Forget(Hob);
             var pan = Hob.Pan;
             services.ItemViews.Release(pan);
             services.Cooking.Remove(pan);
@@ -86,10 +91,15 @@ namespace Game.Gameplay.Stations
             return true;
         }
 
-        public bool TryUse(PlayerInteractor player) => Hob != null && HobControls.TryFlip(Hob);
+        public bool TryUse(PlayerInteractor player) => Hob != null && !IsOnFire && HobControls.TryFlip(Hob);
 
         public void DescribeActions(PlayerInteractor player, List<PromptLine> lines)
         {
+            if (IsOnFire)
+            {
+                lines.Add(new PromptLine(PromptControl.West, Tr.Get("put out fire"), player.Hands.IsEmpty));
+                return;
+            }
             lines.Add(new PromptLine(PromptControl.Triggers, Hob != null && Hob.Kind == HeatKind.Induction ? Tr.Format("heat: {heat}", ("heat", StepName(Hob))) : Tr.Get("heat")));
             var hasFood = Hob?.Pan != null && Hob.Pan.Contents.Count > 0;
             lines.Add(new PromptLine(PromptControl.West, Tr.Get("flip"), hasFood));
@@ -101,7 +111,7 @@ namespace Game.Gameplay.Stations
 
         public void AdjustHeat(float heatDown, float heatUp, float realDeltaTime)
         {
-            if (Hob == null)
+            if (Hob == null || IsOnFire)
                 return;
             if (Hob.Kind != HeatKind.Induction)
             {

@@ -287,7 +287,9 @@ namespace Game.Gameplay.Stations
             if (place.Eating == null || place.Eating.State == CustomerState.Eating)
                 return;
 
-            // Eaten: the food leaves the kitchen, and the dirty plate waits to be cleared.
+            // Eaten: the food leaves the kitchen, and the dirty plate waits to be cleared. Crumbs and
+            // sauce stay on the table under it (Phase 5).
+            _services.Messes?.DinerFinished(this, place.PlateAnchor != null ? place.PlateAnchor.position : transform.position);
             var plate = place.Slot.Current;
             foreach (var item in plate.Items)
             {
@@ -309,6 +311,9 @@ namespace Game.Gameplay.Stations
 
             var plate = place.Slot.Current;
             var score = DishScorer.Score(plate, _services.Tuning.Quality(_services.Realism.CookingPrecision), customer.Order);
+            // A dirty table or a messy floor by the seat costs a little (decision 2026-11-10).
+            var seat = place.Seat != null ? place.Seat.position : transform.position;
+            score = score.WithDirt(_services.Dirt.PenaltyFor(this, seat.x, seat.z), _services.Tuning.Dirt.NoticedFrom);
             if (!_services.Service.Serve(place.SeatIndex, plate, score))
                 return;
 

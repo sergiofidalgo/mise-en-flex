@@ -57,6 +57,16 @@ namespace Game.Presentation
         [Tooltip("Degrees the knob turns, clockwise from above, from off (pointing to the top of the hob) to full heat.")]
         [SerializeField, Range(0f, 360f)] private float _knobTurn = 270f;
 
+        [Header("Pan fire (Phase 5)")]
+        [Tooltip("Tall flames standing out of a pan on fire, copied from the tongues.")]
+        [SerializeField, Min(0)] private int _fireTongues = 9;
+        [Tooltip("Their height and width scales, and how far round the pan's middle they stand (metres).")]
+        [SerializeField] private Vector3 _fireSize = new Vector3(6.5f, 2.8f, 0.09f);
+        [SerializeField] private Color _fireColor = new Color(1f, 0.62f, 0.12f);
+        [SerializeField] private Color _fireTip = new Color(0.95f, 0.22f, 0.04f);
+        [Tooltip("A smouldering pan's tongues lean in and grow as it gets close to catching.")]
+        [SerializeField, Range(0f, 1f)] private float _smoulderShow = 0.45f;
+
         [SerializeField] private Color _burnerOff = new Color(0.08f, 0.08f, 0.09f);
         [SerializeField] private Color _burnerFull = new Color(1f, 0.35f, 0.05f);
         [SerializeField] private Color _pipOff = new Color(0.12f, 0.12f, 0.13f);
@@ -67,6 +77,7 @@ namespace Game.Presentation
         };
 
         private MaterialPropertyBlock _block;
+        private Renderer[] _fire;
         // The gas hob's heat knob, a child called "Knob", turned with the dial; the induction hob has none.
         private Transform _knob;
         private Quaternion _knobOff;
@@ -95,7 +106,59 @@ namespace Game.Presentation
             if (_knob != null)
                 _knob.localRotation = _knobOff * Quaternion.Euler(0f, _hob.Hob.Dial * _knobTurn, 0f);
 
-            ShowFlames(_hob.Hob.Dial);
+            // On fire, the gas roars at full whatever the knob says, and the pan burns.
+            var burning = _hob.IsOnFire;
+            ShowFlames(burning ? 1f : _hob.Hob.Dial);
+            ShowPanFire(burning ? 1f : SmoulderShown());
+        }
+
+        private float SmoulderShown()
+        {
+            var services = _hob.Services;
+            var smoulder = services != null ? services.Fires.Smouldering(_hob.Hob) : 0f;
+            return smoulder > 0f ? _smoulderShow * smoulder : 0f;
+        }
+
+        // Tall flames out of the pan itself, copied from the burner's tongues so they share its look.
+        private void ShowPanFire(float amount)
+        {
+            if (amount <= 0f && _fire == null)
+                return;
+            if (_fire == null)
+            {
+                if (_flames.Length == 0 || _hob.ItemAnchor == null)
+                    return;
+                _fire = new Renderer[_fireTongues];
+                for (var i = 0; i < _fireTongues; i++)
+                {
+                    var tongue = Instantiate(_flames[0], _hob.ItemAnchor);
+                    tongue.name = "PanFire";
+                    var angle = i * Mathf.PI * 2f / _fireTongues;
+                    var ring = i % 3 == 0 ? 0f : _fireSize.z * (i % 2 == 0 ? 1f : 0.6f);
+                    tongue.transform.localPosition = new Vector3(Mathf.Cos(angle) * ring, 0.04f, Mathf.Sin(angle) * ring);
+                    tongue.transform.localRotation = Quaternion.Euler(0f, angle * Mathf.Rad2Deg, 0f);
+                    _fire[i] = tongue;
+                }
+            }
+
+            var on = amount > 0f;
+            var t = Time.time * _flickerSpeed;
+            for (var i = 0; i < _fire.Length; i++)
+            {
+                var tongue = _fire[i];
+                if (tongue.enabled != on)
+                    tongue.enabled = on;
+                if (!on)
+                    continue;
+                // Each licks on its own beat, more wildly than a burner's flame.
+                var flicker = 1f + 2f * _flicker * Mathf.Sin(t * 0.8f + i * 1.7f) * Mathf.Sin(t * 0.47f + i * 0.9f);
+                var middle = i % 3 == 0 ? 1.2f : 1f;
+                tongue.transform.localScale = new Vector3(_fireSize.y, _fireSize.x * middle * flicker, _fireSize.y) * amount;
+                tongue.GetPropertyBlock(_block);
+                _block.SetColor(BaseColorId, _fireColor);
+                _block.SetColor(TipColorId, _fireTip);
+                tongue.SetPropertyBlock(_block);
+            }
         }
 
         // Off, the flames are gone; any heat lights them, and higher heat makes them taller, wider

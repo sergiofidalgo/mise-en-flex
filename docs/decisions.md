@@ -100,6 +100,23 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 - **The money total also shows red whenever the balance is below zero** (in Prep), a standing cue for debt.
 
 **Reason:** Shopping becomes a planning and budget choice (`plans/phase-5.md`). Going out costs time, and grades trade money against freshness. Stock going straight into storage keeps the trip about time and choice rather than carrying chores, and the feedback shows each purchase where it went and what it cost.
+## 2026-11-10 — Phase 5 cleaning and fire: trace a shape, a medium mess, dirt in reviews, no ruined hobs
+
+**User's calls (milestone 5):**
+- **The stick game is tracing a shape.** A path lies on the dirt and the chef follows it with the stick, pulling a marker round it; each loop wipes a layer. The cloth draws small circles, the mop a wide figure-eight, the extinguisher side-to-side sweeps across the flames. It's about moving, so it plays differently from the sink, which is about holding still.
+- **A medium mess.** Each diner leaves a small smudge on their table, a plate dropped by a waiter or broken at the sink leaves a big floor spill, a pan burnt on the heat leaves a scorch on the counter next to its hob, every few guests scuff the dining floor, and a fire put out leaves foam. A tidy service leaves about a minute of cleaning for one chef; a chaotic one, two or three. All of it is tunable in `TuningConfig`.
+- **Dirt counts in reviews only, for now.** A guest seated at a dirty table or next to floor dirt scores a little lower and may mention it. Health inspections come in Phase 7.
+- **Appliances have no lifespan for now.** A fire never ruins its hob: it burns until it's put out. This replaces "left too long, the hob is ruined" (2026-11-07).
+
+**Reason:** the user's answers to the milestone's open questions.
+
+**How it's built (proposed while building, tunable in `TuningConfig` under Dirt, Cleaning game and Gas fires):**
+- **Hold X with empty hands.** X does the station's own thing first (flip, ring the bell); with nothing to do there it cleans: a burning hob first, then dirt on what the chef faces, then the floor a step ahead. Letting go of X, or B, stops, and what was wiped stays wiped. While X is held, a finished patch moves straight on to the next one in reach. No card while cleaning, as at the sink; otherwise the prompt shows "X wipe" or "X mop".
+- **The trace:** the stick's position is the point, so circling the stick draws the cloth's circle. The marker only goes forward, and only new path counts, so wiggling in one place does nothing; a stick slammed about (faster than 15 units a second) doesn't count; under 0.15 the stick reads as centred, which only reaches the path where it runs through the middle (the mop's crossing). A first rule that ignored the stick under 0.35 froze the marker just before the eight's crossing, found by the play test. Tolerance 0.4 of the stick's reach. Fastest loops a second: cloth 1.1, mop 0.7, extinguisher 0.9.
+- **Amounts in wipes (one loop each):** a diner 1, a broken plate 3, a burnt pan 2, a scuff every 6 guests 1, foam 2; up to 4 in one spot. So a table smudge is about a second, a spill about four seconds with the mop.
+- **In reviews:** a full wipe on the guest's own table takes 0.1 off the dish score (half a star); each wipe of floor dirt within 1.5 m takes 0.04; at most 0.2. From 0.05 the review may be about it ("Dirty table" on the dashboard), after anything wrong with the food and before a slow wait.
+- **Fire:** 4 real seconds on a lit flame after the food has burnt on the side it's lying on (flipping the pale side down, lifting the food out or turning the gas off in time stops it). The food is lost. While it burns the hob takes no pan, no heat change and no flip, the gas roars at full and tall flames stand out of the pan, and the alarm keeps going. Turning the knob off doesn't put it out. Three sweeps of the extinguisher do, which also turns the gas off. A fire still burning at closing goes out on its own and leaves its foam for the morning.
+- **Shown on the dirt:** flat cartoony patches that shrink as they're wiped, and a bead track in the shape lit in the chef's colour up to the marker, with chevrons for the way round. The mop head, cloth or nozzle rides the marker. The track turns with the camera, never the furniture, and is drawn over the chef (`Game/ToonOnTop`). Placeholder look; `CleaningView`, added by the kitchen builder or **Tools/Game/Apply Cleaning View**.
 
 ---
 

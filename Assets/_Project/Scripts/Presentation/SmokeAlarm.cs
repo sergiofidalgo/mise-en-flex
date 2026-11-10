@@ -46,6 +46,13 @@ namespace Game.Presentation
             if (phase != DayPhase.Prep && phase != DayPhase.Service)
                 return null;
 
+            // A pan on fire is the worst there is: the alarm keeps going until it's out (Phase 5).
+            foreach (var hob in services.Cooking.Hobs)
+            {
+                if (hob.Pan != null && services.Fires.IsBurning(hob))
+                    return hob.Pan;
+            }
+
             var sounds = _audio.Sounds;
             Pan worst = null;
             var worstCloseness = 0f;
