@@ -14,6 +14,7 @@ Shader "Game/Toon"
         _RimStrength("Rim light", Range(0, 1)) = 0.2
         _OutlineColor("Outline", Color) = (0.2, 0.13, 0.09, 1)
         _OutlineWidth("Outline width (m)", Range(0, 0.05)) = 0.012
+        _ReceiveShadows("Receive cast shadows (0 for people)", Range(0, 1)) = 1
 
         [Header(Wood grain)]
         _WoodGrain("Wood grain (0 off)", Range(0, 1)) = 0
@@ -41,6 +42,7 @@ Shader "Game/Toon"
             float _RimStrength;
             half4 _OutlineColor;
             float _OutlineWidth;
+            float _ReceiveShadows;
             float _WoodGrain;
             half4 _GrainColor;
             float _GrainScale;
@@ -159,7 +161,7 @@ Shader "Game/Toon"
 
             half4 Fragment(Varyings input) : SV_Target
             {
-                half3 color = ToonShade(Albedo(input.positionOS), input.positionWS, input.normalWS, input.positionCS);
+                half3 color = ToonShade(Albedo(input.positionOS), input.positionWS, input.normalWS, input.positionCS, _ReceiveShadows);
                 return half4(MixFog(color, input.fogFactor), 1);
             }
             ENDHLSL

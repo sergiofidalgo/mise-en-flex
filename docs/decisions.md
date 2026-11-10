@@ -4,6 +4,19 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-10 — Characters take no cast shadow on themselves; the headdress sweeps back
+
+**Decision:**
+- People (chefs, customers, staff, the office's people) still cast shadows on the floor, but receive none from the sun on their own bodies.
+- The toon shader has a new per-material `_ReceiveShadows` (1 for the set, 0 on every character material, set by `CharacterArt.Part`).
+- The feather headdress's feathers now stand on a cone tipped 55° back: the front ones rise over the brow, the side ones fan out and back, and the back ones sweep down behind the head, as in the user's war bonnet reference.
+
+**Reason:**
+- The user found the chef models "bad/buggy across the board". At the sun's shadow-map resolution, the small round bodies shadowed themselves into jagged acne teeth on jackets, aprons, trousers and faces. Captures with shadows switched off showed the teeth were all shadow (not SSAO, which was ruled out the same way).
+- Cartoon characters usually don't take cast shadows. The lit/mid cel split across heads and torsos is the toon ramp itself and stays.
+
+---
+
 ## 2026-11-10 — The opening runs up an avenue to the tower
 
 **User's notes (2026-11-09):**

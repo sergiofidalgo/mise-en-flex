@@ -669,6 +669,13 @@ namespace Game.Editor
             renderer.sharedMaterial = material != null
                 ? StyleTest.EnsureToonMaterial(material, color)
                 : Toon(color);
+            // People take no cast shadow on themselves: their small round shapes self-shadow
+            // into acne at the sun's shadow-map resolution (ToonCommon.hlsl). They still cast.
+            if (renderer.sharedMaterial.HasProperty("_ReceiveShadows") && renderer.sharedMaterial.GetFloat("_ReceiveShadows") != 0f)
+            {
+                renderer.sharedMaterial.SetFloat("_ReceiveShadows", 0f);
+                EditorUtility.SetDirty(renderer.sharedMaterial);
+            }
             return renderer;
         }
 

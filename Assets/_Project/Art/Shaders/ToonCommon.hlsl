@@ -56,7 +56,11 @@ half3 LocalLights(half3 albedo, float3 positionWS, float3 normalWS, float4 posit
 #endif
 }
 
-half3 ToonShade(half3 albedo, float3 positionWS, float3 normalWS, float4 positionCS)
+// receiveShadows scales how much cast shadow lands on the surface: 1 for the set, 0 for the
+// people. Small round bodies self-shadow into jagged acne teeth at the sun's shadow-map
+// resolution (jackets, aprons, faces; the user's note, 2026-11-10), so characters cast shadows
+// on the floor but take none themselves, as cartoon characters usually do.
+half3 ToonShade(half3 albedo, float3 positionWS, float3 normalWS, float4 positionCS, float receiveShadows)
 {
     normalWS = normalize(normalWS);
     Light mainLight = GetMainLight(TransformWorldToShadowCoord(positionWS));
@@ -69,7 +73,7 @@ half3 ToonShade(half3 albedo, float3 positionWS, float3 normalWS, float4 positio
     // Cast shadows only count on faces turned towards the sun. A face lit edge-on or from behind
     // is already in its darker band, and at grazing angles the shadow map aliases into jagged
     // teeth (seen on the fridge front, 2026-11-08), so its shadow fades out as it turns away.
-    float shadow = lerp(1.0, mainLight.shadowAttenuation, saturate(ndotl * 5.0));
+    float shadow = lerp(1.0, mainLight.shadowAttenuation, saturate(ndotl * 5.0) * receiveShadows);
     float value = facing * shadow;
     half3 color = albedo * ToonRamp(value) * mainLight.color;
 
@@ -87,6 +91,11 @@ half3 ToonShade(half3 albedo, float3 positionWS, float3 normalWS, float4 positio
     float3 toCamera = GetWorldSpaceNormalizeViewDir(positionWS);
     float rim = pow(saturate(1.0 - dot(normalWS, toCamera)), 4.0) * _RimStrength * lit;
     return color + rim + LocalLights(albedo, positionWS, normalWS, positionCS);
+}
+
+half3 ToonShade(half3 albedo, float3 positionWS, float3 normalWS, float4 positionCS)
+{
+    return ToonShade(albedo, positionWS, normalWS, positionCS, 1.0);
 }
 
 #endif
