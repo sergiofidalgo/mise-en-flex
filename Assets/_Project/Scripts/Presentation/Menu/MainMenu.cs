@@ -44,7 +44,10 @@ namespace Game.Presentation.Menu
         [SerializeField] private CoopSettings _coop;
         [SerializeField] private RealismSettings _realism;
         [SerializeField] private ServiceConfig _service;
+        [Tooltip("The kitchen for a restaurant without one of its own (the grill's), and for a new campaign.")]
         [SerializeField] private string _kitchenScene = "Kitchen_Greybox";
+        [Tooltip("Every restaurant: continuing opens the current one's own kitchen (Phase 6, milestone 3).")]
+        [SerializeField] private MiniatureConfig _restaurants;
         [Tooltip("Start hidden and ignoring input, for a scene that shows the menu when it's ready (the office's opening, docs/opening-flow.md).")]
         [SerializeField] private bool _startHidden;
 
@@ -300,7 +303,7 @@ namespace Game.Presentation.Menu
                 Launching(slot, continuing);
                 return;
             }
-            SceneManager.LoadScene(_kitchenScene);
+            SceneManager.LoadScene(continuing ? CampaignLaunch.KitchenScene(slot, _restaurants, _kitchenScene) : _kitchenScene);
         }
 
         private void Open(Page page)

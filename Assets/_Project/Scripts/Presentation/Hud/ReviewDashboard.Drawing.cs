@@ -18,6 +18,10 @@ namespace Game.Presentation.Hud
     /// </summary>
     public sealed partial class ReviewDashboard
     {
+        // The restaurant being played (Phase 6, milestone 3): its own name and style, not the config's.
+        private string ShownName => string.IsNullOrEmpty(Services.RestaurantName) ? Services.ServiceConfig.RestaurantName : Services.RestaurantName;
+        private string ShownStyle => string.IsNullOrEmpty(Services.StyleName) ? Services.ServiceConfig.StyleName : Services.StyleName;
+
         [Header("Palette (from the mockups)")]
         [SerializeField] private Color _paper = Hex(0xf4e6cc);
         [SerializeField] private Color _ink = Hex(0x2b211b);
@@ -130,7 +134,7 @@ namespace Game.Presentation.Hud
             UiKit.Clear(_header);
             var days = Services.Days;
             var config = Services.ServiceConfig;
-            Label(Medium, _header, Tr.Format("{style}s near you", ("style", Tr.Get(config.StyleName))), 21.33f, _sand, 374f, 106f, 500f);
+            Label(Medium, _header, Tr.Format("{style}s near you", ("style", Tr.Get(ShownStyle))), 21.33f, _sand, 374f, 106f, 500f);
 
             var today = Services.ReviewHistory.Count(r => r.Day == days.Day);
             var right = 1804f;
@@ -157,7 +161,7 @@ namespace Game.Presentation.Hud
             UiKit.Clear(_left);
             var config = Services.ServiceConfig;
             var all = Services.ReviewHistory;
-            Label(ExtraBold, _left, config.RestaurantName, 50.67f, _ink, 120f, 576f, 600f, tracking: -1.6f);
+            Label(ExtraBold, _left, ShownName, 50.67f, _ink, 120f, 576f, 600f, tracking: -1.6f);
 
             var rating = ReviewReplies.Rating(all);
             if (rating.HasValue)
@@ -177,7 +181,7 @@ namespace Game.Presentation.Hud
                 ? Services.Cookbook.Menu.Max(r => Services.Cookbook.PriceOf(r.Id))
                 : config.MainPrice;
             var band = mainPrice < 15f ? 1 : mainPrice < 30f ? 2 : 3;
-            Label(Medium, _left, Tr.Format("{band} · {style} · Open {from}–{to}", ("band", Locale.PriceBand(band)), ("style", Tr.Get(config.StyleName)), ("from", ClockAt(0f)), ("to", ClockAt(hours))), 21.33f, _body, 120f, 673f, 600f);
+            Label(Medium, _left, Tr.Format("{band} · {style} · Open {from}–{to}", ("band", Locale.PriceBand(band)), ("style", Tr.Get(ShownStyle)), ("from", ClockAt(0f)), ("to", ClockAt(hours))), 21.33f, _body, 120f, 673f, 600f);
 
             DrawChart();
         }
@@ -520,7 +524,7 @@ namespace Game.Presentation.Hud
                 var top = y + 107f;
                 UiKit.RoundBox(parent, "Thread", _gold, 856f, top, 3f, 54f + (ReplyLines(review) > 1 ? ReplyLineHeight : 0f), 0f);
                 UiKit.Picture(parent, "Mark", _style.ReplyMark, 876f, top + 4f, 14f, 18f);
-                var owner = Label(Bold, parent, Services.ServiceConfig.RestaurantName, 16.67f, _wellLight, 897f, top + 18f, 300f);
+                var owner = Label(Bold, parent, ShownName, 16.67f, _wellLight, 897f, top + 18f, 300f);
                 Label(Medium, parent, review.Day == Services.Days.Day ? Tr.Get("· owner · just now") : Tr.Get("· owner"), 16.67f, _quiet, 897f + UiKit.Width(owner) + 7f, top + 18f, 300f);
                 var reply = UiKit.TextAt(Medium, parent, "Reply", ShownReply(review), ReplySize, _ink, 877f, top + 45f, ReplyWidth, lines: 2);
                 LineHeight(reply, ReplyLineHeight);

@@ -40,6 +40,7 @@ namespace Game.Gameplay.Office
 
         [Tooltip("Half the size of the area around the table that counts as at it (m, local X and Z): the table plus an arm's reach.")]
         [SerializeField] private Vector2 _halfArea = new Vector2(3.4f, 2.5f);
+        [Tooltip("The kitchen for a restaurant without one of its own (the grill's).")]
         [SerializeField] private string _kitchenScene = "Kitchen_Greybox";
         [SerializeField] private OfficeCampaign _campaign;
         [Tooltip("Each lot's spot on the miniature, in the Miniature Config's order.")]
@@ -201,7 +202,9 @@ namespace Game.Gameplay.Office
             foreach (var player in _lookers.ToList())
                 Look(player, false); // they walk into the kitchen free
             PlayerRoster.CarryEveryone(); // the same players walk into the kitchen
-            SceneManager.LoadScene(_kitchenScene);
+            // The restaurant just chosen opens its own kitchen (milestone 3); one without a kitchen of
+            // its own yet opens the grill's.
+            SceneManager.LoadScene(Saving.CampaignLaunch.KitchenScene(_campaign.Campaign, _campaign.Config, _kitchenScene));
         }
 
         private void StartBuying(PlayerInput player)

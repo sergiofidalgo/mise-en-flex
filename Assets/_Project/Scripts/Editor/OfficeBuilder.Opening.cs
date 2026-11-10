@@ -57,6 +57,7 @@ namespace Game.Editor
             so.FindProperty("_coop").objectReferenceValue = coop;
             so.FindProperty("_realism").objectReferenceValue = AssetDatabase.LoadAssetAtPath<RealismSettings>(SettingsFolder + "/RealismSettings.asset");
             so.FindProperty("_service").objectReferenceValue = AssetDatabase.LoadAssetAtPath<ServiceConfig>(SettingsFolder + "/ServiceConfig.asset");
+            so.FindProperty("_restaurants").objectReferenceValue = RestaurantDefinitions.EnsureMiniature(); // Continue opens the current restaurant's kitchen
             so.FindProperty("_medium").objectReferenceValue = MenuArt.Font("Inter-Medium");
             so.FindProperty("_semiBold").objectReferenceValue = MenuArt.Font("Inter-SemiBold");
             so.FindProperty("_bold").objectReferenceValue = MenuArt.Font("Inter-Bold");

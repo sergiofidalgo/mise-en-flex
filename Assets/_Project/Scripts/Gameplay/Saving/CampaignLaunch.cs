@@ -49,6 +49,33 @@ namespace Game.Gameplay.Saving
             StartNew(free >= 0 ? free : 0);
         }
 
+        /// <summary>The grill's kitchen: every restaurant without one of its own opens it.</summary>
+        public const string FirstKitchen = "Kitchen_Greybox";
+
+        /// <summary>
+        /// The kitchen scene this campaign opens (Phase 6, milestone 3): its current restaurant's own,
+        /// or <paramref name="fallback"/> (the grill's) for one without a kitchen yet, or no campaign.
+        /// </summary>
+        public static string KitchenScene(Game.Simulation.Saving.CampaignSave campaign, Game.Data.MiniatureConfig restaurants, string fallback = FirstKitchen) =>
+            Game.Simulation.Campaign.KitchenScenes.For(campaign, restaurants != null ? restaurants.LotSettings() : null,
+                string.IsNullOrEmpty(fallback) ? FirstKitchen : fallback);
+
+        /// <summary>The kitchen scene the campaign in this slot opens, read from its file.</summary>
+        public static string KitchenScene(int slot, Game.Data.MiniatureConfig restaurants, string fallback = FirstKitchen)
+        {
+            Game.Simulation.Saving.CampaignSave campaign = null;
+            try
+            {
+                var file = SaveSlots.File(slot);
+                campaign = file.Exists ? file.Read() : null;
+            }
+            catch (System.Exception exception)
+            {
+                UnityEngine.Debug.LogWarning($"Couldn't read slot {slot} to choose its kitchen: {exception.Message}");
+            }
+            return KitchenScene(campaign, restaurants, fallback);
+        }
+
         /// <summary>Back to a fresh launch: also as play mode starts, in case statics survive between runs.</summary>
         [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
         public static void Reset()
