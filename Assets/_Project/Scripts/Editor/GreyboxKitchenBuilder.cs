@@ -27,6 +27,7 @@ namespace Game.Editor
         private const string RealismPath = SettingsFolder + "/RealismSettings.asset";
         private const string ServiceConfigPath = SettingsFolder + "/ServiceConfig.asset";
         private const string StaffConfigPath = SettingsFolder + "/StaffConfig.asset";
+        private const string CookbookConfigPath = SettingsFolder + "/CookbookConfig.asset";
         private const string FurnitureCatalogPath = SettingsFolder + "/FurnitureCatalog.asset";
         private const string FloorPlanPath = SettingsFolder + "/FloorPlanConfig.asset";
         private const string FurniturePrefabFolder = "Assets/_Project/Prefabs/Furniture";
@@ -268,6 +269,7 @@ namespace Game.Editor
                 Realism = GreyboxAssets.EnsureAsset<RealismSettings>(RealismPath),
                 ServiceConfig = GreyboxAssets.EnsureAsset<ServiceConfig>(ServiceConfigPath),
                 StaffConfig = GreyboxAssets.EnsureAsset<StaffConfig>(StaffConfigPath),
+                Cookbook = GreyboxAssets.EnsureAsset<CookbookConfig>(CookbookConfigPath),
                 FloorPlan = GreyboxAssets.EnsureAsset<FloorPlanConfig>(FloorPlanPath),
                 Catalog = GreyboxIngredients.BuildCatalog(
                     (GreyboxKitchenware.PanTypeId, GreyboxKitchenware.BuildPan()),
@@ -291,6 +293,17 @@ namespace Game.Editor
             MainMenuBuilder.Build();
         }
 
+        /// <summary>
+        /// Creates the cookbook's tuning asset with its default recipes if it's missing, without
+        /// rebuilding the kitchen. The kitchen build does the same.
+        /// </summary>
+        [MenuItem("Tools/Game/Create Cookbook Config")]
+        public static void EnsureCookbookConfig()
+        {
+            GreyboxAssets.EnsureAsset<CookbookConfig>(CookbookConfigPath);
+            AssetDatabase.SaveAssets();
+        }
+
         private sealed class SceneAssets
         {
             public CoopSettings Settings;
@@ -299,14 +312,16 @@ namespace Game.Editor
             public RealismSettings Realism;
             public ServiceConfig ServiceConfig;
             public StaffConfig StaffConfig;
+            public CookbookConfig Cookbook;
             public FurnitureCatalog Furniture;
             public FloorPlanConfig FloorPlan;
             public ItemCatalog Catalog;
             public GameObject PlayerPrefab;
         }
 
-        // Phase 2 menu: steak to order, sometimes with sautéed onions. Only fills empty fields, so a
-        // menu tuned in the Inspector survives a rebuild.
+        // Phase 2 menu: steak to order, sometimes with sautéed onions. The cookbook's menu replaces it
+        // in the kitchen (decision 2026-11-10); it stays for tests and a scene without a cookbook.
+        // Only fills empty fields, so a menu tuned in the Inspector survives a rebuild.
         private static void SetMenu(ServiceConfig config, ItemCatalog catalog)
         {
             var so = new SerializedObject(config);
@@ -525,6 +540,7 @@ namespace Game.Editor
             rootSo.FindProperty("_realism").objectReferenceValue = assets.Realism;
             rootSo.FindProperty("_serviceConfig").objectReferenceValue = assets.ServiceConfig;
             rootSo.FindProperty("_staffConfig").objectReferenceValue = assets.StaffConfig;
+            rootSo.FindProperty("_cookbook").objectReferenceValue = assets.Cookbook;
             rootSo.FindProperty("_floorPlan").objectReferenceValue = assets.FloorPlan;
             rootSo.FindProperty("_furniture").objectReferenceValue = assets.Furniture;
             rootSo.FindProperty("_playerInputManager").objectReferenceValue = manager;
