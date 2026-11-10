@@ -78,7 +78,6 @@ namespace Game.Editor
                 count += Update(status, so =>
                 {
                     Raise(so, "_stripFontSize", 28f);
-                    Raise(so, "_clockFontSize", 32f);
                     Raise(so, "_cardFontSize", 32f);
                 });
             // The doneness tag above the gauge grew with the bigger text: move the gauge down to clear it.

@@ -170,6 +170,13 @@ namespace Game.Editor
             money.FindProperty("_pause").objectReferenceValue = pause;
             money.ApplyModifiedPropertiesWithoutUndo();
 
+            // The day, phase and clock, bottom left (decision 2026-11-10): the money card's quieter sibling.
+            var day = new SerializedObject(new GameObject("DayCard").AddComponent<DayCardHud>());
+            day.FindProperty("_style").objectReferenceValue = style;
+            day.FindProperty("_root").objectReferenceValue = root;
+            day.FindProperty("_pause").objectReferenceValue = pause;
+            day.ApplyModifiedPropertiesWithoutUndo();
+
             var reviews = new SerializedObject(hud.AddComponent<ReviewPopupHud>());
             reviews.FindProperty("_canvas").objectReferenceValue = hud.GetComponent<RectTransform>();
             reviews.FindProperty("_style").objectReferenceValue = style;

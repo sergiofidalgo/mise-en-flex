@@ -3256,3 +3256,11 @@ It hides (fading over the HUD's 0.12 s) behind the Review dashboard, the pause m
 **Reason:** The user asked for the money on screen at all times, in the game's style, with green numbers rolling up and a gentle red shake going down, so the balance is felt as it moves without being alarming.
 
 **Not covered:** world-anchored labels (tickets, shop lists) aren't told to avoid the corner, so a station near the top-right edge can put one over the card. In the office, four players all dressing at once at a 4:3 screen or narrower would bring the fourth dressing card close to it.
+
+## 2026-11-10 — The day card: day, phase and clock, bottom left in the kitchens
+
+**Decision:** In every kitchen (not the office), a day card sits in the bottom-left corner, 24 px from the edges: "Day 3" on top in the display face (32 px), and under it the phase and the game clock in the body face (28 px), "Service · 18:42". In Plan and Prep the clock gives the opening time ("Prep · opens 18:00"); near the end the phase word gives way to "Last orders · 20:50" or "Closed · 21:00" in the notice amber. It's the money card's quieter sibling (the user's calls): 88 px tall, the card a little see-through (78%), a thin 3 px muted sand outline instead of gold, softer cream text, and nothing moves but the minutes. **The top-centre clock is gone**; the card carries it. It hides with the money card behind the Review dashboard and the pause menu. `DayCardText` (plain C#, `DayCardTextTests`) writes it, `DayCardHud` draws it, and the look is tunable in `HudStyle` (Day card). The day is `DayCycle.Day`, which already counts from 1.
+
+**Reason:** The user asked for a day and time indicator in the restaurant, with the money card's visual treatment but less present. The bottom left was free (the boss's phone is bottom right, the Prep strip bottom centre).
+
+**Not covered:** world-anchored prompts and tickets aren't told to avoid the corner, so a station near the bottom-left edge can put one over the card.

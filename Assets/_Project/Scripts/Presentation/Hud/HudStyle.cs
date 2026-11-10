@@ -118,6 +118,20 @@ namespace Game.Presentation.Hud
         [Tooltip("Full side-to-side wiggles in one shake.")]
         [SerializeField, Min(0f)] private float _moneyShakeWiggles = 3f;
 
+        [Header("Day card, bottom left in kitchens (decision 2026-11-10): quieter than the money")]
+        [SerializeField, Min(40f)] private float _dayCardHeight = 88f;
+        [SerializeField, Min(28f)] private float _dayTitleSize = 32f;
+        [SerializeField, Min(28f)] private float _dayLineSize = 28f;
+        [Tooltip("The card's fill opacity, against the money card's full card background.")]
+        [SerializeField, Range(0f, 1f)] private float _dayCardOpacity = 0.78f;
+        [Tooltip("A thin muted sand outline.")]
+        [SerializeField] private Color _dayCardEdge = new Color(0.78f, 0.68f, 0.52f, 0.7f);
+        [SerializeField, Min(0f)] private float _dayCardStroke = 3f;
+        [Tooltip("Softer than the money's cream.")]
+        [SerializeField] private Color _dayText = new Color(0.86f, 0.83f, 0.77f);
+        [Tooltip("Last orders and Closed.")]
+        [SerializeField] private Color _dayNotice = new Color(0.96f, 0.76f, 0.25f);
+
         [Header("Shapes (Unity's built-in UI sprites)")]
         [SerializeField] private Sprite _circle;
         [SerializeField] private Sprite _rounded;
@@ -183,6 +197,14 @@ namespace Game.Presentation.Hud
         public Color MoneyEdge => _moneyEdge;
         public Color MoneyGain => _moneyGain;
         public Color MoneyLoss => _moneyLoss;
+        public float DayCardHeight => _dayCardHeight;
+        public float DayTitleSize => _dayTitleSize;
+        public float DayLineSize => _dayLineSize;
+        public float DayCardOpacity => _dayCardOpacity;
+        public Color DayCardEdge => _dayCardEdge;
+        public float DayCardStroke => _dayCardStroke;
+        public Color DayText => _dayText;
+        public Color DayNotice => _dayNotice;
 
         /// <summary>The money card's animation timings.</summary>
         public MoneyTickerSettings MoneyTicker => new MoneyTickerSettings
