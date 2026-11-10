@@ -256,17 +256,10 @@ namespace Game.Presentation.Hud
             Services.Cookbook != null ? Services.Cookbook.Menu.Select(r => (float)Services.Cookbook.PriceOf(r.Id)) : new[] { Services.ServiceConfig.MainPrice };
 
         // ---- The listing card (the user's calls, 2026-11-10): after a Google Places card, kept calm
-        // and readable. Four tiles of real facts, a big value over a small label each, then one quote:
-        // the best line from the latest reviews, or the owner's own when there are none yet. ----
+        // and readable. Four tiles of real facts, a big value over a small label each; the start bar sits under
+        // them (2026-11-11). ----
 
         private const float TileTop = 628f, TileWidth = 294f, TileHeight = 96f, TileGap = 12f;
-
-        private static readonly string[] OwnerQuotes =
-        {
-            "We cook everything fresh. Mostly today.",
-            "Ask about our specials. We'll make one up.",
-            "Family run. The family is negotiable.",
-        };
 
         private void DrawFacts()
         {
@@ -283,9 +276,7 @@ namespace Game.Presentation.Hud
                 Label(Medium, _left, tiles[i].Label, 17.33f, _muted, x + 20f, y + 76f, TileWidth - 40f);
             }
 
-            var (quote, who) = Quote();
-            Label(Serif, _left, $"“{quote}”", 21.33f, _ink, 120f, 870f, 600f);
-            Label(Medium, _left, "— " + who, 17.33f, _muted, 120f, 902f, 600f);
+            // The foot of the column is the start bar's (BuildStartButton).
         }
 
         // The dish most ordered so far, or the menu's first while nothing's been ordered.
@@ -317,15 +308,6 @@ namespace Game.Presentation.Hud
         private (string Value, string Label, bool Alarm) NextOpening()
         {
             return ($"{ClockAt(0f)} {Weekday(Summary.NextDay)}", Tr.Get("closed · opens"), false);
-        }
-
-        // The best line from the latest day with reviews; the owner's when there are none.
-        private (string Quote, string Who) Quote()
-        {
-            var latest = Services.ReviewHistory.Where(r => !r.WalkedOut && !string.IsNullOrEmpty(r.Line)).OrderByDescending(r => r.Day).ThenByDescending(r => r.RatedStars).FirstOrDefault();
-            if (latest != null)
-                return (latest.Line, latest.Guest);
-            return (Tr.Get(OwnerQuotes[PlacesFacts.Pick(ShownName, "owner", OwnerQuotes.Length)]), Tr.Get("the owner"));
         }
 
         private static string Capitalised(string text) =>
@@ -1145,8 +1127,8 @@ namespace Game.Presentation.Hud
             var plan = Services.Days.Phase == DayPhase.Plan;
             var filtering = _tab == Tab.Overview && _onFilters;
             var cook = CookbookPlayer();
-            var progress = Mathf.RoundToInt(_start.MostProgress * 60f);
-            var state = $"{_tab}|{plan}|{filtering}|{cook?.playerIndex}|{Services.Days.Day}|{progress}|" + string.Join(",", PlayerInput.all.Select(p => $"{p.playerIndex}:{_dayLoop.Ready.IsReady(p.playerIndex)}:{_dayLoop.ControllerPause.IsLost(p.playerIndex)}"));
+            // The chips fill in tenths as each player holds; the button itself animates every frame (UpdateStart).
+            var state = $"{_tab}|{plan}|{filtering}|{cook?.playerIndex}|{Summary.NextDay}|" + string.Join(",", PlayerInput.all.Select(p => $"{p.playerIndex}:{_dayLoop.Ready.IsReady(p.playerIndex)}:{_dayLoop.ControllerPause.IsLost(p.playerIndex)}"));
             if (state == _hintsShown)
                 return;
             _hintsShown = state;
@@ -1162,67 +1144,175 @@ namespace Game.Presentation.Hud
             if (PlayerInput.all.Count == 0)
                 hints.Add((new[] { "A" }, Tr.Get("Join")));
 
-            // From the left edge rightwards: keys 10 px apart, 10 px, the label, then 32 px to the next.
-            var x = 120f;
-            foreach (var (keys, text) in hints)
+            // The tabs and the D-pad sit on the right (the user's layout, 2026-11-11): the start of
+            // the day has the left. From the right edge leftwards: label, 10 px, keys, 32 px.
+            var right = 1799f;
+            for (var i = hints.Count - 1; i >= 0; i--)
             {
-                foreach (var key in keys)
+                var label = Label(Medium, _hints, hints[i].Text, 21.33f, _wellLight, 0f, 996f, 300f);
+                var width = UiKit.Width(label);
+                label.rectTransform.anchoredPosition = new Vector2(right - width, label.rectTransform.anchoredPosition.y);
+                var x = right - width - 10f;
+                for (var k = hints[i].Keys.Length - 1; k >= 0; k--)
                 {
+                    var key = hints[i].Keys[k];
                     if (key == "A")
                     {
-                        Badge(_hints, key, _buttonA, x + 15.5f, 987.5f, 31f, 15.5f);
-                        x += 31f + 10f;
+                        Badge(_hints, key, _buttonA, x - 15.5f, 987.5f, 31f, 15.5f);
+                        x -= 31f + 10f;
                         continue;
                     }
                     var keyWidth = key == "DPad" ? 44f : 50f;
-                    Keycap(_hints, key, x, 971f, keyWidth, 34f);
-                    x += keyWidth + 10f;
+                    Keycap(_hints, key, x - keyWidth, 971f, keyWidth, 34f);
+                    x -= keyWidth + 10f;
                 }
-                var label = Label(Medium, _hints, text, 21.33f, _wellLight, x, 996f, 300f);
-                x += UiKit.Width(label) + 32f;
+                right = x + 10f - 32f;
             }
 
-            // The screen's only way on (the user's call, 2026-11-10): no Close, no Rearrange.
-            StartButton(1800f);
+            // The very bottom left: hold A to start the day, and who's still to.
+            var startText = Label(SemiBold, _hints, Tr.Format("Hold to start day {day}", ("day", Summary.NextDay)), 24f, _ink, StartTextX, 997f, 600f);
+            var waiting = Waiting();
+            if (waiting != null)
+                Label(Medium, _hints, "· " + waiting, 20f, _muted, StartTextX + UiKit.Width(startText) + 12f, 996f, 480f);
+            BuildLanes();
         }
 
-        // The main call to action, its right edge at right: gold, A on the left with "hold" under it,
-        // a darker fill growing as A is held, and with two or more cooks a pip each, lit when ready.
-        // Returns its left edge.
-        private float StartButton(float right)
-        {
-            const float width = 380f, height = 60f, top = 958f;
-            var x = right - width;
-            UiKit.RoundBox(_hints, "Start", _gold, x, top, width, height, height / 2f);
-            var fill = _start.MostProgress;
-            if (fill > 0f)
-                UiKit.RoundBox(_hints, "StartFill", Hex(0xc8901e), x, top, Mathf.Max(height, width * fill), height, height / 2f);
-            Badge(_hints, "A", _buttonA, x + 36f, top + 25f, 32f, 16f);
-            Label(Bold, _hints, Tr.Get("HOLD"), 11f, _ink, x + 36f, top + 54f, 60f, HorizontalAlignmentOptions.Center, 1.2f);
-            // forkcast is the end-of-day summary (the user's call, 2026-11-10): its one button starts
-            // the next day, straight into Prep. After a service that's tomorrow; arriving in a
-            // morning (from the office, or a new restaurant's day 1), it's the day about to be played.
-            var text = Tr.Format("Start day {day}", ("day", Summary.NextDay));
-            Label(ExtraBold, _hints, text, 28f, _ink, x + 66f, top + 40f, width - 150f, tracking: -0.5f);
+        // ---- Starting the next day (the user's layout, 2026-11-11) ----
+        // A bar of lanes at the foot of the left column, one per cook, each filling in their colour
+        // as they hold A (one lane, a plain sweep, for a single cook); empty lanes are who's still to
+        // hold. The fill eases, and a white flash pops as each hold completes. Under it, on the very
+        // bottom left, the A badge (big, green, pulsing while nobody holds, sunk while someone does)
+        // with "Hold to start day N · Waiting for P2, P4".
 
-            var players = PlayerInput.all.OrderBy(p => p.playerIndex).ToList();
-            if (players.Count > 1)
+        private const float LaneX = 120f, LaneTop = 852f, LaneWidth = 600f, LaneHeight = 60f, LaneGap = 5f;
+        private const float StartTextX = 186f;
+
+        [Header("Start bar")]
+        [Tooltip("How quickly each lane catches up with its player's hold, per second (higher is snappier).")]
+        [SerializeField, Min(0.1f)] private float _startFillSpeed = 12f;
+        [Tooltip("Seconds the white flash takes to fade after a player's hold completes.")]
+        [SerializeField, Min(0.01f)] private float _startFlashSeconds = 0.45f;
+        [Tooltip("Pulses a second of the A badge while nobody's holding.")]
+        [SerializeField, Min(0.01f)] private float _startPulsePerSecond = 0.7f;
+        [Tooltip("How much the A badge grows at the top of a pulse, and how far it sinks while held.")]
+        [SerializeField, Range(0f, 0.3f)] private float _startPulse = 0.07f;
+        [SerializeField, Range(0.5f, 1f)] private float _startPressed = 0.86f;
+
+        private sealed class Lane
+        {
+            public int Player;
+            public RectTransform Fill;
+            public float Width;
+            public float Shown;
+            public Color Colour;
+        }
+
+        private RectTransform _bar;
+        private RectTransform _lanes;
+        private readonly List<Lane> _laneList = new List<Lane>();
+        private string _lanesFor;
+        private RectTransform _startA;
+        private Image _startFlash;
+        private int _startReady;
+        private float _startFlashLeft;
+
+        private void BuildStartButton()
+        {
+            // The bar, clipped to its rounded shape so the lanes' ends follow it.
+            var bar = UiKit.RoundBox(_layout, "StartBar", _well, LaneX, LaneTop, LaneWidth, LaneHeight, LaneHeight / 2f);
+            bar.gameObject.AddComponent<Mask>().showMaskGraphic = true;
+            _bar = bar.rectTransform;
+            _lanes = UiKit.Rect(_bar, "Lanes", 0f, 0f, LaneWidth, LaneHeight);
+            _startFlash = UiKit.RoundBox(_bar, "Flash", new Color(1f, 1f, 1f, 0f), 0f, 0f, LaneWidth, LaneHeight, 0f);
+            // The A, scaled about its centre for the pulse and the press.
+            _startA = UiKit.Rect(_layout, "StartA", LaneX, 960f, 54f, 54f);
+            _startA.pivot = new Vector2(0.5f, 0.5f);
+            _startA.anchoredPosition += new Vector2(27f, -27f);
+            Badge(_startA, "A", _buttonA, 27f, 27f, 50f, 25f);
+        }
+
+        // One lane per cook, in player-slot order; rebuilt only when who's here changes.
+        private void BuildLanes()
+        {
+            var players = PlayerInput.all.OrderBy(p => p.playerIndex).Select(p => p.playerIndex).ToList();
+            var key = string.Join(",", players);
+            if (key == _lanesFor)
+                return;
+            _lanesFor = key;
+            UiKit.Clear(_lanes);
+            _laneList.Clear();
+            var count = Mathf.Max(1, players.Count);
+            var width = (LaneWidth - (count - 1) * LaneGap) / count;
+            for (var i = 0; i < count; i++)
             {
-                var px = right - 26f - players.Count * 22f + 8f;
-                foreach (var player in players)
-                {
-                    var colour = _settings.GetPlayerColor(player.playerIndex);
-                    var ready = _dayLoop.Ready.IsReady(player.playerIndex);
-                    var lost = _dayLoop.ControllerPause.IsLost(player.playerIndex); // not waited for
-                    // Ready: filled in their colour. Not yet: a ring in it, hollow. Lost: faint.
-                    if (ready)
-                        UiKit.StrokedCircle(_hints, "Pip", colour, _ink, 2.5f, px, top + 21f, 16f);
-                    else
-                        UiKit.StrokedCircle(_hints, "Pip", _gold, lost ? Alpha(colour, 0.3f) : colour, 3.5f, px, top + 21f, 16f);
-                    px += 22f;
-                }
+                var x = i * (width + LaneGap);
+                var lane = new Lane { Player = i < players.Count ? players[i] : -1, Width = width };
+                lane.Colour = lane.Player >= 0 && count > 1 ? _settings.GetPlayerColor(lane.Player) : _gold;
+                // The name twice: in their colour on the empty lane, and in white (dark on a light
+                // colour) inside the fill, clipped to it, so it reads at any fill.
+                var name = count > 1 ? $"P{lane.Player + 1}" : "";
+                UiKit.TextAt(ExtraBold, _lanes, "Name", name, 24f, lane.Colour, x + width / 2f, LaneHeight / 2f + 8.5f, width, HorizontalAlignmentOptions.Center);
+                lane.Fill = UiKit.Rect(_lanes, "Fill", x, 0f, 0f, LaneHeight);
+                lane.Fill.gameObject.AddComponent<RectMask2D>();
+                UiKit.RoundBox(lane.Fill, "Colour", lane.Colour, 0f, 0f, width, LaneHeight, 0f);
+                UiKit.TextAt(ExtraBold, lane.Fill, "Name", name, 24f, lane.Colour.grayscale > 0.6f ? _ink : Color.white, width / 2f, LaneHeight / 2f + 8.5f, width, HorizontalAlignmentOptions.Center);
+                if (i > 0)
+                    UiKit.RoundBox(_lanes, "Gap", _ink, x - LaneGap, 0f, LaneGap, LaneHeight, 0f);
+                _laneList.Add(lane);
             }
-            return x;
+        }
+
+        // Every frame while forkcast is up: each lane eases to its player's hold, the A pulses or sinks.
+        private void UpdateStart(float dt)
+        {
+            if (_bar == null)
+                return;
+            var ease = 1f - Mathf.Exp(-_startFillSpeed * dt);
+            var anyHold = false;
+            var ready = 0;
+            foreach (var lane in _laneList)
+            {
+                float target;
+                if (lane.Player < 0)
+                {
+                    target = _start.MostProgress;
+                }
+                else if (_dayLoop.Ready.IsReady(lane.Player))
+                {
+                    target = 1f;
+                    ready++;
+                }
+                else
+                {
+                    target = _start.Progress(lane.Player);
+                }
+                // A single cook's lane is the whole bar; with one player there's no ready state to wait in.
+                if (_laneList.Count == 1)
+                    target = Mathf.Max(target, _start.MostProgress);
+                anyHold |= lane.Player >= 0 ? _start.Progress(lane.Player) > 0f && !_dayLoop.Ready.IsReady(lane.Player) : _start.MostProgress > 0f;
+                lane.Shown = Mathf.Abs(lane.Shown - target) < 0.001f ? target : Mathf.Lerp(lane.Shown, target, ease);
+                lane.Fill.sizeDelta = new Vector2(lane.Width * lane.Shown, LaneHeight);
+            }
+
+            // A pop each time someone's hold completes.
+            if (ready > _startReady)
+                _startFlashLeft = _startFlashSeconds;
+            _startReady = ready;
+            _startFlashLeft = Mathf.Max(0f, _startFlashLeft - dt);
+            _startFlash.color = new Color(1f, 1f, 1f, 0.6f * (_startFlashSeconds > 0f ? _startFlashLeft / _startFlashSeconds : 0f));
+
+            var scale = anyHold ? _startPressed : 1f + _startPulse * Mathf.Sin(Time.unscaledTime * Mathf.PI * 2f * _startPulsePerSecond);
+            _startA.localScale = new Vector3(scale, scale, 1f);
+        }
+
+        // "Waiting for P2, P4" with two or more cooks (a lost controller isn't waited for); null otherwise.
+        private string Waiting()
+        {
+            var players = PlayerInput.all.OrderBy(p => p.playerIndex).ToList();
+            if (players.Count < 2)
+                return null;
+            var waiting = players.Where(p => !_dayLoop.Ready.IsReady(p.playerIndex) && !_dayLoop.ControllerPause.IsLost(p.playerIndex)).Select(p => $"P{p.playerIndex + 1}").ToList();
+            return waiting.Count == 0 ? Tr.Get("Starting…") : Tr.Format("Waiting for {players}", ("players", string.Join(", ", waiting)));
         }
 
         // A secondary action as a pill: its button and what it does. Right edge at edge (or left edge
@@ -1402,6 +1492,7 @@ namespace Game.Presentation.Hud
             window.gameObject.AddComponent<RectMask2D>();
             _list = UiKit.Rect(window, "List", -(RightX - 8f), -(ListTop - 8f), 1920f, 1080f);
             _hints = UiKit.Rect(_layout, "Hints", 0f, 0f, 1920f, 1080f);
+            BuildStartButton();
             _popover = UiKit.Rect(_layout, "Popover", 0f, 0f, 1920f, 1080f);
 
             // Never shown: measures how many lines a reply wraps to, so its card can make room.

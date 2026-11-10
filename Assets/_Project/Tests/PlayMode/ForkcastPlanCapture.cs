@@ -70,7 +70,8 @@ namespace Game.Tests.PlayMode
             var folder = Folder();
 
             // Two cooks, so the Start button shows a pip each.
-            var pads = new[] { InputSystem.AddDevice<Gamepad>("CapturePad1"), InputSystem.AddDevice<Gamepad>("CapturePad2") };
+            // Four cooks: the Start button's chips and "Waiting for…" at their fullest.
+            var pads = new[] { InputSystem.AddDevice<Gamepad>("CapturePad1"), InputSystem.AddDevice<Gamepad>("CapturePad2"), InputSystem.AddDevice<Gamepad>("CapturePad3"), InputSystem.AddDevice<Gamepad>("CapturePad4") };
             var manager = Object.FindFirstObjectByType<PlayerInputManager>();
             foreach (var pad in pads)
                 manager.JoinPlayer(controlScheme: "Gamepad", pairWithDevices: pad);
@@ -95,8 +96,19 @@ namespace Game.Tests.PlayMode
             for (var i = 0; i < 5; i++)
                 yield return null;
             Assert.That(days.Phase, Is.EqualTo(DayPhase.Review));
-            Object.FindFirstObjectByType<DayLoop>().Ready.Toggle(PlayerInput.all[0].playerIndex);
+            var loop = Object.FindFirstObjectByType<DayLoop>();
+            loop.Ready.Toggle(PlayerInput.all[0].playerIndex);
+            loop.Ready.Toggle(PlayerInput.all[2].playerIndex);
             yield return Shoot(dashboard, -1, Path.Combine(folder, "forkcast_review_overview_urgent.png"));
+            // P2 half-way through holding A: the gold sweeps on and their chip fills.
+            InputSystem.QueueStateEvent(pads[1], new UnityEngine.InputSystem.LowLevel.GamepadState().WithButton(UnityEngine.InputSystem.LowLevel.GamepadButton.South));
+            yield return new WaitForSecondsRealtime(0.45f);
+            yield return new WaitForEndOfFrame();
+            var holding = ScreenCapture.CaptureScreenshotAsTexture();
+            File.WriteAllBytes(Path.Combine(folder, "forkcast_start_four_players_holding.png"), holding.EncodeToPNG());
+            Object.Destroy(holding);
+            InputSystem.QueueStateEvent(pads[1], new UnityEngine.InputSystem.LowLevel.GamepadState());
+            yield return null;
             yield return ShootTab(dashboard, 1, Path.Combine(folder, "forkcast_review_books.png"));
 
             // The next morning (as after leaving and joining again): still day 1's summary.

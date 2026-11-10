@@ -3359,3 +3359,14 @@ It hides (fading over the HUD's 0.12 s) behind the Review dashboard, the pause m
 - Tests: `DaySummaryTests` (EditMode: Review, the next morning, a JSON round trip, an older save, a collection night); `ForkcastSummaryPlayTests` (day 1 starts in Prep; finish days 1 and 2, leave during day 3's Prep, rejoin: the summary is day 2's, Books match day 2's ledger, Start says day 3).
 
 **Not checked in play:** a real relaunch through the office with several restaurants, and an older save's fallback.
+
+## 2026-11-11 — Starting the next day: a bar of player lanes, the A at the bottom left
+
+**User's calls** (the old gold pill didn't read as a progress bar, nor show who had pressed): three options were mocked up (a sweep bar, a ring round a big A, player lanes). The user then placed it:
+- **A bar at the foot of the left column,** under the restaurant tiles (the featured review goes). It has one lane per cook, each filling in their colour as they hold A, with their name (P1–P4) readable at any fill. An empty lane is someone still to hold. With one cook it's a single gold sweep with no names. Each lane's fill eases after the hold, and a white flash pops as each hold completes.
+- **The A interaction on the very bottom left:** a big green A that pulses gently while nobody holds and sinks while someone does, then "Hold to start day N" and, with two or more cooks, "· Waiting for P2, P4". A cook whose controller is lost isn't waited for.
+- **LB/RB (tabs) and the D-pad (browse) move to the footer's right.**
+
+**Tunable** (`ReviewDashboard`, "Start bar"): fill speed, flash time, pulse rate and size, and how far the A sinks. The hold itself is still `_startHoldSeconds`.
+
+**Not checked in play:** whether the flash is noticed before the screen leaves on the last hold (it closes the moment everyone's ready), and the pulse's strength from the couch.
