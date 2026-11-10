@@ -8,16 +8,15 @@ using UnityEngine.InputSystem;
 namespace Game.Gameplay
 {
     /// <summary>
-    /// Runs the day from the players' side. In Plan, Prep and Review each player readies up with
-    /// Pause (Menu on a controller, Esc on the keyboard), and the day moves on once they all have.
+    /// Runs the day from the players' side. In Plan, Prep and Review each player readies up by
+    /// holding Menu (Esc on the keyboard); a tap opens the pause menu instead (decision 2026-11-10).
+    /// The day moves on once they all have.
     /// A service ends by itself, once everyone has left. A player whose controller is lost isn't
     /// waited for in the ready-up; during a service, the game stands still until it's back or
     /// someone still playing presses Menu to carry on without them (decision 2026-11-09).
     /// </summary>
     public sealed class DayLoop : MonoBehaviour
     {
-        private const string PauseAction = "Pause";
-
         [SerializeField] private KitchenCompositionRoot _root;
 
         // Menu also joins: a player joining with it shouldn't ready up with the same press.
@@ -38,10 +37,11 @@ namespace Game.Gameplay
         private void Update()
         {
             var days = _root.Services.Days;
+            MenuButton.HoldReadies = days.Phase != DayPhase.Service;
             UpdatePresence(days.Phase == DayPhase.Service);
             if (days.Phase == DayPhase.Service)
             {
-                if (ControllerPause.Paused)
+                if (ControllerPause.Paused && !GamePause.MenuOpen)
                     ReadCarryOn();
                 if (_root.Services.Service.Phase == ServicePhase.Finished)
                 {
@@ -57,7 +57,7 @@ namespace Game.Gameplay
                     _root.SaveCampaign();
                 }
             }
-            else
+            else if (!GamePause.MenuOpen)
             {
                 ReadPresses();
                 if (Ready.IsEveryoneReady(_present))
@@ -88,7 +88,8 @@ namespace Game.Gameplay
             }
             ControllerPause.Update(_presence, inService);
 
-            var paused = ControllerPause.Paused;
+            // The pause menu freezes everyone the same way (decision 2026-11-10).
+            var paused = ControllerPause.Paused || GamePause.MenuOpen;
             _root.Services.Paused = paused;
             if (paused != _stoppedTime)
             {
@@ -102,9 +103,9 @@ namespace Game.Gameplay
         {
             foreach (var player in PlayerInput.all)
             {
-                var action = player.actions.FindAction(PauseAction);
-                if (action != null && action.WasPressedThisFrame() && !PlayerPresence.IsLost(player))
+                if (!PlayerPresence.IsLost(player) && MenuButton.Read(player) == MenuPress.Result.Tap)
                 {
+                    MenuButton.Consume(player); // carrying on, not pausing
                     ControllerPause.CarryOn();
                     UpdatePresence(true);
                     return;
@@ -115,6 +116,7 @@ namespace Game.Gameplay
         // Never leave the next scene frozen.
         private void OnDisable()
         {
+            MenuButton.HoldReadies = false;
             if (_stoppedTime)
                 Time.timeScale = 1f;
             _stoppedTime = false;
@@ -124,12 +126,9 @@ namespace Game.Gameplay
         {
             foreach (var player in PlayerInput.all)
             {
-                var action = player.actions.FindAction(PauseAction);
-                if (action == null || !action.WasPressedThisFrame() || !_seenLastFrame.Contains(player))
-                    continue;
-
-                // Still rearranging the kitchen: not ready yet.
-                if (player.TryGetComponent(out Stations.PlayerInteractor interactor) && interactor.IsManaging)
+                // A hold, never a tap (that's the pause menu). Still rearranging the kitchen never
+                // counts as a hold (MenuButton), so nobody readies up mid-move.
+                if (!_seenLastFrame.Contains(player) || MenuButton.Read(player) != MenuPress.Result.Hold)
                     continue;
                 Ready.Toggle(player.playerIndex);
             }
