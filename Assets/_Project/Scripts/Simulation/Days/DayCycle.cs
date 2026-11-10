@@ -177,6 +177,10 @@ namespace Game.Simulation.Days
                 In = Today.In,
                 Out = Today.Out,
                 Balance = Balance,
+                Lines = Today.ToArray(),
+                Collected = LastCollection.HasValue,
+                CollectionDue = LastCollection?.Due ?? 0f,
+                CollectionPaid = LastCollection?.Paid ?? 0f,
             });
             SetPhase(DayPhase.Review);
         }
