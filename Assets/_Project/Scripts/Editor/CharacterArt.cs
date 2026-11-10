@@ -94,6 +94,14 @@ namespace Game.Editor
             /// <summary>The archetype's props, one of which they may carry.</summary>
             public PropKind[] Props = System.Array.Empty<PropKind>();
             public float NoProp = 0.3f;
+            /// <summary>
+            /// Hats they may wear, one rolled per person (the user's call, 2026-11-10: the modelled
+            /// hats on customers, so people can be told apart); list one twice to make it likelier.
+            /// Empty: everyone wears the archetype's own <see cref="Look.Hat"/>.
+            /// </summary>
+            public HatKind[] Hats = System.Array.Empty<HatKind>();
+            /// <summary>How many go bare-headed, when <see cref="Hats"/> are rolled.</summary>
+            public float NoHat;
         }
 
         /// <summary>Eight skin tones, from very light to deep, each checked under the toon ramp.</summary>
@@ -229,6 +237,7 @@ namespace Game.Editor
                     Hair = new Color(0.45f, 0.42f, 0.4f), HairStyle = HairKind.Crop, Moustache = true, Nose = NoseKind.Big,
                     Waddle = 2f,
                     Vary = new Variation { Hairs = GreyHair.Concat(NaturalHair.Take(3)).ToArray(), Moustache = 0.6f, Glasses = 0.2f,
+                        Hats = new[] { HatKind.Cap, HatKind.Cap, HatKind.Cap, HatKind.Cowboy }, NoHat = 0.2f, // the cap stays their mark
                         Garments = new[] { Garment.Shirt, Garment.Shirt, Garment.Vest },
                         Patterns = new[] { 2, 2, 2, 0 }, PatternScale = 9f, // a flannel's plaid
                         PatternColours = new[] { new Color(0.12f, 0.1f, 0.1f), new Color(0.9f, 0.86f, 0.78f) },
@@ -236,17 +245,20 @@ namespace Game.Editor
                         Props = new[] { PropKind.Newspaper }, NoProp = 0.5f } },
                 new Look { Name = "Office", Skin = new Color(0.55f, 0.36f, 0.24f), Top = new Color(0.27f, 0.29f, 0.34f),
                     Bottom = new Color(0.22f, 0.23f, 0.27f), Hair = CharacterArt.DarkHair, HairStyle = HairKind.Crop,
-                    Tie = true, TieColor = new Color(0.2f, 0.32f, 0.6f),
+                    Tie = true, TieColor = new Color(0.2f, 0.32f, 0.6f), HatAccent = new Color(0.9f, 0.9f, 0.92f),
                     Pace = 1.15f, Stride = 1.1f, Waddle = 0.6f,
-                    Vary = new Variation { HairStyles = new[] { HairKind.Crop, HairKind.Bun, HairKind.Bald }, Glasses = 0.35f, Moustache = 0.15f,
+                    Vary = new Variation { HairStyles = new[] { HairKind.Crop, HairKind.Bun, HairKind.Bob, HairKind.Bald }, Glasses = 0.35f, Moustache = 0.15f,
+                        Hats = new[] { HatKind.Headphones }, NoHat = 0.8f, // the odd commuter with headphones on
                         Garments = new[] { Garment.Jacket, Garment.Jacket, Garment.Vest, Garment.Shirt },
                         Patterns = new[] { 0, 0, 4 }, PatternScale = 14f, PatternColours = new[] { new Color(0.7f, 0.7f, 0.72f) },
                         Tops = new[] { new Color(0.27f, 0.29f, 0.34f), new Color(0.2f, 0.24f, 0.38f), new Color(0.45f, 0.46f, 0.48f), new Color(0.36f, 0.28f, 0.22f) },
                         Props = new[] { PropKind.Satchel, PropKind.Backpack }, NoProp = 0.25f } },
                 new Look { Name = "DateNight", Skin = new Color(0.98f, 0.83f, 0.7f), Top = new Color(0.5f, 0.12f, 0.2f),
                     Bottom = new Color(0.98f, 0.83f, 0.7f), Dress = true, Hair = new Color(0.85f, 0.7f, 0.42f), HairStyle = HairKind.Bun,
+                    HatAccent = new Color(0.95f, 0.92f, 0.85f),
                     Pace = 0.95f, Stride = 0.75f, LegSwing = 16f, Waddle = 2.5f,
-                    Vary = new Variation { HairStyles = new[] { HairKind.Bun, HairKind.Crop, HairKind.Afro }, Glasses = 0.1f,
+                    Vary = new Variation { HairStyles = new[] { HairKind.Bun, HairKind.Bob, HairKind.Bob, HairKind.Crop, HairKind.Afro }, Glasses = 0.1f,
+                        Hats = new[] { HatKind.Plumed }, NoHat = 0.8f, // dressed up, now and then with the plumed hat
                         Patterns = new[] { 0, 3, 3 }, PatternScale = 10f,
                         PatternColours = new[] { new Color(0.95f, 0.92f, 0.85f), new Color(0.12f, 0.1f, 0.1f) },
                         Tops = new[] { new Color(0.5f, 0.12f, 0.2f), new Color(0.18f, 0.2f, 0.4f), new Color(0.12f, 0.36f, 0.28f), new Color(0.16f, 0.15f, 0.17f) },
@@ -255,7 +267,9 @@ namespace Game.Editor
                     Bottom = new Color(0.82f, 0.74f, 0.55f), Hat = HatKind.SunHat, HatColor = new Color(0.9f, 0.82f, 0.6f),
                     HatAccent = new Color(0.2f, 0.27f, 0.5f), Hair = new Color(0.4f, 0.26f, 0.15f), Camera = true,
                     Pace = 0.85f, Stride = 0.9f, Waddle = 2f,
-                    Vary = new Variation { Sunglasses = 0.4f,
+                    Vary = new Variation { Sunglasses = 0.4f, HairStyles = new[] { HairKind.Crop, HairKind.Bob },
+                        // Always something on their head against the sun: mostly the sun hat.
+                        Hats = new[] { HatKind.SunHat, HatKind.SunHat, HatKind.SunHat, HatKind.Straw, HatKind.Captain, HatKind.Cap }, NoHat = 0.1f,
                         Garments = new[] { Garment.Shirt, Garment.Shirt, Garment.TankTop },
                         Patterns = new[] { 1, 1, 5, 0 }, PatternScale = 10f, // a breton, or gingham
                         PatternColours = new[] { new Color(0.2f, 0.25f, 0.5f), new Color(0.6f, 0.18f, 0.15f) },
@@ -264,8 +278,10 @@ namespace Game.Editor
                 new Look { Name = "Retiree", Skin = new Color(0.94f, 0.76f, 0.64f), Top = new Color(0.7f, 0.6f, 0.45f),
                     Bottom = new Color(0.4f, 0.36f, 0.32f), Hair = new Color(0.85f, 0.85f, 0.83f), HairStyle = HairKind.Fringe,
                     Glasses = true, Nose = NoseKind.Big,
+                    HatColor = new Color(0.45f, 0.4f, 0.32f), HatAccent = new Color(0.35f, 0.25f, 0.18f),
                     Pace = 0.7f, Stride = 0.65f, LegSwing = 14f, Waddle = 2.5f, Bob = 0.01f,
-                    Vary = new Variation { HairStyles = new[] { HairKind.Fringe, HairKind.Bald, HairKind.Crop }, Hairs = GreyHair,
+                    Vary = new Variation { HairStyles = new[] { HairKind.Fringe, HairKind.Bald, HairKind.Crop, HairKind.Bob }, Hairs = GreyHair,
+                        Hats = new[] { HatKind.Cap, HatKind.Straw }, NoHat = 0.7f,
                         Skins = SkinTones, Glasses = 0.7f, Moustache = 0.4f, BigNose = 0.7f,
                         Garments = new[] { Garment.Shirt, Garment.Vest, Garment.Jacket },
                         Patterns = new[] { 0, 0, 5 }, PatternScale = 8f,
@@ -274,10 +290,13 @@ namespace Game.Editor
                         Props = new[] { PropKind.Cane }, NoProp = 0.2f } },
                 new Look { Name = "Gym", Skin = new Color(0.36f, 0.22f, 0.15f), Top = new Color(0.22f, 0.3f, 0.5f),
                     Bottom = new Color(0.18f, 0.18f, 0.2f), Hat = HatKind.Headband, HatAccent = new Color(0.95f, 0.95f, 0.92f),
+                    HatColor = new Color(0.25f, 0.25f, 0.28f),
                     Hair = CharacterArt.DarkHair, HairStyle = HairKind.Crop, Build = 1.08f,
                     Pace = 1.25f, Stride = 1.25f, LegSwing = 30f, Waddle = 0.8f, Bob = 0.03f,
                     // No afro: it would cover the headband, the gym-goer's trademark.
                     Vary = new Variation { HairStyles = new[] { HairKind.Crop, HairKind.Bun, HairKind.Bald }, BigNose = 0.3f,
+                        // The headband stays their mark; some train with headphones or a cap on.
+                        Hats = new[] { HatKind.Headband, HatKind.Headband, HatKind.Headband, HatKind.Headphones, HatKind.Cap }, NoHat = 0.1f,
                         Garments = new[] { Garment.TankTop, Garment.TankTop, Garment.Hoodie, Garment.Shirt },
                         Patterns = new[] { 0, 1 }, PatternScale = 6f, PatternColours = new[] { new Color(0.95f, 0.95f, 0.92f) },
                         Tops = new[] { new Color(0.22f, 0.3f, 0.5f), new Color(0.25f, 0.25f, 0.28f), new Color(0.55f, 0.15f, 0.15f), new Color(0.4f, 0.25f, 0.55f) },
@@ -347,6 +366,8 @@ namespace Game.Editor
 
             // The head and everything on it: the same size whatever the build.
             var choices = new List<(string Name, GameObject[][] Options, float None)>();
+            var coveringHats = new List<GameObject>();
+            var bareHair = new List<GameObject>();
             GameObject[][] Singles(IEnumerable<GameObject> parts) => parts.Select(p => new[] { p }).ToArray();
             Part(rig.Waist, "CharHead", look.Skin);
             if (vary == null)
@@ -399,12 +420,43 @@ namespace Game.Editor
                     var group = Frame(rig.Waist, "Hair_" + style, Vector3.zero, Vector3.one);
                     var styled = look.Clone();
                     styled.HairStyle = style;
-                    Hair(group, styled);
+                    if (vary.Hats.Length > 0)
+                    {
+                        // Hats are rolled too: the top of the hair goes in a frame of its own, which
+                        // the roll hides under a hat that covers it.
+                        var top = Frame(group, "Top", Vector3.zero, Vector3.one);
+                        Hair(group, styled, top);
+                        bareHair.Add(top.gameObject);
+                    }
+                    else
+                    {
+                        Hair(group, styled);
+                    }
                     styles.Add(group.gameObject);
                 }
                 choices.Add(("Hair", Singles(styles), 0f));
             }
-            Hat(rig, look);
+            if (vary != null && vary.Hats.Length > 0)
+            {
+                // Each hat the archetype allows, in its own group, one shown or none.
+                var hats = new Dictionary<HatKind, GameObject>();
+                foreach (var kind in vary.Hats.Distinct())
+                {
+                    var group = Frame(rig.Waist, "Hat_" + kind, Vector3.zero, Vector3.one);
+                    var hatted = look.Clone();
+                    hatted.Hat = kind;
+                    hatted.HatColor = HatBody(kind, look.HatColor);
+                    Hat(rig, hatted, group);
+                    hats[kind] = group.gameObject;
+                    if (Covers(kind))
+                        coveringHats.Add(group.gameObject);
+                }
+                choices.Add(("Hat", vary.Hats.Select(kind => new[] { hats[kind] }).ToArray(), vary.NoHat));
+            }
+            else
+            {
+                Hat(rig, look, rig.Waist);
+            }
 
             // Arms: a short sleeve and a mitten on each shoulder, which turn as ChefArmsView aims them.
             rig.LeftShoulder = Arm(rig.Waist, "Shoulder_L", -Shoulder.x * look.Build, look, garments, garmentParts);
@@ -429,7 +481,7 @@ namespace Game.Editor
                     var weighted = vary.Garments.Select(g => garmentParts[g].ToArray()).ToArray();
                     choices.Insert(0, ("Garment", weighted, 0f));
                 }
-                AddRoll(rig, look, choices);
+                AddRoll(rig, look, choices, coveringHats, bareHair);
             }
 
             AddGait(rig, look, swingArms);
@@ -437,7 +489,8 @@ namespace Game.Editor
         }
 
         // The roll: the choices built above, and colours for every skin, hair and clothes part.
-        private static void AddRoll(Rig rig, Look look, List<(string Name, GameObject[][] Options, float None)> choices)
+        private static void AddRoll(Rig rig, Look look, List<(string Name, GameObject[][] Options, float None)> choices,
+            List<GameObject> coveringHats, List<GameObject> bareHair)
         {
             var all = rig.Figure.GetComponentsInChildren<Renderer>(includeInactive: true);
             Renderer[] Named(params string[] names) =>
@@ -456,6 +509,13 @@ namespace Game.Editor
 
             var roll = new SerializedObject(rig.Figure.gameObject.AddComponent<Game.Presentation.CharacterRoll>());
             roll.FindProperty("_archetype").stringValue = look.Name;
+            foreach (var (name, objects) in new[] { ("_coveringHats", coveringHats), ("_bareHair", bareHair) })
+            {
+                var list = roll.FindProperty(name);
+                list.arraySize = objects.Count;
+                for (var i = 0; i < objects.Count; i++)
+                    list.GetArrayElementAtIndex(i).objectReferenceValue = objects[i];
+            }
             var choiceList = roll.FindProperty("_choices");
             choiceList.arraySize = choices.Count;
             for (var i = 0; i < choices.Count; i++)
@@ -537,9 +597,14 @@ namespace Game.Editor
             return hip;
         }
 
-        private static void Hair(Transform waist, Look look)
+        /// <summary>Whether a hat covers the top of the head, so only the hair below it shows.</summary>
+        private static bool Covers(HatKind hat) =>
+            hat != HatKind.None && hat != HatKind.Headband && hat != HatKind.Horns && hat != HatKind.Headphones;
+
+        // The hair, on `waist`. With `bare` given, what only shows on a bare head goes on it instead
+        // (whatever hat the look has), so it can be hidden when a hat is rolled (CharacterRoll).
+        private static void Hair(Transform waist, Look look, Transform bare = null)
         {
-            var hatted = look.Hat != HatKind.None && look.Hat != HatKind.Headband && look.Hat != HatKind.Horns && look.Hat != HatKind.Headphones;
             switch (look.HairStyle)
             {
                 case HairKind.Bald:
@@ -553,79 +618,93 @@ namespace Game.Editor
             Part(waist, "HairBack", look.Hair);
             if (look.HairStyle == HairKind.Bob)
                 Part(waist, "HairLengths", look.Hair);
-            if (hatted)
-                return;
-            Part(waist, look.HairStyle == HairKind.Afro ? "HairAfro" : "HairCrop", look.Hair);
+            if (bare == null)
+            {
+                if (Covers(look.Hat))
+                    return;
+                bare = waist;
+            }
+            Part(bare, look.HairStyle == HairKind.Afro ? "HairAfro" : "HairCrop", look.Hair);
             if (look.HairStyle == HairKind.Bun)
-                Part(waist, "HairBun", look.Hair);
+                Part(bare, "HairBun", look.Hair);
         }
 
-        private static void Hat(Rig rig, Look look)
+        // A rolled hat that isn't the archetype's own comes in its usual colour (the wardrobe's).
+        private static Color HatBody(HatKind kind, Color own) => kind switch
+        {
+            HatKind.Cowboy => new Color(0.55f, 0.36f, 0.2f),
+            HatKind.Captain => new Color(0.97f, 0.97f, 0.95f),
+            HatKind.Plumed => new Color(0.3f, 0.22f, 0.32f),
+            _ => own,
+        };
+
+        // The look's hat, built on `on` (the waist, or a group of its own when hats are rolled).
+        private static void Hat(Rig rig, Look look, Transform on)
         {
             switch (look.Hat)
             {
                 case HatKind.Toque:
-                    Part(rig.Waist, "HatToque", look.HatColor);
-                    Coloured(rig, rig.Waist, "HatToqueBand", look.HatAccent);
+                    Part(on, "HatToque", look.HatColor);
+                    Coloured(rig, on, "HatToqueBand", look.HatAccent);
                     break;
                 case HatKind.Cap:
-                    Part(rig.Waist, "HatCap", look.HatColor);
-                    Coloured(rig, rig.Waist, "HatCapPeak", look.HatAccent);
+                    Part(on, "HatCap", look.HatColor);
+                    Coloured(rig, on, "HatCapPeak", look.HatAccent);
                     break;
                 case HatKind.Bandana:
-                    Coloured(rig, rig.Waist, "HatBandana", look.HatAccent);
+                    Coloured(rig, on, "HatBandana", look.HatAccent);
                     break;
                 case HatKind.Headband:
-                    Coloured(rig, rig.Waist, "HatHeadband", look.HatAccent);
+                    Coloured(rig, on, "HatHeadband", look.HatAccent);
                     break;
                 case HatKind.Horns:
-                    Part(rig.Waist, "HatHorns", look.HatColor);
-                    Coloured(rig, rig.Waist, "HatHeadband", look.HatAccent);
+                    Part(on, "HatHorns", look.HatColor);
+                    Coloured(rig, on, "HatHeadband", look.HatAccent);
                     break;
                 case HatKind.SunHat:
-                    Part(rig.Waist, "HatSunHat", look.HatColor);
-                    Coloured(rig, rig.Waist, "HatSunHatBand", look.HatAccent);
+                    Part(on, "HatSunHat", look.HatColor);
+                    Coloured(rig, on, "HatSunHatBand", look.HatAccent);
                     break;
                 // The wardrobe's hats, as its chefs wear them: the same parts, pivots and sway.
                 case HatKind.Cowboy:
-                    Part(rig.Waist, "HatCowboy", look.HatColor);
-                    Coloured(rig, rig.Waist, "HatCowboyBand", look.HatAccent);
+                    Part(on, "HatCowboy", look.HatColor);
+                    Coloured(rig, on, "HatCowboyBand", look.HatAccent);
                     break;
                 case HatKind.Straw:
-                    Part(rig.Waist, "HatStraw", new Color(0.82f, 0.68f, 0.42f));
-                    Part(rig.Waist, "HatStrawRibs", new Color(0.62f, 0.48f, 0.28f));
-                    Coloured(rig, rig.Waist, "HatStrawStrap", look.HatAccent);
+                    Part(on, "HatStraw", new Color(0.82f, 0.68f, 0.42f));
+                    Part(on, "HatStrawRibs", new Color(0.62f, 0.48f, 0.28f));
+                    Coloured(rig, on, "HatStrawStrap", look.HatAccent);
                     break;
                 case HatKind.Captain:
-                    Part(rig.Waist, "HatCaptain", look.HatColor);
-                    Part(rig.Waist, "HatCaptainPeak", new Color(0.1f, 0.1f, 0.12f));
-                    Part(rig.Waist, "HatCaptainBraid", Gold);
-                    Coloured(rig, rig.Waist, "HatCaptainBand", look.HatAccent);
+                    Part(on, "HatCaptain", look.HatColor);
+                    Part(on, "HatCaptainPeak", new Color(0.1f, 0.1f, 0.12f));
+                    Part(on, "HatCaptainBraid", Gold);
+                    Coloured(rig, on, "HatCaptainBand", look.HatAccent);
                     break;
                 case HatKind.Headphones:
-                    Part(rig.Waist, "HatHeadphonesBand", new Color(0.15f, 0.15f, 0.17f));
-                    Coloured(rig, rig.Waist, "HatHeadphonesCups", look.HatAccent);
-                    Part(rig.Waist, "HatHeadphonesPads", new Color(0.15f, 0.15f, 0.17f));
+                    Part(on, "HatHeadphonesBand", new Color(0.15f, 0.15f, 0.17f));
+                    Coloured(rig, on, "HatHeadphonesCups", look.HatAccent);
+                    Part(on, "HatHeadphonesPads", new Color(0.15f, 0.15f, 0.17f));
                     break;
                 case HatKind.Plumed:
-                    Part(rig.Waist, "HatPlumed", look.HatColor);
-                    Coloured(rig, rig.Waist, "HatPlumedBand", look.HatAccent);
-                    Part(Sway(rig.Waist, "Feather", new Vector3(0.2f, 0.1f, 0.27f), 55f, 4.5f, 9f, 1.6f, 7f, 40f),
+                    Part(on, "HatPlumed", look.HatColor);
+                    Coloured(rig, on, "HatPlumedBand", look.HatAccent);
+                    Part(Sway(on, "Feather", new Vector3(0.2f, 0.1f, 0.27f), 55f, 4.5f, 9f, 1.6f, 7f, 40f),
                         "HatPlumedFeather", new Color(0.96f, 0.95f, 0.92f));
                     break;
                 case HatKind.Party:
-                    var cone = Sway(rig.Waist, "PartyCone", new Vector3(0f, 0.02f, 0.27f), 110f, 5f, 4f, 1.4f, 2f, 25f);
+                    var cone = Sway(on, "PartyCone", new Vector3(0f, 0.02f, 0.27f), 110f, 5f, 4f, 1.4f, 2f, 25f);
                     Coloured(rig, cone, "HatPartyCone", look.HatAccent);
                     Part(cone, "HatPartyPompom", Shine);
-                    Part(rig.Waist, "HatPartyStrap", Shine);
+                    Part(on, "HatPartyStrap", Shine);
                     break;
                 case HatKind.Propeller:
                     foreach (var (panel, colour) in new[] { ("A", new Color(0.85f, 0.18f, 0.16f)), ("B", new Color(0.2f, 0.32f, 0.7f)),
                         ("C", new Color(0.95f, 0.78f, 0.2f)), ("D", new Color(0.18f, 0.5f, 0.3f)) })
-                        Part(rig.Waist, "HatPropellerPanel" + panel, colour);
-                    Coloured(rig, rig.Waist, "HatPropellerPeak", look.HatAccent);
-                    Part(rig.Waist, "HatPropellerStem", new Color(0.95f, 0.5f, 0.2f));
-                    var hub = Frame(rig.Waist, "PropellerHub", PropellerHub, Vector3.one);
+                        Part(on, "HatPropellerPanel" + panel, colour);
+                    Coloured(rig, on, "HatPropellerPeak", look.HatAccent);
+                    Part(on, "HatPropellerStem", new Color(0.95f, 0.5f, 0.2f));
+                    var hub = Frame(on, "PropellerHub", PropellerHub, Vector3.one);
                     Part(hub, "HatPropellerBlades", new Color(0.98f, 0.55f, 0.15f));
                     hub.gameObject.AddComponent<Game.Presentation.PropellerSpin>();
                     break;

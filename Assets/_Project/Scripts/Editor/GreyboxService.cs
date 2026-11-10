@@ -87,6 +87,17 @@ namespace Game.Editor
 
         }
 
+        /// <summary>
+        /// Rebuilds only the customer's prefab, after a change to the archetypes (CharacterArt.CustomerLooks),
+        /// without rebuilding the kitchen: the scene refers to the prefab, which keeps its place.
+        /// </summary>
+        [MenuItem("Tools/Game/Rebuild Customer Prefab")]
+        public static void RebuildCustomerPrefab()
+        {
+            BuildCustomerPrefab();
+            AssetDatabase.SaveAssets();
+        }
+
         private static GameObject BuildCustomerPrefab()
         {
             var root = new GameObject("PF_Customer");

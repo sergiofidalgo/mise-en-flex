@@ -8,7 +8,7 @@ namespace Game.Presentation
     /// Rolls the person inside a customer's archetype as they appear (concept v9.2: "the archetype
     /// is the clothes, the person is rolled"; the user's playtest found two identical customers):
     /// skin tone, hair style and colour, the shade and pattern of their clothes, nose, glasses or
-    /// a moustache, and the archetype's props. Every option is already built on the body; this shows one of
+    /// a moustache, a hat from the archetype's few, and the archetype's props. Every option is already built on the body; this shows one of
     /// each and recolours by property block. Two people in the room at once never roll exactly
     /// the same. Cosmetic only.
     /// </summary>
@@ -55,6 +55,10 @@ namespace Game.Presentation
         [SerializeField] private Choice[] _choices = Array.Empty<Choice>();
         [SerializeField] private Palette[] _palettes = Array.Empty<Palette>();
         [SerializeField] private Pattern[] _patterns = Array.Empty<Pattern>();
+        [Tooltip("Hats (options of a choice above) that cover the top of the head.")]
+        [SerializeField] private GameObject[] _coveringHats = Array.Empty<GameObject>();
+        [Tooltip("The hair that only shows on a bare head: hidden when one of those hats is rolled, or it would poke through.")]
+        [SerializeField] private GameObject[] _bareHair = Array.Empty<GameObject>();
 
         private const int Attempts = 24;
         private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
@@ -113,6 +117,14 @@ namespace Game.Presentation
                     Show(choice.Options[pick], true);
                 key = key * 31 + pick + 1;
             }
+
+            // The under-hat rule: a hat that covers the head leaves only the hair below it.
+            var covered = false;
+            foreach (var hat in _coveringHats)
+                covered |= hat != null && hat.activeSelf;
+            foreach (var top in _bareHair)
+                if (top != null)
+                    top.SetActive(!covered);
 
             var block = new MaterialPropertyBlock();
             foreach (var palette in _palettes)

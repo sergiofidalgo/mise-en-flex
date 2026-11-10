@@ -4,6 +4,31 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-10 — Customers roll a hat, and some have long hair
+
+**User's call:** the in-game customers get the modelled hats and the long hair too ("Yes, do it", after the opening's fourth pass).
+
+**What we did (our calls, to tune by playing):** a hat is now one of the things rolled per customer, like their hair, clothes and prop. Each archetype keeps its own mark as the likeliest and gets one or two that suit it:
+
+| Archetype | Hats (most likely first) | Bare-headed | Hair added |
+| --- | --- | --- | --- |
+| Regular | cap, cowboy hat | 1 in 5 | none |
+| Office | headphones | 4 in 5 | long |
+| Date night | plumed hat | 4 in 5 | long (likeliest) |
+| Tourist | sun hat, straw hat, captain's cap, cap | 1 in 10 | long |
+| Retiree | cap, straw hat | 7 in 10 | long |
+| Gym | headband, headphones, cap | 1 in 10 | none |
+
+- **The crown, party hat, propeller cap, horns and headdress stay with the players:** they're the tailor's prizes, earned before they're worn (2026-11-09), and a room full of them would cheapen that.
+- **The under-hat rule holds for rolled hats:** under a hat that covers the head, the top of the hair is hidden and only the back, the locks at the nape and long hair show (`CharacterRoll`, checked by `CustomerRollTests` on the built prefab).
+- **Rebuilding:** *Tools/Game/Rebuild Customer Prefab* rebuilds only `PF_Customer`, without rebuilding the kitchen.
+
+**Reason:** the user wanted customers told apart at a glance. Hats are kept to a few per archetype because the archetypes are read by their clothes, prop, hat and walk: a tourist in any hat still has to look like a tourist.
+
+**To watch when playing:** whether archetypes still read from the game camera now that, say, a Regular can turn up without the cap. If not, lower that archetype's bare-headed share in `CharacterArt.CustomerLooks`.
+
+---
+
 ## 2026-11-10 — The opening, fourth pass: hair that reads as hair, hats in the crowd, the chef already in the lift
 
 **User's notes after the third pass:**
@@ -27,7 +52,7 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
   - **new: long hair** (`HairKind.Bob`, the `HairLengths` mesh), locks to the jaw round the back and sides that hang below any hat.
   The hairline's crisp lip from earlier today stays. Everything keeps within the reach limit (`CharacterProportionTests`, which now checks the new mesh too).
 - **Hats:** `CharacterArt.HatKind` gains the wardrobe's hats (cowboy, straw, captain, headphones, plumed, party, propeller), so anyone can wear them, not only players. In the opening about four in ten street people wear a hat; the tower's staff only the odd cap or headphones.
-- **Not done, to decide:** the in-game customers (the archetypes in `CharacterArt.CustomerLooks`) don't use the new hats or the long hair yet. That changes how customers read in service, so it's the user's call.
+- **Customers:** the in-game customers got the hats and the long hair in a step of their own, the same day (the entry above).
 - **The chef and the lift:** the chef stands in the cab from the start. Choosing a campaign starts the climb at once; the walk-in stage is gone. The menu now fades in 0.25 s after the camera stops (it was 2 s).
 - **The tower's floors:** an open-plan wing east of the modelled rooms on every floor, as far as the climbing camera sees; the painted windows are mostly lit (72%, from 45%) with a figure moving in most lit rooms. Floors are slabs 0.3 m thick and a stone apron closes the gap under the lowest one, which is what showed feet below the floor.
 - **The neighbours:** windows down the full height of the tall buildings round the tower (one quad a face, drawn by `SH_InteriorCard` in a new facade mode), and framed windows on the avenue-facing side of the two corner buildings.
