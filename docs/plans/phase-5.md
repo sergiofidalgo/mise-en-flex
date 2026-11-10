@@ -1,6 +1,8 @@
 # Phase 5 plan: Persistence and economy
 
-*Started 2026-11-08. Decisions in `../decisions.md`, design in `../game-design.md` §4, §11, §12, §15.4–15.8.*
+*Started 2026-11-08. **Closed 2026-11-10:** all six milestones built, merged and played by the user; what's left is small fixes, cosmetics and interaction design, to pick up as longer play sessions turn them up.*
+
+*Decisions in `../decisions.md`, design in `../game-design.md` §4, §11, §12, §15.4–15.8.*
 
 **Done when:** you can quit and come back to the same restaurant on the same day number, with your layout, stock, staff and money intact. Every day costs something (ingredients, wages, energy, a weekly fee), so the Review dashboard shows a real profit or loss. You buy your own ingredients from street vendors, choose and price your menu from the cookbook, clean up yesterday's mess, and can put out a gas fire.
 
