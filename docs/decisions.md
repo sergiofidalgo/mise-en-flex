@@ -3288,3 +3288,21 @@ It hides (fading over the HUD's 0.12 s) behind the Review dashboard, the pause m
 **Capture:** `ForkcastPlanCapture` (explicit PlayMode, visible editor) shoots the Staff tab and Overview in Plan at 1920×1080.
 
 **Not checked in play:** whether players find Y to reopen forkcast, how the shared dashboard feels when one player puts it away mid-browse, and the Staff tab with four players at once.
+
+## 2026-11-10 — forkcast after the playtest: a Start button, tonight's receipt, a boss card with urgency
+
+**User's calls** (from playing the morning and Review):
+- **A big Start button replaces holding Menu,** bottom right in forkcast: "Start day N" in Review, "Start prep" in Plan. Holding A fills it like a progress bar, and with two or more cooks each has a pip on it, lit when they're ready. Holding Menu now readies up only in Prep; in Plan and Review a tap on Menu opens the pause menu at once.
+- **The A clash, solved the way the user suggested first:** a tap of A acts on what's chosen (hire a candidate, unlock a recipe), on release; only a hold (0.8 s, `_startHoldSeconds`) fills Start. The reply wheel's A still acts on the press, and that press never fills Start.
+- **The left column's "Tonight's guests" chart goes** for a receipt of tonight's money: meals, tips and anything else in; ingredients, wages, energy, purchases and walk-outs out; the profit or loss in big type. The boss's collection and loan instalment stay off it (the boss card has them). In the morning it's last night's. The left column is shared by every tab, so the receipt is on all of them.
+- **The boss card leads with the collection:** "Collection in 3 days: $610" ("tonight" or "tomorrow" when it's next). Under it, a bar of how much the balance covers, red when short, with "You have $X" and "Short by $Y". A last line says what missing it brings, from `BossEscalation`'s next step ("Miss it and he comes to warn you."). On collection night it says what he took and what comes tomorrow. Short with two days or fewer left, the card's glow pulses gently and the boss appears, frowning.
+- **The footer lists only LB/RB (tabs) and the D-pad (browse).** Every other action is on the UI it acts on: Y Reply on the chosen review (as before), A Hire and Y Let go on the chosen Staff row, A Unlock and X Suggested in the Cookbook, the Start button, and in the morning B Close and View Rearrange as chips beside Start. The old left-hand "P1 ready" line is gone; the pips replace it.
+- **Whole amounts throughout forkcast,** as on the money card ($557, not $556.56), Menu & Books included.
+
+**Done:**
+- Plain logic with EditMode tests: `StartHold` (tap vs hold per player, built on `MenuPress`), `BossCard` (due, covered, shortfall, urgent, the next step), `NightReceipt`.
+- PlayMode: holding A on the Overview starts Prep with one cook and hires nobody; holding Menu in Plan no longer starts the day.
+- The boss's phone call rises above forkcast's footer while forkcast is open, so it never covers Start.
+- Captures (1920×1080): the Overview in Plan (day 1, and the morning of a short collection) and in Review (urgent), plus the Staff tab.
+
+**Not checked in play:** whether 0.8 s feels right for the hold, whether a tap-on-release hire feels late, the pulse's strength, and four pips on the button.
