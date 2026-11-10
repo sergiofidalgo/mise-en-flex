@@ -211,6 +211,7 @@ namespace Game.Presentation.Hud
             _filter = (Filter)Mathf.Clamp(filter, 0, 4);
             _onFilters = onFilters;
             Refresh();
+            UpdateMoney(0f);
             _dirty = false;
             return _canvasObject.GetComponent<Canvas>();
         }
@@ -222,6 +223,7 @@ namespace Game.Presentation.Hud
             _start.HoldSeconds = _startHoldSeconds;
             ReadInput();
             PulseBoss();
+            UpdateMoney(Time.unscaledDeltaTime);
             if (_saveCookbookAt >= 0f && Time.unscaledTime >= _saveCookbookAt)
                 SaveCookbookNow();
             if (_dirty)

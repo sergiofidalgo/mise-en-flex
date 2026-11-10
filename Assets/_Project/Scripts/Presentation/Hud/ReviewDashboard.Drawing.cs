@@ -135,17 +135,14 @@ namespace Game.Presentation.Hud
         {
             UiKit.Clear(_header);
             var days = Services.Days;
-            var config = Services.ServiceConfig;
             Label(Medium, _header, Tr.Format("{style}s near you", ("style", Tr.Get(ShownStyle))), 21.33f, _sand, 374f, 106f, 500f);
 
             var today = Services.ReviewHistory.Count(r => r.Day == days.Day);
-            var right = 1804f;
-            if (today > 0)
-                right = HeaderPill(today == 1 ? "1 new review" : $"{today} new reviews", _wellLight, right) - 22f;
+            // The money chip has the very right (the user's call, 2026-11-10); the pills sit to its left.
+            var right = 1804f - _moneyWidth - 22f;
             right = HeaderPill(Tr.Format("Day {day} · {weekday}", ("day", days.Day), ("weekday", Weekday(days.Day))), _well, right) - 22f;
-            // The morning: the day card is behind forkcast, so the header says what part of the day it is.
-            if (days.Phase == DayPhase.Plan)
-                HeaderPill(DayCardText.Line(DayPhase.Plan, ServicePhase.Open, config.OpensAt, 0f).Text, _wellLight, right);
+            if (today > 0)
+                HeaderPill(today == 1 ? "1 new review" : $"{today} new reviews", _wellLight, right);
         }
 
         // A pill whose right edge is at right; returns its left edge.
@@ -157,6 +154,63 @@ namespace Game.Presentation.Hud
             box.transform.SetSiblingIndex(label.transform.GetSiblingIndex());
             label.rectTransform.anchoredPosition = new Vector2(right - width + 16f, label.rectTransform.anchoredPosition.y);
             return right - width;
+        }
+
+        // ---- The money chip: the balance, top right, animated as the money card is ----
+
+        private const float MoneyHeight = 46f, MoneyTop = 76f, MoneyCoin = 30f, MoneyPad = 14f, MoneyMinWidth = 150f;
+        private RectTransform _money;
+        private TextMeshProUGUI _moneyAmount;
+        private MoneyTicker _moneyTicker;
+        private float _moneyWidth = MoneyMinWidth;
+        private bool _moneyKnown;
+
+        // The same rules as the money card (MoneyTicker): money in rolls up in green, money out drops
+        // at once with a short red shake. The money card hides behind forkcast, so this stands in for
+        // it: a recipe unlocked or a candidate hired shows here as it would anywhere else.
+        private void UpdateMoney(float dt)
+        {
+            _moneyTicker ??= new MoneyTicker(_style.MoneyTicker);
+            var balance = Services.Days.Balance;
+            if (!_moneyKnown)
+            {
+                _moneyTicker.Snap(balance);
+                _moneyKnown = true;
+            }
+            else
+            {
+                _moneyTicker.Set(balance);
+            }
+            _moneyTicker.Tick(dt);
+
+            // Sized for where a roll ends, so it never twitches mid-roll; the pills follow it.
+            var label = _moneyAmount;
+            var needed = Mathf.Max(MoneyMinWidth, MoneyPad + MoneyCoin + 10f + label.GetPreferredValues(MoneyTicker.Format(_moneyTicker.Target), 10000f, 10000f).x + MoneyPad + 4f);
+            if (_money.childCount == 0 || Mathf.Abs(needed - _moneyWidth) > 0.5f)
+            {
+                _moneyWidth = needed;
+                DrawMoneyChip();
+                DrawHeader();
+            }
+
+            var resting = _moneyTicker.Target < 0f ? _style.MoneyLoss : _paper;
+            var change = _moneyTicker.Direction == MoneyChange.Up ? _style.MoneyGain : _style.MoneyLoss;
+            _moneyAmount.color = Color.Lerp(resting, change, _moneyTicker.Tint);
+            _moneyAmount.text = MoneyTicker.Format(_moneyTicker.Shown);
+            _money.anchoredPosition = new Vector2(1804f - _moneyWidth + _moneyTicker.Offset, -MoneyTop);
+        }
+
+        private void DrawMoneyChip()
+        {
+            var text = _moneyAmount != null ? _moneyAmount.text : "";
+            UiKit.Clear(_money);
+            _money.sizeDelta = new Vector2(_moneyWidth, MoneyHeight);
+            UiKit.StrokedBox(_money, "Chip", _well, _gold, 2.67f, 0f, 0f, _moneyWidth, MoneyHeight, MoneyHeight / 2f);
+            // The money card's coin, smaller.
+            var coinY = (MoneyHeight - MoneyCoin) / 2f;
+            UiKit.StrokedCircle(_money, "Coin", Color.Lerp(_style.MoneyEdge, Color.white, 0.25f), Color.Lerp(_style.MoneyEdge, Color.black, 0.3f), 3f, MoneyPad, coinY, MoneyCoin);
+            UiKit.Ellipse(_money, "CoinFace", Color.Lerp(_style.MoneyEdge, Color.black, 0.15f), MoneyPad + MoneyCoin * 0.25f, coinY + MoneyCoin * 0.25f, MoneyCoin * 0.5f, MoneyCoin * 0.5f);
+            _moneyAmount = UiKit.TextAt(ExtraBold, _money, "Amount", text, 25f, _paper, _moneyWidth - MoneyPad - 2f, MoneyHeight / 2f + 9f, _moneyWidth - MoneyPad * 2f - MoneyCoin - 10f, HorizontalAlignmentOptions.Right);
         }
 
         // ---- Left: name, rating, and tonight's guests ----
@@ -1361,6 +1415,8 @@ namespace Game.Presentation.Hud
             UiKit.RoundBox(_layout, "Guests", _card, 120f, 700f, 600f, 222f, 18f);
 
             _header = UiKit.Rect(_layout, "HeaderState", 0f, 0f, 1920f, 1080f);
+            _money = UiKit.Rect(_layout, "Money", 1804f - _moneyWidth, MoneyTop, _moneyWidth, MoneyHeight);
+            DrawMoneyChip();
             _left = UiKit.Rect(_layout, "Left", 0f, 0f, 1920f, 1080f);
             _tabs = UiKit.Rect(_layout, "Tabs", 0f, 0f, 1920f, 1080f);
             _content = UiKit.Rect(_layout, "Content", 0f, 0f, 1920f, 1080f);

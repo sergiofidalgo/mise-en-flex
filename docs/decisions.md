@@ -3306,3 +3306,9 @@ It hides (fading over the HUD's 0.12 s) behind the Review dashboard, the pause m
 - Captures (1920×1080): the Overview in Plan (day 1, and the morning of a short collection) and in Review (urgent), plus the Staff tab.
 
 **Not checked in play:** whether 0.8 s feels right for the hold, whether a tap-on-release hire feels late, the pulse's strength, and four pips on the button.
+
+## 2026-11-10 — forkcast's header shows the money, not the phase
+
+**User's call:** the header's top right shows the balance as a chip (coin and amount) at the very right, animated as the money card is everywhere else, so an unlocked recipe or a hire shows its cost there. The phase and opening time ("Plan · opens 18:00") go from the header: the day card carries them on screen through Prep and Service.
+
+**Done:** `ReviewDashboard` runs its own `MoneyTicker` (the money card's rules: money in rolls up in green, money out drops at once with a short red shake, owed money in red) for a chip right-aligned at the header's edge. It's sized for where a roll ends, and the Day pill and new-review pill sit to its left. A change made while forkcast is closed plays when it opens again, as the money card does.
