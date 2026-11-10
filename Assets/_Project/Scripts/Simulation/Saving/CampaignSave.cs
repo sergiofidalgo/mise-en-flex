@@ -8,47 +8,38 @@ namespace Game.Simulation.Saving
     /// Plain data with public fields so any JSON writer can handle it; the gameplay layer writes the
     /// file. Every field has a default, so a file from an older version loads with sensible values
     /// for what it didn't have, and <see cref="SaveMigration"/> fixes anything a default can't.
+    /// <para>
+    /// A campaign is an empire of restaurants (Phase 6, decision 2026-11-10). What belongs to the
+    /// people (the money, the loan, the menu they've unlocked, the time they've put in) is kept here
+    /// once; what belongs to a place (its room, stock, mess, guests and fee clock) is kept per
+    /// restaurant in <see cref="Restaurants"/>. Only the current one runs; the others wait as they
+    /// were left.
+    /// </para>
     /// </summary>
     [Serializable]
     public sealed class CampaignSave
     {
-        /// <summary>Bumped whenever the shape changes in a way a default can't cover.</summary>
-        public const int CurrentVersion = 1;
+        /// <summary>
+        /// Bumped whenever the shape changes in a way a default can't cover.
+        /// 1: one restaurant, its fields at the top. 2: a list of restaurants (Phase 6).
+        /// </summary>
+        public const int CurrentVersion = 2;
 
         public int Version = CurrentVersion;
 
-        /// <summary>The day that was just played. Continue starts the morning after (decision 2026-11-08).</summary>
-        public int Day = 1;
-
-        /// <summary>Can be negative: money owed to the boss (decision 2026-11-08).</summary>
+        /// <summary>
+        /// Can be negative: money owed to the boss (decision 2026-11-08). The campaign's, not a
+        /// restaurant's: every restaurant pays into and out of the same pocket.
+        /// </summary>
         public float Balance;
 
-        /// <summary>Plates broken at the sink and not yet replaced.</summary>
-        public int BrokenPlates;
+        /// <summary>
+        /// What the accountant has lent and is still to be paid back (decision 2026-11-10: the loan
+        /// belongs to the campaign, and each collection takes one instalment). 0 until milestone 4.
+        /// </summary>
+        public float Loan;
 
-        public List<StationRecord> Stations = new List<StationRecord>();
-
-        /// <summary>Everything lying around the kitchen, flattened: a pan's food points back at the pan.</summary>
-        public List<ItemRecord> Items = new List<ItemRecord>();
-
-        public List<StaffRecord> Staff = new List<StaffRecord>();
-
-        public List<ReviewRecord> Reviews = new List<ReviewRecord>();
-
-        /// <summary>Finished days since the last fee.</summary>
-        public int DaysTowardsFee;
-
-        /// <summary>Money in and out since the last fee, one amount per ledger line.</summary>
-        public float[] Period = new float[0];
-
-        public List<Days.DayRecord> History = new List<Days.DayRecord>();
-
-        // For the slot card in the main menu.
-        public string RestaurantName = "";
-        public string StyleName = "";
-        public string Area = "";
-
-        /// <summary>Real seconds played in this campaign.</summary>
+        /// <summary>Real seconds played in this campaign, in any restaurant.</summary>
         public float PlayedSeconds;
 
         /// <summary>When it was last saved, as <see cref="DateTime.Ticks"/> in local time.</summary>
@@ -57,23 +48,65 @@ namespace Game.Simulation.Saving
         /// <summary>Every player number that has cooked in this campaign, for the card's coloured dots.</summary>
         public List<int> Cooks = new List<int>();
 
-        /// <summary>Review and reply lines used lately, so they don't repeat across days.</summary>
+        /// <summary>
+        /// Review and reply lines used lately, so they don't repeat across days. The campaign's: the
+        /// same players read every restaurant's listing, so a line shouldn't repeat across them either.
+        /// </summary>
         public List<string> RecentLines = new List<string>();
 
-        /// <summary>Every order ever taken, per dish: not every guest reviews, so reviews can't count them.</summary>
-        public List<DishCount> Dishes = new List<DishCount>();
-
         /// <summary>
-        /// Cookbook recipes this campaign has unlocked, its menu (decision 2026-11-10). Empty in a
+        /// Cookbook recipes this campaign has unlocked, its menu (decision 2026-11-10). The campaign's:
+        /// a recipe is bought once with the campaign's money and can be cooked anywhere. Empty in a
         /// file from before the cookbook: the starter recipes are unlocked anyway.
         /// </summary>
         public List<string> Recipes = new List<string>();
 
-        /// <summary>Prices players have set; any dish not listed sells at its suggested price.</summary>
-        public List<Cookbook.PriceRecord> Prices = new List<Cookbook.PriceRecord>();
+        /// <summary>Index into <see cref="Restaurants"/> of the one being played; -1 with none.</summary>
+        public int CurrentRestaurant = -1;
 
-        /// <summary>Dirt left from service, cleaned the next morning (decision 2026-11-06). Empty in older files.</summary>
-        public List<DirtRecord> Dirt = new List<DirtRecord>();
+        /// <summary>Every restaurant owned, in the order they were bought.</summary>
+        public List<RestaurantSave> Restaurants = new List<RestaurantSave>();
+
+        /// <summary>The restaurant being played, or null if there is none yet.</summary>
+        public RestaurantSave Current =>
+            Restaurants != null && CurrentRestaurant >= 0 && CurrentRestaurant < Restaurants.Count ? Restaurants[CurrentRestaurant] : null;
+
+        /// <summary>The restaurant made from that definition, or null if it isn't owned.</summary>
+        public RestaurantSave Find(string definitionId) =>
+            Restaurants?.Find(r => r.DefinitionId == definitionId);
+
+        /// <summary>Adds a restaurant (it doesn't become current) and returns it.</summary>
+        public RestaurantSave Add(RestaurantSave restaurant)
+        {
+            Restaurants ??= new List<RestaurantSave>();
+            Restaurants.Add(restaurant);
+            if (CurrentRestaurant < 0)
+                CurrentRestaurant = 0;
+            return restaurant;
+        }
+
+        /// <summary>Makes the restaurant at <paramref name="index"/> the one played next.</summary>
+        public void Switch(int index)
+        {
+            if (Restaurants == null || index < 0 || index >= Restaurants.Count)
+                throw new ArgumentOutOfRangeException(nameof(index));
+            CurrentRestaurant = index;
+        }
+
+        /// <summary>
+        /// Puts a freshly captured record in place of the current restaurant's, leaving every other
+        /// restaurant exactly as it was: idle places don't change while nobody is in them.
+        /// </summary>
+        public void StoreCurrent(RestaurantSave restaurant)
+        {
+            if (Current == null)
+            {
+                Add(restaurant);
+                CurrentRestaurant = Restaurants.Count - 1;
+                return;
+            }
+            Restaurants[CurrentRestaurant] = restaurant;
+        }
     }
 
     /// <summary>One patch of dirt (see <see cref="Cleaning.DirtSpot"/>).</summary>
@@ -83,7 +116,7 @@ namespace Game.Simulation.Saving
         public int Kind;
         public int Surface;
 
-        /// <summary>The table or counter it's on, as an index into <see cref="CampaignSave.Stations"/>; -1 on the floor.</summary>
+        /// <summary>The table or counter it's on, as an index into <see cref="RestaurantSave.Stations"/>; -1 on the floor.</summary>
         public int Station = -1;
 
         /// <summary>In the room on the floor; from the station's centre, in its own axes, on a station.</summary>
@@ -257,16 +290,46 @@ namespace Game.Simulation.Saving
     /// <summary>Brings a file from an older version up to date, one version at a time.</summary>
     public static class SaveMigration
     {
+        /// <param name="version1">
+        /// For a version-1 file: the same text read as <see cref="Version1Restaurant"/>, since its
+        /// restaurant's fields sit at the top of the file where version 2 no longer looks. The
+        /// gameplay layer reads it (it has the JSON reader); null leaves restaurant 1 empty.
+        /// </param>
         /// <returns>False if the file is from a newer version of the game, which can't be read safely.</returns>
-        public static bool Upgrade(CampaignSave save)
+        public static bool Upgrade(CampaignSave save, Version1Restaurant version1 = null)
         {
             if (save == null || save.Version > CampaignSave.CurrentVersion)
                 return false;
 
-            // Each step takes version n to n + 1. None yet: version 1 is the first.
+            // Each step takes version n to n + 1.
             while (save.Version < CampaignSave.CurrentVersion)
+            {
+                switch (save.Version)
+                {
+                    case 1:
+                        OneRestaurantBecomesTheFirst(save, version1 ?? new Version1Restaurant());
+                        break;
+                }
                 save.Version++;
+            }
+
+            // Lists a hand-edited or partial file left out.
+            save.Restaurants ??= new List<RestaurantSave>();
+            save.Cooks ??= new List<int>();
+            save.RecentLines ??= new List<string>();
+            save.Recipes ??= new List<string>();
+            if (save.CurrentRestaurant >= save.Restaurants.Count || (save.CurrentRestaurant < 0 && save.Restaurants.Count > 0))
+                save.CurrentRestaurant = save.Restaurants.Count > 0 ? 0 : -1;
             return true;
+        }
+
+        // 1 → 2 (Phase 6): the one restaurant of a version-1 file becomes restaurant 1 of the empire,
+        // and the current one. The campaign's own fields (balance, play time, cooks, recent lines,
+        // recipes) kept their names, so they've already been read into place. The loan is new: 0.
+        private static void OneRestaurantBecomesTheFirst(CampaignSave save, Version1Restaurant old)
+        {
+            save.Restaurants = new List<RestaurantSave> { old.ToRestaurant() };
+            save.CurrentRestaurant = 0;
         }
     }
 }

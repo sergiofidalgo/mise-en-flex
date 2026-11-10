@@ -100,30 +100,34 @@ namespace Game.Editor
             SaveFile.DirectoryOverride = root;
             try
             {
-                Write(0, new CampaignSave
+                Write(0, Campaign(new RestaurantSave
                 {
-                    RestaurantName = "The Copper Pan",
+                    Name = "The Copper Pan",
                     StyleName = "Steakhouse",
                     Area = "Midwest",
                     Day = 11,
+                    Reviews = Reviews(213, i => i % 5 < 4 ? 4f : 3f, "@ines.eats", "Perfect medium-rare, worth the wait."),
+                }, new CampaignSave
+                {
                     Balance = 2340f,
                     PlayedSeconds = 4 * 3600 + 12 * 60,
                     LastPlayedTicks = DateTime.Now.AddDays(-1).Ticks,
                     Cooks = new List<int> { 0, 1 },
-                    Reviews = Reviews(213, i => i % 5 < 4 ? 4f : 3f, "@ines.eats", "Perfect medium-rare, worth the wait."),
-                }, photos, "photo1.png");
-                Write(1, new CampaignSave
+                }), photos, "photo1.png");
+                Write(1, Campaign(new RestaurantSave
                 {
-                    RestaurantName = "Low Tide Shack",
+                    Name = "Low Tide Shack",
                     StyleName = "Seafood",
                     Area = "New England",
                     Day = 30,
+                    Reviews = Reviews(1305, i => i % 5 < 3 ? 4f : 5f, "@lobsterlenny", "Lobster roll of my life."),
+                }, new CampaignSave
+                {
                     Balance = 9815f,
                     PlayedSeconds = 11 * 3600 + 40 * 60,
                     LastPlayedTicks = new DateTime(2026, 11, 2, 21, 0, 0).Ticks,
                     Cooks = new List<int> { 0, 1, 2, 3 },
-                    Reviews = Reviews(1305, i => i % 5 < 3 ? 4f : 5f, "@lobsterlenny", "Lobster roll of my life."),
-                }, photos, "photo2.png");
+                }), photos, "photo2.png");
             }
             finally
             {
@@ -138,6 +142,12 @@ namespace Game.Editor
                 reviews.Add(new ReviewRecord { Day = i % 10, Stars = stars(i), Guest = $"guest{i}" });
             reviews.Add(new ReviewRecord { Day = 10, Stars = 5f, Guest = bestGuest, Line = bestLine });
             return reviews;
+        }
+
+        private static CampaignSave Campaign(RestaurantSave restaurant, CampaignSave campaign)
+        {
+            campaign.Add(restaurant);
+            return campaign;
         }
 
         private static void Write(int slot, CampaignSave save, string photos, string photoName)

@@ -126,7 +126,8 @@ namespace Game.Tests.EditMode
             try
             {
                 var file = new SaveFile(directory);
-                var save = new CampaignSave { Day = 4, Balance = -40.5f, BrokenPlates = 2 };
+                var campaign = new CampaignSave { Balance = -40.5f };
+                var save = campaign.Add(new RestaurantSave { Day = 4, BrokenPlates = 2 });
                 save.Stations.Add(new StationRecord { FurnitureId = "table", SceneName = "Table", X = 1.5f, Z = -2f, Degrees = 45f, Chairs = 3 });
                 var steak = _factory.Ingredient("Steak");
                 steak.Seasoning = 0.25f;
@@ -134,11 +135,12 @@ namespace Game.Tests.EditMode
                 save.Staff.Add(new StaffRecord { Name = "Ana", Role = 1, DailyWage = 30f, Morale = 0.7f });
                 save.Reviews.Add(new ReviewRecord { Day = 4, Stars = 3.5f, Line = "Good steak." });
 
-                file.Write(save);
-                var back = file.Read();
+                file.Write(campaign);
+                var read = file.Read();
+                var back = read.Current;
 
                 Assert.That(back.Day, Is.EqualTo(4));
-                Assert.That(back.Balance, Is.EqualTo(-40.5f), "money owed survives");
+                Assert.That(read.Balance, Is.EqualTo(-40.5f), "money owed survives");
                 Assert.That(back.BrokenPlates, Is.EqualTo(2));
                 Assert.That(back.Stations.Single().Degrees, Is.EqualTo(45f));
                 Assert.That(back.Stations.Single().Chairs, Is.EqualTo(3));
@@ -156,9 +158,11 @@ namespace Game.Tests.EditMode
         [Test]
         public void AnOlderFileWithoutNewerFieldsStillLoads()
         {
-            var save = JsonUtility.FromJson<CampaignSave>("{\"Version\":1,\"Day\":2,\"Balance\":10}");
+            var campaign = SaveFile.Parse("{\"Version\":1,\"Day\":2,\"Balance\":10}");
 
-            Assert.That(SaveMigration.Upgrade(save), Is.True);
+            Assert.That(campaign, Is.Not.Null);
+            Assert.That(campaign.Balance, Is.EqualTo(10f));
+            var save = campaign.Current;
             Assert.That(save.Day, Is.EqualTo(2));
             Assert.That(save.Stations, Is.Not.Null.And.Empty);
             Assert.That(save.Items, Is.Not.Null.And.Empty);

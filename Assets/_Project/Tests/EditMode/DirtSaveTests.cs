@@ -21,10 +21,10 @@ namespace Game.Tests.EditMode
             var spill = mess.PlateBroken(2f, 3f);
             dirt.Clean(spill, 1f);
 
-            var save = new CampaignSave();
+            var save = new RestaurantSave();
             DirtRecords.Write(dirt, host => host == table ? 0 : host == counter ? 1 : -1, save.Dirt);
             var json = JsonUtility.ToJson(save);
-            var back = JsonUtility.FromJson<CampaignSave>(json);
+            var back = JsonUtility.FromJson<RestaurantSave>(json);
 
             var newTable = new object();
             var newCounter = new object();
@@ -46,7 +46,7 @@ namespace Game.Tests.EditMode
         {
             var dirt = new DirtMap();
             new MessMaker(dirt).DinerFinished(DirtSurface.Table, new object(), 0f, 0f);
-            var save = new CampaignSave();
+            var save = new RestaurantSave();
             DirtRecords.Write(dirt, _ => -1, save.Dirt);
             Assert.That(save.Dirt, Is.Empty);
 
@@ -59,7 +59,7 @@ namespace Game.Tests.EditMode
         [Test]
         public void AFileFromBeforeDirtLoadsClean()
         {
-            var save = JsonUtility.FromJson<CampaignSave>("{\"Version\":1,\"Day\":2,\"Balance\":10}");
+            var save = Game.Gameplay.Saving.SaveFile.Parse("{\"Version\":1,\"Day\":2,\"Balance\":10}").Current;
             Assert.That(save.Dirt, Is.Not.Null.And.Empty);
             var morning = new DirtMap();
             DirtRecords.Read(save.Dirt, _ => null, morning);

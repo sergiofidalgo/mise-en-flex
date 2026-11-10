@@ -194,7 +194,7 @@ namespace Game.Presentation.Menu
             switch (item)
             {
                 case Item.Continue:
-                    return _lastPlayed >= 0 ? Tr.Format("{restaurant} · Day {day}", ("restaurant", Name(_saves[_lastPlayed])), ("day", _saves[_lastPlayed].Day + 1)) : "";
+                    return _lastPlayed >= 0 ? Tr.Format("{restaurant} · Day {day}", ("restaurant", Name(_saves[_lastPlayed])), ("day", Shown(_saves[_lastPlayed]).Day + 1)) : "";
                 case Item.NewCampaign:
                     var free = SaveSlots.FirstFree(_saves);
                     return _lastPlayed < 0 ? Tr.Get("Open your first restaurant") : free >= 0 ? Tr.Format("Starts in slot {slot}", ("slot", free + 1)) : Tr.Get("All three slots are taken");
@@ -210,7 +210,10 @@ namespace Game.Presentation.Menu
         }
 
         private string Name(CampaignSave save) =>
-            string.IsNullOrEmpty(save?.RestaurantName) ? _service.RestaurantName : save.RestaurantName;
+            string.IsNullOrEmpty(save?.Current?.Name) ? _service.RestaurantName : save.Current.Name;
+
+        // A slot card shows the restaurant being played (Phase 6: a campaign holds several).
+        private static RestaurantSave Shown(CampaignSave save) => save?.Current ?? new RestaurantSave();
 
         // ---- forkcast: header and cards ----
 
@@ -279,23 +282,24 @@ namespace Game.Presentation.Menu
             var left = x + 21f;
             UiKit.TextAt(_bold, _cards, "Name", Name(save), 27.33f, _ink, left, 521f, 268f);
 
-            var rating = Game.Simulation.Service.ReviewReplies.Rating(save.Reviews);
+            var shown = Shown(save);
+            var rating = Game.Simulation.Service.ReviewReplies.Rating(shown.Reviews);
             if (rating.HasValue)
             {
                 var score = UiKit.TextAt(_bold, _cards, "Rating", $"{rating.Value:0.0}", 20f, _ink, left, 553f, 60f);
                 var starsEnd = UiKit.StarRow(_cards, left + UiKit.Width(score) + 10f, 537f, 17f, 20.75f, rating.Value, _gold, _starEmpty);
-                UiKit.TextAt(_medium, _cards, "Count", $"({save.Reviews.Count:#,0})", 20f, _brown, starsEnd + 11f, 553f, 100f);
+                UiKit.TextAt(_medium, _cards, "Count", $"({shown.Reviews.Count:#,0})", 20f, _brown, starsEnd + 11f, 553f, 100f);
             }
             else
             {
                 UiKit.TextAt(_medium, _cards, "Rating", Tr.Get("No reviews yet"), 20f, _brown, left, 553f, 268f);
             }
 
-            var style = string.IsNullOrEmpty(save.StyleName) ? _service.StyleName : save.StyleName;
-            var area = string.IsNullOrEmpty(save.Area) ? _service.Area : save.Area;
+            var style = string.IsNullOrEmpty(shown.StyleName) ? _service.StyleName : shown.StyleName;
+            var area = string.IsNullOrEmpty(shown.Area) ? _service.Area : shown.Area;
             UiKit.TextAt(_medium, _cards, "Info", $"{Locale.PriceBand(2)} · {Tr.Get(style)} · {Tr.Get(area)}", 17f, _brown, left, 580f, 268f);
 
-            var chipEnd = Chip(Tr.Format("Day {day}", ("day", save.Day + 1)), _dayBack, _dayText, left, 598f);
+            var chipEnd = Chip(Tr.Format("Day {day}", ("day", shown.Day + 1)), _dayBack, _dayText, left, 598f);
             if (save.Balance < 0f)
                 Chip(Tr.Format("Owes {amount}", ("amount", Money(-save.Balance))), _owesBack, _owesText, chipEnd + 8f, 598f);
 
@@ -416,7 +420,7 @@ namespace Game.Presentation.Menu
                     break;
                 case Page.ConfirmDelete:
                     var save = _saves[_card];
-                    UiKit.TextAt(_medium, _page, "Body", Tr.Format("Slot {slot}: Day {day}, {balance}.", ("slot", _card + 1), ("day", save.Day + 1), ("balance", Money(save.Balance))), 26.67f, _ink, 48f, 330f, 920f);
+                    UiKit.TextAt(_medium, _page, "Body", Tr.Format("Slot {slot}: Day {day}, {balance}.", ("slot", _card + 1), ("day", Shown(save).Day + 1), ("balance", Money(save.Balance))), 26.67f, _ink, 48f, 330f, 920f);
                     UiKit.TextAt(_serifItalic, _page, "Warn", Tr.Get("This can't be undone."), 22f, _owesText, 48f, 376f, 920f);
                     break;
                 case Page.SlotsFull:
@@ -572,7 +576,7 @@ namespace Game.Presentation.Menu
         }
 
         private static ReviewRecord BestReview(CampaignSave save) =>
-            save?.Reviews?.Where(r => !string.IsNullOrEmpty(r.Line)).OrderByDescending(r => r.RatedStars).ThenByDescending(r => r.Day).FirstOrDefault();
+            save?.Current?.Reviews?.Where(r => !string.IsNullOrEmpty(r.Line)).OrderByDescending(r => r.RatedStars).ThenByDescending(r => r.Day).FirstOrDefault();
 
         // ---- The sign ----
 

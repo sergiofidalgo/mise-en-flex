@@ -9,20 +9,20 @@ using UnityEngine;
 namespace Game.Gameplay.Saving
 {
     /// <summary>
-    /// Writes the restaurant into a <see cref="CampaignSave"/>, and puts a save back into the scene.
-    /// Putting back happens in two steps around binding: the furniture first, so the stations bind
-    /// where they stand, then what's on them.
+    /// Writes the restaurant being played into a <see cref="RestaurantSave"/>, and puts one back into
+    /// the scene. Putting back happens in two steps around binding: the furniture first, so the
+    /// stations bind where they stand, then what's on them. What belongs to the campaign rather than
+    /// the restaurant (money, recipes, recent lines) is read and written by <see cref="CaptureCampaign"/>.
     /// </summary>
     public static class CampaignSnapshot
     {
         /// <summary>The restaurant as it is now, at the start of Review.</summary>
         /// <param name="players">The chefs: what's in their hands and belts is kept too.</param>
-        public static CampaignSave Capture(KitchenServices services, IEnumerable<PlayerInteractor> players)
+        public static RestaurantSave Capture(KitchenServices services, IEnumerable<PlayerInteractor> players)
         {
-            var save = new CampaignSave
+            var save = new RestaurantSave
             {
                 Day = services.Days.Day,
-                Balance = services.Days.Balance,
             };
 
             var stations = services.Stations.All;
@@ -71,17 +71,29 @@ namespace Game.Gameplay.Saving
 
             save.Staff.AddRange(services.Staff.Hired.Select(SaveConversions.ToRecord));
             save.Reviews.AddRange(services.ReviewHistory);
-            save.RecentLines.AddRange(services.ReviewLines.ToList());
             save.Dishes.AddRange(services.DishTally.Select(d => new DishCount { Dish = d.Key, Count = d.Value }));
             if (services.Cookbook != null)
-            {
-                save.Recipes.AddRange(services.Cookbook.UnlockedIds());
                 save.Prices.AddRange(services.Cookbook.PriceRecords());
-            }
             save.DaysTowardsFee = services.Days.DaysTowardsFee;
             save.Period = services.Days.Period.ToArray();
             save.History.AddRange(services.Days.History);
             return save;
+        }
+
+        /// <summary>
+        /// The campaign as it is now: <paramref name="loaded"/> (or a new one) with the current
+        /// restaurant replaced by <paramref name="restaurant"/>, and the campaign's own fields taken
+        /// from the day. Every other restaurant is kept exactly as loaded: idle places don't change.
+        /// </summary>
+        public static CampaignSave CaptureCampaign(CampaignSave loaded, RestaurantSave restaurant, KitchenServices services)
+        {
+            var campaign = loaded ?? new CampaignSave();
+            campaign.StoreCurrent(restaurant);
+            campaign.Balance = services.Days.Balance;
+            campaign.RecentLines = services.ReviewLines.ToList();
+            if (services.Cookbook != null)
+                campaign.Recipes = services.Cookbook.UnlockedIds().ToList();
+            return campaign;
         }
 
         /// <summary>
@@ -90,7 +102,7 @@ namespace Game.Gameplay.Saving
         /// pieces are made from the catalogue, and sold pieces go.
         /// </summary>
         /// <returns>The station for each saved record, in the save's order; null where one couldn't be made.</returns>
-        public static Interactable[] ApplyLayout(CampaignSave save, IReadOnlyList<Interactable> inScene, FurnitureCatalog catalog)
+        public static Interactable[] ApplyLayout(RestaurantSave save, IReadOnlyList<Interactable> inScene, FurnitureCatalog catalog)
         {
             var placed = new Interactable[save.Stations.Count];
             var unused = new List<Interactable>(inScene);
@@ -145,7 +157,7 @@ namespace Game.Gameplay.Saving
         }
 
         /// <summary>Puts back what was on the stations, after they've bound, and the counted things.</summary>
-        public static void RestoreContents(CampaignSave save, Interactable[] placed, KitchenServices services)
+        public static void RestoreContents(RestaurantSave save, Interactable[] placed, KitchenServices services)
         {
             for (var i = 0; i < placed.Length; i++)
             {
