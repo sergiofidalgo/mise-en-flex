@@ -4,6 +4,17 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-10 — Hair and snug hats follow the head and end in a crisp lip
+
+**Decision:** The short crop, the hair at the back, the cap's crown and the bandana are now built by `add_head_shell` in `blender/build_pilot_models.py` instead of as loose ellipsoids.
+- Each shell follows the head sphere at a set offset, fuller on the crown for the crop.
+- Each covers the crown down to an edge set over the brow, the ears and the nape.
+- Each ends in a lip tucked into the head.
+
+**Reason:** The user saw ragged hat and hair edges on the faces (most visibly the cap on a dark-skinned chef). Two near-equal curves crossing at a shallow angle meet along a line that wanders over the facets. A shell that sits on the head and ends in its own lip gives one clean edge.
+
+---
+
 ## 2026-11-10 — Characters take no cast shadow on themselves; the headdress sweeps back
 
 **Decision:**

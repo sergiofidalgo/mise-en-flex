@@ -613,6 +613,44 @@ def head_surface(x, dz):
     return -math.sqrt(max(CHAR_HEAD_RADIUS ** 2 - x * x - dz * dz, 0.0))
 
 
+def add_head_shell(bm, c, front, side, back, thick, rings=14, segments=40, tuck=0.025):
+    """Hair or a snug hat that follows the head (radius CHAR_HEAD_RADIUS, centre height c) at an
+    offset, instead of an ellipsoid cutting into it: where two near-equal curves cross, the line
+    wanders over the facets and looks ragged (the user's note, 2026-11-10). It covers the crown
+    down to an edge whose elevation (degrees) is `front` over the brow, `side` over the ears and
+    `back` at the nape, and ends in a lip tucked into the head, so the edge is one crisp line.
+    `thick(elevation)` is the offset in metres at an elevation in radians."""
+    R = CHAR_HEAD_RADIUS
+    a_plus_d = math.radians(front + back) / 2.0
+    b = math.radians(front - back) / 2.0
+    d = (a_plus_d - math.radians(side)) / 2.0
+    a = a_plus_d - d
+
+    def edge(phi):  # phi 0 at the front (Blender -Y), pi at the back
+        return a + b * math.cos(phi) + d * math.cos(2.0 * phi)
+
+    def point(elevation, phi, radius):
+        return (radius * math.cos(elevation) * math.sin(phi), -radius * math.cos(elevation) * math.cos(phi),
+                c + radius * math.sin(elevation))
+
+    top = bm.verts.new(point(math.pi / 2.0, 0.0, R + thick(math.pi / 2.0)))
+    columns = []
+    for j in range(segments):
+        phi = 2.0 * math.pi * j / segments
+        low = edge(phi)
+        column = []
+        for i in range(1, rings + 1):
+            elevation = math.pi / 2.0 + (low - math.pi / 2.0) * i / rings
+            column.append(bm.verts.new(point(elevation, phi, R + thick(elevation))))
+        column.append(bm.verts.new(point(low, phi, R - tuck)))  # the lip, tucked in
+        columns.append(column)
+    for j in range(segments):
+        here, there = columns[j], columns[(j + 1) % segments]
+        bm.faces.new([top, there[0], here[0]])
+        for i in range(len(here) - 1):
+            bm.faces.new([here[i], there[i], there[i + 1], here[i + 1]])
+
+
 def build_characters():
     """The body kit, chunky and soft-edged like the kitchen's props: legs that swing from the
     hips, a barrel body, sleeves with mitten hands, and a big round head with a friendly dot-eyed
@@ -740,10 +778,11 @@ def build_characters():
 
     # Hair. Under a hat only the back shows (HairBack); bare heads add a cap or a shape on top.
     bm = bmesh.new()  # the back and sides, down to the nape: always there, and all a hat leaves
-    add_ellipsoid(bm, (0.0, 0.1, c - 0.01), (0.315, 0.24, 0.27), rings=12, segments=24)
+    add_head_shell(bm, c, front=60.0, side=8.0, back=-38.0, thick=lambda e: 0.012)
     part("HairBack", bm, "waist", head=True)
     bm = bmesh.new()  # a short crop over the top, its hairline above the brows
-    add_ellipsoid(bm, (0.0, 0.06, c + 0.06), (0.33, 0.32, 0.3), rings=12, segments=24)
+    add_head_shell(bm, c, front=32.0, side=10.0, back=-38.0,
+                   thick=lambda e: 0.02 + 0.035 * max(0.0, math.sin(e)) ** 1.5)  # fuller on the crown
     part("HairCrop", bm, "waist", head=True)
     bm = bmesh.new()  # a bun on the crown
     add_ball(bm, (0.0, 0.12, c + 0.33), 0.12, segments=16)
@@ -766,14 +805,14 @@ def build_characters():
               segments=32)
     part("HatToqueBand", bm, "waist", head=True)
     bm = bmesh.new()  # a cap's crown, sitting low on the head, with the button on top
-    add_ellipsoid(bm, (0.0, 0.02, c + 0.1), (0.33, 0.33, 0.27), rings=12, segments=24)
-    add_ball(bm, (0.0, 0.02, c + 0.37), 0.035, segments=10)
+    add_head_shell(bm, c, front=18.0, side=10.0, back=-2.0, thick=lambda e: 0.032 + 0.025 * math.sin(e))
+    add_ball(bm, (0.0, 0.0, c + 0.37), 0.035, segments=10)
     part("HatCap", bm, "waist", head=True)
     bm = bmesh.new()  # its peak: a big rounded bill out over the eyes, so a cap reads as one from above
     add_ellipsoid(bm, (0.0, -0.29, c + 0.13), (0.2, 0.15, 0.022), rings=6, segments=24)
     part("HatCapPeak", bm, "waist", head=True)
     bm = bmesh.new()  # a bandana: a snug cover over the top and a knot at the back
-    add_ellipsoid(bm, (0.0, 0.03, c + 0.08), (0.325, 0.33, 0.29), rings=12, segments=24)
+    add_head_shell(bm, c, front=24.0, side=8.0, back=-15.0, thick=lambda e: 0.026 + 0.01 * math.sin(e))
     add_ball(bm, (0.0, 0.31, c + 0.04), 0.065, segments=12)
     part("HatBandana", bm, "waist", head=True)
     bm = bmesh.new()  # its two tails, hanging from the knot; they flutter as the chef moves
