@@ -65,6 +65,18 @@ namespace Game.Presentation.Office
         // are skipped and the camera starts on the floor.
         private bool _returning;
 
+        /// <summary>
+        /// Set before loading the office to start its opening at the main menu: no save notice and no
+        /// approach, the camera already at the entrance (the pause menu's "Quit to the main menu").
+        /// </summary>
+        public static bool StartAtMenu { get; set; }
+
+        private bool _fadeIntoMenu;
+
+        // In case statics survive between runs in the Editor.
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetStatics() => StartAtMenu = false;
+
         private void Awake()
         {
             _returning = Game.Gameplay.Saving.CampaignLaunch.Decided && Game.Gameplay.PlayerRoster.HasCarried;
@@ -95,6 +107,16 @@ namespace Game.Presentation.Office
                 return;
             }
             _hud.Veil = 1f;
+            if (StartAtMenu)
+            {
+                // Back from a game: straight to the menu, fading in on the entrance.
+                StartAtMenu = false;
+                _fadeIntoMenu = true;
+                Place(_flight[_flight.Length - 1], null);
+                Enter(Stage.Menu);
+                _clock = _menuDelay;
+                return;
+            }
             if (PlayerPrefs.GetInt(SaveNoticeKey, 0) == 0)
             {
                 Enter(Stage.SaveNotice);
@@ -148,6 +170,8 @@ namespace Game.Presentation.Office
                         _menu.SetShown(false, 0f);
                     else
                         _menu.SetShown(true, Mathf.Clamp01((_clock - _menuDelay) / _menuFade));
+                    if (_fadeIntoMenu)
+                        _hud.Veil = 1f - Mathf.Clamp01((_clock - _menuDelay) / _fade);
                     // The camera holds still under the menu (the user's note, 2026-11-10): the street does the moving.
                     Place(_flight[_flight.Length - 1], null);
                     break;

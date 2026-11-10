@@ -143,6 +143,28 @@ namespace Game.Editor
             return Transparent(particle ? key + "_Particle" : key, texture, particle);
         }
 
+        /// <summary>
+        /// A camera flash's flare: a bright core, a soft bloom and four rays, added to what's behind it,
+        /// so it's plain where a flash went off (the user's note, 2026-11-10).
+        /// </summary>
+        public static Material Flare()
+        {
+            const string key = "Flare";
+            const int size = 96;
+            var texture = Texture(key, size, size, (px, py) =>
+            {
+                var p = new Vector2((px + 0.5f) / size - 0.5f, (py + 0.5f) / size - 0.5f) * 2f;
+                var r = p.magnitude;
+                var core = Mathf.Exp(-r * r * 60f);
+                var bloom = Mathf.Exp(-r * 5f) * 0.55f;
+                // Rays along the axes, thin and fading out.
+                var rays = (Mathf.Exp(-Mathf.Abs(p.y) * 45f) + Mathf.Exp(-Mathf.Abs(p.x) * 45f)) * Mathf.Clamp01(1f - r) * 0.8f;
+                var a = Mathf.Clamp01(core + bloom + rays) * Mathf.Clamp01((1f - r) * 4f);
+                return new Color(1f, 0.98f, 0.92f, a);
+            });
+            return Additive(key, texture);
+        }
+
         /// <summary>A capsule in <paramref name="colour"/> with a dark outline: the back of a like or rating pill (3 : 1).</summary>
         public static Material Pill(Color colour)
         {

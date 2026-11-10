@@ -176,7 +176,13 @@ namespace Game.Editor
                 if (so.FindProperty("_light").objectReferenceValue is Light light)
                     light.enabled = on;
                 if (so.FindProperty("_spark").objectReferenceValue is GameObject spark)
+                {
                     spark.SetActive(on);
+                    // A flare faces the camera, which looks north here, at its full size.
+                    spark.transform.rotation = Quaternion.identity;
+                    var parent = spark.transform.parent;
+                    spark.transform.localScale = Vector3.one * (so.FindProperty("_sparkSize").floatValue / Mathf.Max(1e-4f, parent != null ? parent.lossyScale.x : 1f));
+                }
             }
             var pops = UnityEngine.Object.FindObjectsByType<Game.Presentation.Office.Ambience.SocialPop>(FindObjectsSortMode.InstanceID);
             for (var i = 0; i < pops.Length; i++)
@@ -199,11 +205,9 @@ namespace Game.Editor
             }
         }
 
-        // The rest of a believable instant: the feed screen drawn, the heart streams part-way up.
+        // The rest of a believable instant: the heart streams part-way up.
         private static void FreezeTheRest()
         {
-            foreach (var screen in UnityEngine.Object.FindObjectsByType<FeedScreen>(FindObjectsSortMode.InstanceID))
-                screen.BuildForCapture();
             var streams = UnityEngine.Object.FindObjectsByType<ParticleSystem>(FindObjectsSortMode.InstanceID);
             for (var i = 0; i < streams.Length; i++)
             {

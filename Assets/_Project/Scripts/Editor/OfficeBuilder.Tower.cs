@@ -1,4 +1,5 @@
 using Game.Presentation.Office;
+using Game.Presentation.Office.Ambience;
 using UnityEditor;
 using UnityEngine;
 
@@ -55,16 +56,18 @@ namespace Game.Editor
             // The podium: stone round the street floor, open in front for the lobby's glass.
             var podiumTop = ground + TowerPodium;
             const float proud = 0.3f;
+            // West of the lobby the podium is stone (another place to eat has its front on it); east,
+            // the restaurant's windows run to a stone pier at the tower's corner (OfficeBuilder.Entrance.cs).
             var lobbyHalf = 8.2f;
-            var sideWidth = width / 2f + proud - lobbyHalf;
-            foreach (var sign in new[] { -1f, 1f })
-                Block(tower, "Podium", stone, new Vector3(sign * (lobbyHalf + sideWidth / 2f), ground, TowerFace - proud / 2f), new Vector3(sideWidth, TowerPodium, proud));
-            Block(tower, "PodiumLintel", stone, new Vector3(0f, ground + 4.35f, TowerFace - proud / 2f), new Vector3(2f * lobbyHalf, TowerPodium - 4.35f, proud));
+            var edge = width / 2f + proud;
+            Block(tower, "Podium", stone, new Vector3(-(lobbyHalf + edge) / 2f, ground, TowerFace - proud / 2f), new Vector3(edge - lobbyHalf, TowerPodium, proud));
+            Block(tower, "PodiumPier", stone, new Vector3((RestaurantEast + edge) / 2f, ground, TowerFace - proud / 2f), new Vector3(edge - RestaurantEast, TowerPodium, proud));
+            Block(tower, "PodiumLintel", stone, new Vector3((RestaurantEast - lobbyHalf) / 2f, ground + 4.35f, TowerFace - proud / 2f), new Vector3(RestaurantEast + lobbyHalf, TowerPodium - 4.35f, proud));
             foreach (var sign in new[] { -1f, 1f })
                 Block(tower, "PodiumSide", stone, new Vector3(sign * (width / 2f + proud / 2f), ground, middle), new Vector3(proud, TowerPodium, depth + 2f * proud));
             Block(tower, "PodiumLedge", stoneDark, new Vector3(0f, podiumTop, middle), new Vector3(width + 1.0f, 0.35f, depth + 1.0f));
             // Bronze lettering-band over the lobby doors: a plain strip, the boss needs no name up.
-            Block(tower, "LobbyBand", bronze, new Vector3(0f, ground + 4.45f, TowerFace - proud - 0.05f), new Vector3(9f, 0.35f, 0.08f));
+            Block(tower, "LobbyBand", bronze, new Vector3(-3f, ground + 4.45f, TowerFace - proud - 0.05f), new Vector3(9.6f, 0.35f, 0.08f));
 
             // Piers: at the corners, and in place of every fourth mullion, full height in one piece.
             var pierHeight = top - podiumTop - 0.35f;
@@ -208,11 +211,20 @@ namespace Game.Editor
                     for (var i = 0; i < 3; i++)
                         Prop(room, i == 1 ? "PF_CuttingBoard" : "PF_Counter", new Vector3(westMid - 1f + i, 0f, front + 3f), 0f);
                     Cook(room, new Vector3(BandWest + 3.2f, 0f, back - 1.5f), 0f);
-                    Cook(room, new Vector3(westMid, 0f, front + 3.9f), 180f);
+                    var runner = Cook(room, new Vector3(westMid, 0f, front + 3.9f), 180f);
+                    if (runner != null) // between the island and the line
+                        Walk(runner, new Vector3(westMid - 1.2f, 0f, front + 3.9f), new Vector3(westMid + 1.4f, 0f, front + 3.9f), 0.9f, 1.8f, f * 0.37f % 1f);
+                    Steam(room, new Vector3(BandWest + 2.75f, 1.0f, back - 0.6f));
+                    Steam(room, new Vector3(BandWest + 3.75f, 1.0f, back - 0.6f));
+                    var fire = Point(room, "HobFire", new Vector3(BandWest + 3.2f, 1.3f, back - 0.9f), new Color(1f, 0.6f, 0.3f), 4.5f, 2.6f);
+                    fire.gameObject.AddComponent<FlickerLight>().Set(fire, FlickerLight.Mood.Fire, null, 0.2f, f);
+                    fire.gameObject.isStatic = false;
                     Kit.Part(room, "SM_Dining", "TableBody", Toon("KitTableTop", new Color(0.62f, 0.42f, 0.26f)), new Vector3(eastMid, 0f, front + 3.2f));
                     foreach (var side in new[] { -1f, 1f })
                         Kit.Part(room, "SM_Dining", "DiningChair", Toon("OfficeTeak", new Color(0.55f, 0.38f, 0.24f)), new Vector3(eastMid + side * 0.75f, 0f, front + 3.2f), side < 0f ? -90f : 90f);
-                    Passerby(room, "Taster", new Vector3(eastMid + 0.2f, 0f, front + 4.3f), 190f);
+                    foreach (var side in new[] { -1f, 1f })
+                        Seated(room, "Taster", new Vector3(eastMid + side * 0.75f, 0f, front + 3.2f), side < 0f ? 90f : -90f, 0.44f);
+                    Talker(room, "HeadChef", new Vector3(eastMid + 0.2f, 0f, front + 4.3f), 190f);
                     Prop(room, "PF_Shelf", new Vector3(BandEast - 0.8f, 0f, back - 0.6f), 180f);
                     break;
                 }
@@ -225,10 +237,12 @@ namespace Game.Editor
                     Kit.Softbox(room, new Vector3(westMid + 2f, 0f, back - 3.2f), -40f);
                     var camera = Kit.TripodCamera(room, new Vector3(westMid + 0.3f, 0f, front + 2.2f), 0f);
                     Flash(camera, camera, 2.5f + (f % 3) * 0.7f, new Vector3(0f, 0.08f, 0.05f));
-                    Passerby(room, "Shooter", new Vector3(westMid - 0.5f, 0f, front + 1.6f), 10f);
-                    Kit.WorkStation(room, new Vector3(eastMid - 1f, 0f, front + 2.6f), 0f, new Color(0.6f, 0.8f, 1f));
-                    Kit.WorkStation(room, new Vector3(eastMid + 1.2f, 0f, front + 2.6f), 0f, new Color(1f, 0.75f, 0.55f));
-                    Passerby(room, "Editor", new Vector3(eastMid + 0.2f, 0f, front + 4.6f), 170f);
+                    var shooter = Passerby(room, "Shooter", new Vector3(westMid - 0.5f, 0f, front + 1.7f), 10f);
+                    Walk(shooter, new Vector3(westMid - 1.3f, 0f, front + 1.7f), new Vector3(westMid - 0.4f, 0f, front + 1.7f), 0.6f, 2.5f, 0.2f);
+                    Talker(room, "Stylist", new Vector3(westMid + 1.1f, 0f, back - 2.6f), -120f);
+                    Desk(room, new Vector3(eastMid - 1f, 0f, front + 2.6f), new Color(0.6f, 0.8f, 1f));
+                    Desk(room, new Vector3(eastMid + 1.2f, 0f, front + 2.6f), new Color(1f, 0.75f, 0.55f));
+                    Talker(room, "Editor", new Vector3(eastMid + 0.2f, 0f, front + 4.6f), 170f);
                     break;
                 }
                 case 2: // the social-media room: walls of screens showing the feeds, desks facing them
@@ -240,10 +254,17 @@ namespace Game.Editor
                     Kit.ScreenWall(room, new Vector3(eastMid, 0.95f, back - 0.1f), 180f, gold, pink, blue);
                     foreach (var mid in new[] { westMid, eastMid })
                     for (var i = -1; i <= 1; i++)
-                        Kit.WorkStation(room, new Vector3(mid + i * 1.9f, 0f, front + 2.3f), 0f, i == 0 ? pink : blue);
-                    Passerby(room, "Poster", new Vector3(westMid + 1f, 0f, front + 4.2f), 0f);
-                    Passerby(room, "Poster", new Vector3(eastMid - 1.4f, 0f, front + 4.4f), 20f);
-                    Point(room, "FeedGlow", new Vector3(westMid, 1.6f, back - 1.2f), pink, 6f, 1.6f);
+                        Desk(room, new Vector3(mid + i * 1.9f, 0f, front + 2.3f), i == 0 ? pink : blue);
+                    Talker(room, "Poster", new Vector3(westMid + 1f, 0f, front + 4.2f), 0f);
+                    var pacer = Passerby(room, "Poster", new Vector3(eastMid - 1.4f, 0f, front + 4.4f), 90f);
+                    Walk(pacer, new Vector3(eastMid - 1.6f, 0f, front + 4.4f), new Vector3(eastMid + 1.6f, 0f, front + 4.4f), 0.8f, 2f, 0.6f);
+                    // The feeds never stop: the walls' light jumps as the posts change.
+                    foreach (var (mid, colour) in new[] { (westMid, pink), (eastMid, gold) })
+                    {
+                        var feed = Point(room, "FeedGlow", new Vector3(mid, 1.6f, back - 1.2f), colour, 6f, 2.2f);
+                        feed.gameObject.AddComponent<FlickerLight>().Set(feed, FlickerLight.Mood.Television, null, 0.6f, f + mid);
+                        feed.gameObject.isStatic = false;
+                    }
                     break;
                 }
                 case 3: // reservations: rows of desks between partitions, the phones never stopping
@@ -252,12 +273,13 @@ namespace Game.Editor
                     foreach (var z in new[] { front + 2.2f, front + 4.9f })
                     for (var i = -1; i <= 1; i++)
                     {
-                        Kit.WorkStation(room, new Vector3(mid + i * 1.8f, 0f, z), 0f, new Color(0.7f, 0.9f, 0.8f));
+                        Desk(room, new Vector3(mid + i * 1.8f, 0f, z), new Color(0.7f, 0.9f, 0.8f));
                         if (i < 1)
                             Kit.Cubicle(room, new Vector3(mid + i * 1.8f + 0.9f, 0f, z - 0.2f), 90f, new Color(0.35f, 0.5f, 0.6f));
                     }
-                    Passerby(room, "Supervisor", new Vector3(westMid + 0.4f, 0f, front + 3.6f), 90f);
-                    Passerby(room, "Operator", new Vector3(eastMid - 0.3f, 0f, front + 3.5f), -70f);
+                    var supervisor = Passerby(room, "Supervisor", new Vector3(westMid - 2.4f, 0f, front + 3.6f), 90f);
+                    Walk(supervisor, new Vector3(westMid - 2.4f, 0f, front + 3.6f), new Vector3(westMid + 2.4f, 0f, front + 3.6f), 0.8f, 1.5f, 0.1f);
+                    Talker(room, "Operator", new Vector3(eastMid - 0.3f, 0f, front + 3.5f), -70f);
                     break;
                 }
                 case 4: // the accountants: the safe standing open to its money, filing cabinets, desks, the figures on a board
@@ -271,12 +293,13 @@ namespace Game.Editor
                         Kit.Part(room, "SM_Office", "OfficeFilingBody", Toon("OfficeFiling", new Color(0.45f, 0.5f, 0.48f)), new Vector3(BandWest + 0.6f + i * 0.6f, 0f, back - 0.45f), 180f);
                         Kit.Part(room, "SM_Office", "OfficeFilingHandles", Toon("OfficeBrass", Brass), new Vector3(BandWest + 0.6f + i * 0.6f, 0f, back - 0.45f), 180f);
                     }
-                    Kit.WorkStation(room, new Vector3(westMid, 0f, front + 2.4f), 0f, new Color(0.75f, 0.95f, 0.7f));
+                    Desk(room, new Vector3(westMid, 0f, front + 2.4f), new Color(0.75f, 0.95f, 0.7f));
                     Kit.Whiteboard(room, new Vector3(eastMid, 0.9f, back - 0.07f), 180f);
-                    Kit.WorkStation(room, new Vector3(eastMid - 1.2f, 0f, front + 2.4f), 0f, new Color(0.75f, 0.95f, 0.7f));
-                    Kit.WorkStation(room, new Vector3(eastMid + 1f, 0f, front + 2.4f), 0f, new Color(0.75f, 0.95f, 0.7f));
-                    Passerby(room, "Accountant", new Vector3(westMid + 1.7f, 0f, back - 1.9f), -100f);
-                    Passerby(room, "Accountant", new Vector3(eastMid + 0.2f, 0f, front + 4.6f), 10f);
+                    Desk(room, new Vector3(eastMid - 1.2f, 0f, front + 2.4f), new Color(0.75f, 0.95f, 0.7f));
+                    Desk(room, new Vector3(eastMid + 1f, 0f, front + 2.4f), new Color(0.75f, 0.95f, 0.7f));
+                    Talker(room, "Counting", new Vector3(westMid + 1.7f, 0f, back - 1.9f), -100f);
+                    var carrier = Passerby(room, "Accountant", new Vector3(eastMid - 2f, 0f, front + 4.6f), 90f);
+                    Walk(carrier, new Vector3(eastMid - 2f, 0f, front + 4.6f), new Vector3(eastMid + 2f, 0f, front + 4.6f), 0.9f, 2.2f, 0.4f);
                     break;
                 }
                 case 5: // the staff canteen: tables, a counter with the coffee machine, a vending machine, the water cooler
@@ -287,7 +310,15 @@ namespace Game.Editor
                     {
                         Kit.Part(room, "SM_Dining", "TableBody", wood, new Vector3(x, 0f, z));
                         foreach (var side in new[] { -1f, 1f })
+                        {
                             Kit.Part(room, "SM_Dining", "DiningChair", chair, new Vector3(x + side * 0.75f, 0f, z), side < 0f ? -90f : 90f);
+                            var eater = Seated(room, "Eating", new Vector3(x + side * 0.75f, 0f, z), side < 0f ? 90f : -90f, 0.44f);
+                            if (eater != null && side < 0f)
+                            {
+                                eater.RightShoulder.localRotation = Quaternion.Euler(-55f, 0f, -10f);
+                                Wobble(eater.RightShoulder.gameObject, Oscillate.Shape.Pulse, Vector3.zero, new Vector3(-50f, 0f, 0f), 2.2f + (float)_random.NextDouble() * 2f, 0.4f);
+                            }
+                        }
                     }
                     for (var i = 0; i < 3; i++)
                     {
@@ -298,9 +329,9 @@ namespace Game.Editor
                     Kit.Vending(room, new Vector3(BandEast - 0.8f, 0f, back - 0.6f), 180f, new Color(0.8f, 0.25f, 0.2f));
                     Kit.Vending(room, new Vector3(BandEast - 1.9f, 0f, back - 0.6f), 180f, new Color(0.2f, 0.45f, 0.7f));
                     Kit.WaterCooler(room, new Vector3(ShaftHalfWidth + 0.6f, 0f, back - 0.4f), 180f);
-                    Cook(room, new Vector3(westMid - 1.6f, 0f, front + 3.6f), 200f);
-                    Passerby(room, "Colleague", new Vector3(westMid + 0.6f, 0f, back - 1.5f), 0f);
-                    Passerby(room, "Colleague", new Vector3(eastMid + 0.9f, 0f, front + 3.7f), 215f);
+                    Talker(room, "Colleague", new Vector3(westMid + 0.6f, 0f, back - 1.5f), 0f);
+                    var queuer = Passerby(room, "Colleague", new Vector3(eastMid - 1.5f, 0f, back - 1.6f), 90f);
+                    Walk(queuer, new Vector3(eastMid - 1.5f, 0f, back - 1.6f), new Vector3(BandEast - 1.4f, 0f, back - 1.6f), 0.8f, 3f, 0.5f);
                     break;
                 }
                 case 6: // the uniform room: rails of chef's whites, a sofa to wait on
@@ -314,7 +345,10 @@ namespace Game.Editor
                     }
                     Sofa(room, new Vector3(eastMid + 0.4f, 0f, front + 2.2f), 180f, new Color(0.3f, 0.45f, 0.6f));
                     Cook(room, new Vector3(westMid + 0.2f, 0f, front + 2.6f), 160f);
-                    Passerby(room, "Tailor", new Vector3(westMid - 0.8f, 0f, front + 3f), 100f);
+                    Talker(room, "Tailor", new Vector3(westMid - 0.8f, 0f, front + 3f), 100f);
+                    var fitter = Passerby(room, "Fitter", new Vector3(westMid - 2.4f, 0f, back - 2.3f), 90f);
+                    Walk(fitter, new Vector3(westMid - 2.4f, 0f, back - 2.3f), new Vector3(westMid + 2.6f, 0f, back - 2.3f), 0.8f, 2f, 0.3f);
+                    Seated(room, "Waiting", new Vector3(eastMid + 0.4f, 0f, front + 2.2f), 180f, 0.42f);
                     break;
                 }
                 default: // being fitted out: dust sheets, a ladder, paint, a work light, an exit sign
@@ -332,6 +366,18 @@ namespace Game.Editor
             }
             if (!fitOut)
             {
+                // Every floor is busy (the user's note, 2026-11-10: activity and movement on each):
+                // people walk the aisle by the window either side of the lift, back and forth,
+                // stopping at each end; cooks on the kitchen floors.
+                var cooks = kind == 0 || kind == 5;
+                foreach (var (x0, x1) in new[] { (BandWest + 1.5f, -ShaftHalfWidth - 0.7f), (ShaftHalfWidth + 0.7f, BandEast - 0.9f) })
+                {
+                    var from = new Vector3(x0, 0f, front + 0.7f);
+                    var to = new Vector3(x1, 0f, front + 0.7f);
+                    var walker = cooks && x0 < 0f ? Cook(room, from, 90f) : Passerby(room, "Walker", from, 90f);
+                    if (walker != null)
+                        Walk(walker, from, to, 0.9f + (float)_random.NextDouble() * 0.5f, 1f + (float)_random.NextDouble() * 2.5f, (float)_random.NextDouble());
+                }
                 PottedPlant(room, new Vector3(BandWest + 0.6f, 0f, front + 0.8f), 1.05f);
                 if (kind != 5)
                     Kit.WaterCooler(room, new Vector3(-ShaftHalfWidth - 0.5f, 0f, back - 0.4f), 180f);
@@ -339,14 +385,42 @@ namespace Game.Editor
         }
 
         // One of the boss's cooks, in whites and toque.
-        private static void Cook(Transform parent, Vector3 at, float facing)
+        private static Transform Cook(Transform parent, Vector3 at, float facing)
         {
             var cook = new GameObject("Cook").transform;
             cook.SetParent(parent, false);
             cook.localPosition = at;
             cook.localRotation = Quaternion.Euler(0f, facing, 0f);
-            if (CharacterArt.Build(cook, CharacterArt.PlayerChef()) == null)
-                Object.DestroyImmediate(cook.gameObject);
+            if (CharacterArt.Build(cook, CharacterArt.PlayerChef()) != null)
+                return cook;
+            Object.DestroyImmediate(cook.gameObject);
+            return null;
+        }
+
+        // A desk with someone at it (most of the time): sitting with their back to the window,
+        // typing, their screen glowing out at the street.
+        private static void Desk(Transform room, Vector3 at, Color screen)
+        {
+            Kit.WorkStation(room, at, 0f, screen);
+            if (_random.NextDouble() < 0.2)
+                return; // away from their desk
+            var worker = Seated(room, "Worker", at + new Vector3(0.1f, 0f, -0.75f), 0f, 0.46f);
+            if (worker == null)
+                return;
+            worker.RightShoulder.localRotation = Quaternion.Euler(-68f, 0f, -8f);
+            worker.LeftShoulder.localRotation = Quaternion.Euler(-68f, 0f, 8f);
+            Wobble(worker.RightShoulder.gameObject, Oscillate.Shape.Wave, Vector3.zero, new Vector3(5f, 0f, 0f), 0.3f + (float)_random.NextDouble() * 0.2f);
+            Wobble(worker.LeftShoulder.gameObject, Oscillate.Shape.Wave, Vector3.zero, new Vector3(5f, 0f, 0f), 0.36f + (float)_random.NextDouble() * 0.2f);
+        }
+
+        // Someone standing and talking, an arm going as they make their point.
+        private static void Talker(Transform room, string name, Vector3 at, float facing)
+        {
+            var rig = Figure(room, name, at, facing);
+            if (rig == null)
+                return;
+            Wobble(rig.RightShoulder.gameObject, Oscillate.Shape.Pulse, Vector3.zero, new Vector3(-60f, 0f, 0f), 1.8f + (float)_random.NextDouble() * 1.4f, 0.45f);
+            Breathe(rig.Figure != null ? rig.Figure.gameObject : room.gameObject);
         }
 
         // The tower's lift (the user's notes, 2026-11-10): inside the building, in the same place as

@@ -19,8 +19,8 @@ namespace Game.Presentation.Menu
     /// <see cref="MenuButton"/>). It freezes the game for everyone, and only the player who opened it
     /// drives it, in their colour; everyone else's controls stand still until it closes. It holds
     /// Resume, Settings (the realism preset, the language and the five dials under Advanced), Quit to
-    /// the office (from the kitchen) and Quit the game. Leaving the kitchen mid-day loses that day,
-    /// so both quits say so first.
+    /// the office (from the kitchen) and Quit to the main menu (the game itself is quit from there).
+    /// Leaving the kitchen mid-day loses that day, so both quits say so first.
     /// </summary>
     public sealed class PauseMenu : MonoBehaviour
     {
@@ -347,15 +347,17 @@ namespace Game.Presentation.Menu
             SceneManager.LoadScene(_officeScene);
         }
 
+        // Back to the main menu (the user's call, 2026-11-10: quitting from the kitchen or the office
+        // takes players to the main menu, not out of the game; Quit there closes it). The office scene
+        // loads afresh and its opening starts at the menu: no campaign chosen, nobody carried over.
         private void QuitGame()
         {
-            CampaignCardHud.QuitConfirmed = true; // asked here already
             Close();
-#if UNITY_EDITOR
-            UnityEditor.EditorApplication.isPlaying = false;
-#else
-            Application.Quit();
-#endif
+            Time.timeScale = 1f;
+            PlayerRoster.Take();
+            CampaignLaunch.Reset();
+            Office.OpeningSequence.StartAtMenu = true;
+            SceneManager.LoadScene(_officeScene);
         }
 
         // ---- Drawing (1920×1080, centred; the card sits mid-screen so no edge clips it) ----
@@ -406,7 +408,7 @@ namespace Game.Presentation.Menu
             {
                 Page.Settings => _settings.Title,
                 Page.ConfirmOffice => Tr.Get("Quit to the office?"),
-                Page.ConfirmQuit => Tr.Get("Quit the game?"),
+                Page.ConfirmQuit => Tr.Get("Quit to the main menu?"),
                 _ => Tr.Get("Paused"),
             };
             UiKit.TextAt(Words, _card, "Title", title, 48f, _style.TextColor, CardX + Pad, CardY + 92f, CardWidth - 2f * Pad - 120f);
@@ -432,7 +434,7 @@ namespace Game.Presentation.Menu
                     break;
                 default:
                     DrawConfirm();
-                    hints.Add((PromptControl.South, _page == Page.ConfirmOffice ? Tr.Get("Go to the office") : Tr.Get("Quit")));
+                    hints.Add((PromptControl.South, _page == Page.ConfirmOffice ? Tr.Get("Go to the office") : Tr.Get("Go to the menu")));
                     hints.Add((PromptControl.East, Tr.Get("Keep playing")));
                     break;
             }
@@ -444,7 +446,7 @@ namespace Game.Presentation.Menu
             Item.Resume => Tr.Get("Resume"),
             Item.Settings => Tr.Get("Settings"),
             Item.QuitToOffice => Tr.Get("Quit to the office"),
-            _ => Tr.Get("Quit the game"),
+            _ => Tr.Get("Quit to the main menu"),
         };
 
         private void DrawMain()

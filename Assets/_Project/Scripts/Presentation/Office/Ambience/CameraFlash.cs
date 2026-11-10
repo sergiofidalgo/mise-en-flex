@@ -14,11 +14,16 @@ namespace Game.Presentation.Office.Ambience
         [SerializeField] private GameObject _spark;
         [SerializeField, Min(1f)] private float _period = 6f;
         [SerializeField] private float _seed;
+        [Tooltip("The spark's size at the flash's brightest (m).")]
+        [SerializeField, Min(0.05f)] private float _sparkSize = 0.5f;
+        [Tooltip("Turn the spark to the camera: for a flat flare.")]
+        [SerializeField] private bool _faceCamera;
 
         private float _peak;
+        private Camera _camera;
 
-        public void Set(Light light, GameObject spark, float period, float seed) =>
-            (_light, _spark, _period, _seed) = (light, spark, period, seed);
+        public void Set(Light light, GameObject spark, float period, float seed, float sparkSize = 0.5f, bool faceCamera = false) =>
+            (_light, _spark, _period, _seed, _sparkSize, _faceCamera) = (light, spark, period, seed, sparkSize, faceCamera);
 
         private void Awake()
         {
@@ -40,8 +45,18 @@ namespace Game.Presentation.Office.Ambience
             {
                 if (_spark.activeSelf != on)
                     _spark.SetActive(on);
-                if (on)
-                    _spark.transform.localScale = Vector3.one * (0.15f + 0.35f * brightness);
+                if (!on)
+                    return;
+                // Sized in the world, whatever it hangs from.
+                var parent = _spark.transform.parent;
+                var scale = parent != null && parent.lossyScale.x > 1e-4f ? 1f / parent.lossyScale.x : 1f;
+                _spark.transform.localScale = Vector3.one * (_sparkSize * (0.3f + 0.7f * brightness) * scale);
+                if (!_faceCamera)
+                    return;
+                if (_camera == null)
+                    _camera = Camera.main;
+                if (_camera != null)
+                    _spark.transform.rotation = _camera.transform.rotation;
             }
         }
     }

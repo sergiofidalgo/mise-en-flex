@@ -20,6 +20,31 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-10 — The opening, third pass: phones, a readable restaurant, busier floors; quit goes to the menu
+
+**User's notes after the second pass:**
+- The screen, the neon and the five stars on the tower's entrance don't sit with the scene: remove them or use something better integrated.
+- Too many stalls in the first shot: mix stalls with actual restaurants.
+- Every floor of the tower should be busier, with activity and movement.
+- The hearts and pops read now, but make the scene too busy.
+- Special emphasis on customers using their phones: model a proper phone, so it's clear what they hold and where the flash comes from.
+- It should be clearer what goes on inside the ground-floor restaurant.
+- "Quit the game" from the kitchen or the office should go to the main menu, not stop the scene.
+
+**What we did (our calls within those notes):**
+- **Sign:** a painted fascia with the name in the logo's lettering replaces the neon, the stars and the feed screen (`FeedScreen` is deleted).
+- **Ground floor:** split into the tower's lobby (west) and the restaurant (east, to the corner). The dining room is on a 1.2 m platform so its tables show over the queue. People now sit (the figure's legs turned forward, its walk removed).
+- **Phones:** a larger modelled phone, held clear of the face because the characters' arms are short: selfies on a stick, filming in both hands, scrolling at the chest. Flashes are a flare at the phone's LED.
+- **Pops:** one phone in four, each rarely.
+- **Stalls:** five in all (there were eleven); the corner buildings by the avenue's mouth are restaurants with terraces.
+- **Floors:** seated workers at most desks, two walkers per floor, cooks crossing kitchens, flickering screens and flames.
+- **Camera:** the stop moved 2.4 m east, so the restaurant sits beside the menu; the lift is left of centre on the climb.
+- **Quit:** the pause menu's entry is now "Quit to the main menu" and loads the office's opening at the menu. Renamed because it no longer quits the game; the main menu's Quit does.
+
+**Reason:** the opening should read as people living on their phones around a restaurant, without stuck-on signage, and the game should never dump players out of a session without passing the menu.
+
+---
+
 ## 2026-11-10 — The opening, second pass: a still camera, a night market, the empire's floors
 
 **User's notes after playing the first version:**

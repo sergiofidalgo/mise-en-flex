@@ -20,7 +20,7 @@ namespace Game.Editor
         // stop in front of the main entrance, where the camera holds still for the menu. No curve:
         // both poses look the same way, so the camera only travels. The last pose is the stop.
         // Heights are above the street (OfficeBuilder.Street.cs, 120 m below the floor).
-        private const float PushX = 0.4f;
+        private const float PushX = 2.8f; // east of the tower's middle: the restaurant fills the frame beside the menu
         private const float PushHeight = 1.8f;
         private const float PushFrom = -48f;
         private const float PushTo = -29.6f;

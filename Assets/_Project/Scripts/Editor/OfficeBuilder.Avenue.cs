@@ -141,7 +141,7 @@ namespace Game.Editor
                 return null;
             if (phone)
             {
-                rig.RightShoulder.localRotation = Quaternion.Euler(-125f, 0f, -15f);
+                rig.RightShoulder.localRotation = Quaternion.Euler(-105f, 0f, 14f);
                 Flash(rig.RightShoulder, Phone(rig.RightShoulder), 3f + (float)_random.NextDouble() * 3f);
             }
             else
@@ -162,7 +162,10 @@ namespace Game.Editor
             rig.LeftShoulder.localRotation = Quaternion.Euler(-80f, 0f, 20f);
             if (phone)
             {
-                Flash(rig.RightShoulder, Phone(rig.RightShoulder), 2.5f + (float)_random.NextDouble() * 2.5f);
+                // Held out in both hands, on its side, to take the picture.
+                rig.RightShoulder.localRotation = Quaternion.Euler(-105f, 0f, 14f);
+                rig.LeftShoulder.localRotation = Quaternion.Euler(-100f, 0f, -14f);
+                Flash(rig.RightShoulder, Phone(rig.RightShoulder, 0.12f, Quaternion.Euler(0f, 0f, 90f)), 2.5f + (float)_random.NextDouble() * 2.5f);
                 return;
             }
             // The camera between the hands, its lens along the arms.
@@ -195,19 +198,27 @@ namespace Game.Editor
             return rig;
         }
 
-        // A phone in the right hand (the kit's model), held upright along the arm, its lit screen
-        // back towards the holder.
-        private static Transform Phone(Transform shoulder) =>
-            Kit.Phone(shoulder, new Vector3(0f, -CharacterArt.Reach - 0.06f, 0.03f), Quaternion.Euler(90f, 0f, 0f));
+        // A phone in the right hand (the kit's model). The arms are short and the heads big, so a
+        // phone only shows if it's held clear of the face: `beyond` puts it further out along the
+        // arm than the hand (a selfie stick's length, say), and `inBody` is how it sits whatever the
+        // arm does: upright with its lit screen back towards the holder and its camera and flash
+        // away from them, unless turned. Pose the shoulder first.
+        private static Transform Phone(Transform shoulder, float beyond = 0.1f, Quaternion? inBody = null) =>
+            Kit.Phone(shoulder, new Vector3(0f, -CharacterArt.Reach - beyond, 0f),
+                Quaternion.Inverse(shoulder.localRotation) * (inBody ?? Quaternion.identity), _random.Next(7));
 
-        // A flash at `lens`: a white spark and a burst of light that washes whatever is near
-        // (the user's note, 2026-11-10: far more flashes, the game is about social media).
+        // A flash at `lens`, at `at` in its space (a phone's LED by default): a flare that pops,
+        // facing the camera, and a burst of light that washes whatever is near (the user's notes,
+        // 2026-11-10: far more flashes, and plain where they come from).
         private static void Flash(Transform owner, Transform lens, float period, Vector3? at = null)
         {
-            var where = at ?? new Vector3(0f, 0.06f, 0.02f);
-            var spark = Shape(lens, PrimitiveType.Sphere, "Spark", Unlit("StreetFlash", Color.white), where, Vector3.one * 0.3f);
-            var light = Point(lens, "FlashLight", where + new Vector3(0f, 0f, 0.3f), new Color(0.92f, 0.96f, 1f), 9f, 9f);
-            lens.gameObject.AddComponent<CameraFlash>().Set(light, spark, period, (float)_random.NextDouble() * 50f);
+            var where = at ?? Kit.PhoneLed;
+            var flare = GreyboxAssets.CreatePrimitive(PrimitiveType.Quad, "Flare", lens, SignArt.Flare(), keepCollider: false);
+            flare.transform.localPosition = where;
+            flare.transform.localScale = Vector3.one * 0.6f;
+            flare.GetComponent<Renderer>().sortingOrder = 14;
+            var light = Point(lens, "FlashLight", where + new Vector3(0f, 0f, 0.25f), new Color(0.92f, 0.96f, 1f), 9f, 9f);
+            lens.gameObject.AddComponent<CameraFlash>().Set(light, flare, period, (float)_random.NextDouble() * 50f, 0.85f, true);
             MakeDynamic(owner.gameObject);
         }
     }

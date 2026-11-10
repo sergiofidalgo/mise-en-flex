@@ -211,18 +211,40 @@ namespace Game.Editor
 
         // ---- In hands ------------------------------------------------------------------------------------
 
-        /// <summary>A phone under <paramref name="hand"/>, upright, its lit screen towards local −z.</summary>
-        public static Transform Phone(Transform hand, Vector3 at, Quaternion turn)
+        private static readonly Color[] PhoneCases =
+        {
+            new Color(1f, 0.42f, 0.6f), new Color(0.25f, 0.75f, 0.7f), new Color(1f, 0.8f, 0.25f), new Color(0.95f, 0.95f, 0.93f),
+            new Color(0.95f, 0.5f, 0.2f), new Color(0.6f, 0.45f, 0.95f), new Color(0.85f, 0.25f, 0.25f),
+        };
+
+        /// <summary>
+        /// A phone under <paramref name="hand"/> (the user's note, 2026-11-10: a proper phone, so it's
+        /// clear what people hold and where the flash comes from): upright, a case in one of seven
+        /// colours, its lit screen with an app on it towards local −z, the camera island and the
+        /// flash's LED on the back, towards +z.
+        /// </summary>
+        public static Transform Phone(Transform hand, Vector3 at, Quaternion turn, int colour = 0)
         {
             var phone = new GameObject("Phone").transform;
             phone.SetParent(hand, false);
             phone.localPosition = at;
             phone.localRotation = turn;
-            // The model's screen faces its −y in Blender, the game's +z: turned round, towards the holder.
-            Part(phone, Street, "Phone", Toon("KitPhone", new Color(0.1f, 0.1f, 0.12f)), default, 180f);
-            Part(phone, Street, "PhoneScreen", Glow("StreetPhoneScreen", new Color(0.7f, 0.85f, 1f)), default, 180f);
+            phone.localScale = Vector3.one * PhoneScale; // chunky, like everything the characters hold
+            // The model's screen faces the game's +z: turned round, towards the holder.
+            var shell = PhoneCases[Mathf.Abs(colour) % PhoneCases.Length];
+            Part(phone, Street, "Phone", Toon($"KitPhoneCase_{ColorUtility.ToHtmlStringRGB(shell)}", shell), default, 180f);
+            Part(phone, Street, "PhoneScreen", Glow("StreetPhoneScreen", new Color(0.93f, 0.97f, 1f)), default, 180f);
+            Part(phone, Street, "PhoneUiA", Glow("KitPhoneUiA", new Color(1f, 0.35f, 0.55f)), default, 180f);
+            Part(phone, Street, "PhoneUiB", Glow("KitPhoneUiB", new Color(1f, 0.72f, 0.35f)), default, 180f);
+            Part(phone, Street, "PhoneCamera", Toon("KitPhone", new Color(0.1f, 0.1f, 0.12f)), default, 180f);
+            Part(phone, Street, "PhoneLed", Glow("KitPhoneLed", new Color(1f, 0.97f, 0.85f)), default, 180f);
             return phone;
         }
+
+        private const float PhoneScale = 1.35f;
+
+        /// <summary>Where the phone's flash LED is, in the phone's own space (on its back, towards +z).</summary>
+        public static readonly Vector3 PhoneLed = new Vector3(0.035f, 0.066f, 0.03f);
 
         /// <summary>A camera under <paramref name="hand"/>, its lens towards local +z.</summary>
         public static Transform Camera(Transform hand, Vector3 at)
@@ -240,7 +262,7 @@ namespace Game.Editor
             var light = Group(parent, "RingLight", at, yaw);
             Part(light, Street, "RingLightStand", Toon("KitIron", Iron));
             Part(light, Street, "RingLightRing", Glow("StreetRingLight", new Color(1f, 0.97f, 0.92f)));
-            Part(light, Street, "Phone", Toon("KitPhone", new Color(0.1f, 0.1f, 0.12f)), new Vector3(0f, 1.62f, 0f));
+            Phone(light, new Vector3(0f, 1.62f, 0f), Quaternion.Euler(0f, 180f, 0f), 3); // its screen towards whoever films themselves
             return light;
         }
 
@@ -256,6 +278,39 @@ namespace Game.Editor
         /// <summary>A bistro chair; <paramref name="yaw"/> 0 has the sitter facing +z.</summary>
         public static void BistroChair(Transform parent, Vector3 at, float yaw) =>
             Part(parent, Street, "BistroChair", Toon("KitIron", Iron), at, yaw);
+
+        /// <summary>A round table under a white cloth, laid for two along its x: plates, food, glasses, a candle.</summary>
+        public static void DiningTable(Transform parent, Vector3 at, float yaw = 0f)
+        {
+            var table = Group(parent, "DiningTable", at, yaw);
+            Part(table, Street, "DiningTableBase", Toon("KitIron", Iron));
+            Part(table, Street, "DiningTableCloth", Toon("KitCloth", new Color(0.97f, 0.96f, 0.93f)));
+            Part(table, Street, "TableSetPlates", Toon("KitPlate", new Color(0.93f, 0.93f, 0.95f)));
+            Part(table, Street, "TableSetFood", Toon("KitFood", new Color(0.72f, 0.38f, 0.24f)));
+            Part(table, Street, "TableSetGlasses", Toon("KitGlassware", new Color(0.75f, 0.85f, 0.9f)));
+            Part(table, Street, "TableCandle", Toon("KitCandle", Cream));
+            Part(table, Street, "TableFlame", Glow("KitBulb", BulbColour));
+        }
+
+        /// <summary>A waiter's tray with a cloche, under <paramref name="hand"/>.</summary>
+        public static Transform Tray(Transform hand, Vector3 at, Quaternion turn)
+        {
+            var tray = new GameObject("Tray").transform;
+            tray.SetParent(hand, false);
+            tray.localPosition = at;
+            tray.localRotation = turn;
+            Part(tray, Street, "Tray", Toon("KitSteel", Steel));
+            Part(tray, Street, "TrayCloche", Toon("KitSteel", Steel));
+            return tray;
+        }
+
+        /// <summary>A gooseneck lamp over a sign, out from the wall at <paramref name="at"/>, lighting down.</summary>
+        public static void SignLamp(Transform parent, Vector3 at, float yaw)
+        {
+            var lamp = Group(parent, "SignLamp", at, yaw);
+            Part(lamp, Street, "SignLamp", Toon("OfficeBrass", BrassColour));
+            Part(lamp, Street, "SignLampBulb", Glow("KitBulb", BulbColour));
+        }
 
         public static void Bottle(Transform parent, Vector3 at, Color glass, float scale = 1f) =>
             Part(parent, Street, "Bottle", Toon($"KitBottle_{ColorUtility.ToHtmlStringRGB(glass)}", glass), at, 0f, scale);

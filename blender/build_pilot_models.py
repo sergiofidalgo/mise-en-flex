@@ -2119,14 +2119,34 @@ def build_street_kit():
         add_box(bm, (0.05, 0.02, 0.36), (x, 0.155, 0.22), bevel=0.008)
     objects.append(finish("DeliveryBagTrim", bm))
 
-    # ---- In hands: a phone (screen towards -y, origin at its middle) and a camera (lens towards -y) ----
+    # ---- In hands: a phone and a camera ----
+    # The phone (the user's note, 2026-11-10: "properly model a mobile phone so it's noticeable and
+    # clear what they are holding and from where the flash lights are coming"): bigger and chunkier
+    # than life, as the characters are, 11 x 21 cm. Origin at its middle, screen towards -y. A case
+    # in any colour, a lit screen with an app on it (a header, a photo, a row of dots), and on the
+    # back a camera island with two lenses and the flash's LED beside them.
     bm = bmesh.new()
-    add_box(bm, (0.078, 0.012, 0.158), (0.0, 0.0, 0.0), bevel=0.005)
-    add_lathe(bm, [(0.0, 0.0), (0.013, 0.0), (0.013, 0.004), (0.0, 0.004)], segments=10, centre=(0.02, 0.006, 0.052), axis_matrix=TO_BACK)
+    add_box(bm, (0.112, 0.02, 0.212), (0.0, 0.0, 0.0), bevel=0.009)
     objects.append(finish("Phone", bm))
     bm = bmesh.new()
-    add_box(bm, (0.068, 0.002, 0.146), (0.0, -0.0065, 0.0))
+    add_box(bm, (0.096, 0.003, 0.192), (0.0, -0.0105, 0.0))
     objects.append(finish("PhoneScreen", bm))
+    bm = bmesh.new()  # the app's header and its dots
+    add_box(bm, (0.096, 0.003, 0.03), (0.0, -0.0112, 0.081))
+    for x in (-0.026, 0.0, 0.026):
+        add_lathe(bm, [(0.0, 0.0), (0.008, 0.0), (0.008, 0.002), (0.0, 0.002)], segments=10, centre=(x, -0.012, -0.072), axis_matrix=TO_FRONT)
+    objects.append(finish("PhoneUiA", bm))
+    bm = bmesh.new()  # the photo in the feed
+    add_box(bm, (0.082, 0.003, 0.094), (0.0, -0.0112, 0.006))
+    objects.append(finish("PhoneUiB", bm))
+    bm = bmesh.new()  # the camera island, top corner of the back
+    add_box(bm, (0.05, 0.008, 0.056), (0.022, 0.013, 0.066), bevel=0.003)
+    for dz in (-0.013, 0.013):
+        add_lathe(bm, [(0.0, 0.0), (0.0095, 0.0), (0.0095, 0.004), (0.0, 0.004)], segments=12, centre=(0.014, 0.017, 0.066 + dz), axis_matrix=TO_BACK)
+    objects.append(finish("PhoneCamera", bm))
+    bm = bmesh.new()  # the flash's LED
+    add_lathe(bm, [(0.0, 0.0), (0.007, 0.0), (0.007, 0.004), (0.0, 0.004)], segments=10, centre=(0.035, 0.017, 0.066), axis_matrix=TO_BACK)
+    objects.append(finish("PhoneLed", bm))
     bm = bmesh.new()
     add_box(bm, (0.15, 0.07, 0.1), (0.0, 0.0, 0.0), bevel=0.014)
     add_box(bm, (0.04, 0.09, 0.1), (0.058, -0.005, 0.0), bevel=0.014)
@@ -2179,6 +2199,47 @@ def build_street_kit():
     bm = bmesh.new()
     add_ball(bm, (0.0, 0.0, 0.1), 0.07, segments=12)
     objects.append(finish("PendantBulb", bm))
+
+    # ---- The restaurant: a table under a white cloth laid for two (places along x), a waiter's tray, a lamp over a sign ----
+    bm = bmesh.new()
+    add_lathe(bm, [(0.0, 0.0), (0.2, 0.0), (0.2, 0.02), (0.04, 0.05), (0.03, 0.4), (0.0, 0.4)], segments=16)
+    objects.append(finish("DiningTableBase", bm))
+    bm = bmesh.new()
+    add_lathe(bm, [(0.0, 0.74), (0.46, 0.74), (0.475, 0.728), (0.5, 0.5), (0.52, 0.36), (0.5, 0.36), (0.465, 0.7), (0.0, 0.72)], segments=28)
+    objects.append(finish("DiningTableCloth", bm))
+    bm = bmesh.new()
+    for sx in (-1.0, 1.0):
+        add_lathe(bm, [(0.0, 0.742), (0.11, 0.742), (0.13, 0.755), (0.125, 0.76), (0.1, 0.75), (0.0, 0.75)], segments=18, centre=(sx * 0.24, 0.0, 0.0))
+    objects.append(finish("TableSetPlates", bm))
+    bm = bmesh.new()
+    for sx in (-1.0, 1.0):
+        add_ellipsoid(bm, (sx * 0.24, 0.0, 0.775), (0.06, 0.05, 0.025))
+    objects.append(finish("TableSetFood", bm))
+    bm = bmesh.new()
+    for sx in (-1.0, 1.0):
+        add_lathe(bm, [(0.0, 0.742), (0.03, 0.742), (0.004, 0.75), (0.004, 0.82), (0.03, 0.84), (0.034, 0.9), (0.03, 0.9), (0.026, 0.845), (0.0, 0.83)],
+                  segments=12, centre=(sx * 0.2, 0.17, 0.0))
+    objects.append(finish("TableSetGlasses", bm))
+    bm = bmesh.new()
+    add_lathe(bm, [(0.0, 0.742), (0.025, 0.742), (0.025, 0.8), (0.0, 0.8)], segments=10, centre=(0.0, -0.12, 0.0))
+    objects.append(finish("TableCandle", bm))
+    bm = bmesh.new()
+    add_ellipsoid(bm, (0.0, -0.12, 0.83), (0.012, 0.012, 0.028))
+    objects.append(finish("TableFlame", bm))
+    bm = bmesh.new()  # a tray (origin under its middle) and a cloche on it
+    add_lathe(bm, [(0.0, 0.0), (0.2, 0.0), (0.21, 0.012), (0.2, 0.02), (0.0, 0.014)], segments=22)
+    objects.append(finish("Tray", bm))
+    bm = bmesh.new()
+    add_lathe(bm, [(0.0, 0.02), (0.14, 0.02), (0.14, 0.04), (0.12, 0.1), (0.07, 0.15), (0.0, 0.165)], segments=20)
+    add_ball(bm, (0.0, 0.0, 0.18), 0.02, segments=8)
+    objects.append(finish("TrayCloche", bm))
+    bm = bmesh.new()  # a gooseneck lamp over a sign (origin at its wall mount, out towards -y, lighting down)
+    add_pipe(bm, [(0.0, 0.0, 0.0), (0.0, -0.05, 0.25), (0.0, -0.3, 0.4), (0.0, -0.5, 0.32)], radius=0.015, segments=8)
+    add_lathe(bm, [(0.0, 0.03), (0.03, 0.03), (0.1, -0.07), (0.09, -0.07), (0.0, 0.0)], segments=14, centre=(0.0, -0.5, 0.32))
+    objects.append(finish("SignLamp", bm))
+    bm = bmesh.new()
+    add_ball(bm, (0.0, -0.5, 0.275), 0.035, segments=10)
+    objects.append(finish("SignLampBulb", bm))
 
     # ---- An entrance canopy with bulbs round its edge (origin at the wall, on the ground, out towards -y) ----
     bm = bmesh.new()

@@ -73,27 +73,27 @@ namespace Game.Editor
         // Half the stretch of the tower's street closed to traffic for the night market, between barriers.
         private const float StreetClosed = 24f;
 
-        // The row across the road: low shops and flats, their fronts facing the tower, with a gap
-        // where the avenue comes in (OfficeBuilder.Avenue.cs).
+        // The row across the road: low shops and flats, their fronts facing the tower, either side
+        // of the avenue's mouth (OfficeBuilder.Avenue.cs). Each side starts flush with the mouth, so
+        // the two corner buildings' side walls line the avenue: the market's restaurants have their
+        // fronts on them (OfficeBuilder.Entrance.cs).
         private static void StreetRow(Transform street)
         {
             var tags = StreetArt.Tags();
             var murals = StreetArt.Murals();
-            var x = -StreetEnd;
             var i = 0;
-            while (x < StreetEnd)
+            foreach (var side in new[] { -1f, 1f })
             {
-                var w = 8f + (float)_random.NextDouble() * 6f;
-                if (x < AvenueFronts && x + w > -AvenueFronts)
+                var x = AvenueFronts; // how far out from the avenue's middle this building starts
+                while (x < StreetEnd)
                 {
-                    x = AvenueFronts; // the avenue's mouth
-                    continue;
+                    var w = 8f + (float)_random.NextDouble() * 6f;
+                    const float d = 12f;
+                    var height = 12f + (float)_random.NextDouble() * 10f; // 4–7 storeys: the camera looks over them
+                    RowBuilding(street, new Vector3(side * (x + w / 2f), 0f, SouthFronts - d / 2f), 0f, w, d, height, i, tags, murals);
+                    x += w + 2f; // an alley between buildings
+                    i++;
                 }
-                var d = 12f;
-                var height = 12f + (float)_random.NextDouble() * 10f; // 4–7 storeys: the camera looks over them
-                RowBuilding(street, new Vector3(x + w / 2f, 0f, SouthFronts - d / 2f), 0f, w, d, height, i, tags, murals);
-                x += w + 2f; // an alley between buildings
-                i++;
             }
         }
 
@@ -180,7 +180,8 @@ namespace Game.Editor
             var southWalk = (SouthFronts + SouthKerb) / 2f;
             for (var x = -StreetEnd + 6f; x < StreetEnd; x += 13f)
             {
-                StreetLight(street, new Vector3(x, 0.15f, NorthKerb + 0.6f));
+                if (x < RestaurantDoorX - 2f || x > RestaurantEast) // none in front of the restaurant's windows: it's seen from across the street
+                    StreetLight(street, new Vector3(x, 0.15f, NorthKerb + 0.6f));
                 if (!InAvenueMouth(x + 6.5f))
                     StreetLight(street, new Vector3(x + 6.5f, 0.15f, SouthKerb - 0.6f));
                 if (!InFrontOfTower(x + 3f))
