@@ -4,6 +4,26 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-10 — Street vendors: stalls outside the front door, crates of 6, starter stock instead of the delivery
+
+**User's calls (Phase 5, milestone 3):**
+- **The vendor street is outside the restaurant, in the kitchen scene,** following the user's mockup: a brick pavement and a road with passing cars along the front, a plaza with stalls to the left, a parking lot and one trash container to the right, houses behind as backdrop. The restaurant keeps running while chefs shop, so a trip during service costs real time. (Not the office scene's city: that would mean loading scenes mid-service.)
+- **Two stalls to start: a butcher (steak) and a greengrocer (onion, tomato),** each item in a cheap and a premium grade. The mockup's third canopy stands closed, for a future cuisine.
+- **Buying works like storage:** hold RT at a stall to open its menu, a face button buys that crate into empty hands. It's paid at once to the day's ingredients line, even into debt. A crate is 6 portions, a full storage slot. Interact (A) at a fridge or shelf unloads as much as fits; the crate keeps the rest, and an emptied crate goes.
+- **The free morning delivery goes.** A new campaign's first morning finds the storeroom stocked once, with what the delivery used to bring; everything after that is bought.
+
+**Details (proposed while building; flagged for review):**
+- **Premium is better through freshness alone.** Cheap stock starts at 70% freshness, premium at 100%, and costs 1.6× the ingredient's price. Both age alike, so cheap stock spoils sooner. Note that freshness weighs only 0.1 in the quality score today, so in play the score difference is small. If premium should matter more, raise the weight or lower cheap freshness (`MarketConfig`, `DishScorer` settings).
+- **The starter stock is free** (it was charged at the ingredients' prices as the morning delivery).
+- **The outer wall opens where the street door stands** (`StreetDoorway`), following the door when it's moved. The door panel is shown propped open. Pictures hung where the doorway is come down until the door moves.
+- **Nobody reaches through an outer wall:** a chef outside can't work a table inside against the wall, and the other way round.
+- **While anyone's outside, the camera may show the street** instead of stopping at the building's walls.
+- **Customers still appear at the door inside;** walking in from the pavement is left for later.
+
+**Reason:** Shopping becomes a planning and budget choice (`plans/phase-5.md`). Going out costs time, and grades trade money against freshness.
+
+---
+
 ## 2026-11-10 — Hair and snug hats follow the head and end in a crisp lip
 
 **Decision:** The short crop, the hair at the back, the cap's crown and the bandana are now built by `add_head_shell` in `blender/build_pilot_models.py` instead of as loose ellipsoids.
