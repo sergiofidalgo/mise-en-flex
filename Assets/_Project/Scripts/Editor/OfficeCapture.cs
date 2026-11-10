@@ -71,6 +71,7 @@ namespace Game.Editor
         private static void OpeningFrames(Camera camera, string folder)
         {
             FreezeAMoment();
+            FreezeTheRest();
             var sequence = UnityEngine.Object.FindFirstObjectByType<OpeningSequence>();
             if (sequence == null)
                 return;
@@ -89,6 +90,32 @@ namespace Game.Editor
             var path = new CameraPose[climb.Length + 1];
             path[0] = flight[flight.Length - 1];
             climb.CopyTo(path, 1);
+            // The menu over the stop, as a new player sees it (no campaigns yet): how much of the street it leaves in view.
+            var menu = UnityEngine.Object.FindFirstObjectByType<Game.Presentation.Menu.MainMenu>();
+            if (menu != null)
+            {
+                var stopPose = flight[flight.Length - 1];
+                camera.transform.SetPositionAndRotation(stopPose.Position, stopPose.Rotation);
+                var previous = Game.Gameplay.Saving.SaveFile.DirectoryOverride;
+                var empty = Path.Combine(Path.GetTempPath(), "MiseEnFlexOpeningCapture");
+                if (Directory.Exists(empty))
+                    Directory.Delete(empty, true);
+                Directory.CreateDirectory(empty);
+                Game.Gameplay.Saving.SaveFile.DirectoryOverride = empty;
+                Canvas canvas = null;
+                try
+                {
+                    canvas = menu.DrawForCapture();
+                    Game.Presentation.Hud.UiCapture.Save(camera, canvas, Path.Combine(folder, "opening_menu.png"));
+                }
+                finally
+                {
+                    if (canvas != null)
+                        UnityEngine.Object.DestroyImmediate(canvas.gameObject);
+                    Game.Gameplay.Saving.SaveFile.DirectoryOverride = previous;
+                }
+            }
+
             // The glass lift rides with the camera on the climb (OpeningElevator): put the cab where it would be.
             var lift = UnityEngine.Object.FindFirstObjectByType<OpeningElevator>();
             var liftSo = lift != null ? new SerializedObject(lift) : null;
@@ -106,9 +133,8 @@ namespace Game.Editor
                 {
                     chef.transform.position = OpeningPath.PointAlong(walk, OpeningPath.Length(walk) * share, out var heading);
                     chef.transform.rotation = Quaternion.LookRotation(new Vector3(heading.x, 0f, heading.z));
-                    var target = Vector3.Lerp(stop.Target, chef.Head, 0.75f);
-                    var from = stop.Position + new Vector3(-1.2f, 0.4f, 3f) * share;
-                    Render(camera, from, Quaternion.LookRotation(target - from), Path.Combine(folder, $"opening_entering_{Mathf.RoundToInt(share * 100):000}.png"));
+                    // The camera holds still at the stop while the chef walks in.
+                    Render(camera, stop.Position, stop.Rotation, Path.Combine(folder, $"opening_entering_{Mathf.RoundToInt(share * 100):000}.png"));
                 }
             }
             void PlaceCab(float cameraHeight)
@@ -168,8 +194,26 @@ namespace Game.Editor
                     icon.SetActive(show);
                     icon.transform.localPosition = Vector3.up * rise * 0.6f;
                     icon.transform.localScale = Vector3.one * size;
-                    icon.transform.rotation = Camera.main.transform.rotation;
+                    icon.transform.rotation = Quaternion.identity; // the opening's camera looks north
                 }
+            }
+        }
+
+        // The rest of a believable instant: the feed screen drawn, the heart streams part-way up.
+        private static void FreezeTheRest()
+        {
+            foreach (var screen in UnityEngine.Object.FindObjectsByType<FeedScreen>(FindObjectsSortMode.InstanceID))
+                screen.BuildForCapture();
+            var streams = UnityEngine.Object.FindObjectsByType<ParticleSystem>(FindObjectsSortMode.InstanceID);
+            for (var i = 0; i < streams.Length; i++)
+            {
+                if (streams[i].name != "Hearts")
+                    continue;
+                // As if its burst began a second ago (every other one), whenever it's due.
+                var main = streams[i].main;
+                var emission = streams[i].emission;
+                var burst = emission.GetBurst(0);
+                streams[i].Simulate(burst.time + (i % 2 == 0 ? 1.3f : 0.2f), true, true);
             }
         }
 

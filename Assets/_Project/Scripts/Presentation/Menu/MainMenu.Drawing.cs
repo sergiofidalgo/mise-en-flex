@@ -84,6 +84,7 @@ namespace Game.Presentation.Menu
 
         private RectTransform _canvas;
         private RectTransform _list;
+        private RectTransform _app;
         private RectTransform _header;
         private RectTransform _cards;
         private RectTransform _page;
@@ -98,6 +99,8 @@ namespace Game.Presentation.Menu
         {
             LoadPhotos();
             DrawList();
+            // forkcast and its campaign cards are a second level, opened by Continue.
+            _app.gameObject.SetActive(_onCards);
             DrawHeader();
             DrawCards();
             DrawPage();
@@ -214,9 +217,7 @@ namespace Game.Presentation.Menu
                     EmptyCard(i, x, i == free, focused);
                     continue;
                 }
-                // Continue points at the last played card, so it lights up with it.
-                var linked = _openPage == Page.None && !_onCards && _item == Item.Continue && i == _lastPlayed;
-                SlotCard(i, _saves[i], x, focused || linked);
+                SlotCard(i, _saves[i], x, focused);
             }
         }
 
@@ -586,18 +587,20 @@ namespace Game.Presentation.Menu
             _list = UiKit.Rect(root, "Items", 0f, 0f, 1920f, 1080f);
             UiKit.Picture(root, "Sign", _sign, 0f, 48f, 792f, 392f);
 
-            // forkcast.
-            UiKit.RoundBox(root, "App", _cream, AppX, AppY, AppWidth, AppHeight, 22f);
-            UiKit.RoundBox(root, "Header", _ink, AppX, AppY, AppWidth, HeaderHeight, 22f);
-            UiKit.RoundBox(root, "HeaderFoot", _ink, AppX, AppY + HeaderHeight - 24f, AppWidth, 24f, 0f);
-            UiKit.Picture(root, "Logo", _forkcastLogo, 828f, 146f, 132f, 36f);
-            UiKit.RoundBox(root, "Search", _well, 974f, 143f, 577f, 42f, 21f);
-            UiKit.Picture(root, "SearchIcon", _searchIcon, 991f, 153f, 22f, 22f);
-            UiKit.TextAt(_medium, root, "SearchText", Tr.Get("Your spots · dishes · @chefs"), 18.67f, _sand, 1022f, 171f, 500f);
-            UiKit.Ellipse(root, "Bell", _well, 1702f, 144f, 40f, 40f);
-            UiKit.Picture(root, "BellIcon", _bellIcon, 1711f, 147f, 28f, 28f);
-            _header = UiKit.Rect(root, "HeaderState", 0f, 0f, 1920f, 1080f);
-            _cards = UiKit.Rect(root, "Cards", 0f, 0f, 1920f, 1080f);
+            // forkcast, with the campaigns: shown only once Continue opens it, so the top level is
+            // the sign and the list and the scene shows behind (the user's call, 2026-11-10).
+            _app = UiKit.Rect(root, "Forkcast", 0f, 0f, 1920f, 1080f);
+            UiKit.RoundBox(_app, "App", _cream, AppX, AppY, AppWidth, AppHeight, 22f);
+            UiKit.RoundBox(_app, "Header", _ink, AppX, AppY, AppWidth, HeaderHeight, 22f);
+            UiKit.RoundBox(_app, "HeaderFoot", _ink, AppX, AppY + HeaderHeight - 24f, AppWidth, 24f, 0f);
+            UiKit.Picture(_app, "Logo", _forkcastLogo, 828f, 146f, 132f, 36f);
+            UiKit.RoundBox(_app, "Search", _well, 974f, 143f, 577f, 42f, 21f);
+            UiKit.Picture(_app, "SearchIcon", _searchIcon, 991f, 153f, 22f, 22f);
+            UiKit.TextAt(_medium, _app, "SearchText", Tr.Get("Your spots · dishes · @chefs"), 18.67f, _sand, 1022f, 171f, 500f);
+            UiKit.Ellipse(_app, "Bell", _well, 1702f, 144f, 40f, 40f);
+            UiKit.Picture(_app, "BellIcon", _bellIcon, 1711f, 147f, 28f, 28f);
+            _header = UiKit.Rect(_app, "HeaderState", 0f, 0f, 1920f, 1080f);
+            _cards = UiKit.Rect(_app, "Cards", 0f, 0f, 1920f, 1080f);
             _page = UiKit.Rect(root, "Page", AppX, AppY, AppWidth, AppHeight);
 
             // The hints keep the mockup's coordinates, in a 1920×1080 frame pinned to the screen's bottom.

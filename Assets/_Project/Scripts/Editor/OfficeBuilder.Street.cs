@@ -8,9 +8,11 @@ namespace Game.Editor
     /// user's note, 2026-11-09: "start at a street, add clutter, movement, details, graffitis"). A
     /// road along the tower's south side between two pavements: the tower's lobby with its canopy
     /// and its own red carpet to the kerb on one side; across the road a row of low shops and flats
-    /// with lit windows, awnings, neon, fire escapes and graffitied shutters and walls. People walk
-    /// and wait, cars and a delivery rider pass, a food truck serves a queue, steam rises from the
-    /// manholes, pigeons peck. The camera starts down here and climbs to the penthouse 120 m up.
+    /// with lit windows, awnings, neon, fire escapes and graffitied shutters and walls. In front of
+    /// the tower the street is closed to traffic for a night market (the user's notes, 2026-11-10:
+    /// no vehicle near the lens, a street in full swing); beyond the barriers cars park, a food
+    /// truck serves a queue, steam rises from the manholes, pigeons peck. The camera starts down
+    /// here and climbs to the penthouse 120 m up.
     /// </summary>
     public static partial class OfficeBuilder
     {
@@ -60,13 +62,16 @@ namespace Game.Editor
             TowerEntrance(street); // OfficeBuilder.Entrance.cs: the restaurant, the queue, the chef
             StreetRow(street);
             StreetFurniture(street);
-            StreetTraffic(street);
+            StreetMarket(street);  // OfficeBuilder.Entrance.cs: the night market on the closed street
             StreetPeople(street);
             BuildAvenue(street); // OfficeBuilder.Avenue.cs: the avenue the opening glides up
         }
 
         // In front of the tower's entrance, where the restaurant's crowd stands.
-        private static bool InFrontOfTower(float x) => Mathf.Abs(x) < 17f;
+        private static bool InFrontOfTower(float x) => Mathf.Abs(x) < 19f;
+
+        // Half the stretch of the tower's street closed to traffic for the night market, between barriers.
+        private const float StreetClosed = 24f;
 
         // The row across the road: low shops and flats, their fronts facing the tower, with a gap
         // where the avenue comes in (OfficeBuilder.Avenue.cs).
@@ -113,20 +118,7 @@ namespace Game.Editor
             // The ground floor: a lit shop under an awning, or a shutter covered in tags.
             if (i % 3 != 2)
             {
-                Cube(building, "ShopGlow", Unlit($"StreetShop{i % 4}", ShopGlow(i)), front + new Vector3(0f, 0.6f, 0.03f), new Vector3(w - 1.6f, 2.4f, 0.02f));
-                for (var a = -w / 2f + 1.5f; a < w / 2f - 1f; a += 3.1f)
-                    Model(building, "ShopFrame", CityModel, "CityShopFrame", Toon("CityShopTrim", new Color(0.34f, 0.21f, 0.14f)), front + new Vector3(a + 1.2f, 1.8f, 0f), 180f);
-                var stripe = Toon($"CityAwning{i % 4}", AwningStripes[i % AwningStripes.Length]);
-                var cream = Toon("CityAwningCream", new Color(0.93f, 0.88f, 0.78f));
-                for (var a = -w / 2f + 1f; a < w / 2f - 0.5f; a += 1f)
-                {
-                    Model(building, "Awning", CityModel, "CityAwningA", stripe, front + new Vector3(a, 3.3f, 0f), 180f);
-                    Model(building, "Awning", CityModel, "CityAwningB", cream, front + new Vector3(a, 3.3f, 0f), 180f);
-                }
-                Point(building, "ShopSpill", front + new Vector3(0f, 2.2f, 2f), ShopGlow(i), 6f, 1.6f);
-                // A neon sign over some shops, buzzing on and off now and then.
-                if (i % 2 == 0)
-                    WallNeon(building, front + new Vector3(-w * 0.14f, 4.4f, 0f), w * 0.62f, i); // left of any blade sign
+                LitShop(building, front, w, i);
             }
             else
             {
@@ -144,6 +136,27 @@ namespace Game.Editor
             if (i % 3 == 1)
                 FireEscape(building, front + new Vector3(w * 0.22f, 0f, 0f), height);
             return building;
+        }
+
+        // A lit shopfront across `w` metres of wall at `front` (local, facing +z): glowing windows in
+        // modelled frames under a striped awning, light spilling out, the place's name in neon on
+        // every other one.
+        private static void LitShop(Transform building, Vector3 front, float w, int i)
+        {
+            Cube(building, "ShopGlow", Unlit($"StreetShop{i % 4}", ShopGlow(i)), front + new Vector3(0f, 0.6f, 0.03f), new Vector3(w - 1.6f, 2.4f, 0.02f));
+            for (var a = -w / 2f + 1.5f; a < w / 2f - 1f; a += 3.1f)
+                Model(building, "ShopFrame", CityModel, "CityShopFrame", Toon("CityShopTrim", new Color(0.34f, 0.21f, 0.14f)), front + new Vector3(a + 1.2f, 1.8f, 0f), 180f);
+            var stripe = Toon($"CityAwning{i % 4}", AwningStripes[i % AwningStripes.Length]);
+            var cream = Toon("CityAwningCream", new Color(0.93f, 0.88f, 0.78f));
+            for (var a = -w / 2f + 1f; a < w / 2f - 0.5f; a += 1f)
+            {
+                Model(building, "Awning", CityModel, "CityAwningA", stripe, front + new Vector3(a, 3.3f, 0f), 180f);
+                Model(building, "Awning", CityModel, "CityAwningB", cream, front + new Vector3(a, 3.3f, 0f), 180f);
+            }
+            Point(building, "ShopSpill", front + new Vector3(0f, 2.2f, 2f), ShopGlow(i), 6f, 1.6f);
+            // The place's name in neon over some shops, buzzing on and off now and then.
+            if (i % 2 == 0)
+                WallNeon(building, front + new Vector3(-w * 0.14f, 4.4f, 0f), w * 0.62f, i); // left of any blade sign
         }
 
         private static readonly Color[] AwningStripes =
@@ -173,7 +186,6 @@ namespace Game.Editor
                 if (!InFrontOfTower(x + 3f))
                     Tree(street, new Vector3(x + 3f, 0.15f, NorthKerb + 1.4f));
             }
-            var red = Toon("StreetHydrant", new Color(0.82f, 0.2f, 0.18f));
             var bags = Toon("StreetBinBag", new Color(0.12f, 0.12f, 0.13f));
             for (var k = 0; k < 7; k++)
             {
@@ -183,8 +195,7 @@ namespace Game.Editor
                     continue;
                 Model(street, "Bin", "SM_Bin", "BinBody", Toon("StreetBin", new Color(0.25f, 0.42f, 0.32f)), new Vector3(x, 0.15f, z), (float)_random.NextDouble() * 360f);
                 Shape(street, PrimitiveType.Sphere, "BinBag", bags, new Vector3(x + 0.7f, 0.45f, z), new Vector3(0.7f, 0.6f, 0.6f));
-                Shape(street, PrimitiveType.Cylinder, "Hydrant", red, new Vector3(x + 4f, 0.5f, SouthKerb - 0.5f), new Vector3(0.3f, 0.35f, 0.3f));
-                Shape(street, PrimitiveType.Sphere, "HydrantCap", red, new Vector3(x + 4f, 0.88f, SouthKerb - 0.5f), Vector3.one * 0.3f);
+                Kit.Hydrant(street, new Vector3(x + 4f, 0.15f, SouthKerb - 0.5f));
                 Block(street, "NewsBox", Toon(k % 2 == 0 ? "StreetNewsBlue" : "StreetNewsRed", k % 2 == 0 ? new Color(0.25f, 0.4f, 0.75f) : new Color(0.85f, 0.3f, 0.25f)),
                     new Vector3(x - 3f, 0.15f, NorthKerb + 0.7f), new Vector3(0.5f, 1.0f, 0.45f));
                 Block(street, "Crate", Toon("OfficeTeak", new Color(0.55f, 0.38f, 0.24f)), new Vector3(x + 2f, 0.15f, SouthFronts + 0.6f), new Vector3(0.6f, 0.5f, 0.6f));
@@ -227,8 +238,8 @@ namespace Game.Editor
             for (var k = 0; k < 8; k++)
             {
                 var x = -StreetEnd + 15f + k * 21f + (float)_random.NextDouble() * 5f;
-                if (Mathf.Abs(x) < 5f || Mathf.Abs(x + 50f) < 6f || (k % 2 == 1 && InAvenueMouth(x, 3f)) || (k % 2 == 0 && InFrontOfTower(x)))
-                    continue;
+                if (Mathf.Abs(x) < StreetClosed + 3f || Mathf.Abs(x + 50f) < 6f)
+                    continue; // the street is closed to cars in front of the tower
                 var car = Car(street, k % 2 == 0 ? NorthKerb - 1.1f : SouthKerb + 1.1f, x);
                 car.localRotation = Quaternion.Euler(0f, k % 2 == 0 ? 90f : -90f, 0f);
             }
@@ -244,33 +255,6 @@ namespace Game.Editor
                 var x = -10f + k * 4.3f + (float)_random.NextDouble();
                 PerchedBird(street, new Vector3(x, 0.15f, k % 2 == 0 && !InAvenueMouth(x) ? southWalk : northWalk - 1f), (float)_random.NextDouble() * 360f);
             }
-        }
-
-        // Cars driving both ways, a delivery rider weaving through.
-        private static void StreetTraffic(Transform street)
-        {
-            // Only the far lane: the near one runs right under the camera where it stops for the menu.
-            var lanes = new[] { (-22.1f, -1f) };
-            for (var k = 0; k < 3; k++)
-            {
-                var (z, dir) = lanes[k % lanes.Length];
-                var car = Car(street, z, 0f, driving: true);
-                car.gameObject.AddComponent<LaneMover>().Set(new Vector3(-dir * StreetEnd, 0f, z), new Vector3(dir * StreetEnd, 0f, z), 8f, false, 0f, k / 3f);
-                MakeDynamic(car.gameObject);
-            }
-            // The delivery rider on a scooter, a box on the back.
-            var rider = new GameObject("DeliveryRider").transform;
-            rider.SetParent(street, false);
-            var scooter = Toon("StreetScooter", new Color(0.35f, 0.75f, 0.55f));
-            Block(rider, "Deck", scooter, new Vector3(0f, 0.25f, 0f), new Vector3(0.35f, 0.12f, 1.3f));
-            Block(rider, "Box", Toon("StreetDeliveryBox", new Color(0.95f, 0.45f, 0.25f)), new Vector3(0f, 0.55f, -0.55f), new Vector3(0.6f, 0.55f, 0.55f));
-            Block(rider, "Column", scooter, new Vector3(0f, 0.3f, 0.55f), new Vector3(0.1f, 0.85f, 0.1f));
-            foreach (var z in new[] { -0.55f, 0.55f })
-                Shape(rider, PrimitiveType.Cylinder, "Wheel", Toon("CityTyre", new Color(0.08f, 0.08f, 0.09f)), new Vector3(0f, 0.22f, z), new Vector3(0.42f, 0.06f, 0.42f), Quaternion.Euler(0f, 0f, 90f));
-            Person(rider, "Rider", new Vector3(0f, 0.3f, -0.05f), 0f, new Color(0.95f, 0.45f, 0.25f), new Color(0.2f, 0.22f, 0.3f), 0.95f,
-                look => { look.Hat = CharacterArt.HatKind.Cap; look.HatColor = new Color(0.95f, 0.45f, 0.25f); });
-            rider.gameObject.AddComponent<LaneMover>().Set(new Vector3(StreetEnd, 0.02f, -23f), new Vector3(-StreetEnd, 0.02f, -23f), 6.5f, false, 0f, 0.4f);
-            MakeDynamic(rider.gameObject);
         }
 
         // People walking up and down both pavements, some pausing.

@@ -15,27 +15,32 @@ namespace Game.Editor
     /// </summary>
     public static partial class OfficeBuilder
     {
-        // The user's notes (2026-11-10): in at street level close to the tower, from the avenue's
-        // mouth, through the crowd to stop right in front of the main entrance, looking at the
-        // restaurant, its queue and its marquee; the menu comes up there. The last pose is the stop.
+        // The user's notes (2026-11-10): in at street level close to the tower, in the avenue's
+        // mouth among the market's stalls, then one slow, straight push across the closed street to
+        // stop in front of the main entrance, where the camera holds still for the menu. No curve:
+        // both poses look the same way, so the camera only travels. The last pose is the stop.
         // Heights are above the street (OfficeBuilder.Street.cs, 120 m below the floor).
+        private const float PushX = 0.4f;
+        private const float PushHeight = 1.8f;
+        private const float PushFrom = -48f;
+        private const float PushTo = -29.6f;
+        private static readonly Vector3 PushLook = new Vector3(0f, 2.6f, 15.8f); // a little up, at the marquee
+
         private static readonly CameraPose[] FlightPoses =
         {
-            StreetPose(4.5f, 1.7f, -47f, 1.5f, 2.4f, TowerFace),
-            StreetPose(2.2f, 1.75f, -38f, 0.6f, 3.0f, TowerFace),
-            // The stop: on the far pavement, the doors, the queue and the marquee ahead.
-            StreetPose(0.4f, 1.8f, -29.6f, 0.4f, 4.4f, TowerFace),
+            StreetPose(PushX, PushHeight, PushFrom, PushX + PushLook.x, PushHeight + PushLook.y, PushFrom + PushLook.z),
+            StreetPose(PushX, PushHeight, PushTo, PushX + PushLook.x, PushHeight + PushLook.y, PushTo + PushLook.z),
         };
 
-        // After the chef has stepped into the lift: up beside it, a few metres off the glass, floor
-        // by floor, to the top, where the camera tips over onto the floor's wide shot (the landing is
-        // added by OpeningSequence: the follow camera's own view).
+        // Once the chef is in the lift: straight up from where the camera stands (the user's note:
+        // "then straight up"), level with the cab, floor by floor to the top, where it tips over
+        // the cornice onto the floor's wide shot (the landing is added by OpeningSequence: the follow
+        // camera's own view).
         private static readonly CameraPose[] ClimbPoses =
         {
-            StreetPose(0f, 3.5f, -25.5f, 0f, 4.5f, TowerFace),
-            StreetPose(0f, 40f, -25f, 0f, 41f, TowerFace),
-            StreetPose(0f, 85f, -25f, 0f, 86f, TowerFace),
-            StreetPose(0f, 112f, -24f, 0f, 116f, TowerFace),
+            StreetPose(PushX, 12f, PushTo, PushX, 13.5f, TowerFace),
+            StreetPose(PushX, 60f, PushTo, PushX, 61f, TowerFace),
+            StreetPose(PushX, 112f, PushTo, PushX, 115f, TowerFace),
         };
 
         private static CameraPose StreetPose(float x, float height, float z, float tx, float targetHeight, float tz) =>
@@ -72,7 +77,6 @@ namespace Game.Editor
             var hud = opening.AddComponent<OpeningHud>();
             var hudSo = new SerializedObject(hud);
             hudSo.FindProperty("_style").objectReferenceValue = style;
-            hudSo.FindProperty("_coop").objectReferenceValue = coop;
             hudSo.ApplyModifiedPropertiesWithoutUndo();
 
             var sequence = new SerializedObject(opening.AddComponent<OpeningSequence>());
@@ -83,7 +87,9 @@ namespace Game.Editor
             sequence.FindProperty("_hud").objectReferenceValue = hud;
             sequence.FindProperty("_elevator").objectReferenceValue = Object.FindFirstObjectByType<OpeningElevator>();
             sequence.FindProperty("_chef").objectReferenceValue = Object.FindFirstObjectByType<OpeningChef>();
-            sequence.FindProperty("_streetLevel").objectReferenceValue = GameObject.Find("City/Street");
+            Objects(sequence.FindProperty("_offAfterLanding"), GameObject.Find("City/Street"), GameObject.Find("City/BossTower/Rooms"), GameObject.Find("City/BossTower/TowerLift"));
+            var bar = Object.FindFirstObjectByType<PlayerBarHud>();
+            Objects(sequence.FindProperty("_hudAfterLanding"), bar != null ? bar.gameObject : null);
             Poses(sequence.FindProperty("_flight"), FlightPoses);
             Poses(sequence.FindProperty("_climb"), ClimbPoses);
             sequence.ApplyModifiedPropertiesWithoutUndo();
@@ -97,6 +103,13 @@ namespace Game.Editor
 
             // Tap Menu on the floor: the pause menu (decision 2026-11-10). No day loop here, so it stops time itself.
             PauseMenuBuilder.Add(style, coop);
+        }
+
+        private static void Objects(SerializedProperty list, params GameObject[] objects)
+        {
+            list.arraySize = objects.Length;
+            for (var i = 0; i < objects.Length; i++)
+                list.GetArrayElementAtIndex(i).objectReferenceValue = objects[i];
         }
 
         private static void Poses(SerializedProperty list, CameraPose[] poses)

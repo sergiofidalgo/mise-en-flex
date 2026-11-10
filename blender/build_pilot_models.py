@@ -1892,9 +1892,11 @@ def build_cars():
                 add_box(trim, (0.2, 0.04, 0.05), (x, side * (width / 2.0 + 0.01), deck - 0.12))
             add_box(trim, (length - 1.2, 0.04, 0.06), (0.0, side * (width / 2.0 + 0.005), 0.36))
         if kind == "Taxi":
-            for side in (-1.0, 1.0):  # the checker band along the doors
-                for k in range(10):
-                    add_box(trim, (0.16, 0.03, 0.08), (-1.3 + k * 0.32, side * (width / 2.0 + 0.012), deck - 0.3 + (k % 2) * 0.08))
+            for side in (-1.0, 1.0):  # the checker band along the doors: two rows of squares, alternating
+                for k in range(22):
+                    for row in (0, 1):
+                        if (k + row) % 2 == 0:
+                            add_box(trim, (0.1, 0.02, 0.1), (-1.05 + k * 0.1, side * (width / 2.0 + 0.008), deck - 0.34 + row * 0.1))
         objects.append(finish(f"Car{kind}Trim", trim))
 
         tyres = bmesh.new()
@@ -1922,6 +1924,532 @@ def build_cars():
             top = max(z for x, z in cabin)
             add_box(sign, (0.42, 0.9, 0.22), (cx, 0.0, top + 0.11), bevel=0.05)
             objects.append(finish("CarTaxiSign", sign))
+    return objects
+
+
+def add_box_at(bm, size, local, frame, bevel=0.0):
+    """A box in a turned frame (see frame_at): `size`, centred at `local` within the frame."""
+    transform = frame @ Matrix.Translation(local) @ Matrix.Diagonal((*size, 1.0))
+    created = bmesh.ops.create_cube(bm, size=1.0, matrix=transform)
+    if bevel > 0.0:
+        verts = created["verts"]
+        edges = list({edge for vert in verts for edge in vert.link_edges})
+        bmesh.ops.bevel(bm, geom=edges, offset=bevel, segments=BEVEL_SEGMENTS, profile=0.5,
+                        affect='EDGES', clamp_overlap=True)
+
+
+def frame_at(centre, turn=(0.0, 0.0, 0.0)):
+    """A frame at `centre`, turned by Euler angles in degrees (X, then Y, then Z)."""
+    from mathutils import Euler
+    return Matrix.Translation(centre) @ Euler([math.radians(a) for a in turn], 'XYZ').to_matrix().to_4x4()
+
+
+def add_torus(bm, centre, major, minor, axis_matrix=None, segments=28, ring=10):
+    """A ring of tube: `major` to the tube's middle, `minor` the tube's radius, round the lathe's axis."""
+    profile = [(major + minor * math.cos(2.0 * math.pi * k / ring), minor * math.sin(2.0 * math.pi * k / ring))
+               for k in range(ring + 1)]
+    add_lathe(bm, profile, segments=segments, centre=centre, axis_matrix=axis_matrix)
+
+
+# A lathe's axis turned to point at the front (-y), along +y, or along +x.
+TO_FRONT = Matrix.Rotation(math.radians(90.0), 4, 'X')
+TO_BACK = Matrix.Rotation(math.radians(-90.0), 4, 'X')
+TO_SIDE = Matrix.Rotation(math.radians(90.0), 4, 'Y')
+
+
+def build_street_kit():
+    """Street furniture for the opening's street and the market outside the restaurant (the user's
+    notes, 2026-11-10: every object as crisp as the kitchen's appliances; improve the vendor
+    stalls). The kitchen's chunky, bevelled style, each piece split by colour. Fronts face -Y (the
+    game's +z); origins on the ground under the middle unless a piece says otherwise.
+
+    The market stall fits the game's stall station: a 1.8 x 0.8 m counter 0.9 m high at the origin,
+    posts and a striped canopy over it and the stallholder's space behind (+y)."""
+    objects = []
+
+    # ---- The market stall ----
+    slope = 0.4 / 1.72  # the canopy rises from 2.2 m at the front edge to 2.6 m at the back
+    bm = bmesh.new()
+    for x in (-1.05, 1.05):
+        add_box(bm, (0.07, 0.07, 2.26), (x, -0.3, 1.13), bevel=0.012)   # front posts
+        add_box(bm, (0.07, 0.07, 2.5), (x, 0.78, 1.25), bevel=0.012)    # back posts
+        add_box(bm, (0.05, 1.08, 0.05), (x, 0.24, 1.98), bevel=0.01)    # side ties
+        add_box_at(bm, (0.05, 1.2, 0.05), (0.0, 0.0, 0.0), frame_at((x, 0.24, 2.37), (math.degrees(math.atan(slope)), 0.0, 0.0)), bevel=0.01)  # rafters
+    add_box(bm, (2.17, 0.05, 0.05), (0.0, -0.3, 2.2), bevel=0.01)       # front rail, the bulbs hang from it
+    add_box(bm, (2.17, 0.05, 0.05), (0.0, 0.78, 2.46), bevel=0.01)      # back rail
+    add_box(bm, (2.17, 0.05, 0.05), (0.0, 0.78, 1.0), bevel=0.01)       # a rail to lean on, at the back
+    for x in (-0.55, 0.55):
+        add_box(bm, (0.012, 0.012, 0.2), (x, -0.3, 2.08))               # the bulbs' cords
+    objects.append(finish("StallFrame", bm))
+
+    for name, phase in (("StallCanopyA", 0), ("StallCanopyB", 1)):     # the canopy, in stripes of two colours
+        bm = bmesh.new()
+        stripes = 8
+        width = 2.5 / stripes
+        for k in range(stripes):
+            if k % 2 != phase:
+                continue
+            x0 = -1.25 + k * width
+            add_extrude_yz(bm, [(-0.62, 2.2), (1.1, 2.6), (1.1, 2.65), (-0.62, 2.25)], x0, x0 + width)
+            drop = 0.27 if phase == 0 else 0.19                         # the valance, one colour hanging lower
+            add_extrude_yz(bm, [(-0.66, 2.25 - drop), (-0.62, 2.25 - drop), (-0.62, 2.25), (-0.66, 2.25)], x0, x0 + width)
+        objects.append(finish(name, bm))
+
+    bm = bmesh.new()  # the counter: a panelled body
+    add_box(bm, (1.8, 0.8, 0.84), (0.0, 0.0, 0.42), bevel=0.02)
+    for k in range(5):
+        add_box(bm, (0.3, 0.02, 0.64), (-0.68 + k * 0.34, -0.405, 0.45), bevel=0.01)
+    add_box(bm, (1.7, 0.03, 0.07), (0.0, -0.41, 0.05))
+    objects.append(finish("StallCounter", bm))
+    bm = bmesh.new()
+    add_box(bm, (1.9, 0.9, 0.06), (0.0, 0.0, 0.87), bevel=0.02)
+    objects.append(finish("StallCounterTop", bm))
+
+    # A crate tipped towards the customer, and what goes in it. Their origin is on the counter top
+    # under the crate's middle, so the builder lines up as many as the stall sells.
+    crate = frame_at((0.0, 0.0, 0.11), (14.0, 0.0, 0.0))
+    bm = bmesh.new()
+    add_box_at(bm, (0.44, 0.34, 0.02), (0.0, 0.0, -0.07), crate)
+    for y in (-0.16, 0.16):
+        add_box_at(bm, (0.44, 0.02, 0.14), (0.0, y, 0.0), crate, bevel=0.004)
+    for x in (-0.21, 0.21):
+        add_box_at(bm, (0.02, 0.34, 0.14), (x, 0.0, 0.0), crate, bevel=0.004)
+    objects.append(finish("StallCrate", bm))
+    bm = bmesh.new()  # round produce: a heap of onions, tomatoes, oranges
+    heap = [(-0.13, -0.09, 0.0), (0.0, -0.09, 0.0), (0.13, -0.09, 0.0), (-0.13, 0.05, 0.0), (0.0, 0.05, 0.0), (0.13, 0.05, 0.0),
+            (-0.065, -0.02, 0.085), (0.065, -0.02, 0.085)]
+    for local in heap:
+        add_round_ball(bm, crate @ Vector(local), 0.07, rings=8, segments=14)
+    objects.append(finish("StallProduceRound", bm))
+    bm = bmesh.new()  # cuts of meat, or fish: slabs laid across each other
+    for i, (x, y, turn) in enumerate([(-0.11, -0.06, 12.0), (0.1, -0.07, -8.0), (-0.08, 0.07, -15.0), (0.11, 0.06, 20.0)]):
+        add_box_at(bm, (0.17, 0.12, 0.035), (0.0, 0.0, 0.0), crate @ frame_at((x, y, -0.03 + 0.012 * i), (0.0, 0.0, turn)), bevel=0.014)
+    objects.append(finish("StallProduceSlabs", bm))
+
+    bm = bmesh.new()
+    for x in (-0.55, 0.55):
+        add_ball(bm, (x, -0.3, 1.9), 0.06, segments=12)
+    objects.append(finish("StallBulbs", bm))
+    bm = bmesh.new()
+    for x in (-0.55, 0.55):
+        add_lathe(bm, [(0.02, 2.0), (0.05, 1.99), (0.15, 1.91), (0.155, 1.89), (0.14, 1.895), (0.04, 1.975), (0.0, 1.98)],
+                  segments=16, centre=(x, -0.3, 0.0))
+    objects.append(finish("StallShades", bm))
+
+    bm = bmesh.new()  # a price slate leaning on the counter's front
+    add_box_at(bm, (0.46, 0.02, 0.34), (0.0, 0.0, 0.0), frame_at((0.55, -0.47, 0.19), (12.0, 0.0, 0.0)), bevel=0.008)
+    objects.append(finish("StallSlate", bm))
+
+    bm = bmesh.new()  # the scales
+    add_box(bm, (0.2, 0.16, 0.05), (0.72, 0.2, 0.925), bevel=0.012)
+    add_box(bm, (0.04, 0.03, 0.18), (0.72, 0.27, 1.03), bevel=0.008)
+    add_lathe(bm, [(0.0, 0.0), (0.1, 0.02), (0.11, 0.035), (0.1, 0.03), (0.0, 0.012)], segments=18, centre=(0.72, 0.18, 0.97))
+    add_lathe(bm, [(0.0, 0.0), (0.055, 0.0), (0.055, 0.012), (0.0, 0.012)], segments=14, centre=(0.72, 0.27, 1.11), axis_matrix=TO_FRONT)
+    objects.append(finish("StallScale", bm))
+
+    bm = bmesh.new()  # closed: a cloth over the counter
+    add_box(bm, (1.96, 0.96, 0.42), (0.0, 0.0, 0.72), bevel=0.05)
+    objects.append(finish("StallCover", bm))
+
+    # ---- Queue posts and their rope (1.4 m to the next post, along +x) ----
+    bm = bmesh.new()
+    add_lathe(bm, [(0.0, 0.0), (0.17, 0.0), (0.17, 0.025), (0.12, 0.05), (0.035, 0.09), (0.025, 0.12), (0.025, 0.86),
+                   (0.045, 0.88), (0.045, 0.92), (0.025, 0.94), (0.0, 0.94)], segments=20)
+    add_ball(bm, (0.0, 0.0, 0.97), 0.05, segments=14)
+    objects.append(finish("StanchionPost", bm))
+    bm = bmesh.new()
+    add_pipe(bm, [(1.4 * k / 8.0, 0.0, 0.9 - 0.17 * math.sin(math.pi * k / 8.0)) for k in range(9)], radius=0.022, segments=10)
+    objects.append(finish("StanchionRope", bm))
+
+    # ---- A barrier across a closed street ----
+    bm = bmesh.new()
+    for x in (-0.95, 0.95):
+        for side in (1.0, -1.0):
+            add_box_at(bm, (0.06, 0.05, 1.09), (0.0, 0.0, 0.0), frame_at((x, side * 0.13, 0.525), (side * 13.9, 0.0, 0.0)), bevel=0.01)
+    add_box(bm, (2.2, 0.04, 0.2), (0.0, 0.0, 0.92), bevel=0.012)
+    add_box(bm, (2.2, 0.04, 0.12), (0.0, 0.0, 0.5), bevel=0.012)
+    objects.append(finish("BarrierFrame", bm))
+    bm = bmesh.new()
+    for k in range(5):
+        for y in (-0.022, 0.022):
+            add_box(bm, (0.22, 0.006, 0.2), (-0.88 + k * 0.44, y, 0.92))
+    objects.append(finish("BarrierStripes", bm))
+
+    # ---- A delivery scooter with its box, and the rider's bag ----
+    bm = bmesh.new()
+    add_box(bm, (0.3, 0.62, 0.07), (0.0, -0.02, 0.27), bevel=0.025)                                      # footboard
+    add_box_at(bm, (0.38, 0.08, 0.56), (0.0, 0.0, 0.0), frame_at((0.0, -0.4, 0.56), (-14.0, 0.0, 0.0)), bevel=0.035)  # leg shield
+    add_box(bm, (0.16, 0.36, 0.1), (0.0, -0.64, 0.46), bevel=0.045)                                      # front mudguard
+    add_box(bm, (0.36, 0.66, 0.3), (0.0, 0.44, 0.5), bevel=0.11)                                         # the body over the engine
+    objects.append(finish("ScooterBody", bm))
+    bm = bmesh.new()
+    add_box(bm, (0.3, 0.62, 0.09), (0.0, 0.38, 0.7), bevel=0.04)
+    objects.append(finish("ScooterSeat", bm))
+    bm = bmesh.new()
+    for y in (-0.64, 0.6):
+        add_lathe(bm, [(0.0, -0.055), (0.17, -0.055), (0.22, -0.03), (0.22, 0.03), (0.17, 0.055), (0.0, 0.055)],
+                  segments=20, centre=(0.0, y, 0.22), axis_matrix=TO_SIDE)
+    objects.append(finish("ScooterTyres", bm))
+    bm = bmesh.new()
+    add_pipe(bm, [(0.0, -0.62, 0.3), (0.0, -0.46, 0.84), (0.0, -0.42, 1.0)], radius=0.03, segments=10)   # the steering column
+    add_pipe(bm, [(-0.3, -0.4, 1.0), (0.3, -0.4, 1.0)], radius=0.022, segments=10)                       # handlebar
+    for x in (-0.3, 0.3):
+        add_pipe(bm, [(x * 0.8, -0.4, 1.0), (x, -0.36, 1.2)], radius=0.01, segments=6)                   # mirrors
+        add_lathe(bm, [(0.0, 0.0), (0.05, 0.0), (0.05, 0.012), (0.0, 0.012)], segments=12, centre=(x, -0.36, 1.2), axis_matrix=TO_FRONT)
+    for y in (-0.64, 0.6):
+        add_lathe(bm, [(0.0, -0.062), (0.1, -0.062), (0.1, 0.062), (0.0, 0.062)], segments=12, centre=(0.0, y, 0.22), axis_matrix=TO_SIDE)
+    add_pipe(bm, [(0.12, 0.1, 0.24), (0.2, 0.16, 0.02)], radius=0.015, segments=6)                       # kickstand
+    add_box(bm, (0.3, 0.4, 0.03), (0.0, 0.8, 0.765), bevel=0.01)                                         # rack
+    objects.append(finish("ScooterTrim", bm))
+    bm = bmesh.new()
+    add_lathe(bm, [(0.0, 0.0), (0.07, 0.0), (0.075, 0.02), (0.05, 0.05), (0.0, 0.06)], segments=14, centre=(0.0, -0.46, 0.86), axis_matrix=TO_FRONT)
+    objects.append(finish("ScooterLight", bm))
+    bm = bmesh.new()
+    add_box(bm, (0.46, 0.44, 0.4), (0.0, 0.82, 0.98), bevel=0.035)
+    add_box(bm, (0.48, 0.46, 0.05), (0.0, 0.82, 1.17), bevel=0.02)
+    objects.append(finish("ScooterBox", bm))
+
+    bm = bmesh.new()
+    add_box(bm, (0.42, 0.3, 0.44), (0.0, 0.0, 0.22), bevel=0.04)
+    objects.append(finish("DeliveryBag", bm))
+    bm = bmesh.new()
+    add_box(bm, (0.43, 0.31, 0.05), (0.0, 0.0, 0.4), bevel=0.015)
+    add_box(bm, (0.2, 0.012, 0.2), (0.0, -0.152, 0.2), bevel=0.02)
+    for x in (-0.12, 0.12):
+        add_box(bm, (0.05, 0.02, 0.36), (x, 0.155, 0.22), bevel=0.008)
+    objects.append(finish("DeliveryBagTrim", bm))
+
+    # ---- In hands: a phone (screen towards -y, origin at its middle) and a camera (lens towards -y) ----
+    bm = bmesh.new()
+    add_box(bm, (0.078, 0.012, 0.158), (0.0, 0.0, 0.0), bevel=0.005)
+    add_lathe(bm, [(0.0, 0.0), (0.013, 0.0), (0.013, 0.004), (0.0, 0.004)], segments=10, centre=(0.02, 0.006, 0.052), axis_matrix=TO_BACK)
+    objects.append(finish("Phone", bm))
+    bm = bmesh.new()
+    add_box(bm, (0.068, 0.002, 0.146), (0.0, -0.0065, 0.0))
+    objects.append(finish("PhoneScreen", bm))
+    bm = bmesh.new()
+    add_box(bm, (0.15, 0.07, 0.1), (0.0, 0.0, 0.0), bevel=0.014)
+    add_box(bm, (0.04, 0.09, 0.1), (0.058, -0.005, 0.0), bevel=0.014)
+    add_box(bm, (0.06, 0.05, 0.035), (0.0, 0.0, 0.066), bevel=0.01)
+    objects.append(finish("CameraBody", bm))
+    bm = bmesh.new()
+    add_lathe(bm, [(0.0, 0.0), (0.04, 0.0), (0.046, 0.015), (0.046, 0.075), (0.04, 0.085), (0.03, 0.08), (0.0, 0.075)],
+              segments=16, centre=(-0.01, -0.035, 0.0), axis_matrix=TO_FRONT)
+    objects.append(finish("CameraLens", bm))
+
+    # ---- A ring light on a tripod ----
+    bm = bmesh.new()
+    for k in range(3):
+        a = math.pi / 2 + k * 2 * math.pi / 3
+        add_pipe(bm, [(0.0, 0.0, 0.55), (0.38 * math.cos(a), 0.38 * math.sin(a), 0.0)], radius=0.014, segments=6)
+    add_pipe(bm, [(0.0, 0.0, 0.5), (0.0, 0.0, 1.38)], radius=0.016, segments=8)
+    add_box(bm, (0.09, 0.02, 0.03), (0.0, 0.0, 1.38), bevel=0.006)
+    objects.append(finish("RingLightStand", bm))
+    bm = bmesh.new()
+    add_torus(bm, (0.0, 0.0, 1.62), 0.24, 0.035, axis_matrix=TO_FRONT)
+    objects.append(finish("RingLightRing", bm))
+
+    # ---- Tables and a chair for terraces and bars ----
+    for name, height in (("Bistro", 0.72), ("HighTable", 1.05)):
+        bm = bmesh.new()
+        add_lathe(bm, [(0.0, 0.0), (0.22, 0.0), (0.22, 0.025), (0.06, 0.06), (0.03, 0.1), (0.03, height - 0.03), (0.07, height), (0.0, height)], segments=20)
+        objects.append(finish(f"{name}Base", bm))
+        bm = bmesh.new()
+        add_lathe(bm, [(0.0, height), (0.34, height), (0.36, height + 0.012), (0.36, height + 0.03), (0.34, height + 0.042), (0.0, height + 0.042)], segments=28)
+        objects.append(finish(f"{name}Top", bm))
+    bm = bmesh.new()  # a bistro chair: round seat, splayed legs, a slatted back (+y)
+    add_lathe(bm, [(0.0, 0.43), (0.18, 0.43), (0.19, 0.445), (0.18, 0.46), (0.0, 0.46)], segments=20)
+    for sx in (-1.0, 1.0):
+        for sy in (-1.0, 1.0):
+            add_pipe(bm, [(sx * 0.13, sy * 0.13, 0.44), (sx * 0.17, sy * 0.17, 0.0)], radius=0.012, segments=6)
+        add_pipe(bm, [(sx * 0.15, 0.16, 0.44), (sx * 0.16, 0.2, 0.86)], radius=0.012, segments=6)
+    add_pipe(bm, [(-0.16, 0.2, 0.86), (0.0, 0.215, 0.9), (0.16, 0.2, 0.86)], radius=0.012, segments=6)
+    for x in (-0.07, 0.0, 0.07):
+        add_box(bm, (0.035, 0.012, 0.34), (x, 0.195, 0.68), bevel=0.004)
+    objects.append(finish("BistroChair", bm))
+
+    # ---- The bar: a bottle, and a pendant lamp (origin at the shade's rim, its cord 1.2 m up) ----
+    bm = bmesh.new()
+    add_lathe(bm, [(0.0, 0.0), (0.038, 0.0), (0.04, 0.01), (0.04, 0.19), (0.016, 0.26), (0.014, 0.32), (0.019, 0.325), (0.019, 0.345), (0.0, 0.345)], segments=14)
+    objects.append(finish("Bottle", bm))
+    bm = bmesh.new()
+    add_lathe(bm, [(0.0, 0.3), (0.03, 0.3), (0.05, 0.27), (0.2, 0.07), (0.21, 0.02), (0.195, 0.02), (0.185, 0.07), (0.04, 0.255), (0.0, 0.26)], segments=24)
+    add_pipe(bm, [(0.0, 0.0, 0.3), (0.0, 0.0, 1.2)], radius=0.008, segments=6)
+    objects.append(finish("PendantShade", bm))
+    bm = bmesh.new()
+    add_ball(bm, (0.0, 0.0, 0.1), 0.07, segments=12)
+    objects.append(finish("PendantBulb", bm))
+
+    # ---- An entrance canopy with bulbs round its edge (origin at the wall, on the ground, out towards -y) ----
+    bm = bmesh.new()
+    add_box(bm, (3.6, 3.2, 0.24), (0.0, -1.6, 3.34), bevel=0.07)
+    objects.append(finish("CanopyTop", bm))
+    bm = bmesh.new()
+    add_box(bm, (3.68, 3.26, 0.07), (0.0, -1.61, 3.2), bevel=0.02)
+    for x in (-1.62, 1.62):
+        add_lathe(bm, [(0.0, 0.0), (0.13, 0.0), (0.13, 0.05), (0.07, 0.1), (0.05, 0.18), (0.05, 3.0), (0.08, 3.08), (0.1, 3.17), (0.0, 3.17)],
+                  segments=16, centre=(x, -3.0, 0.0))
+    objects.append(finish("CanopyTrim", bm))
+    bm = bmesh.new()
+    for k in range(7):
+        add_ball(bm, (-1.5 + k * 0.5, -3.27, 3.2), 0.055, segments=10)
+    for k in range(5):
+        for x in (-1.87, 1.87):
+            add_ball(bm, (x, -0.5 - k * 0.6, 3.2), 0.055, segments=10)
+    objects.append(finish("CanopyBulbs", bm))
+
+    # ---- A door's frame (a 1.6 x 2.7 m opening) and one leaf (origin at its hinge, 0.78 m along +x) ----
+    bm = bmesh.new()
+    for x in (-0.86, 0.86):
+        add_box(bm, (0.12, 0.16, 2.76), (x, 0.0, 1.38), bevel=0.02)
+    add_box(bm, (1.84, 0.16, 0.12), (0.0, 0.0, 2.76), bevel=0.02)
+    objects.append(finish("DoorFrame", bm))
+    bm = bmesh.new()
+    for x in (0.03, 0.75):
+        add_box(bm, (0.06, 0.05, 2.62), (x, 0.0, 1.34), bevel=0.012)
+    add_box(bm, (0.78, 0.05, 0.08), (0.39, 0.0, 2.63), bevel=0.012)
+    add_box(bm, (0.78, 0.05, 0.22), (0.39, 0.0, 0.14), bevel=0.012)
+    for y in (-0.07, 0.07):
+        add_pipe(bm, [(0.66, y, 0.85), (0.66, y, 1.75)], radius=0.02, segments=8)
+    for z in (0.95, 1.65):
+        add_pipe(bm, [(0.66, -0.07, z), (0.66, 0.07, z)], radius=0.012, segments=6)
+    objects.append(finish("DoorLeaf", bm))
+    bm = bmesh.new()
+    add_box(bm, (0.66, 0.02, 2.3), (0.39, 0.0, 1.4))
+    objects.append(finish("DoorLeafGlass", bm))
+
+    # ---- Pavement pieces: a planter with a hedge, a hydrant, a bollard, a bench, a chalk board, a menu on a stand ----
+    bm = bmesh.new()
+    add_box(bm, (1.6, 0.5, 0.46), (0.0, 0.0, 0.23), bevel=0.04)
+    add_box(bm, (1.68, 0.58, 0.07), (0.0, 0.0, 0.47), bevel=0.02)
+    objects.append(finish("PlanterBox", bm))
+    bm = bmesh.new()
+    for k in range(5):
+        add_round_ball(bm, (-0.56 + k * 0.28, 0.02 * (-1) ** k, 0.72), 0.26, rings=8, segments=14)
+    objects.append(finish("PlanterHedge", bm))
+    bm = bmesh.new()
+    add_lathe(bm, [(0.0, 0.0), (0.16, 0.0), (0.16, 0.04), (0.11, 0.07), (0.1, 0.5), (0.13, 0.53), (0.13, 0.57), (0.1, 0.6),
+                   (0.07, 0.7), (0.03, 0.74), (0.03, 0.78), (0.0, 0.78)], segments=18)
+    for sx in (-1.0, 1.0):
+        add_lathe(bm, [(0.0, 0.0), (0.055, 0.0), (0.055, 0.14), (0.07, 0.14), (0.07, 0.17), (0.0, 0.17)], segments=12,
+                  centre=(0.0, 0.0, 0.42), axis_matrix=Matrix.Rotation(math.radians(sx * 90.0), 4, 'Y'))
+    add_lathe(bm, [(0.0, 0.0), (0.07, 0.0), (0.07, 0.15), (0.085, 0.15), (0.085, 0.18), (0.0, 0.18)], segments=12, centre=(0.0, 0.0, 0.34), axis_matrix=TO_FRONT)
+    objects.append(finish("Hydrant", bm))
+    bm = bmesh.new()
+    add_lathe(bm, [(0.0, 0.0), (0.09, 0.0), (0.09, 0.05), (0.07, 0.08), (0.065, 0.8), (0.08, 0.83), (0.08, 0.87), (0.05, 0.93), (0.0, 0.95)], segments=16)
+    objects.append(finish("Bollard", bm))
+    bm = bmesh.new()
+    for x in (-0.75, 0.75):
+        add_box(bm, (0.06, 0.5, 0.06), (x, 0.0, 0.03), bevel=0.012)
+        add_box(bm, (0.06, 0.06, 0.42), (x, -0.18, 0.21), bevel=0.012)
+        add_box_at(bm, (0.06, 0.06, 0.86), (0.0, 0.0, 0.0), frame_at((x, 0.2, 0.43), (-8.0, 0.0, 0.0)), bevel=0.012)
+        add_box(bm, (0.06, 0.46, 0.05), (x, 0.0, 0.6), bevel=0.012)
+    objects.append(finish("BenchFrame", bm))
+    bm = bmesh.new()
+    for k in range(4):
+        add_box(bm, (1.7, 0.09, 0.03), (0.0, -0.18 + k * 0.11, 0.44), bevel=0.008)
+    for k in range(3):
+        add_box_at(bm, (1.7, 0.03, 0.09), (0.0, 0.0, 0.0), frame_at((0.0, 0.215 + k * 0.017, 0.56 + k * 0.12), (-8.0, 0.0, 0.0)), bevel=0.008)
+    objects.append(finish("BenchSlats", bm))
+    bm = bmesh.new()
+    for side in (1.0, -1.0):
+        add_box_at(bm, (0.6, 0.035, 0.98), (0.0, 0.0, 0.0), frame_at((0.0, side * 0.14, 0.47), (side * 15.0, 0.0, 0.0)), bevel=0.012)
+    objects.append(finish("ChalkFrame", bm))
+    bm = bmesh.new()
+    for side in (1.0, -1.0):
+        add_box_at(bm, (0.5, 0.01, 0.8), (0.0, side * 0.02, 0.02), frame_at((0.0, side * 0.14, 0.47), (side * 15.0, 0.0, 0.0)))
+    objects.append(finish("ChalkFace", bm))
+    stand = frame_at((0.0, -0.02, 1.32), (-20.0, 0.0, 0.0))
+    bm = bmesh.new()
+    add_lathe(bm, [(0.0, 0.0), (0.2, 0.0), (0.2, 0.03), (0.05, 0.07), (0.025, 0.1), (0.025, 1.2), (0.0, 1.2)], segments=16)
+    add_box_at(bm, (0.44, 0.03, 0.58), (0.0, 0.0, 0.0), stand, bevel=0.012)
+    objects.append(finish("MenuStandPost", bm))
+    bm = bmesh.new()
+    add_box_at(bm, (0.38, 0.006, 0.52), (0.0, -0.018, 0.0), stand)
+    objects.append(finish("MenuStandFace", bm))
+
+    # ---- The frame round a 9.6 x 5.4 m screen (origin at the wall under its middle, out towards -y) ----
+    bm = bmesh.new()
+    width, height, bar, deep = 9.6, 5.4, 0.28, 0.4
+    add_box(bm, (width + 2 * bar, deep, bar), (0.0, -deep / 2, bar / 2), bevel=0.06)
+    add_box(bm, (width + 2 * bar, deep, bar), (0.0, -deep / 2, height + 1.5 * bar), bevel=0.06)
+    for x in (-(width + bar) / 2, (width + bar) / 2):
+        add_box(bm, (bar, deep, height), (x, -deep / 2, bar + height / 2), bevel=0.06)
+    add_box(bm, (width, 0.1, height), (0.0, -0.05, bar + height / 2))
+    objects.append(finish("ScreenBezel", bm))
+    return objects
+
+
+def build_floor_kit():
+    """Furniture for the floors of the boss's tower, seen through its glass as the opening climbs
+    (the user's notes, 2026-11-10: every object as crisp as the kitchen's appliances; the floors are
+    the boss's empire: test kitchens, a photo studio, a social-media room, a call centre, the
+    accountants, a canteen). Fronts face -Y; origins on the floor under the middle unless said."""
+    objects = []
+
+    # ---- A work desk (the chair's side is +y, so the screen glows towards whoever sits there) ----
+    bm = bmesh.new()
+    add_box(bm, (1.5, 0.75, 0.04), (0.0, 0.0, 0.73), bevel=0.014)
+    objects.append(finish("WorkDeskTop", bm))
+    bm = bmesh.new()
+    for x in (-0.7, 0.7):
+        add_box(bm, (0.04, 0.68, 0.71), (x, 0.0, 0.355), bevel=0.012)
+    add_box(bm, (1.36, 0.03, 0.34), (0.0, -0.3, 0.52), bevel=0.01)
+    add_box(bm, (0.4, 0.5, 0.56), (0.46, 0.05, 0.3), bevel=0.015)
+    for z in (0.14, 0.32, 0.5):
+        add_box(bm, (0.34, 0.02, 0.15), (0.46, 0.305, z), bevel=0.006)
+    objects.append(finish("WorkDeskLegs", bm))
+    bm = bmesh.new()  # the monitor on its stand, a keyboard and a mouse
+    add_box(bm, (0.58, 0.035, 0.36), (0.0, -0.14, 1.06), bevel=0.012)
+    add_box(bm, (0.05, 0.04, 0.16), (0.0, -0.16, 0.85), bevel=0.01)
+    add_box(bm, (0.24, 0.17, 0.016), (0.0, -0.15, 0.758), bevel=0.006)
+    add_box(bm, (0.42, 0.14, 0.02), (0.0, 0.14, 0.76), bevel=0.006)
+    add_ellipsoid(bm, (0.33, 0.15, 0.765), (0.03, 0.05, 0.018))
+    objects.append(finish("DeskSetDark", bm))
+    bm = bmesh.new()
+    add_box(bm, (0.54, 0.004, 0.32), (0.0, -0.1205, 1.06))
+    objects.append(finish("DeskSetScreen", bm))
+
+    # ---- The photo studio: a softbox on a stand, a tripod, a paper backdrop ----
+    bm = bmesh.new()
+    for k in range(3):
+        a = math.pi / 2 + k * 2 * math.pi / 3
+        add_pipe(bm, [(0.0, 0.0, 0.6), (0.45 * math.cos(a), 0.45 * math.sin(a), 0.0)], radius=0.016, segments=6)
+    add_pipe(bm, [(0.0, 0.0, 0.55), (0.0, 0.1, 1.9)], radius=0.018, segments=8)
+    objects.append(finish("SoftboxStand", bm))
+    bm = bmesh.new()  # the hood: a pyramid opening to the front, closed by the diffuser
+    back = [bm.verts.new((x, 0.3, 1.9 + z)) for x, z in ((-0.08, -0.08), (0.08, -0.08), (0.08, 0.08), (-0.08, 0.08))]
+    front = [bm.verts.new((x, -0.12, 1.9 + z)) for x, z in ((-0.39, -0.51), (0.39, -0.51), (0.39, 0.51), (-0.39, 0.51))]
+    bm.faces.new(back)
+    bm.faces.new(list(reversed(front)))
+    for i in range(4):
+        j = (i + 1) % 4
+        bm.faces.new([back[i], front[i], front[j], back[j]])
+    objects.append(finish("SoftboxHood", bm))
+    bm = bmesh.new()
+    add_box(bm, (0.74, 0.012, 0.98), (0.0, -0.126, 1.9))
+    objects.append(finish("SoftboxFace", bm))
+    bm = bmesh.new()
+    for k in range(3):
+        a = math.pi / 2 + k * 2 * math.pi / 3
+        add_pipe(bm, [(0.0, 0.0, 1.25), (0.4 * math.cos(a), 0.4 * math.sin(a), 0.0)], radius=0.016, segments=6)
+    add_pipe(bm, [(0.0, 0.0, 1.2), (0.0, 0.0, 1.36)], radius=0.02, segments=8)
+    add_box(bm, (0.1, 0.08, 0.02), (0.0, 0.0, 1.37), bevel=0.005)
+    objects.append(finish("Tripod", bm))
+    bm = bmesh.new()
+    for x in (-1.55, 1.55):
+        add_pipe(bm, [(x, 0.5, 0.0), (x, 0.5, 2.6)], radius=0.022, segments=8)
+        add_box(bm, (0.06, 0.5, 0.03), (x, 0.5, 0.015), bevel=0.008)
+    add_pipe(bm, [(-1.6, 0.5, 2.6), (1.6, 0.5, 2.6)], radius=0.03, segments=8)
+    objects.append(finish("BackdropStand", bm))
+    bm = bmesh.new()  # the paper: down from the bar, round a curve, out across the floor
+    add_box(bm, (2.8, 0.012, 2.17), (0.0, 0.47, 1.505))
+    for k in range(6):
+        a = (k + 0.5) / 6.0 * math.pi / 2
+        add_box_at(bm, (2.8, 0.012, 0.125), (0.0, 0.0, 0.0), frame_at((0.0, 0.07 + 0.4 * math.cos(a), 0.42 - 0.4 * math.sin(a)), (-math.degrees(a), 0.0, 0.0)))
+    add_box(bm, (2.8, 1.18, 0.012), (0.0, -0.52, 0.02))
+    objects.append(finish("BackdropPaper", bm))
+
+    # ---- The social-media room: six screens on a wall board (origin under its middle, at its foot) ----
+    bm = bmesh.new()
+    add_box(bm, (3.0, 0.06, 1.3), (0.0, 0.0, 0.65), bevel=0.02)
+    for c in range(3):
+        for r in range(2):
+            add_box(bm, (0.94, 0.03, 0.56), (-0.98 + c * 0.98, -0.04, 0.34 + r * 0.62), bevel=0.012)
+    objects.append(finish("ScreenWallFrame", bm))
+    for name, cells in (("ScreenWallA", ((0, 0), (2, 1))), ("ScreenWallB", ((1, 0), (0, 1))), ("ScreenWallC", ((2, 0), (1, 1)))):
+        bm = bmesh.new()
+        for c, r in cells:
+            add_box(bm, (0.88, 0.004, 0.5), (-0.98 + c * 0.98, -0.057, 0.34 + r * 0.62))
+        objects.append(finish(name, bm))
+
+    # ---- The call centre: a partition between desks ----
+    bm = bmesh.new()
+    add_box(bm, (1.5, 0.05, 1.15), (0.0, 0.0, 0.6), bevel=0.015)
+    objects.append(finish("CubiclePanel", bm))
+    bm = bmesh.new()
+    add_box(bm, (1.54, 0.07, 0.04), (0.0, 0.0, 1.19), bevel=0.012)
+    for x in (-0.6, 0.6):
+        add_box(bm, (0.06, 0.4, 0.03), (x, 0.0, 0.015), bevel=0.008)
+    objects.append(finish("CubicleTrim", bm))
+
+    # ---- For any floor: a water cooler, a vending machine, a whiteboard, a ceiling light, a coffee machine ----
+    bm = bmesh.new()
+    add_box(bm, (0.32, 0.32, 0.98), (0.0, 0.0, 0.49), bevel=0.03)
+    add_box(bm, (0.2, 0.03, 0.16), (0.0, -0.165, 0.74), bevel=0.01)
+    for x in (-0.05, 0.05):
+        add_box(bm, (0.03, 0.05, 0.04), (x, -0.185, 0.78), bevel=0.008)
+    objects.append(finish("CoolerBody", bm))
+    bm = bmesh.new()
+    add_lathe(bm, [(0.0, 0.98), (0.06, 0.98), (0.06, 1.03), (0.13, 1.07), (0.13, 1.34), (0.1, 1.4), (0.0, 1.4)], segments=18)
+    objects.append(finish("CoolerBottle", bm))
+    bm = bmesh.new()
+    add_box(bm, (0.95, 0.8, 1.85), (0.0, 0.0, 0.925), bevel=0.03)
+    objects.append(finish("VendingBody", bm))
+    bm = bmesh.new()
+    add_box(bm, (0.56, 0.012, 1.2), (-0.14, -0.402, 1.08))
+    objects.append(finish("VendingWindow", bm))
+    bm = bmesh.new()
+    add_box(bm, (0.2, 0.02, 0.5), (0.32, -0.405, 1.2), bevel=0.008)
+    add_box(bm, (0.56, 0.02, 0.16), (-0.14, -0.405, 0.3), bevel=0.008)
+    for r in range(4):  # shelves of snacks behind the window
+        add_box(bm, (0.54, 0.02, 0.02), (-0.14, -0.41, 0.56 + r * 0.29))
+    objects.append(finish("VendingTrim", bm))
+    bm = bmesh.new()
+    for r in range(4):
+        for c in range(4):
+            add_box(bm, (0.09, 0.02, 0.17), (-0.335 + c * 0.13, -0.412, 0.67 + r * 0.29), bevel=0.006)
+    objects.append(finish("VendingGoods", bm))
+    bm = bmesh.new()  # a whiteboard (origin at the wall under its middle)
+    add_box(bm, (1.8, 0.04, 1.1), (0.0, -0.02, 0.55), bevel=0.012)
+    add_box(bm, (1.6, 0.07, 0.03), (0.0, -0.06, 0.03), bevel=0.008)
+    objects.append(finish("WhiteboardFrame", bm))
+    bm = bmesh.new()
+    add_box(bm, (1.7, 0.006, 1.0), (0.0, -0.042, 0.55))
+    objects.append(finish("WhiteboardFace", bm))
+    bm = bmesh.new()  # a ceiling light (origin on the ceiling)
+    add_box(bm, (1.24, 0.64, 0.05), (0.0, 0.0, -0.025), bevel=0.012)
+    objects.append(finish("CeilingPanelFrame", bm))
+    bm = bmesh.new()
+    add_box(bm, (1.14, 0.54, 0.012), (0.0, 0.0, -0.052))
+    objects.append(finish("CeilingPanelGlow", bm))
+    bm = bmesh.new()  # an espresso machine for a counter (origin under it)
+    add_box(bm, (0.52, 0.4, 0.36), (0.0, 0.0, 0.24), bevel=0.03)
+    add_box(bm, (0.54, 0.42, 0.05), (0.0, 0.0, 0.03), bevel=0.012)
+    add_box(bm, (0.5, 0.36, 0.03), (0.0, 0.02, 0.435), bevel=0.01)
+    objects.append(finish("CoffeeMachine", bm))
+    bm = bmesh.new()
+    for x in (-0.13, 0.13):
+        add_lathe(bm, [(0.0, 0.0), (0.035, 0.0), (0.035, 0.05), (0.0, 0.05)], segments=10, centre=(x, -0.16, 0.2))
+        add_pipe(bm, [(x, -0.16, 0.22), (x + 0.1, -0.26, 0.22)], radius=0.012, segments=6)
+    add_pipe(bm, [(0.22, -0.2, 0.3), (0.26, -0.26, 0.14)], radius=0.01, segments=6)
+    objects.append(finish("CoffeeTrim", bm))
+
+    # ---- The accountants: the boss's safe and what's in it ----
+    bm = bmesh.new()
+    add_box(bm, (1.0, 0.8, 1.3), (0.0, 0.0, 0.65), bevel=0.045)
+    add_box(bm, (0.84, 0.05, 1.14), (0.0, -0.41, 0.65), bevel=0.02)
+    for z in (0.3, 1.0):
+        add_lathe(bm, [(0.0, -0.08), (0.03, -0.08), (0.03, 0.08), (0.0, 0.08)], segments=10, centre=(-0.44, -0.43, z))
+    objects.append(finish("SafeBody", bm))
+    bm = bmesh.new()
+    add_torus(bm, (0.08, -0.5, 0.68), 0.15, 0.02, axis_matrix=TO_FRONT, segments=24, ring=8)
+    add_lathe(bm, [(0.0, 0.0), (0.045, 0.0), (0.045, 0.07), (0.0, 0.07)], segments=12, centre=(0.08, -0.43, 0.68), axis_matrix=TO_FRONT)
+    for k in range(4):
+        a = k * math.pi / 2 + math.pi / 4
+        add_pipe(bm, [(0.08, -0.5, 0.68), (0.08 + 0.15 * math.cos(a), -0.5, 0.68 + 0.15 * math.sin(a))], radius=0.014, segments=6)
+    objects.append(finish("SafeWheel", bm))
+    bm = bmesh.new()
+    stacks = [(-0.19, 0.0, 3), (0.0, 0.02, 4), (0.19, -0.01, 2), (-0.09, -0.11, 2), (0.1, -0.1, 3)]
+    for x, y, count in stacks:
+        for k in range(count):
+            add_box(bm, (0.16, 0.075, 0.035), (x, y, 0.02 + k * 0.038), bevel=0.006)
+    objects.append(finish("MoneyNotes", bm))
+    bm = bmesh.new()
+    for x, y, count in stacks:
+        for k in range(count):
+            add_box(bm, (0.04, 0.078, 0.037), (x, y, 0.02 + k * 0.038))
+    objects.append(finish("MoneyBands", bm))
     return objects
 
 
@@ -2481,6 +3009,8 @@ def main():
         "SM_TrayRack.fbx": build_tray_rack(),
         "SM_City.fbx": build_city(),
         "SM_Cars.fbx": build_cars(),
+        "SM_StreetKit.fbx": build_street_kit(),
+        "SM_FloorKit.fbx": build_floor_kit(),
         "SM_Office.fbx": build_office(),
     }
     args = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []

@@ -191,7 +191,11 @@ namespace Game.Presentation.Menu
                         SaveSlots.Delete(_card);
                         ReadSlots();
                         if (!IsAvailable(_item))
+                        {
+                            // The last campaign went: nothing to continue, so back to the list.
                             _item = Item.NewCampaign;
+                            _onCards = false;
+                        }
                         Open(Page.None);
                     }
                     else if (Pressed(Face.East))
@@ -205,11 +209,7 @@ namespace Game.Presentation.Menu
             {
                 if (step.x != 0)
                 {
-                    var next = _card + step.x;
-                    if (next < 0)
-                        _onCards = false;
-                    else
-                        _card = Mathf.Min(next, SaveSlots.Count - 1);
+                    _card = Mathf.Clamp(_card + step.x, 0, SaveSlots.Count - 1);
                     _dirty = true;
                 }
                 if (Pressed(Face.East))
@@ -240,12 +240,6 @@ namespace Game.Presentation.Menu
                     _item = items[next];
                 _dirty = true;
             }
-            if (step.x > 0)
-            {
-                _onCards = true;
-                _card = _item == Item.NewCampaign && SaveSlots.FirstFree(_saves) >= 0 ? SaveSlots.FirstFree(_saves) : Mathf.Max(0, _lastPlayed);
-                _dirty = true;
-            }
             if (Pressed(Face.South))
                 Choose(_item);
         }
@@ -262,8 +256,14 @@ namespace Game.Presentation.Menu
             switch (item)
             {
                 case Item.Continue:
+                    // The campaigns are a page of their own (the user's call, 2026-11-10), so the top
+                    // level leaves the scene behind it in view: Continue opens them on the last played.
                     if (_lastPlayed >= 0)
-                        Launch(_lastPlayed, true);
+                    {
+                        _onCards = true;
+                        _card = _lastPlayed;
+                        _dirty = true;
+                    }
                     break;
                 case Item.NewCampaign:
                     var free = SaveSlots.FirstFree(_saves);

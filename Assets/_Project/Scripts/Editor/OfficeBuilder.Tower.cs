@@ -149,11 +149,13 @@ namespace Game.Editor
             return material;
         }
 
-        // One floor's real rooms behind the clear glass where the camera climbs (the user's notes,
-        // 2026-11-10: "through the window you can see each floor's layout"). Five kinds, each varied:
-        // an open-plan office, a meeting room, a kitchen with a sofa, a creative floor with a
-        // ping-pong table and beanbags, a floor being fitted out. Most are lit, by a ceiling panel
-        // and one light; the dark ones keep a desk lamp or an exit sign. `floorY` is the floor's level.
+        // One floor behind the clear glass where the camera climbs (the user's notes, 2026-11-10:
+        // "through the window you can see each floor's layout"; the floors are the boss's empire, and
+        // every object as crisp as the kitchen's). Each floor is a part of his food business, from
+        // the modelled kit (Kit.cs) and the kitchen's own appliances: a test kitchen with chefs at
+        // the hobs, a photo studio shooting a dish (its flash going), the social-media room with
+        // walls of screens, the reservations call centre, the accountants and the safe, the staff
+        // canteen, the uniform room; now and then a floor being fitted out. `floorY` is its level.
         private static void TowerRoom(Transform rooms, float floorY, int f)
         {
             var room = new GameObject($"Floor{f}").transform;
@@ -162,119 +164,189 @@ namespace Game.Editor
             var front = TowerFace + 0.15f;
             var back = TowerFace + RoomDepth;
             var ceiling = TowerStorey - 0.9f;
-            var kind = _random.Next(5);
-            var lit = kind != 4 && _random.NextDouble() < 0.8;
+            var fitOut = f % 11 == 6;
+            var kind = fitOut ? -1 : (f * 3 + 1) % 7; // steps through all seven, never the same twice running
             Color[] walls = { new Color(0.86f, 0.8f, 0.68f), new Color(0.72f, 0.78f, 0.7f), new Color(0.84f, 0.68f, 0.56f), new Color(0.9f, 0.86f, 0.78f) };
             Color[] carpets = { new Color(0.32f, 0.35f, 0.42f), new Color(0.45f, 0.36f, 0.28f), new Color(0.3f, 0.4f, 0.34f), new Color(0.5f, 0.48f, 0.45f) };
-            var w = _random.Next(walls.Length);
-            var c = _random.Next(carpets.Length);
-            var wall = Toon($"TowerWall{w}", walls[w]);
-            var carpet = Toon($"TowerCarpet{c}", carpets[c]);
+            var wall = Toon($"TowerWall{f % walls.Length}", walls[f % walls.Length]);
+            var floor = kind == 0 || kind == 5
+                ? Tiles("TowerTiles", new Color(0.82f, 0.8f, 0.76f), new Color(0.6f, 0.58f, 0.55f), 0.6f)
+                : Toon($"TowerCarpet{f % carpets.Length}", carpets[f % carpets.Length]);
             var white = Toon("TowerCeiling", new Color(0.9f, 0.89f, 0.86f));
-            var wood = Toon("OfficeTeak", new Color(0.55f, 0.38f, 0.24f));
-            var dark = Toon("OfficeInk", Ink);
+            var warm = f % 3 != 0;
+            var glow = warm ? new Color(1f, 0.9f, 0.72f) : new Color(0.88f, 0.94f, 1f);
 
-            // The room's shell: carpet and ceiling either side of and behind the lift shaft (so
-            // neither cuts through the cab), the back wall with a door, the band's side walls.
+            // The room's shell: floor and ceiling either side of and behind the lift shaft (so
+            // neither cuts through the cab), the back wall with a door, the band's side walls,
+            // a skirting board, light panels in the ceiling.
             foreach (var (x0, x1, z0) in new[] { (BandWest, -ShaftHalfWidth - 0.1f, front), (ShaftHalfWidth + 0.1f, BandEast, front), (-ShaftHalfWidth - 0.1f, ShaftHalfWidth + 0.1f, ShaftNorth + 0.1f) })
             {
-                Cube(room, "Carpet", carpet, new Vector3((x0 + x1) / 2f, 0.005f, (z0 + back) / 2f), new Vector3(x1 - x0, 0.02f, back - z0));
+                Cube(room, "Floor", floor, new Vector3((x0 + x1) / 2f, 0.005f, (z0 + back) / 2f), new Vector3(x1 - x0, 0.02f, back - z0));
                 Cube(room, "Ceiling", white, new Vector3((x0 + x1) / 2f, ceiling - 0.06f, (z0 + back) / 2f), new Vector3(x1 - x0, 0.05f, back - z0));
             }
             Block(room, "BackWall", wall, new Vector3((BandWest + BandEast) / 2f, 0f, back), new Vector3(BandEast - BandWest, ceiling, 0.12f));
+            Block(room, "Skirting", white, new Vector3((BandWest + BandEast) / 2f, 0f, back - 0.08f), new Vector3(BandEast - BandWest, 0.12f, 0.04f));
             foreach (var x in new[] { BandWest, BandEast })
                 Block(room, "SideWall", wall, new Vector3(x, 0f, (front + back) / 2f), new Vector3(0.12f, ceiling, back - front));
-            var doorX = _random.NextDouble() < 0.5 ? -6f : 6f;
-            Block(room, "Door", wood, new Vector3(doorX, 0f, back - 0.07f), new Vector3(1f, 2.1f, 0.04f));
+            var doorX = f % 2 == 0 ? -8.3f : 8f;
+            Block(room, "Door", Toon("OfficeTeak", new Color(0.55f, 0.38f, 0.24f)), new Vector3(doorX, 0f, back - 0.07f), new Vector3(1f, 2.1f, 0.04f));
+            foreach (var x in new[] { -6.9f, -4.1f, 4f, 6.8f })
+                Kit.CeilingPanel(room, new Vector3(x, ceiling - 0.06f, front + RoomDepth * 0.45f), glow, lit: !fitOut);
+            if (!fitOut)
+                foreach (var x in new[] { -5.5f, 5.4f })
+                    Point(room, "RoomLight", new Vector3(x, ceiling - 0.5f, front + RoomDepth * 0.45f), warm ? Incandescent : new Color(0.85f, 0.92f, 1f), 9f, 3.2f);
 
-            if (lit)
-            {
-                var warm = _random.NextDouble() < 0.6;
-                var panel = Unlit(warm ? "TowerPanelWarm" : "TowerPanelCool", warm ? new Color(1f, 0.9f, 0.72f) : new Color(0.88f, 0.94f, 1f));
-                foreach (var x in new[] { -5.5f, 5.5f })
-                    Cube(room, "LightPanel", panel, new Vector3(x, ceiling - 0.09f, (front + back) / 2f), new Vector3(2.6f, 0.02f, 0.6f));
-                foreach (var x in new[] { -5f, 5f })
-                    Point(room, "RoomLight", new Vector3(x, ceiling - 0.5f, front + RoomDepth * 0.45f), warm ? Incandescent : new Color(0.85f, 0.92f, 1f), 9f, 3.4f);
-            }
-            else
-            {
-                // An exit sign over the door, and sometimes a desk lamp someone left on.
-                Cube(room, "ExitSign", Unlit("TowerExit", new Color(0.3f, 1f, 0.45f)), new Vector3(doorX, 2.25f, back - 0.08f), new Vector3(0.4f, 0.16f, 0.03f));
-                if (_random.NextDouble() < 0.5)
-                    Point(room, "DeskLamp", new Vector3(-doorX * 0.6f, 1.1f, front + 3.5f), Incandescent, 3.5f, 1.4f);
-            }
-
+            var westMid = (BandWest - ShaftHalfWidth) / 2f;   // the middle of the room west of the lift
+            var eastMid = (BandEast + ShaftHalfWidth) / 2f;   // and east of it
             switch (kind)
             {
-                case 0: // open-plan: rows of desks facing the window, screens lit
-                    foreach (var z in new[] { front + 2.6f, front + 4.9f })
-                    foreach (var x in new[] { -8.0f, -6.3f, -4.6f, 3.4f, 5.1f, 6.8f })
-                        Desk(room, new Vector3(x, 0f, z), lit, dark, wood);
+                case 0: // the test kitchen: a line of appliances along the back, an island, chefs cooking; a tasting table
+                {
+                    var line = new[] { "PF_Fridge", "PF_Counter", "PF_Hob", "PF_Hob", "PF_CuttingBoard", "PF_Counter" };
+                    for (var i = 0; i < line.Length; i++)
+                        Prop(room, line[i], new Vector3(BandWest + 0.75f + i, 0f, back - 0.6f), 180f);
+                    for (var i = 0; i < 3; i++)
+                        Prop(room, i == 1 ? "PF_CuttingBoard" : "PF_Counter", new Vector3(westMid - 1f + i, 0f, front + 3f), 0f);
+                    Cook(room, new Vector3(BandWest + 3.2f, 0f, back - 1.5f), 0f);
+                    Cook(room, new Vector3(westMid, 0f, front + 3.9f), 180f);
+                    Kit.Part(room, "SM_Dining", "TableBody", Toon("KitTableTop", new Color(0.62f, 0.42f, 0.26f)), new Vector3(eastMid, 0f, front + 3.2f));
+                    foreach (var side in new[] { -1f, 1f })
+                        Kit.Part(room, "SM_Dining", "DiningChair", Toon("OfficeTeak", new Color(0.55f, 0.38f, 0.24f)), new Vector3(eastMid + side * 0.75f, 0f, front + 3.2f), side < 0f ? -90f : 90f);
+                    Passerby(room, "Taster", new Vector3(eastMid + 0.2f, 0f, front + 4.3f), 190f);
+                    Prop(room, "PF_Shelf", new Vector3(BandEast - 0.8f, 0f, back - 0.6f), 180f);
                     break;
-                case 1: // a meeting room on one side, armchairs on the other
-                    Block(room, "Table", wood, new Vector3(-5.6f, 0.7f, front + 3.6f), new Vector3(4.2f, 0.06f, 1.4f));
-                    Block(room, "TableBase", dark, new Vector3(-5.6f, 0f, front + 3.6f), new Vector3(2.8f, 0.7f, 0.3f));
-                    for (var x = -7.2f; x <= -4f; x += 1.1f)
-                    foreach (var z in new[] { front + 2.6f, front + 4.6f })
-                        Block(room, "Chair", dark, new Vector3(x, 0f, z), new Vector3(0.5f, 0.85f, 0.5f));
-                    Cube(room, "Screen", Unlit(lit ? "TowerScreenOn" : "TowerScreenOff", lit ? new Color(0.55f, 0.75f, 1f) : new Color(0.08f, 0.1f, 0.14f)), new Vector3(-5.6f, 0.9f, back - 0.08f), new Vector3(2.4f, 1.3f, 0.03f));
-                    Armchair(room, new Vector3(4.2f, 0f, front + 3.2f), 200f, new Color(0.7f, 0.3f, 0.25f));
-                    Armchair(room, new Vector3(6.4f, 0f, front + 3.2f), 160f, new Color(0.7f, 0.3f, 0.25f));
-                    PottedPlant(room, new Vector3(7.8f, 0f, front + 1.2f), 1f);
+                }
+                case 1: // the photo studio: a dish on a table before a paper backdrop, softboxes, a camera flashing
+                {
+                    Kit.Backdrop(room, new Vector3(westMid, 0f, back - 1.2f), 180f, new Color(0.95f, 0.75f, 0.3f));
+                    Kit.BistroTable(room, new Vector3(westMid, 0f, back - 2.2f));
+                    Kit.Bottle(room, new Vector3(westMid + 0.12f, 0.762f, back - 2.2f), new Color(0.55f, 0.2f, 0.25f));
+                    Kit.Softbox(room, new Vector3(westMid - 2f, 0f, back - 3.2f), 40f);
+                    Kit.Softbox(room, new Vector3(westMid + 2f, 0f, back - 3.2f), -40f);
+                    var camera = Kit.TripodCamera(room, new Vector3(westMid + 0.3f, 0f, front + 2.2f), 0f);
+                    Flash(camera, camera, 2.5f + (f % 3) * 0.7f, new Vector3(0f, 0.08f, 0.05f));
+                    Passerby(room, "Shooter", new Vector3(westMid - 0.5f, 0f, front + 1.6f), 10f);
+                    Kit.WorkStation(room, new Vector3(eastMid - 1f, 0f, front + 2.6f), 0f, new Color(0.6f, 0.8f, 1f));
+                    Kit.WorkStation(room, new Vector3(eastMid + 1.2f, 0f, front + 2.6f), 0f, new Color(1f, 0.75f, 0.55f));
+                    Passerby(room, "Editor", new Vector3(eastMid + 0.2f, 0f, front + 4.6f), 170f);
                     break;
-                case 2: // the floor's kitchen and a sofa
-                    Block(room, "Counter", Toon("TowerCounter", new Color(0.9f, 0.9f, 0.88f)), new Vector3(-5.5f, 0f, back - 0.45f), new Vector3(5f, 0.92f, 0.65f));
-                    Block(room, "Fridge", Toon("TowerFridge", new Color(0.78f, 0.8f, 0.82f)), new Vector3(-8.3f, 0f, back - 0.5f), new Vector3(0.8f, 1.9f, 0.7f));
-                    Block(room, "Coffee", dark, new Vector3(-4.5f, 0.92f, back - 0.45f), new Vector3(0.4f, 0.45f, 0.4f));
-                    Sofa(room, new Vector3(5.4f, 0f, front + 2.4f), 180f, new Color(0.3f, 0.45f, 0.6f));
-                    Block(room, "LowTable", wood, new Vector3(5.4f, 0f, front + 1.2f), new Vector3(1.2f, 0.4f, 0.6f));
-                    PottedPlant(room, new Vector3(-8.2f, 0f, front + 1.0f), 1.1f);
+                }
+                case 2: // the social-media room: walls of screens showing the feeds, desks facing them
+                {
+                    var pink = new Color(1f, 0.45f, 0.65f);
+                    var blue = new Color(0.45f, 0.75f, 1f);
+                    var gold = new Color(1f, 0.82f, 0.4f);
+                    Kit.ScreenWall(room, new Vector3(westMid, 0.95f, back - 0.1f), 180f, pink, blue, gold);
+                    Kit.ScreenWall(room, new Vector3(eastMid, 0.95f, back - 0.1f), 180f, gold, pink, blue);
+                    foreach (var mid in new[] { westMid, eastMid })
+                    for (var i = -1; i <= 1; i++)
+                        Kit.WorkStation(room, new Vector3(mid + i * 1.9f, 0f, front + 2.3f), 0f, i == 0 ? pink : blue);
+                    Passerby(room, "Poster", new Vector3(westMid + 1f, 0f, front + 4.2f), 0f);
+                    Passerby(room, "Poster", new Vector3(eastMid - 1.4f, 0f, front + 4.4f), 20f);
+                    Point(room, "FeedGlow", new Vector3(westMid, 1.6f, back - 1.2f), pink, 6f, 1.6f);
                     break;
-                case 3: // a creative floor: a ping-pong table, beanbags, plants
-                    Block(room, "PingPong", Toon("TowerPingPong", new Color(0.2f, 0.45f, 0.3f)), new Vector3(-5.6f, 0.72f, front + 3.4f), new Vector3(2.7f, 0.05f, 1.5f));
-                    Block(room, "PingPongLegs", dark, new Vector3(-5.6f, 0f, front + 3.4f), new Vector3(2.2f, 0.72f, 0.1f));
-                    Block(room, "Net", Toon("TowerCeiling", new Color(0.9f, 0.89f, 0.86f)), new Vector3(-5.6f, 0.77f, front + 3.4f), new Vector3(0.03f, 0.15f, 1.6f));
-                    Color[] bags = { new Color(0.9f, 0.45f, 0.3f), new Color(0.95f, 0.8f, 0.3f), new Color(0.4f, 0.6f, 0.85f) };
-                    for (var b = 0; b < 3; b++)
-                        Shape(room, PrimitiveType.Sphere, "Beanbag", Toon($"TowerBeanbag{b}", bags[b]), new Vector3(4f + b * 1.4f, 0.3f, front + 2.2f + (b % 2) * 0.9f), new Vector3(0.9f, 0.6f, 0.9f));
-                    foreach (var x in new[] { -8.2f, 8f })
-                        PottedPlant(room, new Vector3(x, 0f, front + 1.0f), 1.2f);
+                }
+                case 3: // reservations: rows of desks between partitions, the phones never stopping
+                {
+                    foreach (var mid in new[] { westMid, eastMid })
+                    foreach (var z in new[] { front + 2.2f, front + 4.9f })
+                    for (var i = -1; i <= 1; i++)
+                    {
+                        Kit.WorkStation(room, new Vector3(mid + i * 1.8f, 0f, z), 0f, new Color(0.7f, 0.9f, 0.8f));
+                        if (i < 1)
+                            Kit.Cubicle(room, new Vector3(mid + i * 1.8f + 0.9f, 0f, z - 0.2f), 90f, new Color(0.35f, 0.5f, 0.6f));
+                    }
+                    Passerby(room, "Supervisor", new Vector3(westMid + 0.4f, 0f, front + 3.6f), 90f);
+                    Passerby(room, "Operator", new Vector3(eastMid - 0.3f, 0f, front + 3.5f), -70f);
                     break;
-                default: // being fitted out: dust sheets, a ladder, paint, a work light
+                }
+                case 4: // the accountants: the safe standing open to its money, filing cabinets, desks, the figures on a board
+                {
+                    Kit.Safe(room, new Vector3(westMid - 1.6f, 0f, back - 0.6f), 180f);
+                    Kit.Part(room, "SM_Dining", "TableBody", Toon("KitTableTop", new Color(0.62f, 0.42f, 0.26f)), new Vector3(westMid + 0.6f, 0f, back - 1.6f));
+                    Kit.Money(room, new Vector3(westMid + 0.6f, 0.75f, back - 1.6f), 20f);
+                    Kit.Money(room, new Vector3(westMid + 0.9f, 0.75f, back - 1.35f), -30f);
+                    for (var i = 0; i < 3; i++)
+                    {
+                        Kit.Part(room, "SM_Office", "OfficeFilingBody", Toon("OfficeFiling", new Color(0.45f, 0.5f, 0.48f)), new Vector3(BandWest + 0.6f + i * 0.6f, 0f, back - 0.45f), 180f);
+                        Kit.Part(room, "SM_Office", "OfficeFilingHandles", Toon("OfficeBrass", Brass), new Vector3(BandWest + 0.6f + i * 0.6f, 0f, back - 0.45f), 180f);
+                    }
+                    Kit.WorkStation(room, new Vector3(westMid, 0f, front + 2.4f), 0f, new Color(0.75f, 0.95f, 0.7f));
+                    Kit.Whiteboard(room, new Vector3(eastMid, 0.9f, back - 0.07f), 180f);
+                    Kit.WorkStation(room, new Vector3(eastMid - 1.2f, 0f, front + 2.4f), 0f, new Color(0.75f, 0.95f, 0.7f));
+                    Kit.WorkStation(room, new Vector3(eastMid + 1f, 0f, front + 2.4f), 0f, new Color(0.75f, 0.95f, 0.7f));
+                    Passerby(room, "Accountant", new Vector3(westMid + 1.7f, 0f, back - 1.9f), -100f);
+                    Passerby(room, "Accountant", new Vector3(eastMid + 0.2f, 0f, front + 4.6f), 10f);
+                    break;
+                }
+                case 5: // the staff canteen: tables, a counter with the coffee machine, a vending machine, the water cooler
+                {
+                    var wood = Toon("KitTableTop", new Color(0.62f, 0.42f, 0.26f));
+                    var chair = Toon("OfficeTeak", new Color(0.55f, 0.38f, 0.24f));
+                    foreach (var (x, z) in new[] { (westMid - 1.6f, front + 2.6f), (westMid + 1.4f, front + 3.4f), (eastMid, front + 2.8f) })
+                    {
+                        Kit.Part(room, "SM_Dining", "TableBody", wood, new Vector3(x, 0f, z));
+                        foreach (var side in new[] { -1f, 1f })
+                            Kit.Part(room, "SM_Dining", "DiningChair", chair, new Vector3(x + side * 0.75f, 0f, z), side < 0f ? -90f : 90f);
+                    }
+                    for (var i = 0; i < 3; i++)
+                    {
+                        Kit.Part(room, "SM_Dining", "BarBody", Toon("OfficeWalnut", Walnut), new Vector3(westMid - 1f + i, 0f, back - 0.5f), 180f);
+                        Kit.Part(room, "SM_Dining", "BarTop", Toon("OfficeBrass", Brass), new Vector3(westMid - 1f + i, 0f, back - 0.5f), 180f);
+                    }
+                    Kit.CoffeeMachine(room, new Vector3(westMid, 1.0f, back - 0.5f), 180f);
+                    Kit.Vending(room, new Vector3(BandEast - 0.8f, 0f, back - 0.6f), 180f, new Color(0.8f, 0.25f, 0.2f));
+                    Kit.Vending(room, new Vector3(BandEast - 1.9f, 0f, back - 0.6f), 180f, new Color(0.2f, 0.45f, 0.7f));
+                    Kit.WaterCooler(room, new Vector3(ShaftHalfWidth + 0.6f, 0f, back - 0.4f), 180f);
+                    Cook(room, new Vector3(westMid - 1.6f, 0f, front + 3.6f), 200f);
+                    Passerby(room, "Colleague", new Vector3(westMid + 0.6f, 0f, back - 1.5f), 0f);
+                    Passerby(room, "Colleague", new Vector3(eastMid + 0.9f, 0f, front + 3.7f), 215f);
+                    break;
+                }
+                case 6: // the uniform room: rails of chef's whites, a sofa to wait on
+                {
+                    Color[] whites = { new Color(0.95f, 0.95f, 0.93f), new Color(0.2f, 0.2f, 0.24f), new Color(0.75f, 0.25f, 0.2f) };
+                    foreach (var mid in new[] { westMid - 1.2f, westMid + 1.6f, eastMid })
+                    {
+                        Kit.Part(room, "SM_Office", "OfficeRail", Toon("OfficeBrass", Brass), new Vector3(mid, 0f, back - 1.4f), 0f);
+                        for (var j = 0; j < 5; j++)
+                            Kit.Part(room, "SM_Office", "OfficeJacket", Toon($"OfficeJacket{(j + f) % 3}", whites[(j + f) % 3]), new Vector3(mid - 0.6f + j * 0.3f, 1.6f, back - 1.4f), 90f);
+                    }
+                    Sofa(room, new Vector3(eastMid + 0.4f, 0f, front + 2.2f), 180f, new Color(0.3f, 0.45f, 0.6f));
+                    Cook(room, new Vector3(westMid + 0.2f, 0f, front + 2.6f), 160f);
+                    Passerby(room, "Tailor", new Vector3(westMid - 0.8f, 0f, front + 3f), 100f);
+                    break;
+                }
+                default: // being fitted out: dust sheets, a ladder, paint, a work light, an exit sign
+                {
                     var sheet = Toon("TowerDustSheet", new Color(0.82f, 0.82f, 0.8f));
-                    Block(room, "Sheeted", sheet, new Vector3(-5.5f, 0f, front + 3f), new Vector3(2.4f, 1.1f, 1.4f));
-                    Block(room, "Sheeted", sheet, new Vector3(5f, 0f, front + 4f), new Vector3(1.8f, 0.9f, 1.6f));
+                    Block(room, "Sheeted", sheet, new Vector3(westMid, 0f, front + 3f), new Vector3(2.4f, 1.1f, 1.4f));
+                    Block(room, "Sheeted", sheet, new Vector3(eastMid, 0f, front + 4f), new Vector3(1.8f, 0.9f, 1.6f));
                     var ladder = Block(room, "Ladder", Toon("TowerLadder", new Color(0.85f, 0.7f, 0.3f)), new Vector3(3f, 0f, front + 2f), new Vector3(0.5f, 2f, 0.08f));
                     if (ladder != null)
                         ladder.transform.localRotation = Quaternion.Euler(10f, 20f, 0f);
-                    Shape(room, PrimitiveType.Cylinder, "Paint", Toon("TowerPaint", new Color(0.85f, 0.85f, 0.88f)), new Vector3(-3.6f, 0.15f, front + 1.6f), new Vector3(0.3f, 0.15f, 0.3f));
-                    Point(room, "WorkLight", new Vector3(-6f, 1.4f, front + 2f), Incandescent, 5f, 1.6f);
+                    Cube(room, "ExitSign", Unlit("TowerExit", new Color(0.3f, 1f, 0.45f)), new Vector3(doorX, 2.25f, back - 0.08f), new Vector3(0.4f, 0.16f, 0.03f));
+                    Point(room, "WorkLight", new Vector3(westMid - 1f, 1.4f, front + 2f), Incandescent, 5f, 1.6f);
                     break;
-            }
-
-            // Someone about on most lit floors: by a desk, at the window, or on the way somewhere.
-            if (lit && kind != 4)
-            {
-                var people = 1 + _random.Next(2);
-                for (var k = 0; k < people; k++)
-                {
-                    var x = _random.NextDouble() < 0.5 ? -4f - (float)_random.NextDouble() * 4f : 3f + (float)_random.NextDouble() * 4.6f;
-                    Passerby(room, "OfficeWorker", new Vector3(x, 0f, front + 1.4f + (float)_random.NextDouble() * 4f), (float)_random.NextDouble() * 360f);
                 }
+            }
+            if (!fitOut)
+            {
+                PottedPlant(room, new Vector3(BandWest + 0.6f, 0f, front + 0.8f), 1.05f);
+                if (kind != 5)
+                    Kit.WaterCooler(room, new Vector3(-ShaftHalfWidth - 0.5f, 0f, back - 0.4f), 180f);
             }
         }
 
-        // A desk with its back to the window: whoever sits there faces into the room, so their screen
-        // glows out at the street. A top, a modesty panel, the screen, the chair on the window side.
-        private static void Desk(Transform room, Vector3 at, bool lit, Material dark, Material wood)
+        // One of the boss's cooks, in whites and toque.
+        private static void Cook(Transform parent, Vector3 at, float facing)
         {
-            Block(room, "Desk", wood, at + new Vector3(0f, 0.72f, 0f), new Vector3(1.4f, 0.05f, 0.7f));
-            Block(room, "DeskPanel", dark, at + new Vector3(0f, 0f, 0.3f), new Vector3(1.3f, 0.72f, 0.04f));
-            Block(room, "Monitor", dark, at + new Vector3(0f, 0.77f, 0.1f), new Vector3(0.55f, 0.36f, 0.05f));
-            Cube(room, "MonitorScreen", Unlit(lit ? "TowerScreenOn" : "TowerScreenOff", lit ? new Color(0.55f, 0.75f, 1f) : new Color(0.08f, 0.1f, 0.14f)),
-                at + new Vector3(0f, 0.8f, 0.07f), new Vector3(0.5f, 0.3f, 0.01f));
-            Block(room, "Chair", dark, at + new Vector3(0f, 0f, -0.65f), new Vector3(0.5f, 0.48f, 0.5f));
-            Block(room, "ChairBack", dark, at + new Vector3(0f, 0.48f, -0.88f), new Vector3(0.5f, 0.5f, 0.06f));
+            var cook = new GameObject("Cook").transform;
+            cook.SetParent(parent, false);
+            cook.localPosition = at;
+            cook.localRotation = Quaternion.Euler(0f, facing, 0f);
+            if (CharacterArt.Build(cook, CharacterArt.PlayerChef()) == null)
+                Object.DestroyImmediate(cook.gameObject);
         }
 
         // The tower's lift (the user's notes, 2026-11-10): inside the building, in the same place as

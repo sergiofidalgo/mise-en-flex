@@ -86,55 +86,137 @@ namespace Game.Editor
             return Additive(key, texture);
         }
 
-        /// <summary>The social-media pops over the opening's phones: a heart, a star, a comment.</summary>
+        /// <summary>The social-media shapes over the opening's phones and signs.</summary>
         public enum Social { Heart, Star, Comment }
 
+        private static readonly Color SocialInk = new Color(0.16f, 0.09f, 0.12f);
+
         /// <summary>
-        /// A round badge with a white icon on it, like a notification: a pink heart, a yellow star, a
-        /// blue comment bubble (user's note, 2026-11-10: the game is about social media and reviews).
+        /// A bold social icon with a dark outline and a shine, big enough to read across the street
+        /// (the user's note, 2026-11-10: the first badges barely stood out): a pink heart, a gold
+        /// star, a blue comment bubble.
         /// </summary>
-        public static Material SocialIcon(Social kind)
+        public static Material SocialIcon(Social kind, bool particle = false)
         {
             var key = $"Social_{kind}";
-            const int size = 64;
-            var badge = kind == Social.Heart ? new Color(0.98f, 0.33f, 0.52f) : kind == Social.Star ? new Color(1f, 0.74f, 0.18f) : new Color(0.28f, 0.6f, 0.98f);
-            var texture = Texture(key, size, size, (px, py) =>
+            const int size = 128;
+            var fill = kind == Social.Heart ? new Color(1f, 0.3f, 0.5f) : kind == Social.Star ? new Color(1f, 0.78f, 0.2f) : new Color(0.3f, 0.62f, 1f);
+            bool Inside(Vector2 p, float grow)
             {
-                var p = new Vector2((px + 0.5f) / size - 0.5f, (py + 0.5f) / size - 0.5f);
-                var r = p.magnitude;
-                if (r > 0.49f)
-                    return new Color(1f, 1f, 1f, 0f);
-                var edge = Mathf.Clamp01((0.49f - r) * size); // soft outer edge
-                if (r > 0.43f)
-                    return new Color(1f, 1f, 1f, edge); // a white rim
-                var icon = false;
+                p /= grow;
                 switch (kind)
                 {
                     case Social.Heart:
-                        // Two circles over a point.
-                        var q = p * 1.25f + new Vector2(0f, -0.03f);
-                        icon = (q - new Vector2(-0.1f, 0.06f)).magnitude < 0.12f || (q - new Vector2(0.1f, 0.06f)).magnitude < 0.12f
-                            || (q.y < 0.08f && q.y > -0.24f && Mathf.Abs(q.x) < (q.y + 0.24f) * 0.85f);
-                        break;
+                        // The classic heart curve: (x² + y² − 1)³ − x²y³ ≤ 0.
+                        var x = p.x * 2.9f;
+                        var y = p.y * 2.9f + 0.25f;
+                        var q = x * x + y * y - 1f;
+                        return q * q * q - x * x * y * y * y <= 0f;
                     case Social.Star:
-                        // Five points: the radius swings with the angle.
-                        var angle = Mathf.Atan2(p.y, p.x) + Mathf.PI / 2f;
-                        var reach = 0.13f + 0.13f * Mathf.Pow(Mathf.Abs(Mathf.Cos(angle * 2.5f)), 3f);
-                        icon = r < reach;
-                        break;
+                        var angle = Mathf.Atan2(p.y, p.x) - Mathf.PI / 2f;
+                        var wave = Mathf.Abs(Mathf.Repeat(angle / (2f * Mathf.PI / 5f), 1f) - 0.5f) * 2f; // 1 at a point, 0 between
+                        return p.magnitude < Mathf.Lerp(0.18f, 0.42f, wave * wave);
                     default:
-                        // A speech bubble with three dots and a tail.
-                        var inBubble = Mathf.Abs(p.x) < 0.24f && Mathf.Abs(p.y - 0.04f) < 0.15f;
-                        var tail = p.y < -0.1f && p.y > -0.22f && p.x > -0.16f && p.x < -0.16f + (p.y + 0.22f);
-                        var dot = false;
-                        for (var d = -1; d <= 1; d++)
-                            dot |= (p - new Vector2(d * 0.12f, 0.04f)).magnitude < 0.04f;
-                        icon = (inBubble || tail) && !dot;
-                        break;
+                        var bubble = Mathf.Abs(p.x) < 0.36f && Mathf.Abs(p.y - 0.06f) < 0.24f
+                            && (Mathf.Abs(p.x) < 0.26f || Mathf.Abs(p.y - 0.06f) < 0.14f || new Vector2(Mathf.Abs(p.x) - 0.26f, Mathf.Abs(p.y - 0.06f) - 0.14f).magnitude < 0.1f);
+                        var tail = p.y < -0.12f && p.y > -0.38f && p.x > -0.24f && p.x < -0.24f + (p.y + 0.38f) * 0.9f;
+                        return bubble || tail;
                 }
-                return icon ? Color.white : new Color(badge.r, badge.g, badge.b, 1f);
+            }
+            var texture = Texture(key, size, size, (px, py) =>
+            {
+                var p = new Vector2((px + 0.5f) / size - 0.5f, (py + 0.5f) / size - 0.5f);
+                if (!Inside(p, 1f))
+                    return new Color(SocialInk.r, SocialInk.g, SocialInk.b, 0f);
+                if (!Inside(p, 0.8f))
+                    return SocialInk; // the outline
+                if (kind == Social.Comment)
+                {
+                    for (var d = -1; d <= 1; d++)
+                        if ((p - new Vector2(d * 0.13f, 0.05f)).magnitude < 0.045f)
+                            return Color.white;
+                }
+                // A shine up on the left.
+                var shine = Mathf.Clamp01(1f - (p - new Vector2(-0.11f, 0.13f)).magnitude / 0.09f);
+                return Color.Lerp(fill, Color.white, shine * 0.75f);
             });
-            var material = Ensure(key);
+            return Transparent(particle ? key + "_Particle" : key, texture, particle);
+        }
+
+        /// <summary>A capsule in <paramref name="colour"/> with a dark outline: the back of a like or rating pill (3 : 1).</summary>
+        public static Material Pill(Color colour)
+        {
+            var key = $"Pill_{ColorUtility.ToHtmlStringRGB(colour)}";
+            const int width = 192, height = 64;
+            var texture = Texture(key, width, height, (px, py) =>
+            {
+                var r = height / 2f;
+                var cx = Mathf.Clamp(px + 0.5f, r, width - r);
+                var d = new Vector2(px + 0.5f - cx, py + 0.5f - r).magnitude;
+                if (d > r)
+                    return new Color(SocialInk.r, SocialInk.g, SocialInk.b, 0f);
+                return d > r - 6f ? SocialInk : colour;
+            });
+            return Transparent(key, texture, false);
+        }
+
+        /// <summary>A white speech card with a dark outline and a tail at the bottom left: a review bubble (2 : 1).</summary>
+        public static Material ReviewCard()
+        {
+            const string key = "ReviewCard";
+            const int width = 256, height = 128;
+            var paper = new Color(1f, 0.98f, 0.94f);
+            bool Inside(float x, float y, float inset)
+            {
+                // The card: a rounded rectangle over the top 100 px; the tail: a wedge under its left.
+                const float radius = 22f;
+                var left = 4f + inset;
+                var right = width - 4f - inset;
+                var bottom = 28f + inset;
+                var top = height - 4f - inset;
+                var cx = Mathf.Clamp(x, left + radius, right - radius);
+                var cy = Mathf.Clamp(y, bottom + radius, top - radius);
+                var card = x > left && x < right && y > bottom && y < top && new Vector2(x - cx, y - cy).magnitude < radius;
+                var tail = y <= bottom + 8f && y > 2f + inset * 1.6f && x > 40f + inset && x < 40f + inset + (y - 2f - inset * 1.6f) * 1.1f;
+                return card || tail;
+            }
+            var texture = Texture(key, width, height, (px, py) =>
+            {
+                var x = px + 0.5f;
+                var y = py + 0.5f;
+                if (!Inside(x, y, 0f))
+                    return new Color(SocialInk.r, SocialInk.g, SocialInk.b, 0f);
+                return Inside(x, y, 6f) ? paper : SocialInk;
+            });
+            return Transparent(key, texture, false);
+        }
+
+        /// <summary>A disc in <paramref name="colour"/>, for an avatar.</summary>
+        public static Material Disc(Color colour)
+        {
+            var key = $"Disc_{ColorUtility.ToHtmlStringRGB(colour)}";
+            const int size = 48;
+            var texture = Texture(key, size, size, (px, py) =>
+            {
+                var d = new Vector2(px + 0.5f - size / 2f, py + 0.5f - size / 2f).magnitude;
+                return new Color(colour.r, colour.g, colour.b, Mathf.Clamp01(size / 2f - 1f - d));
+            });
+            return Transparent(key, texture, false);
+        }
+
+        // Unlit and alpha-blended, over whatever is behind; `particle` uses the particle shader, so
+        // a particle system's fade (its vertex colour) applies.
+        private static Material Transparent(string name, Texture2D texture, bool particle)
+        {
+            var path = $"{MaterialsFolder}/MAT_Sign_{name}.mat";
+            var shader = Shader.Find(particle ? "Universal Render Pipeline/Particles/Unlit" : "Universal Render Pipeline/Unlit");
+            var material = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (material == null)
+            {
+                material = new Material(shader);
+                AssetDatabase.CreateAsset(material, path);
+            }
+            material.shader = shader;
             material.SetTexture("_BaseMap", texture);
             material.SetColor("_BaseColor", Color.white);
             material.SetFloat("_Surface", 1f);
@@ -145,7 +227,7 @@ namespace Game.Editor
             material.SetFloat("_Cull", (float)CullMode.Off);
             material.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
             material.SetOverrideTag("RenderType", "Transparent");
-            material.renderQueue = (int)RenderQueue.Transparent + 10;
+            material.renderQueue = (int)RenderQueue.Transparent;
             EditorUtility.SetDirty(material);
             return material;
         }

@@ -8,9 +8,9 @@ namespace Game.Presentation.Office
 {
     /// <summary>
     /// What the opening shows over the camera (docs/opening-flow.md): a black veil for the fades,
-    /// the save notice, the "A Skip" hint during the fly-through, and the four join slots once the
-    /// camera lands on the floor. Drawn in the house UI kit and translated (Tr). Hints show Xbox
-    /// buttons only.
+    /// the save notice, and the "A Skip" hint during the approach, the chef's walk and the climb.
+    /// Who has joined shows on the floor's own player bar (PlayerBarHud) once the camera lands.
+    /// Drawn in the house UI kit and translated (Tr). Hints show Xbox buttons only.
     /// </summary>
     public sealed class OpeningHud : MonoBehaviour
     {
@@ -19,16 +19,11 @@ namespace Game.Presentation.Office
         private static readonly Color Green = new Color(0.42f, 0.68f, 0.29f); // Xbox A
 
         [SerializeField] private HudStyle _style;
-        [SerializeField] private CoopSettings _coop;
 
         private Image _veil;
         private RectTransform _saveCard;
         private RectTransform _saveIcon;
         private RectTransform _skip;
-        private RectTransform _join;
-        private readonly Image[] _slotRings = new Image[4];
-        private readonly TextMeshProUGUI[] _slotLabels = new TextMeshProUGUI[4];
-        private readonly GameObject[] _slotBadges = new GameObject[4];
 
         /// <summary>How dark the veil is: 1 black, 0 clear.</summary>
         public float Veil
@@ -42,7 +37,6 @@ namespace Game.Presentation.Office
 
         public bool SaveNoticeShown { set => _saveCard.gameObject.SetActive(value); }
         public bool SkipShown { set => _skip.gameObject.SetActive(value); }
-        public bool JoinShown { set => _join.gameObject.SetActive(value); }
 
         private void Awake() => Build();
 
@@ -51,19 +45,6 @@ namespace Game.Presentation.Office
             // The save icon turns, as it will whenever the game saves.
             if (_saveIcon != null && _saveIcon.gameObject.activeInHierarchy)
                 _saveIcon.localRotation = Quaternion.Euler(0f, 0f, -Time.unscaledTime * 180f);
-        }
-
-        /// <summary>Shows which of the four slots are taken: `joined` players, in join order.</summary>
-        public void SetJoined(int joined)
-        {
-            for (var i = 0; i < _slotRings.Length; i++)
-            {
-                var taken = i < joined;
-                var colour = _coop != null ? _coop.GetPlayerColor(i) : Color.white;
-                _slotRings[i].color = taken ? colour : new Color(colour.r, colour.g, colour.b, 0.35f);
-                _slotLabels[i].text = taken ? Tr.Format("Player {player}", ("player", i + 1)) : Tr.Get("Join");
-                _slotBadges[i].SetActive(!taken);
-            }
         }
 
         private void Build()
@@ -103,21 +84,8 @@ namespace Game.Presentation.Office
             Badge(_skip, 0f, 4f);
             UiKit.TextAt(_style.Bold, _skip, "Label", Tr.Get("Skip"), 32f, Cream, 66f, 40f, 150f);
 
-            // The join slots, along the bottom once the camera lands.
-            _join = UiKit.Rect(layout, "Join", 420f, 940f, 1080f, 110f);
-            UiKit.RoundBox(_join, "Panel", new Color(Ink.r, Ink.g, Ink.b, 0.85f), 0f, 0f, 1080f, 110f, 22f);
-            for (var i = 0; i < 4; i++)
-            {
-                var slot = UiKit.Rect(_join, $"Slot{i + 1}", 20f + i * 265f, 15f, 245f, 80f);
-                _slotRings[i] = UiKit.RoundBox(slot, "Ring", Color.white, 0f, 0f, 245f, 80f, 40f);
-                UiKit.RoundBox(slot, "Inner", Ink, 5f, 5f, 235f, 70f, 35f);
-                _slotBadges[i] = Badge(slot, 14f, 14f);
-                _slotLabels[i] = UiKit.TextAt(_style.Bold, slot, "Label", Tr.Get("Join"), 32f, Cream, 72f, 52f, 160f);
-            }
-            SetJoined(0);
             SaveNoticeShown = false;
             SkipShown = false;
-            JoinShown = false;
         }
 
         // An Xbox A badge: a green disc with its letter.

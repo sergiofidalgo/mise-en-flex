@@ -28,8 +28,10 @@ namespace Game.Presentation.Office
         [SerializeField] private OpeningElevator _elevator;
         [Tooltip("The chef who walks in and rides up once a campaign is chosen; optional.")]
         [SerializeField] private OpeningChef _chef;
-        [Tooltip("The street and avenue 120 m below, with all their people, cars and lights: switched off once the camera lands, as nobody sees them from the floor (the 60 fps budget with four players).")]
-        [SerializeField] private GameObject _streetLevel;
+        [Tooltip("Everything below the floor that only the opening sees (the street 120 m down with its people and lights, the tower's rooms, the lift): switched off once the camera lands, as nobody sees it from the floor (the 60 fps budget with four players).")]
+        [SerializeField] private GameObject[] _offAfterLanding = System.Array.Empty<GameObject>();
+        [Tooltip("The floor's own HUD (the player bar): hidden until the camera lands (the user's note, 2026-11-10).")]
+        [SerializeField] private GameObject[] _hudAfterLanding = System.Array.Empty<GameObject>();
         [Tooltip("The flight from the street to the stop where the menu shows; the last pose is the stop.")]
         [SerializeField] private CameraPose[] _flight = System.Array.Empty<CameraPose>();
         [Tooltip("Through these from the stop, then onto the floor's wide shot.")]
@@ -45,8 +47,6 @@ namespace Game.Presentation.Office
         [SerializeField, Min(0.05f)] private float _menuFade = 0.45f;
         [Tooltip("How long the camera rests on the busy entrance before the menu comes up (A skips).")]
         [SerializeField, Min(0f)] private float _menuDelay = 2f;
-        [Tooltip("How far the camera eases in while it watches the chef walk to the lift (m).")]
-        [SerializeField] private Vector3 _enterPush = new Vector3(-1.2f, 0.4f, 3f);
 
         [Header("Haze")]
         [Tooltip("Fog distances during the flight and the menu, thinner so the tower shows from the street.")]
@@ -57,7 +57,8 @@ namespace Game.Presentation.Office
         private Vector2 _officeFog;
         private CameraPose[] _climbPath;
         private Quaternion _landingRotation;
-        private Vector3 _enterFrom;
+        // The press that chose the campaign mustn't also skip the chef's walk.
+        private const float SkipGuard = 0.4f;
 
         // Back from the kitchen (the pause menu's Quit to the office, decision 2026-11-10): the same
         // players rejoin on their own controllers (PlayerJoinController), so the opening and the menu
@@ -84,6 +85,7 @@ namespace Game.Presentation.Office
 
         private void Start()
         {
+            ShowFloorHud(false);
             if (_returning)
             {
                 _hud.Veil = 0f;
@@ -146,23 +148,27 @@ namespace Game.Presentation.Office
                         _menu.SetShown(false, 0f);
                     else
                         _menu.SetShown(true, Mathf.Clamp01((_clock - _menuDelay) / _menuFade));
-                    // A slow drift, so the city lives behind the menu.
-                    var stop = _flight[_flight.Length - 1];
-                    var drift = new Vector3(Mathf.Sin(_clock * 0.15f), Mathf.Sin(_clock * 0.11f) * 0.5f, 0f) * 1.2f;
-                    Place(new CameraPose(stop.Position + drift, stop.Target), null);
+                    // The camera holds still under the menu (the user's note, 2026-11-10): the street does the moving.
+                    Place(_flight[_flight.Length - 1], null);
                     break;
                 case Stage.Entering:
-                    // The menu goes; the camera eases in and watches the chef walk in to the lift.
+                    // The menu goes; the camera stays where it is, with no pan (the user's note,
+                    // 2026-11-10), while the chef walks in to the lift. A skips to the floor.
                     _menu.SetShown(false, 1f - Mathf.Clamp01(_clock / _menuFade));
-                    var rest = _flight[_flight.Length - 1];
-                    var look = Mathf.SmoothStep(0f, 0.75f, _clock / 1.2f);
-                    var push = OpeningPath.Ease(Mathf.Clamp01(_clock / 5f));
-                    Place(new CameraPose(_enterFrom + _enterPush * push, Vector3.Lerp(rest.Target, _chef.Head, look)), null);
-                    if (_chef.Aboard && _clock > 0.8f)
+                    _hud.SkipShown = _clock > SkipGuard;
+                    if (_clock > SkipGuard && PressedA())
+                        Land();
+                    else if (_chef.Aboard && _clock > 0.8f)
                         StartClimb();
                     break;
                 case Stage.Climb:
                     _menu.SetShown(false, 0f);
+                    _hud.SkipShown = true;
+                    if (PressedA())
+                    {
+                        Land();
+                        break;
+                    }
                     var t = Mathf.Clamp01(_clock / _climbSeconds);
                     var eased = OpeningPath.Ease(t);
                     var pose = OpeningPath.SampleEven(_climbPath, eased);
@@ -182,7 +188,6 @@ namespace Game.Presentation.Office
 
         private void HandleLaunching(int slot, bool continuing)
         {
-            _enterFrom = _camera.transform.position;
             if (_chef != null)
             {
                 _chef.Begin();
@@ -214,20 +219,32 @@ namespace Game.Presentation.Office
             _follow.enabled = true;
             if (_elevator != null)
                 _elevator.Release();
-            if (_streetLevel != null)
-                _streetLevel.SetActive(false);
+            foreach (var below in _offAfterLanding)
+                if (below != null)
+                    below.SetActive(false);
+            _hud.SkipShown = false;
+            // Wherever the camera was (a skip can come mid-walk or mid-climb), it's on the floor's view now.
+            _camera.transform.SetPositionAndRotation(_follow.Wanted(), Quaternion.Euler(55f, 0f, 0f));
+            ShowFloorHud(true);
             _players.EnableJoining();
-            _hud.JoinShown = true;
-            _players.onPlayerJoined += HandleJoined;
-            _players.onPlayerLeft += HandleJoined;
             // The player who chose in the menu is in already, on the controller they chose with.
             var device = MainMenu.LastDevice;
             if (device != null && !_returning)
                 _players.JoinPlayer(-1, -1, device is Gamepad ? "Gamepad" : "Keyboard&Mouse", device);
-            _hud.SetJoined(_players.playerCount);
         }
 
-        private void HandleJoined(PlayerInput player) => _hud.SetJoined(_players.playerCount);
+        // The floor's HUD draws itself (PlayerBarHud builds its own canvas): its canvases are
+        // switched off until the camera lands, so "A Join" never shows over the street or the climb.
+        private void ShowFloorHud(bool shown)
+        {
+            foreach (var hud in _hudAfterLanding)
+            {
+                if (hud == null)
+                    continue;
+                foreach (var canvas in hud.GetComponentsInChildren<Canvas>(true))
+                    canvas.enabled = shown;
+            }
+        }
 
         private void Enter(Stage stage)
         {
