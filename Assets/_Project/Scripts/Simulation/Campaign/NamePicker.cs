@@ -29,8 +29,8 @@ namespace Game.Simulation.Campaign
     }
 
     /// <summary>
-    /// Naming a restaurant with a controller (user's call, 2026-11-10): a row with the old name and
-    /// a few suggestions over a letter grid, then space, delete and done. The stick moves a cursor
+    /// Naming a restaurant with a controller (user's call, 2026-11-10): the old name on the top row,
+    /// a few suggestions on the next, then a letter grid, then space, delete and done. The stick moves a cursor
     /// over the keys and A presses one. Choosing the old name or a suggestion is the answer at once;
     /// typed names finish with Done. Letters are capitalised at the start of each word, so the grid
     /// shows only capitals and names come out as "Casa Lucia".
@@ -51,14 +51,18 @@ namespace Game.Simulation.Campaign
         {
             _oldName = RestaurantNaming.Clean(oldName);
             _maxLength = Math.Max(1, maxLength);
-            _rows.Add(new List<NameKey>());
+            _rows.Add(new List<NameKey>()); // the old name
+            _rows.Add(new List<NameKey>()); // suggestions
             foreach (var letters in LetterRows)
                 _rows.Add(letters.Select(c => new NameKey(NameKeyKind.Letter, c.ToString())).ToList());
             _rows.Add(new List<NameKey> { new NameKey(NameKeyKind.Space), new NameKey(NameKeyKind.Delete), new NameKey(NameKeyKind.Done) });
             SetSuggestions(suggestions);
         }
 
-        /// <summary>The keys, top row first: names, then letters, then space, delete and done.</summary>
+        /// <summary>
+        /// The keys, top row first: the old name, suggestions, the letters, then space, delete and
+        /// done. A row with nothing in it (no old name, no suggestions) is empty and skipped.
+        /// </summary>
         public IReadOnlyList<IReadOnlyList<NameKey>> Rows => _rows;
 
         public int Row { get; private set; }
@@ -74,17 +78,15 @@ namespace Game.Simulation.Campaign
         /// <summary>True if Done would give a name: something other than spaces has been typed.</summary>
         public bool CanFinish => RestaurantNaming.Clean(_text).Length > 0;
 
-        /// <summary>Replaces the suggestions (Y rolls new ones); the cursor stays on the names row if it was there.</summary>
+        /// <summary>Replaces the suggestions (Y rolls new ones); the cursor stays where it was.</summary>
         public void SetSuggestions(IEnumerable<string> suggestions)
         {
-            var top = _rows[0];
-            top.Clear();
+            _rows[0].Clear();
             if (_oldName.Length > 0)
-                top.Add(new NameKey(NameKeyKind.Keep, _oldName));
+                _rows[0].Add(new NameKey(NameKeyKind.Keep, _oldName));
+            _rows[1].Clear();
             foreach (var name in (suggestions ?? Enumerable.Empty<string>()).Select(RestaurantNaming.Clean).Where(n => n.Length > 0))
-                top.Add(new NameKey(NameKeyKind.Suggestion, Fit(name)));
-            if (top.Count == 0)
-                Row = Math.Max(Row, 1); // nothing to pick: start on the letters
+                _rows[1].Add(new NameKey(NameKeyKind.Suggestion, Fit(name)));
             Clamp();
         }
 
@@ -173,8 +175,8 @@ namespace Game.Simulation.Campaign
         private void Clamp()
         {
             Row = Math.Max(0, Math.Min(_rows.Count - 1, Row));
-            if (_rows[Row].Count == 0)
-                Row = 1;
+            while (_rows[Row].Count == 0)
+                Row++; // nothing to pick here: the next row down (the letters are never empty)
             Column = Math.Max(0, Math.Min(_rows[Row].Count - 1, Column));
         }
     }

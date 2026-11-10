@@ -51,14 +51,21 @@ namespace Game.Gameplay
             var campaign = CampaignLaunch.WantsSave ? SaveFile.Read() : null;
             _loaded = campaign;
             var save = campaign?.Current;
-            var placed = save != null ? CampaignSnapshot.ApplyLayout(save, FindStations(), _furniture) : null;
+            // A restaurant just bought on the miniature has no room saved yet: it opens as built, on
+            // day 1, with the campaign's money and any old reviews it kept (Phase 6, milestone 2).
+            var fresh = Game.Simulation.Campaign.RestaurantPurchase.NeverOpened(save);
+            var placed = save == null ? null
+                : fresh ? new Interactable[0]
+                : CampaignSnapshot.ApplyLayout(save, FindStations(), _furniture);
             var stations = new StationRegistry(FindStations());
 
             var cooking = new CookingSimulation(_tuning.AmbientTemperature, _realism.SpoilageMultiplier);
             var fee = _serviceConfig.ToFeeSettings();
             if (_restaurant != null)
                 fee = _restaurant.ToSettings().ScaleFee(fee);
-            var days = save != null
+            var days = save != null && fresh
+                ? new DayCycle(campaign.Balance, fee)
+                : save != null
                 ? DayCycle.Continuing(save.Day, campaign.Balance, fee, save.DaysTowardsFee, Ledger.FromArray(save.Period), save.History)
                 : new DayCycle(_staffConfig.StartingMoney, fee);
             days.PhaseChanged += HandlePhaseChanged;

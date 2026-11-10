@@ -139,18 +139,21 @@ namespace Game.Tests.EditMode
         public void ThePickerOffersTheOldNameFirstAndPicksItAtOnce()
         {
             var picker = new NamePicker("Casa Lucía", new[] { "Crumb", "Open Flame", "Lucky Spoon" }, 18);
-            Assert.That(picker.Rows[0].Select(k => k.Kind), Is.EqualTo(new[] { NameKeyKind.Keep, NameKeyKind.Suggestion, NameKeyKind.Suggestion, NameKeyKind.Suggestion }));
+            Assert.That(picker.Rows[0].Select(k => k.Kind), Is.EqualTo(new[] { NameKeyKind.Keep }));
+            Assert.That(picker.Rows[1].Select(k => k.Text), Is.EqualTo(new[] { "Crumb", "Open Flame", "Lucky Spoon" }));
             Assert.That((picker.Row, picker.Column), Is.EqualTo((0, 0)), "keeping the name is one press away");
             Assert.That(picker.Press(), Is.EqualTo("Casa Lucía"));
-            picker.Move(1, 0);
-            Assert.That(picker.Press(), Is.EqualTo("Crumb"), "a suggestion is chosen at once too");
+            picker.Move(0, 1);
+            Assert.That(picker.Selected.Kind, Is.EqualTo(NameKeyKind.Suggestion));
+            Assert.That(picker.Press(), Is.EqualTo(picker.Selected.Text), "a suggestion is chosen at once too");
         }
 
         [Test]
         public void TypingCapitalisesEachWordAndFinishesWithDone()
         {
             var picker = new NamePicker("", Array.Empty<string>(), 18);
-            Assert.That(picker.Row, Is.EqualTo(1), "with nothing to pick, the cursor starts on the letters");
+            Assert.That(picker.Selected.Kind, Is.EqualTo(NameKeyKind.Letter), "with nothing to pick, the cursor starts on the letters");
+            Assert.That(picker.Move(0, -1), Is.False, "and the empty rows above are skipped");
             foreach (var c in "SALT")
                 picker.Type(c.ToString());
             Go(picker, NameKeyKind.Space);
@@ -182,9 +185,10 @@ namespace Game.Tests.EditMode
         public void TheCursorWrapsAlongRowsAndStopsAtTheTopAndBottom()
         {
             var picker = new NamePicker("Old", new[] { "A", "B" }, 18);
+            Assert.That(picker.Move(0, -1), Is.False, "nothing above the old name");
+            picker.Move(0, 1);
             picker.Move(-1, 0);
-            Assert.That(picker.Column, Is.EqualTo(2), "left from the first wraps to the last");
-            Assert.That(picker.Move(0, -1), Is.False, "nothing above the names");
+            Assert.That((picker.Row, picker.Column), Is.EqualTo((1, 1)), "left from the first suggestion wraps to the last");
             for (var i = 0; i < 10; i++)
                 picker.Move(0, 1);
             Assert.That(new[] { NameKeyKind.Space, NameKeyKind.Delete, NameKeyKind.Done }, Does.Contain(picker.Selected.Kind));
