@@ -45,6 +45,15 @@ namespace Game.Simulation.Service
         public float MainPrice { get; set; }
         public float SidePrice { get; set; }
 
+        /// <summary>The cookbook recipe it was ordered from, or null for a menu without recipes.</summary>
+        public string RecipeId { get; set; }
+
+        /// <summary>
+        /// Stars added to (or taken off) what the dish alone would earn, from what it cost them: a
+        /// dear dish has to be better to please (decision 2026-11-10). 0 at the suggested price.
+        /// </summary>
+        public float Expectation { get; set; }
+
         public bool Wants(string typeId) => typeId == MainTypeId || (SideTypeId != null && typeId == SideTypeId);
 
         public override string ToString() => SideTypeId == null
@@ -65,9 +74,13 @@ namespace Game.Simulation.Service
         public float Weight { get; }
     }
 
-    /// <summary>What customers can order and how likely each order is.</summary>
-    public sealed class OrderMenu
+    /// <summary>
+    /// One dish on the menu: a main cooked to a doneness, maybe with a side, at a price. A cookbook
+    /// recipe becomes one of these once it's unlocked (decision 2026-11-10).
+    /// </summary>
+    public sealed class MenuDish
     {
+        public string RecipeId { get; set; }
         public string MainTypeId { get; set; }
         public string MainName { get; set; }
         public float MainPrice { get; set; }
@@ -78,10 +91,16 @@ namespace Game.Simulation.Service
         public string SideName { get; set; }
         public float SidePrice { get; set; }
 
-        /// <summary>0..1 chance an order includes the side.</summary>
+        /// <summary>0..1 chance an order includes the side (1 for a recipe that comes with it).</summary>
         public float SideChance { get; set; }
 
-        /// <summary>A weighted pick of the doneness, then a roll for the side. Null if the menu is empty.</summary>
+        /// <summary>How often it's ordered, relative to the menu's other dishes.</summary>
+        public float Weight { get; set; } = 1f;
+
+        /// <summary>Stars its price adds to or takes off every rating (see <see cref="Order.Expectation"/>).</summary>
+        public float Expectation { get; set; }
+
+        /// <summary>A weighted pick of the doneness, then a roll for the side. Null without a main.</summary>
         public Order Pick(Random random)
         {
             var total = 0f;
@@ -109,8 +128,77 @@ namespace Game.Simulation.Service
                 SideName = SideName,
                 MainPrice = MainPrice,
                 SidePrice = SidePrice,
+                RecipeId = RecipeId,
+                Expectation = Expectation,
             };
         }
+    }
+
+    /// <summary>
+    /// What customers can order and how likely each order is. Either a list of dishes (the
+    /// cookbook's menu), or the single dish described by its own properties (tests, and a service
+    /// without a cookbook).
+    /// </summary>
+    public sealed class OrderMenu
+    {
+        public string MainTypeId { get; set; }
+        public string MainName { get; set; }
+        public float MainPrice { get; set; }
+        public IReadOnlyList<OrderChoice> Choices { get; set; } = Array.Empty<OrderChoice>();
+
+        /// <summary>Optional side, or null for none.</summary>
+        public string SideTypeId { get; set; }
+        public string SideName { get; set; }
+        public float SidePrice { get; set; }
+
+        /// <summary>0..1 chance an order includes the side.</summary>
+        public float SideChance { get; set; }
+
+        /// <summary>The dishes on the menu. When empty, the single dish above is the menu.</summary>
+        public IReadOnlyList<MenuDish> Dishes { get; set; } = Array.Empty<MenuDish>();
+
+        /// <summary>
+        /// How many customers the menu's prices draw, against the suggested prices: 0.5 is half as
+        /// many arrivals, 1.5 half as many again (decision 2026-11-10). 1 without a cookbook.
+        /// </summary>
+        public float Demand { get; set; } = 1f;
+
+        /// <summary>A weighted pick of a dish, then its doneness and side. Null if the menu is empty.</summary>
+        public Order Pick(Random random)
+        {
+            if (Dishes == null || Dishes.Count == 0)
+                return Single().Pick(random);
+
+            var total = 0f;
+            foreach (var dish in Dishes)
+                total += Math.Max(0f, dish.Weight);
+            if (total <= 0f)
+                return null;
+            var roll = (float)random.NextDouble() * total;
+            var picked = Dishes[Dishes.Count - 1];
+            foreach (var dish in Dishes)
+            {
+                roll -= Math.Max(0f, dish.Weight);
+                if (roll < 0f)
+                {
+                    picked = dish;
+                    break;
+                }
+            }
+            return picked.Pick(random);
+        }
+
+        private MenuDish Single() => new MenuDish
+        {
+            MainTypeId = MainTypeId,
+            MainName = MainName,
+            MainPrice = MainPrice,
+            Choices = Choices,
+            SideTypeId = SideTypeId,
+            SideName = SideName,
+            SidePrice = SidePrice,
+            SideChance = SideChance,
+        };
     }
 
     public enum OrderMatch

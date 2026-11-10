@@ -136,7 +136,8 @@ namespace Game.Simulation.Service
         /// weakest part of the dish, then a long wait. With nothing to complain about, the stars
         /// decide between praise and "decent".
         /// </summary>
-        public static ReviewTopic ChooseTopic(DishScore score, float patienceWhenServed, ReviewSettings settings)
+        /// <param name="stars">What the guest rates it, if their expectations moved it off the dish's own stars.</param>
+        public static ReviewTopic ChooseTopic(DishScore score, float patienceWhenServed, ReviewSettings settings, float? stars = null)
         {
             if (score.Match == OrderMatch.MissingMain)
                 return ReviewTopic.NoMain;
@@ -154,7 +155,7 @@ namespace Game.Simulation.Service
                 return weakest.Value;
             if (patienceWhenServed < settings.LowPatience)
                 return ReviewTopic.SlowService;
-            return score.Stars >= settings.PraiseStars ? ReviewTopic.Praise : ReviewTopic.Decent;
+            return (stars ?? score.Stars) >= settings.PraiseStars ? ReviewTopic.Praise : ReviewTopic.Decent;
         }
 
         /// <summary>
@@ -163,8 +164,8 @@ namespace Game.Simulation.Service
         /// </summary>
         public static Review Write(Customer customer, ReviewSettings settings, Random random)
         {
-            var stars = customer.Satisfaction == null ? settings.WalkOutStars : customer.Satisfaction.Stars;
-            var topic = customer.Satisfaction == null ? ReviewTopic.WalkedOut : ChooseTopic(customer.Satisfaction, customer.PatienceWhenServed ?? 1f, settings);
+            var stars = customer.RatedStars ?? settings.WalkOutStars;
+            var topic = customer.Satisfaction == null ? ReviewTopic.WalkedOut : ChooseTopic(customer.Satisfaction, customer.PatienceWhenServed ?? 1f, settings, stars);
             var voiced = settings.Style != null || settings.Generic != null;
             // Sometimes it's someone who's been before, and who they are carries over.
             var returning = voiced ? settings.Guests?.Draw(random) : null;

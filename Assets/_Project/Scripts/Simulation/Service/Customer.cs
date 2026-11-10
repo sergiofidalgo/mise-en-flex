@@ -58,6 +58,24 @@ namespace Game.Simulation.Service
         /// </summary>
         public DishScore Satisfaction { get; internal set; }
 
+        /// <summary>
+        /// The stars they give their dish: its own stars, moved by what they expected for the price
+        /// (<see cref="Service.Order.Expectation"/>), in half stars from 0 to 5. Null until served.
+        /// </summary>
+        public float? RatedStars
+        {
+            get
+            {
+                if (Satisfaction == null)
+                    return null;
+                var shift = Order?.Expectation ?? 0f;
+                if (shift == 0f)
+                    return Satisfaction.Stars;
+                var stars = (float)System.Math.Round((Satisfaction.Overall * 5f + shift) * 2f, System.MidpointRounding.AwayFromZero) / 2f;
+                return System.Math.Clamp(stars, 0f, 5f);
+            }
+        }
+
         /// <summary>What they paid when they finished eating, or null if they haven't (or never will).</summary>
         public Bill? Bill { get; internal set; }
 

@@ -62,6 +62,15 @@ namespace Game.Simulation.Saving
 
         /// <summary>Every order ever taken, per dish: not every guest reviews, so reviews can't count them.</summary>
         public List<DishCount> Dishes = new List<DishCount>();
+
+        /// <summary>
+        /// Cookbook recipes this campaign has unlocked, its menu (decision 2026-11-10). Empty in a
+        /// file from before the cookbook: the starter recipes are unlocked anyway.
+        /// </summary>
+        public List<string> Recipes = new List<string>();
+
+        /// <summary>Prices players have set; any dish not listed sells at its suggested price.</summary>
+        public List<Cookbook.PriceRecord> Prices = new List<Cookbook.PriceRecord>();
     }
 
     [Serializable]
