@@ -169,6 +169,7 @@ namespace Game.Editor
             // The steel sheet tray (decision 2026-11-08); food sits on its floor.
             var modelled = PanArt.DressTray(body);
             var view = AddSlots(root, TraySlots, modelled ? PanArt.PanFloor : TrayScale.y);
+            SetGrip(view, ItemView.CarryGrip.Under); // carried flat on the palms, like a waiter's tray
             // A tray already spans most of a counter, so there it keeps about its own size rather
             // than the counter's 1.4x, centred and square.
             var rest = new SerializedObject(root.AddComponent<CounterRestView>());
@@ -210,6 +211,7 @@ namespace Game.Editor
             // Food on a plate shows smaller than on its own, leaving the plate room to breathe and
             // for a side, a garnish or a sauce (the user's note, 2026-11-08).
             var itemView = AddSlots(root, PlateSlots, PlateThickness, ItemSizes.OnPlate);
+            SetGrip(itemView, ItemView.CarryGrip.Under); // resting on the palms, the food on top in view
             var view = new SerializedObject(root.AddComponent<PlateView>());
             view.FindProperty("_itemView").objectReferenceValue = itemView;
             view.FindProperty("_body").objectReferenceValue = body.GetComponent<Renderer>();
@@ -264,7 +266,15 @@ namespace Game.Editor
             return view;
         }
 
-        private static GameObject Save(GameObject root, string typeId)
+        // How a chef holds it (ChefArmsView); items are held by their sides unless set here.
+        private static void SetGrip(ItemView view, ItemView.CarryGrip grip)
+        {
+            var so = new SerializedObject(view);
+            so.FindProperty("_grip").enumValueIndex = (int)grip;
+            so.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+                private static GameObject Save(GameObject root, string typeId)
         {
             GreyboxAssets.EnsureFolder(PrefabFolder);
             var prefab = PrefabUtility.SaveAsPrefabAsset(root, $"{PrefabFolder}/PF_Item_{typeId}.prefab");

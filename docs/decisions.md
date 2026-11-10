@@ -4,6 +4,22 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-10 — Chefs hold what they carry from outside it, and it meets their hands
+
+**Decision:** Each item has a grip (`ItemView.CarryGrip`):
+- **Under** for trays and plates: the palms are just below the base, and the item rests on them.
+- **Sides** for everything else: the hands are just outside its left and right, halfway up.
+- Pans keep their handle grip.
+
+`ChefArmsView.Grip` works the hands out from the item's measured shape and the chef's reach.
+- The arms are rigid and only turn, so a hand always ends one arm's length from its shoulder. The item is therefore moved to meet the hands, not the other way round.
+- Its base stays at the carry point's height, so it shows as before.
+- It's held nearer its back when holding it by the middle would push it into the chef's front.
+
+**Reason:** The user saw hands going through a tray. Before, the hands aimed at fixed points 17 cm either side of the carry point, at the item's base, whatever its size. A tray's thin slab took the hands through it, and its back edge reached into the chef. `CarryGripTests` checks every carried item against a real player. `Tools/Game/Art/Capture Carrying` renders chefs holding each kind of item.
+
+---
+
 ## 2026-11-10 — Merging milestones 2 and 4: one office campaign, and the starting loan is paid back
 
 **Found when merging** (Main build): the two branches were built side by side and met in two places.

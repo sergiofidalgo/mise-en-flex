@@ -11,8 +11,19 @@ namespace Game.Gameplay.Items
     /// </summary>
     public sealed class ItemView : MonoBehaviour
     {
+        /// <summary>How a chef holds the item (ChefArmsView). Pans are held by the handle instead.</summary>
+        public enum CarryGrip
+        {
+            /// <summary>Hands on its left and right sides, halfway up: food, pots, containers.</summary>
+            Sides,
+            /// <summary>Palms under its base, the item resting on them: trays and plates.</summary>
+            Under,
+        }
+
         [Tooltip("For containers: where each content item sits, in content order.")]
         [SerializeField] private Transform[] _slotAnchors = System.Array.Empty<Transform>();
+        [Tooltip("How a chef holds it: by its sides, or resting on the palms (trays, plates).")]
+        [SerializeField] private CarryGrip _grip = CarryGrip.Sides;
 
         private Vector3 _startLocalPosition;
         private Vector3 _startLocalScale;
@@ -24,8 +35,47 @@ namespace Game.Gameplay.Items
         private Vector3 _poseOffset;
         private Quaternion _poseRotation = Quaternion.identity;
         private float _poseScale = 1f;
+        private Bounds? _shape;
 
         public Item Item { get; private set; }
+
+        public CarryGrip Grip => _grip;
+
+        /// <summary>
+        /// The item's own shape in its local space (its visible meshes, not what's on it or in it),
+        /// for the hands to grip its outside rather than pass through it. Measured once.
+        /// </summary>
+        public Bounds Shape => _shape ??= MeasureShape();
+
+        private Bounds MeasureShape()
+        {
+            var found = false;
+            var shape = new Bounds();
+            foreach (var filter in GetComponentsInChildren<MeshFilter>(true))
+            {
+                var renderer = filter.GetComponent<Renderer>();
+                if (filter.sharedMesh == null || renderer == null || !renderer.enabled
+                    || filter.GetComponentInParent<ItemView>() != this)
+                    continue;
+                var mesh = filter.sharedMesh.bounds;
+                for (var corner = 0; corner < 8; corner++)
+                {
+                    var local = new Vector3(
+                        (corner & 1) == 0 ? mesh.min.x : mesh.max.x,
+                        (corner & 2) == 0 ? mesh.min.y : mesh.max.y,
+                        (corner & 4) == 0 ? mesh.min.z : mesh.max.z);
+                    var point = transform.InverseTransformPoint(filter.transform.TransformPoint(local));
+                    if (found)
+                        shape.Encapsulate(point);
+                    else
+                    {
+                        shape = new Bounds(point, Vector3.zero);
+                        found = true;
+                    }
+                }
+            }
+            return shape;
+        }
 
         /// <summary>The anchor this view was last sent to.</summary>
         public Transform Anchor { get; private set; }

@@ -77,8 +77,14 @@ namespace Game.Presentation
         [SerializeField, Min(0f)] private float _scrubSize = 0.07f;
 
         [Header("Walking and other carried things")]
-        [Tooltip("How far each hand grips to the side of the carry point (m).")]
+        [Tooltip("How far each hand grips to the side of the carry point (m), for a pan's toss.")]
         [SerializeField, Min(0f)] private float _gripWidth = 0.17f;
+        [Tooltip("From the shoulder joint to the middle of the hand, in the shoulder's units: the arm is rigid, so the hand always ends up this far out.")]
+        [SerializeField, Min(0.01f)] private float _handReach = 0.48f;
+        [Tooltip("The hand's radius, in the shoulder's units: hands sit this far outside what they hold.")]
+        [SerializeField, Min(0f)] private float _handRadius = 0.08f;
+        [Tooltip("How far in front of the shoulders' line the chef's front is, in the shoulder's units: what's carried stays clear of it.")]
+        [SerializeField, Min(0f)] private float _bodyClearance = 0.3f;
         [Tooltip("Degrees each arm swings either way while walking at full speed.")]
         [SerializeField, Range(0f, 80f)] private float _swingAngle = 20f;
         [Tooltip("Swings a second, in radians of the swing's cycle, at full speed.")]
@@ -196,6 +202,8 @@ namespace Game.Presentation
             var isPan = _interactor.Hands.Current is Game.Simulation.Cooking.Pan;
             if (carried != null && isPan)
                 carried.SetHeldPose(_panOffset, Quaternion.Euler(0f, _panTurn, 0f));
+            else if (carried != null)
+                carried.SetHeldPose(Grip(carried).Offset, Quaternion.identity);
 
             // The knife stays in the belt except facing the board with empty hands.
             var atBoard = _interactor.Target is PrepStation && _interactor.Hands.Current == null;
@@ -225,6 +233,11 @@ namespace Game.Presentation
             {
                 carried.transform.localPosition = _panOffset;
                 carried.transform.localRotation = Quaternion.Euler(0f, _panTurn, 0f);
+            }
+            else if (carried != null)
+            {
+                carried.transform.localPosition = Grip(carried).Offset;
+                carried.transform.localRotation = Quaternion.identity;
             }
             var knife = _toolAnchor.GetComponentInChildren<ItemView>();
             ShowSheath(knife != null);
@@ -273,8 +286,9 @@ namespace Game.Presentation
             }
             else if (carried != null)
             {
-                leftAim = _carryAnchor.position - right * _gripWidth;
-                rightAim = _carryAnchor.position + right * _gripWidth;
+                var grip = Grip(carried);
+                leftAim = grip.Left;
+                rightAim = grip.Right;
             }
             else if (knifeAtBoard != null)
             {
@@ -314,6 +328,86 @@ namespace Game.Presentation
 
             Aim(_leftShoulder, leftAim, up, blend);
             Aim(_rightShoulder, rightAim, up, blend);
+        }
+
+        /// <summary>
+        /// Where the hands hold <paramref name="carried"/>, and where it sits for them (the user's
+        /// note, 2026-11-10: hands went through a tray). The arms are rigid and only turn, so a hand
+        /// always ends a reach from its shoulder: the grip is worked out from that, and the item
+        /// moves to meet the hands rather than the hands to meet the item. By its sides, the hands
+        /// sit just outside its left and right, halfway up; under it (trays, plates), the palms are
+        /// just below its base. Its base stays at the carry point's height, so it shows as before,
+        /// and it's held nearer its back if holding it by the middle would put its back into the chef.
+        /// Returns the item's offset from the carry point (in the carry point's space) and the two
+        /// hands' world positions.
+        /// </summary>
+        public (Vector3 Offset, Vector3 Left, Vector3 Right) Grip(ItemView carried)
+        {
+            // Metres, in the chef's frame about the carry point: x right, y up, z forward.
+            var right = transform.right;
+            var up = transform.up;
+            var forward = transform.forward;
+            var origin = _carryAnchor.position;
+            Vector3 Local(Vector3 world)
+            {
+                var d = world - origin;
+                return new Vector3(Vector3.Dot(d, right), Vector3.Dot(d, up), Vector3.Dot(d, forward));
+            }
+            Vector3 World(Vector3 local) => origin + right * local.x + up * local.y + forward * local.z;
+
+            var scale = carried.transform.lossyScale;
+            var shape = carried.Shape;
+            var min = Vector3.Scale(shape.min, scale);
+            var max = Vector3.Scale(shape.max, scale);
+            var centre = (min + max) * 0.5f;
+            var chef = _leftShoulder.lossyScale.y;
+            var reach = _handReach * chef;
+            var palm = _handRadius * chef;
+            var leftShoulder = Local(_leftShoulder.position);
+            var rightShoulder = Local(_rightShoulder.position);
+            var shoulderX = Mathf.Abs(rightShoulder.x - leftShoulder.x) * 0.5f;
+            var midX = (rightShoulder.x + leftShoulder.x) * 0.5f;
+            var shoulderY = (rightShoulder.y + leftShoulder.y) * 0.5f;
+            var shoulderZ = (rightShoulder.z + leftShoulder.z) * 0.5f;
+
+            float handX;
+            float gripY; // the grip's height above the item's origin
+            if (carried.Grip == ItemView.CarryGrip.Under)
+            {
+                var half = (max.x - min.x) * 0.5f;
+                handX = Mathf.Clamp(shoulderX * 0.8f, palm * 0.5f, Mathf.Max(half - palm, palm * 0.5f));
+                gripY = min.y - palm;
+            }
+            else
+            {
+                handX = (max.x - min.x) * 0.5f + palm;
+                gripY = centre.y;
+            }
+
+            // The hand is a reach from the shoulder: dx² + dy² + dz² = reach². It stays at least a
+            // third of a reach in front; if the height asks for more, the hands come up or down
+            // towards the shoulders instead, and the item with them.
+            var handY = gripY;
+            var dx = handX - shoulderX;
+            var dy = handY - shoulderY;
+            var ahead = reach / 3f;
+            var across = Mathf.Max(reach * reach - dx * dx, ahead * ahead);
+            if (dy * dy > across - ahead * ahead)
+            {
+                dy = Mathf.Sign(dy) * Mathf.Sqrt(across - ahead * ahead);
+                handY = shoulderY + dy;
+            }
+            var handZ = shoulderZ + Mathf.Sqrt(Mathf.Max(across - dy * dy, 0f));
+
+            // Held at its middle, unless that puts its back into the chef's front; never off its back.
+            var front = shoulderZ + _bodyClearance * chef;
+            var gripZ = Mathf.Min(centre.z, handZ + min.z - front);
+            gripZ = Mathf.Max(gripZ, Mathf.Min(min.z + palm, centre.z));
+
+            var offset = new Vector3(midX - centre.x, handY - gripY, handZ - gripZ);
+            return (_carryAnchor.InverseTransformPoint(World(offset)),
+                World(new Vector3(midX - handX, handY, handZ)),
+                World(new Vector3(midX + handX, handY, handZ)));
         }
 
         // A point straight below the shoulder, swung forward or back about the chef's right.
