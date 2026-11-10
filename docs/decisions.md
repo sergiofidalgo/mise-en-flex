@@ -3326,3 +3326,21 @@ It hides (fading over the HUD's 0.12 s) behind the Review dashboard, the pause m
 **User's call:** the header's top right shows the balance as a chip (coin and amount) at the very right, animated as the money card is everywhere else, so an unlocked recipe or a hire shows its cost there. The phase and opening time ("Plan · opens 18:00") go from the header: the day card carries them on screen through Prep and Service.
 
 **Done:** `ReviewDashboard` runs its own `MoneyTicker` (the money card's rules: money in rolls up in green, money out drops at once with a short red shake, owed money in red) for a chip right-aligned at the header's edge. It's sized for where a roll ends, and the Day pill and new-review pill sit to its left. A change made while forkcast is closed plays when it opens again, as the money card does.
+
+## 2026-11-11 — forkcast is the end-of-day summary; one "Start day N" goes straight to Prep
+
+**User's calls** (from playing the 2026-11-10 build):
+- **One screen between days.** forkcast is the summary at the end of the day: it opens as Review starts (when the game saves), and arriving from the office opens it too. It has one action: holding A on **"Start day N"**, which goes straight into that day's Prep. There's no Close, no Rearrange and no reopening; the dashboard isn't seen again until the next day's summary. N is tomorrow after a service, and the day about to be played on arrival; a brand-new restaurant shows the same screen with "Start day 1" ("No reviews yet").
+- **Hiring stays on the Staff tab here,** in Review as well as on arrival. In Review a hire or a goodbye saves at once, as replies and the cookbook do.
+- **The boss card follows the user's simpler frame:** "THE BOSS"; "Debt collection in 3 days: $450" (or tonight / tomorrow); an orange bar as far as the balance covers it; "You have $X" on the left, "Short by $Y" in orange on the right. The loan line and "Miss it and…" go. Short with two days or fewer left, it still pulses and the boss appears, frowning; the line shrinks to fit beside him.
+- **The left column is a listing card after a Google Places card,** kept calm (the user found the first version too busy): the name, stars and count, price band and category; then four tiles, each with a big value over a small label: **known for** (the most ordered dish; the menu's first before any orders), **per person** (the menu's price range, rounded to fives), **guests fed** (all served so far), **closed · opens** (the next opening). Under them, one quote: the best line from the latest reviews, or the owner's one-liner before there are any. "Last night's money" goes.
+- **During Prep, players see how many guests to expect:** the Prep strip says "Prep · about 14 guests tonight". `GuestForecast` works it out from the service's own arrival rule (interval, rush, the menu's demand, until last orders) and the group size the tables bring, so it follows the tables as they're moved.
+
+**Behind it:**
+- `ForkcastScreen` has no close or reopen; `StepsToPrep` takes Review through the next morning without stopping (`DayLoop` advances twice).
+- **Rearranging is Prep-only.** The boss's morning visit and his phone call now start as Prep starts, in plain view, and the doors can't open until he leaves.
+- Tomorrow's candidates are drawn as Review starts, so the Staff tab shows the people the next day would.
+
+**Plan is no longer a phase players stay in:** it's passed through between Review and Prep, and is only seen as the arrival screen from the office. `docs/game-design.md` §4 (the daily loop) is now out of date: its table gives Plan the menu and prices, suppliers, hiring and layout editing. Those now happen in forkcast between days (prices, hiring) and in Prep (layout, the street vendors). §4's line 226 ("Layout editing happens in Plan") and the drop-in line 39 ("during Plan/Prep") are out of date too. I haven't edited the design doc.
+
+**Not checked in play:** whether "about N guests" matches what turns up often enough to trust, and the tiles with long dish names.
