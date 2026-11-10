@@ -693,6 +693,7 @@ namespace Game.Tests.PlayMode
         public IEnumerator AManagingPlayersCursorLeadsTheCameraNotTheirChef()
         {
             yield return OpenForBuying();
+            _root.Services.Days.Advance(); // Rearranging is for Prep since 2026-11-10 (Plan is forkcast's).
             yield return new WaitForSeconds(8f);
             var camera = Camera.main;
             var inTheKitchen = camera.transform.position.y;

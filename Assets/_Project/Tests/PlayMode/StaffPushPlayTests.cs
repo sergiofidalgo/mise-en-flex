@@ -125,6 +125,8 @@ namespace Game.Tests.PlayMode
         public IEnumerator AStationCanBeTurnedAndGoBackExactlyWhereItWas()
         {
             yield return OpenKitchenWithChef();
+            _root.Services.Days.Advance(); // Rearranging is for Prep since 2026-11-10 (Plan is forkcast's).
+            yield return null;
             var editor = Object.FindFirstObjectByType<LayoutEditor>();
             var hob = Object.FindObjectsByType<Game.Gameplay.Stations.HobStation>(FindObjectsSortMode.None).First();
             var start = hob.transform.position;

@@ -44,43 +44,34 @@ namespace Game.Tests.EditMode
             Assert.That(screen.IsOpen, Is.True);
         }
 
-        [Test]
-        public void In_plan_it_closes_and_reopens()
+        [TestCase(DayPhase.Review, 2)]
+        [TestCase(DayPhase.Plan, 1)]
+        [TestCase(DayPhase.Prep, 0)]
+        [TestCase(DayPhase.Service, 0)]
+        public void Start_prep_goes_from_review_through_the_morning_in_one_hold(DayPhase phase, int steps)
         {
-            var screen = new ForkcastScreen(DayPhase.Plan);
-            Assert.That(screen.Close(), Is.True);
+            Assert.That(ForkcastScreen.StepsToPrep(phase), Is.EqualTo(steps));
+        }
+
+        [Test]
+        public void One_hold_from_review_lands_in_prep_with_it_closed()
+        {
+            var days = new DayCycle(100f);
+            var screen = new ForkcastScreen(days.Phase);
+            days.PhaseChanged += screen.PhaseChanged;
+            days.Advance();
+            days.Advance();
+            days.FinishService(Game.Simulation.Service.ServiceSummary.From(new Game.Simulation.Service.ServiceSimulation(new Game.Simulation.Service.ServiceSettings(), seatCount: 1)));
+            Assert.That(screen.IsOpen, Is.True, "up for the Review");
+            var opened = 0;
+            screen.Changed += open => opened += open ? 1 : -1;
+            var steps = ForkcastScreen.StepsToPrep(days.Phase);
+            for (var i = 0; i < steps; i++)
+                days.Advance();
+            Assert.That(days.Phase, Is.EqualTo(DayPhase.Prep));
+            Assert.That(days.Day, Is.EqualTo(2));
             Assert.That(screen.IsOpen, Is.False);
-            Assert.That(screen.Close(), Is.False, "Already closed.");
-            Assert.That(screen.Reopen(), Is.True);
-            Assert.That(screen.IsOpen, Is.True);
-            Assert.That(screen.Reopen(), Is.False, "Already open.");
-        }
-
-        [Test]
-        public void Review_keeps_it_up()
-        {
-            var screen = new ForkcastScreen(DayPhase.Review);
-            Assert.That(screen.Close(), Is.False);
-            Assert.That(screen.IsOpen, Is.True);
-        }
-
-        [Test]
-        public void Prep_can_not_bring_it_back()
-        {
-            var screen = new ForkcastScreen(DayPhase.Prep);
-            Assert.That(screen.Reopen(), Is.False);
-            Assert.That(screen.IsOpen, Is.False);
-        }
-
-        [Test]
-        public void Closed_in_plan_it_opens_again_for_the_next_review()
-        {
-            var screen = new ForkcastScreen(DayPhase.Plan);
-            screen.Close();
-            screen.PhaseChanged(DayPhase.Prep);
-            screen.PhaseChanged(DayPhase.Service);
-            screen.PhaseChanged(DayPhase.Review);
-            Assert.That(screen.IsOpen, Is.True);
+            Assert.That(opened, Is.EqualTo(-1), "it closes once, with no flicker through the morning");
         }
 
         // ---- The Staff tab ----
@@ -166,7 +157,7 @@ namespace Game.Tests.EditMode
         }
 
         [Test]
-        public void In_review_the_tab_is_read_only()
+        public void A_read_only_tab_changes_nothing()
         {
             var roster = Roster(Helper());
             roster.Restore(new StaffMember(Washer("Lucía")));
