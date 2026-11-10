@@ -191,6 +191,7 @@ namespace Game.Gameplay
             cooking.AmbientTemperature = _tuning.AmbientTemperature;
             cooking.SpoilageMultiplier = _realism.SpoilageMultiplier;
             Services.Service.PatienceMultiplier = _realism.CustomerPatience;
+            Services.Mess.Hygiene = _realism.Hygiene;
             var gameSeconds = Time.deltaTime * _tuning.TimeScale;
 
             // The kitchen is live while players work in it; Plan and Review happen between shifts.
