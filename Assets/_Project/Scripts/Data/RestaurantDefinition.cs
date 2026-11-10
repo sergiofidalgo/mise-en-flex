@@ -7,7 +7,7 @@ namespace Game.Data
 {
     /// <summary>
     /// One restaurant on the city miniature (Phase 6, decision 2026-11-10): what the lot is before
-    /// anyone buys it. The builder makes one kitchen scene from each definition (a later milestone);
+    /// anyone buys it. The builder makes one kitchen scene from each definition that names one (milestone 3);
     /// the save keeps what players did with it, keyed by <see cref="Id"/>.
     /// </summary>
     [CreateAssetMenu(menuName = "Game/Restaurant Definition", fileName = "RES_Restaurant")]
@@ -65,9 +65,37 @@ namespace Game.Data
         [Tooltip("The stalls on its street, e.g. \"Butcher\".")]
         [SerializeField] private string[] _vendors = Array.Empty<string>();
 
+        [Header("Kitchen")]
+        [Tooltip("The scene the builder makes for it (Scenes/<name>.unity), or empty if it has no kitchen yet: it then opens the grill's.")]
+        [SerializeField] private string _kitchenScene = "";
+        [Tooltip("The building's width, west wall to east wall (m).")]
+        [SerializeField, Min(4f)] private float _roomWidth = RestaurantSettings.DefaultRoomWidth;
+        [Tooltip("The kitchen's depth, back wall to the dividing wall (m).")]
+        [SerializeField, Min(3f)] private float _kitchenDepth = RestaurantSettings.DefaultKitchenDepth;
+        [Tooltip("The dining room's depth, dividing wall to the street wall (m).")]
+        [SerializeField, Min(2f)] private float _diningDepth = RestaurantSettings.DefaultDiningDepth;
+
+        [Header("Guests")]
+        [Tooltip("Times the Service Config's arrival rate: 2 means guests come twice as often.")]
+        [SerializeField, Min(0.1f)] private float _guestRate = 1f;
+        [Tooltip("How many may wait at the door at once; 0 uses the Service Config's.")]
+        [SerializeField, Min(0)] private int _maxQueue;
+
         public string Id => _id;
         public string DisplayName => _displayName;
         public float Price => _price;
+        public string KitchenScene => _kitchenScene ?? "";
+
+        /// <summary>For the builder: the kitchen it gets and how busy it is (Phase 6, milestone 3).</summary>
+        public void SetKitchen(string scene, float roomWidth, float kitchenDepth, float diningDepth, float guestRate, int maxQueue)
+        {
+            _kitchenScene = scene ?? "";
+            _roomWidth = roomWidth;
+            _kitchenDepth = kitchenDepth;
+            _diningDepth = diningDepth;
+            _guestRate = guestRate;
+            _maxQueue = maxQueue;
+        }
 
         /// <summary>For the builder: fills a new definition in one go.</summary>
         public void Set(string id, string displayName, RestaurantSize size, int seats, float price, float feeScale,
@@ -101,6 +129,12 @@ namespace Game.Data
             OldReviews = (_oldReviews ?? Array.Empty<OldReviewEntry>()).Where(r => r != null).Select(r => r.ToSettings()).ToArray(),
             Street = _street ?? "",
             Vendors = (_vendors ?? Array.Empty<string>()).ToArray(),
+            KitchenScene = _kitchenScene ?? "",
+            RoomWidth = _roomWidth,
+            KitchenDepth = _kitchenDepth,
+            DiningDepth = _diningDepth,
+            GuestRate = _guestRate,
+            MaxQueue = _maxQueue,
         };
     }
 }
