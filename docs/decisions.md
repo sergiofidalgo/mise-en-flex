@@ -4,6 +4,44 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-10 — The city miniature and buying
+
+**User's calls (Phase 6, milestone 2):**
+- **A new campaign borrows 500 and the grill costs 400.** The loan is recorded twice, as money in the pocket (`Balance` 500) and as what's owed (`Loan` 500), so after buying the grill the first morning starts with 100, as before. Milestone 4 takes the loan back in instalments.
+- **The steep price ladder,** cheapest first:
+
+| Lot | Id | Size | Seats | Price | Fee scale | Previous style | Street |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| The Copper Pan | `grill` | Counter | 3 | 400 | 1 | Grill (fixed) | Old Town |
+| Forno Rosso | `forno-rosso` | Small | 8 | 2,500 | 1.6 | Pizzeria | Market Street |
+| Casa Lucía | `casa-lucia` | Dining room | 16 | 6,000 | 2.4 | Spanish home cooking | Riverside |
+| Le Petit Zinc | `petit-zinc` | Dining room | 24 | 12,000 | 3.5 | French bistro | Theatre Row |
+| Harbour Lights | `harbour-lights` | Large | 32 | 25,000 | 5 | Sushi | The Harbour |
+| The Grand Vesper | `grand-vesper` | Large | 48 | 50,000 | 8 | Steakhouse | Uptown |
+
+  Casa Lucía is the mid-size dining room that gets a kitchen in milestone 3; the others are data until 6b or Phase 7.
+- **One shared highlight** moved by any looking player's stick, and one card at the screen's right edge.
+- **Naming:** the old name and suggestions over a letter grid.
+
+**Our calls (to tune by playing):**
+- **The table:** A at the table starts looking (the chef stops and faces the table). Browsing: stick or D-pad, one lot per push, to the nearest lot that way. A on a lot for sale starts buying, and that player alone names and styles it; B steps back, and from browsing stops looking.
+- **The card** shows the name, street, size and seats, a chip with the price (or "Yours"), the previous style, two old reviews, what it comes with (catalogue names, "2 × Gas hob"), your money, and, if buying would go below zero, how much would be owed to the boss. Coloured dots show who is looking. It stays inside the space above the join slots, 48 px in from the right edge.
+- **The name picker:** the old name on the top row ("keep the old name and its reviews"), three suggestions on the next ("a new name starts with no reviews"), then A–Z with & and ', then Space, Delete and Done. Choosing the old name or a suggestion buys at once (or goes on to the style); typed names end with Done. X deletes, Y rolls new suggestions. Letters are capitalised at the start of each word. Names are up to 18 characters.
+- **Keeping the name:** a name that matches the old one, ignoring case and spacing, or an empty one, keeps it with its old spelling and its reviews (dated day 0). Any other name starts with none.
+- **Style:** keep the previous style, or Fast casual, Bistro or Fine dining. These are labels only until service styles (6b). The grill skips this step.
+- **Money:** buying is never refused for its price: money may go below zero, which is owed to the boss (decision 2026-11-08), and the card says so before A is pressed.
+- **Current restaurant:** the first one bought becomes current; later ones wait until chosen. A on an owned restaurant makes it current, saves and starts the day there, once every joined player is at the table looking at the city (the card counts them).
+- **Saving:** a new campaign is written only when something is bought, so leaving the office before buying leaves the slot empty. Every purchase and every choice saves at once (§15.4).
+- **A bought restaurant that has never been played** opens its kitchen as built, on day 1, with the campaign's money and any kept reviews, and gets the free first-morning stock.
+- **The grill now has two old reviews,** so keeping its name means something. Migrated saves already own it and are unaffected.
+- **On the miniature** each lot replaces one block of the model city, sized by the restaurant's size, with a red flag once owned, a gold board while for sale, and a pulsing ring under a floating gold diamond on the highlighted one. *Tools/Game/Capture Miniature* renders it.
+
+**Not done yet:** every restaurant still opens today's kitchen scene, with the grill's fee scale (milestone 3). Restaurant names, styles and old reviews are data and aren't translated.
+
+**Reason:** the user's calls, and one shared cursor keeps a four-player table readable: one card, one highlight, one buyer at a time.
+
+---
+
 ## 2026-11-10 — A campaign of restaurants: how the save is split
 
 **Decision (Phase 6, milestone 1; our calls within the agreed plan):** the campaign file (version 2) holds a list of restaurant records and which one is current. Each field went where it belongs:
