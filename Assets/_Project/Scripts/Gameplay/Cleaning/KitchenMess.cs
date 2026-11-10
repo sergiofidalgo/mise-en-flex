@@ -16,7 +16,7 @@ namespace Game.Gameplay.Cleaning
     public sealed class KitchenMess
     {
         // How far from a hob a counter can be and still count as beside it, metres between centres.
-        private const float BesideReach = 1.15f;
+        private const float BesideReach = 1.4f;
 
         // How far onto the counter the soot reaches from the side nearest the hob.
         private const float SootInset = 0.3f;

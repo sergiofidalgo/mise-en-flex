@@ -131,8 +131,8 @@ namespace Game.Data
         [SerializeField, Range(0f, 1f)] private float _dirtNoticedFrom = 0.05f;
 
         [Header("Cleaning game (trace the shape with the stick)")]
-        [Tooltip("Below this push the stick is resting (except where the path crosses the middle).")]
-        [SerializeField, Range(0f, 1f)] private float _traceDeadZone = 0.35f;
+        [Tooltip("Below this push the stick reads as centred, so drift doesn't count.")]
+        [SerializeField, Range(0f, 1f)] private float _traceDeadZone = 0.15f;
         [Tooltip("How far the stick can be from the path and still pull the marker. Wide = forgiving.")]
         [SerializeField, Range(0.05f, 1f)] private float _traceTolerance = 0.4f;
         [Tooltip("How far ahead along the path (in loops) the marker can be pulled at once.")]

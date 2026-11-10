@@ -157,8 +157,8 @@ namespace Game.Simulation.Cleaning
         }
 
         /// <summary>
-        /// Leaves dirt. Near a spot already on the same surface (and the same piece), it adds to that
-        /// one, up to <see cref="DirtSettings.MaxPerSpot"/>, so a busy table gets dirtier rather than
+        /// Leaves dirt. Near a spot of the same kind already on the same surface (and the same piece),
+        /// it adds to that one, up to <see cref="DirtSettings.MaxPerSpot"/>, so a busy table gets dirtier rather than
         /// collecting dozens of crumbs.
         /// </summary>
         public DirtSpot Add(DirtKind kind, DirtSurface surface, object host, float x, float z, float amount)
@@ -168,7 +168,7 @@ namespace Game.Simulation.Cleaning
             if (surface == DirtSurface.Floor)
                 host = null;
 
-            var near = Nearest(surface, host, x, z, Settings.MergeRadius);
+            var near = Nearest(surface, host, x, z, Settings.MergeRadius, kind);
             if (near != null)
             {
                 near.Amount = Math.Min(Settings.MaxPerSpot, near.Amount + amount);
@@ -285,13 +285,13 @@ namespace Game.Simulation.Cleaning
             return Math.Clamp(penalty, 0f, s.MaxPenalty);
         }
 
-        private DirtSpot Nearest(DirtSurface surface, object host, float x, float z, float radius)
+        private DirtSpot Nearest(DirtSurface surface, object host, float x, float z, float radius, DirtKind? kind = null)
         {
             DirtSpot best = null;
             var bestDistance = radius;
             foreach (var spot in _spots)
             {
-                if (spot.Surface != surface || !ReferenceEquals(spot.Host, host))
+                if (spot.Surface != surface || !ReferenceEquals(spot.Host, host) || (kind.HasValue && spot.Kind != kind.Value))
                     continue;
                 var distance = Distance(spot.X, spot.Z, x, z);
                 if (distance > bestDistance)

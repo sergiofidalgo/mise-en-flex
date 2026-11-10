@@ -40,6 +40,10 @@ namespace Game.Gameplay.Cleaning
         // Where the mop reaches from: a step in front of the chef's feet.
         private const float MopAhead = 0.45f;
 
+        // How far, and how nearly in front (cosine of the angle), a burning hob can be put out from.
+        private const float FireReach = 1.6f;
+        private const float FireFacing = 0.3f;
+
         private PlayerInteractor _chef;
         private KitchenServices _services;
         private InputAction _use;
@@ -95,8 +99,6 @@ namespace Game.Gameplay.Cleaning
         {
             _chef = chef;
             _services = services;
-            if (TryGetComponent(out PlayerInput input))
-                _use = input.actions[UseActionName];
         }
 
         private void OnEnable() => Active.Add(this);
@@ -139,6 +141,9 @@ namespace Game.Gameplay.Cleaning
             var tool = Find(target, out var spot, out var fire);
             if (tool == CleaningTool.None)
                 return false;
+            // Looked up now, not at Bind: by the first press, PlayerInput has this player's own copy.
+            if (TryGetComponent(out PlayerInput input))
+                _use = input.actions[UseActionName];
             Begin(tool, spot, fire);
             return true;
         }
@@ -231,6 +236,11 @@ namespace Game.Gameplay.Cleaning
                 fire = hob;
                 return CleaningTool.Extinguisher;
             }
+            // A fire is forgiving to aim at: any burning hob within reach in front of the chef will
+            // do, even with the counter beside it highlighted.
+            fire = BurningInReach();
+            if (fire != null)
+                return CleaningTool.Extinguisher;
 
             if (target != null)
             {
@@ -250,6 +260,25 @@ namespace Game.Gameplay.Cleaning
             var feet = transform.position + transform.forward * MopAhead;
             spot = _services.Dirt.NearestOnFloor(feet.x, feet.z, _services.Tuning.MopReach);
             return spot != null ? CleaningTool.Mop : CleaningTool.None;
+        }
+
+        private HobStation BurningInReach()
+        {
+            HobStation best = null;
+            var bestDistance = FireReach;
+            foreach (var station in _services.Stations.All)
+            {
+                if (!(station is HobStation hob) || !_services.Fires.IsBurning(hob.Hob))
+                    continue;
+                var toward = hob.transform.position - transform.position;
+                toward.y = 0f;
+                var distance = toward.magnitude;
+                if (distance > bestDistance || (distance > 0.01f && Vector3.Dot(toward / distance, transform.forward) < FireFacing))
+                    continue;
+                best = hob;
+                bestDistance = distance;
+            }
+            return best;
         }
 
         public static TraceShape ShapeOf(CleaningTool tool) => tool switch

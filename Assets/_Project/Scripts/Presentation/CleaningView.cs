@@ -56,11 +56,11 @@ namespace Game.Presentation
 
         [Header("Track")]
         [Tooltip("Metres from the middle to the track's edge, per tool: cloth, mop, extinguisher.")]
-        [SerializeField] private Vector3 _trackRadius = new Vector3(0.32f, 0.55f, 0.42f);
+        [SerializeField] private Vector3 _trackRadius = new Vector3(0.45f, 0.75f, 0.5f);
         [Tooltip("Metres above the dirt (or the pan) the track floats, per tool: cloth, mop, extinguisher.")]
         [SerializeField] private Vector3 _trackHeight = new Vector3(0.03f, 0.03f, 0.32f);
-        [SerializeField, Min(0.001f)] private float _beadSize = 0.045f;
-        [SerializeField, Min(0.001f)] private float _markerSize = 0.12f;
+        [SerializeField, Min(0.001f)] private float _beadSize = 0.06f;
+        [SerializeField, Min(0.001f)] private float _markerSize = 0.16f;
         [SerializeField] private Color _ahead = new Color(0.97f, 0.97f, 0.95f);
         [SerializeField] private Color _offTrack = new Color(0.95f, 0.30f, 0.26f);
         [Tooltip("How far ahead of the marker the chevrons point the way, in loops.")]
@@ -247,7 +247,14 @@ namespace Game.Presentation
             foreach (var chef in _idle)
             {
                 if (_kits.TryGetValue(chef, out var kit) && kit.Root != null)
+                {
+                    // The tool goes away with the track.
                     kit.Root.gameObject.SetActive(false);
+                    if (kit.Tool != null)
+                        kit.Tool.gameObject.SetActive(false);
+                    if (kit.Handle != null)
+                        kit.Handle.gameObject.SetActive(false);
+                }
                 if (chef == null)
                     _kits.Remove(chef);
             }
@@ -262,6 +269,10 @@ namespace Game.Presentation
                     _kits[chef] = kit;
                 }
                 kit.Root.gameObject.SetActive(true);
+                if (kit.Tool != null)
+                    kit.Tool.gameObject.SetActive(true);
+                if (kit.Handle != null)
+                    kit.Handle.gameObject.SetActive(true);
                 Draw(chef, kit);
             }
         }

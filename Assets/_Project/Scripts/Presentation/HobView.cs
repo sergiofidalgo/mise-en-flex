@@ -61,7 +61,7 @@ namespace Game.Presentation
         [Tooltip("Tall flames standing out of a pan on fire, copied from the tongues.")]
         [SerializeField, Min(0)] private int _fireTongues = 9;
         [Tooltip("Their height and width scales, and how far round the pan's middle they stand (metres).")]
-        [SerializeField] private Vector3 _fireSize = new Vector3(5.5f, 1.6f, 0.07f);
+        [SerializeField] private Vector3 _fireSize = new Vector3(6.5f, 2.8f, 0.09f);
         [SerializeField] private Color _fireColor = new Color(1f, 0.62f, 0.12f);
         [SerializeField] private Color _fireTip = new Color(0.95f, 0.22f, 0.04f);
         [Tooltip("A smouldering pan's tongues lean in and grow as it gets close to catching.")]

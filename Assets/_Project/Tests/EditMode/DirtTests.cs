@@ -114,6 +114,14 @@ namespace Game.Tests.EditMode
         }
 
         [Test]
+        public void DifferentKindsInOnePlaceStayApartSoEachLooksLikeItself()
+        {
+            _mess.PanBurnt(null, 1f, 1f);
+            _mess.FireOut(1.05f, 1f);
+            Assert.That(_dirt.Spots.Select(s => s.Kind), Is.EquivalentTo(new[] { DirtKind.Scorch, DirtKind.Foam }));
+        }
+
+        [Test]
         public void WipingTakesItAwayBitByBitThenItGoes()
         {
             var spill = _mess.PlateBroken(0f, 0f);

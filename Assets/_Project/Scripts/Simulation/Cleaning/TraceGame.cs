@@ -20,10 +20,11 @@ namespace Game.Simulation.Cleaning
     public sealed class TraceGameSettings
     {
         /// <summary>
-        /// Below this push the stick is resting, and the marker waits, except where the path itself
-        /// runs through the middle (the crossing of the mop's eight).
+        /// Below this push the stick reads as centred (a thumb resting, or a worn stick's drift). A
+        /// centred stick can only pull the marker where the path runs near the middle, such as the
+        /// crossing of the mop's eight: everywhere else the path is out of its reach.
         /// </summary>
-        public float DeadZone { get; set; } = 0.35f;
+        public float DeadZone { get; set; } = 0.15f;
 
         /// <summary>
         /// Stick units a second. The stick moving faster than this (slammed about rather than
@@ -103,6 +104,8 @@ namespace Game.Simulation.Cleaning
         {
             if (stick.LengthSquared() > 1f)
                 stick = Vector2.Normalize(stick);
+            if (stick.Length() < _settings.DeadZone)
+                stick = Vector2.Zero;
             var jumped = _hasStick && seconds > 0f && Vector2.Distance(stick, Stick) / seconds > _settings.MaxStickSpeed;
             Stick = stick;
             _hasStick = true;
@@ -126,10 +129,6 @@ namespace Game.Simulation.Cleaning
                 }
             }
             if (bestDistance > _settings.Tolerance)
-                return 0f;
-            // A resting stick only counts where the path itself passes the middle.
-            var restingAt = PointAt(Shape, (float)(bestAt - Math.Floor(bestAt)));
-            if (stick.Length() < _settings.DeadZone && restingAt.Length() >= _settings.DeadZone)
                 return 0f;
 
             OnTrack = true;
