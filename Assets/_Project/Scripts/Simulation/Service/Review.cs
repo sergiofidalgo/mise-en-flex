@@ -23,6 +23,9 @@ namespace Game.Simulation.Service
         SideOff,
         SlowService,
         WalkedOut,
+
+        /// <summary>A dirty table or a messy floor by their seat (decision 2026-11-10).</summary>
+        Dirty,
     }
 
     /// <summary>One customer's review.</summary>
@@ -152,6 +155,8 @@ namespace Game.Simulation.Service
             var weakest = WeakestPart(score, settings);
             if (weakest.HasValue)
                 return weakest.Value;
+            if (score.DirtNoticed)
+                return ReviewTopic.Dirty;
             if (patienceWhenServed < settings.LowPatience)
                 return ReviewTopic.SlowService;
             return score.Stars >= settings.PraiseStars ? ReviewTopic.Praise : ReviewTopic.Decent;

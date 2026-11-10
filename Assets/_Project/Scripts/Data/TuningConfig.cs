@@ -1,3 +1,4 @@
+using Game.Simulation.Cleaning;
 using Game.Simulation.Cooking;
 using Game.Simulation.Interaction;
 using Game.Simulation.Items;
@@ -100,6 +101,91 @@ namespace Game.Data
         [SerializeField, Min(0f)] private float _washPushSpeed = 3.5f;
         [Tooltip("Random spread, degrees either way, around pushes spaced evenly round the circle.")]
         [SerializeField, Range(0f, 60f)] private float _washPushSpread = 20f;
+
+        [Header("Dirt (decision 2026-11-10: a medium mess; amounts in wipes, one loop of the cleaning game each)")]
+        [Tooltip("Wipes a diner leaves on their table or stool when they finish.")]
+        [SerializeField, Min(0f)] private float _dinerSmudge = 1f;
+        [Tooltip("Wipes a plate dropped by a waiter or broken at the sink leaves on the floor.")]
+        [SerializeField, Min(0f)] private float _plateSpill = 3f;
+        [Tooltip("Wipes food burnt in a pan on the heat leaves on the counter beside the hob (or the floor).")]
+        [SerializeField, Min(0f)] private float _burntScorch = 2f;
+        [Tooltip("Guests through the dining room per floor scuff.")]
+        [SerializeField, Min(1)] private int _guestsPerScuff = 6;
+        [Tooltip("Wipes a floor scuff takes.")]
+        [SerializeField, Min(0f)] private float _scuff = 1f;
+        [Tooltip("Wipes the foam from a fire put out takes.")]
+        [SerializeField, Min(0f)] private float _fireFoam = 2f;
+        [Tooltip("Metres: new dirt this close to a spot on the same surface adds to that spot.")]
+        [SerializeField, Min(0f)] private float _dirtMergeRadius = 0.35f;
+        [Tooltip("The most wipes one spot can hold.")]
+        [SerializeField, Min(0.1f)] private float _dirtMaxPerSpot = 4f;
+        [Tooltip("Score (0..1) a guest loses for a full wipe of dirt on their own table.")]
+        [SerializeField, Range(0f, 1f)] private float _dirtTablePenalty = 0.1f;
+        [Tooltip("Score lost per wipe of floor dirt near the guest's seat.")]
+        [SerializeField, Range(0f, 1f)] private float _dirtFloorPenalty = 0.04f;
+        [Tooltip("Metres from a seat that floor dirt is noticed.")]
+        [SerializeField, Min(0f)] private float _dirtFloorRadius = 1.5f;
+        [Tooltip("The most dirt can take off a dish's score.")]
+        [SerializeField, Range(0f, 1f)] private float _dirtMaxPenalty = 0.2f;
+        [Tooltip("A penalty at least this big makes dirt what the guest's review is about, if nothing worse happened.")]
+        [SerializeField, Range(0f, 1f)] private float _dirtNoticedFrom = 0.05f;
+
+        [Header("Cleaning game (trace the shape with the stick)")]
+        [Tooltip("Below this push the stick is resting (except where the path crosses the middle).")]
+        [SerializeField, Range(0f, 1f)] private float _traceDeadZone = 0.35f;
+        [Tooltip("How far the stick can be from the path and still pull the marker. Wide = forgiving.")]
+        [SerializeField, Range(0.05f, 1f)] private float _traceTolerance = 0.4f;
+        [Tooltip("How far ahead along the path (in loops) the marker can be pulled at once.")]
+        [SerializeField, Range(0.02f, 0.5f)] private float _traceReach = 0.15f;
+        [Tooltip("Stick units a second above which the stick is slammed rather than steered, and doesn't count.")]
+        [SerializeField, Min(1f)] private float _traceMaxStickSpeed = 15f;
+        [Tooltip("Fastest loops a second with the cloth (circles).")]
+        [SerializeField, Min(0.05f)] private float _clothSpeed = 1.1f;
+        [Tooltip("Fastest loops a second with the mop (figure-eights).")]
+        [SerializeField, Min(0.05f)] private float _mopSpeed = 0.7f;
+        [Tooltip("Fastest sweeps a second with the extinguisher.")]
+        [SerializeField, Min(0.05f)] private float _extinguisherSpeed = 0.9f;
+        [Tooltip("Metres from the chef that floor dirt can be mopped.")]
+        [SerializeField, Min(0f)] private float _mopReach = 1.1f;
+
+        [Header("Gas fires")]
+        [Tooltip("Real seconds a pan stays on a lit flame with its food burnt before it catches (the alarm is the warning).")]
+        [SerializeField, Min(0f)] private float _ignitionSeconds = 4f;
+        [Tooltip("Extinguisher sweeps that put a fire out.")]
+        [SerializeField, Min(0.1f)] private float _sweepsToPutOut = 3f;
+
+        public DirtSettings Dirt => new DirtSettings
+        {
+            DinerSmudge = _dinerSmudge,
+            PlateSpill = _plateSpill,
+            BurntScorch = _burntScorch,
+            GuestsPerScuff = _guestsPerScuff,
+            Scuff = _scuff,
+            FireFoam = _fireFoam,
+            MergeRadius = _dirtMergeRadius,
+            MaxPerSpot = _dirtMaxPerSpot,
+            TablePenalty = _dirtTablePenalty,
+            FloorPenalty = _dirtFloorPenalty,
+            FloorRadius = _dirtFloorRadius,
+            MaxPenalty = _dirtMaxPenalty,
+            NoticedFrom = _dirtNoticedFrom,
+        };
+
+        public TraceGameSettings TraceGame => new TraceGameSettings
+        {
+            DeadZone = _traceDeadZone,
+            Tolerance = _traceTolerance,
+            Reach = _traceReach,
+            MaxStickSpeed = _traceMaxStickSpeed,
+            CircleSpeed = _clothSpeed,
+            FigureEightSpeed = _mopSpeed,
+            SweepSpeed = _extinguisherSpeed,
+        };
+
+        public FireSettings Fire => new FireSettings { IgnitionSeconds = _ignitionSeconds, SweepsToPutOut = _sweepsToPutOut };
+
+        /// <summary>Metres from the chef that floor dirt can be mopped.</summary>
+        public float MopReach => _mopReach;
 
         [Header("Flip gauge")]
         [Tooltip("Browning of the side facing down where the gauge's green band starts (around 1 is a good crust).")]
