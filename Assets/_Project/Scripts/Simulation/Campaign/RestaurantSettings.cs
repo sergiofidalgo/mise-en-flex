@@ -53,6 +53,12 @@ namespace Game.Simulation.Campaign
         /// <summary>What it was before: its style if players keep it (the first grill's is fixed).</summary>
         public string PreviousStyle { get; set; } = "";
 
+        /// <summary>
+        /// True if players can't choose its style when buying, only its name: the first grill
+        /// (game-design §15.2). It keeps <see cref="PreviousStyle"/>.
+        /// </summary>
+        public bool FixedStyle { get; set; }
+
         public IReadOnlyList<OldReview> OldReviews { get; set; } = Array.Empty<OldReview>();
 
         /// <summary>The street it's on, also the area the slot card and reviews name.</summary>

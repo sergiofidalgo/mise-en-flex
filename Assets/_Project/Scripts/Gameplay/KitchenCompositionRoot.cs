@@ -51,7 +51,12 @@ namespace Game.Gameplay
             var campaign = CampaignLaunch.WantsSave ? SaveFile.Read() : null;
             _loaded = campaign;
             var save = campaign?.Current;
-            var placed = save != null ? CampaignSnapshot.ApplyLayout(save, FindStations(), _furniture) : null;
+            // A restaurant just bought on the miniature has no room saved yet: it opens as built, on
+            // day 1, with the campaign's money and any old reviews it kept (Phase 6, milestone 2).
+            var fresh = Game.Simulation.Campaign.RestaurantPurchase.NeverOpened(save);
+            var placed = save == null ? null
+                : fresh ? new Interactable[0]
+                : CampaignSnapshot.ApplyLayout(save, FindStations(), _furniture);
             var stations = new StationRegistry(FindStations());
 
             var cooking = new CookingSimulation(_tuning.AmbientTemperature, _realism.SpoilageMultiplier);
@@ -59,8 +64,11 @@ namespace Game.Gameplay
             if (_restaurant != null)
                 fee = _restaurant.ToSettings().ScaleFee(fee);
             // The loan is the campaign's (decision 2026-11-10), borrowed at the accountant in the
-            // office. A campaign saved there before its first day keeps its money and loan too.
-            var days = save != null
+            // office. A restaurant just bought opens on day 1 with the campaign's money and loan; a
+            // campaign saved before its first day keeps its money and loan too.
+            var days = save != null && fresh
+                ? new DayCycle(campaign.Balance, fee, campaign.ToLoan())
+                : save != null
                 ? DayCycle.Continuing(save.Day, campaign.Balance, fee, save.DaysTowardsFee, Ledger.FromArray(save.Period), save.History, campaign.ToLoan())
                 : new DayCycle(campaign != null ? campaign.Balance : _staffConfig.StartingMoney, fee, campaign?.ToLoan());
             days.PhaseChanged += HandlePhaseChanged;

@@ -198,6 +198,7 @@ namespace Game.Editor
             NightLighting(sun, camera); // the moon, the night haze, lamps on (OfficeBuilder.Lighting.cs)
             NightSky(camera); // OfficeBuilder.Sky.cs: stars, the moon, clouds, planes
             AddOpening(camera, follow, manager, coop); // OfficeBuilder.Opening.cs: street, menu, climb, join
+            AddMiniature(rooms); // OfficeBuilder.Miniature.cs: the lots, the campaign, the card's data
 
             GreyboxAssets.EnsureFolder(System.IO.Path.GetDirectoryName(ScenePath));
             EditorSceneManager.SaveScene(scene, ScenePath);
@@ -1131,8 +1132,8 @@ namespace Game.Editor
             Point(parent, "LampPostLight", at + Vector3.up * 2.9f, Incandescent, 7f, 2.5f);
         }
 
-        // The city on the miniature table: the night city's blocks at about 1/60, with streets,
-        // a few lit windows, and the grill's pin (restaurants as pins come in Phase 6).
+        // The city on the miniature table: the night city's blocks at about 1/60, with streets and
+        // a few lit windows. The restaurants' lots are added by AddMiniature (OfficeBuilder.Miniature.cs).
         private static void Miniature(Transform parent, Vector3 ground, Vector2 size)
         {
             var city = new GameObject("MiniatureCity").transform;
@@ -1146,6 +1147,8 @@ namespace Game.Editor
             {
                 if (i % 4 == 3 || j % 3 == 2)
                     continue; // streets
+                if (IsLotCell(i, j))
+                    continue; // a restaurant's lot stands here (OfficeBuilder.Miniature.cs)
                 var x = -size.x / 2f + step * (i + 0.5f);
                 var z = -size.y / 2f + step * (j + 0.5f);
                 var height = 0.05f + (float)_random.NextDouble() * (_random.NextDouble() < 0.15 ? 0.5f : 0.22f);
@@ -1155,9 +1158,6 @@ namespace Game.Editor
                 if (_random.NextDouble() < 0.3)
                     Cube(city, "Lit", lit, at + new Vector3(0f, height * 0.45f, -0.132f), new Vector3(0.12f, height * 0.35f, 0.004f));
             }
-            var pin = ground + new Vector3(-1.2f, 0f, -0.7f);
-            Shape(city, PrimitiveType.Cylinder, "GrillPin", Toon("OfficeBellRed", new Color(0.8f, 0.2f, 0.18f)), pin + Vector3.up * 0.25f, new Vector3(0.04f, 0.25f, 0.04f));
-            Shape(city, PrimitiveType.Sphere, "GrillPinHead", Toon("OfficeBellRed", new Color(0.8f, 0.2f, 0.18f)), pin + Vector3.up * 0.52f, Vector3.one * 0.14f);
         }
 
         // A copy of one of the kitchen's furniture prefabs, visual only: unpacked and stripped of

@@ -54,6 +54,8 @@ namespace Game.Data
         [SerializeField] private string[] _inheritedAppliances = Array.Empty<string>();
         [Tooltip("Its style before it was bought; the first grill's is fixed.")]
         [SerializeField] private string _previousStyle = "";
+        [Tooltip("Players choose only its name when buying, not its style: the first grill (game-design §15.2).")]
+        [SerializeField] private bool _fixedStyle;
         [Tooltip("Reviews from the previous owner, kept if players keep the name.")]
         [SerializeField] private OldReviewEntry[] _oldReviews = Array.Empty<OldReviewEntry>();
 
@@ -65,11 +67,13 @@ namespace Game.Data
 
         public string Id => _id;
         public string DisplayName => _displayName;
+        public float Price => _price;
 
         /// <summary>For the builder: fills a new definition in one go.</summary>
         public void Set(string id, string displayName, RestaurantSize size, int seats, float price, float feeScale,
-            string[] inheritedAppliances, string previousStyle, OldReviewEntry[] oldReviews, string street, string[] vendors)
+            string[] inheritedAppliances, string previousStyle, OldReviewEntry[] oldReviews, string street, string[] vendors, bool fixedStyle = false)
         {
+            _fixedStyle = fixedStyle;
             _id = id;
             _displayName = displayName;
             _size = size;
@@ -93,6 +97,7 @@ namespace Game.Data
             FeeScale = _feeScale,
             InheritedAppliances = (_inheritedAppliances ?? Array.Empty<string>()).ToArray(),
             PreviousStyle = _previousStyle ?? "",
+            FixedStyle = _fixedStyle,
             OldReviews = (_oldReviews ?? Array.Empty<OldReviewEntry>()).Where(r => r != null).Select(r => r.ToSettings()).ToArray(),
             Street = _street ?? "",
             Vendors = (_vendors ?? Array.Empty<string>()).ToArray(),
