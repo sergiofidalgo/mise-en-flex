@@ -3367,6 +3367,8 @@ It hides (fading over the HUD's 0.12 s) behind the Review dashboard, the pause m
 - **The A interaction on the very bottom left:** a big green A that pulses gently while nobody holds and sinks while someone does, then "Hold to start day N" and, with two or more cooks, "· Waiting for P2, P4". A cook whose controller is lost isn't waited for.
 - **LB/RB (tabs) and the D-pad (browse) move to the footer's right.**
 
+**Then, from the next look (same day):** the bar is a card like the restaurant tiles above it, holding one rounded pill per cook: pale in their colour when empty, solid when ready, and filling across as they hold, with no dark track. The A is bigger (62 px), with "Hold to start day N" in larger type. The footer's right reads word first, then the buttons: "Tabs [LB][RB]", "Browse [D-pad]".
+
 **Tunable** (`ReviewDashboard`, "Start bar"): fill speed, flash time, pulse rate and size, and how far the A sinks. The hold itself is still `_startHoldSeconds`.
 
 **Not checked in play:** whether the flash is noticed before the screen leaves on the last hold (it closes the moment everyone's ready), and the pulse's strength from the couch.

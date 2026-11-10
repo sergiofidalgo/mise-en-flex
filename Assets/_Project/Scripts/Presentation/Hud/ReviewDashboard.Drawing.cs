@@ -1145,14 +1145,12 @@ namespace Game.Presentation.Hud
                 hints.Add((new[] { "A" }, Tr.Get("Join")));
 
             // The tabs and the D-pad sit on the right (the user's layout, 2026-11-11): the start of
-            // the day has the left. From the right edge leftwards: label, 10 px, keys, 32 px.
+            // the day has the left. Each reads word first, then its buttons ("Tabs [LB][RB]");
+            // laid out from the right edge leftwards: keys, 10 px, label, 32 px to the next.
             var right = 1799f;
             for (var i = hints.Count - 1; i >= 0; i--)
             {
-                var label = Label(Medium, _hints, hints[i].Text, 21.33f, _wellLight, 0f, 996f, 300f);
-                var width = UiKit.Width(label);
-                label.rectTransform.anchoredPosition = new Vector2(right - width, label.rectTransform.anchoredPosition.y);
-                var x = right - width - 10f;
+                var x = right;
                 for (var k = hints[i].Keys.Length - 1; k >= 0; k--)
                 {
                     var key = hints[i].Keys[k];
@@ -1166,11 +1164,14 @@ namespace Game.Presentation.Hud
                     Keycap(_hints, key, x - keyWidth, 971f, keyWidth, 34f);
                     x -= keyWidth + 10f;
                 }
-                right = x + 10f - 32f;
+                var label = Label(Medium, _hints, hints[i].Text, 21.33f, _body, 0f, 996f, 300f);
+                var width = UiKit.Width(label);
+                label.rectTransform.anchoredPosition = new Vector2(x - width, label.rectTransform.anchoredPosition.y);
+                right = x - width - 32f;
             }
 
             // The very bottom left: hold A to start the day, and who's still to.
-            var startText = Label(SemiBold, _hints, Tr.Format("Hold to start day {day}", ("day", Summary.NextDay)), 24f, _ink, StartTextX, 997f, 600f);
+            var startText = Label(Bold, _hints, Tr.Format("Hold to start day {day}", ("day", Summary.NextDay)), 28f, _ink, StartTextX, 999f, 600f);
             var waiting = Waiting();
             if (waiting != null)
                 Label(Medium, _hints, "· " + waiting, 20f, _muted, StartTextX + UiKit.Width(startText) + 12f, 996f, 480f);
@@ -1184,8 +1185,10 @@ namespace Game.Presentation.Hud
         // bottom left, the A badge (big, green, pulsing while nobody holds, sunk while someone does)
         // with "Hold to start day N · Waiting for P2, P4".
 
-        private const float LaneX = 120f, LaneTop = 852f, LaneWidth = 600f, LaneHeight = 60f, LaneGap = 5f;
-        private const float StartTextX = 186f;
+        // A card like the tiles above it, holding one rounded pill per cook.
+        private const float LaneX = 120f, LaneTop = 846f, LaneWidth = 600f, LaneHeight = 76f, LaneGap = 10f, LanePad = 12f;
+        private const float PillHeight = LaneHeight - 2f * LanePad;
+        private const float StartTextX = 204f;
 
         [Header("Start bar")]
         [Tooltip("How quickly each lane catches up with its player's hold, per second (higher is snappier).")]
@@ -1218,17 +1221,15 @@ namespace Game.Presentation.Hud
 
         private void BuildStartButton()
         {
-            // The bar, clipped to its rounded shape so the lanes' ends follow it.
-            var bar = UiKit.RoundBox(_layout, "StartBar", _well, LaneX, LaneTop, LaneWidth, LaneHeight, LaneHeight / 2f);
-            bar.gameObject.AddComponent<Mask>().showMaskGraphic = true;
-            _bar = bar.rectTransform;
-            _lanes = UiKit.Rect(_bar, "Lanes", 0f, 0f, LaneWidth, LaneHeight);
-            _startFlash = UiKit.RoundBox(_bar, "Flash", new Color(1f, 1f, 1f, 0f), 0f, 0f, LaneWidth, LaneHeight, 0f);
-            // The A, scaled about its centre for the pulse and the press.
-            _startA = UiKit.Rect(_layout, "StartA", LaneX, 960f, 54f, 54f);
+            var card = UiKit.RoundBox(_layout, "StartCard", _card, LaneX, LaneTop, LaneWidth, LaneHeight, 16f);
+            _bar = card.rectTransform;
+            _lanes = UiKit.Rect(_bar, "Lanes", LanePad, LanePad, LaneWidth - 2f * LanePad, PillHeight);
+            _startFlash = UiKit.RoundBox(_bar, "Flash", new Color(1f, 1f, 1f, 0f), 0f, 0f, LaneWidth, LaneHeight, 16f);
+            // Big enough to read from the couch: it's the screen's one action.
+            _startA = UiKit.Rect(_layout, "StartA", LaneX - 4f, 952f, 72f, 72f);
             _startA.pivot = new Vector2(0.5f, 0.5f);
-            _startA.anchoredPosition += new Vector2(27f, -27f);
-            Badge(_startA, "A", _buttonA, 27f, 27f, 50f, 25f);
+            _startA.anchoredPosition += new Vector2(36f, -36f);
+            Badge(_startA, "A", _buttonA, 36f, 36f, 62f, 32f);
         }
 
         // One lane per cook, in player-slot order; rebuilt only when who's here changes.
@@ -1242,22 +1243,23 @@ namespace Game.Presentation.Hud
             UiKit.Clear(_lanes);
             _laneList.Clear();
             var count = Mathf.Max(1, players.Count);
-            var width = (LaneWidth - (count - 1) * LaneGap) / count;
+            var inner = LaneWidth - 2f * LanePad;
+            var width = (inner - (count - 1) * LaneGap) / count;
+            var radius = PillHeight / 2f;
             for (var i = 0; i < count; i++)
             {
                 var x = i * (width + LaneGap);
                 var lane = new Lane { Player = i < players.Count ? players[i] : -1, Width = width };
                 lane.Colour = lane.Player >= 0 && count > 1 ? _settings.GetPlayerColor(lane.Player) : _gold;
-                // The name twice: in their colour on the empty lane, and in white (dark on a light
-                // colour) inside the fill, clipped to it, so it reads at any fill.
+                // Empty: a pale pill in their colour, with their name in it. Full: solid, name in white
+                // (dark on a light colour). The fill is the solid pill clipped to how far they've held.
                 var name = count > 1 ? $"P{lane.Player + 1}" : "";
-                UiKit.TextAt(ExtraBold, _lanes, "Name", name, 24f, lane.Colour, x + width / 2f, LaneHeight / 2f + 8.5f, width, HorizontalAlignmentOptions.Center);
-                lane.Fill = UiKit.Rect(_lanes, "Fill", x, 0f, 0f, LaneHeight);
+                UiKit.RoundBox(_lanes, "Empty", Color.Lerp(_cardLight, lane.Colour, 0.18f), x, 0f, width, PillHeight, radius);
+                UiKit.TextAt(ExtraBold, _lanes, "Name", name, 22f, Color.Lerp(lane.Colour, _ink, 0.25f), x + width / 2f, PillHeight / 2f + 8f, width, HorizontalAlignmentOptions.Center);
+                lane.Fill = UiKit.Rect(_lanes, "Fill", x, 0f, 0f, PillHeight);
                 lane.Fill.gameObject.AddComponent<RectMask2D>();
-                UiKit.RoundBox(lane.Fill, "Colour", lane.Colour, 0f, 0f, width, LaneHeight, 0f);
-                UiKit.TextAt(ExtraBold, lane.Fill, "Name", name, 24f, lane.Colour.grayscale > 0.6f ? _ink : Color.white, width / 2f, LaneHeight / 2f + 8.5f, width, HorizontalAlignmentOptions.Center);
-                if (i > 0)
-                    UiKit.RoundBox(_lanes, "Gap", _ink, x - LaneGap, 0f, LaneGap, LaneHeight, 0f);
+                UiKit.RoundBox(lane.Fill, "Colour", lane.Colour, 0f, 0f, width, PillHeight, radius);
+                UiKit.TextAt(ExtraBold, lane.Fill, "Name", name, 22f, lane.Colour.grayscale > 0.6f ? _ink : Color.white, width / 2f, PillHeight / 2f + 8f, width, HorizontalAlignmentOptions.Center);
                 _laneList.Add(lane);
             }
         }
@@ -1291,7 +1293,7 @@ namespace Game.Presentation.Hud
                     target = Mathf.Max(target, _start.MostProgress);
                 anyHold |= lane.Player >= 0 ? _start.Progress(lane.Player) > 0f && !_dayLoop.Ready.IsReady(lane.Player) : _start.MostProgress > 0f;
                 lane.Shown = Mathf.Abs(lane.Shown - target) < 0.001f ? target : Mathf.Lerp(lane.Shown, target, ease);
-                lane.Fill.sizeDelta = new Vector2(lane.Width * lane.Shown, LaneHeight);
+                lane.Fill.sizeDelta = new Vector2(lane.Width * lane.Shown, PillHeight);
             }
 
             // A pop each time someone's hold completes.
