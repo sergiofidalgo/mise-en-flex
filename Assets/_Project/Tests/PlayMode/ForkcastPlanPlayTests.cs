@@ -14,7 +14,7 @@ namespace Game.Tests.PlayMode
 {
     /// <summary>
     /// The real kitchen, entered in the morning (the user's calls, 2026-11-10): forkcast is up, hiring
-    /// happens on its Staff tab with a controller, B puts it away and Y brings it back; View rearranges.
+    /// happens on its Staff tab with a controller, and only holding A on Start prep leaves it.
     /// </summary>
     public class ForkcastPlanPlayTests
     {
@@ -125,30 +125,42 @@ namespace Game.Tests.PlayMode
         }
 
         [UnityTest]
-        public IEnumerator BPutsItAwayAndYBringsItBack()
+        public IEnumerator NothingButStartPrepLeavesIt()
         {
             yield return Arrive();
             yield return Join();
             var chef = _player.GetComponent<PlayerInteractor>();
-            Assert.That(chef.IsReviewing, Is.True, "the chef waits while it's up");
+            foreach (var button in new[] { GamepadButton.East, GamepadButton.North, GamepadButton.Select })
+            {
+                yield return Press(button);
+                Assert.That(_root.Services.Forkcast.IsOpen, Is.True, $"{button} leaves it up");
+                Assert.That(chef.IsManaging, Is.False, "no rearranging behind it");
+            }
+            Assert.That(chef.IsReviewing, Is.True, "the chef waits");
+        }
 
-            yield return Press(GamepadButton.East);
-            Assert.That(_root.Services.Forkcast.IsOpen, Is.False);
-            Assert.That(_dashboard.IsShowing, Is.False);
-            Assert.That(chef.IsReviewing, Is.False, "free to walk around");
-
-            yield return Press(GamepadButton.North);
-            Assert.That(_root.Services.Forkcast.IsOpen, Is.True);
+        [UnityTest]
+        public IEnumerator FromReviewOneHoldGoesStraightToPrep()
+        {
+            yield return Arrive();
+            yield return Join();
+            var days = _root.Services.Days;
+            days.Advance();
+            days.Advance();
+            days.FinishService(Game.Simulation.Service.ServiceSummary.From(_root.Services.Service));
+            yield return null;
+            Assert.That(days.Phase, Is.EqualTo(DayPhase.Review));
             Assert.That(_dashboard.IsShowing, Is.True);
-            Assert.That(chef.IsManaging, Is.False);
+            var day = days.Day;
 
-            // View is the rearrange toggle, one press, and from forkcast it puts it away too.
-            yield return Press(GamepadButton.Select);
-            Assert.That(_root.Services.Forkcast.IsOpen, Is.False);
-            Assert.That(chef.IsManaging, Is.True);
-            yield return Press(GamepadButton.Select);
-            Assert.That(chef.IsManaging, Is.False, "View again: back to the chef");
-            Assert.That(_root.Services.Forkcast.IsOpen, Is.False, "and forkcast stays away");
+            InputSystem.QueueStateEvent(_pad, new GamepadState().WithButton(GamepadButton.South));
+            yield return new WaitForSecondsRealtime(1.1f);
+            InputSystem.QueueStateEvent(_pad, new GamepadState());
+            yield return null;
+
+            Assert.That(days.Phase, Is.EqualTo(DayPhase.Prep));
+            Assert.That(days.Day, Is.EqualTo(day + 1));
+            Assert.That(_dashboard.IsShowing, Is.False);
         }
     }
 }

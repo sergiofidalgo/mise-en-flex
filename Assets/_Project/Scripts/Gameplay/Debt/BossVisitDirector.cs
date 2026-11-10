@@ -87,7 +87,7 @@ namespace Game.Gameplay.Debt
         private void Start()
         {
             _root.Services.Days.PhaseChanged += HandlePhaseChanged;
-            if (_root.Services.Days.Phase == DayPhase.Plan)
+            if (_root.Services.Days.Phase == DayPhase.Prep)
                 BeginMorning();
         }
 
@@ -101,12 +101,14 @@ namespace Game.Gameplay.Debt
 
         private void HandlePhaseChanged(DayPhase phase)
         {
-            if (phase == DayPhase.Plan)
+            if (phase == DayPhase.Prep)
                 BeginMorning();
         }
 
         // Anything he does in person happens the next morning (§15.3); with nothing to do, he may
-        // still ring if today's collection isn't covered yet.
+        // still ring if today's collection isn't covered yet. Since 2026-11-10 the morning's Plan is
+        // forkcast, which covers the room, so he comes in as Prep starts, in plain view; the doors
+        // can't open until he's gone (DayLoop waits while he's Busy).
         private void BeginMorning()
         {
             var pending = _root.Services.Boss.Pending;

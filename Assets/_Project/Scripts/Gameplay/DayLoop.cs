@@ -71,7 +71,11 @@ namespace Game.Gameplay
                 if (Ready.IsEveryoneReady(_present))
                 {
                     Ready.Clear();
-                    days.Advance();
+                    // forkcast's Start prep goes from Review through the next morning without
+                    // stopping (the user's call, 2026-11-10); Prep's own hold opens the doors.
+                    var steps = days.Phase == DayPhase.Prep ? 1 : ForkcastScreen.StepsToPrep(days.Phase);
+                    for (var i = 0; i < steps; i++)
+                        days.Advance();
                 }
             }
 

@@ -435,6 +435,14 @@ namespace Game.Gameplay
                     : new System.Collections.Generic.List<(string, int)>();
                 return;
             }
+            if (phase == DayPhase.Review)
+            {
+                // forkcast's Staff tab hires between days, and Start prep goes through the next
+                // morning without stopping: tomorrow's candidates are the ones to show now
+                // (the same people Plan draws, as they're drawn by day number).
+                Services.Staff.Candidates = _staffConfig.CandidatesFor(Services.Days.Day + 1);
+                return;
+            }
             if (phase != DayPhase.Plan)
                 return;
 

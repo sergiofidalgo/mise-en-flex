@@ -40,7 +40,6 @@ namespace Game.Presentation.Hud
         [SerializeField] private string _deliveryText = "Delivered to storage:";
         // The strip's words; its buttons are drawn (HintStrip), since hints name only Xbox buttons.
         [SerializeField] private string _rearrangeHint = "Rearrange";
-        [SerializeField] private string _forkcastHint = "forkcast";
         [SerializeField] private string _openUpHint = "Hold: open up";
         [SerializeField] private string _playerReadyText = "READY";
         [SerializeField] private string _playerWaitingText = "not ready";
@@ -86,7 +85,7 @@ namespace Game.Presentation.Hud
                 _prepStartedAt = Time.unscaledTime;
             }
 
-            // forkcast is up (Review, and Plan until it's put away): it says everything, joining included.
+            // forkcast is up (Review and Plan): it says everything, joining included.
             if (_root.Services.Forkcast.IsOpen)
             {
                 _card.Hide();
@@ -122,12 +121,7 @@ namespace Game.Presentation.Hud
                 case DayPhase.Prep:
                     // Players work through this phase and need to see the kitchen: a strip, not a card.
                     _card.Hide();
-                    ShowStrip(DayPhase.Prep, _openUpHint, forkcast: false);
-                    break;
-                case DayPhase.Plan:
-                    // forkcast put away to walk around: Y brings it back (its Start button starts prep), View rearranges.
-                    _card.Hide();
-                    ShowStrip(DayPhase.Plan, null, forkcast: true);
+                    ShowStrip(DayPhase.Prep, _openUpHint);
                     break;
                 default:
                     _card.Hide();
@@ -136,12 +130,10 @@ namespace Game.Presentation.Hud
         }
 
         // The buttons on a drawn strip at the bottom; who's ready and the delivery just above it.
-        private void ShowStrip(DayPhase phase, string holdHint, bool forkcast)
+        private void ShowStrip(DayPhase phase, string holdHint)
         {
             var bottom = -_canvas.rect.height / 2f + _stripBottomMargin;
             _hints.Clear();
-            if (forkcast)
-                _hints.Add(("Y", Tr.Get(_forkcastHint)));
             _hints.Add((HintStrip.View, Tr.Get(_rearrangeHint)));
             if (holdHint != null)
             {

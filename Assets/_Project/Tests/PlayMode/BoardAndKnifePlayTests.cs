@@ -134,6 +134,8 @@ namespace Game.Tests.PlayMode
         {
             // The user's bug report (2026-11-08): in management mode the dial stuck to the cursor.
             yield return OpenKitchen();
+            _root.Services.Days.Advance(); // Rearranging is for Prep since 2026-11-10 (Plan is forkcast's).
+            yield return null;
             Assert.That(KnifeCounter.TryExchangeTool(_chef), Is.True);
             var onion = _root.Services.Cooking.AddIngredient(_root.Services.Catalog.Find("Onion").ToProperties());
             Board.Container.Put(onion);

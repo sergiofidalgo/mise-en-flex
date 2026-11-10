@@ -14,7 +14,7 @@ using SimVector2 = System.Numerics.Vector2;
 namespace Game.Gameplay
 {
     /// <summary>
-    /// Management mode (decisions 2026-11-04): during Plan and Prep, a player presses Select and their
+    /// Management mode (decisions 2026-11-04; Prep only since 2026-11-10): a player presses Select and their
     /// chef waits while a cursor of theirs rearranges the kitchen. A picks up and places, RB and LB
     /// rotate, B puts what's held back where it was, and Select returns to the chef. Furniture goes exactly where they put it, snapping
     /// to what's around it when close. What's on a station moves with it. Each player has their own
@@ -134,7 +134,8 @@ namespace Game.Gameplay
         {
             var phase = _root.Services.Days.Phase;
             // Nobody rearranges the room while the boss's men are carrying it out.
-            var open = (phase == DayPhase.Plan || phase == DayPhase.Prep) && !Closed;
+            // Rearranging is for Prep: Plan is forkcast's, which covers the screen (2026-11-10).
+            var open = phase == DayPhase.Prep && !Closed;
 
             foreach (var player in PlayerInput.all)
             {
@@ -149,17 +150,6 @@ namespace Game.Gameplay
                 if (player.actions[ManageAction].WasPressedThisFrame())
                 {
                     PressView(player);
-                    continue;
-                }
-
-                // Y, walking in the morning, brings forkcast back (the user's call, 2026-11-10).
-                // It covers the whole screen, so everyone stops rearranging.
-                if (phase == DayPhase.Plan && !IsManaging(player) && !_root.Services.Forkcast.IsOpen
-                    && player.actions[ShopAction].WasPressedThisFrame())
-                {
-                    foreach (var other in _cursors.Keys.ToList())
-                        Leave(other);
-                    _root.Services.Forkcast.Reopen();
                     continue;
                 }
 
@@ -219,17 +209,13 @@ namespace Game.Gameplay
             }
         }
 
-        // View toggles rearranging, one press, in Plan as in Prep (the user's call, 2026-11-10). With
-        // forkcast up in the morning, that press also puts it away.
+        // View toggles rearranging, one press.
         private void PressView(PlayerInput player)
         {
             if (IsManaging(player))
-            {
                 Leave(player);
-                return;
-            }
-            _root.Services.Forkcast.Close();
-            Enter(player);
+            else
+                Enter(player);
         }
 
         public Cursor Enter(PlayerInput player)

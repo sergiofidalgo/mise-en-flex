@@ -37,6 +37,8 @@ namespace Game.Tests.PlayMode
 
             var editor = Object.FindFirstObjectByType<LayoutEditor>();
             var root = Object.FindFirstObjectByType<KitchenCompositionRoot>();
+            root.Services.Days.Advance(); // rearranging is for Prep since 2026-11-10
+            yield return null;
             var cursors = players.Select(p => editor.Enter(p)).ToList();
             // Each player on a different page of the shop, one with a refusal showing.
             Open(cursors[0], Game.Data.ShopSection.Furniture, 1);
