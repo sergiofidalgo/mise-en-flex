@@ -67,6 +67,48 @@ namespace Game.Simulation.Campaign
         /// <summary>The stalls on its street (e.g. "Butcher"): where its stock is bought.</summary>
         public IReadOnlyList<string> Vendors { get; set; } = Array.Empty<string>();
 
+        /// <summary>
+        /// The name of the kitchen scene the builder makes for it (Phase 6, milestone 3), or empty if
+        /// it has none yet; <see cref="KitchenScenes"/> falls back to the first kitchen for those.
+        /// </summary>
+        public string KitchenScene { get; set; } = "";
+
+        /// <summary>How wide the building is, west wall to east wall (m). The grill is 8.</summary>
+        public float RoomWidth { get; set; } = DefaultRoomWidth;
+
+        /// <summary>The kitchen's depth, back wall to the dividing wall (m). The grill's is 5.</summary>
+        public float KitchenDepth { get; set; } = DefaultKitchenDepth;
+
+        /// <summary>The dining room's depth, dividing wall to the street wall (m). The grill's is 4.</summary>
+        public float DiningDepth { get; set; } = DefaultDiningDepth;
+
+        /// <summary>
+        /// Guests come this many times as often as the Service Config's base rate: a bigger room on a
+        /// busier street draws more people (the user's call, 2026-11-10: Casa Lucía's matches its fee scale).
+        /// </summary>
+        public float GuestRate { get; set; } = 1f;
+
+        /// <summary>How many may wait at the door at once, or 0 for the Service Config's.</summary>
+        public int MaxQueue { get; set; }
+
+        public const float DefaultRoomWidth = 8f;
+        public const float DefaultKitchenDepth = 5f;
+        public const float DefaultDiningDepth = 4f;
+
+        /// <summary>
+        /// Scales a day's service to this restaurant: guests arrive <see cref="GuestRate"/> times as
+        /// often, and the queue at the door is its own if it has one.
+        /// </summary>
+        public void ScaleService(Service.ServiceSettings service)
+        {
+            if (service == null)
+                return;
+            if (GuestRate > 0f)
+                service.ArrivalIntervalSeconds /= GuestRate;
+            if (MaxQueue > 0)
+                service.MaxQueue = MaxQueue;
+        }
+
         /// <summary>The fee this restaurant owes, from the campaign's base fee.</summary>
         public Days.FeeSettings ScaleFee(Days.FeeSettings baseFee) => new Days.FeeSettings
         {

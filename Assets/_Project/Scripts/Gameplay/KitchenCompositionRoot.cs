@@ -29,6 +29,8 @@ namespace Game.Gameplay
         [SerializeField] private FloorPlanConfig _floorPlan;
         [Tooltip("Which restaurant this kitchen is (Phase 6): its fee scale, and the record a new campaign starts with.")]
         [SerializeField] private RestaurantDefinition _restaurant;
+        [Tooltip("Every restaurant on the miniature: the one being played sets the fee, the guests and the name, even in a kitchen it shares.")]
+        [SerializeField] private MiniatureConfig _restaurants;
         [Tooltip("Rebuilds furniture bought in earlier days when a save is loaded.")]
         [SerializeField] private FurnitureCatalog _furniture;
         [SerializeField] private PlayerInputManager _playerInputManager;
@@ -42,15 +44,21 @@ namespace Game.Gameplay
         private void Awake()
         {
             // Opened straight from the Editor, with no menu: carry on with the last campaign.
-            if (!CampaignLaunch.Decided)
+            var directPlay = !CampaignLaunch.Decided;
+            if (directPlay)
                 CampaignLaunch.ChooseForDirectPlay();
             PlayerSettings.Load(_realism).ApplyTo(_realism);
 
             // Continuing: the furniture goes where it was before anything binds (decision 2026-11-08).
             // The campaign holds every restaurant; this kitchen plays the current one (Phase 6).
             var campaign = CampaignLaunch.WantsSave ? SaveFile.Read() : null;
+            if (directPlay)
+                campaign = MatchDirectPlay(campaign);
             _loaded = campaign;
             var save = campaign?.Current;
+            // The restaurant being played: its own fee, guests and name (milestone 3). A lot without
+            // a kitchen of its own yet plays in the grill's, as itself.
+            Played = Game.Simulation.Campaign.KitchenScenes.Find(save?.DefinitionId, Lots) ?? _restaurant?.ToSettings();
             // A restaurant just bought on the miniature has no room saved yet: it opens as built, on
             // day 1, with the campaign's money and any old reviews it kept (Phase 6, milestone 2).
             var fresh = Game.Simulation.Campaign.RestaurantPurchase.NeverOpened(save);
@@ -61,8 +69,8 @@ namespace Game.Gameplay
 
             var cooking = new CookingSimulation(_tuning.AmbientTemperature, _realism.SpoilageMultiplier);
             var fee = _serviceConfig.ToFeeSettings();
-            if (_restaurant != null)
-                fee = _restaurant.ToSettings().ScaleFee(fee);
+            if (Played != null)
+                fee = Played.ScaleFee(fee);
             // The loan is the campaign's (decision 2026-11-10), borrowed at the accountant in the
             // office. A restaurant just bought opens on day 1 with the campaign's money and loan; a
             // campaign saved before its first day keeps its money and loan too.
@@ -80,6 +88,9 @@ namespace Game.Gameplay
             Services.Cookbook = NewCookbook(campaign, save);
             Services.Boss = campaign?.ToEscalation() ?? new Game.Simulation.Campaign.BossEscalation();
             Services.RestaurantsOwned = System.Math.Max(1, campaign?.Restaurants?.Count ?? 1);
+            Services.RestaurantName = Pick(save?.Name, Played?.Name, _serviceConfig.RestaurantName);
+            Services.StyleName = Pick(save?.StyleName, Played?.PreviousStyle, _serviceConfig.StyleName);
+            Services.Area = Pick(save?.Area, Played?.Street, _serviceConfig.Area);
 
             foreach (var station in stations.All)
                 station.Bind(Services);
@@ -93,6 +104,49 @@ namespace Game.Gameplay
             ReviewTextRecovery.Recover(Services.ReviewHistory, _serviceConfig.StyleVoice(), _serviceConfig.GenericVoice());
             // Who might come back today, now the history is loaded.
             Services.Service.Settings.Reviews.Guests?.Rebuild(Services.ReviewHistory, days.Day);
+        }
+
+        /// <summary>The restaurant this kitchen is playing, from its definition: fee scale, guest rate, queue.</summary>
+        public Game.Simulation.Campaign.RestaurantSettings Played { get; private set; }
+
+        private System.Collections.Generic.List<Game.Simulation.Campaign.RestaurantSettings> Lots =>
+            _lots ??= _restaurants != null ? _restaurants.LotSettings() : new System.Collections.Generic.List<Game.Simulation.Campaign.RestaurantSettings>();
+
+        private System.Collections.Generic.List<Game.Simulation.Campaign.RestaurantSettings> _lots;
+
+        // True when this kitchen was opened straight from the Editor for a restaurant the last
+        // campaign doesn't own: it plays as a throwaway and never writes the slot.
+        private bool _detached;
+
+        private static string Pick(params string[] names) => names.FirstOrDefault(n => !string.IsNullOrEmpty(n)) ?? "";
+
+        /// <summary>
+        /// A kitchen opened straight from the Editor (not from the office) plays its own restaurant:
+        /// if the last campaign owns it, that becomes the current one, as choosing it on the miniature
+        /// would; if not, the day is played without the save, so another restaurant's record is never
+        /// written over with this kitchen's room.
+        /// </summary>
+        private Game.Simulation.Saving.CampaignSave MatchDirectPlay(Game.Simulation.Saving.CampaignSave campaign)
+        {
+            if (campaign == null || _restaurant == null || string.IsNullOrEmpty(_restaurant.KitchenScene))
+                return campaign;
+            var current = campaign.Current?.DefinitionId;
+            if (current == _restaurant.Id)
+                return campaign;
+            // Its current restaurant plays here anyway (a lot with no kitchen of its own, in the grill's).
+            if (Game.Simulation.Campaign.KitchenScenes.For(current, Lots, _restaurant.KitchenScene) == _restaurant.KitchenScene)
+                return campaign;
+            var index = campaign.Restaurants.FindIndex(r => r.DefinitionId == _restaurant.Id);
+            if (index >= 0)
+            {
+                Debug.Log($"[Kitchen] Played from the Editor: switching slot {CampaignLaunch.Slot}'s current restaurant to {_restaurant.DisplayName}.");
+                campaign.Switch(index);
+                return campaign;
+            }
+            Debug.LogWarning($"[Kitchen] Played from the Editor, but slot {CampaignLaunch.Slot} doesn't own {_restaurant.DisplayName}: " +
+                "playing a throwaway day that won't be saved. Buy it at the office's miniature to play it for real.");
+            _detached = true;
+            return null;
         }
 
         // This campaign's recipes and prices; whatever it unlocks joins the shared cookbook too.
@@ -132,7 +186,7 @@ namespace Game.Gameplay
             var day = Services.Days.Day;
             var repliedToday = Services.ReviewHistory.Count(r => r.Day == day && r.Reply >= 0) - 1;
             var mood = ReviewVoices.MoodAfter(repliedToday, Services.Days.LastService?.WalkOuts ?? 0, settings.TiredAfter, settings.FedUpAfter);
-            ReviewReplies.WriteReply(review, reply, _serviceConfig.StyleVoice(), _serviceConfig.GenericVoice(), _reviewLines, _serviceConfig.RestaurantName, mood, GuestNames.FirstOf(review));
+            ReviewReplies.WriteReply(review, reply, _serviceConfig.StyleVoice(), _serviceConfig.GenericVoice(), _reviewLines, Services.RestaurantName, mood, GuestNames.FirstOf(review));
             SaveCampaign();
             return true;
         }
@@ -246,16 +300,18 @@ namespace Game.Gameplay
         /// <summary>Saves the restaurant as it stands. Called as Review starts, once the day's results are in.</summary>
         public void SaveCampaign()
         {
+            if (_detached)
+                return; // a throwaway day in the Editor (MatchDirectPlay)
             var players = PlayerInput.all.Select(p => p.GetComponent<PlayerInteractor>()).Where(p => p != null);
             var restaurant = CampaignSnapshot.Capture(Services, players);
 
             // Who this restaurant is, and what the slot card shows in the main menu. The record
             // keeps the name and style it was given; one from before definitions takes the config's.
             var previous = _loaded?.Current;
-            restaurant.DefinitionId = !string.IsNullOrEmpty(previous?.DefinitionId) ? previous.DefinitionId : _restaurant != null ? _restaurant.Id : "";
-            restaurant.Name = !string.IsNullOrEmpty(previous?.Name) ? previous.Name : _serviceConfig.RestaurantName;
-            restaurant.StyleName = !string.IsNullOrEmpty(previous?.StyleName) ? previous.StyleName : _serviceConfig.StyleName;
-            restaurant.Area = !string.IsNullOrEmpty(previous?.Area) ? previous.Area : _serviceConfig.Area;
+            restaurant.DefinitionId = Pick(previous?.DefinitionId, Played?.Id, _restaurant != null ? _restaurant.Id : "");
+            restaurant.Name = Pick(previous?.Name, Services.RestaurantName);
+            restaurant.StyleName = Pick(previous?.StyleName, Services.StyleName);
+            restaurant.Area = Pick(previous?.Area, Services.Area);
 
             // Played time counts from what was loaded: _sessionSeconds keeps growing, so it's added
             // to the loaded total once, never to a total that already has it.
@@ -326,6 +382,7 @@ namespace Game.Gameplay
         private ServiceSimulation NewService(int day)
         {
             var settings = _serviceConfig.ToSettings(day);
+            Played?.ScaleService(settings); // a bigger room draws more guests (milestone 3)
             settings.Reviews.Memory = _reviewLines;
             // Guests who posted on earlier days might come back (built again once a save is loaded).
             if (Services != null)

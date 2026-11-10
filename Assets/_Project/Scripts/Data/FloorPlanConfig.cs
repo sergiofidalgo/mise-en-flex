@@ -66,6 +66,26 @@ namespace Game.Data
         public float StationHalfSize => _stationHalfSize;
         public float WalkerRadius => _walkerRadius;
 
+        /// <summary>
+        /// For the builder: a restaurant's building, generated from its layout (Phase 6, milestone 3).
+        /// The walker's and stations' sizes keep their tuned values.
+        /// </summary>
+        public void SetBuilding(Vector2 roomMin, Vector2 roomMax, Rect[] walls, Vector2 kitchenDoorHinge, float kitchenDoorWidth,
+            Vector2 kitchenAreaMin, Vector2 kitchenAreaMax, Vector2 diningAreaMin, Vector2 diningAreaMax, Vector2 doorLineMin, Vector2 doorLineMax)
+        {
+            _roomMin = roomMin;
+            _roomMax = roomMax;
+            _walls = walls ?? new Rect[0];
+            _kitchenDoorHinge = kitchenDoorHinge;
+            _kitchenDoorWidth = kitchenDoorWidth;
+            _kitchenAreaMin = kitchenAreaMin;
+            _kitchenAreaMax = kitchenAreaMax;
+            _diningAreaMin = diningAreaMin;
+            _diningAreaMax = diningAreaMax;
+            _doorLineMin = doorLineMin;
+            _doorLineMax = doorLineMax;
+        }
+
         public FloorPlan ToPlan()
         {
             var walls = new List<(SimVector2, SimVector2)>();

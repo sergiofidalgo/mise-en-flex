@@ -139,7 +139,9 @@ namespace Game.Tests.EditMode
                 for (var i = 0; i < stations.Length; i++)
                     Assert.That(spots[i], Is.Not.Null, $"nowhere to stand at {stations[i].name}");
 
-                var spawn = GameObject.Find("StaffSpawn");
+                // In this scene: another kitchen may be open too, with its own spawn.
+                var spawn = scene.GetRootGameObjects().SelectMany(r => r.GetComponentsInChildren<Transform>(true))
+                    .FirstOrDefault(t => t.name == "StaffSpawn")?.gameObject;
                 Assert.That(spawn, Is.Not.Null);
                 var from = new Vector2(spawn.transform.position.x, spawn.transform.position.z);
                 Assert.That(layout.IsFree(from), "staff arrive somewhere free");

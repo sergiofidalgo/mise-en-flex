@@ -24,11 +24,47 @@ namespace Game.Editor
         /// <summary>The mid-size dining room, the second size playable in 6a.</summary>
         public const string DiningRoomId = "casa-lucia";
 
+        /// <summary>The grill's kitchen: the scene every restaurant opened before milestone 3.</summary>
+        public const string GrillScene = "Kitchen_Greybox";
+
+        /// <summary>Casa Lucía's kitchen (milestone 3).</summary>
+        public const string DiningRoomScene = "Kitchen_CasaLucia";
+
+        public const string SceneFolder = "Assets/_Project/Scenes";
+
+        /// <summary>Where a kitchen scene of this name is saved.</summary>
+        public static string ScenePath(string scene) => $"{SceneFolder}/{scene}.unity";
+
         [MenuItem("Tools/Game/Build Restaurant Definitions")]
         public static void BuildAll()
         {
             EnsureMiniature();
+            EnsureKitchens();
             AssetDatabase.SaveAssets();
+        }
+
+        /// <summary>
+        /// The lots that have a kitchen scene, the grill first (milestone 3). The two playable in 6a
+        /// get theirs set once if they have none (the user's calls, 2026-11-10): the grill as it always
+        /// was, and Casa Lucía 12 m wide with a 5 m kitchen and a 6 m dining room, its guests 2.4 times
+        /// as frequent as the grill's (its fee scale) and up to 6 waiting at the door.
+        /// </summary>
+        public static RestaurantDefinition[] EnsureKitchens()
+        {
+            var lots = EnsureLots();
+            foreach (var lot in lots)
+            {
+                if (lot == null || !string.IsNullOrEmpty(lot.KitchenScene))
+                    continue;
+                if (lot.Id == Version1Restaurant.GrillId)
+                    lot.SetKitchen(GrillScene, RestaurantSettings.DefaultRoomWidth, RestaurantSettings.DefaultKitchenDepth, RestaurantSettings.DefaultDiningDepth, guestRate: 1f, maxQueue: 0);
+                else if (lot.Id == DiningRoomId)
+                    lot.SetKitchen(DiningRoomScene, roomWidth: 12f, kitchenDepth: 5f, diningDepth: 6f, guestRate: 2.4f, maxQueue: 6);
+                else
+                    continue;
+                EditorUtility.SetDirty(lot);
+            }
+            return System.Array.FindAll(lots, lot => lot != null && !string.IsNullOrEmpty(lot.KitchenScene));
         }
 
         /// <summary>The miniature's config with every lot on it, created once.</summary>

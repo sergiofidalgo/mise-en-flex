@@ -4,6 +4,16 @@ Ideas worth keeping that aren't decided or scheduled yet. When one is accepted, 
 
 ---
 
+## Restaurants without a kitchen yet
+
+*Added 2026-11-10 · Relevant phase: 6b or 7 · Pillars: your restaurant, your identity*
+
+After milestone 3 only the grill and Casa Lucía have kitchens of their own. The other four lots can still be bought, and they open the grill's kitchen with their own fee, guests and name. Options: mark them "coming soon" on the miniature's card and refuse Open; or generate their kitchens now from their definitions (the generator already handles any width, hob count and table count), accepting greybox rooms until their cuisines arrive. Recommendation: generate them, since it costs only a build and a test row each, and a 48-seat steakhouse kitchen would show early whether the camera and walking distances scale.
+
+Also from milestone 3: the dashboard's "{style}s near you" header reads oddly for "Spanish home cooking"; a short label per style ("Spanish places near you") would fix it.
+
+---
+
 ## Cleaning and fire: what's left after Phase 5's first pass
 
 *Added 2026-11-10 · Relevant phase: 7 (inspections) and 9 (polish) · Pillars: chaos you can plan for*

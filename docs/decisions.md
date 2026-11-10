@@ -10,6 +10,38 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 **Reason:** the stick made menus hard to move around: it overshoots and repeats. The D-pad steps once per press.
 
+---
+
+## 2026-11-10 — A second restaurant: one kitchen scene per restaurant, Casa Lucía's dining room
+
+**User's calls (Phase 6, milestone 3):**
+- **Casa Lucía's building is wider and deeper:** 12 m wide (the grill's is 8), a 5 m kitchen and a 6 m dining room (the grill's are 5 and 4). Four tables of four chairs in a 2 × 2 grid, the 16 seats its definition already had. More covers, more walking: that's the trade.
+- **Its kitchen keeps the grill's flow, wider:** storage at the west end of the back wall, then the board, the knife rack it inherits, the container rack, both gas hobs side by side and the tray rack; the bin in the north-east corner, the sink and a spare counter on the east wall, the counter with the knife on the west wall; a 6-counter island in the middle (the grill's has 4).
+- **Guests come 2.4 times as often as at the grill** (its fee scale), and up to 6 wait at the door (the grill's 3).
+- **Riverside, its street, is the same street kit with its own dressing:** the butcher and greengrocer open, a third stall standing closed as the fishmonger until there's fish, and its own canopy colours (teal, saffron, plum). A river is a later art task.
+
+**Our calls within those:**
+- **One generated scene per restaurant with a kitchen.** `RestaurantDefinition` gains a kitchen scene name, the room's width and depths, a guest rate and a queue length, all with defaults (the grill's). *Build Greybox Kitchen* builds the shared assets once, then one scene per definition that names a scene: `Kitchen_Greybox` (the grill) and `Kitchen_CasaLucia`. *Build Casa Lucia Kitchen* rebuilds only the second.
+- **The grill's layout is today's, value for value** (`KitchenLayout.Grill`), so rebuilding it changes nothing but the sign. Every other restaurant's is generated from its definition (`KitchenLayout.Generate`): size, then its inherited appliances placed in the grill's flow. Its floor plan (`FloorPlan_Kitchen_CasaLucia.asset`) is generated beside its definition and rewritten on each build, so it always matches the walls; the grill keeps `FloorPlanConfig.asset` and its tuning.
+- **The kitchen door is in the middle of Casa Lucía's dividing wall,** so plates go straight down the aisle between the two columns of tables. The grill's stays at its west end, beside its bar tables.
+- **A restaurant's own tables come with all their chairs** (a new `_startingChairs` on the table, 4 for Casa Lucía's); a table bought in the shop still starts with one. Selling an inherited table refunds its chairs like any other.
+- **The street follows the building:** every outside position is now an offset from the outer walls, chosen so the grill's come out as before. The stalls are the definition's vendors in order; one with nothing to sell yet stands closed under its own name.
+- **The sign has the restaurant's name and style,** lettered at runtime from the record (as bought or renamed). The dashboard's name, style and the reply sign-off use the same, not the Service Config's.
+- **Loading the right scene:** the miniature's Open and the menu's Continue open the current restaurant's kitchen (`CampaignLaunch.KitchenScene`). A restaurant with no kitchen of its own yet (Forno Rosso and the larger lots) opens the grill's, as itself: its own fee scale, guest rate, name and record. Old saves open the grill's.
+- **The restaurant being played sets the fee, guests and name,** read from its definition through the Miniature Config (`KitchenCompositionRoot.Played`), not from the scene, so a lot sharing the grill's kitchen still owes its own cut.
+- **Opening a kitchen straight from the Editor** plays its own restaurant: if the last campaign owns it, it becomes current (as choosing it on the miniature would); if not, the day is a throwaway that never writes the slot, so another restaurant's record can't be overwritten with this room.
+- **Idle restaurants needed no new code:** saving already replaced only the current record (milestone 1). The new tests play the grill, open Casa Lucía, save, and come back to the grill exactly as left, its fee clock where it stopped.
+- **Generated, not in git:** `Kitchen_CasaLucia.unity` is built when missing, like the office (`GeneratedScenes`), offering to save the open scene first and reopening it after. The build's scene list (`BootOrder`) is the office, then every kitchen.
+
+**To watch when playing:**
+- Whether 2.4 times the guests feels like a busier place or just a harder grill, with two players and with staff.
+- Whether the long walk from the pass to the far tables makes waiters worth hiring, or just feels slow.
+- Whether the sign's lettering reads from the camera when it pulls out to the street.
+
+**Not done yet:** Forno Rosso and the larger lots can be bought but play in the grill's kitchen; the miniature doesn't say so. The "{style}s near you" header reads oddly for "Spanish home cooking".
+
+---
+
 ## 2026-11-10 — Merging milestones 2 and 4: one office campaign, and the starting loan is paid back
 
 **Found when merging** (Main build): the two branches were built side by side and met in two places.

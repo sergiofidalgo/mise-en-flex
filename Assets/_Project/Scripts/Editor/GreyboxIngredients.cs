@@ -17,7 +17,8 @@ namespace Game.Editor
     public static class GreyboxIngredients
     {
         private const string DefinitionFolder = "Assets/_Project/Data/Ingredients";
-        private const string CatalogPath = "Assets/_Project/Data/Items/ItemCatalog.asset";
+        private const string CatalogPath = CatalogAssetPath;
+        public const string CatalogAssetPath = "Assets/_Project/Data/Items/ItemCatalog.asset";
         private const string PrefabFolder = "Assets/_Project/Prefabs/Items";
 
         public sealed class IngredientType

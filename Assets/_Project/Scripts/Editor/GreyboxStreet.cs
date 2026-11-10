@@ -22,26 +22,47 @@ namespace Game.Editor
     {
         public const string MarketConfigPath = "Assets/_Project/Data/Settings/MarketConfig.asset";
 
-        // The building's outer wall faces, from GreyboxKitchenBuilder (floor 8 m by 9 m, walls 0.2 m).
-        private const float BuildingWest = -4.1f;
-        private const float BuildingEast = 4.1f;
-        private const float BuildingSouth = -7.1f;
-        private const float BuildingNorth = 2.1f;
+        // The building's outer wall faces, from the restaurant's KitchenLayout (Phase 6, milestone 3).
+        // Everything outside is placed from them, so a wider or deeper building gets the same street
+        // around it; the grill's (8 m by 9 m, walls 0.2 m: x ±4.1, z −7.1…2.1) gives the original values.
+        private static float BuildingWest = -4.1f;
+        private static float BuildingEast = 4.1f;
+        private static float BuildingSouth = -7.1f;
+        private static float BuildingNorth = 2.1f;
 
         // Where chefs can walk outside, and the road beyond the kerb. Kept in step with
         // FramingCamera's grounds, which the builder sets from these.
-        private const float GroundsWest = -14f;
-        private const float GroundsEast = 10f;
-        private const float GroundsNorth = 3f;
-        private const float Kerb = -10.3f;
-        private const float RoadSouth = -17f;
-        private const float PlazaEast = -4.6f;
-        private const float ParkingWest = 4.6f;
+        private static float GroundsWest => BuildingWest - 9.9f;
+        private static float GroundsEast => BuildingEast + 5.9f;
+        private static float GroundsNorth => BuildingNorth + 0.9f;
+        private static float Kerb => BuildingSouth - 3.2f;
+        private static float RoadSouth => Kerb - 6.7f;
+        private static float PlazaEast => BuildingWest - 0.5f;
+        private static float ParkingWest => BuildingEast + 0.5f;
 
         // The stalls stand on the plaza facing the pavement, so from the overhead camera the chef
         // buying stands in front of the counter, never under its canopy. The butcher is about 10 m
         // from the usual door: a few seconds each way at a walk, the cost of going out in service.
-        private static readonly Vector2[] StallSpots = { new Vector2(-7.6f, -4.6f), new Vector2(-11.2f, -4.6f), new Vector2(-9.4f, -0.4f) };
+        private static Vector2[] StallSpots => new[]
+        {
+            new Vector2(BuildingWest - 3.5f, BuildingSouth + 2.5f), new Vector2(BuildingWest - 7.1f, BuildingSouth + 2.5f),
+            new Vector2(BuildingWest - 5.3f, BuildingNorth - 2.5f),
+        };
+
+        // What each vendor a restaurant's street can have sells, and the produce shown on its counter.
+        // A vendor not listed here (the fishmonger, until fish arrives) stands closed.
+        private static readonly System.Collections.Generic.Dictionary<string, (StallStation.Goods[] Goods, Color[] Produce)> Vendors =
+            new System.Collections.Generic.Dictionary<string, (StallStation.Goods[], Color[])>
+            {
+                ["Butcher"] = (new[] { new StallStation.Goods("Steak", Grade.Cheap), new StallStation.Goods("Steak", Grade.Premium) },
+                    new[] { new Color(0.72f, 0.25f, 0.25f), new Color(0.6f, 0.2f, 0.22f) }),
+                ["Greengrocer"] = (new[]
+                    {
+                        new StallStation.Goods("Onion", Grade.Cheap), new StallStation.Goods("Onion", Grade.Premium),
+                        new StallStation.Goods("Tomato", Grade.Cheap), new StallStation.Goods("Tomato", Grade.Premium),
+                    },
+                    new[] { new Color(0.85f, 0.75f, 0.5f), new Color(0.82f, 0.3f, 0.22f), new Color(0.45f, 0.65f, 0.3f) }),
+            };
         private static readonly Vector3 CounterSize = new Vector3(1.8f, 0.9f, 0.8f);
         private const float CanopyHeight = 2.3f;
         private const float StationBlockerHeight = 2.2f;
@@ -57,20 +78,26 @@ namespace Game.Editor
         private static readonly Color Pole = new Color(0.55f, 0.55f, 0.58f);
         private static readonly Color Bin = new Color(0.2f, 0.36f, 0.3f);
         private static readonly Color Wood = new Color(0.45f, 0.32f, 0.22f);
-        private static readonly Color[] Canopies = { new Color(0.3f, 0.45f, 0.75f), new Color(0.75f, 0.3f, 0.27f), new Color(0.38f, 0.6f, 0.35f) };
+        private static Color[] Canopies = { new Color(0.3f, 0.45f, 0.75f), new Color(0.75f, 0.3f, 0.27f), new Color(0.38f, 0.6f, 0.35f) };
         private static readonly Color[] HouseWalls = { new Color(0.55f, 0.62f, 0.75f), new Color(0.6f, 0.62f, 0.64f), new Color(0.7f, 0.66f, 0.6f) };
         private static readonly Color[] CarPaints = { new Color(0.35f, 0.5f, 0.6f), new Color(0.85f, 0.8f, 0.72f), new Color(0.7f, 0.3f, 0.25f), new Color(0.3f, 0.32f, 0.38f) };
 
         /// <summary>Builds the street and the doorway into the scene being built. Run after the walls and the street door exist.</summary>
-        public static void Build(Camera camera)
+        public static void Build(Camera camera, KitchenLayout layout, KitchenCompositionRoot root)
         {
+            BuildingWest = layout.BuildingWest;
+            BuildingEast = layout.BuildingEast;
+            BuildingSouth = layout.BuildingSouth;
+            BuildingNorth = layout.BuildingNorth;
+            Canopies = layout.Canopies;
+
             var market = GreyboxAssets.EnsureAsset<MarketConfig>(MarketConfigPath);
             var street = new GameObject("Street").transform;
 
             Ground(street);
             Road(street);
-            Plaza(street, market);
-            Parking(street);
+            Plaza(street, market, layout.Vendors);
+            Parking(street, root);
             Backdrop(street);
             Bounds(street);
             Doorway();
@@ -88,7 +115,12 @@ namespace Game.Editor
         // restaurant's floor, so it never shows through it.
         private static void Ground(Transform street)
         {
-            var grass = Box(street, "Grass", Mat("StreetGrass", Grass), new Vector3(-2f, -0.03f, -4f), new Vector3(60f, 0.02f, 40f));
+            // 60 m by 40 m around the grill's building, and as much bigger as a bigger building is.
+            var extraWidth = BuildingEast - BuildingWest - 8.2f;
+            var extraDepth = BuildingNorth - BuildingSouth - 9.2f;
+            var grass = Box(street, "Grass", Mat("StreetGrass", Grass),
+                new Vector3((GroundsWest + GroundsEast) / 2f, -0.03f, (BuildingSouth + BuildingNorth) / 2f - 1.5f),
+                new Vector3(60f + extraWidth, 0.02f, 40f + extraDepth));
             grass.AddComponent<BoxCollider>();
 
             // The brick pavement along the front, from the plaza to the parking lot.
@@ -126,21 +158,21 @@ namespace Game.Editor
         }
 
         // The plaza with the stalls, left of the restaurant.
-        private static void Plaza(Transform street, MarketConfig market)
+        // The restaurant's vendors in its definition's order, one per stall spot. A vendor with nothing
+        // to sell yet stands closed under its own name; a spot with no vendor is closed, a place for a
+        // future cuisine's stall.
+        private static void Plaza(Transform street, MarketConfig market, string[] vendors)
         {
             Slab(street, "Plaza", Paving, GroundsWest, PlazaEast, BuildingSouth, GroundsNorth);
 
-            Stall(street, "Stall_Butcher", 0, market, new[] { new StallStation.Goods("Steak", Grade.Cheap), new StallStation.Goods("Steak", Grade.Premium) },
-                new[] { new Color(0.72f, 0.25f, 0.25f), new Color(0.6f, 0.2f, 0.22f) });
-            Stall(street, "Stall_Greengrocer", 1, market,
-                new[]
-                {
-                    new StallStation.Goods("Onion", Grade.Cheap), new StallStation.Goods("Onion", Grade.Premium),
-                    new StallStation.Goods("Tomato", Grade.Cheap), new StallStation.Goods("Tomato", Grade.Premium),
-                },
-                new[] { new Color(0.85f, 0.75f, 0.5f), new Color(0.82f, 0.3f, 0.22f), new Color(0.45f, 0.65f, 0.3f) });
-            // The third canopy: up but closed, a place for a future cuisine's stall.
-            Stall(street, "Stall_Closed", 2, null, null, null);
+            for (var i = 0; i < StallSpots.Length; i++)
+            {
+                var vendor = vendors != null && i < vendors.Length ? vendors[i] : null;
+                if (vendor != null && Vendors.TryGetValue(vendor, out var stock))
+                    Stall(street, $"Stall_{vendor}", i, market, stock.Goods, stock.Produce);
+                else
+                    Stall(street, vendor != null ? $"Stall_{vendor}" : "Stall_Closed", i, null, null, null);
+            }
         }
 
         private static void Stall(Transform street, string name, int index, MarketConfig market, StallStation.Goods[] goods, Color[] produce)
@@ -216,18 +248,18 @@ namespace Game.Editor
         }
 
         // Right of the restaurant: the parking lot, the trash container against the side wall, and the sign.
-        private static void Parking(Transform street)
+        private static void Parking(Transform street, KitchenCompositionRoot root)
         {
             Slab(street, "Parking", Asphalt, ParkingWest, GroundsEast, BuildingSouth, GroundsNorth);
             var line = Mat("StreetParkingLine", ParkingLine);
-            for (var z = -6f; z <= 2f; z += 2.6f)
+            for (var z = BuildingSouth + 1.1f; z <= BuildingNorth - 0.1f; z += 2.6f)
                 Box(street, "ParkingLine", line, new Vector3((ParkingWest + 1.5f + GroundsEast) / 2f, 0.006f, z), new Vector3(GroundsEast - ParkingWest - 1.5f, 0.004f, 0.08f));
             var parked = Car(street, CarPaints[1]);
-            parked.localPosition = new Vector3(8f, 0f, -4.7f);
+            parked.localPosition = new Vector3(GroundsEast - 2f, 0f, BuildingSouth + 2.4f);
             parked.localRotation = Quaternion.Euler(0f, 90f, 0f);
 
             // The one trash container (the mockup's recycling area is too much, the user's note).
-            var bin = Box(street, "TrashContainer", Mat("StreetTrash", Bin), new Vector3(BuildingEast + 0.75f, 0.65f, -1.2f), new Vector3(1.2f, 1.3f, 1.8f));
+            var bin = Box(street, "TrashContainer", Mat("StreetTrash", Bin), new Vector3(BuildingEast + 0.75f, 0.65f, BuildingNorth - 3.3f), new Vector3(1.2f, 1.3f, 1.8f));
             bin.AddComponent<BoxCollider>();
             Box(bin.transform, "Lid", Mat("StreetTrashLid", new Color(0.15f, 0.27f, 0.22f)), new Vector3(0f, 0.52f, 0f), new Vector3(1.04f, 0.06f, 1.04f));
 
@@ -235,27 +267,59 @@ namespace Game.Editor
             Box(street, "SignPole", Mat("StreetSignPole", new Color(0.18f, 0.16f, 0.15f)), new Vector3(BuildingEast + 0.8f, 1.8f, BuildingSouth - 1.2f), new Vector3(0.14f, 3.6f, 0.14f))
                 .AddComponent<BoxCollider>();
             Box(street, "SignBoard", Mat("StreetSignBoard", new Color(0.95f, 0.9f, 0.8f)), new Vector3(BuildingEast + 0.8f, 3.6f, BuildingSouth - 1.2f), new Vector3(1.8f, 1f, 0.12f));
-            Box(street, "SignMark", Mat("StreetSignMark", new Color(0.5f, 0.22f, 0.15f)), new Vector3(BuildingEast + 0.8f, 3.6f, BuildingSouth - 1.27f), new Vector3(0.7f, 0.5f, 0.02f));
+            // A rule between the restaurant's name and its style, which RestaurantSignView letters in
+            // (Phase 6, milestone 3: each restaurant's own name on its sign).
+            Box(street, "SignMark", Mat("StreetSignMark", new Color(0.5f, 0.22f, 0.15f)), new Vector3(BuildingEast + 0.8f, 3.58f, BuildingSouth - 1.27f), new Vector3(1.4f, 0.03f, 0.02f));
+            SignLettering(street, root, new Vector3(BuildingEast + 0.8f, 3.6f, BuildingSouth - 1.28f));
+        }
+
+        // The name in large letters above the rule, the style in small ones below it, facing the
+        // street (and the camera). Written at runtime from the restaurant being played.
+        private static void SignLettering(Transform street, KitchenCompositionRoot root, Vector3 face)
+        {
+            var sign = new GameObject("SignLettering").transform;
+            sign.SetParent(street, false);
+            sign.localPosition = face;
+            TMPro.TextMeshPro Line(string name, float y, float height, string font, Color colour)
+            {
+                var label = new GameObject(name).AddComponent<TMPro.TextMeshPro>();
+                label.transform.SetParent(sign, false);
+                label.transform.localPosition = new Vector3(0f, y, 0f);
+                label.font = MenuArt.Font(font);
+                label.color = colour;
+                label.alignment = TMPro.TextAlignmentOptions.Center;
+                label.textWrappingMode = TMPro.TextWrappingModes.NoWrap;
+                label.enableAutoSizing = true;
+                label.fontSizeMin = 0.5f;
+                label.fontSizeMax = 4f;
+                label.rectTransform.sizeDelta = new Vector2(1.6f, height);
+                return label;
+            }
+            var view = new SerializedObject(sign.gameObject.AddComponent<Game.Presentation.RestaurantSignView>());
+            view.FindProperty("_root").objectReferenceValue = root;
+            view.FindProperty("_name").objectReferenceValue = Line("Name", 0.2f, 0.4f, "Inter-Bold", new Color(0.5f, 0.22f, 0.15f));
+            view.FindProperty("_style").objectReferenceValue = Line("Style", -0.24f, 0.24f, "Inter-Bold", new Color(0.3f, 0.26f, 0.22f));
+            view.ApplyModifiedPropertiesWithoutUndo();
         }
 
         // Behind the restaurant: a fence, houses and trees. Backdrop only.
         private static void Backdrop(Transform street)
         {
             Box(street, "BackFence", Mat("StreetFence", Wood), new Vector3((GroundsWest + GroundsEast) / 2f, 0.5f, GroundsNorth + 0.2f), new Vector3(GroundsEast - GroundsWest, 1f, 0.08f));
-            for (var i = 0; i < 4; i++)
+            for (var x = GroundsWest + 2f; x <= GroundsEast + 0.5f; x += 7.5f)
             {
-                var x = -12f + i * 7.5f;
+                var i = Mathf.RoundToInt((x - GroundsWest - 2f) / 7.5f);
                 var walls = Mat($"StreetHouse_{i % HouseWalls.Length}", HouseWalls[i % HouseWalls.Length]);
-                Box(street, "House", walls, new Vector3(x, 1.6f, 9f), new Vector3(5.5f, 3.2f, 4.5f));
-                Box(street, "Roof", Mat("StreetRoof", new Color(0.36f, 0.3f, 0.3f)), new Vector3(x, 3.4f, 9f), new Vector3(5.9f, 0.4f, 4.9f));
+                Box(street, "House", walls, new Vector3(x, 1.6f, BuildingNorth + 6.9f), new Vector3(5.5f, 3.2f, 4.5f));
+                Box(street, "Roof", Mat("StreetRoof", new Color(0.36f, 0.3f, 0.3f)), new Vector3(x, 3.4f, BuildingNorth + 6.9f), new Vector3(5.9f, 0.4f, 4.9f));
             }
             var leaves = Mat("StreetLeaves", new Color(0.3f, 0.45f, 0.3f));
             var trunk = Mat("StreetTrunk", Wood);
-            foreach (var x in new[] { -15.5f, -6f, 5f, 12f })
+            foreach (var x in new[] { GroundsWest - 1.5f, BuildingWest - 1.9f, BuildingEast + 0.9f, GroundsEast + 2f })
             {
-                Box(street, "Trunk", trunk, new Vector3(x, 0.9f, 5.5f), new Vector3(0.25f, 1.8f, 0.25f));
+                Box(street, "Trunk", trunk, new Vector3(x, 0.9f, BuildingNorth + 3.4f), new Vector3(0.25f, 1.8f, 0.25f));
                 var crown = GreyboxAssets.CreatePrimitive(PrimitiveType.Sphere, "Crown", street, leaves, keepCollider: false);
-                crown.transform.localPosition = new Vector3(x, 2.4f, 5.5f);
+                crown.transform.localPosition = new Vector3(x, 2.4f, BuildingNorth + 3.4f);
                 crown.transform.localScale = Vector3.one * 2f;
             }
         }
