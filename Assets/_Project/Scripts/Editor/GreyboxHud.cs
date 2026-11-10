@@ -158,12 +158,16 @@ namespace Game.Editor
             campaign.ApplyModifiedPropertiesWithoutUndo();
 
             // Tap Menu: the pause menu, with the realism settings (decision 2026-11-10).
-            PauseMenuBuilder.Add(style, settings, root, root.GetComponent<DayLoop>());
+            var pause = PauseMenuBuilder.Add(style, settings, root, root.GetComponent<DayLoop>());
 
-            var money = new SerializedObject(hud.AddComponent<MoneyHud>());
-            money.FindProperty("_canvas").objectReferenceValue = hud.GetComponent<RectTransform>();
+            // The campaign's money, top right through every phase (decision 2026-11-10), on its own canvas.
+            var moneyCard = new GameObject("MoneyCard");
+            var source = new SerializedObject(moneyCard.AddComponent<KitchenMoneySource>());
+            source.FindProperty("_root").objectReferenceValue = root;
+            source.ApplyModifiedPropertiesWithoutUndo();
+            var money = new SerializedObject(moneyCard.AddComponent<MoneyCardHud>());
             money.FindProperty("_style").objectReferenceValue = style;
-            money.FindProperty("_root").objectReferenceValue = root;
+            money.FindProperty("_pause").objectReferenceValue = pause;
             money.ApplyModifiedPropertiesWithoutUndo();
 
             var reviews = new SerializedObject(hud.AddComponent<ReviewPopupHud>());

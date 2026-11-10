@@ -74,8 +74,6 @@ namespace Game.Editor
         private static int UpdateOpenScenes()
         {
             var count = 0;
-            foreach (var money in Object.FindObjectsByType<MoneyHud>(FindObjectsInactive.Include, FindObjectsSortMode.None))
-                count += Update(money, so => Raise(so, "_fontSize", 32f));
             foreach (var status in Object.FindObjectsByType<ServiceStatusHud>(FindObjectsInactive.Include, FindObjectsSortMode.None))
                 count += Update(status, so =>
                 {
