@@ -439,29 +439,78 @@ namespace Game.Editor
             Point(light, "RingGlow", new Vector3(0f, 1.6f, 0.4f), new Color(1f, 0.97f, 0.92f), 3.5f, 2.6f);
             HeartStream(light, new Vector3(0f, 1.95f, 0f), 6f);
 
-            // Delivery riders (the user's note, 2026-11-10: he liked them; keep them in view beside the
-            // menu): three scooters at the kerb in front of the restaurant, one rider checking the
-            // next order on their phone, one waiting by the door, one to and fro between the door
-            // and their scooter, each with a bag on their back.
-            var orange = new Color(0.95f, 0.45f, 0.25f);
-            var teal = new Color(0.25f, 0.7f, 0.65f);
-            var yellow = new Color(0.98f, 0.8f, 0.25f);
-            Color[] paints = { new Color(0.35f, 0.75f, 0.55f), new Color(0.85f, 0.3f, 0.25f), new Color(0.3f, 0.45f, 0.8f) };
-            Color[] bags = { orange, teal, yellow };
-            for (var r = 0; r < 3; r++)
-                Kit.Scooter(entrance, new Vector3(1.9f + r * 1.15f, 0.02f, NorthKerb - 0.75f - (r % 2) * 0.15f), 78f + r * 9f, paints[r], bags[r]);
-            var checking = PhoneUp(entrance, new Vector3(2.3f, 0.15f, NorthKerb + 1.0f), 195f, PhoneUse.Scroll);
-            if (checking != null)
-                Kit.DeliveryBag(checking.Waist, new Vector3(0f, 0.02f, -0.33f), 180f, orange);
-            var waiting = Figure(entrance, "Rider", new Vector3(3.2f, 0.15f, TowerFace - 1.5f), 150f);
-            if (waiting != null)
-                Kit.DeliveryBag(waiting.Waist, new Vector3(0f, 0.02f, -0.33f), 180f, teal);
-            var runner = Figure(entrance, "Rider", new Vector3(3.0f, 0.15f, NorthKerb + 0.7f), 0f);
-            if (runner != null)
+            Couriers(entrance);
+        }
+
+        private static readonly Color CourierLime = new Color(0.55f, 0.86f, 0.22f);
+
+        // Delivery couriers (the user's notes, 2026-11-10: a detail he liked; in view beside the menu;
+        // two scooters, a little apart; the couriers, or at least their bags, plain to see). They wear
+        // one uniform so they read as couriers at a glance: a lime cap and a big lime bag with a white
+        // patch, on a dark jacket. One sits on a scooter checking the next order, one stands with
+        // their back to us, the bag square on, and one carries orders between the door and the kerb.
+        private static void Couriers(Transform entrance)
+        {
+            var patch = SignArt.CourierPatch(new Color(0.16f, 0.42f, 0.14f));
+            var first = Kit.Scooter(entrance, new Vector3(3.2f, 0.02f, NorthKerb - 0.85f), 72f, new Color(0.93f, 0.93f, 0.9f), CourierLime, withBox: false);
+            Kit.Scooter(entrance, new Vector3(5.2f, 0.02f, NorthKerb - 0.6f), 104f, new Color(0.22f, 0.24f, 0.28f), CourierLime, patch: patch);
+
+            // On the first scooter's seat (0.38 behind its middle, 0.745 up), scrolling.
+            var seated = Courier(first, new Vector3(0f, 0f, -0.36f), 0f, patch);
+            if (seated != null)
             {
-                Kit.DeliveryBag(runner.Waist, new Vector3(0f, 0.02f, -0.33f), 180f, yellow);
-                Walk(runner.Figure.parent, new Vector3(3.0f, 0.15f, NorthKerb + 0.7f), new Vector3(2.9f, 0.15f, TowerFace - 2.6f), 1.2f, 2.5f, 0.2f);
+                Sit(seated, 0.745f);
+                seated.RightShoulder.localRotation = Quaternion.Euler(-62f, 0f, -8f);
+                var phone = Phone(seated.RightShoulder, 0.1f, Quaternion.Euler(42f, 0f, 0f));
+                Point(phone, "ScreenGlow", new Vector3(0f, 0f, -0.2f), new Color(0.75f, 0.85f, 1f), 1.4f, 1.2f);
+                Wobble(seated.RightShoulder.gameObject, Oscillate.Shape.Pulse, Vector3.zero, new Vector3(-5f, 0f, 0f), 1.4f, 0.3f);
+                MakeDynamic(seated.RightShoulder.gameObject);
             }
+            // Waiting between the scooters, looking at the restaurant: their bag faces the street.
+            var waiting = Courier(entrance, new Vector3(4.2f, 0.15f, NorthKerb + 0.9f), 8f, patch);
+            if (waiting != null)
+                Breathe(waiting.Figure.gameObject);
+            // To and fro with the orders.
+            var runner = Courier(entrance, new Vector3(5.6f, 0.15f, NorthKerb + 0.6f), 0f, patch);
+            if (runner != null)
+                Walk(runner.Figure.parent, new Vector3(5.65f, 0.15f, NorthKerb + 0.5f), new Vector3(5.6f, 0.15f, TowerFace - 2.3f), 1.25f, 2.2f, 0.2f);
+        }
+
+        // A courier: the uniform and the bag, on anyone.
+        private static CharacterArt.Rig Courier(Transform parent, Vector3 at, float facing, Material patch)
+        {
+            var person = new GameObject("Courier").transform;
+            person.SetParent(parent, false);
+            person.localPosition = at;
+            person.localRotation = Quaternion.Euler(0f, facing, 0f);
+            var look = new CharacterArt.Look { Name = "Courier" };
+            Dress(look, 0f);
+            look.Top = new Color(0.2f, 0.22f, 0.26f);
+            look.Bottom = new Color(0.16f, 0.17f, 0.2f);
+            look.Garment = CharacterArt.Garment.Jacket;
+            look.Under = CourierLime;
+            look.Hat = CharacterArt.HatKind.Cap;
+            look.HatColor = CourierLime;
+            look.HatAccent = new Color(0.16f, 0.42f, 0.14f);
+            look.Scarf = false;
+            var rig = CharacterArt.Build(person, look, swingArms: true);
+            if (rig == null)
+            {
+                Object.DestroyImmediate(person.gameObject);
+                return null;
+            }
+            Kit.DeliveryBag(rig.Waist, new Vector3(0f, -0.02f, -0.37f), 180f, CourierLime, 1.3f, patch);
+            MakeDynamic(person.gameObject);
+            return rig;
+        }
+
+        // Sits a standing figure on a seat `seatHeight` up from where it stands: legs out in front, no walk.
+        private static void Sit(CharacterArt.Rig rig, float seatHeight)
+        {
+            if (rig.Gait != null)
+                Object.DestroyImmediate(rig.Gait);
+            rig.Figure.localPosition = new Vector3(0f, seatHeight + 0.07f - CharacterArt.Hip.y, 0f);
+            rig.LeftHip.localRotation = rig.RightHip.localRotation = Quaternion.Euler(-88f, 0f, 0f);
         }
 
         // The street in front of the tower, closed to traffic (the user's notes, 2026-11-10): a few
@@ -497,7 +546,9 @@ namespace Game.Editor
             // Selfies where the camera passes, the tower behind them (they face it coming), and in the road.
             SelfiePair(market, new Vector3(0.4f, 0.02f, -33.4f), 190f);
             SelfiePair(market, new Vector3(4.6f, 0.02f, -39.4f), 170f);
-            SelfiePair(market, new Vector3(-0.6f, 0.02f, -23f), 170f);
+            // This pair stands back on the tower's kerb, left of where the menu hangs: in the road they
+            // were close enough for the menu to cut them off at the chest (the user's note, 2026-11-10).
+            SelfiePair(market, new Vector3(-4.65f, 0.15f, NorthKerb + 1.9f), 172f);
             // A portrait: one posing with the restaurant behind, a friend taking it.
             var portrait = new GameObject("Portrait").transform;
             portrait.SetParent(market, false);
@@ -659,10 +710,7 @@ namespace Game.Editor
             var rig = Figure(parent, name, at, facing);
             if (rig == null)
                 return null;
-            if (rig.Gait != null)
-                Object.DestroyImmediate(rig.Gait);
-            rig.Figure.localPosition = new Vector3(0f, seatHeight + 0.07f - CharacterArt.Hip.y, 0f);
-            rig.LeftHip.localRotation = rig.RightHip.localRotation = Quaternion.Euler(-88f, 0f, 0f);
+            Sit(rig, seatHeight);
             return rig;
         }
 
@@ -715,7 +763,8 @@ namespace Game.Editor
             // there would peek out from behind it (seen in the captures), so those phones get hearts.
             var where = _streetRoot != null ? _streetRoot.InverseTransformPoint(owner.position) : Vector3.zero;
             var underMenu = where.x < 1.2f && where.z > PushTo - 2f && where.z < TowerFace;
-            switch (underMenu ? 0 : (k / 4) % 3)
+            // On the tower's floors too: the cards live in the street's own space, which isn't there.
+            switch (underMenu || _indoors ? 0 : (k / 4) % 3)
             {
                 case 0:
                     HeartStream(owner, at, period);
@@ -724,7 +773,7 @@ namespace Game.Editor
                     PopCards(owner, at, period, LikePill(k), RatingPill(k));
                     break;
                 default:
-                    PopCards(owner, at, period + 2f, ReviewBubble(k), ReviewBubble(k + 3));
+                    PopCards(owner, at, period + 2f, ReviewBubble(k), PhotoPost(k), ReviewBubble(k + 3));
                     break;
             }
         }
@@ -827,6 +876,20 @@ namespace Game.Editor
             return bubble.gameObject;
         }
 
+        // A photo post: a polaroid of a plate, its tag and its likes underneath (the one that used to
+        // be stuck to the menu's sign).
+        private static readonly string[] PhotoTags = { "#mediumrare", "#chefskiss", "#nonotes", "#datenight" };
+
+        private static GameObject PhotoPost(int k)
+        {
+            var post = new GameObject("PhotoPost").transform;
+            Sign(post, "Photo", SignArt.PhotoPost(), Vector3.zero, new Vector2(0.94f, 1.1f), 10);
+            Label(post, PhotoTags[k % PhotoTags.Length], new Vector3(-0.1f, -0.41f, -0.01f), 1.15f, new Color(0.16f, 0.09f, 0.12f), 12);
+            Sign(post, "Heart", SignArt.SocialIcon(SignArt.Social.Heart), new Vector3(0.33f, -0.41f, -0.005f), new Vector2(0.15f, 0.15f), 11);
+            post.localRotation = Quaternion.Euler(0f, 0f, k % 2 == 0 ? 5f : -4f);
+            return post.gameObject;
+        }
+
         // A flat sign piece, drawn in order (they're all see-through, so depth can't sort them).
         private static void Sign(Transform parent, string name, Material material, Vector3 at, Vector2 size, int order)
         {
@@ -863,8 +926,10 @@ namespace Game.Editor
                 return;
             var chef = new GameObject("OpeningChef").transform;
             chef.SetParent(cab, false);
-            chef.localPosition = new Vector3(0.3f, 0f, -0.3f);
-            chef.localRotation = Quaternion.Euler(0f, 168f, 0f); // looking out over the street
+            // On the cab's east side: in the camera's last frame that's just clear of the menu's edge,
+            // so the chef shows waiting beside it.
+            chef.localPosition = new Vector3(1.2f, 0f, -0.3f);
+            chef.localRotation = Quaternion.Euler(0f, 172f, 0f); // looking out over the street
             var visuals = new GameObject("Visuals").transform;
             visuals.SetParent(chef, false);
             var rig = CharacterArt.BuildChef(visuals, swingArms: true);

@@ -95,7 +95,8 @@ namespace Game.Editor
             so.FindProperty("_semiBold").objectReferenceValue = MenuArt.Font("Inter-SemiBold");
             so.FindProperty("_bold").objectReferenceValue = MenuArt.Font("Inter-Bold");
             so.FindProperty("_serifItalic").objectReferenceValue = MenuArt.Font("Lora-Italic");
-            so.FindProperty("_sign").objectReferenceValue = MenuArt.Sprite("TEX_Menu_Sign");
+            so.FindProperty("_logo").objectReferenceValue = MenuArt.Sprite("TEX_Menu_Logo");
+            so.FindProperty("_heart").objectReferenceValue = MenuArt.Sprite("TEX_Menu_Heart");
             so.FindProperty("_forkcastLogo").objectReferenceValue = MenuArt.Sprite("TEX_Menu_ForkcastLogo");
             so.FindProperty("_searchIcon").objectReferenceValue = MenuArt.Sprite("TEX_Menu_IconSearch");
             so.FindProperty("_bellIcon").objectReferenceValue = MenuArt.Sprite("TEX_Menu_IconBell");

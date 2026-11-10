@@ -151,7 +151,7 @@ namespace Game.Editor
             for (var i = 0; i < flashes.Length; i++)
             {
                 var so = new SerializedObject(flashes[i]);
-                var on = i % 5 == 0;
+                var on = i % 9 == 4; // a flash is lit for a blink every few seconds: few are on in any one frame
                 if (so.FindProperty("_light").objectReferenceValue is Light light)
                     light.enabled = on;
                 if (so.FindProperty("_spark").objectReferenceValue is GameObject spark)
@@ -160,7 +160,8 @@ namespace Game.Editor
                     // A flare faces the camera, which looks north here, at its full size.
                     spark.transform.rotation = Quaternion.identity;
                     var parent = spark.transform.parent;
-                    spark.transform.localScale = Vector3.one * (so.FindProperty("_sparkSize").floatValue / Mathf.Max(1e-4f, parent != null ? parent.lossyScale.x : 1f));
+                    // The size of its parent, whichever way round: some of the tower's rooms are mirrored.
+                    spark.transform.localScale = Vector3.one * (so.FindProperty("_sparkSize").floatValue / Mathf.Max(1e-4f, parent != null ? Mathf.Abs(parent.lossyScale.x) : 1f));
                 }
             }
             var pops = UnityEngine.Object.FindObjectsByType<Game.Presentation.Office.Ambience.SocialPop>(FindObjectsSortMode.InstanceID);

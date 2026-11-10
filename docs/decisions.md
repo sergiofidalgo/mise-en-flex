@@ -4,6 +4,35 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-10 — The opening, fifth pass: a cleaner sign that moves, the menu off the edge, couriers in uniform, floors that differ
+
+**User's notes after the fourth pass:**
+- With pops round the scene, the steak polaroid and the "chef's kiss" post no longer need to sit on the logo; they could pop round the scene instead.
+- Re-distribute or resize the logo so it fits its space more naturally.
+- Keep REC and its dot; the dot could blink, and every 2 or 3 seconds the like count could animate and change.
+- Push the menu a little to the right, or the people behind it to the left, so they're in the background and still visible, not oddly cropped.
+- Three parked scooters are too many: two, a bit more spread. The delivery rider, or at least the backpack, should be more noticeable.
+- The floors each have their own scene but still feel repetitive: a plant in exactly the same place on every floor, groups spread too evenly, not enough hustle at times. And the glass may be too transparent.
+
+**What we did (our calls within those notes):**
+- **The sign is drawn in code** instead of being one picture, so its parts can move and nothing is stuck to it:
+  - the board is as wide as the list under it, with the logo 8% bigger than in the mockup and centred;
+  - the REC light is on for a second and off for half;
+  - the like count starts at 12.4k and goes up by 100 to 300 every 2 to 3 seconds, with a small bounce;
+  - the logo and the heart are cut from the Art Director's sign picture by `blender/cut_menu_sign.py`. `TEX_Menu_Sign.png` stays in the project as their source.
+- **The menu stands 72 px in from the left edge** (the sign and the list together), and forkcast and the pages move 40 px right to keep clear of it. The selfie pair that stood in the road under the menu now stands back on the tower's kerb, in the strip left of the menu.
+- **Player 1's chef stands on the lift's east side,** which is just clear of the menu's edge, so the chef shows waiting beside it.
+- **Couriers:** two scooters instead of three, 2 m apart. One uniform, so they read as couriers at once: a lime cap and a lime bag a third bigger than before, with a white chevron patch on its back and sides, on a dark jacket. One sits on a scooter with their phone, one stands with their back to the street, one walks orders to and from the door. Lime was chosen because it's none of the four player colours.
+- **The photo post** (a polaroid of a plate, with a tag) joins the cards that pop over phones. The review text itself doesn't: text in the world is built into the scene and couldn't follow the language setting, so reviews there stay a name and stars.
+- **Floors:** each floor throws its own dice (seeded by its number, so a rebuild gives the same tower): mirrored or not, how many desks are taken, who stands over whom, one of seven wings, how many walk the window and how fast, where the plants are, and whether it has gone home for the night. Listed in `docs/opening-flow.md`.
+- **Glass:** a new shader for the panes over the real rooms (`SH_PaneGlass`): a 24% cool tint and pale diagonal reflections laid out in world space, so they run on from pane to pane instead of repeating in each. The street floor keeps the clearer glass.
+
+**A capture bug found on the way:** the stills freeze some camera flashes "on", and sized each flare by its parent's scale. Under a mirrored room that scale is negative, which blew one flare up to kilometres and washed the whole frame white. The game itself already used the absolute scale; the capture tool now does too.
+
+**Reason:** the user's notes, one by one.
+
+---
+
 ## 2026-11-10 — Customers roll a hat, and some have long hair
 
 **User's call:** the in-game customers get the modelled hats and the long hair too ("Yes, do it", after the opening's fourth pass).

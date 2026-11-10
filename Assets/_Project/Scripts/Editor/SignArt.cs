@@ -201,6 +201,80 @@ namespace Game.Editor
             return Transparent(key, texture, false);
         }
 
+        /// <summary>
+        /// The couriers' mark, for their bags and scooter boxes: a white patch with rounded corners and
+        /// two chevrons in <paramref name="colour"/>, the way "fast forward" is drawn. Unlit, so it
+        /// shows at night like the reflective patch on a real delivery bag.
+        /// </summary>
+        public static Material CourierPatch(Color colour)
+        {
+            var key = "Courier_" + ColorUtility.ToHtmlStringRGB(colour);
+            const int size = 96;
+            var white = new Color(0.98f, 0.98f, 0.95f);
+            var texture = Texture(key, size, size, (px, py) =>
+            {
+                var p = new Vector2((px + 0.5f) / size - 0.5f, (py + 0.5f) / size - 0.5f);
+                // A rounded square.
+                var corner = new Vector2(Mathf.Max(Mathf.Abs(p.x) - 0.36f, 0f), Mathf.Max(Mathf.Abs(p.y) - 0.36f, 0f));
+                if (corner.magnitude > 0.12f)
+                    return new Color(white.r, white.g, white.b, 0f);
+                var mark = false;
+                foreach (var x in new[] { -0.2f, 0.06f })
+                {
+                    mark |= Segment(p, new Vector2(x, 0.24f), new Vector2(x + 0.2f, 0f)) < 0.06f;
+                    mark |= Segment(p, new Vector2(x, -0.24f), new Vector2(x + 0.2f, 0f)) < 0.06f;
+                }
+                return mark ? colour : white;
+            });
+            return Transparent(key, texture, false);
+        }
+
+        /// <summary>
+        /// A photo post, as popped over a phone: a polaroid of a plate (a grilled steak, fries, two
+        /// peas), with room under the picture for a caption. It's the picture that used to be stuck to
+        /// the menu's sign (the user's call, 2026-11-10: such things pop round the scene instead).
+        /// </summary>
+        public static Material PhotoPost()
+        {
+            const string key = "PhotoPost";
+            const int width = 128, height = 150;
+            var paper = new Color(0.99f, 0.97f, 0.92f);
+            var table = new Color(0.36f, 0.21f, 0.15f);
+            var plate = new Color(0.95f, 0.93f, 0.88f);
+            var rim = new Color(0.86f, 0.83f, 0.77f);
+            var steak = new Color(0.56f, 0.2f, 0.14f);
+            var grill = new Color(0.3f, 0.1f, 0.08f);
+            var texture = Texture(key, width, height, (px, py) =>
+            {
+                // The paper, a line darker at its edge; the picture inside, leaving the foot for a caption.
+                if (px < 2 || py < 2 || px >= width - 2 || py >= height - 2)
+                    return new Color(0.8f, 0.76f, 0.7f);
+                if (px < 9 || px >= width - 9 || py < 40 || py >= height - 9)
+                    return paper;
+                var p = new Vector2((px - width / 2f) / 110f, (py - 95f) / 110f); // the picture's middle
+                var onPlate = (p.x * p.x) / (0.4f * 0.4f) + (p.y * p.y) / (0.34f * 0.34f);
+                if (onPlate > 1f)
+                    return table;
+                if (onPlate > 0.72f)
+                    return plate;
+                // The steak, with three grill marks across it.
+                var s = p - new Vector2(-0.04f, 0.03f);
+                if ((s.x * s.x) / (0.2f * 0.2f) + (s.y * s.y) / (0.13f * 0.13f) < 1f)
+                {
+                    for (var k = -1; k <= 1; k++)
+                        if (Segment(s, new Vector2(-0.12f, k * 0.055f - 0.03f), new Vector2(0.1f, k * 0.055f + 0.03f)) < 0.012f)
+                            return grill;
+                    return steak;
+                }
+                if (Segment(p, new Vector2(0.12f, -0.12f), new Vector2(0.27f, -0.05f)) < 0.022f || Segment(p, new Vector2(0.1f, -0.17f), new Vector2(0.25f, -0.13f)) < 0.022f)
+                    return new Color(0.96f, 0.8f, 0.4f); // fries
+                if ((p - new Vector2(-0.22f, -0.16f)).magnitude < 0.035f || (p - new Vector2(-0.15f, -0.2f)).magnitude < 0.035f)
+                    return new Color(0.45f, 0.7f, 0.3f); // peas
+                return rim;
+            });
+            return Transparent(key, texture, false);
+        }
+
         /// <summary>A capsule in <paramref name="colour"/> with a dark outline: the back of a like or rating pill (3 : 1).</summary>
         public static Material Pill(Color colour)
         {

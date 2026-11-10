@@ -221,7 +221,11 @@ namespace Game.Editor
 
         // ---- Scooters and bags ------------------------------------------------------------------------
 
-        public static Transform Scooter(Transform parent, Vector3 at, float yaw, Color paint, Color box)
+        /// <summary>
+        /// A delivery scooter, its front towards local +z. With <paramref name="patch"/>, the couriers'
+        /// mark shows on its box; without a <paramref name="withBox"/>, the rider carries the bag instead.
+        /// </summary>
+        public static Transform Scooter(Transform parent, Vector3 at, float yaw, Color paint, Color box, bool withBox = true, Material patch = null)
         {
             var scooter = Group(parent, "Scooter", at, yaw);
             Part(scooter, Street, "ScooterBody", Toon($"KitScooter_{ColorUtility.ToHtmlStringRGB(paint)}", paint));
@@ -229,15 +233,47 @@ namespace Game.Editor
             Part(scooter, Street, "ScooterTyres", Toon("CityTyre", new Color(0.08f, 0.08f, 0.09f)));
             Part(scooter, Street, "ScooterTrim", Toon("KitSteel", Steel));
             Part(scooter, Street, "ScooterLight", Glow("CityHeadlight", new Color(1f, 0.95f, 0.75f)));
+            if (!withBox)
+                return scooter;
             Part(scooter, Street, "ScooterBox", Toon($"KitDelivery_{ColorUtility.ToHtmlStringRGB(box)}", box));
+            if (patch != null)
+            {
+                // On the box's back and both sides (the box is 0.46 wide, 0.44 long, its middle 0.82 behind and 0.98 up).
+                Patch(scooter, patch, new Vector3(0f, 0.98f, -1.045f), 180f, 0.28f);
+                Patch(scooter, patch, new Vector3(0.235f, 0.98f, -0.82f), 90f, 0.28f);
+                Patch(scooter, patch, new Vector3(-0.235f, 0.98f, -0.82f), -90f, 0.28f);
+            }
             return scooter;
         }
 
-        public static void DeliveryBag(Transform parent, Vector3 at, float yaw, Color colour)
+        /// <summary>
+        /// A courier's bag, its straps towards local −z (worn: turn it 180° behind the waist). With
+        /// <paramref name="patch"/>, their mark shows on the back and both sides, so the bag reads as
+        /// a delivery from any side (the user's note, 2026-11-10: the couriers, or at least their
+        /// bags, plain to see). <paramref name="size"/> scales it.
+        /// </summary>
+        public static void DeliveryBag(Transform parent, Vector3 at, float yaw, Color colour, float size = 1f, Material patch = null)
         {
             var bag = Group(parent, "DeliveryBag", at, yaw);
+            bag.localScale = Vector3.one * size;
             Part(bag, Street, "DeliveryBag", Toon($"KitDelivery_{ColorUtility.ToHtmlStringRGB(colour)}", colour));
             Part(bag, Street, "DeliveryBagTrim", Toon("KitSeat", new Color(0.2f, 0.16f, 0.14f)));
+            if (patch == null)
+                return;
+            // The bag is 0.42 wide, 0.3 deep and 0.44 high, standing on its origin.
+            Patch(bag, patch, new Vector3(0f, 0.2f, 0.162f), 0f, 0.27f);
+            Patch(bag, patch, new Vector3(0.213f, 0.2f, 0f), 90f, 0.22f);
+            Patch(bag, patch, new Vector3(-0.213f, 0.2f, 0f), -90f, 0.22f);
+        }
+
+        // A flat mark on a face that looks along `yaw` (0 = local +z): a quad just proud of it.
+        private static void Patch(Transform parent, Material material, Vector3 at, float yaw, float size)
+        {
+            var quad = GreyboxAssets.CreatePrimitive(PrimitiveType.Quad, "Patch", parent, material, keepCollider: false);
+            quad.transform.localPosition = at;
+            quad.transform.localRotation = Quaternion.Euler(0f, yaw + 180f, 0f); // a quad shows from its −z side
+            quad.transform.localScale = new Vector3(size, size, 1f);
+            quad.isStatic = false;
         }
 
         // ---- In hands ------------------------------------------------------------------------------------

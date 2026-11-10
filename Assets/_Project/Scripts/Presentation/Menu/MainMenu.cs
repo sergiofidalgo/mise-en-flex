@@ -150,6 +150,7 @@ namespace Game.Presentation.Menu
         {
             if (!_shown)
                 return;
+            AnimateSign();
             ReadInput();
             if (!_dirty)
                 return;

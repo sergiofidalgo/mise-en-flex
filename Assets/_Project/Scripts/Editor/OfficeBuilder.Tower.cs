@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Game.Presentation.Office;
 using Game.Presentation.Office.Ambience;
 using UnityEditor;
@@ -44,7 +45,7 @@ namespace Game.Editor
             var bronze = Toon("OfficeTowerBronze", new Color(0.45f, 0.32f, 0.2f));
             var louvre = Toon("OfficeTowerLouvre", new Color(0.32f, 0.31f, 0.33f));
             var card = InteriorCards();
-            var clear = PilotArt.EnsureGlassMaterial("OfficeTowerPane", new Color(0.55f, 0.7f, 0.85f, 0.12f));
+            var clear = PaneGlass();
             var ground = -CityDepth;
             var top = -1.4f; // under the penthouse's cornice
 
@@ -163,6 +164,31 @@ namespace Game.Editor
         }
 
         /// <summary>
+        /// The clear glass over the tower's real rooms (SH_PaneGlass): a tint that veils them a little
+        /// and reflections that run across the face (the user's note, 2026-11-10: the windows looked
+        /// too transparent). The street floor keeps its clearer glass, so the restaurant reads.
+        /// </summary>
+        private static Material PaneGlass()
+        {
+            const string path = "Assets/_Project/Art/Materials/MAT_Tower_PaneGlass.mat";
+            var shader = Shader.Find("Game/PaneGlass");
+            var material = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (material == null)
+            {
+                material = new Material(shader);
+                AssetDatabase.CreateAsset(material, path);
+            }
+            material.shader = shader;
+            material.SetColor("_Tint", new Color(0.6f, 0.74f, 0.9f, 0.24f));
+            material.SetColor("_Sheen", new Color(0.86f, 0.92f, 1f, 1f));
+            material.SetFloat("_SheenStrength", 0.2f);
+            material.SetFloat("_Scale", 9f);
+            material.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
+            EditorUtility.SetDirty(material);
+            return material;
+        }
+
+        /// <summary>
         /// A facade's worth of windows for a neighbouring building, drawn on one quad (SH_InteriorCard
         /// with a pitch): rooms behind each, some lit, people moving in a few. The quad's size sets how
         /// many windows; the building's own wall shows between them.
@@ -240,6 +266,16 @@ namespace Game.Editor
             var white = Toon("TowerCeiling", new Color(0.9f, 0.89f, 0.86f));
             var warm = f % 3 != 0;
             var glow = warm ? new Color(1f, 0.9f, 0.72f) : new Color(0.88f, 0.94f, 1f);
+            // No two floors alike (the user's note, 2026-11-10: a plant in the same place on every
+            // floor, people spread too evenly, not enough hustle): each floor throws its own dice
+            // for which way round its rooms are, how many are at their desks, who's on their feet
+            // and where, what the east wing is, and where the plants stand. One floor in seven or
+            // so has gone home: half its lights off, a few left working late.
+            var dice = new System.Random(f * 7919 + 17);
+            var late = !fitOut && dice.NextDouble() < 0.14;
+            var mirrored = !fitOut && dice.Next(2) == 1;
+            _deskBusy = late ? 0.25f : 0.5f + 0.5f * (float)dice.NextDouble();
+            _deskVisitors = late || kind == 3 ? 0f : 0.32f * (float)dice.NextDouble(); // not between the call centre's partitions
 
             // The room's shell: floor and ceiling either side of and behind the lift shaft (so
             // neither cuts through the cab), the back wall with a door, the band's side walls,
@@ -257,14 +293,23 @@ namespace Game.Editor
                 Block(room, "SideWall", wall, new Vector3(x, 0f, (front + back) / 2f), new Vector3(0.12f, ceiling, back - front));
             var doorX = f % 2 == 0 ? -8.3f : 8f;
             Block(room, "Door", Toon("OfficeTeak", new Color(0.55f, 0.38f, 0.24f)), new Vector3(doorX, 0f, back - 0.07f), new Vector3(1f, 2.1f, 0.04f));
+            var panel = 0;
             foreach (var x in new[] { -6.9f, -4.1f, 4f, 6.8f, 10.6f, 13.4f })
-                Kit.CeilingPanel(room, new Vector3(x, ceiling - 0.06f, front + RoomDepth * 0.45f), glow, lit: !fitOut);
+                Kit.CeilingPanel(room, new Vector3(x, ceiling - 0.06f, front + RoomDepth * 0.45f), glow, lit: !fitOut && !(late && panel++ % 2 == 0));
             if (!fitOut)
                 foreach (var x in new[] { -5.5f, 5.4f, 12f })
-                    Point(room, "RoomLight", new Vector3(x, ceiling - 0.5f, front + RoomDepth * 0.45f), warm ? Incandescent : new Color(0.85f, 0.92f, 1f), 9f, 3.2f);
+                    Point(room, "RoomLight", new Vector3(x, ceiling - 0.5f, front + RoomDepth * 0.45f), warm ? Incandescent : new Color(0.85f, 0.92f, 1f), 9f, late ? 1.5f : 3.2f);
 
             var westMid = (BandWest - ShaftHalfWidth) / 2f;   // the middle of the room west of the lift
             var eastMid = (BandEast + ShaftHalfWidth) / 2f;   // and east of it
+            // The rooms either side of the lift are laid out west and east as written below, or the
+            // other way round: built under a frame that mirrors them.
+            var shell = room;
+            var main = new GameObject("Main").transform;
+            main.SetParent(shell, false);
+            if (mirrored)
+                main.localScale = new Vector3(-1f, 1f, 1f);
+            room = main;
             switch (kind)
             {
                 case 0: // the test kitchen: a line of appliances along the back, an island, chefs cooking; a tasting table
@@ -428,32 +473,195 @@ namespace Game.Editor
                     break;
                 }
             }
-            if (!fitOut)
+            room = shell;
+            if (fitOut)
+                return;
+
+            var wing = Wing(room, f, dice, front, back, ceiling, late);
+
+            // People on their feet along the window (the user's notes, 2026-11-10: activity and movement
+            // on every floor, and not the same on each): in each stretch none, one or two, over
+            // part of it or all, strolling or in a hurry, some carrying a box; cooks on the kitchen
+            // floors, on the kitchen's side.
+            var kitchenZone = kind == 0 || kind == 5 ? (mirrored ? 1 : 0) : -1;
+            var zones = new[] { (BandWest + 1.5f, -ShaftHalfWidth - 0.7f), (ShaftHalfWidth + 0.7f, BandEast - 0.4f), (BandEast + 0.6f, WingEast - 1.3f) };
+            int[] counts = { 0, 1, 1, 1, 2, 2 };
+            for (var z = 0; z < zones.Length; z++)
             {
-                // Every floor is busy (the user's note, 2026-11-10: activity and movement on each):
-                // people walk the aisle by the window either side of the lift, back and forth,
-                // stopping at each end; cooks on the kitchen floors.
-                // The wing east of each floor: an open-plan office that goes with whatever the floor
-                // is, more desks with people at them, someone on the phone.
-                var screen = new Color(0.65f, 0.85f, 1f);
-                Desk(room, new Vector3(BandEast + 1.7f, 0f, front + 2.5f), screen);
-                Desk(room, new Vector3(BandEast + 3.6f, 0f, front + 2.5f), screen);
-                Desk(room, new Vector3(BandEast + 5.5f, 0f, front + 2.5f), screen);
-                Talker(room, "Colleague", new Vector3(BandEast + 2.6f + (f % 3) * 1.1f, 0f, front + 4.7f), 150f + (f % 4) * 20f);
-                PottedPlant(room, new Vector3(WingEast - 0.6f, 0f, front + 0.8f), 1.05f);
-                var cooks = kind == 0 || kind == 5;
-                foreach (var (x0, x1) in new[] { (BandWest + 1.5f, -ShaftHalfWidth - 0.7f), (ShaftHalfWidth + 0.7f, BandEast - 0.4f), (BandEast + 0.6f, WingEast - 1.3f) })
+                var (x0, x1) = zones[z];
+                var count = late ? (dice.Next(3) == 0 ? 1 : 0) : counts[dice.Next(counts.Length)];
+                if (z == 2 && wing == WingAtTheWindow)
+                    count = 0; // they're standing in the way
+                for (var i = 0; i < count; i++)
                 {
-                    var from = new Vector3(x0, 0f, front + 0.7f);
-                    var to = new Vector3(x1, 0f, front + 0.7f);
-                    var walker = cooks && x0 < 0f ? Cook(room, from, 90f) : Staffer(room, "Walker", from, 90f);
+                    var slack = (x1 - x0 - 2.4f) / 2f;
+                    var from = new Vector3(x0 + slack * (float)dice.NextDouble(), 0f, front + 0.62f + 0.3f * i);
+                    var to = new Vector3(x1 - slack * (float)dice.NextDouble(), 0f, from.z);
+                    var hurry = dice.NextDouble() < 0.22;
+                    var speed = hurry ? 2f + 0.6f * (float)dice.NextDouble() : 0.75f + 0.6f * (float)dice.NextDouble();
+                    var walker = z == kitchenZone && i == 0 ? Cook(room, from, 90f)
+                        : dice.NextDouble() < 0.25 ? Carrier(room, from)
+                        : Staffer(room, "Walker", from, 90f);
                     if (walker != null)
-                        Walk(walker, from, to, 0.9f + (float)_random.NextDouble() * 0.5f, 1f + (float)_random.NextDouble() * 2.5f, (float)_random.NextDouble());
+                        Walk(walker, from, to, speed, hurry ? 0.3f : 0.4f + 3.2f * (float)dice.NextDouble(), (float)dice.NextDouble());
                 }
-                PottedPlant(room, new Vector3(BandWest + 0.6f, 0f, front + 0.8f), 1.05f);
-                if (kind != 5)
-                    Kit.WaterCooler(room, new Vector3(-ShaftHalfWidth - 0.5f, 0f, back - 0.4f), 180f);
             }
+
+            // Plants where there's room at the window, here on one floor and there on the next.
+            foreach (var x in new[] { BandWest + 0.6f, -ShaftHalfWidth - 0.38f, ShaftHalfWidth + 0.38f, WingEast - 0.55f })
+                if (dice.NextDouble() < 0.4)
+                    PottedPlant(room, new Vector3(x, 0f, front + 0.5f), 0.85f + 0.5f * (float)dice.NextDouble());
+            if (kind != 5 && dice.Next(3) > 0)
+                Kit.WaterCooler(room, new Vector3((dice.Next(2) == 0 ? -1f : 1f) * (ShaftHalfWidth + 0.5f), 0f, back - 0.4f), 180f);
+            _deskBusy = 0.8f;
+            _deskVisitors = 0f;
+        }
+
+        // How many desks have someone at them, and how many of those have a colleague standing over
+        // them, on the floor being built (TowerRoom throws for each).
+        private static float _deskBusy = 0.8f;
+        private static float _deskVisitors;
+        private const int WingAtTheWindow = 6;
+
+        // The east wing of a floor, as far as the climbing camera sees: one of seven things going on,
+        // in turn, whatever the floor's own business is, laid out from either end. Returns which.
+        private static int Wing(Transform room, int f, System.Random dice, float front, float back, float ceiling, bool late)
+        {
+            var west = BandEast + 0.7f;
+            var east = WingEast - 0.6f;
+            var mid = (west + east) / 2f;
+            var flip = dice.Next(2) == 0 ? 1f : -1f;
+            float X(float fromMiddle) => mid + flip * fromMiddle;
+            var screen = new Color(0.65f, 0.85f, 1f);
+            var wood = Toon("KitTableTop", new Color(0.62f, 0.42f, 0.26f));
+            var kind = late ? 0 : (f * 4 + 1) % 7;
+            switch (kind)
+            {
+                case 0: // desks: two to five of six places taken, in two rows
+                {
+                    var places = new List<Vector3>();
+                    foreach (var z in new[] { front + 2.5f, front + 5.1f })
+                    foreach (var x in new[] { -1.85f, 0f, 1.85f })
+                        places.Add(new Vector3(mid + x, 0f, z));
+                    for (var n = late ? 2 : 2 + dice.Next(4); n > 0; n--)
+                    {
+                        var pick = dice.Next(places.Count);
+                        Desk(room, places[pick], screen);
+                        places.RemoveAt(pick);
+                    }
+                    if (!late && dice.Next(2) == 0)
+                        Talker(room, "Colleague", new Vector3(X(0.9f), 0f, front + 3.9f), 150f + dice.Next(4) * 20f);
+                    break;
+                }
+                case 1: // a meeting: the board, someone presenting, the rest at the table or standing round it
+                {
+                    Kit.Whiteboard(room, new Vector3(mid, 0.9f, back - 0.07f), 180f);
+                    Talker(room, "Presenter", new Vector3(X(-1.1f), 0f, back - 1f), 170f - flip * 30f);
+                    foreach (var x in new[] { -1.3f, 1.3f })
+                    {
+                        Kit.Part(room, "SM_Dining", "TableBody", wood, new Vector3(mid + x, 0f, front + 2.9f));
+                        foreach (var side in new[] { -1f, 1f })
+                        {
+                            Kit.Part(room, "SM_Dining", "DiningChair", Toon("OfficeTeak", new Color(0.55f, 0.38f, 0.24f)), new Vector3(mid + x + side * 0.75f, 0f, front + 2.9f), side < 0f ? -90f : 90f);
+                            if (dice.Next(4) > 0)
+                                Seated(room, "Listening", new Vector3(mid + x + side * 0.75f, 0f, front + 2.9f), side < 0f ? 90f : -90f, 0.44f);
+                        }
+                    }
+                    Figure(room, "Standing", new Vector3(X(2.2f), 0f, front + 4.4f), -150f * flip);
+                    break;
+                }
+                case 2: // a lounge: a sofa with people on it, a high table to stand at, the machines
+                {
+                    var fabric = new[] { new Color(0.3f, 0.45f, 0.6f), new Color(0.6f, 0.3f, 0.28f), new Color(0.35f, 0.5f, 0.4f) }[dice.Next(3)];
+                    Sofa(room, new Vector3(X(-1.5f), 0f, front + 2.4f), 180f, fabric);
+                    foreach (var x in new[] { -0.45f, 0.45f })
+                        if (dice.Next(3) > 0)
+                            Seated(room, "Break", new Vector3(X(-1.5f) + x, 0f, front + 2.4f), 180f, 0.42f);
+                    Kit.BistroTable(room, new Vector3(X(1.5f), 0f, front + 2.2f), high: true);
+                    Talker(room, "Break", new Vector3(X(1.5f) - 0.65f, 0f, front + 2.2f), 90f);
+                    PhoneUp(room, new Vector3(X(1.5f) + 0.65f, 0f, front + 2.3f), -90f, PhoneUse.Scroll);
+                    Kit.Vending(room, new Vector3(X(-2.2f), 0f, back - 0.6f), 180f, new Color(0.8f, 0.25f, 0.2f));
+                    PottedPlant(room, new Vector3(X(2.3f), 0f, back - 0.6f), 1.2f);
+                    break;
+                }
+                case 3: // a stand-up: a ring of people, one holding forth
+                {
+                    Kit.Whiteboard(room, new Vector3(X(1.2f), 0.9f, back - 0.07f), 180f);
+                    var centre = new Vector3(mid, 0f, front + 2.9f);
+                    var people = 5 + dice.Next(3);
+                    for (var i = 0; i < people; i++)
+                    {
+                        var angle = (360f * i / people + dice.Next(20)) * Mathf.Deg2Rad;
+                        var at = centre + new Vector3(Mathf.Sin(angle), 0f, Mathf.Cos(angle)) * (1.15f + 0.2f * (float)dice.NextDouble());
+                        var facing = Mathf.Atan2(centre.x - at.x, centre.z - at.z) * Mathf.Rad2Deg;
+                        if (i == 0)
+                            Talker(room, "Lead", at, facing);
+                        else if (i == 3)
+                            PhoneUp(room, at, facing, PhoneUse.Scroll);
+                        else
+                            Figure(room, "StandUp", at, facing + dice.Next(-15, 16));
+                    }
+                    break;
+                }
+                case 4: // somebody's birthday: hats, a cake, bulbs strung across
+                {
+                    Kit.Part(room, "SM_Dining", "TableBody", wood, new Vector3(mid, 0f, front + 2.8f));
+                    Block(room, "Cake", Toon("TowerCake", new Color(0.97f, 0.93f, 0.86f)), new Vector3(mid, 0.76f, front + 2.8f), new Vector3(0.34f, 0.16f, 0.34f));
+                    Block(room, "Icing", Toon("TowerIcing", new Color(0.95f, 0.5f, 0.6f)), new Vector3(mid, 0.92f, front + 2.8f), new Vector3(0.36f, 0.04f, 0.36f));
+                    StringLights(room, new Vector3(west, ceiling - 0.25f, front + 1.5f), new Vector3(east, ceiling - 0.25f, front + 1.5f), 12, 0.3f);
+                    _hatOverride = CharacterArt.HatKind.Party;
+                    var guests = 5 + dice.Next(3);
+                    for (var i = 0; i < guests; i++)
+                    {
+                        var angle = (360f * i / guests + 20f) * Mathf.Deg2Rad;
+                        var at = new Vector3(mid + Mathf.Sin(angle) * 1.35f, 0f, front + 2.8f + Mathf.Cos(angle) * 1.2f);
+                        Talker(room, "Guest", at, Mathf.Atan2(mid - at.x, front + 2.8f - at.z) * Mathf.Rad2Deg);
+                    }
+                    _hatOverride = null;
+                    break;
+                }
+                case 5: // moving in: boxes in stacks, a desk already up, someone carrying
+                {
+                    var card = Toon("TowerCardboard", new Color(0.72f, 0.56f, 0.36f));
+                    var stacks = 4 + dice.Next(4);
+                    for (var i = 0; i < stacks; i++)
+                    {
+                        var at = new Vector3(X(-2.2f + 0.62f * (i % 3)), 0f, back - 0.7f - 0.6f * (i / 3 % 2));
+                        var high = dice.Next(3);
+                        for (var level = 0; level <= high; level++)
+                            Block(room, "Box", card, at + Vector3.up * (0.46f * level), new Vector3(0.52f, 0.44f, 0.48f));
+                    }
+                    Desk(room, new Vector3(X(1.7f), 0f, front + 2.5f), screen);
+                    var carrier = Carrier(room, new Vector3(X(-2f), 0f, front + 3.6f));
+                    if (carrier != null)
+                        Walk(carrier, new Vector3(X(-2f), 0f, front + 3.6f), new Vector3(X(2f), 0f, front + 3.6f), 1.1f, 1.6f, (float)dice.NextDouble());
+                    Talker(room, "Foreman", new Vector3(X(0.2f), 0f, back - 1.9f), 180f + flip * 40f);
+                    break;
+                }
+                default: // at the window: looking out over the street, filming it, a selfie with the city behind
+                {
+                    PhoneUp(room, new Vector3(X(-1.6f), 0f, front + 0.55f), 180f, PhoneUse.Film);
+                    PhoneUp(room, new Vector3(X(-0.5f), 0f, front + 0.6f), 190f, PhoneUse.Scroll);
+                    Figure(room, "Gazing", new Vector3(X(0.6f), 0f, front + 0.55f), 170f);
+                    PhoneUp(room, new Vector3(X(1.9f), 0f, front + 0.8f), 20f * flip, PhoneUse.Selfie);
+                    Desk(room, new Vector3(X(-1.2f), 0f, front + 4.6f), screen);
+                    Desk(room, new Vector3(X(1.2f), 0f, front + 4.6f), screen);
+                    break;
+                }
+            }
+            return kind;
+        }
+
+        // Someone carrying a box in both arms; walk them with Walk.
+        private static Transform Carrier(Transform room, Vector3 at)
+        {
+            var rig = Figure(room, "Carrier", at, 90f);
+            if (rig == null)
+                return null;
+            rig.RightShoulder.localRotation = Quaternion.Euler(-72f, 0f, -14f);
+            rig.LeftShoulder.localRotation = Quaternion.Euler(-72f, 0f, 14f);
+            Cube(rig.Waist, "Box", Toon("TowerCardboard", new Color(0.72f, 0.56f, 0.36f)), new Vector3(0f, 0.2f, 0.42f), new Vector3(0.44f, 0.32f, 0.34f)).isStatic = false;
+            return rig.Figure.parent;
         }
 
         // One of the boss's cooks, in whites and toque.
@@ -474,7 +682,7 @@ namespace Game.Editor
         private static void Desk(Transform room, Vector3 at, Color screen)
         {
             Kit.WorkStation(room, at, 0f, screen);
-            if (_random.NextDouble() < 0.2)
+            if (_random.NextDouble() > _deskBusy)
                 return; // away from their desk
             var worker = Seated(room, "Worker", at + new Vector3(0.1f, 0f, -0.75f), 0f, 0.46f);
             if (worker == null)
@@ -483,6 +691,9 @@ namespace Game.Editor
             worker.LeftShoulder.localRotation = Quaternion.Euler(-68f, 0f, 8f);
             Wobble(worker.RightShoulder.gameObject, Oscillate.Shape.Wave, Vector3.zero, new Vector3(5f, 0f, 0f), 0.3f + (float)_random.NextDouble() * 0.2f);
             Wobble(worker.LeftShoulder.gameObject, Oscillate.Shape.Wave, Vector3.zero, new Vector3(5f, 0f, 0f), 0.36f + (float)_random.NextDouble() * 0.2f);
+            // Now and then a colleague standing over them, with something to say.
+            if (_random.NextDouble() < _deskVisitors)
+                Talker(room, "Visitor", at + new Vector3(0.85f, 0f, -0.6f), -75f);
         }
 
         // Someone standing and talking, an arm going as they make their point.

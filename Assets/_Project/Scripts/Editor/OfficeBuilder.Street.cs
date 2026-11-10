@@ -297,6 +297,8 @@ namespace Game.Editor
 
         // Set while the tower's floors are built (OfficeBuilder.Tower.cs): its people dress for work.
         private static bool _indoors;
+        // Set while a group that all wear the same hat is built.
+        private static CharacterArt.HatKind? _hatOverride;
 
         // The hats a night out brings (the user's note, 2026-11-10: the hats we modelled, to tell the
         // crowd's people apart): listed more than once to be likelier.
@@ -352,6 +354,8 @@ namespace Game.Editor
                 from ??= StreetHats;
                 look.Hat = from[_random.Next(from.Length)];
             }
+            if (_hatOverride.HasValue) // everyone at a party, say
+                look.Hat = _hatOverride.Value;
             var extra = _random.NextDouble();
             look.Glasses = extra < 0.16;
             look.Sunglasses = extra > 0.95;

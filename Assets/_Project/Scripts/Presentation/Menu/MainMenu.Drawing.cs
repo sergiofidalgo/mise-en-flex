@@ -27,7 +27,9 @@ namespace Game.Presentation.Menu
         [SerializeField] private TMP_FontAsset _serifItalic;
 
         [Header("Art (exported from the mockup SVGs)")]
-        [SerializeField] private Sprite _sign;
+        [Tooltip("The logo and the like pill's heart, cut from the mockup's sign (blender/cut_menu_sign.py).")]
+        [SerializeField] private Sprite _logo;
+        [SerializeField] private Sprite _heart;
         [SerializeField] private Sprite _forkcastLogo;
         [SerializeField] private Sprite _searchIcon;
         [SerializeField] private Sprite _bellIcon;
@@ -70,6 +72,18 @@ namespace Game.Presentation.Menu
         // ---- Layout, in the 1920×1080 frame of the mockups ----
 
         private const float ListX = 98f, ListY = 434f, ListWidth = 636f, ListHeight = 480f;
+        // The sign and the list stand a little in from the screen's edge, so the scene shows either
+        // side of them instead of being cut off behind them (the user's call, 2026-11-10); forkcast
+        // and the pages move over to keep clear.
+        private const float ColumnShift = 72f, AppShift = 40f;
+        // The sign's board, as wide as the list under it.
+        private const float BoardX = ListX, BoardY = 127f, BoardWidth = ListWidth, BoardHeight = 265f;
+        private const float LogoWidth = 453.5f, LogoHeight = 187.5f, LogoScale = 1.08f;
+        private static readonly Color SignGold = Hex(0xc9a04a);
+        private static readonly Color SignBrass = Hex(0x8e7a4a);
+        private static readonly Color SignLine = Hex(0x5c4632);
+        private static readonly Color LikePink = Hex(0xe8476a);
+        private static readonly Color RecRed = Hex(0xe86a5a);
         private const float ListTopPad = 18f, ListBottomPad = 26f, RuleGap = 14f;
         // The chosen row grows into a cream box. It's taller when there's no Continue, so the five
         // remaining rows still fill the panel (the new-player mockup).
@@ -89,6 +103,14 @@ namespace Game.Presentation.Menu
         private RectTransform _cards;
         private RectTransform _page;
         private RectTransform _hints;
+        // What moves on the sign: the REC light and the like count.
+        private Image _recDot;
+        private Image _recGlow;
+        private RectTransform _likePill;
+        private TextMeshProUGUI _likes;
+        private int _likeCount = 124; // in hundreds: 12.4k
+        private float _nextLike;
+        private float _likePopped = -10f;
         private Texture2D[] _photos = new Texture2D[SaveSlots.Count];
 
         private static Color Hex(int rgb) => new Color(((rgb >> 16) & 0xff) / 255f, ((rgb >> 8) & 0xff) / 255f, (rgb & 0xff) / 255f);
@@ -552,6 +574,114 @@ namespace Game.Presentation.Menu
         private static ReviewRecord BestReview(CampaignSave save) =>
             save?.Reviews?.Where(r => !string.IsNullOrEmpty(r.Line)).OrderByDescending(r => r.RatedStars).ThenByDescending(r => r.Day).FirstOrDefault();
 
+        // ---- The sign ----
+
+        // The sign, drawn piece by piece instead of as one picture (the user's call, 2026-11-10): the
+        // board on its rod with the logo, a REC light that blinks and a like count that keeps
+        // climbing. The polaroid and the review that were stuck to it are gone: the street's own
+        // phones pop those now.
+        private void BuildSign(RectTransform parent)
+        {
+            var sign = UiKit.Rect(parent, "Sign", 0f, 0f, 1920f, 1080f);
+            var right = BoardX + BoardWidth;
+            var middle = BoardX + BoardWidth / 2f;
+
+            // The rod with a cap at each end, and the chains: down to the board, and on to the list.
+            UiKit.RoundBox(sign, "Rod", SignGold, BoardX - 46f, 64f, BoardWidth + 92f, 15f, 0f);
+            foreach (var x in new[] { BoardX - 46f, right + 26f })
+                UiKit.RoundBox(sign, "RodCap", SignBrass, x, 53f, 20f, 39f, 5f);
+            foreach (var x in new[] { BoardX + 80f, right - 88f })
+            {
+                Chain(sign, x, 79f, BoardY);
+                Chain(sign, x, BoardY + BoardHeight, ListY);
+            }
+
+            // The board: its shadow, a gold edge, the dark face, a fine line inside it and a bracket
+            // in each corner, like a camera's frame.
+            UiKit.RoundBox(sign, "Shadow", new Color(0f, 0f, 0f, 0.38f), BoardX, BoardY + 13f, BoardWidth, BoardHeight, 18f);
+            UiKit.RoundBox(sign, "Edge", SignGold, BoardX, BoardY, BoardWidth, BoardHeight, 18f);
+            UiKit.RoundBox(sign, "Face", _ink, BoardX + 4f, BoardY + 4f, BoardWidth - 8f, BoardHeight - 8f, 14f);
+            UiKit.StrokedBox(sign, "Line", _ink, SignLine, 1.33f, BoardX + 12.5f, BoardY + 12.5f, BoardWidth - 25f, BoardHeight - 25f, 9f);
+            foreach (var east in new[] { false, true })
+            foreach (var south in new[] { false, true })
+            {
+                var x = east ? right - 33f : BoardX + 33f;
+                var y = south ? BoardY + BoardHeight - 29f : BoardY + 29f;
+                UiKit.RoundBox(sign, "Bracket", SignBrass, east ? x - 25f : x, south ? y - 4f : y, 25f, 4f, 0f);
+                UiKit.RoundBox(sign, "Bracket", SignBrass, east ? x - 4f : x, south ? y - 25f : y, 4f, 25f, 0f);
+            }
+
+            // The logo, a touch bigger than in the mockup now that it has the board to itself, in the
+            // middle and a little low, leaving the top right for the REC light.
+            var logoWidth = LogoWidth * LogoScale;
+            var logoHeight = LogoHeight * LogoScale;
+            UiKit.Picture(sign, "Logo", _logo, middle - logoWidth / 2f, BoardY + (BoardHeight - logoHeight) / 2f + 6f, logoWidth, logoHeight);
+
+            // REC, and its light.
+            var rec = UiKit.TextAt(_bold, sign, "Rec", "REC", 17f, RecRed, right - 66f, BoardY + 53f, 90f, HorizontalAlignmentOptions.Right);
+            rec.characterSpacing = 12f;
+            var dotX = right - 66f - UiKit.Width(rec) - 20f;
+            var dotY = BoardY + 46.5f;
+            _recGlow = UiKit.Ellipse(sign, "RecGlow", Alpha(LikePink, 0.22f), dotX - 11f, dotY - 11f, 22f, 22f);
+            _recDot = UiKit.Ellipse(sign, "RecDot", LikePink, dotX - 7f, dotY - 7f, 14f, 14f);
+
+            // The like count, tipped over the board's top corner: a pink pill with a heart.
+            _likePill = UiKit.Rect(sign, "Likes", 0f, 0f, 156f, 50f);
+            _likePill.pivot = new Vector2(0.5f, 0.5f);
+            _likePill.anchoredPosition = new Vector2(right - 38f, -(BoardY - 14f));
+            _likePill.localRotation = Quaternion.Euler(0f, 0f, -6.8f);
+            var tail = UiKit.RoundBox(_likePill, "Tail", LikePink, 0f, 0f, 22f, 22f, 3f).rectTransform;
+            tail.pivot = new Vector2(0.5f, 0.5f);
+            tail.anchoredPosition = new Vector2(44f, -45f);
+            tail.localRotation = Quaternion.Euler(0f, 0f, 45f);
+            UiKit.RoundBox(_likePill, "Back", LikePink, 0f, 0f, 156f, 50f, 22f);
+            // The heart was cut from the tipped pill, so it's already turned: set it straight again here.
+            var heart = UiKit.Picture(_likePill, "Heart", _heart, 0f, 0f, 31.5f, 28.5f).rectTransform;
+            heart.pivot = new Vector2(0.5f, 0.5f);
+            heart.anchoredPosition = new Vector2(35f, -26f);
+            heart.localRotation = Quaternion.Euler(0f, 0f, 6.8f);
+            _likes = UiKit.TextAt(_bold, _likePill, "Count", LikeText(), 29f, Color.white, 59f, 35.5f, 96f);
+            _nextLike = 0f;
+        }
+
+        // A chain of gold links (dashes) from `top` down to `bottom`.
+        private static void Chain(RectTransform parent, float x, float top, float bottom)
+        {
+            const float link = 8f, gap = 6f;
+            for (var y = top + 1f; y < bottom - 1f; y += link + gap)
+                UiKit.RoundBox(parent, "Link", SignGold, x, y, 8f, Mathf.Min(link, bottom - y), 0f);
+        }
+
+        private string LikeText() => (_likeCount / 10f).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + "k";
+
+        // The sign's life (the user's call, 2026-11-10): the REC light blinks as a camera's does, and
+        // every two or three seconds the like count goes up, with a little bounce.
+        private void AnimateSign()
+        {
+            if (_recDot == null || _likes == null)
+                return;
+            var now = Time.unscaledTime;
+            // On for a second, off for half, with quick fades.
+            var phase = Mathf.Repeat(now, 1.5f);
+            var lit = Mathf.Clamp01(Mathf.Min(phase / 0.08f, (1f - phase) / 0.08f));
+            _recDot.color = Alpha(LikePink, 0.12f + 0.88f * lit);
+            _recGlow.color = Alpha(LikePink, 0.22f * lit);
+
+            if (_nextLike <= 0f)
+            {
+                _nextLike = now + UnityEngine.Random.Range(2f, 3f);
+            }
+            else if (now >= _nextLike)
+            {
+                _nextLike = now + UnityEngine.Random.Range(2f, 3f);
+                _likeCount += UnityEngine.Random.Range(1, 4);
+                _likes.text = LikeText();
+                _likePopped = now;
+            }
+            var bounce = (now - _likePopped) / 0.35f;
+            _likePill.localScale = Vector3.one * (bounce < 1f ? 1f + 0.16f * Mathf.Sin(bounce * Mathf.PI) : 1f);
+        }
+
         // ---- Building the fixed parts ----
 
         private void Build()
@@ -582,14 +712,15 @@ namespace Game.Presentation.Menu
             root.anchoredPosition = Vector2.zero;
             root.SetSiblingIndex(0);
 
-            // The list panel, then the sign hanging over it (its review sticker overlaps the panel's edge).
-            UiKit.StrokedBox(root, "List", Alpha(_ink, 0.95f), _panelEdge, Stroke, ListX, ListY, ListWidth, ListHeight, 18f);
-            _list = UiKit.Rect(root, "Items", 0f, 0f, 1920f, 1080f);
-            UiKit.Picture(root, "Sign", _sign, 0f, 48f, 792f, 392f);
+            // The list panel, and the sign hanging over it.
+            var column = UiKit.Rect(root, "Column", ColumnShift, 0f, 1920f, 1080f);
+            UiKit.StrokedBox(column, "List", Alpha(_ink, 0.95f), _panelEdge, Stroke, ListX, ListY, ListWidth, ListHeight, 18f);
+            _list = UiKit.Rect(column, "Items", 0f, 0f, 1920f, 1080f);
+            BuildSign(column);
 
             // forkcast, with the campaigns: shown only once Continue opens it, so the top level is
             // the sign and the list and the scene shows behind (the user's call, 2026-11-10).
-            _app = UiKit.Rect(root, "Forkcast", 0f, 0f, 1920f, 1080f);
+            _app = UiKit.Rect(root, "Forkcast", AppShift, 0f, 1920f, 1080f);
             UiKit.RoundBox(_app, "App", _cream, AppX, AppY, AppWidth, AppHeight, 22f);
             UiKit.RoundBox(_app, "Header", _ink, AppX, AppY, AppWidth, HeaderHeight, 22f);
             UiKit.RoundBox(_app, "HeaderFoot", _ink, AppX, AppY + HeaderHeight - 24f, AppWidth, 24f, 0f);
@@ -601,7 +732,7 @@ namespace Game.Presentation.Menu
             UiKit.Picture(_app, "BellIcon", _bellIcon, 1711f, 147f, 28f, 28f);
             _header = UiKit.Rect(_app, "HeaderState", 0f, 0f, 1920f, 1080f);
             _cards = UiKit.Rect(_app, "Cards", 0f, 0f, 1920f, 1080f);
-            _page = UiKit.Rect(root, "Page", AppX, AppY, AppWidth, AppHeight);
+            _page = UiKit.Rect(root, "Page", AppX + AppShift, AppY, AppWidth, AppHeight);
 
             // The hints keep the mockup's coordinates, in a 1920×1080 frame pinned to the screen's bottom.
             _hints = UiKit.Rect(_canvas, "Hints", 0f, 0f, 1920f, 1080f);
