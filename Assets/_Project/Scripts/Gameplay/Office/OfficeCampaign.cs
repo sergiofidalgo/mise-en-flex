@@ -60,6 +60,18 @@ namespace Game.Gameplay.Office
             return record;
         }
 
+        /// <summary>
+        /// Borrows at the accountant's desk and saves (decision 2026-11-10). From then on the slot
+        /// holds this campaign, even before a restaurant is bought.
+        /// </summary>
+        public bool Lend(float amount, LoanSettings terms)
+        {
+            if (!Game.Gameplay.Debt.AccountantBooks.Borrow(Campaign, amount, terms))
+                return false;
+            Save();
+            return true;
+        }
+
         /// <summary>Makes an owned lot the restaurant played next, and saves. False if it isn't owned.</summary>
         public bool Choose(int lot)
         {

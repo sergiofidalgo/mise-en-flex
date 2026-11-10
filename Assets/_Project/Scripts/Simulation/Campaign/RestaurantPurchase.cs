@@ -13,13 +13,20 @@ namespace Game.Simulation.Campaign
         /// <summary>
         /// A campaign as it starts in the office: owning nothing, with <paramref name="loan"/> borrowed
         /// from the boss, enough to buy the grill and stock its first morning (decision 2026-11-10).
-        /// The loan is both in the pocket and owed: milestone 4 takes it back in instalments.
+        /// The loan is both in the pocket and owed, and paid back over the terms' instalments, one per
+        /// collection. The boss's 20% is added only to what's borrowed at the accountant, not to the
+        /// money he starts players with (Main build's call when merging milestones 2 and 4; to confirm).
         /// </summary>
-        public static CampaignSave NewCampaign(float loan) => new CampaignSave
+        public static CampaignSave NewCampaign(float loan, LoanSettings terms = null)
         {
-            Balance = loan,
-            Loan = loan,
-        };
+            terms ??= new LoanSettings();
+            return new CampaignSave
+            {
+                Balance = loan,
+                Loan = loan,
+                LoanInstalment = loan > 0f ? (float)Math.Ceiling(loan / Math.Max(1, terms.Instalments) - 1e-3) : 0f,
+            };
+        }
 
         /// <summary>True if the campaign already owns the restaurant made from that lot.</summary>
         public static bool Owns(CampaignSave campaign, RestaurantSettings lot) =>

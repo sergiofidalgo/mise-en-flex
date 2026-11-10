@@ -4,6 +4,18 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-10 — Merging milestones 2 and 4: one office campaign, and the starting loan is paid back
+
+**Found when merging** (Main build): the two branches were built side by side and met in two places.
+- **Two copies of the campaign.** The accountant read the save file and wrote it; the miniature kept its own copy and wrote it on every purchase. Borrowing and then buying would have lost the loan. Now the accountant borrows through the miniature's `OfficeCampaign` (`Lend`), the office's one copy, which saves it. `AccountantBooks` only changes the campaign it's given. The builder wires the desk to it.
+- **The starting loan was never paid back.** A new campaign recorded 500 owed but no instalment, so each collection took nothing. Now it's paid back over the loan's 5 instalments (100 each).
+
+**Our call, to confirm with the user:** the boss's 20% is added only to money borrowed at the accountant, not to the 500 he starts players with. Charging it there too would make the first instalments 120.
+
+**Tests:** `AccountantTests` now borrow through `OfficeCampaign` and still check that a loan is saved at once, that the kitchen loads that slot next, and that an amount not on offer changes nothing; a new campaign now borrows on top of its starting loan instead of its starting money. `MiniatureBuyingTests` gained the starting loan's instalments and a loan then a purchase in one campaign.
+
+---
+
 ## 2026-11-10 — The boss and money trouble: loans, collections, escalation
 
 **User's calls (Phase 6, milestone 4):**

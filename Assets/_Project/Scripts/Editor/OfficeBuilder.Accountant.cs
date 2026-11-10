@@ -31,7 +31,6 @@ namespace Game.Editor
             books.position = desk.position;
             books.rotation = Quaternion.Euler(0f, 180f, 0f); // local forward points at the visitors' chairs
             var deskSo = new SerializedObject(books.gameObject.AddComponent<AccountantDesk>());
-            deskSo.FindProperty("_staffConfig").objectReferenceValue = FindAsset<StaffConfig>();
             deskSo.FindProperty("_visitorSide").vector3Value = new Vector3(0f, 0f, 1.5f);
             deskSo.ApplyModifiedPropertiesWithoutUndo();
 

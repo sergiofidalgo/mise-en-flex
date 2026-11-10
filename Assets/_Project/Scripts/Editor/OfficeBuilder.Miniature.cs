@@ -55,6 +55,15 @@ namespace Game.Editor
             var wiring = new SerializedObject(campaign);
             wiring.FindProperty("_config").objectReferenceValue = config;
             wiring.ApplyModifiedPropertiesWithoutUndo();
+            // The accountant (built earlier, OfficeBuilder.Accountant.cs) borrows into this same
+            // campaign, so the office holds one copy and saves it one way.
+            var desk = Object.FindFirstObjectByType<AccountantDesk>();
+            if (desk != null)
+            {
+                var deskWiring = new SerializedObject(desk);
+                deskWiring.FindProperty("_office").objectReferenceValue = campaign;
+                deskWiring.ApplyModifiedPropertiesWithoutUndo();
+            }
 
             var lots = new GameObject("Lots").transform;
             lots.SetParent(city, false);

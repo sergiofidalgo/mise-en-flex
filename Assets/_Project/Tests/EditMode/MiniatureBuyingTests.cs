@@ -59,6 +59,29 @@ namespace Game.Tests.EditMode
         }
 
         [Test]
+        public void TheStartingLoanIsPaidBackInFiveInstalmentsWithoutTheBossesCut()
+        {
+            var campaign = RestaurantPurchase.NewCampaign(500f);
+            var loan = campaign.ToLoan();
+            Assert.That(loan.NextInstalment, Is.EqualTo(100f), "a fifth of it each collection");
+            for (var i = 0; i < 5; i++)
+                loan.TakeInstalment();
+            Assert.That(loan.Owed, Is.EqualTo(0f), "five collections clear it");
+        }
+
+        [Test]
+        public void BorrowingAtTheAccountantAndBuyingChangeTheSameCampaign()
+        {
+            var campaign = RestaurantPurchase.NewCampaign(500f);
+            Assert.That(Game.Gameplay.Debt.AccountantBooks.Borrow(campaign, 250f, new LoanSettings()), Is.True);
+            RestaurantPurchase.Buy(campaign, Grill(), "Golden Fork");
+
+            Assert.That(campaign.Balance, Is.EqualTo(350f), "500 + 250 borrowed - 400 for the grill");
+            Assert.That(campaign.Loan, Is.EqualTo(800f), "500 to start + 250 with the boss's 20%");
+            Assert.That(campaign.ToLoan().NextInstalment, Is.EqualTo(160f), "the whole debt spread over five more");
+        }
+
+        [Test]
         public void BuyingTheGrillLeavesAFirstMorningsMoneyAndMakesItCurrent()
         {
             var campaign = RestaurantPurchase.NewCampaign(500f);

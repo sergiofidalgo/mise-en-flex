@@ -23,8 +23,8 @@ namespace Game.Gameplay.Office
         private const string BackAction = "ButtonB";
         private const string MoveAction = "Move";
 
-        [Tooltip("Gives a campaign that hasn't been saved yet its starting money.")]
-        [SerializeField] private StaffConfig _staffConfig;
+        [Tooltip("The office's one copy of the campaign, shared with the miniature, which saves it.")]
+        [SerializeField] private OfficeCampaign _office;
         [Tooltip("Where the borrower stands, in front of the desk (local), and how near counts (m).")]
         [SerializeField] private Vector3 _visitorSide = new Vector3(0f, 0f, 1.5f);
         [SerializeField, Min(0.2f)] private float _radius = 1.3f;
@@ -94,9 +94,9 @@ namespace Game.Gameplay.Office
 
         private void Open(PlayerInput player)
         {
-            Campaign = AccountantBooks.Read(CampaignLaunch.Slot, _staffConfig != null ? _staffConfig.StartingMoney : 0f);
+            Campaign = _office != null ? _office.Campaign : null;
             if (Campaign == null)
-                return; // a file this game can't read is left alone
+                return; // no office campaign, or a file this game can't read: left alone
             _borrower = player;
             Lock(true);
             Refresh();
@@ -113,7 +113,7 @@ namespace Game.Gameplay.Office
 
         private void Borrow()
         {
-            if (Amounts.Count == 0 || !AccountantBooks.Borrow(CampaignLaunch.Slot, Campaign, Amounts[Selected], _terms))
+            if (Amounts.Count == 0 || !_office.Lend(Amounts[Selected], _terms))
             {
                 Stepped?.Invoke(0);
                 return;
