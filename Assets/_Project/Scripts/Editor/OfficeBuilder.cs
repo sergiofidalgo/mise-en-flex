@@ -159,6 +159,8 @@ namespace Game.Editor
             LightRooms(rooms); // OfficeBuilder.Lighting.cs: each room's lamps
             AddTailor(rooms); // OfficeBuilder.Tailor.cs: the plinths dress their players
             AddGuards(rooms); // OfficeBuilder.Guards.cs: the bodyguards stare at chefs near them
+            AddAccountantDesk(rooms); // OfficeBuilder.Accountant.cs: borrowing from the boss
+            AddHallPortraits(rooms); // OfficeBuilder.Accountant.cs: erased chefs' portraits
 
             var players = new GameObject("Players");
             var manager = players.AddComponent<PlayerInputManager>();
