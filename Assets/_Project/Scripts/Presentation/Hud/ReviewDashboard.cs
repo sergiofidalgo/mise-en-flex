@@ -111,8 +111,6 @@ namespace Game.Presentation.Hud
         private string _staffResultName;
         private bool _photoTaken;
         private int _openedFrame = -1;
-        // Last night's money, for the receipt in the morning; null until a Review has been seen.
-        private Ledger _lastNight;
         // Everyone's A: a tap acts, a hold readies (StartHold).
         private readonly StartHold _start = new StartHold();
         // The boss card's glow, pulsing while the collection is short and close.
@@ -190,9 +188,6 @@ namespace Game.Presentation.Hud
                 _onFilters = false;
                 _unlockResult = null;
                 _staffResult = StaffBoard.Outcome.Nothing;
-                // Kept for the morning's receipt: the day's books are cleared as the next day starts.
-                _lastNight = new Ledger();
-                _lastNight.Add(Services.Days.Today);
                 TakePhoto(atClose: true);
             }
             _dirty = true;
@@ -256,14 +251,6 @@ namespace Game.Presentation.Hud
                 {
                     _dayLoop.Ready.Toggle(player.playerIndex);
                     continue;
-                }
-
-                // In Plan, B puts forkcast away so the chefs can walk and rearrange; Y brings it
-                // back (LayoutEditor). The reply wheel takes B first.
-                if (!_choosingReply && Services.Forkcast.CanToggle && Pressed(actions, "ButtonB"))
-                {
-                    Services.Forkcast.Close();
-                    return;
                 }
 
                 if (_tab == Tab.Staff)
@@ -436,8 +423,8 @@ namespace Game.Presentation.Hud
 
         // ---- The Staff tab (the user's call, 2026-11-10) ----
 
-        // Hiring is for the morning: in Review the tab only shows.
-        private bool StaffEditable => Services.Days.Phase == DayPhase.Plan;
+        // Hiring is for the time between days: all of forkcast's time on screen (2026-11-10).
+        private bool StaffEditable => Services.Days.Phase == DayPhase.Plan || Services.Days.Phase == DayPhase.Review;
 
         // Anyone at the dashboard: up and down browse, A hires the chosen candidate, Y lets the chosen
         // team member go. A refusal says why rather than doing nothing.
@@ -463,16 +450,29 @@ namespace Game.Presentation.Hud
                 _staffResult = StaffBoard.Hire(Services.Staff, _selected, Services.Days.Balance, StaffEditable);
                 // The new member joins the team at the bottom of it: the choice follows them there.
                 if (_staffResult == StaffBoard.Outcome.Hired)
+                {
                     _selected = Services.Staff.Hired.Count - 1;
+                    SaveStaffNow();
+                }
                 _dirty = true;
             }
             else if (Pressed(actions, "ButtonY") && !row.IsCandidate)
             {
                 _staffResultName = row.Member.Name;
                 _staffResult = StaffBoard.LetGo(Services.Staff, _selected, StaffEditable);
+                if (_staffResult == StaffBoard.Outcome.LetGo)
+                    SaveStaffNow();
                 _selected = StaffBoard.Step(_selected, 0, StaffBoard.Rows(Services.Staff).Count);
                 _dirty = true;
             }
+        }
+
+        // In Review the day is saved already, so a hire or a goodbye saves at once, as replies and the
+        // cookbook do; in a morning that just loaded, it's kept with the day.
+        private void SaveStaffNow()
+        {
+            if (Services.Days.Phase == DayPhase.Review)
+                _root.SaveCampaign();
         }
 
         // ---- The cookbook (decision 2026-11-10) ----

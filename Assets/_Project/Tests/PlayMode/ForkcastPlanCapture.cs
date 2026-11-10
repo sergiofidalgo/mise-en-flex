@@ -77,8 +77,13 @@ namespace Game.Tests.PlayMode
             for (var i = 0; i < 3; i++)
                 yield return null;
 
-            // The morning of day 1, as you arrive.
-            yield return Shoot(dashboard, -1, Path.Combine(folder, "forkcast_plan_overview_day1.png"));
+            // The morning of day 1, as you arrive, in each of the listing card's three looks.
+            for (var look = 0; look < 3; look++)
+            {
+                dashboard.SetPlacesLook(look);
+                yield return Shoot(dashboard, -1, Path.Combine(folder, $"forkcast_plan_overview_look{look + 1}.png"));
+            }
+            dashboard.SetPlacesLook(0);
 
             // An evening one service before the collection, with the money short: the card turns urgent.
             typeof(DayCycle).GetProperty(nameof(DayCycle.DaysTowardsFee)).SetValue(days, days.Fee.EveryDays - 2);
@@ -86,6 +91,9 @@ namespace Game.Tests.PlayMode
             days.Advance();
             days.Charge(LedgerLine.Ingredients, 96f);
             days.TrySpend(Mathf.Max(0f, days.Balance - 140f));
+            var guests = new[] { ("Hank B.", 4.5f, "Best steak on the block."), ("Carlos S.", 3.5f, "Good, not great."), ("Destiny K.", 2f, "Took forever."), ("Megan R.", 4f, "Would argue with the chef again.") };
+            foreach (var (guest, stars, line) in guests)
+                services.ReviewHistory.Add(new Game.Simulation.Saving.ReviewRecord { Day = days.Day, Guest = guest, Order = "steak, medium", Stars = stars, Line = line, Topic = (int)Game.Simulation.Service.ReviewTopic.Decent, Paid = 24f });
             days.FinishService(Summary(served: 6, walkOuts: 1, payments: 188f, tips: 22f, walkOutLosses: 12f), wages: 45f);
             for (var i = 0; i < 5; i++)
                 yield return null;
@@ -125,7 +133,9 @@ namespace Game.Tests.PlayMode
         private static IEnumerator Shoot(ReviewDashboard dashboard, int selected, string file)
         {
             dashboard.ShowForCapture(selected < 0 ? 0 : 3, Mathf.Max(0, selected), false);
-            yield return null;
+            // Long enough for the editor to compile any new UI shader variant (drawn cyan until then)
+            // and for the joining chefs' prompts to fade.
+            yield return new WaitForSecondsRealtime(1.5f);
             yield return new WaitForEndOfFrame();
             var frame = ScreenCapture.CaptureScreenshotAsTexture();
             Debug.Log($"[ForkcastPlanCapture] {Path.GetFileName(file)} is {frame.width}×{frame.height}");

@@ -5,8 +5,8 @@ using NUnit.Framework;
 namespace Game.Tests.EditMode
 {
     /// <summary>
-    /// forkcast after the playtest (the user's calls, 2026-11-10): the Start button's tap-or-hold A,
-    /// the boss card, and tonight's receipt.
+    /// forkcast after the playtest (the user's calls, 2026-11-10): the Start button's tap-or-hold A
+    /// and the boss card.
     /// </summary>
     public class ForkcastOverviewTests
     {
@@ -128,48 +128,6 @@ namespace Game.Tests.EditMode
         public void Missing_it_brings_the_next_step(BossStep step, int restaurants, BossVisit next)
         {
             Assert.That(BossCard.For(600f, 0f, 3, true, step, restaurants).IfMissed, Is.EqualTo(next));
-        }
-
-        // ---- Tonight's receipt ----
-
-        [Test]
-        public void The_receipt_lists_money_in_and_out_and_the_profit()
-        {
-            var ledger = new Ledger();
-            ledger.Add(LedgerLine.Payments, 320f);
-            ledger.Add(LedgerLine.Tips, 40f);
-            ledger.Add(LedgerLine.Ingredients, 110f);
-            ledger.Add(LedgerLine.Wages, 45f);
-            ledger.Add(LedgerLine.Energy, 12f);
-            var receipt = NightReceipt.From(ledger);
-            Assert.That(receipt.In.Count, Is.EqualTo(2));
-            Assert.That(receipt.In[0].Line, Is.EqualTo(LedgerLine.Payments));
-            Assert.That(receipt.Out.Count, Is.EqualTo(3));
-            Assert.That(receipt.Out[0].Line, Is.EqualTo(LedgerLine.Ingredients));
-            Assert.That(receipt.Profit, Is.EqualTo(193f).Within(0.001f));
-        }
-
-        [Test]
-        public void The_boss_collection_isnt_tonights_cost()
-        {
-            var ledger = new Ledger();
-            ledger.Add(LedgerLine.Payments, 100f);
-            ledger.Add(LedgerLine.Fee, 450f);
-            ledger.Add(LedgerLine.Loan, 50f);
-            var receipt = NightReceipt.From(ledger);
-            Assert.That(receipt.Out, Is.Empty);
-            Assert.That(receipt.Profit, Is.EqualTo(100f));
-        }
-
-        [Test]
-        public void A_night_with_no_takings_still_shows_meals_and_a_loss()
-        {
-            var ledger = new Ledger();
-            ledger.Add(LedgerLine.Wages, 45f);
-            var receipt = NightReceipt.From(ledger);
-            Assert.That(receipt.In.Count, Is.EqualTo(1));
-            Assert.That(receipt.In[0].Amount, Is.Zero);
-            Assert.That(receipt.Profit, Is.EqualTo(-45f));
         }
     }
 }

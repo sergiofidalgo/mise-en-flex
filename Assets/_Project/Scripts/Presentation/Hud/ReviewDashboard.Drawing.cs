@@ -218,83 +218,271 @@ namespace Game.Presentation.Hud
         private void DrawLeft()
         {
             UiKit.Clear(_left);
-            var config = Services.ServiceConfig;
             var all = Services.ReviewHistory;
-            Label(ExtraBold, _left, ShownName, 50.67f, _ink, 120f, 576f, 600f, tracking: -1.6f);
+            Label(ExtraBold, _left, ShownName, 46f, _ink, 120f, 566f, 600f, tracking: -1.4f);
 
+            // Stars and count, then price band and category, on one line as a listing has them.
+            var x = 120f;
             var rating = ReviewReplies.Rating(all);
             if (rating.HasValue)
             {
-                var score = Label(Bold, _left, $"{rating.Value:0.0}", 40f, _ink, 120f, 635f, 120f);
-                var starsEnd = Stars(_left, 120f + UiKit.Width(score) + 17f, 607f, 27f, 37f, rating.Value);
-                Label(Medium, _left, $"({all.Count})", 22.67f, _body, starsEnd + 16f, 629f, 120f);
+                var score = Label(Bold, _left, $"{rating.Value:0.0}", 24f, _ink, x, 604f, 80f);
+                x = Stars(_left, x + UiKit.Width(score) + 10f, 586f, 20f, 26f, rating.Value) + 8f;
+                x += UiKit.Width(Label(Medium, _left, $"({all.Count})", 20f, _body, x, 603f, 80f)) + 10f;
             }
             else
             {
-                Label(Medium, _left, Tr.Get("No reviews yet"), 26.67f, _muted, 120f, 632f);
+                x += UiKit.Width(Label(Medium, _left, Tr.Get("No reviews yet"), 20f, _muted, x, 603f, 300f)) + 10f;
             }
+            Label(Medium, _left, $"· {Locale.PriceBand(PriceBand())} · {Tr.Get(ShownStyle)}", 20f, _body, x, 603f, 720f - x);
 
-            var hours = Services.Service.Settings.DurationSeconds;
-            // The price band follows the menu's dearest main dish, as listings do.
-            var mainPrice = Services.Cookbook != null && Services.Cookbook.Menu.Any()
-                ? Services.Cookbook.Menu.Max(r => Services.Cookbook.PriceOf(r.Id))
-                : config.MainPrice;
-            var band = mainPrice < 15f ? 1 : mainPrice < 30f ? 2 : 3;
-            Label(Medium, _left, Tr.Format("{band} · {style} · Open {from}–{to}", ("band", Locale.PriceBand(band)), ("style", Tr.Get(ShownStyle)), ("from", ClockAt(0f)), ("to", ClockAt(hours))), 21.33f, _body, 120f, 673f, 600f);
-
-            DrawReceipt();
+            switch (_placesLook)
+            {
+                case PlacesLook.Listing:
+                    DrawListing();
+                    break;
+                case PlacesLook.Highlights:
+                    DrawHighlights();
+                    break;
+                default:
+                    DrawPlacesCard();
+                    break;
+            }
         }
 
-        // Tonight's money as a receipt (the user's call, 2026-11-10; it replaces the guests chart):
-        // in on the left, out on the right, and the profit or loss in big type. In the morning it's
-        // last night's, kept from the Review (or, straight after loading, the day's totals).
-        private void DrawReceipt()
+        // The price band follows the menu's dearest main dish, as listings do.
+        private int PriceBand()
         {
-            var plan = Services.Days.Phase == DayPhase.Plan;
-            Caps(_left, plan ? Tr.Get("LAST NIGHT'S MONEY") : Tr.Get("TONIGHT'S MONEY"), 146f, 738f);
-            var ledger = plan ? _lastNight : Services.Days.Today;
-            if (ledger == null)
+            var mainPrice = MenuPrices().DefaultIfEmpty(Services.ServiceConfig.MainPrice).Max();
+            return mainPrice < 15f ? 1 : mainPrice < 30f ? 2 : 3;
+        }
+
+        private IEnumerable<float> MenuPrices() =>
+            Services.Cookbook != null ? Services.Cookbook.Menu.Select(r => (float)Services.Cookbook.PriceOf(r.Id)) : new[] { Services.ServiceConfig.MainPrice };
+
+        // ---- The listing card (the user's call, 2026-11-10): a Google Places card in Mise en Flex's
+        // voice. Real data where the game has it, a stable joke where it doesn't; decorative, with no
+        // controls of its own. Three looks to choose from (PlacesLook) until the user picks one. ----
+
+        private enum PlacesLook
+        {
+            /// <summary>Round action buttons, then four info rows and "Suggest an edit".</summary>
+            Card,
+            /// <summary>No buttons: service options, five info rows, more jokes.</summary>
+            Listing,
+            /// <summary>Highlight chips, three info rows, a quote from the owner.</summary>
+            Highlights,
+        }
+
+        [Tooltip("Which look the listing card on forkcast's left has, while the user chooses (2026-11-10).")]
+        [SerializeField] private PlacesLook _placesLook = PlacesLook.Card;
+
+        /// <summary>For the capture: draws the listing card in another look.</summary>
+        public void SetPlacesLook(int look)
+        {
+            _placesLook = (PlacesLook)Mathf.Clamp(look, 0, 2);
+            _dirty = true;
+        }
+
+        private static readonly string[] AddressJokes =
+        {
+            "next to a suspicious parking lot",
+            "above a laundromat that never closes",
+            "across from the Boss's cousin's bakery",
+            "between two identical pharmacies",
+        };
+
+        private static readonly string[] OwnerQuotes =
+        {
+            "We cook everything fresh. Mostly today.",
+            "Ask about our specials. We'll make one up.",
+            "Family run. The family is negotiable.",
+        };
+
+        private static readonly string[] Highlights =
+        {
+            "Loud kitchen",
+            "Cash only, sort of",
+            "Chef cries sometimes",
+            "Great for first dates you regret",
+        };
+
+        private string Address()
+        {
+            var street = string.IsNullOrEmpty(Services.Area) ? Services.ServiceConfig.Area : Services.Area;
+            var number = PlacesFacts.HouseNumber(ShownName);
+            var joke = AddressJokes[PlacesFacts.Pick(ShownName, "address", AddressJokes.Length)];
+            return Tr.Format("{number} {street} · {joke}", ("number", number), ("street", street), ("joke", Tr.Get(joke)));
+        }
+
+        // Never open while forkcast shows: it's up only between services. In the morning it opens
+        // today; after a service, tomorrow.
+        private string Hours()
+        {
+            var day = Services.Days.Phase == DayPhase.Review ? Services.Days.Day + 1 : Services.Days.Day;
+            var closed = HudStyle.Colored(Tr.Get("Closed"), _badText);
+            return $"<b>{closed}</b> · " + Tr.Format("Opens {time} ({weekday})", ("time", ClockAt(0f)), ("weekday", Weekday(day)));
+        }
+
+        private string Price()
+        {
+            var range = PlacesFacts.PricePerPerson(MenuPrices());
+            var reporters = Services.ReviewHistory.Count;
+            var who = reporters == 0 ? Tr.Get("nobody's reported yet")
+                : Tr.Format("reported by {count} diners, {sober} of them sober", ("count", reporters), ("sober", PlacesFacts.Sober(reporters)));
+            if (range == null)
+                return who;
+            return Tr.Format("{low}–{high} per person", ("low", Money(range.Value.Low)), ("high", Money(range.Value.High))) + " · " + who;
+        }
+
+        private string Owner() =>
+            Tr.Get("Owner: you, allegedly") + " · " + Tr.Format("{fee} to the Boss every {days} days", ("fee", Money(Services.Days.Fee.Amount)), ("days", Services.Days.Fee.EveryDays));
+
+        // Look 1: round action buttons as a Places card has, then info rows.
+        private void DrawPlacesCard()
+        {
+            var labels = new[] { Tr.Get("Directions"), Tr.Get("Save"), Tr.Get("Send to Mum"), Tr.Get("Share") };
+            for (var i = 0; i < labels.Length; i++)
             {
-                var last = Services.Days.History.Count > 0 ? Services.Days.History[Services.Days.History.Count - 1] : null;
-                if (last == null)
+                var cx = 120f + 75f + i * 150f;
+                UiKit.StrokedCircle(_left, "Action", _cardLight, _cardEdge, 2.5f, cx - 25f, 628f, 50f);
+                ActionIcon(i, cx, 653f);
+                Label(SemiBold, _left, labels[i], 16f, _goodText, cx, 700f, 150f, HorizontalAlignmentOptions.Center);
+            }
+            UiKit.RoundBox(_left, "Rule", _rule, 120f, 718f, 600f, 2f, 0f);
+            var y = 752f;
+            y = InfoRow(Icon.Pin, Address(), y);
+            y = InfoRow(Icon.Clock, Hours(), y);
+            y = InfoRow(Icon.Money, Price(), y);
+            InfoRow(Icon.Person, Owner(), y);
+            Label(SemiBold, _left, Tr.Get("Suggest an edit") + "  ·  " + Tr.Get("the Boss already did"), 16f, _goodText, 120f, 914f, 600f);
+        }
+
+        // Look 2: no buttons; service options and more rows, more jokes.
+        private void DrawListing()
+        {
+            var services = HudStyle.Colored("● ", _good) + Tr.Get("Dine in") + "   " + HudStyle.Colored("● ", _bad) + "<s>" + Tr.Get("Takeaway") + "</s>   "
+                + HudStyle.Colored("● ", _bad) + "<s>" + Tr.Get("Delivery") + "</s>";
+            Label(SemiBold, _left, services, 19f, _ink, 120f, 646f, 600f);
+            Label(Serif, _left, Tr.Get("“The scooter got repossessed.”"), 17.33f, _muted, 120f, 670f, 600f);
+            UiKit.RoundBox(_left, "Rule", _rule, 120f, 688f, 600f, 2f, 0f);
+            var y = 720f;
+            y = InfoRow(Icon.Pin, Address(), y, 38f);
+            y = InfoRow(Icon.Clock, Hours(), y, 38f);
+            y = InfoRow(Icon.Money, Price(), y, 38f);
+            y = InfoRow(Icon.Person, Owner(), y, 38f);
+            InfoRow(Icon.Trend, Tr.Get("Popular times: busiest when the Boss drops by"), y, 38f);
+            Label(SemiBold, _left, Tr.Get("Suggest an edit") + "  ·  " + Tr.Get("Add missing info"), 16f, _goodText, 120f, 914f, 600f);
+        }
+
+        // Look 3: highlight chips (the style and the best dish are real), three rows, the owner's quote.
+        private void DrawHighlights()
+        {
+            var chips = new List<string> { Tr.Get(ShownStyle) };
+            var best = Services.Cookbook?.Menu.FirstOrDefault();
+            if (best != null)
+                chips.Add(Tr.Get(best.Name));
+            chips.Add(Tr.Get(Highlights[PlacesFacts.Pick(ShownName, "highlight", Highlights.Length)]));
+            chips.Add(Tr.Get(Highlights[(PlacesFacts.Pick(ShownName, "highlight", Highlights.Length) + 1) % Highlights.Length]));
+            var x = 120f;
+            var row = 626f;
+            foreach (var chip in chips)
+            {
+                var right = Pill(_left, chip, SemiBold, 17.33f, _card, _ink, x, row, 34f, 14f, 23f, 720f);
+                if (right < 0f)
                 {
-                    Label(Serif, _left, Tr.Get("No service yet."), 24f, _muted, 146f, 790f, 540f);
-                    return;
+                    if (row > 626f)
+                        break;
+                    row += 42f;
+                    x = 120f;
+                    right = Pill(_left, chip, SemiBold, 17.33f, _card, _ink, x, row, 34f, 14f, 23f, 720f);
                 }
-                ReceiptLine(Tr.Get("In"), last.In, 146f, 396f, 772f, true);
-                ReceiptLine(Tr.Get("Out"), last.Out, 444f, 694f, 772f, false);
-                ReceiptTotal(last.In - last.Out);
-                return;
+                x = right + 10f;
             }
-
-            var receipt = NightReceipt.From(ledger);
-            var y = 772f;
-            foreach (var (line, amount) in receipt.In)
-            {
-                ReceiptLine(LineName(line), amount, 146f, 396f, y, true);
-                y += 22f;
-            }
-            y = 772f;
-            foreach (var (line, amount) in receipt.Out.Take(5))
-            {
-                ReceiptLine(LineName(line), amount, 444f, 694f, y, false);
-                y += 22f;
-            }
-            ReceiptTotal(receipt.Profit);
+            UiKit.RoundBox(_left, "Rule", _rule, 120f, 718f, 600f, 2f, 0f);
+            var y = 752f;
+            y = InfoRow(Icon.Pin, Address(), y);
+            y = InfoRow(Icon.Clock, Hours(), y);
+            InfoRow(Icon.Money, Price(), y);
+            Caps(_left, Tr.Get("FROM THE OWNER"), 120f, 876f);
+            Label(Serif, _left, $"“{Tr.Get(OwnerQuotes[PlacesFacts.Pick(ShownName, "owner", OwnerQuotes.Length)])}”", 20f, _ink, 120f, 906f, 600f);
         }
 
-        private void ReceiptLine(string name, float amount, float left, float right, float baseline, bool income)
+        private enum Icon { Pin, Clock, Money, Person, Trend }
+
+        // An info row: a small drawn icon, then the text, cut to one line. Returns the next baseline.
+        private float InfoRow(Icon icon, string text, float baseline, float pitch = 40f)
         {
-            Label(Medium, _left, name, 18f, _body, left, baseline, right - left - 70f);
-            var shown = income ? Money(amount) : Money(-amount, false, signed: true);
-            Label(SemiBold, _left, shown, 18f, income ? _goodText : _badText, right, baseline, 120f, HorizontalAlignmentOptions.Right);
+            DrawIcon(icon, 132f, baseline - 7f);
+            Label(Medium, _left, text, 18f, _ink, 158f, baseline, 562f);
+            return baseline + pitch;
         }
 
-        private void ReceiptTotal(float profit)
+        // Icons drawn from shapes (no icon font): centred on (cx, cy), about 18 px.
+        private void DrawIcon(Icon icon, float cx, float cy)
         {
-            UiKit.RoundBox(_left, "ReceiptRule", Hex(0xd9c39a), 146f, 874f, 548f, 2f, 0f);
-            Label(Bold, _left, profit < 0f ? Tr.Get("Loss") : Tr.Get("Profit"), 22f, _ink, 146f, 910f, 200f);
-            Label(ExtraBold, _left, Money(profit, false, signed: true), 34f, profit < 0f ? _badText : _goodText, 694f, 912f, 300f, HorizontalAlignmentOptions.Right, -0.8f);
+            var c = _muted;
+            switch (icon)
+            {
+                case Icon.Pin:
+                    UiKit.Ellipse(_left, "Pin", c, cx - 7f, cy - 10f, 14f, 14f);
+                    var tip = UiKit.RoundBox(_left, "PinTip", c, cx - 4.5f, cy - 2f, 9f, 9f, 1f);
+                    tip.rectTransform.pivot = new Vector2(0.5f, 0.5f);
+                    tip.rectTransform.anchoredPosition += new Vector2(4.5f, -4.5f);
+                    tip.rectTransform.localEulerAngles = new Vector3(0f, 0f, 45f);
+                    UiKit.Ellipse(_left, "PinHole", _paper, cx - 3f, cy - 6f, 6f, 6f);
+                    break;
+                case Icon.Clock:
+                    UiKit.StrokedCircle(_left, "Clock", _paper, c, 2.5f, cx - 9f, cy - 9f, 18f);
+                    UiKit.RoundBox(_left, "Hand", c, cx - 1f, cy - 6f, 2f, 7f, 1f);
+                    UiKit.RoundBox(_left, "Hand", c, cx - 1f, cy - 1f, 6f, 2f, 1f);
+                    break;
+                case Icon.Money:
+                    UiKit.StrokedBox(_left, "Note", _paper, c, 2.5f, cx - 10f, cy - 6f, 20f, 12f, 2f);
+                    UiKit.Ellipse(_left, "Coin", c, cx - 2.5f, cy - 2.5f, 5f, 5f);
+                    break;
+                case Icon.Person:
+                    UiKit.Ellipse(_left, "Head", c, cx - 4f, cy - 10f, 8f, 8f);
+                    UiKit.RoundBox(_left, "Body", c, cx - 8f, cy - 1f, 16f, 10f, 5f);
+                    break;
+                default:
+                    for (var i = 0; i < 3; i++)
+                        UiKit.RoundBox(_left, "Bar", c, cx - 9f + i * 7f, cy + 8f - (6f + i * 5f), 4f, 6f + i * 5f, 1f);
+                    break;
+            }
+        }
+
+        // The round buttons' pictures: directions (a turn arrow), save (a bookmark), send to Mum (a
+        // phone), share (three dots joined).
+        private void ActionIcon(int which, float cx, float cy)
+        {
+            var c = _goodText;
+            switch (which)
+            {
+                case 0:
+                    var sign = UiKit.RoundBox(_left, "Sign", c, cx - 9f, cy - 9f, 18f, 18f, 3f);
+                    sign.rectTransform.pivot = new Vector2(0.5f, 0.5f);
+                    sign.rectTransform.anchoredPosition += new Vector2(9f, -9f);
+                    sign.rectTransform.localEulerAngles = new Vector3(0f, 0f, 45f);
+                    UiKit.RoundBox(_left, "Arrow", _cardLight, cx - 4f, cy - 1f, 8f, 3f, 1f);
+                    break;
+                case 1:
+                    UiKit.RoundBox(_left, "Bookmark", c, cx - 7f, cy - 10f, 14f, 18f, 2f);
+                    var notch = UiKit.RoundBox(_left, "Notch", _cardLight, cx - 4f, cy + 4f, 8f, 8f, 0f);
+                    notch.rectTransform.pivot = new Vector2(0.5f, 0.5f);
+                    notch.rectTransform.anchoredPosition += new Vector2(4f, -4f);
+                    notch.rectTransform.localEulerAngles = new Vector3(0f, 0f, 45f);
+                    break;
+                case 2:
+                    UiKit.StrokedBox(_left, "Phone", _cardLight, c, 2.5f, cx - 6f, cy - 11f, 12f, 21f, 3f);
+                    UiKit.Ellipse(_left, "Heart", _bad, cx - 3f, cy - 4f, 6f, 6f);
+                    break;
+                default:
+                    UiKit.Ellipse(_left, "Dot", c, cx + 3f, cy - 9f, 7f, 7f);
+                    UiKit.Ellipse(_left, "Dot", c, cx - 9f, cy - 3f, 7f, 7f);
+                    UiKit.Ellipse(_left, "Dot", c, cx + 3f, cy + 3f, 7f, 7f);
+                    break;
+            }
         }
 
         // ---- Tabs ----
@@ -320,7 +508,7 @@ namespace Game.Presentation.Hud
 
         // ---- Overview: the boss first, the night's numbers, then every review ----
 
-        private const float BossWidth = 604f, TopRowHeight = 168f, FilterTop = 452f;
+        private const float BossWidth = 604f, TopRowHeight = 150f, FilterTop = 440f;
 
         private void DrawOverview()
         {
@@ -356,10 +544,11 @@ namespace Game.Presentation.Hud
                 y = ReviewCard(_list, reviews[i], y, i == _selected && !_onFilters, false) + 14f;
         }
 
-        // The boss's card, the Overview's headline (the user's calls, 2026-11-10): the next collection
-        // first, a bar of how much of it the balance covers (red when short), and what missing it
-        // brings. Short with two days or fewer left, it pulses and the boss appears, frowning.
-        private const float BossHeight = 168f;
+        // The boss's card, the Overview's headline, after the user's simpler frame (2026-11-10):
+        // "THE BOSS", the debt collection and its amount, an orange bar as far as the balance covers
+        // it, and what you have against what's short. Short with two days or fewer left, it pulses
+        // and the boss appears, frowning.
+        private const float BossHeight = 150f;
 
         private void DrawBoss(float x, float y)
         {
@@ -373,65 +562,49 @@ namespace Game.Presentation.Hud
             _bossGlow = UiKit.RoundBox(_content, "BossGlow", Alpha(_shortBy, 0f), x - 7f, y - 7f, BossWidth + 14f, BossHeight + 14f, 24f);
             _bossUrgent = urgent;
             UiKit.RoundBox(_content, "Boss", _ink, x, y, BossWidth, BossHeight, 18f);
-            Caps(_content, Tr.Get("THE BOSS"), x + 26f, y + 32f, _gold);
-            if (days.Loan.Owed > 0f)
-                Label(Medium, _content, Tr.Format("Loan left {owed}", ("owed", Money(days.Loan.Owed))), 17f, _sand, x + 150f, y + 32f, 190f);
+            Caps(_content, Tr.Get("THE BOSS"), x + 26f, y + 34f, _gold);
             if (urgent)
             {
                 BossFace(x + BossWidth - 26f - 58f, y + 14f);
                 inner -= 72f;
             }
 
-            string lead, status, shortText = null, consequence;
+            string lead, left, right = null;
             float covered;
-            var consequenceColour = _sand;
             if (collection.HasValue)
             {
-                // Collection night: what he took, and what comes of any of it missing.
+                // Collection night: what he took.
                 var taken = collection.Value;
                 covered = taken.Due > 0f ? Mathf.Clamp01(taken.Paid / taken.Due) : 1f;
-                lead = Tr.Format("Collection taken: {amount}", ("amount", Money(taken.Due)));
-                if (taken.PaidInFull)
-                {
-                    status = Tr.Get("Paid in full");
-                    consequence = Tr.Get("He's happy. For now.");
-                }
-                else
-                {
-                    status = Tr.Format("He took {paid}", ("paid", Money(taken.Paid)));
-                    shortText = Tr.Format("Short by {amount}", ("amount", Money(taken.Shortfall)));
-                    consequence = Tr.Format("Missed: tomorrow {what}.", ("what", VisitText(Services.Boss.Pending)));
-                    consequenceColour = _shortBy;
-                }
+                lead = Tr.Format("Debt collection taken: {amount}", ("amount", Money(taken.Due)));
+                left = taken.PaidInFull ? Tr.Get("Paid in full") : Tr.Format("He took {paid}", ("paid", Money(taken.Paid)));
+                if (!taken.PaidInFull)
+                    right = Tr.Format("Short by {amount}", ("amount", Money(taken.Shortfall)));
             }
             else
             {
                 covered = card.Covered;
-                lead = card.Falls == BossCard.When.Tonight ? Tr.Format("Collection tonight: {amount}", ("amount", Money(card.Due)))
-                    : card.Falls == BossCard.When.Tomorrow ? Tr.Format("Collection tomorrow: {amount}", ("amount", Money(card.Due)))
-                    : Tr.Format("Collection in {days} days: {amount}", ("days", card.DaysLeft), ("amount", Money(card.Due)));
-                status = days.Balance < 0f
-                    ? Tr.Format("You owe him {amount}", ("amount", Money(days.OwedToBoss)))
-                    : card.IsShort ? Tr.Format("You have {amount}", ("amount", Money(days.Balance))) : Tr.Get("Covered");
+                lead = card.Falls == BossCard.When.Tonight ? Tr.Format("Debt collection tonight: {amount}", ("amount", Money(card.Due)))
+                    : card.Falls == BossCard.When.Tomorrow ? Tr.Format("Debt collection tomorrow: {amount}", ("amount", Money(card.Due)))
+                    : Tr.Format("Debt collection in {days} days: {amount}", ("days", card.DaysLeft), ("amount", Money(card.Due)));
+                left = Tr.Format("You have {amount}", ("amount", Money(days.Balance)));
                 if (card.IsShort)
-                    shortText = Tr.Format("Short by {amount}", ("amount", Money(card.Shortfall)));
-                consequence = Tr.Format("Miss it and {what}.", ("what", VisitText(card.IfMissed)));
-                if (card.IsShort)
-                    consequenceColour = _shortBy;
+                    right = Tr.Format("Short by {amount}", ("amount", Money(card.Shortfall)));
             }
 
-            Label(ExtraBold, _content, lead, 34f, _paper, x + 26f, y + 72f, inner, tracking: -0.8f);
-            var short_ = shortText != null;
-            UiKit.RoundBox(_content, "CoverTrack", _wellLight, x + 26f, y + 86f, BossWidth - 52f, 12f, 6f);
+            // Shrinks to fit rather than cutting the amount off (beside the boss's face it's narrower).
+            var leadLabel = Label(ExtraBold, _content, lead, 34f, _paper, x + 26f, y + 78f, inner, tracking: -0.8f);
+            leadLabel.enableAutoSizing = true;
+            leadLabel.fontSizeMin = 24f;
+            leadLabel.fontSizeMax = 34f;
+            UiKit.RoundBox(_content, "CoverTrack", _wellLight, x + 26f, y + 94f, BossWidth - 52f, 12f, 6f);
             if (covered > 0f)
-                UiKit.RoundBox(_content, "CoverFill", short_ ? _shortBy : _gold, x + 26f, y + 86f, Mathf.Max(12f, (BossWidth - 52f) * covered), 12f, 6f);
-            Label(Bold, _content, status, 19.5f, short_ ? _sand : _goldLight, x + 26f, y + 124f, 300f);
-            if (short_)
-                Label(Bold, _content, shortText, 19.5f, _shortBy, x + BossWidth - 26f, y + 124f, 300f, HorizontalAlignmentOptions.Right);
-            Label(Medium, _content, consequence, 17.33f, consequenceColour, x + 26f, y + 152f, BossWidth - 52f);
+                UiKit.RoundBox(_content, "CoverFill", _shortBy, x + 26f, y + 94f, Mathf.Max(12f, (BossWidth - 52f) * covered), 12f, 6f);
+            Label(Bold, _content, left, 19.5f, _sand, x + 26f, y + 132f, 300f);
+            if (right != null)
+                Label(Bold, _content, right, 19.5f, _shortBy, x + BossWidth - 26f, y + 132f, 300f, HorizontalAlignmentOptions.Right);
         }
 
-        private Color _goldLight => Hex(0xf3d58a);
         private bool _bossUrgent;
 
         // The boss as his phone draws him: camel suit, white hat; here with a frown.
@@ -448,17 +621,6 @@ namespace Game.Presentation.Hud
             UiKit.Ellipse(_content, "EyeR", _ink, x + 35f, y + 35f, 4f, 4f);
             UiKit.RoundBox(_content, "Frown", _ink, x + 21f, y + 47f, 16f, 3f, 1.5f);
         }
-
-        // What his next step does, to finish "Miss it and …".
-        private static string VisitText(Game.Simulation.Campaign.BossVisit visit) => visit switch
-        {
-            Game.Simulation.Campaign.BossVisit.Warning => Tr.Get("he comes to warn you"),
-            Game.Simulation.Campaign.BossVisit.Repossession => Tr.Get("his men take appliances worth what's short"),
-            Game.Simulation.Campaign.BossVisit.StripToMinimum => Tr.Get("he strips this place to the bare minimum"),
-            Game.Simulation.Campaign.BossVisit.TakeRestaurant => Tr.Get("he takes this restaurant"),
-            Game.Simulation.Campaign.BossVisit.Erasure => Tr.Get("he ends it all"),
-            _ => Tr.Get("he comes to warn you"),
-        };
 
         // A gentle pulse of the glow round the card while it's urgent: about one a second.
         private void PulseBoss()
@@ -930,7 +1092,7 @@ namespace Game.Presentation.Hud
                 case StaffBoard.Outcome.ReadOnly:
                     return (Tr.Get("Hiring is for the morning, before prep."), _badText);
             }
-            return StaffEditable ? (null, _body) : (Tr.Get("Hire in the morning, before prep."), _muted);
+            return (null, _body);
         }
 
         private void MemberCard(Game.Simulation.Staff.StaffMember member, float y, bool chosen)
@@ -1203,12 +1365,8 @@ namespace Game.Presentation.Hud
                 x += UiKit.Width(label) + 32f;
             }
 
-            var left = StartButton(1800f);
-            if (plan)
-            {
-                left = Chip(_hints, "View", Tr.Get("Rearrange"), left - 18f);
-                Chip(_hints, "B", Tr.Get("Close"), left - 14f);
-            }
+            // The screen's only way on (the user's call, 2026-11-10): no Close, no Rearrange.
+            StartButton(1800f);
         }
 
         // The main call to action, its right edge at right: gold, A on the left with "hold" under it,
@@ -1224,7 +1382,8 @@ namespace Game.Presentation.Hud
                 UiKit.RoundBox(_hints, "StartFill", Hex(0xc8901e), x, top, Mathf.Max(height, width * fill), height, height / 2f);
             Badge(_hints, "A", _buttonA, x + 36f, top + 25f, 32f, 16f);
             Label(Bold, _hints, Tr.Get("HOLD"), 11f, _ink, x + 36f, top + 54f, 60f, HorizontalAlignmentOptions.Center, 1.2f);
-            var text = Services.Days.Phase == DayPhase.Plan ? Tr.Get("Start prep") : Tr.Format("Start day {day}", ("day", Services.Days.Day + 1));
+            // One hold from Review or Plan straight into Prep, so one label.
+            var text = Tr.Get("Start prep");
             Label(ExtraBold, _hints, text, 28f, _ink, x + 66f, top + 40f, width - 150f, tracking: -0.5f);
 
             var players = PlayerInput.all.OrderBy(p => p.playerIndex).ToList();
@@ -1412,7 +1571,6 @@ namespace Game.Presentation.Hud
             _photo.uvRect = new UnityEngine.Rect((1f - aspect) / 2f, 0f, aspect, 1f);
             UiKit.RoundBox(_layout, "Caption", Alpha(_ink, 0.85f), 438f, 466f, 270f, 32f, 8f);
             _caption = UiKit.TextAt(_style.Medium, _layout, "CaptionText", Tr.Get("Your photo · captured at close"), 17.33f, _paper, 573f, 488f, 270f, HorizontalAlignmentOptions.Center);
-            UiKit.RoundBox(_layout, "Guests", _card, 120f, 700f, 600f, 222f, 18f);
 
             _header = UiKit.Rect(_layout, "HeaderState", 0f, 0f, 1920f, 1080f);
             _money = UiKit.Rect(_layout, "Money", 1804f - _moneyWidth, MoneyTop, _moneyWidth, MoneyHeight);
