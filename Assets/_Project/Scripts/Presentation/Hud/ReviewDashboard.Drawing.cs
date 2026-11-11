@@ -576,10 +576,14 @@ namespace Game.Presentation.Hud
         // line of facts: the rating, what they had and paid. No quotation marks: the bubble says it.
 
         private const float CardPad = 22f, GuestColumn = 112f, GuestGap = 18f, Portrait = 84f;
-        private const float QuoteSize = 30f, QuotePitch = 38f, QuoteInset = 20f;
+        private const float QuoteSize = 30f, QuoteSmallest = 22f, QuoteInset = 20f;
+        // Line pitch as a share of the type size (38 px at 30).
+        private const float QuoteLeading = 38f / 30f;
         private const float ReplySize = 22f, ReplyPitch = 30f, ReplyIndent = 56f, ReplyInset = 20f;
         private const float BubbleGap = 12f, FactsHeight = 44f, BubbleCorner = 18f, TailCorner = 5f;
-        private const int QuoteMaxLines = 3, ReplyMaxLines = 3;
+        // A review is never more than two lines (the user's call, 2026-11-11): a long one is set a
+        // little smaller until it fits, down to QuoteSmallest, and only then cut with an ellipsis.
+        private const int QuoteMaxLines = 2, ReplyMaxLines = 3;
 
         private static float ContentX => CardLeft + CardPad + GuestColumn + GuestGap;
         private static float ContentWidth => CardWidth - CardPad - GuestColumn - GuestGap - CardPad;
@@ -591,7 +595,8 @@ namespace Game.Presentation.Hud
 
         private float CardHeight(ReviewRecord review, bool overview)
         {
-            var right = Bubble(QuoteLines(review), QuoteSize, QuotePitch) + FactsHeight;
+            var fit = QuoteFit(review);
+            var right = Bubble(fit.Lines, fit.Size, fit.Size * QuoteLeading) + FactsHeight;
             if (review.Reply >= 0)
                 right += BubbleGap + Bubble(Lines(ShownReply(review), Medium, ReplySize, ContentWidth - ReplyIndent - 2f * ReplyInset, ReplyMaxLines), ReplySize, ReplyPitch);
             return CardPad + Mathf.Max(right, GuestHeight) + CardPad - 6f;
@@ -600,19 +605,35 @@ namespace Game.Presentation.Hud
         // A bubble's height for this many lines: padding, the first line, then the pitch per line.
         private static float Bubble(int lines, float size, float pitch) => 14f + size + (lines - 1) * pitch + 18f;
 
-        private int QuoteLines(ReviewRecord review) =>
-            Lines(Game.Data.ReviewText.Line(review), Upright, QuoteSize, ContentWidth - 2f * QuoteInset, QuoteMaxLines);
+        // The biggest size, from QuoteSize down, at which the review fits in two lines.
+        private (float Size, int Lines) QuoteFit(ReviewRecord review)
+        {
+            var text = Game.Data.ReviewText.Line(review);
+            for (var size = QuoteSize; size > QuoteSmallest; size -= 1f)
+            {
+                var lines = Lines(text, Upright, size, ContentWidth - 2f * QuoteInset, 99);
+                if (lines <= QuoteMaxLines)
+                    return (size, lines);
+            }
+            return (QuoteSmallest, QuoteMaxLines);
+        }
 
         // How many lines text wraps to, measured with its own font, size and width.
         private int Lines(string text, TMP_FontAsset font, float size, float width, int most)
         {
             if (_measure == null || string.IsNullOrEmpty(text) || font == null)
                 return 1;
+            // Laid out as the label will be, and its lines counted (a height divided by a line
+            // height miscounts, as the first and last lines carry the ascent and descent).
             _measure.font = font;
             _measure.fontSize = size;
-            var height = _measure.GetPreferredValues(text, width, 0f).y;
-            var line = font.faceInfo.lineHeight * size / font.faceInfo.pointSize;
-            return Mathf.Clamp(Mathf.RoundToInt(height / line), 1, most);
+            _measure.textWrappingMode = TextWrappingModes.Normal;
+            _measure.overflowMode = TextOverflowModes.Overflow;
+            _measure.maxVisibleLines = 99;
+            _measure.rectTransform.sizeDelta = new Vector2(width, 4000f);
+            _measure.text = text;
+            _measure.ForceMeshUpdate();
+            return Mathf.Clamp(_measure.textInfo.lineCount, 1, most);
         }
 
         // TextMeshPro spaces lines by the font's own line height; this sets an exact pitch instead.
@@ -673,11 +694,13 @@ namespace Game.Presentation.Hud
             chipBox.transform.SetSiblingIndex(chip.transform.GetSiblingIndex());
 
             // What they said, in their bubble. Written in the player's language (decision 2026-11-09).
-            var lines = QuoteLines(review);
-            var bubble = Bubble(lines, QuoteSize, QuotePitch);
+            var fit = QuoteFit(review);
+            var pitch = fit.Size * QuoteLeading;
+            var bubble = Bubble(fit.Lines, fit.Size, pitch);
             SpeechBubble(parent, "Said", walkedOut ? _alarm : Hex(0xf1e5cf), ContentX, top, ContentWidth, bubble, tailLeft: true);
-            var quote = UiKit.TextAt(Upright, parent, "Quote", Game.Data.ReviewText.Line(review), QuoteSize, _ink, ContentX + QuoteInset, top + 14f + QuoteSize, ContentWidth - 2f * QuoteInset, lines: QuoteMaxLines);
-            LineHeight(quote, QuotePitch);
+            var quote = UiKit.TextAt(Upright, parent, "Quote", Game.Data.ReviewText.Line(review), fit.Size, _ink, ContentX + QuoteInset, top + 14f + fit.Size, ContentWidth - 2f * QuoteInset, lines: QuoteMaxLines);
+            // Past the smallest size (about 150 characters), the third line on is left out.
+            LineHeight(quote, pitch);
             var below = top + bubble;
 
             // The owner's answer: bigger, from the other side, no heading (the user's call).
