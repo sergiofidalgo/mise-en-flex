@@ -78,6 +78,7 @@ namespace Game.Editor
             so.FindProperty("_bold").objectReferenceValue = Font("Inter-Bold");
             so.FindProperty("_extraBold").objectReferenceValue = Font("Inter-ExtraBold");
             so.FindProperty("_serifItalic").objectReferenceValue = Font("Lora-Italic");
+            so.FindProperty("_serif").objectReferenceValue = Font("Lora-Regular");
             so.FindProperty("_forkcastLogo").objectReferenceValue = Sprite("TEX_Dash_Logo", DashboardFolder);
             so.FindProperty("_searchIcon").objectReferenceValue = Sprite("TEX_Dash_IconSearch", DashboardFolder);
             so.FindProperty("_starFull").objectReferenceValue = Sprite("TEX_Dash_StarFull", DashboardFolder);

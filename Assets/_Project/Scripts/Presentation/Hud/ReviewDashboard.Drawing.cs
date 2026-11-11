@@ -86,6 +86,8 @@ namespace Game.Presentation.Hud
         private TMP_FontAsset Bold => _style.Bold;
         private TMP_FontAsset ExtraBold => _style.ExtraBold;
         private TMP_FontAsset Serif => _style.SerifItalic;
+        // What guests write: upright Lora (the user's call, 2026-11-11).
+        private TMP_FontAsset Upright => _style.Serif;
 
         private static Color Hex(int rgb) => new Color(((rgb >> 16) & 0xff) / 255f, ((rgb >> 8) & 0xff) / 255f, (rgb & 0xff) / 255f);
 
@@ -570,12 +572,12 @@ namespace Game.Presentation.Hud
 
         // ---- Review cards, as speech bubbles (the user's pick, option B, 2026-11-11) ----
         // Left, the guest: their portrait, name and what kind of guest they are. Right, what they
-        // said in a bubble, the owner's answer in a darker bubble from the other side, then a quiet
+        // said in a bubble in upright Lora, the owner's answer in a darker bubble from the other side, then a quiet
         // line of facts: the rating, what they had and paid. No quotation marks: the bubble says it.
 
         private const float CardPad = 22f, GuestColumn = 112f, GuestGap = 18f, Portrait = 84f;
         private const float QuoteSize = 30f, QuotePitch = 38f, QuoteInset = 20f;
-        private const float ReplySize = 24f, ReplyPitch = 32f, ReplyIndent = 56f, ReplyInset = 20f;
+        private const float ReplySize = 22f, ReplyPitch = 30f, ReplyIndent = 56f, ReplyInset = 20f;
         private const float BubbleGap = 12f, FactsHeight = 44f, BubbleCorner = 18f, TailCorner = 5f;
         private const int QuoteMaxLines = 3, ReplyMaxLines = 3;
 
@@ -599,7 +601,7 @@ namespace Game.Presentation.Hud
         private static float Bubble(int lines, float size, float pitch) => 14f + size + (lines - 1) * pitch + 18f;
 
         private int QuoteLines(ReviewRecord review) =>
-            Lines(Game.Data.ReviewText.Line(review), Serif, QuoteSize, ContentWidth - 2f * QuoteInset, QuoteMaxLines);
+            Lines(Game.Data.ReviewText.Line(review), Upright, QuoteSize, ContentWidth - 2f * QuoteInset, QuoteMaxLines);
 
         // How many lines text wraps to, measured with its own font, size and width.
         private int Lines(string text, TMP_FontAsset font, float size, float width, int most)
@@ -674,7 +676,7 @@ namespace Game.Presentation.Hud
             var lines = QuoteLines(review);
             var bubble = Bubble(lines, QuoteSize, QuotePitch);
             SpeechBubble(parent, "Said", walkedOut ? _alarm : Hex(0xf1e5cf), ContentX, top, ContentWidth, bubble, tailLeft: true);
-            var quote = UiKit.TextAt(Serif, parent, "Quote", Game.Data.ReviewText.Line(review), QuoteSize, _ink, ContentX + QuoteInset, top + 14f + QuoteSize, ContentWidth - 2f * QuoteInset, lines: QuoteMaxLines);
+            var quote = UiKit.TextAt(Upright, parent, "Quote", Game.Data.ReviewText.Line(review), QuoteSize, _ink, ContentX + QuoteInset, top + 14f + QuoteSize, ContentWidth - 2f * QuoteInset, lines: QuoteMaxLines);
             LineHeight(quote, QuotePitch);
             var below = top + bubble;
 

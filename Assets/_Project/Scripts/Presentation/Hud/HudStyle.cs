@@ -142,6 +142,8 @@ namespace Game.Presentation.Hud
         [SerializeField] private TMP_FontAsset _bold;
         [SerializeField] private TMP_FontAsset _extraBold;
         [SerializeField] private TMP_FontAsset _serifItalic;
+        [Tooltip("Upright Lora: what guests write in their reviews (the user's call, 2026-11-11).")]
+        [SerializeField] private TMP_FontAsset _serif;
 
         [Header("Languages (decision 2026-11-09)")]
         [Tooltip("Every language's translation table; loaded as soon as a scene uses this style.")]
@@ -166,6 +168,7 @@ namespace Game.Presentation.Hud
         public TMP_FontAsset Bold => _bold != null ? _bold : _font;
         public TMP_FontAsset ExtraBold => _extraBold != null ? _extraBold : Bold;
         public TMP_FontAsset SerifItalic => _serifItalic != null ? _serifItalic : _font;
+        public TMP_FontAsset Serif => _serif != null ? _serif : SerifItalic;
         public Sprite ForkcastLogo => _forkcastLogo;
         public Sprite SearchIcon => _searchIcon;
         public Sprite StarFull => _starFull;
