@@ -3555,3 +3555,14 @@ It hides (fading over the HUD's 0.12 s) behind the Review dashboard, the pause m
 **Rules now:** the plan has two rooms (`Room.Kitchen`, `Room.DiningRoom`); any piece may stand in either. Each piece has a usual room (tables `DiningRoom`, the rest `Kitchen`). Doors, other pieces, people and chairs still block as before. The street door keeps its own rule. `KitchenPlan.OutOfTheirRooms()` and `LayoutEditor.OutOfTheirRooms()` list the pieces out of their usual room, for the mess and guests' reaction (built in another session).
 
 **Not checked in play:** whether guests and the waiter reach a table in the kitchen comfortably through the kitchen door, and how the jump over the dividing wall feels with a stick.
+
+## 2026-11-11 — How the wheelie bin rolls
+
+**Built from the user's call (the bin moves in rearranging, along the outer walls, rolling after the cursor):**
+- **Where:** against the west, front (south) and east outer walls, its whole length against one, with its back 0.15 m off the wall and its front facing out. Not the north wall: the grounds end 0.9 m behind the building, less than the bin's depth.
+- **How it moves:** the cursor reaches out 1.8 m past the inside walls (not behind the building). A over the bin picks it up. It goes to the nearest spot against a wall and *rolls* there along `BinTrack`, about 0.3 s behind (`WheelieBin._rollLag`, top speed 7 m/s), with its wheels turning. Between walls it rolls round the front corners on a 1 m quarter circle, turning as it goes, never through the building. B rolls it back home. It can't be turned with LB/RB.
+- **Where it can't stand:** in the street door's doorway (the door's width plus 0.5 m either side), on the guests' way from the doorstep straight south to the pavement (so not between a side-wall door and the street), or on anyone. The HUD says "keep the door clear". Moving the street door so the bin would then block it is refused the same way. Next to the doorway is allowed: guests smell it (the guest-reactions rules).
+- **The queue outside** lines up along the door's wall on the side away from the bin when the bin stands that way (`CustomerDirector.WallLeft` stops at it).
+- **The restaurant's sign** moved out from the front-east corner (1.5 m east, 1.7 m south) so the bin clears its pole as it rounds the corner.
+
+**Not yet:** where the bin stands isn't saved, the same as the street door (neither is a station). A load puts both back where the builder put them.

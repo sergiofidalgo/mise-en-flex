@@ -70,6 +70,8 @@ namespace Game.Gameplay
         [SerializeField] private StaffDirector _staff;
         [SerializeField] private FurnitureCatalog _catalog;
         [SerializeField] private StreetDoor _streetDoor;
+        [Tooltip("The street's wheelie bin, rolled round the outside walls (decisions 2026-11-11). Optional.")]
+        [SerializeField] private WheelieBin _bin;
 
         [Tooltip("Real metres per second the cursor moves at full stick.")]
         [SerializeField, Min(0.1f)] private float _cursorSpeed = 6f;
@@ -83,6 +85,8 @@ namespace Game.Gameplay
         [SerializeField, Range(0.1f, 1f)] private float _shopStickThreshold = 0.5f;
         [Tooltip("Metres kept clear around a body when placing furniture, on top of its own radius, so a piece never lands touching a chef's capsule.")]
         [SerializeField, Min(0f)] private float _personalSpace = 0.1f;
+        [Tooltip("How far, in metres, the cursor can go out past the building's inside walls: far enough to reach the wheelie bin.")]
+        [SerializeField, Min(0f)] private float _outsideReach = 1.8f;
 
         private readonly Dictionary<PlayerInput, Cursor> _cursors = new Dictionary<PlayerInput, Cursor>();
         private readonly Dictionary<object, Interactable> _stations = new Dictionary<object, Interactable>();
@@ -108,7 +112,9 @@ namespace Game.Gameplay
         public Interactable StationUnder(Cursor cursor)
         {
             var piece = _plan.PieceAt(cursor.Position);
-            return piece != null ? (Interactable)piece : null;
+            if (piece != null)
+                return (Interactable)piece;
+            return _bin != null && _bin.Footprint.Contains(cursor.Position, 0f) ? _bin : null;
         }
 
         public bool IsManaging(PlayerInput player) => _cursors.ContainsKey(player);
@@ -262,9 +268,11 @@ namespace Game.Gameplay
         public void MoveCursor(Cursor cursor, SimVector2 by)
         {
             var floor = _root.Services.FloorPlan;
+            // Out past the walls only as far as the bin, and not behind the building, where it can't go.
+            var reach = _bin != null ? _outsideReach : 0f;
             cursor.Position = new SimVector2(
-                Mathf.Clamp(cursor.Position.X + by.X, floor.RoomMin.X, floor.RoomMax.X),
-                Mathf.Clamp(cursor.Position.Y + by.Y, floor.RoomMin.Y, floor.RoomMax.Y));
+                Mathf.Clamp(cursor.Position.X + by.X, floor.RoomMin.X - reach, floor.RoomMax.X + reach),
+                Mathf.Clamp(cursor.Position.Y + by.Y, floor.RoomMin.Y - reach, floor.RoomMax.Y));
 
             if (cursor.Held == null)
                 return;
@@ -274,7 +282,7 @@ namespace Game.Gameplay
 
         public void Rotate(Cursor cursor, float degrees)
         {
-            if (cursor.Held == null || cursor.Held == _streetDoor)
+            if (cursor.Held == null || cursor.Held == _streetDoor || cursor.Held == _bin)
                 return;
             cursor.Degrees = Mathf.Repeat(cursor.Degrees + degrees, 360f);
             UpdateHeld(cursor);
@@ -287,6 +295,11 @@ namespace Game.Gameplay
             if (cursor.Held == _streetDoor)
             {
                 UpdateHeldDoor(cursor);
+                return;
+            }
+            if (cursor.Held != null && cursor.Held == _bin)
+            {
+                UpdateHeldBin(cursor);
                 return;
             }
 
@@ -315,11 +328,24 @@ namespace Game.Gameplay
             cursor.Held.transform.position = new Vector3(cursor.Landing.X, cursor.HeldFrom.y, cursor.Landing.Y);
         }
 
+        // The bin goes to the nearest spot against a wall and rolls there after the cursor, round
+        // the corners rather than through the building; the spot counts for placing straight away.
+        private void UpdateHeldBin(Cursor cursor)
+        {
+            var spot = _bin.Track.Snap(cursor.Position);
+            _bin.RollTo(spot);
+            var (position, degrees) = _bin.Track.At(spot);
+            cursor.Landing = position;
+            cursor.Degrees = degrees;
+            cursor.Result = Check(cursor);
+            cursor.Held.CantGoHere = cursor.Result != Placement.Ok;
+        }
+
         // Only the look eases round: the new angle already counts for snapping and placing, so a
         // press is never waiting on the animation, and pressing again mid-turn just carries on.
         private void TurnHeld(Cursor cursor)
         {
-            if (cursor.Held == null)
+            if (cursor.Held == null || cursor.Held == _bin) // the bin turns itself, as it rolls round a corner
                 return;
             var shown = cursor.Held.transform.eulerAngles.y;
             shown = Mathf.Abs(Mathf.DeltaAngle(shown, cursor.Degrees)) < 0.1f
@@ -342,12 +368,24 @@ namespace Game.Gameplay
                 return false;
 
             cursor.Held = station;
+            cursor.TurnVelocity = 0f;
+            cursor.Result = Placement.Ok;
+            if (station == _bin)
+            {
+                // Picked up mid-roll, its home is where it was headed.
+                var (home, homeDegrees) = _bin.Track.At(_bin.Target);
+                cursor.HeldFrom = new Vector3(home.X, station.transform.position.y, home.Y);
+                cursor.HeldFromDegrees = homeDegrees;
+                cursor.Degrees = homeDegrees;
+                cursor.Landing = home;
+                cursor.OutOfItsRoom = false;
+                Ghost(cursor);
+                return true;
+            }
             cursor.HeldFrom = station.transform.position;
             cursor.HeldFromDegrees = _plan.DegreesOf(station);
             cursor.Degrees = cursor.HeldFromDegrees;
-            cursor.TurnVelocity = 0f;
             cursor.Landing = _plan.PositionOf(station);
-            cursor.Result = Placement.Ok;
             cursor.OutOfItsRoom = _plan.IsOutOfItsRoom(station, cursor.Landing);
             Ghost(cursor);
             return true;
@@ -363,6 +401,15 @@ namespace Game.Gameplay
                 return false;
 
             var station = cursor.Held;
+            if (station == _bin)
+            {
+                // It carries on rolling to the spot; as far as everything else goes, it's there.
+                station.CantGoHere = false;
+                Land(cursor);
+                cursor.Held = null;
+                LayoutChanged?.Invoke();
+                return true;
+            }
             var buying = cursor.Buying;
             if (buying != null && !_root.Services.Days.TrySpend(buying.Price))
                 return false;
@@ -400,7 +447,12 @@ namespace Game.Gameplay
             if (cursor.Held == null)
                 return;
             cursor.Held.CantGoHere = false;
-            if (cursor.Buying != null)
+            if (cursor.Held == _bin)
+            {
+                _bin.RollTo(_bin.Track.Snap(Floor(cursor.HeldFrom))); // back where it was, on its wheels
+                Land(cursor);
+            }
+            else if (cursor.Buying != null)
             {
                 _plan.Remove(cursor.Held);
                 Destroy(cursor.Held.gameObject);
@@ -641,6 +693,8 @@ namespace Game.Gameplay
 
         private Placement Check(Cursor cursor)
         {
+            if (cursor.Held != null && cursor.Held == _bin)
+                return CheckBin(new Game.Simulation.Movement.Footprint(cursor.Landing, cursor.Degrees, _bin.Track.HalfSize));
             var result = _plan.Check(cursor.Held, cursor.Landing, cursor.Degrees, People());
             if (result == Placement.Ok && cursor.Held is TableStation table)
             {
@@ -652,9 +706,37 @@ namespace Game.Gameplay
             {
                 var floor = _root.Services.FloorPlan;
                 var onAWall = DoorPlacement.Fit(cursor.Position, floor.DoorLineMin, floor.DoorLineMax, floor.DoorSnapRange, floor.DoorEndMargin).OnAWall;
-                return onAWall ? Placement.Ok : Placement.NotOnAWall;
+                if (!onAWall)
+                    return Placement.NotOnAWall;
+                return DoorBlockedByBin(cursor) ? Placement.BlocksTheDoor : Placement.Ok;
             }
             return result == Placement.Ok && cursor.Buying != null && !CanAfford(cursor.Buying) ? Placement.CantAfford : result;
+        }
+
+        // The bin can't stand in the doorway, on the guests' way in from the pavement, or on anyone.
+        private Placement CheckBin(Game.Simulation.Movement.Footprint at)
+        {
+            foreach (var clear in _bin.KeepClear(_streetDoor.Footprint))
+            {
+                if (at.Overlaps(clear, 0f))
+                    return Placement.BlocksTheDoor;
+            }
+            foreach (var (position, radius) in People())
+            {
+                if (at.Contains(position, 0f, radius))
+                    return Placement.SomeoneInTheWay;
+            }
+            return Placement.Ok;
+        }
+
+        // The street door can't go where the bin would then stand in its way.
+        private bool DoorBlockedByBin(Cursor cursor)
+        {
+            if (_bin == null)
+                return false;
+            var bin = _bin.Track.FootprintAt(_bin.Target);
+            var door = new Game.Simulation.Movement.Footprint(cursor.Landing, cursor.Degrees, _streetDoor.HalfSize);
+            return _bin.KeepClear(door).Any(clear => bin.Overlaps(clear, 0f));
         }
 
         // Everyone, with how far their body reaches plus a little room, so a piece can only land

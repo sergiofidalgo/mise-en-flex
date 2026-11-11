@@ -105,13 +105,14 @@ namespace Game.Presentation.Hud
                     Placement.NotOnAWall => Tr.Get("it goes on an outside wall"),
                     Placement.NoRoomForChairs => Tr.Get("no room for its chairs"),
                     Placement.NoFreeCounter => Tr.Get("no free counter for it"),
+                    Placement.BlocksTheDoor => Tr.Get("keep the door clear"),
                     _ => null,
                 };
                 if (problem != null)
                     return $"{HudStyle.Colored(problem, _blocked)}\n[LB/RB] {Tr.Get("rotate")}   {Glyph(PromptControl.East)} {Tr.Get("cancel")}";
                 // Shown while it's carried over the other room, before A: placing still takes one press.
                 var mess = cursor.OutOfItsRoom ? MessWarning(cursor.Held) + "\n" : "";
-                return mess + (cursor.Held is StreetDoor
+                return mess + (cursor.Held is StreetDoor || cursor.Held is WheelieBin
                         ? $"{Glyph(PromptControl.South)} {Tr.Get("place")}   {Glyph(PromptControl.East)} {Tr.Get("cancel")}"
                         : $"{Glyph(PromptControl.South)} {Tr.Get("place")}   [LB/RB] {Tr.Get("rotate")}   {Glyph(PromptControl.East)} {Tr.Get("cancel")}");
             }
@@ -121,7 +122,7 @@ namespace Game.Presentation.Hud
             if (under == null)
                 return always;
             var sale = SaleText(cursor, under);
-            var move = $"{Glyph(PromptControl.South)} " + Tr.Format("move {what}", ("what", Tr.Get(under.name)));
+            var move = $"{Glyph(PromptControl.South)} " + Tr.Format("move {what}", ("what", Tr.Get(under is WheelieBin ? "wheelie bin" : under.name)));
             var chairs = under is TableStation table && table.HasChoiceOfChairs
                 ? "[RB] " + Tr.Format("add chair {price}", ("price", Money(_editor.ChairPrice))) + "   [LB] " + Tr.Get("remove") + "   " + Tr.Format("{count} now", ("count", table.ChairCount)) + "\n"
                 : "";

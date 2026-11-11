@@ -14,6 +14,8 @@ namespace Game.Simulation.Movement
         NotOnAWall,
         NoRoomForChairs,
         NoFreeCounter,
+        /// <summary>The wheelie bin would stand in the street door's way (decisions 2026-11-11).</summary>
+        BlocksTheDoor,
     }
 
     /// <summary>The building's two rooms. Pieces may stand in either (decisions 2026-11-11).</summary>

@@ -242,7 +242,7 @@ namespace Game.Tests.EditMode
             var plan = (FloorPlanConfig)new SerializedObject(root).FindProperty("_floorPlan").objectReferenceValue;
             var stations = scene.GetRootGameObjects()
                 .SelectMany(r => r.GetComponentsInChildren<Interactable>(true))
-                .Where(s => !(s is StreetDoor) && !(s is StallStation))
+                .Where(s => !(s is StreetDoor) && !(s is StallStation) && !(s is WheelieBin)) // the bin stands outside: BinTrackTests
                 .ToArray();
             foreach (var station in stations)
             {

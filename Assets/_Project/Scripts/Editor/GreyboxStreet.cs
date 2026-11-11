@@ -249,47 +249,113 @@ namespace Game.Editor
             // The one trash container (the mockup's recycling area is too much, the user's note).
             TrashContainer(street, new Vector3(BuildingEast + 0.75f, 0f, BuildingNorth - 3.3f));
 
-            // The restaurant's tall sign at the front corner.
-            Box(street, "SignPole", Mat("StreetSignPole", new Color(0.18f, 0.16f, 0.15f)), new Vector3(BuildingEast + 0.8f, 1.8f, BuildingSouth - 1.2f), new Vector3(0.14f, 3.6f, 0.14f))
+            // The restaurant's tall sign at the front corner, far enough out that the wheelie bin
+            // clears its pole as it rolls round the corner (BinTrack: its middle passes about 0.65 m
+            // out from the corner, and it reaches about 1.1 m round that).
+            Box(street, "SignPole", Mat("StreetSignPole", new Color(0.18f, 0.16f, 0.15f)), new Vector3(SignX, 1.8f, SignZ), new Vector3(0.14f, 3.6f, 0.14f))
                 .AddComponent<BoxCollider>();
-            Box(street, "SignBoard", Mat("StreetSignBoard", new Color(0.95f, 0.9f, 0.8f)), new Vector3(BuildingEast + 0.8f, 3.6f, BuildingSouth - 1.2f), new Vector3(1.8f, 1f, 0.12f));
+            Box(street, "SignBoard", Mat("StreetSignBoard", new Color(0.95f, 0.9f, 0.8f)), new Vector3(SignX, 3.6f, SignZ), new Vector3(1.8f, 1f, 0.12f));
             // A rule between the restaurant's name and its style, which RestaurantSignView letters in
             // (Phase 6, milestone 3: each restaurant's own name on its sign).
-            Box(street, "SignMark", Mat("StreetSignMark", new Color(0.5f, 0.22f, 0.15f)), new Vector3(BuildingEast + 0.8f, 3.58f, BuildingSouth - 1.27f), new Vector3(1.4f, 0.03f, 0.02f));
-            SignLettering(street, root, new Vector3(BuildingEast + 0.8f, 3.6f, BuildingSouth - 1.28f));
+            Box(street, "SignMark", Mat("StreetSignMark", new Color(0.5f, 0.22f, 0.15f)), new Vector3(SignX, 3.58f, SignZ - 0.07f), new Vector3(1.4f, 0.03f, 0.02f));
+            SignLettering(street, root, new Vector3(SignX, 3.6f, SignZ - 0.08f));
         }
 
         // The communal wheelie bin against the side wall (SM_WheelieBin; the user's reference photo,
         // 2026-11-11), long side along the wall and its front to the parking lot. 1.2 m by 1.8 m on
-        // the ground like the box it replaced, which stays as the fallback without the model.
+        // the ground like the box it replaced, which stays as the fallback without the model. It
+        // rolls round the outside walls in rearranging (WheelieBin, decisions 2026-11-11), so
+        // nothing on it is static.
+        private const float BinWallGap = 0.15f;
+        private static readonly Vector2 BinSize = new Vector2(1.8f, 1.2f); // along the wall, out from it
+        private const float BinHeight = 1.34f;
+        private const float BinColliderHeight = 1.8f;
+        private static float SignX => BuildingEast + 1.5f;
+        private static float SignZ => BuildingSouth - 1.7f;
+        private const float BinWheelRadius = 0.12f;
+        // Where SM_WheelieBin's castors stand, in the bin's own axes (the Blender script's
+        // WHEELIE_BIN_WHEELS, turned into Unity's: x = -x, z = -y).
+        private static readonly Vector2[] BinWheels = { new Vector2(0.6f, 0.3f), new Vector2(0.6f, -0.3f), new Vector2(-0.6f, 0.3f), new Vector2(-0.6f, -0.3f) };
+
         private static void TrashContainer(Transform street, Vector3 at)
         {
             const string model = "SM_WheelieBin";
+            // The name GuestSurroundings finds it by, for the smell at the door.
             var bin = new GameObject("TrashContainer");
             bin.transform.SetParent(street, false);
-            bin.transform.localPosition = at;
-            bin.isStatic = true;
+            bin.transform.SetLocalPositionAndRotation(at, Quaternion.Euler(0f, 90f, 0f)); // front (+z) east, away from the wall
+            // Taller than the bin, as stations' are, so no chef can climb onto it.
             var collider = bin.AddComponent<BoxCollider>();
-            collider.center = new Vector3(0f, 0.67f, 0f);
-            collider.size = new Vector3(1.2f, 1.34f, 1.8f);
+            collider.center = new Vector3(0f, BinColliderHeight / 2f, 0f);
+            collider.size = new Vector3(BinSize.x, BinColliderHeight, BinSize.y);
+            var anchor = new GameObject("ItemAnchor").transform; // on the lid; nothing is put there yet
+            anchor.SetParent(bin.transform, false);
+            anchor.localPosition = new Vector3(0f, BinHeight, 0f);
 
-            if (PilotArt.FindMesh(model, "WheelieBinBody") == null)
-            {
-                Box(bin.transform, "Body", Mat("StreetTrash", Bin), new Vector3(0f, 0.65f, 0f), new Vector3(1.2f, 1.3f, 1.8f));
-                Box(bin.transform, "Lid", Mat("StreetTrashLid", new Color(0.15f, 0.27f, 0.22f)), new Vector3(0f, 1.32f, 0f), new Vector3(1.25f, 0.08f, 1.87f));
-                return;
-            }
-
-            // The model is 1.82 m across its front; turned so the front (+z) faces east, away from the wall.
             var parts = new GameObject("Model").transform;
             parts.SetParent(bin.transform, false);
-            parts.localRotation = Quaternion.Euler(0f, 90f, 0f);
-            Kit.Part(parts, model, "WheelieBinBody", Kit.Toon("WheelieBinGreen", new Color(0.3f, 0.5f, 0.32f)));
-            Kit.Part(parts, model, "WheelieBinLid", Kit.Toon("WheelieBinLid", new Color(0.36f, 0.57f, 0.37f)));
-            Kit.Part(parts, model, "WheelieBinLidPanels", Kit.Toon("WheelieBinLidPanel", new Color(0.27f, 0.45f, 0.29f)));
-            Kit.Part(parts, model, "WheelieBinTrim", Kit.Toon("WheelieBinTrim", new Color(0.12f, 0.12f, 0.13f)));
-            Kit.Part(parts, model, "WheelieBinWheels", Kit.Toon("WheelieBinTyre", new Color(0.09f, 0.09f, 0.1f)));
-            Kit.Part(parts, model, "WheelieBinBrackets", Kit.Toon("KitSteel", new Color(0.72f, 0.73f, 0.75f)));
+            var wheels = new System.Collections.Generic.List<Transform>();
+            if (PilotArt.FindMesh(model, "WheelieBinBody") == null)
+            {
+                Box(parts, "Body", Mat("StreetTrash", Bin), new Vector3(0f, 0.65f, 0f), new Vector3(BinSize.x, 1.3f, BinSize.y));
+                Box(parts, "Lid", Mat("StreetTrashLid", new Color(0.15f, 0.27f, 0.22f)), new Vector3(0f, 1.32f, 0f), new Vector3(BinSize.x + 0.07f, 0.08f, BinSize.y + 0.05f));
+            }
+            else
+            {
+                Kit.Part(parts, model, "WheelieBinBody", Kit.Toon("WheelieBinGreen", new Color(0.3f, 0.5f, 0.32f)));
+                Kit.Part(parts, model, "WheelieBinLid", Kit.Toon("WheelieBinLid", new Color(0.36f, 0.57f, 0.37f)));
+                Kit.Part(parts, model, "WheelieBinLidPanels", Kit.Toon("WheelieBinLidPanel", new Color(0.27f, 0.45f, 0.29f)));
+                Kit.Part(parts, model, "WheelieBinTrim", Kit.Toon("WheelieBinTrim", new Color(0.12f, 0.12f, 0.13f)));
+                Kit.Part(parts, model, "WheelieBinBrackets", Kit.Toon("KitSteel", new Color(0.72f, 0.73f, 0.75f)));
+                // Each wheel on its own, turning about its axle (local z) as the bin rolls.
+                for (var i = 0; i < BinWheels.Length; i++)
+                {
+                    var wheel = new GameObject($"Wheel_{i}").transform;
+                    wheel.SetParent(parts, false);
+                    wheel.localPosition = new Vector3(BinWheels[i].x, BinWheelRadius, BinWheels[i].y);
+                    Kit.Part(wheel, model, "WheelieBinWheel", Kit.Toon("WheelieBinTyre", new Color(0.09f, 0.09f, 0.1f)));
+                    Kit.Part(wheel, model, "WheelieBinHub", Kit.Toon("KitSteel", new Color(0.72f, 0.73f, 0.75f)));
+                    wheels.Add(wheel);
+                }
+            }
+            foreach (var part in bin.GetComponentsInChildren<Transform>())
+                part.gameObject.isStatic = false; // it moves: static batching would leave it behind
+
+            var binView = bin.AddComponent<WheelieBin>();
+            var so = new SerializedObject(binView);
+            so.FindProperty("_halfSize").vector2Value = BinSize / 2f;
+            so.FindProperty("_itemAnchor").objectReferenceValue = anchor;
+            so.FindProperty("_buildingMin").vector2Value = new Vector2(BuildingWest, BuildingSouth);
+            so.FindProperty("_buildingMax").vector2Value = new Vector2(BuildingEast, BuildingNorth);
+            so.FindProperty("_wallGap").floatValue = BinWallGap;
+            so.FindProperty("_size").vector2Value = BinSize;
+            so.FindProperty("_wheelRadius").floatValue = BinWheelRadius;
+            var wheelList = so.FindProperty("_wheels");
+            wheelList.arraySize = wheels.Count;
+            for (var i = 0; i < wheels.Count; i++)
+                wheelList.GetArrayElementAtIndex(i).objectReferenceValue = wheels[i];
+            so.ApplyModifiedPropertiesWithoutUndo();
+
+            // Lit up under a cursor and red where it can't go, like furniture.
+            var highlight = new SerializedObject(bin.AddComponent<InteractableHighlightView>());
+            highlight.FindProperty("_interactable").objectReferenceValue = binView;
+            highlight.FindProperty("_shakeTarget").objectReferenceValue = parts;
+            var renderers = bin.GetComponentsInChildren<Renderer>();
+            var list = highlight.FindProperty("_renderers");
+            list.arraySize = renderers.Length;
+            for (var i = 0; i < renderers.Length; i++)
+                list.GetArrayElementAtIndex(i).objectReferenceValue = renderers[i];
+            highlight.ApplyModifiedPropertiesWithoutUndo();
+
+            var editor = Object.FindFirstObjectByType<LayoutEditor>();
+            if (editor == null)
+            {
+                Debug.LogWarning("[GreyboxStreet] No layout editor yet: the wheelie bin can't be moved.");
+                return;
+            }
+            var wiring = new SerializedObject(editor);
+            wiring.FindProperty("_bin").objectReferenceValue = binView;
+            wiring.ApplyModifiedPropertiesWithoutUndo();
         }
 
         // The name in large letters above the rule, the style in small ones below it, facing the
