@@ -9,6 +9,7 @@ namespace Game.Simulation.Cleaning
     {
         private readonly DirtMap _dirt;
         private int _guestsSinceScuff;
+        private int _guestsSinceOpenKitchenMess;
 
         public MessMaker(DirtMap dirt)
         {
@@ -48,6 +49,31 @@ namespace Game.Simulation.Cleaning
                 return null;
             _guestsSinceScuff = 0;
             return _dirt.Add(DirtKind.Scuff, DirtSurface.Floor, null, x, z, Amount(Settings.Scuff));
+        }
+
+        /// <summary>
+        /// A guest was served while pieces stand outside their usual room (decision 2026-11-11: an
+        /// open kitchen always makes more mess). Every few guests, each such piece leaves dirt on the
+        /// floor beside it: grease by an appliance in the dining room, footprints by a table in the
+        /// kitchen, where guests and cooks cross. Returns the spots made (none for most guests).
+        /// </summary>
+        public System.Collections.Generic.List<DirtSpot> OpenKitchenGuest(System.Collections.Generic.IReadOnlyList<Service.OutOfPlacePiece> pieces)
+        {
+            var made = new System.Collections.Generic.List<DirtSpot>();
+            if (pieces == null || pieces.Count == 0)
+                return made;
+            _guestsSinceOpenKitchenMess++;
+            if (_guestsSinceOpenKitchenMess < System.Math.Max(1, Settings.GuestsPerOpenKitchenMess))
+                return made;
+            _guestsSinceOpenKitchenMess = 0;
+            foreach (var piece in pieces)
+            {
+                var kind = piece.Kind == Service.OutOfPlaceKind.ApplianceInDiningRoom ? DirtKind.Scorch : DirtKind.Scuff;
+                var spot = _dirt.Add(kind, DirtSurface.Floor, null, piece.X, piece.Z, Amount(Settings.OpenKitchenMess));
+                if (spot != null)
+                    made.Add(spot);
+            }
+            return made;
         }
 
         /// <summary>A fire was put out: foam on the floor in front of the hob.</summary>

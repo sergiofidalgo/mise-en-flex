@@ -26,6 +26,23 @@ namespace Game.Simulation.Service
 
         /// <summary>A dirty table or a messy floor by their seat (decision 2026-11-10).</summary>
         Dirty,
+
+        /// <summary>The wheelie bin smelt by the customer door (decision 2026-11-11).</summary>
+        BinSmell,
+
+        /// <summary>A great night with the kitchen in view: the chef's-table show (decision 2026-11-11). Praise.</summary>
+        ChefsTable,
+
+        /// <summary>An average or poor night with the kitchen in view: mess and noise (decision 2026-11-11).</summary>
+        OpenKitchenMess,
+    }
+
+    /// <summary>Kinds of topic.</summary>
+    public static class ReviewTopics
+    {
+        /// <summary>True for a happy review (praise, "decent", the chef's-table show); everything else is a complaint.</summary>
+        public static bool IsPraise(ReviewTopic topic) =>
+            topic == ReviewTopic.Praise || topic == ReviewTopic.Decent || topic == ReviewTopic.ChefsTable;
     }
 
     /// <summary>One customer's review.</summary>
@@ -120,6 +137,7 @@ namespace Game.Simulation.Service
             var chance = topic switch
             {
                 ReviewTopic.Praise => PraiseShare,
+                ReviewTopic.ChefsTable => PraiseShare,
                 ReviewTopic.Decent => DecentShare,
                 ReviewTopic.WalkedOut => WalkOutShare,
                 _ => ComplaintShare,
@@ -158,9 +176,16 @@ namespace Game.Simulation.Service
                 return weakest.Value;
             if (score.DirtNoticed)
                 return ReviewTopic.Dirty;
+            // The room around them comes after the food and the table (decisions 2026-11-11).
+            if (score.Surroundings.BinNoticed)
+                return ReviewTopic.BinSmell;
+            if (score.Surroundings.Reaction == OpenKitchenReaction.Complaint)
+                return ReviewTopic.OpenKitchenMess;
             if (patienceWhenServed < settings.LowPatience)
                 return ReviewTopic.SlowService;
-            return (stars ?? score.Stars) >= settings.PraiseStars ? ReviewTopic.Praise : ReviewTopic.Decent;
+            if ((stars ?? score.Stars) < settings.PraiseStars)
+                return ReviewTopic.Decent;
+            return score.Surroundings.Reaction == OpenKitchenReaction.Show ? ReviewTopic.ChefsTable : ReviewTopic.Praise;
         }
 
         /// <summary>

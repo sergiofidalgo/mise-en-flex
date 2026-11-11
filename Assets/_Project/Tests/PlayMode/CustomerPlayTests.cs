@@ -188,10 +188,11 @@ namespace Game.Tests.PlayMode
             Assert.That(editor.Buy(cursor, editor.Shop.First(e => e.Id == "table")), Is.True);
             _table = (TableStation)cursor.Held;
             editor.MoveCursor(cursor, System.Numerics.Vector2.Zero);
-            Assert.That(editor.Place(cursor), Is.False, "not in the kitchen");
-            Assert.That(cursor.Result, Is.EqualTo(Placement.OutsideTheKitchen));
+            // A table may stand in the kitchen now, with a warning (decisions 2026-11-11).
+            Assert.That(cursor.OutOfItsRoom, Is.True, "over the kitchen, it warns of mess");
 
             editor.MoveCursor(cursor, new System.Numerics.Vector2(-2f, -5.5f));
+            Assert.That(cursor.OutOfItsRoom, Is.False, "in the dining room it's at home");
             Assert.That(editor.Place(cursor), Is.True, cursor.Result.ToString());
             editor.Leave(_player);
 

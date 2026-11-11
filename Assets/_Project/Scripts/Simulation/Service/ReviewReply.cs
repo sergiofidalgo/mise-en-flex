@@ -33,7 +33,7 @@ namespace Game.Simulation.Service
     /// </summary>
     public static class ReviewReplies
     {
-        public static bool IsComplaint(ReviewTopic topic) => topic != ReviewTopic.Praise && topic != ReviewTopic.Decent;
+        public static bool IsComplaint(ReviewTopic topic) => !ReviewTopics.IsPraise(topic);
 
         public static bool Fits(ReviewReply reply, ReviewTopic topic) => reply switch
         {

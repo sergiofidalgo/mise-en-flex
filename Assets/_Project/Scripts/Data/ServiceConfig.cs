@@ -206,6 +206,9 @@ namespace Game.Data
             new ReviewLines(ReviewTopic.SlowService, "Lovely, but what a wait.", "Good food, slow kitchen."),
             new ReviewLines(ReviewTopic.WalkedOut, "Waited ages. Never got my food.", "Gave up and left hungry."),
             new ReviewLines(ReviewTopic.Dirty, "Sticky table. Lost my appetite.", "Good food, dirty floor."),
+            new ReviewLines(ReviewTopic.BinSmell, "Good food. Shame about the bin smell.", "The bins greeted us at the door."),
+            new ReviewLines(ReviewTopic.ChefsTable, "Dinner and a show. Chef's table magic.", "Watched them cook. Pure theatre."),
+            new ReviewLines(ReviewTopic.OpenKitchenMess, "Ate next to the stove. Loud and greasy.", "Pans clanging in my ear all night."),
         };
 
         [Tooltip("How each kind of restaurant is talked about (ideas.md, 2026-11-09): the generic voice, then one per style. The lines above join the generic voice.")]

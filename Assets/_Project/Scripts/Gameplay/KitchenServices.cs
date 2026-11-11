@@ -70,6 +70,9 @@ namespace Game.Gameplay
         /// <summary>Says where in the room messes happen. Set by the composition root.</summary>
         public Game.Gameplay.Cleaning.KitchenMess Messes { get; set; }
 
+        /// <summary>The bin by the door and the open kitchen, as guests feel them (decisions 2026-11-11); null in scenes without a door.</summary>
+        public Game.Gameplay.Customers.GuestSurroundings Surroundings { get; set; }
+
         /// <summary>Watches the gas hobs for pan fires.</summary>
         public FireSafety Fires { get; } = new FireSafety();
 

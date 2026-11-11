@@ -314,6 +314,9 @@ namespace Game.Gameplay.Stations
             // A dirty table or a messy floor by the seat costs a little (decision 2026-11-10).
             var seat = place.Seat != null ? place.Seat.position : transform.position;
             score = score.WithDirt(_services.Dirt.PenaltyFor(this, seat.x, seat.z), _services.Tuning.Dirt.NoticedFrom);
+            // The bin by the door and an open kitchen, after the table (decisions 2026-11-11).
+            if (_services.Surroundings != null)
+                score = _services.Surroundings.Apply(score, customer);
             if (!_services.Service.Serve(place.SeatIndex, plate, score))
                 return;
 

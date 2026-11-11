@@ -3572,3 +3572,39 @@ It hides (fading over the HUD's 0.12 s) behind the Review dashboard, the pause m
 
 - **The shop card is a dark shade of the player's colour** (18% of it in the card background), at 0.9 opacity: like the office's cards, with the kitchen faintly through (`HudStyle._shopCardTint`, `_shopCardOpacity`).
 - **In Prep, B takes a ready back**, as on the dashboard; a ready lane reads "B Player N READY". Holding Y only readies now (it no longer toggles). B at a station also does the station's B, as a quick Y does.
+
+---
+
+## 2026-11-11 — Rearranging: pieces stop at the walls, and the open kitchen's warning
+
+**Why pieces showed inside walls:** `KitchenPlan.Check` already refused a spot where any corner reached past a wall's face, but the carried piece was still drawn wherever the cursor was, and the cursor only stays inside the building's outer walls. So a piece pushed against a wall, or a turned piece near one, showed half inside it (red, refused), and one carried from the kitchen to the dining room passed through the dividing wall. Square pieces whose centre was in the area never clipped; turned ones near a wall did too, as the wall snap only worked square on.
+
+**Fix (Simulation):** `KitchenPlan.Snap` now keeps the landing inside the room, by how far the piece's corners reach along each axis at its turn. Pushed further, a piece stays flush against the wall and slides along it, at any of the 8 turns and any size.
+
+**Tables' chairs while carried:** a carried table now shows only the chairs that would have room where it would land (`TableStation.PreviewChairs`), as placing already did. Before, a bar table turned towards a wall showed its stool half a metre inside it.
+
+**Checked against the real models** (`OpenKitchenPlayTests`): every piece in the grill kitchen, pushed into each wall at all 8 turns, stays out of the walls, with one known exception. Cabinets' worktops (CabinetArt) overhang their 1 m body by 2.5 cm, so against a wall the lip sits 2.5 cm into it, as it already did in the builder's own layout. That's hidden inside the 20 cm wall, so the test allows 3 cm. A stool can stand in the kitchen door's gap, which isn't a wall.
+
+**User's calls on the open kitchen (this session's questions):**
+- **The warning shows while carrying**, as an amber line on the carried piece's label once it's over the other room ("cooking in the dining room makes mess" / "guests in the kitchen make mess"), before A. Hovering a placed piece that's out of its room repeats it.
+- **Placing still takes one press.** The warning informs, never blocks.
+- **The dividing wall is jumped at its middle:** a carried piece sits flush against it on the cursor's side and moves to the other room once the cursor passes the wall's middle. Nothing may straddle it.
+
+**Rules now:** the plan has two rooms (`Room.Kitchen`, `Room.DiningRoom`); any piece may stand in either. Each piece has a usual room (tables `DiningRoom`, the rest `Kitchen`). Doors, other pieces, people and chairs still block as before. The street door keeps its own rule. `KitchenPlan.OutOfTheirRooms()` and `LayoutEditor.OutOfTheirRooms()` list the pieces out of their usual room, for the mess and guests' reaction (built in another session).
+
+**Not checked in play:** whether guests and the waiter reach a table in the kitchen comfortably through the kitchen door, and how the jump over the dividing wall feels with a stick.
+
+## 2026-11-11 — Guests feel the bin and the open kitchen
+
+**User's calls, building on "The wheelie bin moves…" above:**
+- **The bin's smell reaches 4 m from the customer door** and costs up to **1 star** with the bin right at the door, fading in a straight line to nothing at 4 m (`Surroundings.BinSmell`). Reviews mention it when it costs at least half a star (bin within about 2 m). Today's layouts keep the bin about 5.5 m from the door, so they're untouched. Distance is from the door to the bin's nearest side, read each time a guest is served, so a moved door or bin counts at once.
+- **The bin has flies over it** (`BinFlies`, added by the street builder), so players can tell why guests by the door grumble.
+- **A great night is tonight's average stars ≥ 4.5, this guest's own dish included, and this guest not kept waiting** (patience at serving above the slow-service mark). Stars are counted before the bin and the open kitchen, so a show doesn't feed itself and a complaint doesn't spiral.
+- **An open kitchen moves a guest's score up to ±1 star:** half a star per appliance in the dining room or table in the kitchen, capped at one. On a great night it's a bonus and praise-worthy guests write chef's-table reviews (`ChefsTable`); otherwise it's a penalty and guests complain about mess and noise (`OpenKitchenMess`).
+- **An open kitchen always makes more mess:** every 3 guests served, each out-of-place piece leaves a wipe of floor dirt beside it (grease by an appliance, footprints by a table), scaled by the hygiene dial.
+
+**Review priority:** food problems, then dirt, then the bin, then open-kitchen complaints, then a slow wait; a praise-worthy meal during a show becomes a chef's-table review. `ChefsTable` counts as praise for replies, sharing and the summary.
+
+**All values are in TuningConfig** ("Guests' surroundings", plus two in "Dirt").
+
+**Which pieces count** comes from the layout (`LayoutEditor.OutOfTheirRooms()`), asked as each guest is served. A table is a table in the kitchen; anything else is an appliance in the dining room. Each piece's extra mess lands 0.35 m in front of its front edge, where people stand to use it.

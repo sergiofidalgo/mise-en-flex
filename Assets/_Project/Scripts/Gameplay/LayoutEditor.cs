@@ -44,6 +44,8 @@ namespace Game.Gameplay
             public float Degrees;
 
             public Placement Result;
+            /// <summary>Where it would land is outside its usual room: allowed, but it makes mess (decisions 2026-11-11).</summary>
+            public bool OutOfItsRoom;
             public float TurnVelocity;
 
             // Being bought: not furniture yet, and not paid for until it goes down.
@@ -110,10 +112,24 @@ namespace Game.Gameplay
 
         public bool IsManaging(PlayerInput player) => _cursors.ContainsKey(player);
 
+        /// <summary>
+        /// The furniture standing outside its usual room (an open kitchen, decisions 2026-11-11):
+        /// appliances in the dining room and tables in the kitchen. It makes mess, and guests react
+        /// to it. Pieces still being carried count where they stood. Empty before Start.
+        /// </summary>
+        public IReadOnlyList<Interactable> OutOfTheirRooms() =>
+            _plan == null ? Array.Empty<Interactable>() : _plan.OutOfTheirRooms().OfType<Interactable>().ToList();
+
+        /// <summary>Whether this placed piece stands outside its usual room.</summary>
+        public bool IsOutOfItsRoom(Interactable station) =>
+            _plan != null && _plan.Pieces.Contains(station) && _plan.IsOutOfItsRoom(station, _plan.PositionOf(station));
+
         private void Start()
         {
             var floor = _root.Services.FloorPlan;
             _plan = new KitchenPlan(floor.KitchenAreaMin, floor.KitchenAreaMax, _snapRange, floor.StationHalfSize, floor.WalkerRadius);
+            // An open kitchen (decisions 2026-11-11): anything may stand in either room.
+            _plan.AddRoom(Room.DiningRoom, floor.DiningAreaMin, floor.DiningAreaMax);
 
             // The door's own rule keeps it on the walls; the plan only keeps furniture off it.
             _plan.Add(_streetDoor, Floor(_streetDoor.transform.position), _streetDoor.transform.eulerAngles.y, _streetDoor.HalfSize);
@@ -125,7 +141,7 @@ namespace Game.Gameplay
                     continue;
                 _plan.Add(station, Floor(station.transform.position), station.transform.eulerAngles.y, station.HalfSize);
                 if (station.BelongsInDiningRoom)
-                    _plan.GiveArea(station, floor.DiningAreaMin, floor.DiningAreaMax);
+                    _plan.SetUsualRoom(station, Room.DiningRoom);
             }
         }
 
@@ -280,7 +296,10 @@ namespace Game.Gameplay
                 : (SimVector2?)null;
             cursor.Landing = _plan.Snap(cursor.Held, cursor.Position, cursor.Degrees, home);
             cursor.Result = Check(cursor);
+            cursor.OutOfItsRoom = _plan.IsOutOfItsRoom(cursor.Held, cursor.Landing);
             cursor.Held.CantGoHere = cursor.Result != Placement.Ok;
+            if (cursor.Held is TableStation table)
+                table.PreviewChairs(new Game.Simulation.Movement.Footprint(cursor.Landing, cursor.Degrees, table.HalfSize), _root.Services.Building);
             cursor.Held.transform.position = new Vector3(cursor.Landing.X, cursor.HeldFrom.y, cursor.Landing.Y);
         }
 
@@ -330,6 +349,7 @@ namespace Game.Gameplay
             cursor.TurnVelocity = 0f;
             cursor.Landing = _plan.PositionOf(station);
             cursor.Result = Placement.Ok;
+            cursor.OutOfItsRoom = _plan.IsOutOfItsRoom(station, cursor.Landing);
             Ghost(cursor);
             return true;
         }
@@ -368,6 +388,7 @@ namespace Game.Gameplay
             }
             Land(cursor);
             cursor.Held = null;
+            cursor.OutOfItsRoom = false;
             Physics.SyncTransforms();
             ClearBodiesFrom(station);
 
@@ -391,12 +412,15 @@ namespace Game.Gameplay
             {
                 // Its old spot was open while it was away, so someone may be standing there now.
                 cursor.Held.transform.SetPositionAndRotation(cursor.HeldFrom, Quaternion.Euler(0f, cursor.HeldFromDegrees, 0f));
+                if (cursor.Held is TableStation table)
+                    table.ArrangeChairs(); // its chairs as they were, after the preview hid some
                 Land(cursor);
                 Physics.SyncTransforms();
                 ClearBodiesFrom(cursor.Held);
             }
             cursor.Held = null;
             cursor.Result = Placement.Ok;
+            cursor.OutOfItsRoom = false;
         }
 
         // A fresh press of D-pad down (or the down arrow), with the shop closed. Only a fresh press:
@@ -531,7 +555,7 @@ namespace Game.Gameplay
             cursor.Held = instance.GetComponent<Interactable>();
             _plan.GiveSize(cursor.Held, cursor.Held.HalfSize);
             if (cursor.Held.BelongsInDiningRoom)
-                _plan.GiveArea(cursor.Held, _root.Services.FloorPlan.DiningAreaMin, _root.Services.FloorPlan.DiningAreaMax);
+                _plan.SetUsualRoom(cursor.Held, Room.DiningRoom);
             cursor.HeldFrom = position;
             cursor.HeldFromDegrees = 0f;
             cursor.Degrees = 0f;

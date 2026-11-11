@@ -224,6 +224,7 @@ namespace Game.Simulation.Service
         {
             ReviewTopic.Praise => TopicGroup.Praise,
             ReviewTopic.Decent => TopicGroup.Praise,
+            ReviewTopic.ChefsTable => TopicGroup.Praise,
             ReviewTopic.SlowService => TopicGroup.Wait,
             ReviewTopic.WalkedOut => TopicGroup.Wait,
             ReviewTopic.Undercooked => TopicGroup.Doneness,

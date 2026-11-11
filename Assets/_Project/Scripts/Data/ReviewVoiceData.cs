@@ -251,6 +251,13 @@ namespace Game.Data
                 new ReviewVoiceData.Lines(ReviewTopic.Cold, Who.Anyone, "Lukewarm {main}. Like a limp handshake."),
                 new ReviewVoiceData.Lines(ReviewTopic.Dirty, Who.Anyone, "Crumbs from the last guy. Still there."),
                 new ReviewVoiceData.Lines(ReviewTopic.Dirty, Who.Critic, "The food was fine. The table was not."),
+                new ReviewVoiceData.Lines(ReviewTopic.BinSmell, Who.Anyone, "Smelled the bins before the menu."),
+                new ReviewVoiceData.Lines(ReviewTopic.BinSmell, Who.Critic, "The bins were the first course."),
+                new ReviewVoiceData.Lines(ReviewTopic.ChefsTable, Who.Critic, "Theatre and precision. Worth a journey."),
+                new ReviewVoiceData.Lines(ReviewTopic.ChefsTable, Who.Foodie, "Front row to the pass. Unforgettable."),
+                new ReviewVoiceData.Lines(ReviewTopic.ChefsTable, Who.Influencer, "Front-row seats to the kitchen. Iconic."),
+                new ReviewVoiceData.Lines(ReviewTopic.OpenKitchenMess, Who.Anyone, "Couldn't hear my date over the pans."),
+                new ReviewVoiceData.Lines(ReviewTopic.OpenKitchenMess, Who.Critic, "An open kitchen needs a tidy one."),
             },
             new[]
             {
@@ -404,6 +411,17 @@ namespace Game.Data
                 L(ReviewTopic.Dirty, Who.Anyone, "Great {main}. Shame about the table.", "Grease on the table, ash on the floor."),
                 L(ReviewTopic.Dirty, Who.Influencer, "Had to crop the sticky table out."),
                 L(ReviewTopic.Dirty, Who.Local, "My shoes stuck to the floor. Again."),
+
+                L(ReviewTopic.BinSmell, Who.Anyone, "Smoke inside, garbage at the door."),
+                L(ReviewTopic.BinSmell, Who.Local, "Move the bin. We all smell it."),
+                L(ReviewTopic.BinSmell, Who.Influencer, "Cute place. The bins, though."),
+
+                L(ReviewTopic.ChefsTable, Who.Anyone, "Watched my {main} hit the fire. Heaven."),
+                L(ReviewTopic.ChefsTable, Who.Critic, "A kitchen with nothing to hide."),
+                L(ReviewTopic.ChefsTable, Who.Regular, "Best seat in town: next to the grill."),
+
+                L(ReviewTopic.OpenKitchenMess, Who.Anyone, "Grease mist on my jacket. Thanks."),
+                L(ReviewTopic.OpenKitchenMess, Who.Local, "Like eating in a kitchen. Because I was."),
 
                 L(ReviewTopic.WalkedOut, Who.Anyone, "{wait} minutes, no {main}. Left at {left}.", "Watched three tables eat. Not mine.", "Smelled great. Never found out why.", "Left hungry. Got pizza on the way."),
                 L(ReviewTopic.WalkedOut, Who.Regular, "First time I've walked out. Last, I hope."),

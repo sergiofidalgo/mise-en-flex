@@ -62,7 +62,7 @@ namespace Game.Simulation.Service
             (ReviewTopic.Overcooked, 10f), (ReviewTopic.Undercooked, 8f), (ReviewTopic.Burnt, 5f), (ReviewTopic.Cold, 5f),
             (ReviewTopic.PaleCrust, 5f), (ReviewTopic.NotRested, 4f), (ReviewTopic.NoSide, 3f), (ReviewTopic.SideOff, 3f),
             (ReviewTopic.BadCut, 3f), (ReviewTopic.NotFresh, 2f), (ReviewTopic.NoMain, 2f),
-            (ReviewTopic.Dirty, 3f),
+            (ReviewTopic.Dirty, 3f), (ReviewTopic.BinSmell, 1f), (ReviewTopic.ChefsTable, 1f), (ReviewTopic.OpenKitchenMess, 1f),
         };
 
         private static readonly string[] Names = { "Mike", "Jessica", "Tyler", "Ashley", "Brandon", "Megan", "Chris", "Lauren", "Dave", "Brittany", "Jamal", "Keisha", "Carlos", "Maria", "Tony", "Gina", "Bobby", "Linda", "Hank", "Dolores" };
