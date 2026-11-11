@@ -1167,6 +1167,10 @@ namespace Game.Presentation.Hud
         [Header("Start bar")]
         [Tooltip("How quickly each segment catches up with its player's hold, per second (higher is snappier).")]
         [SerializeField, Min(0.1f)] private float _startFillSpeed = 12f;
+        [Tooltip("Seconds a player's label pops for as they become ready.")]
+        [SerializeField, Min(0.05f)] private float _readyPopSeconds = 0.45f;
+        [Tooltip("How much a player's label grows at the top of its ready pop.")]
+        [SerializeField, Range(0f, 0.5f)] private float _readyPop = 0.18f;
         [Tooltip("Seconds the white flash takes to fade after a player's hold completes.")]
         [SerializeField, Min(0.01f)] private float _startFlashSeconds = 0.45f;
         [Tooltip("Pulses a second of the start button while nobody's holding.")]
@@ -1183,6 +1187,9 @@ namespace Game.Presentation.Hud
             public float Shown;
             public Color Colour;
             public RectTransform Label;
+            /// <summary>Real seconds left in the pop that marks this cook becoming ready.</summary>
+            public float Pop;
+            public bool WasReady;
         }
 
         private string _hintsShown;
@@ -1215,7 +1222,7 @@ namespace Game.Presentation.Hud
             BuildLanes(joined);
 
             // The start card: what holding A does. Nobody's here yet: A joins first.
-            _startText.text = PlayerInput.all.Count == 0 ? Tr.Get("Press to join") : Tr.Format("Hold to start Day {day} · {weekday}", ("day", Summary.NextDay), ("weekday", Weekday(Summary.NextDay)));
+            _startText.text = PlayerInput.all.Count == 0 ? Tr.Get("Press to join") : Tr.Format("Hold to start Day {day}", ("day", Summary.NextDay));
             // The ring and the words centred together on the button.
             var textWidth = UiKit.Width(_startText);
             var left = (600f - (52f + 16f + textWidth)) / 2f;
@@ -1267,8 +1274,9 @@ namespace Game.Presentation.Hud
             face.gameObject.AddComponent<Mask>().showMaskGraphic = true;
             UiKit.RoundBox(face.transform, "Shade", Color.Lerp(_buttonA, _ink, 0.18f), 0f, StartCardHeight * 0.6f, 600f, StartCardHeight * 0.4f, 0f);
             _startRing = UiKit.Rect(_startA, "Ring", 0f, (StartCardHeight - 52f) / 2f, 52f, 52f);
-            UiKit.StrokedCircle(_startRing, "A", _buttonA, Color.white, 4f, 0f, 0f, 52f);
-            Label(Bold, _startRing, "A", 28f, Color.white, 26f, 26f + 10f, 52f, HorizontalAlignmentOptions.Center);
+            // The A exactly as forkcast's other button glyphs (the footer's B), only bigger: the kit's
+            // badge, its white ring scaled with it (the user's call, 2026-11-11).
+            Badge(_startRing, "A", _buttonA, 26f, 26f, 52f, 26f);
             _startText = UiKit.TextAt(ExtraBold, _startA, "Text", "", 38f, Color.white, 0f, StartCardHeight / 2f + 13f, 520f);
         }
 
@@ -1292,6 +1300,9 @@ namespace Game.Presentation.Hud
                 UiKit.RoundBox(_lanes, "Empty", Color.Lerp(_cardLight, lane.Colour, 0.3f), x, 0f, width, BarHeight, 0f);
                 lane.Fill = UiKit.RoundBox(_lanes, "Fill", lane.Colour, x, 0f, 0f, BarHeight, 0f).rectTransform;
                 lane.Label = UiKit.Rect(_lanes, "Label", x, 0f, width, BarHeight);
+                // Scaled about its centre for the pop as the cook becomes ready.
+                lane.Label.pivot = new Vector2(0.5f, 0.5f);
+                lane.Label.anchoredPosition += new Vector2(width / 2f, -BarHeight / 2f);
                 _laneList.Add(lane);
             }
         }
@@ -1321,6 +1332,16 @@ namespace Game.Presentation.Hud
                 anyHold |= lane.Player >= 0 ? _start.Progress(lane.Player) > 0f && !_dayLoop.Ready.IsReady(lane.Player) : _start.MostProgress > 0f;
                 lane.Shown = Mathf.Abs(lane.Shown - target) < 0.001f ? target : Mathf.Lerp(lane.Shown, target, ease);
                 lane.Fill.sizeDelta = new Vector2(lane.Width * lane.Shown, BarHeight);
+
+                // A gentle pop of their label as they become ready: up a little, easing back.
+                var isReady = lane.Player >= 0 && _dayLoop.Ready.IsReady(lane.Player);
+                if (isReady && !lane.WasReady)
+                    lane.Pop = _readyPopSeconds;
+                lane.WasReady = isReady;
+                lane.Pop = Mathf.Max(0f, lane.Pop - dt);
+                var t = _readyPopSeconds > 0f ? lane.Pop / _readyPopSeconds : 0f;
+                var pop = 1f + _readyPop * Mathf.Sin(t * Mathf.PI);
+                lane.Label.localScale = new Vector3(pop, pop, 1f);
             }
 
             if (ready > _startReady)
@@ -1404,7 +1425,9 @@ namespace Game.Presentation.Hud
 
         private void Badge(Transform parent, string letter, Color colour, float cx, float cy, float diameter, float size)
         {
-            UiKit.StrokedCircle(parent, letter, colour, Color.white, 4f, cx - diameter / 2f, cy - diameter / 2f, diameter);
+            // The ring is the kit's 4 px at its 31 px size, and keeps that proportion at any size, so
+            // a big A and a small B read as the same glyph.
+            UiKit.StrokedCircle(parent, letter, colour, Color.white, Mathf.Max(3f, diameter * 4f / 31f), cx - diameter / 2f, cy - diameter / 2f, diameter);
             Label(Bold, parent, letter, size, letter == "Y" ? _ink : Color.white, cx, cy + size * 0.37f, diameter, HorizontalAlignmentOptions.Center);
         }
 
