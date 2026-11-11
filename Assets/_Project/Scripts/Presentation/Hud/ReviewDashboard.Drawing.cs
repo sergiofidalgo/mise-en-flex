@@ -577,7 +577,8 @@ namespace Game.Presentation.Hud
                 UiKit.RoundBox(parent, "Highlight", _gold, CardLeft - 5.67f, y - 5.67f, CardWidth + 11.33f, height + 11.33f, 20f);
             UiKit.StrokedBox(parent, "Review", _cardLight, selected ? _gold : _cardEdge, 2.67f, CardLeft, y, CardWidth, height, 15f);
 
-            UiKit.StrokedEllipse(parent, "Avatar", UiKit.AvatarColour(review.Guest), _ink, 4f, CardLeft + 24f, y + (overview ? 21f : 16f), 49f, 61f);
+            // The guest's face in a perfect circle (the user's call, 2026-11-11).
+            UiKit.GuestAvatar(parent, review.Guest, CardLeft + 20f, y + (overview ? 28f : 22f), 62f, _ink);
             var nameBase = y + (overview ? 38f : 34f);
             // In the player's language: the guest's name slot looked up there (decision 2026-11-09).
             var name = Label(Bold, parent, Game.Data.GuestNames.Display(review), 20f, _ink, 857f, nameBase, 300f);
@@ -591,8 +592,16 @@ namespace Game.Presentation.Hud
                 meta += Tr.Format(" · visit {visit}", ("visit", review.Visit));
             Label(Medium, parent, meta, 19f, _muted, 857f + UiKit.Width(name) + 12f, nameBase, 420f);
             // Written in the player's language from its templates and facts (decision 2026-11-09).
-            var quote = Label(Serif, parent, $"“{Game.Data.ReviewText.Line(review)}”", overview ? 30.33f : 26f, _ink, 857f, y + (overview ? 77f : 69f), 640f);
+            // Bigger on the Overview (the user's call, 2026-11-11); a long line shrinks to fit rather than cut off.
+            var quote = Label(Serif, parent, $"“{Game.Data.ReviewText.Line(review)}”", overview ? 38f : 32f, _ink, 857f, y + (overview ? 84f : 73f), 670f);
             quote.textWrappingMode = TextWrappingModes.NoWrap;
+            // Only a line too long for the card shrinks; the rest stay at full size.
+            if (UiKit.Width(quote) > 670f)
+            {
+                quote.enableAutoSizing = true;
+                quote.fontSizeMin = 22f;
+                quote.fontSizeMax = overview ? 38f : 32f;
+            }
 
             // Right: the rating, then what it paid or cost, and Reply while it's unanswered.
             var pillTop = y + (overview ? 19f : 15f);
@@ -1219,16 +1228,15 @@ namespace Game.Presentation.Hud
                 UiKit.Clear(lane.Label);
                 var ready = lane.Player >= 0 && _dayLoop.Ready.IsReady(lane.Player);
                 var name = lane.Player >= 0 ? lane.Player + 1 : 1;
-                // Centred in the segment (the user's mock, 2026-11-11). Ready: the B as an outline
-                // ring in the label's colour, then "Player N READY".
+                // Centred in the segment (the user's mock, 2026-11-11). Ready: the red B badge, then
+                // "Player N READY".
                 if (ready)
                 {
                     var tone = lane.Colour.grayscale > 0.72f ? _ink : Color.white; // dark only on a light colour (yellow)
                     var label = Label(ExtraBold, lane.Label, Tr.Format("Player {player} READY", ("player", name)), 21f, tone, 0f, BarHeight / 2f + 7.5f, lane.Width - 60f);
                     const float ring = 30f, gap = 10f;
                     var start = (lane.Width - (ring + gap + UiKit.Width(label))) / 2f;
-                    UiKit.StrokedCircle(lane.Label, "B", lane.Colour, tone, 3f, start, (BarHeight - ring) / 2f, ring);
-                    Label(Bold, lane.Label, "B", 16f, tone, start + ring / 2f, BarHeight / 2f + 6f, ring, HorizontalAlignmentOptions.Center);
+                    Badge(lane.Label, "B", _buttonB, start + ring / 2f, BarHeight / 2f, ring, 15f);
                     label.rectTransform.anchoredPosition = new Vector2(start + ring + gap, label.rectTransform.anchoredPosition.y);
                 }
                 else
