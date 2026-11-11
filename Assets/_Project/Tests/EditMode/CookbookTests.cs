@@ -49,6 +49,52 @@ namespace Game.Tests.EditMode
         private static RecipeBook Book(PricingSettings pricing = null) =>
             new RecipeBook(new[] { Steak(), SteakOnions(), Onions() }, pricing ?? new PricingSettings());
 
+        // ---- The Restaurant tab's order and steps (2026-11-11) ----
+
+        [Test]
+        public void DishesOnTheMenuAreListedBeforeThoseStillToUnlock()
+        {
+            var book = Book();
+            Assert.That(book.OnMenuFirst().Select(r => r.Id), Is.EqualTo(new[] { "steak", "steak-onions", "onions" }));
+            book.TryUnlock("onions", amount => true);
+            Assert.That(book.OnMenuFirst().Select(r => r.Id), Is.EqualTo(new[] { "steak", "onions", "steak-onions" }),
+                "an unlocked dish joins the menu group, each group in the cookbook's order");
+        }
+
+        [Test]
+        public void EveryShippedRecipeExplainsHowItsCooked()
+        {
+            var config = AssetDatabase.LoadAssetAtPath<CookbookConfig>(ConfigPath);
+            Assume.That(config, Is.Not.Null);
+            foreach (var recipe in config.ToRecipes(null))
+            {
+                Assert.That(recipe.Steps.Count, Is.InRange(3, 5), $"{recipe.Id}: three to five steps fit the tab");
+                foreach (var step in recipe.Steps)
+                {
+                    Assert.That(step.Station, Is.Not.Empty, recipe.Id);
+                    Assert.That(step.Text.Length, Is.InRange(4, 40), $"{recipe.Id}: \"{step.Text}\" is short enough for one line");
+                }
+            }
+        }
+
+        [Test]
+        public void TheConfigsDefaultsMatchTheShippedSteps()
+        {
+            var asset = AssetDatabase.LoadAssetAtPath<CookbookConfig>(ConfigPath);
+            Assume.That(asset, Is.Not.Null);
+            var fresh = ScriptableObject.CreateInstance<CookbookConfig>();
+            try
+            {
+                var shipped = asset.ToRecipes(null).ToDictionary(r => r.Id, r => r.Steps.Select(s => s.Station + "|" + s.Text).ToArray());
+                foreach (var recipe in fresh.ToRecipes(null))
+                    Assert.That(shipped[recipe.Id], Is.EqualTo(recipe.Steps.Select(s => s.Station + "|" + s.Text).ToArray()), recipe.Id);
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(fresh);
+            }
+        }
+
         // ---- Unlocking ----
 
         [Test]

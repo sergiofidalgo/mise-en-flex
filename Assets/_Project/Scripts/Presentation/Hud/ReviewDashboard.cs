@@ -82,7 +82,7 @@ namespace Game.Presentation.Hud
         [SerializeField, Min(0.05f)] private float _stickRepeat = 0.22f;
         [Tooltip("Seconds the stick is held on a price before it starts stepping by itself.")]
         [SerializeField, Min(0.05f)] private float _priceRepeatDelay = 0.4f;
-        [Tooltip("Seconds between steps of a price while the stick stays held.")]
+        [Tooltip("Seconds between steps of a price at its fastest, after it has been held a while (it starts at the Restaurant tab's Price Repeat Slow).")]
         [SerializeField, Min(0.01f)] private float _priceRepeatInterval = 0.07f;
         [Tooltip("Real seconds Y is held to fill the Start button (a shorter press is a tap: reply, let go).")]
         [SerializeField, Min(0.1f)] private float _startHoldSeconds = 0.8f;
@@ -526,7 +526,8 @@ namespace Game.Presentation.Hud
                     return;
             }
             _restaurant.Clamp(chips, recipes);
-            var recipe = book.Recipes[_restaurant.Item];
+            // Listed as the tab shows them: on the menu first, then still to unlock.
+            var recipe = book.OnMenuFirst()[_restaurant.Item];
 
             var direction = _nav.DirectionOf(move.x, move.y);
             var horizontal = direction == NavDirection.Right ? 1 : direction == NavDirection.Left ? -1 : 0;
@@ -537,14 +538,16 @@ namespace Game.Presentation.Hud
             else if (horizontal != _priceDirection)
             {
                 _priceDirection = horizontal;
+                _priceHeldSince = Time.unscaledTime;
                 _nextPriceStep = Time.unscaledTime + _priceRepeatDelay;
-                StepPrice(book, recipe, horizontal);
+                StepPrice(book, recipe, horizontal, fresh: true);
             }
             else
             {
+                // Held: slow steps at first, quicker the longer it's held (PriceRepeat).
                 while (Time.unscaledTime >= _nextPriceStep)
                 {
-                    _nextPriceStep += _priceRepeatInterval;
+                    _nextPriceStep += PriceRepeat(Time.unscaledTime);
                     StepPrice(book, recipe, horizontal);
                 }
             }
@@ -556,6 +559,9 @@ namespace Game.Presentation.Hud
                 {
                     SaveCookbookNow(force: true);
                     WarmUp(recipe.Id);
+                    // It joins the dishes on the menu: the choice follows it there.
+                    var moved = book.OnMenuFirst().ToList().FindIndex(r => r.Id == recipe.Id);
+                    _restaurant.Set(false, _restaurant.Chip, System.Math.Max(0, moved));
                 }
                 _dirty = true;
             }
@@ -566,12 +572,14 @@ namespace Game.Presentation.Hud
             }
         }
 
-        private void StepPrice(Game.Simulation.Cookbook.RecipeBook book, Game.Simulation.Cookbook.Recipe recipe, int steps)
+        private void StepPrice(Game.Simulation.Cookbook.RecipeBook book, Game.Simulation.Cookbook.Recipe recipe, int steps, bool fresh = false)
         {
             var before = book.PriceOf(recipe.Id);
             book.Nudge(recipe.Id, steps);
             if (book.PriceOf(recipe.Id) != before)
                 PriceChanged();
+            else if (fresh)
+                DialBump(steps); // at an end: the dial bumps on a fresh press, not on every repeat of a hold
         }
 
         private void PriceChanged()

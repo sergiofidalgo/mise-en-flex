@@ -45,6 +45,13 @@ namespace Game.Simulation.Cookbook
 
         public IReadOnlyList<Recipe> Recipes => _recipes;
 
+        /// <summary>
+        /// The recipes as the Restaurant tab lists them (2026-11-11): those on the menu first, then
+        /// those still to unlock, each group in the cookbook's order.
+        /// </summary>
+        public IReadOnlyList<Recipe> OnMenuFirst() =>
+            _recipes.Where(r => IsUnlocked(r.Id)).Concat(_recipes.Where(r => !IsUnlocked(r.Id))).ToList();
+
         /// <summary>The menu: unlocked recipes, in the cookbook's order.</summary>
         public IEnumerable<Recipe> Menu => _recipes.Where(r => _unlocked.Contains(r.Id));
 

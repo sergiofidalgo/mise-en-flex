@@ -123,7 +123,7 @@ namespace Game.Tests.PlayMode
 
             Assert.That(book.IsUnlocked(second.Id), Is.True, "A unlocked the second dish");
             Assert.That(_dashboard.IsWarmingUp, Is.True, "and it's warming up");
-            yield return new WaitForSecondsRealtime(1.8f);
+            yield return new WaitForSecondsRealtime(2.4f);
             Assert.That(_dashboard.IsWarmingUp, Is.False, "the moment settles");
         }
 

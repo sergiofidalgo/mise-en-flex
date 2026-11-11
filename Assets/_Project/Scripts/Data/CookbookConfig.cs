@@ -15,6 +15,26 @@ namespace Game.Data
     [CreateAssetMenu(menuName = "Game/Cookbook Config", fileName = "CookbookConfig")]
     public sealed class CookbookConfig : ScriptableObject
     {
+        /// <summary>One step of how a dish is cooked, for the Restaurant tab.</summary>
+        [Serializable]
+        public sealed class Step
+        {
+            [Tooltip("Where it happens, as players read it: Fridge, Board, Hob, Counter, Pass.")]
+            [SerializeField] private string _station;
+            [Tooltip("What to do there, short (about 35 characters), in English.")]
+            [SerializeField] private string _text;
+
+            public Step() { }
+
+            public Step(string station, string text)
+            {
+                _station = station;
+                _text = text;
+            }
+
+            public CookStep ToStep() => new CookStep(_station, _text);
+        }
+
         [Serializable]
         public sealed class Entry
         {
@@ -44,13 +64,16 @@ namespace Game.Data
             [SerializeField] private string[] _ingredients = Array.Empty<string>();
             [Tooltip("How often it's ordered against the menu's others, at the suggested price.")]
             [SerializeField, Min(0f)] private float _popularity = 1f;
+            [Tooltip("How it's cooked, step by step, as the Restaurant tab explains it (2026-11-11).")]
+            [SerializeField] private Step[] _steps = Array.Empty<Step>();
 
             public Entry() { }
 
             public Entry(string id, string name, string main, ServiceConfig.DonenessWeight[] donenesses, string side,
                 int suggestedPrice, int suggestedSidePrice, int unlockCost, bool startsUnlocked, int complexity,
-                string[] appliances, string[] ingredients, float popularity)
+                string[] appliances, string[] ingredients, float popularity, Step[] steps = null)
             {
+                _steps = steps ?? Array.Empty<Step>();
                 _id = id;
                 _name = name;
                 _main = main;
@@ -71,6 +94,7 @@ namespace Game.Data
             public string Main => _main;
             public string Side => string.IsNullOrEmpty(_side) ? null : _side;
             public IEnumerable<string> Ingredients => _ingredients ?? Array.Empty<string>();
+            public IReadOnlyList<Step> Steps => _steps ?? Array.Empty<Step>();
             public IEnumerable<string> Donenesses => (_donenesses ?? Array.Empty<ServiceConfig.DonenessWeight>()).Select(d => d.Doneness);
 
             public Recipe ToRecipe(ItemCatalog catalog)
@@ -103,9 +127,43 @@ namespace Game.Data
                     IngredientTypeIds = Ingredients.ToArray(),
                     IngredientCost = Ingredients.Sum(id => catalog != null && catalog.Find(id) != null ? catalog.Find(id).Price : 0f),
                     Popularity = _popularity,
+                    Steps = (_steps ?? Array.Empty<Step>()).Where(s => s != null).Select(s => s.ToStep()).ToArray(),
                 };
             }
         }
+
+        // How each starting dish is cooked (2026-11-11), the same as in the asset.
+        private static Step[] SteakSteps => new[]
+        {
+            new Step("Fridge", "Take a steak"),
+            new Step("Hob", "Sear it in a hot pan, flipping it"),
+            new Step("Counter", "Let it rest a moment"),
+            new Step("Pass", "Plate it and send it out"),
+        };
+
+        private static Step[] RingsSteps => new[]
+        {
+            new Step("Board", "Cut an onion into rings"),
+            new Step("Hob", "Fry the rings golden"),
+            new Step("Hob", "Sear the steak to order"),
+            new Step("Pass", "Rest the steak, plate both"),
+        };
+
+        private static Step[] SauteedSteps => new[]
+        {
+            new Step("Board", "Dice an onion"),
+            new Step("Hob", "Sauté it soft and golden"),
+            new Step("Hob", "Sear the steak to order"),
+            new Step("Pass", "Rest the steak, plate both"),
+        };
+
+        private static Step[] OnionSteps => new[]
+        {
+            new Step("Fridge", "Take an onion"),
+            new Step("Board", "Dice it"),
+            new Step("Hob", "Sauté it as ordered"),
+            new Step("Pass", "Plate it and send it out"),
+        };
 
         private static ServiceConfig.DonenessWeight[] SteakDonenesses() => new[]
         {
@@ -116,14 +174,14 @@ namespace Game.Data
         [SerializeField] private Entry[] _recipes =
         {
             new Entry("steak", "Steak", "Steak", SteakDonenesses(), null, 20, 0, 0, true, 1,
-                new[] { "Hob" }, new[] { "Steak" }, 1f),
+                new[] { "Hob" }, new[] { "Steak" }, 1f, SteakSteps),
             new Entry("steak-rings", "Steak with onion rings", "Steak", SteakDonenesses(), "OnionRings", 25, 4, 40, false, 2,
-                new[] { "Hob", "Board" }, new[] { "Steak", "Onion" }, 1f),
+                new[] { "Hob", "Board" }, new[] { "Steak", "Onion" }, 1f, RingsSteps),
             new Entry("steak-onions", "Steak with sautéed onions", "Steak", SteakDonenesses(), "DicedOnion", 27, 5, 60, false, 3,
-                new[] { "Hob", "Board" }, new[] { "Steak", "Onion" }, 1f),
+                new[] { "Hob", "Board" }, new[] { "Steak", "Onion" }, 1f, SauteedSteps),
             new Entry("onions", "Sautéed onions", "DicedOnion",
                 new[] { new ServiceConfig.DonenessWeight("Softened", 1f), new ServiceConfig.DonenessWeight("Cooked", 1f) },
-                null, 8, 0, 30, false, 2, new[] { "Hob", "Board" }, new[] { "Onion" }, 0.5f),
+                null, 8, 0, 30, false, 2, new[] { "Hob", "Board" }, new[] { "Onion" }, 0.5f, OnionSteps),
         };
 
         [Header("Prices (decision 2026-11-10)")]

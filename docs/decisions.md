@@ -4,6 +4,41 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-11 — The Restaurant tab: owned and unowned dishes apart, how to cook, a springier dial, a bigger unlock
+
+**User's notes:** the money dial didn't feel good; the unlock animation should be bigger; dishes you own and those you don't should look much more different, and both should explain how they're cooked.
+
+**Decision:**
+- **Two groups:** the list is "On your menu · n", then "To unlock · n" (`RecipeBook.OnMenuFirst`).
+  - **A dish on the menu:** a bright card, its plate in colour (steaming when chosen), a green dot with "On the menu", and its price big on the right.
+  - **A dish to unlock:** a darker card (`_lockedCard`), its plate cold behind a padlock, its complexity, and its unlock price on a dark tag with a padlock (red when there isn't enough money).
+  - **The detail panel opens with a status pill:** green "On your menu", or dark "Not on your menu yet" with a padlock. Its plate is padlocked too.
+  - When a dish is unlocked, the choice follows it into the menu group.
+- **How to cook:** every recipe has three to five steps in `CookbookConfig` (`_steps`: a station and a short line, translated). They're shown as numbered rows with the station on a chip, gold numbers when the dish is yours and quiet ones when it isn't. The four starting dishes:
+  - **Steak:** fridge, sear and flip, rest, plate.
+  - **With rings:** cut rings, fry them, sear the steak, rest and plate.
+  - **With sautéed onions:** dice, sauté, sear, rest and plate.
+  - **Sautéed onions:** fridge, dice, sauté, plate.
+  The "Needs" pills are gone, since the steps name the stations.
+- **The dial:**
+  - Every number shows the currency, so nothing changes text as it rolls. Before, the middle number gained and lost its $ as it moved.
+  - It moves on a slightly bouncy spring (`_dialStiffness` 420, `_dialDamping` 0.62), so each step lands with a small overshoot, like a detent. The new middle number punches up as it lands.
+  - Each step ticks: the kitchen's clack, pitched up, a little higher going up.
+  - Held, it starts at a step every 0.16 s and speeds up to one every 0.07 s over 1.6 s. Before, it jumped straight to 14 a second.
+  - At its lowest or highest, a fresh press bumps the dial and makes a low clack.
+- **A bigger unlock moment (1.9 s):**
+  - The plate leaps to 1.45× with a wobble and springs back as its colour returns.
+  - A glow and two rings burst from behind it, and 26 sparks fly, kept within the panel.
+  - A "New on the menu!" stamp slams down across the plate.
+  - The status pill reads "New on the menu", the card flashes and pops.
+  - A sizzle and the till play.
+
+**Not verified by playing:** how the dial and the moment feel in motion, and whether the clack works as a dial tick or wants its own sound.
+
+**Flagged for review:** the cooking steps are written from the game's mechanics as recorded here (rings take 2 cuts, diced onion 5, steak rests out of the pan). If the actual flow differs (for instance, if rings aren't fried in a pan), the lines in `CookbookConfig` are the place to change them.
+
+---
+
 ## 2026-11-11 — The Restaurant tab shows plates, chips and a price dial
 
 **User's call, after seeing the first render:** the menu should be more exciting and more visual, with pictures of steaming plates rather than just text, ingredients as chips, the price as a dial with its neighbouring numbers, and a schedule selector that isn't just text. The "Suggested" chip covered the price change.
