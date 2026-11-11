@@ -180,7 +180,7 @@ namespace Game.Tests.PlayMode
             board.Container.Put(onion);
             Services.ItemViews.PlaceImmediately(onion, board.AnchorFor(onion));
             yield return StandAt(board);
-            yield return Frames(5);
+            yield return Wait(0.4f); // the in-scene dial grows in
             var gate = Object.FindFirstObjectByType<ReviewHidesKitchenHud>();
             Assert.That(gate, Is.Not.Null);
             Assert.That(gate.Hidden, Is.False);
@@ -199,8 +199,8 @@ namespace Game.Tests.PlayMode
             Assert.That(dashboardCanvas.GetComponent<CanvasGroup>().ignoreParentGroups, Is.True, "hiding the HUD doesn't hide the dashboard");
         }
 
-        private static int Dials() => Object.FindObjectsByType<RectTransform>(FindObjectsSortMode.None)
-            .Count(r => r.name.StartsWith("ChopDial_") && r.gameObject.activeInHierarchy);
+        // The cutting dial is in the scene now, over the board (ChopGaugeView, decision 2026-11-11).
+        private static int Dials() => Object.FindFirstObjectByType<ChopGaugeView>().Showing;
 
         [UnityTest]
         public IEnumerator GuestsBubblesNeverOverlapAndStayOnScreen()
