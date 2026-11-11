@@ -555,6 +555,19 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 - **The money total also shows red whenever the balance is below zero** (in Prep), a standing cue for debt.
 
 **Reason:** Shopping becomes a planning and budget choice (`plans/phase-5.md`). Going out costs time, and grades trade money against freshness. Stock going straight into storage keeps the trip about time and choice rather than carrying chores, and the feedback shows each purchase where it went and what it cost.
+## 2026-11-11 — A fire sign floats over a burning hob
+
+**User's call:** the pan fire wasn't noticeable or urgent enough; add a floating signifier like the bin's full sign, but for fire.
+
+- **The sign:** a red disc with a dark rim and an orange flame with a yellow heart, drawn in code like the bin's 🚫 (`HobView`, `TEX_HobFireSign`; swap for drawn art in Phase 9). 0.4 m across, 1.95 m over the hob, clear of the flames, flat to the camera, so it reads at any of the 8 rotations. (0.62 m at first: the user found it too big.)
+- **The fire spreads over the appliance** (the user's follow-up: it was too small, vertical and focused): 18 tongues scattered over the whole hob top (0.36 m from its middle), tallest over the pan, 55% shorter at the edge and leaning out 28° there, so it spills over the hob's sides. Fields renamed `_blazeTongues` and `_blazeSize` so the old values baked into the hob prefab don't override them.
+- **Urgent, not calm:** it pops in with an overshoot as the pan catches, then swells on a quick beat (2.5 a second, 14% bigger) and rocks a little until the fire is out, then pops away. The bin's sign only bobs.
+- Only while burning: before that, the smoke and the alarm are the warning.
+
+**Reason:** the user's note after seeing the fire captures.
+
+---
+
 ## 2026-11-10 — Phase 5 cleaning and fire: trace a shape, a medium mess, dirt in reviews, no ruined hobs
 
 **User's calls (milestone 5):**
