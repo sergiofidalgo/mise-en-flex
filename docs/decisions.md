@@ -4,6 +4,20 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-11 — The cleaning X on the mess, greasier stains, floor dirt slows chefs, hold X turns in the office
+
+**User's calls, from play:** the X hint was too big, and on a stain nothing showed, so the user didn't know what to do. Stains should look greasier and more varied. Stepping in floor dirt should noticeably slow a chef. Dirt only affects guests through reviews (no visible reaction). Holding X and the stick should turn the chef on the spot in the office too.
+
+- **The cleaning X on the mess itself** (`CleanHintView`): when a chef with empty hands could start cleaning, the ring that holding X fills appears on the dirt, the sink with a dirty plate, or the fire. It's empty, dashed and gently pulsing, with the X at its top, the point where the stick's circle starts. Dirt rings are grime brown (they read on cream counters and the grey floor) with the spot's own stain shape inside, drawn over whatever is in front, so a spill hidden behind a counter still reads (checked with a spill behind the island). The appliance hints no longer show an X for cleaning. The hint fades once a player has cleaned a few times, like the appliance hints.
+- **One X size, 32 px at 1080p** (the user's pick after 22 and 28): the cleaning hint, the crust strip and the cutting dial.
+- **Greasier stains** (`CleaningView`): a darker soaked rim, a lighter sheen pool and a bright highlight facing the light, and 2–4 glossy droplets. Every spot has its own random shape; the hint's stain is the same shape.
+- **Floor dirt slows chefs**: standing within 0.4 m of a floor stain caps walking at 55% (`TuningConfig`: floor dirt speed and reach). Guests are unchanged: dirt lowers the dish score and can be what the review is about.
+- **Hold X turns in the office too**: outside a kitchen, holding X plants the chef and the stick turns them on the spot.
+- **Verified:** EditMode passes. PlayMode: the new hint, slowdown and office-turn tests pass (the office test skips where the office hasn't been built), and the cleaning, gauge and board tests pass. Captures via `ContextHintsCapture`. **Not yet played by hand.**
+- **Still to do from the same request:** the LT/RT hints (hidden while browsing or cooking, smaller and attached to the knob or the lid) and the in-scene ingredient wheel.
+
+---
+
 ## 2026-11-11 — The opening, sixth pass: a lift that stays in frame, taller floors, the helicopter, couriers riding
 
 The user's notes after playing the fifth pass ("overall feels good, with some notes"):
