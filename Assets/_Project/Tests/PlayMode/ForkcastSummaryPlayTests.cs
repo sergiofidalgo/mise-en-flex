@@ -70,7 +70,7 @@ namespace Game.Tests.PlayMode
             Assert.That(days.Phase, Is.EqualTo(DayPhase.Review));
             Assert.That(_dashboard.ShownDay.Day, Is.EqualTo(1));
             days.Advance(); // to the next morning, which "Start day 2" passes through
-            Finish(ingredients: 80f, payments: 210f, tips: 25f, served: 7);
+            Finish(ingredients: 80f, payments: 210f, tips: 25f, served: 7, steaks: 5);
             Assert.That(days.Day, Is.EqualTo(2));
             var dayTwo = days.Today.ToArray();
 
@@ -91,9 +91,39 @@ namespace Game.Tests.PlayMode
             foreach (LedgerLine line in Enum.GetValues(typeof(LedgerLine)))
                 Assert.That(shown.Ledger.Of(line), Is.EqualTo(dayTwo[(int)line]).Within(0.01f), $"the Books tab's {line} is day 2's");
             Assert.That(days.Today.In + days.Today.Out, Is.Zero, "while the live day's books are still empty");
+            Assert.That(shown.HasLines, Is.True);
+            Assert.That(shown.Dishes.Count, Is.EqualTo(1), "what they ordered survives the relaunch");
+            Assert.That(shown.Dishes[0].Ordered, Is.EqualTo(5));
         }
 
-        private void Finish(float ingredients, float payments, float tips, int served)
+        [UnityTest]
+        public IEnumerator OnePlayerGetsOneSegmentAndALostControllerIsntCounted()
+        {
+            SaveSlots.Delete(CampaignLaunch.Slot);
+            CampaignLaunch.StartNew();
+            yield return Open();
+            var manager = Object.FindFirstObjectByType<UnityEngine.InputSystem.PlayerInputManager>();
+            var first = UnityEngine.InputSystem.InputSystem.AddDevice<UnityEngine.InputSystem.Gamepad>("SummaryPad1");
+            manager.JoinPlayer(controlScheme: "Gamepad", pairWithDevices: first);
+            for (var i = 0; i < 3; i++)
+                yield return null;
+            Assert.That(_dashboard.StartSegments, Is.EqualTo(1), "one cook, one bar");
+
+            // A second pad joins, then is switched off: its player stays, but isn't waited for.
+            var second = UnityEngine.InputSystem.InputSystem.AddDevice<UnityEngine.InputSystem.Gamepad>("SummaryPad2");
+            manager.JoinPlayer(controlScheme: "Gamepad", pairWithDevices: second);
+            for (var i = 0; i < 3; i++)
+                yield return null;
+            Assert.That(_dashboard.StartSegments, Is.EqualTo(2));
+            UnityEngine.InputSystem.InputSystem.RemoveDevice(second);
+            for (var i = 0; i < 3; i++)
+                yield return null;
+            Assert.That(UnityEngine.InputSystem.PlayerInput.all.Count, Is.EqualTo(2), "the lost player is kept");
+            Assert.That(_dashboard.StartSegments, Is.EqualTo(1), "but not counted");
+            UnityEngine.InputSystem.InputSystem.RemoveDevice(first);
+        }
+
+        private void Finish(float ingredients, float payments, float tips, int served, int steaks = 0)
         {
             var days = _root.Services.Days;
             if (days.Phase == DayPhase.Plan)
@@ -102,6 +132,9 @@ namespace Game.Tests.PlayMode
             days.Charge(LedgerLine.Ingredients, ingredients);
             days.FinishService(Summary(served, payments, tips), wages: 0f);
             _root.ListTodaysReviews();
+            // No real guests in this test: the night's dishes as ListTodaysReviews records them from guests.
+            if (steaks > 0)
+                days.History[days.History.Count - 1].Dishes.Add(new DishNight { Dish = "steak, medium", Ordered = steaks, Price = 24 });
             _root.SaveCampaign();
         }
 

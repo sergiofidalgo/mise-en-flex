@@ -1,3 +1,4 @@
+using System;
 using Game.Simulation.Campaign;
 using Game.Simulation.Days;
 using NUnit.Framework;
@@ -117,6 +118,25 @@ namespace Game.Tests.EditMode
         {
             Assert.That(BossCard.For(600f, 0f, 1, serviceStillToCome: true, BossStep.None, 1).Falls, Is.EqualTo(BossCard.When.Tonight));
             Assert.That(BossCard.For(600f, 0f, 1, serviceStillToCome: false, BossStep.None, 1).Falls, Is.EqualTo(BossCard.When.Tomorrow));
+        }
+
+        [TestCase(600f, 0f, BossCard.Standing.Short)]
+        [TestCase(600f, 599f, BossCard.Standing.Short)]
+        [TestCase(600f, 600f, BossCard.Standing.JustCovered)]
+        [TestCase(600f, 650f, BossCard.Standing.JustCovered)]
+        [TestCase(600f, 670f, BossCard.Standing.Covered)]
+        [TestCase(600f, 2000f, BossCard.Standing.Covered)]
+        public void Covered_just_covered_or_short(float due, float balance, BossCard.Standing standing)
+        {
+            var card = BossCard.For(due, balance, 3, false, BossStep.None, 1);
+            Assert.That(card.Stands, Is.EqualTo(standing));
+            Assert.That(card.Spare, Is.EqualTo(Math.Max(0f, balance - due)).Within(0.001f));
+        }
+
+        [Test]
+        public void Nothing_due_is_covered()
+        {
+            Assert.That(BossCard.For(0f, 0f, 3, false, BossStep.None, 1).Stands, Is.EqualTo(BossCard.Standing.Covered));
         }
 
         [TestCase(BossStep.None, 1, BossVisit.Warning)]

@@ -676,7 +676,9 @@ namespace Game.Presentation.Hud
             camera.targetTexture = previous;
             _photo.texture = _photoTexture;
             _photoTaken = true;
-            _caption.text = atClose ? Tr.Get("Your photo · captured at close") : Tr.Get("Your kitchen this morning");
+            // On arrival the kitchen is as the last service left it: the summary is that day's, so
+            // the caption says so rather than "this morning" (2026-11-11).
+            _caption.text = atClose ? Tr.Get("Your photo · captured at close") : Tr.Get("Your kitchen, as you left it");
             Blur();
             // The menu's slot card shows the latest close, not a morning.
             if (atClose)
