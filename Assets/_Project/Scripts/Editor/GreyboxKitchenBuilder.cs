@@ -1234,6 +1234,7 @@ namespace Game.Editor
             SetFurniture(entries, TableFurniture, "Table", TablePrice, keepOne: false, table);
             SetFurniture(entries, BarFurniture, "Bar table", BarPrice, keepOne: false, bar);
             so.ApplyModifiedPropertiesWithoutUndo();
+            ShopDescriptions.Write(catalog);
             AssetDatabase.SaveAssets();
             return catalog;
         }

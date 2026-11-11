@@ -32,6 +32,10 @@ namespace Game.Data
             [SerializeField] private string _itemTypeId;
             [Tooltip("Which page of the shop it's on. Kitchenware is always on the kitchenware page.")]
             [SerializeField] private ShopSection _section;
+            [Tooltip("What it's for, in two short lines at most, under its picture on the shop card. Written by Tools/Game/Update Shop Descriptions.")]
+            [SerializeField, TextArea] private string _description;
+            [Tooltip("Its picture on the shop card. Baked by Tools/Game/Bake Shop Pictures.")]
+            [SerializeField] private Sprite _picture;
 
             public string Id => _id;
             public string DisplayName => _displayName;
@@ -41,6 +45,8 @@ namespace Game.Data
             public string ItemTypeId => _itemTypeId;
             public bool IsItem => !string.IsNullOrEmpty(_itemTypeId);
             public ShopSection Section => IsItem ? ShopSection.Kitchenware : _section;
+            public string Description => _description;
+            public Sprite Picture => _picture;
         }
 
         [SerializeField] private Entry[] _entries = Array.Empty<Entry>();

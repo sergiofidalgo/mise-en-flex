@@ -3515,3 +3515,16 @@ It hides (fading over the HUD's 0.12 s) behind the Review dashboard, the pause m
 - **`ADishwasherClearsABarTableFromTheKitchenSide` was a test bug.** Its guest walked up the street, about 27 m, which takes up to 24 s at the slowest pace, inside a 20 s wait. The test is about the dishwasher, so like the other dining-room tests its guest now arrives at the door at once (`AtTheDoorAtOnce`). The street walk has its own tests.
 
 **Rule for these tests:** a timeout is in game seconds and has to cover the slowest look (0.7×), not the average one.
+
+## 2026-11-11 — The Prep HUD: hold Y, tiles bottom left, player cards top left, the shop as a picture grid
+
+**User's calls, from their wireframe and two rounds of mockups:**
+- **Y starts the day, everywhere.** On the forkcast dashboard the Start button is yellow and filled by holding Y. A tap of Y still replies to a review or lets a staff member go; it fires on release, so a hold can't also open the reply wheel. A hires and unlocks on the press. In Prep, holding Y readies up, and holding it again takes the ready back. Menu only ever pauses. The user accepted that Y does both jobs in the kitchen: a press still takes the fourth slot's item at storage or a stall, and holding on fills the ready bar.
+- **Bottom left in Prep: two tiles (option C, icons option 2).** A tear-off calendar page ("FRI 5") with "Prep / Opens 18:00", and two of the customer portraits with "About 5 guests / Groups of one". The group words follow the tables' average group (`DayCardText.Groups`). Halfway between two sizes names both ("Groups of one or two"). Service keeps the plain day card; signs for closing time and late shifts come later.
+- **Along the bottom in Prep: the dashboard's ready bar** (`ReadyLanes`, now shared by both). Each cook's segment reads "Y Hold to start service" instead of "Waiting for Player N", and fills in their colour as they hold. Ready reads "Y Player N READY".
+- **Top left in Prep: the office's compact player cards, joined players only** (no open seats). In Service the space is kept for orders, later.
+- **The shop card grows from its player's card** and is a grid of baked pictures (Tools/Game/Bake Shop Pictures), three to a row with prices. Under it are the chosen piece's name, price and what it's for, in two lines at most (`ShopDescriptions`, written from what the game does). The D-pad moves left and right a piece and up and down a row (`ShopGrid`).
+
+**Dropped:** the old Prep strip (its "Rearrange" and "Hold: open up" hints and the "P1 not ready" line). Nothing on screen names the View button for rearranging now.
+
+**Not checked in play:** how holding Y feels, at a storage slot especially; the pictures' size in the tiles; and the faces in the cards for real chefs.

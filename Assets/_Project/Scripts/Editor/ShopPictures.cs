@@ -11,7 +11,7 @@ namespace Game.Editor
     /// <summary>
     /// Tools/Game/Bake Shop Pictures (the user's call, 2026-11-11): photographs every piece the shop
     /// sells, in a three-quarter view from a little above, the way the kitchen camera sees it, on a
-    /// clear background, so the shop card's grid shows the real thing. Furniture comes from its
+    /// clear background, and gives each to its catalog entry, so the shop card's grid shows the real thing. Furniture comes from its
     /// catalog prefab, kitchenware from its item prefab. Baked once rather than rendered live, so four
     /// players can shop at once for free. Run it again after a piece's model changes.
     /// Batch mode (editor closed):
@@ -81,11 +81,19 @@ namespace Game.Editor
                     }
                 }
                 AssetDatabase.Refresh();
-                foreach (var entry in catalog.Entries)
+                // Each picture into its catalog entry, for the shop card.
+                var so = new SerializedObject(catalog);
+                var entries = so.FindProperty("_entries");
+                for (var i = 0; i < entries.arraySize; i++)
                 {
-                    if (File.Exists(PathOf(entry.Id)))
-                        MenuArt.Sprite(Path.GetFileNameWithoutExtension(PathOf(entry.Id)), Folder);
+                    var element = entries.GetArrayElementAtIndex(i);
+                    var path = PathOf(element.FindPropertyRelative("_id").stringValue);
+                    element.FindPropertyRelative("_picture").objectReferenceValue =
+                        File.Exists(path) ? MenuArt.Sprite(Path.GetFileNameWithoutExtension(path), Folder) : null;
                 }
+                so.ApplyModifiedPropertiesWithoutUndo();
+                EditorUtility.SetDirty(catalog);
+                AssetDatabase.SaveAssets();
                 Debug.Log($"[ShopPictures] Baked {baked} pictures into {Folder}.");
             }
             finally

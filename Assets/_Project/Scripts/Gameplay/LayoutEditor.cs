@@ -398,7 +398,7 @@ namespace Game.Gameplay
             cursor.Result = Placement.Ok;
         }
 
-        // The stick moves down the list, one press at a time; A buys, and B or Y closes it.
+        // The D-pad moves through the grid, one press at a time; A buys, and B or Y closes it.
         private void UpdateShop(Cursor cursor)
         {
             var actions = cursor.Player.actions;
@@ -426,16 +426,19 @@ namespace Game.Gameplay
             var page = ShopPage(cursor);
             cursor.ShopIndex = Mathf.Clamp(cursor.ShopIndex, 0, page.Count - 1);
 
-            var stick = actions[NavigateAction].ReadValue<Vector2>().y;
-            if (Mathf.Abs(stick) < _shopStickThreshold)
+            // The page is a grid of pictures (ShopGrid, 2026-11-11): left and right step one piece,
+            // up and down a row. Navigate's y is up-positive, the grid's rows run down.
+            var move = actions[NavigateAction].ReadValue<Vector2>();
+            if (move.magnitude < _shopStickThreshold)
             {
                 cursor.ShopStickHeld = false;
             }
             else if (!cursor.ShopStickHeld)
             {
                 cursor.ShopStickHeld = true;
-                var count = page.Count;
-                cursor.ShopIndex = (cursor.ShopIndex + (stick > 0f ? count - 1 : 1)) % count;
+                var across = Mathf.Abs(move.x) > Mathf.Abs(move.y);
+                cursor.ShopIndex = Game.Simulation.Furniture.ShopGrid.Step(cursor.ShopIndex, page.Count,
+                    across ? (move.x > 0f ? 1 : -1) : 0, across ? 0 : (move.y > 0f ? -1 : 1));
                 cursor.Result = Placement.Ok;
             }
 
