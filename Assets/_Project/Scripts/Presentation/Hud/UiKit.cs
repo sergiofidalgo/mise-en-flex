@@ -235,6 +235,60 @@ namespace Game.Presentation.Hud
             return AvatarColours[(hash & 0x7fffffff) % AvatarColours.Length];
         }
 
+        private static readonly Color[] SkinTones =
+        {
+            new Color32(0xf3, 0xd2, 0xb8, 0xff), new Color32(0xe8, 0xbf, 0x9c, 0xff), new Color32(0xd2, 0xa0, 0x7a, 0xff),
+            new Color32(0xb6, 0x80, 0x5a, 0xff), new Color32(0x8d, 0x5c, 0x3d, 0xff), new Color32(0x63, 0x40, 0x2b, 0xff),
+        };
+
+        private static readonly Color[] HairColours =
+        {
+            new Color32(0x2b, 0x21, 0x1b, 0xff), new Color32(0x5a, 0x3a, 0x22, 0xff), new Color32(0x9a, 0x6a, 0x3a, 0xff),
+            new Color32(0xd9, 0xb2, 0x6a, 0xff), new Color32(0xb4, 0x4a, 0x2e, 0xff), new Color32(0xc8, 0xc2, 0xb8, 0xff),
+        };
+
+        private static int Hash(string text, int salt)
+        {
+            var hash = salt;
+            foreach (var c in text ?? "")
+                hash = unchecked(hash * 31 + c);
+            return hash & 0x7fffffff;
+        }
+
+        /// <summary>
+        /// A guest's face in a perfect circle (the user's call, 2026-11-11): their avatar colour behind,
+        /// a skin tone and hair from their name, two eyes and shoulders. Customers share one model,
+        /// so this stands in for a portrait; the same guest always gets the same face.
+        /// </summary>
+        public static void GuestAvatar(Transform parent, string guest, float x, float y, float diameter, Color edge)
+        {
+            var ring = Rect(parent, "Avatar", x, y, diameter, diameter);
+            // The edge: a slightly larger circle behind the face.
+            Ellipse(ring, "Edge", edge, -3f, -3f, diameter + 6f, diameter + 6f);
+            var back = Ellipse(ring, "Back", AvatarColour(guest), 0f, 0f, diameter, diameter);
+            back.gameObject.AddComponent<UnityEngine.UI.Mask>().showMaskGraphic = true;
+            var skin = SkinTones[Hash(guest, 7) % SkinTones.Length];
+            var hair = HairColours[Hash(guest, 13) % HairColours.Length];
+            var d = diameter;
+            // Shoulders, then the head, then hair over its top.
+            Ellipse(back.transform, "Shoulders", Color.Lerp(AvatarColour(guest), Color.black, 0.25f), d * 0.12f, d * 0.72f, d * 0.76f, d * 0.6f);
+            Ellipse(back.transform, "Head", skin, d * 0.27f, d * 0.22f, d * 0.46f, d * 0.52f);
+            var style = Hash(guest, 29) % 3;
+            if (style == 0)
+                Ellipse(back.transform, "Hair", hair, d * 0.24f, d * 0.14f, d * 0.52f, d * 0.26f);
+            else if (style == 1)
+                RoundBox(back.transform, "Hair", hair, d * 0.25f, d * 0.16f, d * 0.5f, d * 0.2f, d * 0.1f);
+            else
+            {
+                Ellipse(back.transform, "Hair", hair, d * 0.22f, d * 0.12f, d * 0.56f, d * 0.3f);
+                Ellipse(back.transform, "HairSide", hair, d * 0.2f, d * 0.22f, d * 0.14f, d * 0.4f);
+                Ellipse(back.transform, "HairSide", hair, d * 0.66f, d * 0.22f, d * 0.14f, d * 0.4f);
+            }
+            var eye = Mathf.Max(3f, d * 0.065f);
+            Ellipse(back.transform, "EyeL", new Color(0.17f, 0.13f, 0.1f), d * 0.39f - eye / 2f, d * 0.45f, eye, eye);
+            Ellipse(back.transform, "EyeR", new Color(0.17f, 0.13f, 0.1f), d * 0.61f - eye / 2f, d * 0.45f, eye, eye);
+        }
+
         public static void Fill(RectTransform rect)
         {
             rect.anchorMin = Vector2.zero;

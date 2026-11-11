@@ -3424,3 +3424,15 @@ It hides (fading over the HUD's 0.12 s) behind the Review dashboard, the pause m
 **Tested:** `ReadyCheck.Set` (EditMode). Holding A readies and B takes it back, with two pads (PlayMode).
 
 **Not checked in play:** whether the pulse and sink read well from the couch, and the footer's tags in Spanish.
+
+## 2026-11-11 — forkcast polish: key cards, tips caption, coin, avatars, one glyph kit, ready pop
+
+**User's calls:**
+- **The four cards** are now: today total earnings (money in), tips tonight, Most ordered meal (the finished night's, counted by dish across donenesses; the all-time favourite for a day saved without dishes), and Closed · Opens. "Guests fed" goes. `DaySummary.MostOrdered` holds the rule (EditMode).
+- **The tips caption follows how generous guests were** for what the meals took: none "not a penny", under 5% "polite, at best", 5–15% "they liked you", over 15% "they loved you". `DaySummary.TipsMood` (EditMode).
+- **The boss card** shows the money chip's coin before "You have $X" (not on a collection night, where the line isn't the balance).
+- **The start button** reads "Hold to start Day N". Its A is the kit's badge, the same glyph as the footer's B and the Reply Y, only bigger; badge rings now scale with their size (4 px at 31 px).
+- **The footer** centres "Waiting for Player N" and "(B) Player N READY" in each segment. The B is the red badge. As a player becomes ready, their label pops gently (18%, 0.45 s, `_readyPop` / `_readyPopSeconds`).
+- **Reviews** show each guest's face in a perfect circle instead of the oval (`UiKit.GuestAvatar`: their colour, a skin tone, hair and eyes from their name, the same each visit). Customers share one model, so it's a drawn stand-in rather than a portrait. The quote is bigger (32 px in the list, shrinking only for a line too long).
+
+**Not checked in play:** the pop's feel, and the avatars next to real guest names in Spanish.
