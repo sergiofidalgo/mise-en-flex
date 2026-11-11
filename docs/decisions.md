@@ -3494,3 +3494,12 @@ It hides (fading over the HUD's 0.12 s) behind the Review dashboard, the pause m
 **Tests:** EditMode covers the last finished day in each phase, healing (ahead, equal, without history) and the user's case end to end. PlayMode finishes day 1, relaunches, replies, relaunches, and checks day 2's morning, a day-1 summary and "Start day 2". `SavePlayTests` now finishes the day before saving, as the game does. Its old mid-morning save counted an unplayed day.
 
 **Not checked:** the map card in a capture or in play.
+
+## 2026-11-11 — Two flaky customer play tests: a guest shoved round the table, and a walk longer than its wait
+
+**Why they failed now and then:** each customer's look sets their walking pace (0.7 to 1.25 of the speed), picked with `UnityEngine.Random`, whose state depends on whatever ran before. So the same test walked at different speeds in different runs and suite orders. Batch runs also go at about 1000 fps. Waits were already in game seconds (`Time.time`), so frame rate and `timeScale` weren't the cause. Neither was a NavMesh: customers don't use one.
+
+- **`AGroupSitsAtATableForFourEatsAndLeavesItsPlates` exposed a game bug.** Guests planned their way avoiding every chair. Round a table for four by the front wall that leaves no gap: the south chair nearly touches the wall, and the north chair nearly touches the bar stools. So the planner fell back to the furniture-only path behind the south chair. A walker who started before their friend sat down also kept that path. They then pushed the seated friend around the table for 5–10 s, and with slow paces that ran past the test's 20 s. **Fixed in `CustomerDirector`:** ways avoid only the chairs someone is sitting in, an empty chair being no obstacle, and every walk is planned again when someone sits down or gets up. The group now sits in 4–7 s, each guest in their own chair, and the test now checks that too. Still open: with all four seats taken first, the last guest's only way may still be behind a friend (see `docs/ideas.md`).
+- **`ADishwasherClearsABarTableFromTheKitchenSide` was a test bug.** Its guest walked up the street, about 27 m, which takes up to 24 s at the slowest pace, inside a 20 s wait. The test is about the dishwasher, so like the other dining-room tests its guest now arrives at the door at once (`AtTheDoorAtOnce`). The street walk has its own tests.
+
+**Rule for these tests:** a timeout is in game seconds and has to cover the slowest look (0.7×), not the average one.
