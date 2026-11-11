@@ -3621,3 +3621,17 @@ It hides (fading over the HUD's 0.12 s) behind the Review dashboard, the pause m
 - **The restaurant's sign** moved out from the front-east corner (1.5 m east, 1.7 m south) so the bin clears its pole as it rounds the corner.
 
 **Not yet:** where the bin stands isn't saved, the same as the street door (neither is a station). A load puts both back where the builder put them.
+
+---
+
+## 2026-11-11 — Playtest round: controls, cleaning, HUD, day transitions, Restaurant tab, office
+
+From a longer playtest. All the user's calls:
+- **Movement:** turning gets its own speed, slower than walking, so a small stick push no longer swings the chef off the counter. When the chef stops near a station, a small assist turns them to face it.
+- **Cleaning has one input:** washing, wiping, mopping and putting out fires all start by holding X. While X is held, the chef stays planted and the stick works the cleaning or turns them on the spot. Letting go of X frees them to walk. Washing becomes circles with the stick, counted in either direction and forgiving of rough shapes. X still flips food at a hob: what the chef holds or faces decides which.
+- **The kitchen HUD shows only what's built into the scene:** debug panels go behind a developer toggle (off by default), guests' technical panels are removed, and per-counter control hints are gone. The only hints left are RT/LT (heat, browsing storage) and X (flip, clean), as a small button picture on the appliance that fades in when you're close and facing it. Action HUDs hide when the end-of-day dashboard opens.
+- **A transition into and out of service, with a 4-second countdown before it opens.** Chefs move and work freely during the countdown. Guests wait at the door and walk in at zero.
+- **The Cookbook tab becomes "Restaurant":** the menu plus opening times. Opening times set how long service lasts and how many guests come. Books is the third tab.
+- **Dashboard navigation** moves between neighbouring cards along explicit paths, instead of jumping to whatever is nearest on screen.
+- **The boss's hat** is smaller, so he doesn't hide the office.
+- **The tailor saves as you go:** no A to wear. Every change applies at once, and B leaves. This replaces "At the tailor, A wears" from earlier today.
