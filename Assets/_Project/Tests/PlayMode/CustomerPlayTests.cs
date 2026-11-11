@@ -55,6 +55,10 @@ namespace Game.Tests.PlayMode
             return service.Customers.Last();
         }
 
+        // Waits in game seconds (Time.time is scaled game time, the clock bodies walk by), so a
+        // batch run's frame rate (about 1000 fps, or a few under load) doesn't change the outcome.
+        // Timeouts cover the slowest walker: customer looks pace from 0.7 to 1.25 of the walking
+        // speed, picked at random (CharacterLookPicker), so a test must pass with the slowest.
         private IEnumerator WaitFor(System.Func<bool> condition, float seconds)
         {
             var until = Time.time + seconds;
@@ -390,6 +394,10 @@ namespace Game.Tests.PlayMode
                 string.Join("; ", party.Select(c => $"{c.State} seat {c.Seat} at {_customers.Agents[c].transform.position} for {_table.SeatPosition(c.Seat)}")));
             Assert.That(party.All(c => _table.SeatIndexes.Contains(c.Seat)), Is.True, "at the table for four");
             Assert.That(party.Select(c => _customers.Agents[c].transform.position).Distinct().Count(), Is.EqualTo(party.Count), "a chair each");
+            // In their own chair, not shoved round the table by a friend walking behind it to theirs
+            // (decision 2026-11-11).
+            foreach (var member in party)
+                Assert.That((_customers.Agents[member].transform.position - _table.SeatPosition(member.Seat)).magnitude, Is.LessThan(0.2f), $"seat {member.Seat} in its chair");
 
             foreach (var member in party)
                 _table.Container.Put(Meal(_root));
@@ -472,6 +480,9 @@ namespace Game.Tests.PlayMode
             yield return null;
             services.Days.Advance();
             yield return null;
+            // Straight to the door: up the street at the slowest pace takes over 20 s on its own,
+            // and that walk has its own tests (decision 2026-11-11).
+            AtTheDoorAtOnce();
 
             var customer = NextCustomer();
             yield return WaitFor(() => customer.State == CustomerState.Waiting, 20f);
