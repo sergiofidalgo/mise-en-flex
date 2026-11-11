@@ -4,6 +4,20 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-11 — Into and out of service: a 4-3-2-1, a "Service!" band, and a shutter behind the dashboard
+
+The day-transitions item of the playtest round (entry below, "Playtest round"). The look was approved from mockups (`Screenshots/day-transitions-mockup/`), with these calls by the user:
+- **Countdown before service** (`ServiceCountdown`, `TuningConfig` "Service countdown seconds", 4): a 4-3-2-1 in a wooden badge at the top centre, over the back wall, with an orange ring running down each second. The last number is warning yellow. "Doors open in" sits over the badge (in the mockup it was under it; above reads better: "Doors open in… 3"). **Chefs move and work freely during it.** Pausing stops it.
+- **Guests wait on the doorstep.** While the countdown runs, the service holds its doors (`ServiceSimulation.HoldDoors`): its clock stands still and nobody comes in or loses patience. The first party sets off up the street at once and waits at the door. At zero (`OpenDoors`) they come in and the clock starts; the next party comes a usual gap after that. Pulling the first party forward makes for about one more party a day than before.
+- **"Service!"** at zero: an orange-and-wood band, tilted slightly, sweeps across the top third of the screen, the title stamps in, and it sweeps out after about 1.3 s.
+- **Closing time:** as the service ends, a wooden roller shutter drops over the screen with a small bounce and a swinging "Closing time" sign. The dashboard rises over it, and **the shutter goes out of focus behind the dashboard** (the user's call: not the kitchen) for the whole Review. The dashboard's own blurred kitchen photo is turned off while the shutter is behind it. Its dark tint stays.
+- **The next morning,** once Start day N is held: the dashboard drops away, the shutter comes back into focus with "Day N" on its sign (the user's call), then rolls up on the kitchen for Prep. A new restaurant's day 1 opens the same way.
+- Timings and colours are on the `DayTransitions` component (shutter drop 0.55 s, sign 0.4 s, dashboard rise 0.4 s; morning 0.35 + 0.35 + 0.6 s). The shutter is one quad with a small UI shader (`SH_UiShutter`, slats with a blur setting).
+
+**Not checked by playing:** whether 4 s feels right, whether the band hides too much of the back stations for its second, and whether the chefs moving under the shutter for about 1.3 s in the morning matters.
+
+---
+
 ## 2026-11-11 — The kitchen HUD clean-up: debug behind F1, hints on the appliances, guests' bubbles, nothing over the dashboard
 
 Built from the playtest round's HUD call (below).

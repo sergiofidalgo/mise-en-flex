@@ -87,6 +87,7 @@ namespace Game.Gameplay
             var service = NewService(days.Day);
             Services = new KitchenServices(cooking, new ItemViewRegistry(_itemCatalog), _itemCatalog, _equipment, _tuning, _realism, service, _serviceConfig, days, new StaffRoster(), _staffConfig, stations, _floorPlan);
             Services.Staff.Candidates = _staffConfig.CandidatesFor(days.Day);
+            Services.Countdown.Finished += OpenDoors;
             Services.ReviewLines = _reviewLines;
             Services.Cookbook = NewCookbook(campaign, save);
             Services.Opening = _opening;
@@ -396,7 +397,12 @@ namespace Game.Gameplay
                 Services.Fires.Tick(cooking.Hobs, Time.deltaTime);
             }
             if (phase == DayPhase.Service)
+            {
+                // The countdown counts real seconds (stopped by a pause, as everything is); at zero
+                // the doors open (Countdown.Finished, below) and the service clock starts.
+                Services.Countdown.Tick(Time.deltaTime);
                 Services.Service.Tick(gameSeconds);
+            }
         }
 
         // Dirt and fire tuning, read again each frame in the Editor so Inspector edits apply live.
@@ -465,6 +471,15 @@ namespace Game.Gameplay
             return new CloseReport(spoiled, leftOut);
         }
 
+        /// <summary>
+        /// Overrides TuningConfig's countdown before service. The play-test suite sets it to 0
+        /// (SaveIsolation) so its services open at once; the countdown has its own tests.
+        /// </summary>
+        public static float? CountdownSecondsOverride { get; set; }
+
+        // At zero the doors open: whoever waits on the doorstep comes in.
+        private void OpenDoors() => Services.Service.OpenDoors();
+
         private void HandlePhaseChanged(DayPhase phase)
         {
             if (phase == DayPhase.Service)
@@ -475,6 +490,12 @@ namespace Game.Gameplay
                 if (Services.Cookbook != null && Services.Service.Customers.Count == 0)
                     Services.Service.SetMenu(Services.Cookbook.BuildMenu());
                 OpenSeats();
+                // The 4-3-2-1 (decision 2026-11-11): the doors stay shut, the first guests wait on
+                // the doorstep, and the chefs keep working. Zero opens them.
+                var countdown = CountdownSecondsOverride ?? _tuning.ServiceCountdownSeconds;
+                if (countdown > 0f)
+                    Services.Service.HoldDoors();
+                Services.Countdown.Start(countdown);
                 return;
             }
             if (phase == DayPhase.Prep)
