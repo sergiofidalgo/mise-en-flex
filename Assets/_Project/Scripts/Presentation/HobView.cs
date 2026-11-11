@@ -59,19 +59,22 @@ namespace Game.Presentation
 
         [Header("Pan fire (Phase 5)")]
         [Tooltip("Tall flames standing out of a pan on fire, copied from the tongues.")]
-        [SerializeField, Min(0)] private int _fireTongues = 9;
-        [Tooltip("Their height and width scales, and how far round the pan's middle they stand (metres).")]
-        [SerializeField] private Vector3 _fireSize = new Vector3(6.5f, 2.8f, 0.09f);
+        [SerializeField, Min(0)] private int _blazeTongues = 18;
+        [Tooltip("Tongue height at the middle and width scales, and how far over the hob the fire spreads (metres from its middle): it covers the appliance, not just the pan (the user\'s note, 2026-11-11).")]
+        [SerializeField] private Vector3 _blazeSize = new Vector3(6f, 3.4f, 0.36f);
         [SerializeField] private Color _fireColor = new Color(1f, 0.62f, 0.12f);
         [SerializeField] private Color _fireTip = new Color(0.95f, 0.22f, 0.04f);
+        [Tooltip("Tongues at the edge of the fire are this much shorter than in the middle, and lean out this many degrees.")]
+        [SerializeField, Range(0f, 1f)] private float _fireEdgeShorter = 0.55f;
+        [SerializeField, Range(0f, 60f)] private float _fireEdgeLean = 28f;
         [Tooltip("A smouldering pan's tongues lean in and grow as it gets close to catching.")]
         [SerializeField, Range(0f, 1f)] private float _smoulderShow = 0.45f;
 
         [Header("Fire sign (the user's note, 2026-11-11)")]
         [Tooltip("Height of the fire sign above the hob (m).")]
-        [SerializeField, Min(0f)] private float _fireSignHeight = 1.7f;
+        [SerializeField, Min(0f)] private float _fireSignHeight = 1.95f;
         [Tooltip("The sign's width in the world (m).")]
-        [SerializeField, Min(0.05f)] private float _fireSignSize = 0.62f;
+        [SerializeField, Min(0.05f)] private float _fireSignSize = 0.4f;
         [Tooltip("How long it takes to pop in or out (s).")]
         [SerializeField, Min(0.01f)] private float _fireSignPop = 0.18f;
         [Tooltip("How much bigger it swells on each beat (share of its size), and beats a second: urgent, like an alarm.")]
@@ -92,6 +95,7 @@ namespace Game.Presentation
 
         private MaterialPropertyBlock _block;
         private Renderer[] _fire;
+        private float[] _fireHeight;
         private Transform _fireSign;
         private float _fireSignShown;
         private static Sprite _fireSprite;
@@ -258,15 +262,22 @@ namespace Game.Presentation
             {
                 if (_flames.Length == 0 || _hob.ItemAnchor == null)
                     return;
-                _fire = new Renderer[_fireTongues];
-                for (var i = 0; i < _fireTongues; i++)
+                _fire = new Renderer[_blazeTongues];
+                _fireHeight = new float[_blazeTongues];
+                for (var i = 0; i < _blazeTongues; i++)
                 {
                     var tongue = Instantiate(_flames[0], _hob.ItemAnchor);
                     tongue.name = "PanFire";
-                    var angle = i * Mathf.PI * 2f / _fireTongues;
-                    var ring = i % 3 == 0 ? 0f : _fireSize.z * (i % 2 == 0 ? 1f : 0.6f);
-                    tongue.transform.localPosition = new Vector3(Mathf.Cos(angle) * ring, 0.04f, Mathf.Sin(angle) * ring);
-                    tongue.transform.localRotation = Quaternion.Euler(0f, angle * Mathf.Rad2Deg, 0f);
+                    // Scattered evenly over a disc the size of the hob top (a sunflower spiral), so
+                    // the fire covers the appliance; the first few stay in the middle, over the pan.
+                    var spread = _blazeTongues > 1 ? Mathf.Sqrt(i / (float)(_blazeTongues - 1)) : 0f;
+                    var angle = i * 2.39996f;
+                    var outward = new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle));
+                    tongue.transform.localPosition = outward * (spread * _blazeSize.z) + Vector3.up * 0.03f;
+                    // Edge tongues lean out over the sides, as a fire spills off a hob.
+                    var lean = Quaternion.AngleAxis(_fireEdgeLean * spread, Vector3.Cross(Vector3.up, outward));
+                    tongue.transform.localRotation = lean * Quaternion.Euler(0f, angle * Mathf.Rad2Deg, 0f);
+                    _fireHeight[i] = 1f - _fireEdgeShorter * spread;
                     _fire[i] = tongue;
                 }
             }
@@ -282,8 +293,7 @@ namespace Game.Presentation
                     continue;
                 // Each licks on its own beat, more wildly than a burner's flame.
                 var flicker = 1f + 2f * _flicker * Mathf.Sin(t * 0.8f + i * 1.7f) * Mathf.Sin(t * 0.47f + i * 0.9f);
-                var middle = i % 3 == 0 ? 1.2f : 1f;
-                tongue.transform.localScale = new Vector3(_fireSize.y, _fireSize.x * middle * flicker, _fireSize.y) * amount;
+                tongue.transform.localScale = new Vector3(_blazeSize.y, _blazeSize.x * _fireHeight[i] * flicker, _blazeSize.y) * amount;
                 tongue.GetPropertyBlock(_block);
                 _block.SetColor(BaseColorId, _fireColor);
                 _block.SetColor(TipColorId, _fireTip);

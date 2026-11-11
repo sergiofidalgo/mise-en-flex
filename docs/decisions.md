@@ -543,7 +543,8 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 **User's call:** the pan fire wasn't noticeable or urgent enough; add a floating signifier like the bin's full sign, but for fire.
 
-- **The sign:** a red disc with a dark rim and an orange flame with a yellow heart, drawn in code like the bin's 🚫 (`HobView`, `TEX_HobFireSign`; swap for drawn art in Phase 9). 0.62 m across, 1.7 m over the hob, flat to the camera, so it reads at any of the 8 rotations.
+- **The sign:** a red disc with a dark rim and an orange flame with a yellow heart, drawn in code like the bin's 🚫 (`HobView`, `TEX_HobFireSign`; swap for drawn art in Phase 9). 0.4 m across, 1.95 m over the hob, clear of the flames, flat to the camera, so it reads at any of the 8 rotations. (0.62 m at first: the user found it too big.)
+- **The fire spreads over the appliance** (the user's follow-up: it was too small, vertical and focused): 18 tongues scattered over the whole hob top (0.36 m from its middle), tallest over the pan, 55% shorter at the edge and leaning out 28° there, so it spills over the hob's sides. Fields renamed `_blazeTongues` and `_blazeSize` so the old values baked into the hob prefab don't override them.
 - **Urgent, not calm:** it pops in with an overshoot as the pan catches, then swells on a quick beat (2.5 a second, 14% bigger) and rocks a little until the fire is out, then pops away. The bin's sign only bobs.
 - Only while burning: before that, the smoke and the alarm are the warning.
 
