@@ -156,6 +156,9 @@ namespace Game.Editor
             dashboard.FindProperty("_icons").objectReferenceValue = IngredientIconRenderer.Catalog();
             dashboard.ApplyModifiedPropertiesWithoutUndo();
 
+            // The countdown before service, its "Service!" band, and the closing shutter (2026-11-11).
+            DayTransitionsBuilder.Add(style, root, hud.GetComponent<ReviewDashboard>());
+
             var campaign = new SerializedObject(hud.AddComponent<CampaignCardHud>());
             campaign.FindProperty("_canvas").objectReferenceValue = hud.GetComponent<RectTransform>();
             campaign.FindProperty("_style").objectReferenceValue = style;
