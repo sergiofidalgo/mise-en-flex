@@ -3,7 +3,6 @@ using Game.Gameplay;
 using Game.Gameplay.Stations;
 using Game.Presentation;
 using Game.Presentation.Office.Ambience;
-using Game.Simulation.Market;
 using UnityEditor;
 using UnityEngine;
 
@@ -20,7 +19,6 @@ namespace Game.Editor
     /// </summary>
     public static class GreyboxStreet
     {
-        public const string MarketConfigPath = "Assets/_Project/Data/Settings/MarketConfig.asset";
 
         // The building's outer wall faces, from the restaurant's KitchenLayout (Phase 6, milestone 3).
         // Everything outside is placed from them, so a wider or deeper building gets the same street
@@ -51,16 +49,11 @@ namespace Game.Editor
 
         // What each vendor a restaurant's street can have sells, and the produce shown on its counter.
         // A vendor not listed here (the fishmonger, until fish arrives) stands closed.
-        private static readonly System.Collections.Generic.Dictionary<string, (StallStation.Goods[] Goods, Color[] Produce)> Vendors =
-            new System.Collections.Generic.Dictionary<string, (StallStation.Goods[], Color[])>
+        private static readonly System.Collections.Generic.Dictionary<string, (string[] Goods, Color[] Produce)> Vendors =
+            new System.Collections.Generic.Dictionary<string, (string[], Color[])>
             {
-                ["Butcher"] = (new[] { new StallStation.Goods("Steak", Grade.Cheap), new StallStation.Goods("Steak", Grade.Premium) },
-                    new[] { new Color(0.72f, 0.25f, 0.25f), new Color(0.6f, 0.2f, 0.22f) }),
-                ["Greengrocer"] = (new[]
-                    {
-                        new StallStation.Goods("Onion", Grade.Cheap), new StallStation.Goods("Onion", Grade.Premium),
-                        new StallStation.Goods("Tomato", Grade.Cheap), new StallStation.Goods("Tomato", Grade.Premium),
-                    },
+                ["Butcher"] = (new[] { "Steak" }, new[] { new Color(0.72f, 0.25f, 0.25f), new Color(0.6f, 0.2f, 0.22f) }),
+                ["Greengrocer"] = (new[] { "Onion", "Tomato" },
                     new[] { new Color(0.85f, 0.75f, 0.5f), new Color(0.82f, 0.3f, 0.22f), new Color(0.45f, 0.65f, 0.3f) }),
             };
         private static readonly Vector3 CounterSize = new Vector3(1.8f, 0.9f, 0.8f);
@@ -91,12 +84,11 @@ namespace Game.Editor
             BuildingNorth = layout.BuildingNorth;
             Canopies = layout.Canopies;
 
-            var market = GreyboxAssets.EnsureAsset<MarketConfig>(MarketConfigPath);
             var street = new GameObject("Street").transform;
 
             Ground(street);
             Road(street);
-            Plaza(street, market, layout.Vendors);
+            Plaza(street, layout.Vendors);
             Parking(street, root);
             Backdrop(street);
             Bounds(street);
@@ -162,7 +154,7 @@ namespace Game.Editor
         // The restaurant's vendors in its definition's order, one per stall spot. A vendor with nothing
         // to sell yet stands closed under its own name; a spot with no vendor is closed, a place for a
         // future cuisine's stall.
-        private static void Plaza(Transform street, MarketConfig market, string[] vendors)
+        private static void Plaza(Transform street, string[] vendors)
         {
             Slab(street, "Plaza", Paving, GroundsWest, PlazaEast, BuildingSouth, GroundsNorth);
 
@@ -170,13 +162,13 @@ namespace Game.Editor
             {
                 var vendor = vendors != null && i < vendors.Length ? vendors[i] : null;
                 if (vendor != null && Vendors.TryGetValue(vendor, out var stock))
-                    Stall(street, $"Stall_{vendor}", i, market, stock.Goods, stock.Produce);
+                    Stall(street, $"Stall_{vendor}", i, stock.Goods, stock.Produce);
                 else
-                    Stall(street, vendor != null ? $"Stall_{vendor}" : "Stall_Closed", i, null, null, null);
+                    Stall(street, vendor != null ? $"Stall_{vendor}" : "Stall_Closed", i, null, null);
             }
         }
 
-        private static void Stall(Transform street, string name, int index, MarketConfig market, StallStation.Goods[] goods, Color[] produce)
+        private static void Stall(Transform street, string name, int index, string[] goods, Color[] produce)
         {
             var root = new GameObject(name).transform;
             root.SetParent(street, false);
@@ -228,15 +220,10 @@ namespace Game.Editor
             var so = new SerializedObject(station);
             so.FindProperty("_itemAnchor").objectReferenceValue = anchor;
             so.FindProperty("_halfSize").vector2Value = new Vector2(CounterSize.x / 2f, CounterSize.z / 2f);
-            so.FindProperty("_market").objectReferenceValue = market;
             var list = so.FindProperty("_goods");
             list.arraySize = goods.Length;
             for (var i = 0; i < goods.Length; i++)
-            {
-                var element = list.GetArrayElementAtIndex(i);
-                element.FindPropertyRelative("_typeId").stringValue = goods[i].TypeId;
-                element.FindPropertyRelative("_grade").enumValueIndex = (int)goods[i].Grade;
-            }
+                list.GetArrayElementAtIndex(i).stringValue = goods[i];
             so.ApplyModifiedPropertiesWithoutUndo();
 
             var highlight = new SerializedObject(root.gameObject.AddComponent<InteractableHighlightView>());
