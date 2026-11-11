@@ -2503,6 +2503,85 @@ def build_street_kit():
     return objects
 
 
+def add_rounded_loft(bm, sections, radius, per_corner=4):
+    """A closed, rounded-rectangle solid through (width, depth, z) sections, bottom to top."""
+    rings = [rounded_rect(bm, w, d, radius, z, per_corner) for w, d, z in sections]
+    connect_rings(bm, rings)
+    bm.faces.new(list(reversed(rings[0])))
+    bm.faces.new(rings[-1])
+
+
+def build_wheelie_bin():
+    """The street's communal wheelie bin (the user's reference photo, 2026-11-11): a big
+    four-wheeled container with a tapered, flared body, a chunky moulded rim with V ribs under it,
+    side grips and push handles, black latch blocks, a closed domed lid with two panels and a block
+    handle, and castor wheels on steel forks. 1.82 m wide, 1.25 m deep with its handles, 1.34 m
+    tall, front (-y) to the street. Split by colour: Body (and the moulded rim, ribs and grips),
+    Lid, LidPanels, Trim (latches and hinges), Wheels, Brackets."""
+    objects = []
+
+    body = bmesh.new()
+    base_z, rim_z = 0.29, 1.06
+
+    def half_depth(z):  # the body's front face flares out on the way up
+        return 0.43 + (0.49 - 0.43) * (z - 0.37) / (rim_z - 0.37)
+
+    add_rounded_loft(body, [(1.40, 0.76, base_z), (1.50, 0.86, 0.37), (1.64, 0.98, rim_z)], 0.1)
+    # The moulded rim: a fat lip all round, wider than the body and the lid, which closes inside it.
+    add_rounded_loft(body, [(1.62, 0.96, rim_z - 0.03), (1.82, 1.16, rim_z + 0.01), (1.82, 1.16, 1.16), (1.76, 1.10, 1.18)], 0.1)
+    # V ribs under the rim, front and back: stiffeners that taper to a point down the body.
+    for x in [-0.6 + 0.2 * k for k in range(7)]:
+        for side in (-1.0, 1.0):
+            top, bottom = 1.04, 0.84
+            inner_top, inner_bottom = half_depth(top) - 0.02, half_depth(bottom) - 0.02
+            profile = [(side * inner_top, top), (side * (inner_top + 0.07), top), (side * inner_bottom, bottom)]
+            add_extrude_yz(body, profile, x - 0.03, x + 0.03)
+    # Side grips on the ends, and push handles along the back (against the wall).
+    for side in (-1.0, 1.0):
+        add_box(body, (0.06, 0.46, 0.07), (side * 0.97, 0.0, 1.11), bevel=0.025)
+        for y in (-0.19, 0.19):
+            add_box(body, (0.1, 0.06, 0.06), (side * 0.93, y, 1.11), bevel=0.02)
+        add_box(body, (0.34, 0.06, 0.06), (side * 0.55, 0.62, 1.12), bevel=0.025)
+        for x in (side * 0.42, side * 0.68):
+            add_box(body, (0.06, 0.08, 0.06), (x, 0.59, 1.12), bevel=0.02)
+    objects.append(finish("WheelieBinBody", body))
+
+    lid = bmesh.new()
+    # Closed, and domed: an overhanging lip, then a rise to a flat crown.
+    add_rounded_loft(lid, [(1.74, 1.08, 1.17), (1.74, 1.08, 1.23), (1.66, 1.00, 1.26), (1.46, 0.82, 1.31)], 0.1)
+    # The block handle at the front of the crown, to lift it by.
+    add_box(lid, (0.38, 0.13, 0.07), (0.0, -0.35, 1.33), bevel=0.025)
+    objects.append(finish("WheelieBinLid", lid))
+
+    panels = bmesh.new()  # two moulded panels on the crown, a shade darker so they read as recessed
+    for x in (-0.36, 0.36):
+        add_box(panels, (0.58, 0.44, 0.02), (x, 0.08, 1.31), bevel=0.008)
+    objects.append(finish("WheelieBinLidPanels", panels))
+
+    trim = bmesh.new()
+    for side in (-1.0, 1.0):
+        # A latch block on each end, under the rim near the front, with a round knob.
+        add_box(trim, (0.09, 0.18, 0.15), (side * 0.82, -0.18, 0.95), bevel=0.02)
+        add_lathe(trim, [(0.0, 0.0), (0.035, 0.0), (0.035, 0.07), (0.0, 0.07)], segments=12,
+                  centre=(side * 0.86 if side > 0 else -0.93, -0.18, 0.95), axis_matrix=TO_SIDE)
+        # The lid's hinges along the back.
+        add_box(trim, (0.16, 0.08, 0.07), (side * 0.25, 0.56, 1.2), bevel=0.015)
+    objects.append(finish("WheelieBinTrim", trim))
+
+    wheels = bmesh.new()
+    brackets = bmesh.new()
+    for x in (-0.6, 0.6):
+        for y in (-0.3, 0.3):
+            add_cylinder_y(wheels, (x, y - 0.04, 0.12), 0.12, 0.08, segments=16)
+            add_cylinder_y(brackets, (x, y - 0.055, 0.12), 0.05, 0.11, segments=10)  # the hub and axle
+            for fork in (-1.0, 1.0):  # the fork either side of the wheel
+                add_box(brackets, (0.09, 0.018, 0.18), (x, y + fork * 0.052, 0.19), bevel=0.005)
+            add_box(brackets, (0.16, 0.14, 0.03), (x, y, 0.28), bevel=0.008)  # the swivel plate
+    objects.append(finish("WheelieBinWheels", wheels))
+    objects.append(finish("WheelieBinBrackets", brackets))
+    return objects
+
+
 def build_floor_kit():
     """Furniture for the floors of the boss's tower, seen through its glass as the opening climbs
     (the user's notes, 2026-11-10: every object as crisp as the kitchen's appliances; the floors are
@@ -3233,6 +3312,7 @@ def main():
         "SM_City.fbx": build_city(),
         "SM_Cars.fbx": build_cars(),
         "SM_StreetKit.fbx": build_street_kit(),
+        "SM_WheelieBin.fbx": build_wheelie_bin(),
         "SM_FloorKit.fbx": build_floor_kit(),
         "SM_Office.fbx": build_office(),
     }

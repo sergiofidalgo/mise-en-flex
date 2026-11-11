@@ -247,9 +247,7 @@ namespace Game.Editor
             parked.localRotation = Quaternion.Euler(0f, 90f, 0f);
 
             // The one trash container (the mockup's recycling area is too much, the user's note).
-            var bin = Box(street, "TrashContainer", Mat("StreetTrash", Bin), new Vector3(BuildingEast + 0.75f, 0.65f, BuildingNorth - 3.3f), new Vector3(1.2f, 1.3f, 1.8f));
-            bin.AddComponent<BoxCollider>();
-            Box(bin.transform, "Lid", Mat("StreetTrashLid", new Color(0.15f, 0.27f, 0.22f)), new Vector3(0f, 0.52f, 0f), new Vector3(1.04f, 0.06f, 1.04f));
+            TrashContainer(street, new Vector3(BuildingEast + 0.75f, 0f, BuildingNorth - 3.3f));
 
             // The restaurant's tall sign at the front corner.
             Box(street, "SignPole", Mat("StreetSignPole", new Color(0.18f, 0.16f, 0.15f)), new Vector3(BuildingEast + 0.8f, 1.8f, BuildingSouth - 1.2f), new Vector3(0.14f, 3.6f, 0.14f))
@@ -259,6 +257,39 @@ namespace Game.Editor
             // (Phase 6, milestone 3: each restaurant's own name on its sign).
             Box(street, "SignMark", Mat("StreetSignMark", new Color(0.5f, 0.22f, 0.15f)), new Vector3(BuildingEast + 0.8f, 3.58f, BuildingSouth - 1.27f), new Vector3(1.4f, 0.03f, 0.02f));
             SignLettering(street, root, new Vector3(BuildingEast + 0.8f, 3.6f, BuildingSouth - 1.28f));
+        }
+
+        // The communal wheelie bin against the side wall (SM_WheelieBin; the user's reference photo,
+        // 2026-11-11), long side along the wall and its front to the parking lot. 1.2 m by 1.8 m on
+        // the ground like the box it replaced, which stays as the fallback without the model.
+        private static void TrashContainer(Transform street, Vector3 at)
+        {
+            const string model = "SM_WheelieBin";
+            var bin = new GameObject("TrashContainer");
+            bin.transform.SetParent(street, false);
+            bin.transform.localPosition = at;
+            bin.isStatic = true;
+            var collider = bin.AddComponent<BoxCollider>();
+            collider.center = new Vector3(0f, 0.67f, 0f);
+            collider.size = new Vector3(1.2f, 1.34f, 1.8f);
+
+            if (PilotArt.FindMesh(model, "WheelieBinBody") == null)
+            {
+                Box(bin.transform, "Body", Mat("StreetTrash", Bin), new Vector3(0f, 0.65f, 0f), new Vector3(1.2f, 1.3f, 1.8f));
+                Box(bin.transform, "Lid", Mat("StreetTrashLid", new Color(0.15f, 0.27f, 0.22f)), new Vector3(0f, 1.32f, 0f), new Vector3(1.25f, 0.08f, 1.87f));
+                return;
+            }
+
+            // The model is 1.82 m across its front; turned so the front (+z) faces east, away from the wall.
+            var parts = new GameObject("Model").transform;
+            parts.SetParent(bin.transform, false);
+            parts.localRotation = Quaternion.Euler(0f, 90f, 0f);
+            Kit.Part(parts, model, "WheelieBinBody", Kit.Toon("WheelieBinGreen", new Color(0.3f, 0.5f, 0.32f)));
+            Kit.Part(parts, model, "WheelieBinLid", Kit.Toon("WheelieBinLid", new Color(0.36f, 0.57f, 0.37f)));
+            Kit.Part(parts, model, "WheelieBinLidPanels", Kit.Toon("WheelieBinLidPanel", new Color(0.27f, 0.45f, 0.29f)));
+            Kit.Part(parts, model, "WheelieBinTrim", Kit.Toon("WheelieBinTrim", new Color(0.12f, 0.12f, 0.13f)));
+            Kit.Part(parts, model, "WheelieBinWheels", Kit.Toon("WheelieBinTyre", new Color(0.09f, 0.09f, 0.1f)));
+            Kit.Part(parts, model, "WheelieBinBrackets", Kit.Toon("KitSteel", new Color(0.72f, 0.73f, 0.75f)));
         }
 
         // The name in large letters above the rule, the style in small ones below it, facing the
