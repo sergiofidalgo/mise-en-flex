@@ -648,6 +648,10 @@ namespace Game.Presentation.Hud
         private static string Money(float amount, bool cents, bool signed) =>
             Game.Data.Locale.Money(amount, Game.Data.MoneyStyle.Whole, signed);
 
+        // A dish's price: whole when it's whole, with its cents when it isn't ("$25", "$25.50"),
+        // since prices move in steps of 50 cents (2026-11-11).
+        private static string PriceText(float price) => Game.Data.Locale.Money(price, Game.Data.MoneyStyle.Auto);
+
         // When the next service opens: the opening times chosen for it (2026-11-11).
         private string NextOpensAt() =>
             ServiceClock.Format((Services.Opening != null ? Services.Opening.Slot.Opens : Services.ServiceConfig.OpensAt) * 60f);

@@ -4,6 +4,26 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-11 — Prices in steps of 50 cents; a quieter, plainer price dial; the footer flush
+
+**User's calls:**
+- **Prices move in steps of 50 cents,** so $25.50 can be set. This replaces "steps of 1" (2026-11-08). Every price is a multiple of `CookbookConfig._priceStep` (0.5): set, nudged, loaded, and the side's share of a dish. A save with whole prices reads the same (`PriceRecord.Price` and `DishNight.Price` are now decimals). Cards and the books show cents only when there are any ("$24.50", "$25").
+- **The dial:**
+  - It shows five numbers.
+  - They're written without trailing zeros ("24.5", "25"; "24,5" in Spanish).
+  - All are the same size; only their opacity falls away from the middle.
+  - They're evenly spaced. The currency moved to the heading ("PRICE · $"), so no number changes its text as it rolls. The ‹ › arrows are gone.
+- **Price consequences:** two chips, guests ("0%" when unchanged) and "Profit". The stars chip is gone.
+- **The suggestion is quiet:** no "suggested $20 +23%" text. Off the suggestion, a small badge (X and a gold star) sits on the heading's right, and the suggested price is the gold star on the dial's ruler.
+- **forkcast's footer is flush with the panel:** the start bar begins at the footer's top. There was a 10 px band between them.
+- **Layout touches (later the same evening):**
+  - "Kitchen costs $6" replaces "about $6 a serving".
+  - The chips under the dial sit as far from the panel's bottom as its sides are.
+  - The day strip's end labels line up with its ends.
+  - The dish's plate is drawn at 300 px, pushed into the panel's top-right corner. Its steam may rise past the card.
+
+---
+
 ## 2026-11-11 — The price's consequences as one row of icons; room for six steps
 
 **User's note:** the dial still wasn't exciting, and the text under the price was too much. Show the consequences with icons and values in one row, and leave room for recipes of up to six steps.

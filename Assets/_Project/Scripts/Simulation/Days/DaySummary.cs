@@ -124,7 +124,7 @@ namespace Game.Simulation.Days
         /// The night's dishes from its guests: everyone served or who walked out, grouped by recipe
         /// (or by the order's name before the cookbook), with the price each sold at.
         /// </summary>
-        public static List<DishNight> DishesOf(IEnumerable<Customer> guests, Func<string, int> priceOf)
+        public static List<DishNight> DishesOf(IEnumerable<Customer> guests, Func<string, float> priceOf)
         {
             var dishes = new List<DishNight>();
             foreach (var guest in guests)
@@ -137,7 +137,7 @@ namespace Game.Simulation.Days
                 if (dish == null)
                 {
                     // What the guest actually paid for it, when they did; otherwise the menu's price.
-                    var paid = guest.Bill.HasValue ? (int)Math.Round(guest.Bill.Value.Payment) : 0;
+                    var paid = guest.Bill.HasValue ? (float)Math.Round(guest.Bill.Value.Payment, 2) : 0f;
                     dish = new DishNight { RecipeId = id, Dish = name, Price = paid > 0 ? paid : id.Length > 0 && priceOf != null ? priceOf(id) : 0 };
                     dishes.Add(dish);
                 }

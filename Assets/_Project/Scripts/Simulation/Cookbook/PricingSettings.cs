@@ -10,7 +10,13 @@ namespace Game.Simulation.Cookbook
     public sealed class PricingSettings
     {
         /// <summary>Lowest price a dish can be set to.</summary>
-        public int MinPrice { get; set; } = 1;
+        public float MinPrice { get; set; } = 1f;
+
+        /// <summary>
+        /// What one step of the price dial moves a price by, and what every price is a multiple of
+        /// (the user's call, 2026-11-11: 50 cents, so $25.50 can be set; it was 1).
+        /// </summary>
+        public float PriceStep { get; set; } = 0.5f;
 
         /// <summary>Highest price, as a multiple of the suggested price.</summary>
         public float MaxPriceFactor { get; set; } = 5f;

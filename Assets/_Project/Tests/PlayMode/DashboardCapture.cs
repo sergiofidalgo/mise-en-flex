@@ -75,7 +75,7 @@ namespace Game.Tests.PlayMode
             var unlocking = ScreenCapture.CaptureScreenshotAsTexture();
             File.WriteAllBytes(Path.Combine(folder, "dashboard_restaurant_unlocking.png"), unlocking.EncodeToPNG());
             Object.Destroy(unlocking);
-            services.Cookbook.SetPrice(services.Cookbook.Recipes[0].Id, services.Cookbook.Recipes[0].SuggestedPrice + 4);
+            services.Cookbook.SetPrice(services.Cookbook.Recipes[0].Id, services.Cookbook.Recipes[0].SuggestedPrice + 4.5f);
             yield return Shoot(dashboard, 1, 0, false, Path.Combine(folder, "dashboard_restaurant_priced.png"));
             yield return Shoot(dashboard, 3, 0, false, Path.Combine(folder, "dashboard_staff_empty.png"));
             foreach (var candidate in services.Staff.Candidates.Take(2))

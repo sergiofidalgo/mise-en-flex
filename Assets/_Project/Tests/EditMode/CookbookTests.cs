@@ -151,15 +151,30 @@ namespace Game.Tests.EditMode
         // ---- Prices ----
 
         [Test]
-        public void PricesStartAtTheSuggestionAndMoveInStepsOfOne()
+        public void PricesStartAtTheSuggestionAndMoveInStepsOfFiftyCents()
+        {
+            // The user's call, 2026-11-11: $25.50 can be set (steps were 1 before).
+            var book = Book();
+            Assert.That(book.PriceOf("steak"), Is.EqualTo(20f));
+            book.Nudge("steak", 1);
+            Assert.That(book.PriceOf("steak"), Is.EqualTo(20.5f));
+            book.Nudge("steak", 1);
+            Assert.That(book.PriceOf("steak"), Is.EqualTo(21f));
+            book.Nudge("steak", -5);
+            Assert.That(book.PriceOf("steak"), Is.EqualTo(18.5f));
+        }
+
+        [Test]
+        public void APriceIsAlwaysOnTheStep()
         {
             var book = Book();
-            Assert.That(book.PriceOf("steak"), Is.EqualTo(20));
-            book.Nudge("steak", 1);
-            book.Nudge("steak", 1);
-            Assert.That(book.PriceOf("steak"), Is.EqualTo(22));
-            book.Nudge("steak", -5);
-            Assert.That(book.PriceOf("steak"), Is.EqualTo(17));
+            book.SetPrice("steak", 21.3f);
+            Assert.That(book.PriceOf("steak"), Is.EqualTo(21.5f), "set prices land on 50 cents");
+            book.Load(new[] { "steak" }, new[] { new PriceRecord { Recipe = "steak", Price = 19.74f } });
+            Assert.That(book.PriceOf("steak"), Is.EqualTo(19.5f), "and so do loaded ones");
+            for (var i = 0; i < 40; i++)
+                book.Nudge("steak", 1);
+            Assert.That(book.PriceOf("steak") * 2f % 1f, Is.EqualTo(0f).Within(1e-4f), "no drift after many steps");
         }
 
         [Test]

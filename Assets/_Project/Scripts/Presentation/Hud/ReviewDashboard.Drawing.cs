@@ -262,7 +262,7 @@ namespace Game.Presentation.Hud
         }
 
         private IEnumerable<float> MenuPrices() =>
-            Services.Cookbook != null ? Services.Cookbook.Menu.Select(r => (float)Services.Cookbook.PriceOf(r.Id)) : new[] { Services.ServiceConfig.MainPrice };
+            Services.Cookbook != null ? Services.Cookbook.Menu.Select(r => Services.Cookbook.PriceOf(r.Id)) : new[] { Services.ServiceConfig.MainPrice };
 
         // ---- The listing card (the user's calls, 2026-11-10): after a Google Places card, kept calm
         // and readable. Four tiles of real facts, a big value over a small label each; the start bar sits under
@@ -848,7 +848,7 @@ namespace Game.Presentation.Hud
                     said += " · " + Tr.Format("{stars} stars", ("stars", dish.Stars.Value.ToString("0.0")));
                 Label(Medium, _content, said, 16.67f, dish.WalkedOut > 0 ? _alarmText : _muted, x + 26f, y + 45f, 340f);
                 if (dish.Price > 0)
-                    Label(ExtraBold, _content, Money(dish.Price), 24f, _ink, x + width - 26f, y + 26f, 120f, HorizontalAlignmentOptions.Right);
+                    Label(ExtraBold, _content, PriceText(dish.Price), 24f, _ink, x + width - 26f, y + 26f, 120f, HorizontalAlignmentOptions.Right);
                 y += rowHeight;
             }
             if (dishes.Count > rows)
@@ -1137,7 +1137,8 @@ namespace Game.Presentation.Hud
         // hold completes; the A pulses at rest and sinks while held.
 
         // The footer strip: flush with the panel's bottom edge and sides (the user's design, 2026-11-11).
-        private const float BarX = PanelX, BarTop = FooterTop + 10f, BarWidth = PanelWidth, BarHeight = PanelY + PanelHeight - FooterTop - 10f, SegmentGap = 4f;
+        // Flush against the panel's content, no band between (the user's call, 2026-11-11: it was 10 px down).
+        private const float BarX = PanelX, BarTop = FooterTop, BarWidth = PanelWidth, BarHeight = PanelY + PanelHeight - FooterTop, SegmentGap = 4f;
         // The start card in the left column, under the four facts.
         // A round-ended pill, standing on its own centred in the gap between the cards (they end at
         // 808) and the footer strip (the user's mock, 2026-11-11).
