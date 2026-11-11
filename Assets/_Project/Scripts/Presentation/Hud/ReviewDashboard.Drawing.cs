@@ -1103,7 +1103,7 @@ namespace Game.Presentation.Hud
             Label(Serif, _content, $"“{Tr.Get(candidate.Description)}”", 21f, text, 857f, y + 62f, 600f);
 
             var wage = Label(Bold, _content, Tr.Format("{wage} a day", ("wage", Money(candidate.DailyWage))), 21.33f, reachable ? _ink : _badText, 1776f, y + 32f, 260f, HorizontalAlignmentOptions.Right);
-            // A taps hire the chosen candidate, in the morning; holding A is the Start button's.
+            // A hires the chosen candidate, in the morning; holding Y is the Start button's.
             if (chosen && reachable && StaffEditable)
                 Chip(_content, "A", Tr.Get("Hire"), 1776f - UiKit.Width(wage) - 24f, y + 15f);
             var reason = whyNot == StaffBoard.Outcome.RoleTaken ? Tr.Get("job taken")
@@ -1261,7 +1261,7 @@ namespace Game.Presentation.Hud
         };
 
         // ---- The footer is the start bar (the user's call, 2026-11-11) ----
-        // The whole footer is one button: hold A to start the next day. Its bar fills as A is held,
+        // The whole footer is one button: hold Y to start the next day. Its bar fills as Y is held,
         // split into one segment per joined cook, each filling in their colour (a single bar for one
         // cook). The A and "Hold to start day N" sit on it; with two or more cooks, who's still to
         // hold follows. No control hints: the tab bar has its own LB/RB, and lists browse with the
@@ -1333,7 +1333,7 @@ namespace Game.Presentation.Hud
             _hintsShown = state;
             BuildLanes(joined);
 
-            // The start card: what holding A does. Nobody's here yet: A joins first.
+            // The start card: what holding Y does. Nobody's here yet: A joins first.
             _startText.text = PlayerInput.all.Count == 0 ? Tr.Get("Press to join") : Tr.Format("Hold to start Day {day}", ("day", StartsDay));
             // The ring and the words centred together on the button.
             var textWidth = UiKit.Width(_startText);
@@ -1375,21 +1375,21 @@ namespace Game.Presentation.Hud
             _lanes = UiKit.Rect(_bar, "Lanes", 0f, 0f, BarWidth, BarHeight);
             _startFlash = UiKit.RoundBox(_bar, "Flash", new Color(1f, 1f, 1f, 0f), 0f, 0f, BarWidth, BarHeight, 0f);
 
-            // The start button in the left column (the user's mock, 2026-11-11): one green button in
-            // the Xbox A's colour, a white edge, the A as a white ring and "Hold to start day N" in
-            // white, centred. It animates as a unit: a gentle pulse at rest, sinking while held.
+            // The start button in the left column (the user's mock, 2026-11-11): one button in the
+            // Xbox Y's yellow (Y, not A, since 2026-11-11), a white edge, the Y as a white ring and
+            // "Hold to start day N" in ink, centred. It animates as a unit: a gentle pulse at rest, sinking while held.
             _startA = UiKit.Rect(_layout, "StartButton", 120f, StartCardTop, 600f, StartCardHeight);
             _startA.pivot = new Vector2(0.5f, 0.5f);
             _startA.anchoredPosition += new Vector2(300f, -StartCardHeight / 2f);
-            var face = UiKit.StrokedBox(_startA, "Button", _buttonA, Color.white, 4f, 0f, 0f, 600f, StartCardHeight, StartCardHeight / 2f);
+            var face = UiKit.StrokedBox(_startA, "Button", _buttonY, Color.white, 4f, 0f, 0f, 600f, StartCardHeight, StartCardHeight / 2f);
             // A darker lower band gives it depth, like a key (flat, no gradient), clipped to the pill.
             face.gameObject.AddComponent<Mask>().showMaskGraphic = true;
-            UiKit.RoundBox(face.transform, "Shade", Color.Lerp(_buttonA, _ink, 0.18f), 0f, StartCardHeight * 0.6f, 600f, StartCardHeight * 0.4f, 0f);
+            UiKit.RoundBox(face.transform, "Shade", Color.Lerp(_buttonY, _ink, 0.12f), 0f, StartCardHeight * 0.6f, 600f, StartCardHeight * 0.4f, 0f);
             _startRing = UiKit.Rect(_startA, "Ring", 0f, (StartCardHeight - 52f) / 2f, 52f, 52f);
-            // The A exactly as forkcast's other button glyphs (the footer's B), only bigger: the kit's
+            // The Y exactly as forkcast's other button glyphs (the footer's B), only bigger: the kit's
             // badge, its white ring scaled with it (the user's call, 2026-11-11).
-            Badge(_startRing, "A", _buttonA, 26f, 26f, 52f, 26f);
-            _startText = UiKit.TextAt(ExtraBold, _startA, "Text", "", 38f, Color.white, 0f, StartCardHeight / 2f + 13f, 520f);
+            Badge(_startRing, "Y", _buttonY, 26f, 26f, 52f, 26f);
+            _startText = UiKit.TextAt(ExtraBold, _startA, "Text", "", 38f, _ink, 0f, StartCardHeight / 2f + 13f, 520f);
         }
 
         // One segment per joined cook, in player-slot order; rebuilt only when who's here changes.

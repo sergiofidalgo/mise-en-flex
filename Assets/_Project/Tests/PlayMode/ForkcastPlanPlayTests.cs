@@ -14,7 +14,8 @@ namespace Game.Tests.PlayMode
 {
     /// <summary>
     /// The real kitchen, entered in the morning (the user's calls, 2026-11-10): forkcast is up, hiring
-    /// happens on its Staff tab with a controller, and only holding A on "Start day N" leaves it.
+    /// happens on its Staff tab with a controller, and only holding Y on "Start day N" leaves it
+    /// (Y, not A, since 2026-11-11; Prep's own ready-up is a Y hold too).
     /// </summary>
     public class ForkcastPlanPlayTests
     {
@@ -90,14 +91,14 @@ namespace Game.Tests.PlayMode
         }
 
         [UnityTest]
-        public IEnumerator HoldingAFillsStartAndOpensPrep()
+        public IEnumerator HoldingYFillsStartAndOpensPrep()
         {
             yield return Arrive();
             yield return Join();
             var hired = _root.Services.Staff.Hired.Count;
 
-            // A held on the Overview: no tap, so nothing's hired, and the Start button fills.
-            InputSystem.QueueStateEvent(_pad, new GamepadState().WithButton(GamepadButton.South));
+            // Y held on the Overview: no tap, so no reply wheel, and the Start button fills.
+            InputSystem.QueueStateEvent(_pad, new GamepadState().WithButton(GamepadButton.North));
             yield return new WaitForSecondsRealtime(0.4f);
             Assert.That(_root.Services.Days.Phase, Is.EqualTo(DayPhase.Plan), "not full yet");
             yield return new WaitForSecondsRealtime(0.7f);
@@ -153,7 +154,7 @@ namespace Game.Tests.PlayMode
             Assert.That(_dashboard.IsShowing, Is.True);
             var day = days.Day;
 
-            InputSystem.QueueStateEvent(_pad, new GamepadState().WithButton(GamepadButton.South));
+            InputSystem.QueueStateEvent(_pad, new GamepadState().WithButton(GamepadButton.North));
             yield return new WaitForSecondsRealtime(1.1f);
             InputSystem.QueueStateEvent(_pad, new GamepadState());
             yield return null;
@@ -161,6 +162,26 @@ namespace Game.Tests.PlayMode
             Assert.That(days.Phase, Is.EqualTo(DayPhase.Prep));
             Assert.That(days.Day, Is.EqualTo(day + 1));
             Assert.That(_dashboard.IsShowing, Is.False);
+        }
+
+        [UnityTest]
+        public IEnumerator InPrepHoldingYOpensUp()
+        {
+            yield return Arrive();
+            yield return Join();
+            var days = _root.Services.Days;
+            days.Advance(); // Prep
+            yield return null;
+            Assume.That(days.Phase, Is.EqualTo(DayPhase.Prep));
+
+            InputSystem.QueueStateEvent(_pad, new GamepadState().WithButton(GamepadButton.North));
+            yield return new WaitForSecondsRealtime(0.25f);
+            Assert.That(days.Phase, Is.EqualTo(DayPhase.Prep), "not held long enough yet");
+            Assert.That(Object.FindFirstObjectByType<DayLoop>().ReadyHoldProgress(_player.playerIndex), Is.GreaterThan(0f), "the bar fills");
+            yield return new WaitForSecondsRealtime(0.8f);
+            InputSystem.QueueStateEvent(_pad, new GamepadState());
+            yield return null;
+            Assert.That(days.Phase, Is.EqualTo(DayPhase.Service), "one cook: holding Y opens up");
         }
     }
 }

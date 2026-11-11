@@ -100,8 +100,8 @@ namespace Game.Tests.PlayMode
             loop.Ready.Toggle(PlayerInput.all[0].playerIndex);
             loop.Ready.Toggle(PlayerInput.all[2].playerIndex);
             yield return Shoot(dashboard, -1, Path.Combine(folder, "forkcast_review_overview_urgent.png"));
-            // P2 half-way through holding A: the gold sweeps on and their chip fills.
-            InputSystem.QueueStateEvent(pads[1], new UnityEngine.InputSystem.LowLevel.GamepadState().WithButton(UnityEngine.InputSystem.LowLevel.GamepadButton.South));
+            // P2 half-way through holding Y: the gold sweeps on and their chip fills.
+            InputSystem.QueueStateEvent(pads[1], new UnityEngine.InputSystem.LowLevel.GamepadState().WithButton(UnityEngine.InputSystem.LowLevel.GamepadButton.North));
             yield return new WaitForSecondsRealtime(0.45f);
             yield return new WaitForEndOfFrame();
             var holding = ScreenCapture.CaptureScreenshotAsTexture();

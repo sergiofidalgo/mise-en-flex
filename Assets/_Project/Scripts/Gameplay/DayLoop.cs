@@ -8,9 +8,10 @@ using UnityEngine.InputSystem;
 namespace Game.Gameplay
 {
     /// <summary>
-    /// Runs the day from the players' side. In Plan, Prep and Review each player readies up by
-    /// holding Menu (Esc on the keyboard); a tap opens the pause menu instead (decision 2026-11-10).
-    /// The day moves on once they all have.
+    /// Runs the day from the players' side. In Prep each player readies up by holding Y (the
+    /// user's call, 2026-11-11, as on the forkcast dashboard in Plan and Review); a tap of Y still
+    /// does its job at the station they face, and holding again takes the ready back. Menu only
+    /// pauses. The day moves on once they all are.
     /// A service ends by itself, once everyone has left. A player whose controller is lost isn't
     /// waited for in the ready-up; during a service, the game stands still until it's back or
     /// someone still playing presses Menu to carry on without them (decision 2026-11-09).
@@ -21,7 +22,9 @@ namespace Game.Gameplay
         [Tooltip("The boss's morning visits: nobody readies up while he's in.")]
         [SerializeField] private Debt.BossVisitDirector _boss;
 
-        // Menu also joins: a player joining with it shouldn't ready up with the same press.
+        private const string ReadyAction = "ButtonY";
+
+        // A press already down when a player joins isn't a hold until it's let go (StartHold).
         private readonly HashSet<PlayerInput> _seenLastFrame = new HashSet<PlayerInput>();
         private readonly List<(int, bool)> _presence = new List<(int, bool)>();
         private readonly List<int> _present = new List<int>();
@@ -29,6 +32,12 @@ namespace Game.Gameplay
 
         /// <summary>Who's ready in the current phase, for the HUD.</summary>
         public ReadyCheck Ready { get; } = new ReadyCheck();
+
+        // Each player's Y in Prep: a hold toggles their ready.
+        private readonly StartHold _readyHold = new StartHold();
+
+        /// <summary>How far through holding Y to ready up this player is (0..1), for the ready bar.</summary>
+        public float ReadyHoldProgress(int player) => _readyHold.Progress(player);
 
         /// <summary>Who's lost their controller, and whether the service is waiting for them, for the HUD.</summary>
         public ControllerPause ControllerPause { get; } = new ControllerPause();
@@ -56,9 +65,8 @@ namespace Game.Gameplay
                 if (NewRestaurantsStartInPrep && days.Phase == DayPhase.Plan && days.History.Count == 0)
                     days.Advance();
             }
-            // Holding Menu readies up only in Prep: in Plan and Review, forkcast's Start button does
-            // (A held, the user's call 2026-11-10), so a tap on Menu opens the pause menu at once.
-            MenuButton.HoldReadies = days.Phase == DayPhase.Prep;
+            // Menu never readies up (Y does, 2026-11-11), so a tap on it opens the pause menu at once.
+            MenuButton.HoldReadies = false;
             UpdatePresence(days.Phase == DayPhase.Service);
             if (days.Phase == DayPhase.Service)
             {
@@ -85,6 +93,8 @@ namespace Game.Gameplay
             {
                 if (days.Phase == DayPhase.Prep)
                     ReadPresses();
+                else
+                    _readyHold.DisarmAll();
                 if (Ready.IsEveryoneReady(_present))
                 {
                     Ready.Clear();
@@ -153,13 +163,22 @@ namespace Game.Gameplay
 
         private void ReadPresses()
         {
+            _readyHold.HoldSeconds = MenuButton.HoldSeconds; // the pause menu's tuned hold
             foreach (var player in PlayerInput.all)
             {
-                // A hold, never a tap (that's the pause menu). Still rearranging the kitchen never
-                // counts as a hold (MenuButton), so nobody readies up mid-move.
-                if (!_seenLastFrame.Contains(player) || MenuButton.Read(player) != MenuPress.Result.Hold)
+                var action = player.actions != null ? player.actions.FindAction(ReadyAction) : null;
+                var down = action != null && action.enabled && action.IsPressed();
+                // Rearranging the kitchen, Y opens the shop: it never readies up mid-move.
+                if (player.TryGetComponent(out Stations.PlayerInteractor interactor) && interactor.IsManaging)
+                {
+                    _readyHold.Disarm(player.playerIndex);
                     continue;
-                Ready.Toggle(player.playerIndex);
+                }
+                // Read for everyone, so the press that joined a player is seen and ignored. A tap
+                // is the station's (PlayerInteractor); only a hold counts here.
+                var press = _readyHold.Update(player.playerIndex, down, Time.unscaledDeltaTime);
+                if (_seenLastFrame.Contains(player) && press == MenuPress.Result.Hold)
+                    Ready.Toggle(player.playerIndex);
             }
         }
     }

@@ -157,7 +157,7 @@ namespace Game.Tests.PlayMode
         }
 
         [UnityTest]
-        public IEnumerator HoldingAReadiesAndBTakesItBack()
+        public IEnumerator HoldingYReadiesAndBTakesItBack()
         {
             SaveSlots.Delete(CampaignLaunch.Slot);
             CampaignLaunch.StartNew();
@@ -171,7 +171,7 @@ namespace Game.Tests.PlayMode
                 yield return null;
             var ready = Object.FindFirstObjectByType<DayLoop>().Ready;
 
-            UnityEngine.InputSystem.InputSystem.QueueStateEvent(one, new UnityEngine.InputSystem.LowLevel.GamepadState().WithButton(UnityEngine.InputSystem.LowLevel.GamepadButton.South));
+            UnityEngine.InputSystem.InputSystem.QueueStateEvent(one, new UnityEngine.InputSystem.LowLevel.GamepadState().WithButton(UnityEngine.InputSystem.LowLevel.GamepadButton.North));
             yield return new WaitForSecondsRealtime(1.1f);
             UnityEngine.InputSystem.InputSystem.QueueStateEvent(one, new UnityEngine.InputSystem.LowLevel.GamepadState());
             yield return null;

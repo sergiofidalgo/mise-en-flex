@@ -80,7 +80,7 @@ namespace Game.Presentation.Hud
         [SerializeField, Min(0.05f)] private float _priceRepeatDelay = 0.4f;
         [Tooltip("Seconds between steps of a price while the stick stays held.")]
         [SerializeField, Min(0.01f)] private float _priceRepeatInterval = 0.07f;
-        [Tooltip("Real seconds A is held to fill the Start button (a shorter press is a tap: hire, unlock).")]
+        [Tooltip("Real seconds Y is held to fill the Start button (a shorter press is a tap: reply, let go).")]
         [SerializeField, Min(0.1f)] private float _startHoldSeconds = 0.8f;
         [Tooltip("Pulses a second of the boss card's glow while the collection is short and two days or fewer away.")]
         [SerializeField, Min(0.1f)] private float _bossPulsePerSecond = 0.8f;
@@ -111,7 +111,7 @@ namespace Game.Presentation.Hud
         private string _staffResultName;
         private bool _photoTaken;
         private int _openedFrame = -1;
-        // Everyone's A: a tap acts, a hold readies (StartHold).
+        // Everyone's Y: a hold readies, a tap does Y's job (StartHold).
         private readonly StartHold _start = new StartHold();
         // The boss card's glow, pulsing while the collection is short and close.
         private Image _bossGlow;
@@ -242,15 +242,16 @@ namespace Game.Presentation.Hud
                 return;
             foreach (var player in PlayerInput.all)
             {
-                // A: a tap acts on what's chosen (hire, unlock), a hold fills the Start button and
-                // readies this player (the user's call, 2026-11-10). Read for everyone, so the press
-                // that joined a player is seen and ignored.
-                var a = player.actions.FindAction("Interact");
-                var startPress = _start.Update(player.playerIndex, a != null && a.IsPressed(), Time.unscaledDeltaTime);
+                // Y: a hold fills the Start button and readies this player, a tap does Y's job here
+                // (reply, let go) as it's let go (the user's call, 2026-11-11: Y, not A, so A acts at
+                // once). Read for everyone, so the press that joined a player is seen and ignored.
+                var y = player.actions.FindAction("ButtonY");
+                var startPress = _start.Update(player.playerIndex, y != null && y.IsPressed(), Time.unscaledDeltaTime);
                 if (!_dayLoop.WasHereLastFrame(player))
                     continue;
                 var actions = player.actions;
-                var tap = startPress == MenuPress.Result.Tap;
+                var tapY = startPress == MenuPress.Result.Tap;
+                var pressA = Pressed(actions, "Interact");
                 if (startPress == MenuPress.Result.Hold && !_choosingReply)
                 {
                     _dayLoop.Ready.Set(player.playerIndex, true);
@@ -271,7 +272,7 @@ namespace Game.Presentation.Hud
                     else if (Pressed(actions, "RotateRight"))
                         SwitchTab(1);
                     else
-                        ReadStaff(actions, tap);
+                        ReadStaff(actions, pressA, tapY);
                     continue;
                 }
 
@@ -282,7 +283,7 @@ namespace Game.Presentation.Hud
                     else if (Pressed(actions, "RotateRight"))
                         SwitchTab(1);
                     else if (player == CookbookPlayer())
-                        ReadCookbook(actions, tap);
+                        ReadCookbook(actions, pressA);
                     continue;
                 }
 
@@ -296,13 +297,13 @@ namespace Game.Presentation.Hud
                     }
                     if (Pressed(actions, "ButtonY"))
                     {
+                        // On the press, as the wheel's other buttons: this press won't fill Start.
+                        _start.Disarm(player.playerIndex);
                         Reply(ReviewReply.Thank);
                         continue;
                     }
-                    if (Pressed(actions, "Interact"))
+                    if (pressA)
                     {
-                        // On the press, as the wheel's other buttons: this press won't fill Start.
-                        _start.Disarm(player.playerIndex);
                         Reply(ReviewReply.StandYourGround);
                         continue;
                     }
@@ -318,7 +319,7 @@ namespace Game.Presentation.Hud
                     SwitchTab(-1);
                 else if (Pressed(actions, "RotateRight"))
                     SwitchTab(1);
-                else if (!_choosingReply && Pressed(actions, "ButtonY") && SelectedReview() is ReviewRecord review && review.Reply < 0)
+                else if (!_choosingReply && tapY && SelectedReview() is ReviewRecord review && review.Reply < 0)
                     SetChoosing(true);
 
                 // The D-pad or the arrow keys (Navigate; the stick is too loose for lists, the user's
@@ -439,7 +440,7 @@ namespace Game.Presentation.Hud
 
         // Anyone at the dashboard: up and down browse, A hires the chosen candidate, Y lets the chosen
         // team member go. A refusal says why rather than doing nothing.
-        private void ReadStaff(InputActionAsset actions, bool tap)
+        private void ReadStaff(InputActionAsset actions, bool pressA, bool tapY)
         {
             var move = actions["Gameplay/Navigate"].ReadValue<Vector2>();
             if (move.magnitude < _stickThreshold || Mathf.Abs(move.y) < Mathf.Abs(move.x))
@@ -455,7 +456,7 @@ namespace Game.Presentation.Hud
             if (rows.Count == 0)
                 return;
             var row = rows[_selected];
-            if (tap && row.IsCandidate)
+            if (pressA && row.IsCandidate)
             {
                 _staffResultName = row.Candidate.Name;
                 _staffResult = StaffBoard.Hire(Services.Staff, _selected, Services.Days.Balance, StaffEditable);
@@ -467,7 +468,7 @@ namespace Game.Presentation.Hud
                 }
                 _dirty = true;
             }
-            else if (Pressed(actions, "ButtonY") && !row.IsCandidate)
+            else if (tapY && !row.IsCandidate)
             {
                 _staffResultName = row.Member.Name;
                 _staffResult = StaffBoard.LetGo(Services.Staff, _selected, StaffEditable);
@@ -502,7 +503,7 @@ namespace Game.Presentation.Hud
 
         // Up and down browse; left and right step the chosen dish's price by 1, at once and then
         // repeating while held; A unlocks; X puts the price back to the suggestion.
-        private void ReadCookbook(InputActionAsset actions, bool tap)
+        private void ReadCookbook(InputActionAsset actions, bool pressA)
         {
             var book = Services.Cookbook;
             if (book == null || book.Recipes.Count == 0)
@@ -539,7 +540,7 @@ namespace Game.Presentation.Hud
                 }
             }
 
-            if (tap && !book.IsUnlocked(recipe.Id))
+            if (pressA && !book.IsUnlocked(recipe.Id))
             {
                 _unlockResult = book.TryUnlock(recipe.Id, Services.Days.TrySpend);
                 if (_unlockResult == Game.Simulation.Cookbook.UnlockResult.Unlocked)
