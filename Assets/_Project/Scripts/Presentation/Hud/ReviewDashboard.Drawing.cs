@@ -576,10 +576,12 @@ namespace Game.Presentation.Hud
         // line of facts: the rating, what they had and paid. No quotation marks: the bubble says it.
 
         private const float CardPad = 22f, GuestColumn = 112f, GuestGap = 18f, Portrait = 84f;
-        private const float QuoteSize = 30f, QuoteSmallest = 22f, QuoteInset = 20f;
-        // Line pitch as a share of the type size (38 px at 30).
-        private const float QuoteLeading = 38f / 30f;
-        private const float ReplySize = 22f, ReplyPitch = 30f, ReplyIndent = 56f, ReplyInset = 20f;
+        private const float QuoteSize = 30f, QuoteSmallest = 22f, QuoteInset = 28f;
+        // Line pitch as a share of the type size: 42 px at 30, looser than before (the user's call).
+        private const float QuoteLeading = 1.4f;
+        private const float ReplySize = 22f, ReplyPitch = 31f, ReplyIndent = 56f, ReplyInset = 26f;
+        // Room inside a bubble above the first line and below the last (the user's call: more air).
+        private const float BubbleTop = 15f, BubbleBottom = 28f; // the capitals sit below the size line, so less above looks even
         private const float BubbleGap = 12f, FactsHeight = 44f, BubbleCorner = 18f, TailCorner = 5f;
         // A review is never more than two lines (the user's call, 2026-11-11): a long one is set a
         // little smaller until it fits, down to QuoteSmallest, and only then cut with an ellipsis.
@@ -603,7 +605,7 @@ namespace Game.Presentation.Hud
         }
 
         // A bubble's height for this many lines: padding, the first line, then the pitch per line.
-        private static float Bubble(int lines, float size, float pitch) => 14f + size + (lines - 1) * pitch + 18f;
+        private static float Bubble(int lines, float size, float pitch) => BubbleTop + size + (lines - 1) * pitch + BubbleBottom;
 
         // The biggest size, from QuoteSize down, at which the review fits in two lines.
         private (float Size, int Lines) QuoteFit(ReviewRecord review)
@@ -698,7 +700,7 @@ namespace Game.Presentation.Hud
             var pitch = fit.Size * QuoteLeading;
             var bubble = Bubble(fit.Lines, fit.Size, pitch);
             SpeechBubble(parent, "Said", walkedOut ? _alarm : Hex(0xf1e5cf), ContentX, top, ContentWidth, bubble, tailLeft: true);
-            var quote = UiKit.TextAt(Upright, parent, "Quote", Game.Data.ReviewText.Line(review), fit.Size, _ink, ContentX + QuoteInset, top + 14f + fit.Size, ContentWidth - 2f * QuoteInset, lines: QuoteMaxLines);
+            var quote = UiKit.TextAt(Upright, parent, "Quote", Game.Data.ReviewText.Line(review), fit.Size, _ink, ContentX + QuoteInset, top + BubbleTop + fit.Size, ContentWidth - 2f * QuoteInset, lines: QuoteMaxLines);
             // Past the smallest size (about 150 characters), the third line on is left out.
             LineHeight(quote, pitch);
             var below = top + bubble;
@@ -711,7 +713,7 @@ namespace Game.Presentation.Hud
                 var replyHeight = Bubble(replyLines, ReplySize, ReplyPitch);
                 below += BubbleGap;
                 SpeechBubble(parent, "Answer", Hex(0x2f4a3f), ContentX + ReplyIndent, below, replyWidth, replyHeight, tailLeft: false);
-                var reply = UiKit.TextAt(Medium, parent, "Reply", ShownReply(review), ReplySize, Hex(0xf3ead9), ContentX + ReplyIndent + ReplyInset, below + 14f + ReplySize, replyWidth - 2f * ReplyInset, lines: ReplyMaxLines);
+                var reply = UiKit.TextAt(Medium, parent, "Reply", ShownReply(review), ReplySize, Hex(0xf3ead9), ContentX + ReplyIndent + ReplyInset, below + BubbleTop + ReplySize, replyWidth - 2f * ReplyInset, lines: ReplyMaxLines);
                 LineHeight(reply, ReplyPitch);
                 below += replyHeight;
             }
