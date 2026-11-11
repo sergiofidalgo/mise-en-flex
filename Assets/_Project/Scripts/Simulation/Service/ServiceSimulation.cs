@@ -105,6 +105,37 @@ namespace Game.Simulation.Service
         /// </summary>
         public bool GuestsWalkIn { get; set; }
 
+        /// <summary>
+        /// The countdown before service (decision 2026-11-11): the doors are shut. The service clock
+        /// stands still and nobody is admitted; with <see cref="GuestsWalkIn"/>, the first party walks
+        /// up the street on the first tick and waits on the doorstep. <see cref="OpenDoors"/> lets them in.
+        /// </summary>
+        public bool DoorsHeld { get; private set; }
+
+        /// <summary>Shuts the doors for the countdown. Only before the first customer.</summary>
+        public void HoldDoors()
+        {
+            if (_customers.Count > 0)
+                throw new InvalidOperationException("The doors are held before the first customer.");
+            DoorsHeld = true;
+        }
+
+        /// <summary>The countdown is over: anyone waiting on the doorstep comes in, and the clock starts.</summary>
+        public void OpenDoors()
+        {
+            if (!DoorsHeld)
+                return;
+            DoorsHeld = false;
+            foreach (var customer in _customers.ToArray())
+            {
+                // Each party once, when its first member is reached; only those all at the door.
+                if (customer.State != CustomerState.Approaching || customer.Party[0] != customer)
+                    continue;
+                if (customer.Party.All(member => member.AtDoor))
+                    Admit(customer.Party);
+            }
+        }
+
         /// <summary>Average stars of the customers served so far (0–5), or null before the first.</summary>
         public float? AverageStars
         {
@@ -157,6 +188,14 @@ namespace Game.Simulation.Service
         {
             if (seconds <= 0f || Phase == ServicePhase.Finished)
                 return;
+            if (DoorsHeld)
+            {
+                // The first party sets off at once, to be waiting when the doors open; the next
+                // comes a usual gap after opening. Nobody inside yet, so nothing else moves.
+                if (GuestsWalkIn && _customers.Count == 0)
+                    Arrive();
+                return;
+            }
 
             foreach (var customer in _customers)
             {
@@ -260,6 +299,8 @@ namespace Game.Simulation.Service
             if (customer.State != CustomerState.Approaching)
                 return;
             customer.AtDoor = true;
+            if (DoorsHeld)
+                return; // waits on the doorstep until OpenDoors
             foreach (var member in customer.Party)
                 if (!member.AtDoor)
                     return;

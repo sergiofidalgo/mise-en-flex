@@ -22,6 +22,9 @@ namespace Game.Tests.PlayMode
             // These tests drive a new kitchen's day by hand from Plan; the real start straight into
             // Prep is tested on its own (ForkcastSummaryPlayTests).
             Game.Gameplay.DayLoop.NewRestaurantsStartInPrep = false;
+            // Their services open at once; the 4-3-2-1 before service is tested on its own
+            // (ServiceCountdownPlayTests).
+            Game.Gameplay.KitchenCompositionRoot.CountdownSecondsOverride = 0f;
         }
 
         [OneTimeTearDown]
@@ -30,6 +33,7 @@ namespace Game.Tests.PlayMode
             SaveFile.DirectoryOverride = null;
             CampaignLaunch.Reset();
             Game.Gameplay.DayLoop.NewRestaurantsStartInPrep = true;
+            Game.Gameplay.KitchenCompositionRoot.CountdownSecondsOverride = null;
             if (Directory.Exists(_directory))
                 Directory.Delete(_directory, true);
         }

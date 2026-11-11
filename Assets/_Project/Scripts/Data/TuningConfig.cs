@@ -24,6 +24,9 @@ namespace Game.Data
         [Tooltip("How fast food and pans change, against the clock. The clock runs at its own pace; a steak has to be judgeable by eye.")]
         [SerializeField, Min(0.01f)] private float _cookingSpeed = 0.9f;
 
+        [Tooltip("Real seconds of 4-3-2-1 between Prep and the doors opening (decision 2026-11-11). Chefs work freely during it; guests wait on the doorstep.")]
+        [SerializeField, Min(0f)] private float _serviceCountdownSeconds = 4f;
+
         [Header("Kitchen")]
         [Tooltip("Kitchen air temperature, °C.")]
         [SerializeField] private float _ambientTemperature = 22f;
@@ -221,6 +224,9 @@ namespace Game.Data
         [SerializeField, Min(0f)] private float _flipGoodTo = 1.1f;
         [Tooltip("Browning of the side in the pan at which the bar warns it's about to burn.")]
         [SerializeField, Min(0f)] private float _burnWarningFrom = 1.5f;
+
+        /// <summary>The countdown before the doors open, in real seconds.</summary>
+        public float ServiceCountdownSeconds => _serviceCountdownSeconds;
 
         public float OvernightSeconds => _overnightHours * 3600f;
 
