@@ -200,6 +200,7 @@ namespace Game.Editor
             AddOpening(camera, follow, manager, coop); // OfficeBuilder.Opening.cs: street, menu, climb, join
             AddMiniature(rooms); // OfficeBuilder.Miniature.cs: the lots, the campaign, the card's data
             AddMoneyCard(); // OfficeBuilder.Money.cs: the campaign's money, top right
+            FootRings.Add(coop, null, null); // each player's colour at their feet (decision 2026-11-11)
 
             GreyboxAssets.EnsureFolder(System.IO.Path.GetDirectoryName(ScenePath));
             EditorSceneManager.SaveScene(scene, ScenePath);
