@@ -4,6 +4,14 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-11 — Full fridges and shelves show the same 🚫 as the bin
+
+**Decision:** A fridge or shelf whose every slot is at capacity shows the bin's 🚫 sign over it, popping in, bobbing and rocking when a player holding something faces it (`FullSign`, shared by `BinFillView` and `StorageView`). A unit with room left in a slot isn't "full", even if it refuses what someone holds because all its slots hold other ingredients; there the "put back" prompt is already greyed out. The sign sits just above the unit's top.
+
+**Reason:** The user's note that the same symbol should show when fridges or shelves are full.
+
+---
+
 ## 2026-11-11 — Customers walk in along the street and queue outside on the pavement
 
 **User's notes:** customers appeared right in the doorway instead of walking the scene. They should walk in, or queue by the entrance. The user chose a queue outside on the pavement over the old spots inside by the door.

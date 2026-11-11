@@ -52,6 +52,27 @@ namespace Game.Tests.EditMode
         }
 
         [Test]
+        public void FullOnlyWhenEverySlotItHasIsAtCapacity()
+        {
+            var unit = NewUnit(Fridge);
+            unit.Stock("Steak", () => New("Steak", Fridge), 6);
+            unit.Stock("Onion", () => New("Onion", Fridge), 3);
+            Assert.That(unit.IsFull, Is.False); // one onion's room left; the unused slots don't count
+
+            unit.Stock("Onion", () => New("Onion", Fridge), 1);
+            Assert.That(unit.IsFull, Is.True);
+
+            unit.TryTake(1, out _);
+            Assert.That(unit.IsFull, Is.False);
+        }
+
+        [Test]
+        public void AUnitWithNoSlotsIsNeverFull()
+        {
+            Assert.That(new StorageUnit(Fridge, new StorageUnit.Slot(0)).IsFull, Is.False);
+        }
+
+        [Test]
         public void TakingFromASlotGivesThatIngredientAndReducesStock()
         {
             var unit = NewUnit(Fridge);

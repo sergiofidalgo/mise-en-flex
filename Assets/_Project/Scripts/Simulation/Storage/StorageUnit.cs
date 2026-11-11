@@ -58,6 +58,28 @@ namespace Game.Simulation.Storage
 
         public IReadOnlyList<Slot> Slots => _slots;
 
+        /// <summary>
+        /// True when every slot it has is at capacity, so nothing more fits whatever it is (shown
+        /// with a 🚫, the user's note 2026-11-11). A unit with free room in a slot for another
+        /// ingredient isn't full, even if it refuses what someone is holding.
+        /// </summary>
+        public bool IsFull
+        {
+            get
+            {
+                var used = false;
+                foreach (var slot in _slots)
+                {
+                    if (!slot.IsUsed)
+                        continue;
+                    used = true;
+                    if (slot.Count < slot.Capacity)
+                        return false;
+                }
+                return used;
+            }
+        }
+
         /// <summary>Puts newly created stock away, while there's room. Returns how many fitted.</summary>
         public int Stock(string typeId, Func<Ingredient> create, int count)
         {
