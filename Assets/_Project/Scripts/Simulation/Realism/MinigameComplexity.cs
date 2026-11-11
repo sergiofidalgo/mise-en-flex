@@ -13,15 +13,13 @@ namespace Game.Simulation.Realism
         /// </summary>
         public float Strength { get; set; } = 1f;
 
-        /// <summary>Extra pushes per plate over the whole dial (wash game): 4 means 0 → two fewer, 1 → two more.</summary>
-        public float CorrectionsSpan { get; set; } = 4f;
     }
 
     /// <summary>
     /// The minigame complexity dial (§12; decision 2026-11-10) applied to the stick games: the sink's
-    /// balance game and the cleaning/extinguisher trace. 0.5 leaves the tuning exactly as designed.
-    /// Everything scales by one "ease" factor, so a dial step feels the same in every game:
-    /// targets grow by it and the forces that pull the point away shrink by it.
+    /// circles and the cleaning/extinguisher spin and sweep. 0.5 leaves the tuning exactly as designed.
+    /// Everything scales by one "ease" factor, so a dial step feels the same in every game: the push
+    /// needed shrinks by it and the speed that counts grows by it.
     /// </summary>
     public static class MinigameComplexity
     {
@@ -38,24 +36,16 @@ namespace Game.Simulation.Realism
         public static WashGameSettings Scale(WashGameSettings wash, float complexity, MinigameComplexitySettings settings)
         {
             var ease = Ease(complexity, settings);
-            var okRadius = Math.Min(0.9f, wash.OkRadius * ease);
             return new WashGameSettings
             {
-                StickAcceleration = wash.StickAcceleration,
-                // Less run-away force while the targets grow by the same factor, so Instability × OkRadius
-                // (what the random nudge must stay under, see WashGameSettings.Nudge) doesn't change.
-                Instability = wash.Instability / ease,
-                Damping = wash.Damping,
-                Nudge = wash.Nudge,
-                NudgeInterval = wash.NudgeInterval,
-                GoodRadius = Math.Min(okRadius, wash.GoodRadius * ease),
-                OkRadius = okRadius,
-                SecondsPerPlate = wash.SecondsPerPlate,
-                Corrections = Math.Max(0, wash.Corrections + (int)Math.Round((Math.Clamp(complexity, 0f, 1f) - 0.5f) * settings.CorrectionsSpan, MidpointRounding.AwayFromZero)),
-                PushSpeed = wash.PushSpeed,
-                PushSpreadDegrees = wash.PushSpreadDegrees,
-                // Still outside the bigger OK ring, so every plate starts with bringing the point in.
-                StartRadius = Math.Max(wash.StartRadius, Math.Min(0.95f, okRadius + 0.1f)),
+                // As the cloth (below): a lighter push counts and faster circling counts. The circles a
+                // plate takes stay the same, so easier is quicker, never different.
+                CirclesPerPlate = wash.CirclesPerPlate,
+                CircleSpeed = wash.CircleSpeed * ease,
+                MinPush = wash.MinPush / ease,
+                TurnBack = wash.TurnBack,
+                MaxTurnRate = wash.MaxTurnRate,
+                Buffer = wash.Buffer,
             };
         }
 

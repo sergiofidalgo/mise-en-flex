@@ -26,9 +26,10 @@ namespace Game.Gameplay.Cleaning
     /// <summary>
     /// A chef cleaning or putting out a fire (decision 2026-11-10): with empty hands, hold X by dirt
     /// or a burning hob and the chef pulls out a cloth, a mop or the extinguisher, stays put, and the
-    /// stick spins (cloth, mop) or sweeps side to side (extinguisher) to clean (decision 2026-11-11). Letting go of X, or B, stops; what was
-    /// wiped stays wiped. A finished patch moves straight on to the next one in reach while X is
-    /// still held. The extinguisher is always to hand, with nothing to buy.
+    /// stick spins (cloth, mop) or sweeps side to side (extinguisher) to clean (decision 2026-11-11).
+    /// Letting go of X, or B, stops; what was wiped stays wiped. While X is still held the chef stays
+    /// planted (PlayerInteractor.IsPlanted): the stick turns them on the spot and the next job in
+    /// reach starts by itself, as at the sink. The extinguisher is always to hand, with nothing to buy.
     ///
     /// X does the station's own thing first (flip, ring the bell); cleaning is what it does when the
     /// station has nothing to do.
@@ -207,12 +208,9 @@ namespace Game.Gameplay.Cleaning
                 return;
 
             Finished?.Invoke(this, where);
-            // Still holding X: straight on to the next patch in reach, with the same tool.
-            var tool = Tool;
+            // Still holding X, the chef stays planted and the next job in reach starts by itself
+            // (PlayerInteractor.IsPlanted), whatever its tool; turning finds more.
             Stop();
-            var next = Find(_chef.Target, out var spot, out var fire);
-            if (next == tool && tool != CleaningTool.Extinguisher)
-                Begin(next, spot, fire);
         }
 
         private bool Contains(DirtSpot spot)

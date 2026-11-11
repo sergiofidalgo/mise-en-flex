@@ -22,7 +22,9 @@ namespace Game.Presentation
     /// mop, extinguisher nozzle) following the stick, so spinning or wagging the stick visibly
     /// spins or sweeps it. When the chef hasn't started, or has stalled, it asks the HUD for the
     /// stick cue, spinning or wagging. The ring turns with the camera, never the furniture, and is
-    /// drawn over the chef (<c>Game/ToonOnTop</c>), like the wash ring.</para>
+    /// drawn over the chef (<c>Game/ToonOnTop</c>), like the wash ring. As at the sink (decision
+    /// 2026-11-11: one family), it pops in when cleaning starts and flashes white and pops when the
+    /// spot comes clean or the fire goes out.</para>
     /// </summary>
     public sealed class CleaningView : MonoBehaviour, IStickHintSource
     {
@@ -70,6 +72,12 @@ namespace Game.Presentation
         [SerializeField] private Color _foam = new Color(0.94f, 0.96f, 0.98f);
         [Tooltip("Ring size swing while the stick is cleaning (share of its size).")]
         [SerializeField, Range(0f, 0.3f)] private float _pulse = 0.04f;
+        [Tooltip("Seconds to pop in when cleaning starts, with a little overshoot, as the sink's ring does.")]
+        [SerializeField, Min(0f)] private float _fadeSeconds = 0.18f;
+        [Tooltip("Extra size at the start of the pop when a spot comes clean or a fire goes out, as when a plate comes clean.")]
+        [SerializeField, Range(0f, 0.5f)] private float _pop = 0.15f;
+        [Tooltip("Seconds the finished flash and pop last.")]
+        [SerializeField, Min(0.01f)] private float _popSeconds = 0.35f;
 
         [Header("Stick cue")]
         [Tooltip("Seconds after cleaning starts before the stick cue shows; it stays until the stick first cleans.")]
@@ -102,6 +110,13 @@ namespace Game.Presentation
             public Renderer ToolHead;
             public Transform Handle;
             public CleaningTool Built;
+
+            // Popping in, and the flash when the job's done (as at the sink).
+            public float Fade;
+            public float PopLeft;
+            public Vector3 PopCentre;
+            public bool PopFire;
+            public ChefCleaning Chef;
 
             // The stick cue: the game it's for, whether it has cleaned yet, and time without cleaning.
             public TraceGame CueGame;
@@ -276,12 +291,16 @@ namespace Game.Presentation
             {
                 if (_kits.TryGetValue(chef, out var kit) && kit.Root != null)
                 {
-                    // The tool goes away with the track.
-                    kit.Root.gameObject.SetActive(false);
+                    // The tool goes away at once; the ring stays a moment to flash if the job was done.
                     if (kit.Tool != null)
                         kit.Tool.gameObject.SetActive(false);
                     if (kit.Handle != null)
                         kit.Handle.gameObject.SetActive(false);
+                    kit.Fade = 0f;
+                    kit.PopLeft = Mathf.Max(0f, kit.PopLeft - Time.deltaTime);
+                    kit.Root.gameObject.SetActive(kit.PopLeft > 0f);
+                    if (kit.PopLeft > 0f)
+                        DrawPop(kit);
                 }
                 if (chef == null)
                     _kits.Remove(chef);
@@ -294,8 +313,17 @@ namespace Game.Presentation
                 if (!_kits.TryGetValue(chef, out var kit))
                 {
                     kit = BuildKit();
+                    kit.Chef = chef;
+                    // A finished job flashes its ring, as a clean plate does at the sink.
+                    chef.Finished += (who, where) =>
+                    {
+                        kit.PopLeft = _popSeconds;
+                        kit.PopCentre = kit.Centre;
+                        kit.PopFire = who.Tool == CleaningTool.Extinguisher;
+                    };
                     _kits[chef] = kit;
                 }
+                kit.PopLeft = 0f;
                 kit.Root.gameObject.SetActive(true);
                 if (kit.Tool != null)
                     kit.Tool.gameObject.SetActive(true);
@@ -319,8 +347,9 @@ namespace Game.Presentation
             var (_, forward) = ScreenAxes();
             var centre = chef.Where + Vector3.up * _trackHeight[index];
             var pulse = game.OnTrack ? 1f + _pulse * Mathf.Sin(Time.time * 18f) : 1f;
+            kit.Fade = Mathf.MoveTowards(kit.Fade, 1f, _fadeSeconds > 0f ? Time.deltaTime / _fadeSeconds : 1f);
             kit.Root.SetPositionAndRotation(centre, Quaternion.LookRotation(forward, Vector3.up));
-            kit.Root.localScale = Vector3.one * pulse;
+            kit.Root.localScale = Vector3.one * (pulse * Mathf.Max(0.001f, EaseOutBack(kit.Fade)));
 
             // The ring fills clockwise from the top: each segment turns from grime to water (flame
             // to foam) as the job's progress passes through it.
@@ -351,6 +380,28 @@ namespace Game.Presentation
             kit.Motion = fire ? StickMotion.Wag : StickMotion.Spin;
             if (kit.Hint > 0f)
                 _hinting.Add(kit);
+        }
+
+        // The job's done: the full ring flashes white and pops, then goes.
+        private void DrawPop(Kit kit)
+        {
+            if (kit.Segments == null)
+                return;
+            var t = Mathf.Clamp01(kit.PopLeft / _popSeconds); // 1 at the start, 0 at the end
+            var (_, forward) = ScreenAxes();
+            kit.Root.SetPositionAndRotation(kit.PopCentre, Quaternion.LookRotation(forward, Vector3.up));
+            kit.Root.localScale = Vector3.one * (1f + _pop * t * t);
+            var full = kit.PopFire ? _foam : _clean;
+            foreach (var segment in kit.Segments)
+                SetColor(segment, Color.Lerp(full, Color.white, t));
+        }
+
+        private static float EaseOutBack(float t)
+        {
+            t = Mathf.Clamp01(t);
+            const float c = 1.70158f;
+            var u = t - 1f;
+            return 1f + (c + 1f) * u * u * u + c * u * u;
         }
 
         // The ring's segments round the middle: chunky toon blocks, drawn over the chef.

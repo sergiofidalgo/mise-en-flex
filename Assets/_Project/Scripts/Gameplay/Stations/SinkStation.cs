@@ -7,15 +7,15 @@ namespace Game.Gameplay.Stations
 {
     /// <summary>
     /// The sink: drop a dirty plate in, wash it, and it comes out clean in your hands, to carry to the
-    /// plate stack (decision 2026-11-08). Use starts washing by hand with empty hands: the chef stays
-    /// put and the stick balances the point of the <see cref="WashGame"/> until the plate's done or
-    /// they press Use again. One chef at a time, one plate at a time.
+    /// plate stack (decision 2026-11-08). Holding X with empty hands washes by hand, like every
+    /// cleaning job (decision 2026-11-11): the chef stays put and circling the stick scrubs the plate
+    /// (<see cref="WashGame"/>) until it's done, X is let go, or B backs out. One chef at a time, one
+    /// plate at a time.
     /// </summary>
     public sealed class SinkStation : Interactable, IUsable, IStationPrompt, ISavedContents
     {
         private KitchenServices _services;
         private PlayerInteractor _washer;
-        private int _nextSeed;
 
         public Sink Sink { get; private set; }
 
@@ -68,11 +68,6 @@ namespace Game.Gameplay.Stations
 
         public bool TryUse(PlayerInteractor player)
         {
-            if (_washer == player)
-            {
-                StopWashing();
-                return true;
-            }
             if (_washer != null || Sink.DirtyCount == 0 || !player.Hands.IsEmpty)
                 return false;
 
@@ -81,7 +76,7 @@ namespace Game.Gameplay.Stations
             _washer.BackOut = StopWashing;
             // The minigame complexity dial bends the balance game (decision 2026-11-10).
             var realism = _services.Realism;
-            Game = new WashGame(global::Game.Simulation.Realism.MinigameComplexity.Scale(_services.Tuning.WashGame, realism.MinigameComplexity, realism.Complexity), _nextSeed++);
+            Game = new WashGame(global::Game.Simulation.Realism.MinigameComplexity.Scale(_services.Tuning.WashGame, realism.MinigameComplexity, realism.Complexity));
             return true;
         }
 
@@ -90,8 +85,8 @@ namespace Game.Gameplay.Stations
             if (Game == null)
                 return;
 
-            // Their chef left the game, the phase ended, or a helper finished the plate.
-            if (_washer == null || !_washer.CanAct || Sink.DirtyCount == 0)
+            // Their chef let go of X, left the game, the phase ended, or a helper finished the plate.
+            if (_washer == null || !_washer.IsUseHeld || !_washer.CanAct || Sink.DirtyCount == 0)
             {
                 StopWashing();
                 return;
@@ -123,8 +118,8 @@ namespace Game.Gameplay.Stations
         public void DescribeActions(PlayerInteractor player, List<PromptLine> lines)
         {
             // While washing, no card (decision 2026-11-09): the ring on the water is the interface,
-            // an animated stick shows where to push when the player seems stuck, and X or B
-            // stops, as everywhere.
+            // an animated stick shows the circling when the player seems stuck, and letting go of X,
+            // or B, stops, as everywhere.
             if (_washer == player)
                 return;
 

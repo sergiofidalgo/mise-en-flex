@@ -105,11 +105,9 @@ namespace Game.Tests.EditMode
         {
             var wash = new WashGameSettings();
             var scaled = MinigameComplexity.Scale(wash, 0.5f, _asset.Complexity);
-            Assert.That(scaled.GoodRadius, Is.EqualTo(wash.GoodRadius).Within(1e-5f));
-            Assert.That(scaled.OkRadius, Is.EqualTo(wash.OkRadius).Within(1e-5f));
-            Assert.That(scaled.Instability, Is.EqualTo(wash.Instability).Within(1e-5f));
-            Assert.That(scaled.Corrections, Is.EqualTo(wash.Corrections));
-            Assert.That(scaled.StartRadius, Is.EqualTo(wash.StartRadius).Within(1e-5f));
+            Assert.That(scaled.MinPush, Is.EqualTo(wash.MinPush).Within(1e-5f));
+            Assert.That(scaled.CircleSpeed, Is.EqualTo(wash.CircleSpeed).Within(1e-5f));
+            Assert.That(scaled.CirclesPerPlate, Is.EqualTo(wash.CirclesPerPlate).Within(1e-5f));
 
             var trace = new TraceGameSettings();
             var traced = MinigameComplexity.Scale(trace, 0.5f, _asset.Complexity);
@@ -121,30 +119,28 @@ namespace Game.Tests.EditMode
         [Test]
         public void LowerComplexityMakesTheSinkMoreForgiving()
         {
+            // Circles at the sink scale as the cloth's spinning does (decision 2026-11-11).
             var wash = new WashGameSettings();
             var relaxed = MinigameComplexity.Scale(wash, 0.25f, _asset.Complexity);
             var chef = MinigameComplexity.Scale(wash, 0.8f, _asset.Complexity);
 
-            Assert.That(relaxed.GoodRadius, Is.GreaterThan(wash.GoodRadius));
-            Assert.That(chef.GoodRadius, Is.LessThan(wash.GoodRadius));
-            Assert.That(relaxed.Instability, Is.LessThan(wash.Instability));
-            Assert.That(chef.Instability, Is.GreaterThan(wash.Instability));
-            Assert.That(relaxed.Corrections, Is.EqualTo(1), "Relaxed: 2 centrings a plate");
-            Assert.That(chef.Corrections, Is.EqualTo(3), "Chef: 4 centrings a plate");
+            Assert.That(relaxed.MinPush, Is.LessThan(wash.MinPush));
+            Assert.That(chef.MinPush, Is.GreaterThan(wash.MinPush));
+            Assert.That(relaxed.CircleSpeed, Is.GreaterThan(wash.CircleSpeed));
+            Assert.That(chef.CircleSpeed, Is.LessThan(wash.CircleSpeed));
+            Assert.That(relaxed.CirclesPerPlate, Is.EqualTo(wash.CirclesPerPlate), "a plate takes the same circles");
         }
 
         [Test]
         public void AtEveryComplexityDoingNothingNeverCleansAPlate()
         {
-            // The nudge must stay below Instability × OkRadius (WashGameSettings.Nudge), and each plate
-            // must start outside the OK ring.
             for (var c = 0f; c <= 1.0001f; c += 0.05f)
             {
-                var wash = MinigameComplexity.Scale(new WashGameSettings(), c, _asset.Complexity);
-                Assert.That(wash.Nudge, Is.LessThan(wash.Instability * wash.OkRadius), $"complexity {c}");
-                Assert.That(wash.StartRadius, Is.GreaterThan(wash.OkRadius), $"complexity {c}");
-                Assert.That(wash.GoodRadius, Is.LessThanOrEqualTo(wash.OkRadius), $"complexity {c}");
-                Assert.That(wash.Corrections, Is.GreaterThanOrEqualTo(0), $"complexity {c}");
+                var game = new WashGame(MinigameComplexity.Scale(new WashGameSettings(), c, _asset.Complexity));
+                var washed = 0f;
+                for (var i = 0; i < 600; i++)
+                    washed += game.Tick(1f / 60f, System.Numerics.Vector2.Zero);
+                Assert.That(washed, Is.Zero, $"complexity {c}");
             }
         }
 

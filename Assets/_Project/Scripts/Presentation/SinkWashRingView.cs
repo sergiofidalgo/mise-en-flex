@@ -9,12 +9,13 @@ namespace Game.Presentation
 {
     /// <summary>
     /// The washing game at the sink, built from real 3D pieces (decisions 2026-11-09: the station
-    /// is the interface; then "too flat for the scene"): a ring of chunky toon-shaded segments in
-    /// the washer's colour that light up with the plate's progress, a raised target in the centre
-    /// whose segments fill green while the soap is held there, and a soap bar the stick balances,
-    /// bobbing, leaning as it slides and shaking when it's far off. When the player seems stuck,
-    /// it asks for the stick hint (<see cref="Hud.StickHintHud"/>, flat HUD art from the control
-    /// glyph kit) beside the soap, pointing the way to push. The pieces use
+    /// is the interface; then "too flat for the scene"), drawn like the cloth's and mop's ring
+    /// (<see cref="CleaningView"/>, decision 2026-11-11: one family): a ring of chunky toon-shaded
+    /// segments that turn from grime to water, clockwise from the top, as the plate comes clean,
+    /// and a soap bar that follows the stick round, so circling the stick visibly scrubs. The ring
+    /// pulses and bubbles rise while the circling washes. At the start, until the stick first
+    /// washes, and whenever it stalls, it asks for the spinning stick cue
+    /// (<see cref="Hud.StickHintHud"/>, flat HUD art from the control glyph kit). The pieces use
     /// <c>Game/ToonOnTop</c>, drawn over whatever is in front of them (the chef, the tap) in a fixed
     /// order, and sit level with the basin's rim. The plate in the basin tips towards the soap.
     /// Everything turns with the camera, never the sink: pushing the stick up moves the soap, and
@@ -28,18 +29,15 @@ namespace Game.Presentation
         // The kit's own units: the rim's middle at 0.84, the edge of the old flat ring at 1.
         private const float RimRadius = 0.84f;
         private const float RimWidth = 0.19f;
-        private const int Segments = 15;           // 5 per centring, with 3 a plate
+        private const int Segments = 15;           // as the cleaning ring
         private const float SegmentGap = 0.09f;      // share of each segment left open
-        private const int TargetSegments = 12;
 
         // Draw order (sortingOrder): the pieces ignore depth, so later ones cover earlier ones.
         private const int RingOrder = 0;
-        private const int TargetOrder = 1;
         private const int SoapOrder = 2;
         private const int BubbleOrder = 3;
 
         [SerializeField] private SinkStation _sink;
-        [SerializeField] private CoopSettings _settings;
         [Tooltip("The quad over the basin: the kit's anchor and size. It isn't drawn itself.")]
         [SerializeField] private Renderer _ring;
         [Tooltip("Toon material for the kit's pieces; each gets its colour per renderer.")]
@@ -50,13 +48,9 @@ namespace Game.Presentation
         [SerializeField, Min(0f)] private float _segmentHeight = 0.07f;
         [SerializeField, Min(0f)] private float _soapFloat = 0.1f;
         [SerializeField] private Vector3 _soapSize = new Vector3(0.34f, 0.22f, 0.24f);
-        [Tooltip("The soap's size at the centre and at the rim, as shares of _soapSize: it shrinks into the target as it nears the centre.")]
-        [SerializeField, Min(0.1f)] private float _soapSizeCentre = 0.6f;
-        [SerializeField, Min(0.1f)] private float _soapSizeRim = 1.9f;
-        [Tooltip("How quickly the soap swells as it leaves the centre: below 1 it grows fast at first (0.6: half way out it's already about two thirds of the way to its rim size).")]
-        [SerializeField, Range(0.2f, 2f)] private float _soapGrowth = 0.6f;
+        [Tooltip("The soap, idle and while its circling washes.")]
+        [SerializeField] private Color _soapIdle = new Color(0.96f, 0.93f, 0.85f);
         [SerializeField] private Color _good = new Color(0.45f, 0.85f, 0.40f);
-        [SerializeField] private Color _bad = new Color(0.95f, 0.30f, 0.26f);
         [Tooltip("A rim segment still to clean: the plate's grime (the user's call, 2026-11-10).")]
         [SerializeField] private Color _grime = new Color(0.36f, 0.23f, 0.12f);
         [Tooltip("A rim segment cleaned: water. Segments blend from grime to water as the plate cleans.")]
@@ -85,13 +79,11 @@ namespace Game.Presentation
         [Tooltip("Seconds the plate-done flash and pop last.")]
         [SerializeField, Min(0.01f)] private float _popSeconds = 0.35f;
 
-        [Header("Stick hint")]
-        [Tooltip("Seconds off target, not pushing towards the centre, before the stick shows how.")]
-        [SerializeField, Min(0f)] private float _hintDelay = 0.6f;
-        [Tooltip("Seconds after washing starts before the stick cue shows; it then stays until the soap first reaches the target (the user's call: show it at once).")]
+        [Header("Stick cue (as the cleaning ring's)")]
+        [Tooltip("Seconds after washing starts before the stick cue shows; it stays until the stick first washes.")]
         [SerializeField, Min(0f)] private float _openingDelay = 0.15f;
-        [Tooltip("How closely the stick must point at the centre to count as pushing the right way (cosine).")]
-        [SerializeField, Range(-1f, 1f)] private float _rightWay = 0.5f;
+        [Tooltip("Seconds without washing, once started, before the cue shows again.")]
+        [SerializeField, Min(0f)] private float _stalledDelay = 0.8f;
 
         private MaterialPropertyBlock _block;
         // The plate shown in the basin, found among the sink's children (DirtyPlate…): the kit's
@@ -101,14 +93,12 @@ namespace Game.Presentation
         // The kit: built on first use, outside the scene's saved objects.
         private Transform _root;
         private readonly List<Renderer> _segments = new List<Renderer>();
-        private readonly List<Renderer> _target = new List<Renderer>();
         private Transform _soap;
         private Renderer _soapRenderer;
         private readonly List<Transform> _bubbles = new List<Transform>();
         private float _hintShown;
         private float _hintAmount;
         private Vector3 _hintWorld;
-        private Vector3 _hintTowards;
 
         /// <summary>0..1: how much the stick hint shows (it fades in when the player seems stuck).</summary>
         public float HintAmount => _root != null && _root.gameObject.activeSelf ? _hintAmount : 0f;
@@ -116,27 +106,23 @@ namespace Game.Presentation
         /// <summary>Where the stick hint goes, in the world: beside the soap.</summary>
         public Vector3 HintWorldPosition => _hintWorld;
 
-        /// <summary>A short world vector from the hint towards the way to push (the centre).</summary>
-        public Vector3 HintTowardsWorld => _hintTowards;
+        /// <summary>No direction: the cue spins.</summary>
+        public Vector3 HintTowardsWorld => Vector3.zero;
 
         public int HintCount => 1;
 
-        public StickHint HintAt(int index) => new StickHint(HintAmount, _hintWorld, _hintTowards, StickMotion.Push);
-        private float _stuckFor;
-        // The cue's opening: from the start of washing until the soap first reaches the target.
+        public StickHint HintAt(int index) => new StickHint(HintAmount, _hintWorld, Vector3.zero, StickMotion.Spin);
+
+        // The cue: the game it's for, whether its circling has washed yet, and time without washing.
         private Game.Simulation.Items.WashGame _hintGame;
-        private bool _opening;
-        private float _openingFor;
+        private bool _started;
+        private float _idle;
 
         private float _fade;
         private float _progress;
         private float _progressVelocity;
         private float _lastRawProgress;
         private float _popLeft;
-        private Color _rimColor = new Color(0.91f, 0.53f, 0.23f);
-        // The game's target size (0.3 of the circle by default), and the size the kit was built at.
-        private float _targetRadius = 0.4f;
-        private float _builtRadius;
         private Vector2 _shownPoint;
         private Vector2 _lastPoint;
 
@@ -181,29 +167,18 @@ namespace Game.Presentation
             _fade = Mathf.MoveTowards(_fade, washing ? 1f : 0f, _fadeSeconds > 0f ? dt / _fadeSeconds : 1f);
 
             var rate = 0f;
-            var hold = 0f;
             if (washing)
             {
                 _shownPoint = new Vector2(game.Point.X, game.Point.Y);
                 _tiltPoint = Vector2.Lerp(_tiltPoint, _shownPoint, 1f - Mathf.Exp(-_tiltFollow * dt));
-                if (_settings != null && _sink.Washer.TryGetComponent(out PlayerInput player))
-                    _rimColor = _settings.GetPlayerColor(player.playerIndex);
                 _progress = Mathf.SmoothDamp(_progress, Mathf.Clamp01(raw), ref _progressVelocity, _progressSmoothing);
-                rate = game.Rate;
-                hold = game.ShareProgress;
-                _targetRadius = game.GoodRadius;
-                if (game != _hintGame)
-                {
-                    // A new spell at the sink: show the stick at once, until the soap's first in.
-                    _hintGame = game;
-                    _opening = true;
-                    _openingFor = 0f;
-                }
-                UpdateStuck(game.Point.Length() > game.GoodRadius, _sink.Washer.MoveInput, dt);
+                rate = game.OnTrack ? 1f : 0f;
+                UpdateCue(game, dt);
             }
             else
             {
-                _stuckFor = 0f;
+                _idle = 0f;
+                _hintShown = 0f;
             }
             TiltPlate(washing, dt);
 
@@ -222,30 +197,28 @@ namespace Game.Presentation
             var pulse = washing ? _pulse * Mathf.Sin(Time.time * _pulseRate * 2f * Mathf.PI) * rate : 0f;
             // Pops in with a little overshoot, and out again when washing stops.
             var appear = Mathf.Max(EaseOutBack(_fade), popT > 0f ? 1f : 0f);
-            Draw(appear * (1f + pulse + _pop * popT * popT), rate, hold, popT, _hintShown, dt);
+            Draw(appear * (1f + pulse + _pop * popT * popT), rate, popT, _hintShown, dt);
         }
 
-        // The stick hint shows once the soap has been off target a moment with the stick not
-        // pushing towards the centre, and goes as soon as it is: help only when it's needed.
-        private void UpdateStuck(bool offTarget, Vector2 stick, float dt)
+        // The stick cue, as on the cleaning ring: from just after washing starts until the circling
+        // first washes, then whenever it has stalled a moment.
+        private void UpdateCue(Game.Simulation.Items.WashGame game, float dt)
         {
-            var toCentre = -_shownPoint.normalized;
-            var rightWay = stick.magnitude > 0.3f && Vector2.Dot(stick.normalized, toCentre) > _rightWay;
-            _stuckFor = offTarget && !rightWay ? _stuckFor + dt : 0f;
-            // At the start of washing it shows almost at once and stays until the soap first gets
-            // into the target; after that, only when the player seems stuck.
-            if (_opening)
+            if (game != _hintGame)
             {
-                _openingFor += dt;
-                if (!offTarget)
-                    _opening = false;
+                _hintGame = game;
+                _started = false;
+                _idle = 0f;
             }
-            var want = (_opening && _openingFor > _openingDelay) || _stuckFor > _hintDelay ? 1f : 0f;
-            _hintShown = Mathf.MoveTowards(_hintShown, want, dt / 0.15f);
+            _idle = game.OnTrack ? 0f : _idle + dt;
+            if (game.OnTrack)
+                _started = true;
+            var want = _started ? _idle > _stalledDelay : _idle > _openingDelay;
+            _hintShown = Mathf.MoveTowards(_hintShown, want ? 1f : 0f, dt / 0.15f);
         }
 
         // Places and colours every piece for this frame. Kit units: the rim at 0.84.
-        private void Draw(float scale, float rate, float hold, float flash, float hint, float dt)
+        private void Draw(float scale, float rate, float flash, float hint, float dt)
         {
             FaceCamera();
             _root.position = _ring.transform.position;
@@ -260,30 +233,17 @@ namespace Game.Presentation
                 var color = Color.Lerp(Color.Lerp(_grime, _water, clean), Color.white, flash);
                 Paint(_segments[i], color);
             }
-            // The target in the washer's full colour (who's washing, with two at the sinks; bold so
-            // it's the first thing seen, the user's call), its arc going green as the current third
-            // of the plate comes clean; the next push comes when full.
-            var idle = _rimColor;
-            for (var i = 0; i < _target.Count; i++)
-            {
-                var filled = hold > 0f && (i + 0.5f) / _target.Count < hold;
-                Paint(_target[i], filled ? _good : idle);
-            }
-
-            // The soap: where the game's point is, bobbing; it leans the way it's sliding, and
-            // shakes when it's far from the centre. Its colour says how close it is.
+            // The soap follows the stick round the ring, as the cloth does on a table, bobbing and
+            // leaning the way it's going; it turns green while its circling washes.
             var velocity = dt > 0f ? (_shownPoint - _lastPoint) / dt : Vector2.zero;
             _lastPoint = _shownPoint;
             var point = _shownPoint * RimRadius;
             var bob = Mathf.Sin(Time.time * 4f) * 0.015f;
             _soap.localPosition = new Vector3(point.x, _segmentHeight + _soapFloat + bob, point.y);
-            // Small at the centre, where it fits inside the target, and bigger the further out it
-            // drifts (the user's call), so how far off it is reads at a glance.
-            _soap.localScale = _soapSize * Mathf.Lerp(_soapSizeCentre, _soapSizeRim, Mathf.Pow(Mathf.Clamp01(_shownPoint.magnitude), _soapGrowth));
+            _soap.localScale = _soapSize;
             var lean = Vector3.ClampMagnitude(new Vector3(velocity.y, 0f, -velocity.x) * 6f, 20f);
-            var shake = rate < 0.2f ? Mathf.Sin(Time.time * 40f) * 6f : 0f;
-            _soap.localRotation = Quaternion.Euler(lean.x + shake, 25f, lean.z);
-            Paint(_soapRenderer, Color.Lerp(_bad, _good, rate));
+            _soap.localRotation = Quaternion.Euler(lean.x, 25f, lean.z);
+            Paint(_soapRenderer, Color.Lerp(_soapIdle, _good, rate));
 
             // Washing well: a few bubbles circle the soap.
             for (var i = 0; i < _bubbles.Count; i++)
@@ -296,11 +256,8 @@ namespace Game.Presentation
                 _bubbles[i].localPosition = _soap.localPosition + new Vector3(Mathf.Sin(angle) * 0.3f, 0.05f + 0.04f * Mathf.Sin(Time.time * 5f + i), Mathf.Cos(angle) * 0.3f);
             }
 
-            // Where the stick cue (StickHintHud, flat HUD art) shows: in the centre of the ring,
-            // where the soap has to go (the user's call), its cap pushing from the soap's side in.
-            var outward = _shownPoint.sqrMagnitude > 1e-4f ? _shownPoint.normalized : Vector2.up;
+            // The stick cue (StickHintHud, flat HUD art) shows in the centre of the ring, spinning.
             _hintWorld = _root.TransformPoint(new Vector3(0f, _segmentHeight * 0.6f, 0f));
-            _hintTowards = _root.TransformDirection(new Vector3(-outward.x, 0f, -outward.y)) * 0.1f;
             _hintAmount = hint;
         }
 
@@ -321,12 +278,8 @@ namespace Game.Presentation
 
         private void EnsureKit()
         {
-            // The target follows the game's size (the complexity dial changes it): rebuild if it moved.
-            if (_root != null && Mathf.Abs(_builtRadius - _targetRadius) > 0.005f)
-                DestroyKit();
             if (_root != null)
                 return;
-            _builtRadius = _targetRadius;
             _block ??= new MaterialPropertyBlock();
             _root = new GameObject($"{name} WashKit") { hideFlags = HideFlags.DontSave }.transform;
 
@@ -337,12 +290,6 @@ namespace Game.Presentation
                 var to = (i + 1 - SegmentGap * 0.5f) * step;
                 _segments.Add(Piece("Segment", StationKitMeshes.RingSector(RimRadius - RimWidth / 2f, RimRadius + RimWidth / 2f, from, to, _segmentHeight, 0.025f), _root, RingOrder));
             }
-
-            // The target's radius matches the game's (in kit units: the point's 1 is the rim's middle).
-            var targetRadius = _targetRadius * RimRadius;
-            var targetStep = Mathf.PI * 2f / TargetSegments;
-            for (var i = 0; i < TargetSegments; i++)
-                _target.Add(Piece("Target", StationKitMeshes.RingSector(targetRadius - 0.055f, targetRadius + 0.055f, (i + 0.08f) * targetStep, (i + 0.92f) * targetStep, _segmentHeight * 0.9f, 0.016f), _root, TargetOrder));
 
             _soapRenderer = Primitive("Soap", PrimitiveType.Sphere, _root, SoapOrder);
             _soap = _soapRenderer.transform;
@@ -398,7 +345,6 @@ namespace Game.Presentation
             DestroyNow(_root.gameObject);
             _root = null;
             _segments.Clear();
-            _target.Clear();
             _bubbles.Clear();
         }
 
@@ -459,7 +405,7 @@ namespace Game.Presentation
         }
 
         /// <summary>For captures outside Play mode: shows the kit, and tips the plate, for a given state.</summary>
-        public void Preview(Vector2 point, float rate, float progress, Color rim, float hold, bool hint)
+        public void Preview(Vector2 point, bool scrubbing, float progress, bool hint)
         {
             _block ??= new MaterialPropertyBlock();
             if (_plate == null)
@@ -469,8 +415,7 @@ namespace Game.Presentation
             _shownPoint = point;
             _lastPoint = point;
             _progress = progress;
-            _rimColor = rim;
-            Draw(1f, rate, hold, 0f, hint ? 1f : 0f, 0f);
+            Draw(1f, scrubbing ? 1f : 0f, 0f, hint ? 1f : 0f, 0f);
             if (_plate != null)
             {
                 if (!_drivingPlate)

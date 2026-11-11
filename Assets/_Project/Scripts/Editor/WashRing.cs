@@ -112,7 +112,6 @@ namespace Game.Editor
 
             var view = new SerializedObject(sink.gameObject.AddComponent<SinkWashRingView>());
             view.FindProperty("_sink").objectReferenceValue = sink;
-            view.FindProperty("_settings").objectReferenceValue = settings;
             view.FindProperty("_ring").objectReferenceValue = renderer;
             view.FindProperty("_toon").objectReferenceValue = EnsureToonMaterial();
             view.ApplyModifiedPropertiesWithoutUndo();
@@ -160,8 +159,6 @@ namespace Game.Editor
                 {
                     var so = new SerializedObject(view);
                     so.FindProperty("_toon").objectReferenceValue = EnsureToonMaterial();
-                    // The soap's size far out (the user's call, 2026-11-11: 1.9× at the rim; 2× was too big).
-                    so.FindProperty("_soapSizeRim").floatValue = 1.9f;
                     so.ApplyModifiedPropertiesWithoutUndo();
                     count++;
                 }
@@ -232,8 +229,6 @@ namespace Game.Editor
 
             var sink = Object.FindFirstObjectByType<SinkStation>();
             var view = sink.GetComponent<SinkWashRingView>();
-            var settings = FindSettings();
-            var rim = settings != null ? settings.GetPlayerColor(0) : new Color(0.91f, 0.53f, 0.23f);
 
             var camera = new GameObject("Capture Camera").AddComponent<Camera>();
             camera.fieldOfView = FieldOfView;
@@ -248,7 +243,8 @@ namespace Game.Editor
 
             // -90 turns the sink so the chef stands between it and the camera, back to the camera.
             var turns = new[] { 0f, 45f, -90f };
-            var states = new[] { ("good", new Vector2(0.08f, 0.05f), 1f, 0.6f), ("bad", new Vector2(-0.62f, 0.35f), 0f, 0.3f) };
+            // Circling and washing, and stalled with the stick cue up (decision 2026-11-11: circles).
+            var states = new[] { ("good", new Vector2(0.62f, 0.55f), true, 0.6f), ("bad", new Vector2(-0.2f, 0.1f), false, 0.3f) };
             var start = sink.transform.rotation;
             Render(camera, target, sink.transform.position + Vector3.up * 0.9f, CloseHeight, null); // warm-up frame
             foreach (var turn in turns)
@@ -257,10 +253,9 @@ namespace Game.Editor
                 // The sink's forward faces the wall it stands against; the chef stands on the room side.
                 var front = -sink.transform.forward;
                 chef.transform.SetPositionAndRotation(sink.transform.position + front * StandDistance, Quaternion.LookRotation(-front, Vector3.up));
-                foreach (var (name, point, rate, progress) in states)
+                foreach (var (name, point, scrubbing, progress) in states)
                 {
-                    // Washing well: holding, the target filling. Off target: the stick hint up.
-                    view.Preview(point, rate, progress, rim, rate >= 1f ? 0.6f : 0f, rate < 1f);
+                    view.Preview(point, scrubbing, progress, !scrubbing);
                     Render(camera, target, sink.transform.position + Vector3.up * 0.9f, CloseHeight, Path.Combine(folder, $"wash_{(int)turn}deg_{name}.png"));
                 }
                 Render(camera, target, sink.transform.position + new Vector3(-1.5f, 0.9f, -0.5f), PlayHeight, Path.Combine(folder, $"wash_{(int)turn}deg_play.png"));
@@ -277,7 +272,7 @@ namespace Game.Editor
                     var lookAt = sink.transform.position + new Vector3(-1.5f, 0.9f, -0.5f);
                     var back = (PlayHeight - lookAt.y) / Mathf.Tan(Pitch * Mathf.Deg2Rad);
                     camera.transform.SetPositionAndRotation(new Vector3(lookAt.x, PlayHeight, lookAt.z - back), Quaternion.Euler(Pitch, 0f, 0f));
-                    view.Preview(new Vector2(-0.62f, 0.35f), 0f, 0.3f, rim, 0f, true);
+                    view.Preview(new Vector2(-0.2f, 0.1f), false, 0.3f, true);
                     // Place the hint inside the capture session, on the canvas as it's captured.
                     using var session = Game.Presentation.Hud.UiCapture.Prepare(hud.GetComponent<Canvas>());
                     // The canvas and the camera at the capture's size and shape before placing: in
