@@ -351,7 +351,7 @@ namespace Game.Gameplay
         }
 
         private static System.Collections.Generic.List<Interactable> FindStations() =>
-            FindObjectsByType<Interactable>(FindObjectsSortMode.InstanceID).Where(station => !(station is StreetDoor)).ToList();
+            FindObjectsByType<Interactable>(FindObjectsSortMode.InstanceID).Where(station => !(station is StreetDoor) && !(station is WheelieBin)).ToList();
 
         private void OnEnable()
         {

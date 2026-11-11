@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -74,6 +75,29 @@ namespace Game.Editor
             var bin = GameObject.Find("TrashContainer");
             if (bin != null)
                 Render(camera, target, bin.transform.position + Vector3.up * 0.7f, PlayHeight, Path.Combine(folder, "street_bin.png"));
+            // And rolled: halfway round the front corner, where it must clear the building, then on
+            // the front wall (decisions 2026-11-11). Put back after, though the scene isn't saved.
+            if (bin != null && bin.TryGetComponent(out Game.Gameplay.Stations.WheelieBin wheelie))
+            {
+                var home = wheelie.Target;
+                var track = wheelie.Track;
+                wheelie.JumpTo(track.CornerMiddle(east: true));
+                Render(camera, target, bin.transform.position + Vector3.up * 0.7f, PlayHeight, Path.Combine(folder, "street_bin_corner.png"));
+                // The first spot along the front wall, from the corner, where it's allowed to stand.
+                var corner = track.At(track.CornerMiddle(east: true)).Position;
+                var door = UnityEngine.Object.FindFirstObjectByType<Game.Gameplay.Stations.StreetDoor>();
+                for (var x = 1f; x < 12f; x += 0.25f)
+                {
+                    var spot = track.Snap(new System.Numerics.Vector2(corner.X - x, corner.Y));
+                    if (door == null || !wheelie.KeepClear(door.Footprint).Any(zone => track.FootprintAt(spot).Overlaps(zone, 0f)))
+                    {
+                        wheelie.JumpTo(spot);
+                        break;
+                    }
+                }
+                Render(camera, target, bin.transform.position + Vector3.up * 0.7f, PlayHeight, Path.Combine(folder, "street_bin_front.png"));
+                wheelie.JumpTo(home);
+            }
             // Food sitting on a counter, at the size counters show it (only seen in play).
             var counterAnchor = GameObject.Find("WallCounter_01")?.transform.Find("ItemAnchor");
             if (counterAnchor != null)

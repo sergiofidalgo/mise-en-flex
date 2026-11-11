@@ -54,6 +54,8 @@ namespace Game.Gameplay.Customers
         [SerializeField] private StaffDirector _staff;
         [SerializeField] private CustomerAgent _customerPrefab;
         [SerializeField] private Transform _door;
+        private Game.Gameplay.Stations.WheelieBin _bin; // found once; the queue lines up away from it
+        private bool _binLooked;
 
         [Tooltip("Spots by the door where customers wait for a stool, nearest the door first.")]
         [SerializeField] private Transform[] _queueSpots = System.Array.Empty<Transform>();
@@ -451,7 +453,27 @@ namespace Game.Gameplay.Customers
                 : direction.x < -1e-3f ? (room.RoomMin.X - here.x) / direction.x : float.MaxValue;
             var z = direction.z > 1e-3f ? (room.RoomMax.Y - here.z) / direction.z
                 : direction.z < -1e-3f ? (room.RoomMin.Y - here.z) / direction.z : float.MaxValue;
-            return Mathf.Min(x, z);
+            return Mathf.Min(Mathf.Min(x, z), BinAlong(direction));
+        }
+
+        // How far along the wall the wheelie bin starts, if it stands against the door's wall that
+        // way (decisions 2026-11-11: it can be rolled there), so the queue lines up the other way.
+        private float BinAlong(Vector3 direction)
+        {
+            if (!_binLooked)
+            {
+                _bin = FindFirstObjectByType<Game.Gameplay.Stations.WheelieBin>();
+                _binLooked = true;
+            }
+            if (_bin == null)
+                return float.MaxValue;
+            var bin = _bin.Track.FootprintAt(_bin.Target);
+            var outward = -_door.forward;
+            // Its front faces out from the wall it stands against: the same wall as the door's.
+            if (Vector2.Dot(new Vector2(bin.Forward.X, bin.Forward.Y), new Vector2(outward.x, outward.z)) < 0.9f)
+                return float.MaxValue;
+            var along = Vector3.Dot(new Vector3(bin.Centre.X, 0f, bin.Centre.Y) - _door.position, direction);
+            return along > 0f ? Mathf.Max(0f, along - bin.HalfSize(0f).X) : float.MaxValue;
         }
 
         // One step of the way to a target, around the furniture and giving way to people. Someone

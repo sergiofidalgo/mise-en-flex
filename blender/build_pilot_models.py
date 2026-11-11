@@ -2511,13 +2511,19 @@ def add_rounded_loft(bm, sections, radius, per_corner=4):
     bm.faces.new(rings[-1])
 
 
+# The bin's four castors: where each wheel's axle sits under it, in Blender (x, y); axles are
+# 0.12 m up. GreyboxStreet places the wheels at the same spots (Unity x = -x, z = -y).
+WHEELIE_BIN_WHEELS = [(-0.6, -0.3), (-0.6, 0.3), (0.6, -0.3), (0.6, 0.3)]
+
+
 def build_wheelie_bin():
     """The street's communal wheelie bin (the user's reference photo, 2026-11-11): a big
     four-wheeled container with a tapered, flared body, a chunky moulded rim with V ribs under it,
     side grips and push handles, black latch blocks, a closed domed lid with two panels and a block
     handle, and castor wheels on steel forks. 1.82 m wide, 1.25 m deep with its handles, 1.34 m
     tall, front (-y) to the street. Split by colour: Body (and the moulded rim, ribs and grips),
-    Lid, LidPanels, Trim (latches and hinges), Wheels, Brackets."""
+    Lid, LidPanels, Trim (latches and hinges), Brackets, and one Wheel and Hub that the game
+    places four times and turns as the bin rolls."""
     objects = []
 
     body = bmesh.new()
@@ -2568,17 +2574,26 @@ def build_wheelie_bin():
         add_box(trim, (0.16, 0.08, 0.07), (side * 0.25, 0.56, 1.2), bevel=0.015)
     objects.append(finish("WheelieBinTrim", trim))
 
-    wheels = bmesh.new()
+    # The castors' steel: a fork either side of each wheel and the swivel plate it hangs from.
     brackets = bmesh.new()
-    for x in (-0.6, 0.6):
-        for y in (-0.3, 0.3):
-            add_cylinder_y(wheels, (x, y - 0.04, 0.12), 0.12, 0.08, segments=16)
-            add_cylinder_y(brackets, (x, y - 0.055, 0.12), 0.05, 0.11, segments=10)  # the hub and axle
-            for fork in (-1.0, 1.0):  # the fork either side of the wheel
-                add_box(brackets, (0.09, 0.018, 0.18), (x, y + fork * 0.052, 0.19), bevel=0.005)
-            add_box(brackets, (0.16, 0.14, 0.03), (x, y, 0.28), bevel=0.008)  # the swivel plate
-    objects.append(finish("WheelieBinWheels", wheels))
+    for x, y in WHEELIE_BIN_WHEELS:
+        for fork in (-1.0, 1.0):
+            add_box(brackets, (0.09, 0.018, 0.18), (x, y + fork * 0.052, 0.19), bevel=0.005)
+        add_box(brackets, (0.16, 0.14, 0.03), (x, y, 0.28), bevel=0.008)  # the swivel plate
     objects.append(finish("WheelieBinBrackets", brackets))
+
+    # One wheel, centred on its axle (along y), placed four times by the game and turned as the bin
+    # rolls: a black tyre, and a steel hub with a cross on each face so the turning shows.
+    wheel = bmesh.new()
+    add_cylinder_y(wheel, (0.0, -0.04, 0.0), 0.12, 0.08, segments=16)
+    objects.append(finish("WheelieBinWheel", wheel))
+    hub = bmesh.new()
+    add_cylinder_y(hub, (0.0, -0.05, 0.0), 0.05, 0.1, segments=10)
+    for size in ((0.15, 0.1, 0.025), (0.025, 0.1, 0.15)):
+        add_box(hub, size, (0.0, 0.0, 0.0), bevel=0.006)
+    objects.append(finish("WheelieBinHub", hub))
+    for part in objects[-2:]:
+        part.location = (1.3, 0.0, 0.12)  # apart, for previews only: the mesh stays centred on its axle
     return objects
 
 
