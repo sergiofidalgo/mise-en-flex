@@ -60,8 +60,9 @@ namespace Game.Tests.EditMode
             for (var seed = 0; seed < 10; seed++)
             {
                 var plates = Plates(RealSettings, (point, velocity) => Clamp(-point - velocity * 0.35f), 30f, seed);
-                // Continuous scrubbing, quicker nearer the centre, three shares (2026-11-10): about 4 s a plate.
-                Assert.That(plates, Is.GreaterThan(4f), $"seed {seed}: under 7.5 s a plate");
+                // Continuous scrubbing, quicker nearer the centre, three shares; quicker plates
+                // (2026-11-11): about 2.7 s a plate.
+                Assert.That(plates, Is.GreaterThan(7.5f), $"seed {seed}: under 4 s a plate");
             }
         }
 

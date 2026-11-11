@@ -73,6 +73,7 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 - **Grime to water:** each rim segment blends from grime brown to water blue as the plate's progress passes through it.
 - **LS cue:** 84 px (was 46), the cap travelling 18 px, popping in at 1.5× and settling, so it's noticed at once.
 - **Then, after looking at it:** the target is bigger again and bolder: 0.4 of the circle, a thicker, taller ring in the washer's full colour (was a pale tint). The soap shrinks as it nears the centre and grows as it drifts out (60% of its size at the centre, 130% at the rim), so at the centre it fits inside the target and how far off it is reads at a glance. Scrubbing speed still depends only on distance.
+- **Quicker, and bigger again (2026-11-11, the user's calls):** 1.4 s of full-speed scrubbing per plate (was 2.4), so a steady simulated hand takes about 2.7 s a plate (was 4.1); panicking still almost never finishes one, doing nothing never does. The ring is 1.05 m across its quad (was 0.8 m), about 0.88 m at the rim, spilling well past the basin onto the counter; the target and soap grow with it.
 - The minigame complexity dial now passes `SecondsPerPlate` through instead of the removed hold time.
 
 ---

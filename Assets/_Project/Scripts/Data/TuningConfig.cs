@@ -96,7 +96,7 @@ namespace Game.Data
         [Tooltip("Fraction of the circle beyond which nothing gets clean; inside, the closer the quicker.")]
         [SerializeField, Range(0f, 1f)] private float _washOkRadius = 0.6f;
         [Tooltip("Seconds of full-speed scrubbing per plate; scrubbing slows the further the soap is from the centre.")]
-        [SerializeField, Min(0.1f)] private float _washSecondsPerPlate = 2.4f;
+        [SerializeField, Min(0.1f)] private float _washSecondsPerPlate = 1.4f;
         [Tooltip("Pushes per plate, one as each share of it comes clean (the user's call: 2, so each plate is tipped three ways).")]
         [SerializeField, Min(0)] private int _washCorrections = 2;
         [Tooltip("How hard each push kicks the point away (circle radii per second).")]

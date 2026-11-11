@@ -23,9 +23,10 @@ namespace Game.Editor
         private const string ScenePath = "Assets/_Project/Scenes/Kitchen_Greybox.unity";
         private const string RingName = "WashRing";
         // Metres: the quad's side. The shader draws the rim at 0.84 of it, so the ring is about
-        // 0.67 m across: a little over the 0.62 m deep basin, which the user wanted for
-        // visibility (2026-11-09). It's drawn over everything, so the overhang shows on the rim.
-        private const float Size = 0.8f;
+        // 0.88 m across: well over the 0.62 m deep basin, onto the counter round it, which the
+        // user wanted for visibility (2026-11-09, bigger again 2026-11-11). It's drawn over
+        // everything, so the overhang shows.
+        private const float Size = 1.05f;
         // Metres up from the sink's base: just over the basin's rim (floor 0.68 + depth 0.23, from
         // build_sink()). At water level the ring sat 12 cm below the opening players see, and the
         // 55° camera showed it shifted towards the camera and off centre; drawn over everything,

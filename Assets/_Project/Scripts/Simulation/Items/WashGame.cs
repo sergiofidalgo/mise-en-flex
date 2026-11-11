@@ -33,8 +33,8 @@ namespace Game.Simulation.Items
         /// </summary>
         public float OkRadius { get; set; } = 0.6f;
 
-        /// <summary>Seconds of full-speed scrubbing per plate (a steady hand takes about 4 s in all).</summary>
-        public float SecondsPerPlate { get; set; } = 2.4f;
+        /// <summary>Seconds of full-speed scrubbing per plate (a steady hand takes about 2.7 s in all; the user's call, 2026-11-11: quicker).</summary>
+        public float SecondsPerPlate { get; set; } = 1.4f;
 
         /// <summary>Pushes per plate, one each time another share of it is clean; each must be corrected. A plate has this + 1 shares.</summary>
         public int Corrections { get; set; } = 2;
