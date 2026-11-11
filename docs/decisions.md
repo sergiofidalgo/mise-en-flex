@@ -20,6 +20,23 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-11 — Stalls sell one fresh portion at a time; old food shows its age
+
+**User's calls:**
+- **Each press at a stall buys one portion,** at the ingredient's own price (`IngredientDefinition.Price`), straight into storage as before. It's no longer up to 6.
+- **No cheap and premium grades.** A stall sells each ingredient once; the butcher has steak, the greengrocer onion and tomato.
+- **Brand-new stock is always 100% fresh.** `MarketConfig` and the grades' starting freshness are gone.
+- **Old food is visibly old.** Below 35% freshness it looks stale: it dulls towards a greyish brown, with a clear step as it crosses the line and more as it ages. Below 10% it goes mouldy: a grey-green cast and fuzzy grey-white and green spots. It shows everywhere food is seen: loose, in pans, on plates, and on the storage bins' samples, which show the oldest portion (the one taken next).
+
+**Details (proposed while building; flagged for review):**
+- **The mouldy line is the existing spoiled line** (`TuningConfig.SpoiledBelow`, 10%), where stored food is thrown out overnight, so "mouldy" and "spoiled" mean the same thing. The stale line is a new tuning value, `TuningConfig.StaleBelow` (35%).
+- **The money card shakes red for every purchase,** even when only the cents change (a $0.50 tomato). Other cent-only changes stay quiet, as before.
+- **Mould is greybox spots** grown over each food's shape by the builder (`SpoilageArt`), to be replaced in the art pass.
+
+**Reason:** Buying a portion at a time makes shopping a closer match to what the menu needs. Without grades, freshness is about how long stock is kept, which players can now see at a glance.
+
+---
+
 ## 2026-11-11 — Customers walk in along the street and queue outside on the pavement
 
 **User's notes:** customers appeared right in the doorway instead of walking the scene. They should walk in, or queue by the entrance. The user chose a queue outside on the pavement over the old spots inside by the door.

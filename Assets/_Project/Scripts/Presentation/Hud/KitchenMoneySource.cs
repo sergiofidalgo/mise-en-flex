@@ -19,6 +19,9 @@ namespace Game.Presentation.Hud
         public static float Live(float balance, DayPhase phase, float takings) =>
             phase == DayPhase.Service ? balance + takings : balance;
 
+        private DayCycle _listening;
+        private bool _paidOut;
+
         public float? Read(out bool reset)
         {
             reset = false;
@@ -26,7 +29,30 @@ namespace Game.Presentation.Hud
             if (services == null || services.Days == null)
                 return null;
             var days = services.Days;
+            if (_listening != days)
+            {
+                if (_listening != null)
+                    _listening.Charged -= HandleCharged;
+                _listening = days;
+                days.Charged += HandleCharged;
+            }
             return Live(days.Balance, days.Phase, services.Service != null ? services.Service.Money : 0f);
+        }
+
+        // Stock bought at a stall, and any other bill: the card shakes red even for cents.
+        private void HandleCharged(LedgerLine line, float amount) => _paidOut |= amount > 0f;
+
+        public bool TakePaidOut()
+        {
+            var paidOut = _paidOut;
+            _paidOut = false;
+            return paidOut;
+        }
+
+        private void OnDestroy()
+        {
+            if (_listening != null)
+                _listening.Charged -= HandleCharged;
         }
 
         public bool Covered

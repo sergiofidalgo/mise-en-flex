@@ -97,7 +97,10 @@ namespace Game.Presentation.Hud
         /// The balance is now <paramref name="amount"/>. The first value snaps; after that a change
         /// in the whole amount starts a roll up or a shake down from what's on the card.
         /// </summary>
-        public void Set(float amount)
+        /// <param name="paidOut">Money was just paid out on purpose, such as a portion bought at a
+        /// stall: it shakes red even if only the cents changed (decision 2026-11-11), so every
+        /// purchase is felt.</param>
+        public void Set(float amount, bool paidOut = false)
         {
             if (!_started)
             {
@@ -106,7 +109,7 @@ namespace Game.Presentation.Hud
             }
             if (Math.Abs(amount - Target) < 0.0001f)
                 return;
-            if (Whole(amount) == Whole(Target))
+            if (Whole(amount) == Whole(Target) && !(paidOut && amount < Target))
             {
                 // Cents only: follow quietly, without restarting what's playing.
                 var rolling = Direction == MoneyChange.Up && Shown != Target;

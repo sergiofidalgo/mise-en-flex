@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Game.Data;
 using Game.Simulation.Cooking;
-using System.Linq;
 using Game.Simulation.Items;
 using Game.Simulation.Market;
 using UnityEngine;
@@ -10,45 +10,22 @@ using UnityEngine;
 namespace Game.Gameplay.Stations
 {
     /// <summary>
-    /// A market stall on the street outside (Phase 5, milestone 3; decision 2026-11-10). It works like
-    /// storage: holding RT opens its menu, and a face button buys that stock. It goes straight into the
-    /// restaurant's storage: food that keeps cold to a fridge first, the rest to a shelf first, each
-    /// spilling over into the other when full. Only what fits is bought, paid at once as ingredients,
-    /// even into debt. Open in Prep and Service, like everything chefs work at; going out during
-    /// service costs the time the walk takes.
+    /// A market stall on the street outside (Phase 5, milestone 3; decisions 2026-11-10 and
+    /// 2026-11-11). It works like storage: holding RT opens its menu, and each press of a face button
+    /// buys one portion of that ingredient, brand new and fully fresh, at its price. It goes straight
+    /// into the restaurant's storage: food that keeps cold to a fridge first, the rest to a shelf
+    /// first, each spilling over into the other when full. With no room anywhere nothing is bought.
+    /// Paid at once as ingredients, even into debt. Open in Prep and Service, like everything chefs
+    /// work at; going out during service costs the time the walk takes.
     /// </summary>
     public sealed class StallStation : Interactable, IFaceButtonTarget, IStationPrompt, ISlotMenuStation
     {
-        [Serializable]
-        public sealed class Goods
-        {
-            [Tooltip("The ingredient's type id, e.g. \"Steak\".")]
-            [SerializeField] private string _typeId;
-            [SerializeField] private Grade _grade;
-
-            public Goods() { }
-
-            public Goods(string typeId, Grade grade)
-            {
-                _typeId = typeId;
-                _grade = grade;
-            }
-
-            public string TypeId => _typeId;
-            public Grade Grade => _grade;
-        }
-
-        // Premium prices in the menu.
-        private static readonly Color PremiumGold = new Color(0.98f, 0.78f, 0.3f);
-
-        [SerializeField] private MarketConfig _market;
-
-        [Tooltip("Up to four, one per face button, in FaceButton order: South (A), East (B), West (X), North (Y).")]
-        [SerializeField] private Goods[] _goods = Array.Empty<Goods>();
+        [Tooltip("Ingredient type ids, up to four, one per face button, in FaceButton order: South (A), East (B), West (X), North (Y).")]
+        [SerializeField] private string[] _goods = Array.Empty<string>();
 
         private KitchenServices _services;
 
-        /// <summary>Raised when stock is bought, with what it cost.</summary>
+        /// <summary>Raised when a portion is bought, with what it cost.</summary>
         public event Action<float> Bought;
 
         public override IItemContainer Container => null;
@@ -60,14 +37,13 @@ namespace Game.Gameplay.Stations
             _services = services;
         }
 
-        /// <summary>What face button <paramref name="index"/> buys now, at today's prices; null if nothing.</summary>
+        /// <summary>What face button <paramref name="index"/> buys, at its price; null if nothing.</summary>
         public StallOffer OfferAt(int index)
         {
-            if (_services == null || _market == null || index < 0 || index >= _goods.Length || _goods[index] == null)
+            if (_services == null || index < 0 || index >= _goods.Length || string.IsNullOrEmpty(_goods[index]))
                 return null;
-            var goods = _goods[index];
-            var definition = _services.Catalog.Find(goods.TypeId);
-            return definition != null ? _market.ToSettings().Offer(goods.TypeId, definition.Price, goods.Grade) : null;
+            var definition = _services.Catalog.Find(_goods[index]);
+            return definition != null ? new StallOffer(definition.TypeId, definition.Price) : null;
         }
 
         public bool TryPress(FaceButton button, PlayerInteractor player)
@@ -79,14 +55,13 @@ namespace Game.Gameplay.Stations
                 return false;
 
             var storage = StorageInOrder(offer.TypeId);
-            var stocked = offer.BuyInto(_services.Days, storage.Select(s => s.Unit),
-                unit => (Ingredient)_services.CreateItem(offer.TypeId, unit.Temperature));
-            if (stocked.Count == 0)
+            var unit = offer.BuyInto(_services.Days, storage.Select(s => s.Unit),
+                into => (Ingredient)_services.CreateItem(offer.TypeId, into.Temperature));
+            if (unit == null)
                 return false; // no room anywhere: the stall shakes "can't"
 
-            foreach (var (unit, count) in stocked)
-                storage.First(s => s.Unit == unit).NotifyStocked(count);
-            Bought?.Invoke(offer.PriceFor(stocked.Sum(s => s.Count)));
+            storage.First(s => s.Unit == unit).NotifyStocked(1);
+            Bought?.Invoke(offer.Price);
             return true;
         }
 
@@ -116,17 +91,10 @@ namespace Game.Gameplay.Stations
                     lines.Add(new PromptLine(control, "—", available: false));
                     continue;
                 }
-                var what = Tr.Get(offer.TypeId);
-                var label = offer.Grade == Grade.Premium
-                    ? Tr.Format("{what}, premium", ("what", what))
-                    : Tr.Format("{what}, budget", ("what", what));
-                // As many as storage has room for: none, and it's greyed out.
-                var fits = offer.PortionsThatFit(StorageInOrder(offer.TypeId).Select(s => s.Unit));
-                // The menu shows the icon and this: premium's price is in gold, so the two grades read
-                // apart (the HUD font has no star). A proper premium badge is for the art pass.
-                var price = Locale.Money(offer.PriceFor(fits), MoneyStyle.Whole);
-                lines.Add(new PromptLine(control, $"{label} ×{fits}", fits > 0,
-                    iconId: offer.TypeId, iconLabel: offer.Grade == Grade.Premium ? $"<color=#{ColorUtility.ToHtmlStringRGB(PremiumGold)}>{price}</color>" : price));
+                // The icon and the price of one; greyed out when storage has no room for it.
+                var fits = offer.Fits(StorageInOrder(offer.TypeId).Select(s => s.Unit));
+                lines.Add(new PromptLine(control, Tr.Get(offer.TypeId), fits,
+                    iconId: offer.TypeId, iconLabel: Locale.Money(offer.Price)));
             }
         }
     }

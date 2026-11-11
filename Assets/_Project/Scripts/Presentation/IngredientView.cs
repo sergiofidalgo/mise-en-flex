@@ -10,6 +10,8 @@ namespace Game.Presentation
     /// The visible top surface follows its browning; for layered food like steak, the edge is
     /// three bands coloured by how hot each layer has been, so a cooked band creeps in from the
     /// seared sides and the middle band shows doneness, as when a cook looks at a steak's side.
+    /// Old food shows its age on top of that (decision 2026-11-11, <see cref="FreshnessLook"/>):
+    /// stale food dulls, and spoiled food goes mouldy, with fuzzy spots.
     /// </summary>
     public sealed class IngredientView : MonoBehaviour
     {
@@ -45,6 +47,12 @@ namespace Game.Presentation
             new ColorStop(1.00f, new Color(0.07f, 0.06f, 0.06f)), // burnt
         };
 
+        [Tooltip("Where the stale and spoiled lines are. Empty: 35% and 10%.")]
+        [SerializeField] private Game.Data.TuningConfig _tuning;
+
+        [Tooltip("Fuzzy mould spots, shown while the food is spoiled. Optional.")]
+        [SerializeField] private GameObject _mould;
+
         [Tooltip("°C at which a layer starts to look cooked.")]
         [SerializeField] private float _cookedFrom = 40f;
 
@@ -62,6 +70,10 @@ namespace Game.Presentation
         private Color _surfaceRaw;
         private Color[] _bandRaw;
         private Ingredient _variedFor;
+        private float _freshness = 1f;
+
+        private float StaleBelow => _tuning != null ? _tuning.StaleBelow : 0.35f;
+        private float SpoiledBelow => _tuning != null ? _tuning.SpoiledBelow : 0.1f;
 
         /// <summary>True for layered food (steak), whose middle band shows doneness.</summary>
         public bool ShowsDoneness => _layeredShader || _bands.Length >= 3;
@@ -95,6 +107,8 @@ namespace Game.Presentation
                 _variedFor = ingredient;
                 ApplyVariation(RuntimeHelpers.GetHashCode(ingredient));
             }
+
+            ShowFreshness(ingredient.Freshness);
 
             var burnt = Mathf.Max(ingredient.Properties.BurntBrowning, 0.0001f);
             // Layered food shows the side facing up, since it gets flipped. Loose food like diced
@@ -140,6 +154,23 @@ namespace Game.Presentation
         }
 
         /// <summary>
+        /// How fresh the food is (1 fresh, 0 spoiled), for the colours <see cref="ShowState"/> draws
+        /// next and the mould spots. Public so it can also be previewed outside Play mode.
+        /// </summary>
+        public void ShowFreshness(float freshness)
+        {
+            _freshness = freshness;
+            if (_mould != null)
+            {
+                var mouldy = FreshnessLook.StageOf(freshness, StaleBelow, SpoiledBelow) == FreshnessLook.Stage.Mouldy;
+                if (_mould.activeSelf != mouldy)
+                    _mould.SetActive(mouldy);
+            }
+        }
+
+        private Color Aged(Color colour) => FreshnessLook.Tint(colour, _freshness, StaleBelow, SpoiledBelow);
+
+        /// <summary>
         /// Colours the food for a cooking state, with both sides browned alike: browning as a
         /// fraction of burnt, and each layer's peak temperature in °C. Public so it can also be
         /// previewed outside Play mode.
@@ -160,26 +191,26 @@ namespace Game.Presentation
                 surface = ColorStop.Sample(_browning, browning, Cooked(topPeak, _surfaceRaw), 0f);
                 CoreColor = Cooked(corePeak, _surfaceRaw);
                 _surface.GetPropertyBlock(_block);
-                _block.SetColor(BaseColorId, surface);
+                _block.SetColor(BaseColorId, Aged(surface));
                 _block.SetFloat(BrowningId, browning);
                 // The underside's crust shows as a seared line along the bottom of the edge.
-                _block.SetColor(CrustBottomId, ColorStop.Sample(_browning, bottomBrowning, Cooked(bottomPeak, _surfaceRaw), 0f));
+                _block.SetColor(CrustBottomId, Aged(ColorStop.Sample(_browning, bottomBrowning, Cooked(bottomPeak, _surfaceRaw), 0f)));
                 _block.SetFloat(BrowningBottomId, bottomBrowning);
-                _block.SetColor(BandBottomId, Cooked(bottomPeak, _surfaceRaw));
-                _block.SetColor(BandCoreId, CoreColor);
-                _block.SetColor(BandTopId, Cooked(topPeak, _surfaceRaw));
+                _block.SetColor(BandBottomId, Aged(Cooked(bottomPeak, _surfaceRaw)));
+                _block.SetColor(BandCoreId, Aged(CoreColor));
+                _block.SetColor(BandTopId, Aged(Cooked(topPeak, _surfaceRaw)));
                 _surface.SetPropertyBlock(_block);
                 return;
             }
 
-            SetColor(_surface, surface);
+            SetColor(_surface, Aged(surface));
             if (_bands.Length < 3)
                 return;
 
-            SetColor(_bands[0], Cooked(bottomPeak, _bandRaw[0]));
+            SetColor(_bands[0], Aged(Cooked(bottomPeak, _bandRaw[0])));
             CoreColor = Cooked(corePeak, _bandRaw[1]);
-            SetColor(_bands[1], CoreColor);
-            SetColor(_bands[2], Cooked(topPeak, _bandRaw[2]));
+            SetColor(_bands[1], Aged(CoreColor));
+            SetColor(_bands[2], Aged(Cooked(topPeak, _bandRaw[2])));
         }
 
         private Color Cooked(float peakTemperature, Color raw) => ColorStop.Sample(_cooked, peakTemperature, raw, _cookedFrom);

@@ -160,15 +160,6 @@ namespace Game.Simulation.Cooking
             }
         }
 
-        /// <summary>
-        /// Fresh stock that wasn't just picked: cheap stall stock starts part-way down (Phase 5).
-        /// Only ever lowers it, so new stock can't be fresher than fresh.
-        /// </summary>
-        public void SetStartingFreshness(float freshness)
-        {
-            Freshness = Math.Max(0f, Math.Min(Freshness, freshness));
-        }
-
         internal void LoseFreshness(float amount)
         {
             Freshness = Math.Max(0f, Freshness - amount);

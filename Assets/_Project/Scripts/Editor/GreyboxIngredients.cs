@@ -246,9 +246,16 @@ namespace Game.Editor
             if (type.ServedHot)
                 AddSteam(root, itemView, type.Scale.y * 2f);
 
+            // Mould for when it's spoiled, grown over the food itself (not the steam).
+            var foodRenderers = new System.Collections.Generic.List<Renderer> { surface };
+            foodRenderers.AddRange(bands);
+            var mould = SpoilageArt.AddMould(root.transform, foodRenderers);
+
             var view = root.AddComponent<IngredientView>();
             var so = new SerializedObject(view);
             so.FindProperty("_itemView").objectReferenceValue = itemView;
+            so.FindProperty("_mould").objectReferenceValue = mould;
+            so.FindProperty("_tuning").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Game.Data.TuningConfig>(GreyboxKitchenBuilder.TuningConfigPath);
             so.FindProperty("_surface").objectReferenceValue = surface;
             so.FindProperty("_layeredShader").boolValue = layeredShader;
             var bandList = so.FindProperty("_bands");

@@ -77,8 +77,10 @@ namespace Game.Data
         [Header("Overnight")]
         [Tooltip("In-game hours between closing and the next day. Food ages through them.")]
         [SerializeField, Min(0f)] private float _overnightHours = 18f;
-        [Tooltip("Stored food below this freshness gets thrown out at closing.")]
+        [Tooltip("Stored food below this freshness gets thrown out at closing. Below it, food also looks mouldy.")]
         [SerializeField, Range(0f, 1f)] private float _spoiledBelow = 0.1f;
+        [Tooltip("Food below this freshness looks stale: duller and browner the older it gets (decision 2026-11-11).")]
+        [SerializeField, Range(0f, 1f)] private float _staleBelow = 0.35f;
 
         [Header("Washing by hand")]
         [Tooltip("Acceleration at full stick: high, so small movements shift the point a lot.")]
@@ -198,6 +200,8 @@ namespace Game.Data
         public float OvernightSeconds => _overnightHours * 3600f;
 
         public float SpoiledBelow => _spoiledBelow;
+
+        public float StaleBelow => _staleBelow;
 
         public WashGameSettings WashGame => new WashGameSettings
         {

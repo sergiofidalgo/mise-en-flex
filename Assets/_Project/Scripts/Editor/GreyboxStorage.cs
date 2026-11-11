@@ -45,6 +45,7 @@ namespace Game.Editor
             var bins = new Transform[SlotCount];
             var viewSo = new SerializedObject(station.gameObject.AddComponent<StorageView>());
             viewSo.FindProperty("_storage").objectReferenceValue = station;
+            viewSo.FindProperty("_tuning").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Game.Data.TuningConfig>(GreyboxKitchenBuilder.TuningConfigPath);
             var samples = viewSo.FindProperty("_samples");
             samples.arraySize = SlotCount * GreyboxIngredients.Types.Length;
             var sampleIndex = 0;
@@ -70,12 +71,14 @@ namespace Game.Editor
                 {
                     var shape = StorageArt.CreateSample(type, $"Sample_{(FaceButton)i}_{type.Id}", station.transform, SampleScale, out var baseOffset);
                     shape.transform.localPosition = slot + Vector3.up * (binTop + baseOffset);
+                    var mould = SpoilageArt.AddMould(station.transform, shape.GetComponentsInChildren<Renderer>(), $"Mould_{(FaceButton)i}_{type.Id}");
                     shape.SetActive(false);
 
                     var sample = samples.GetArrayElementAtIndex(sampleIndex++);
                     sample.FindPropertyRelative("_slot").intValue = i;
                     sample.FindPropertyRelative("_typeId").stringValue = type.Id;
                     sample.FindPropertyRelative("_shape").objectReferenceValue = shape;
+                    sample.FindPropertyRelative("_mould").objectReferenceValue = mould;
                 }
             }
             viewSo.ApplyModifiedPropertiesWithoutUndo();

@@ -7,108 +7,44 @@ using Game.Simulation.Storage;
 
 namespace Game.Simulation.Market
 {
-    /// <summary>The two qualities every stall sells (decision 2026-11-10).</summary>
-    public enum Grade
-    {
-        Cheap,
-        Premium,
-    }
-
     /// <summary>
-    /// How the street's stalls price and portion what they sell, the same for every stall. Premium
-    /// stock costs more and starts fresher; freshness is what the quality score and spoilage already
-    /// read, so "premium scores better" needs no rule of its own.
-    /// </summary>
-    public sealed class MarketSettings
-    {
-        /// <summary>Portions one purchase brings, at most: a full storage slot.</summary>
-        public int PortionsPerPurchase { get; set; } = 6;
-
-        /// <summary>Freshness cheap stock starts at (1 = just picked).</summary>
-        public float CheapFreshness { get; set; } = 0.7f;
-
-        public float PremiumFreshness { get; set; } = 1f;
-
-        /// <summary>Times the ingredient's own price, per portion.</summary>
-        public float CheapPriceFactor { get; set; } = 1f;
-
-        public float PremiumPriceFactor { get; set; } = 1.6f;
-
-        /// <summary>A purchase of <paramref name="typeId"/> in one grade, from its price per portion.</summary>
-        public StallOffer Offer(string typeId, float pricePerPortion, Grade grade)
-        {
-            var premium = grade == Grade.Premium;
-            return new StallOffer(
-                typeId,
-                grade,
-                pricePerPortion * (premium ? PremiumPriceFactor : CheapPriceFactor),
-                Math.Max(1, PortionsPerPurchase),
-                premium ? PremiumFreshness : CheapFreshness);
-        }
-    }
-
-    /// <summary>
-    /// One thing on a stall's counter: what it is, its grade and what it costs. Bought stock goes
-    /// straight into the restaurant's storage (decision 2026-11-10), as much as there's room for,
-    /// and only that much is paid for.
+    /// One ingredient on a stall's counter, at its price per portion. Each press buys one portion
+    /// (the user's call, 2026-11-11), brand new and fully fresh, and it goes straight into the
+    /// restaurant's storage (decision 2026-11-10). With no room anywhere, nothing is bought.
     /// </summary>
     public sealed class StallOffer
     {
-        public StallOffer(string typeId, Grade grade, float pricePerPortion, int portions, float startFreshness)
+        public StallOffer(string typeId, float price)
         {
             TypeId = typeId;
-            Grade = grade;
-            PricePerPortion = Math.Max(0f, pricePerPortion);
-            Portions = portions;
-            StartFreshness = Math.Max(0f, Math.Min(1f, startFreshness));
+            Price = Math.Max(0f, price);
         }
 
         public string TypeId { get; }
 
-        public Grade Grade { get; }
+        /// <summary>What one portion costs.</summary>
+        public float Price { get; }
 
-        public float PricePerPortion { get; }
-
-        /// <summary>The most one purchase brings.</summary>
-        public int Portions { get; }
-
-        public float StartFreshness { get; }
-
-        /// <summary>What <paramref name="portions"/> cost, rounded to whole money as prices are shown.</summary>
-        public float PriceFor(int portions) => (float)Math.Round(PricePerPortion * portions);
-
-        /// <summary>How many portions a purchase would bring now: as many as the storage has room for, up to <see cref="Portions"/>.</summary>
-        public int PortionsThatFit(IEnumerable<StorageUnit> storage) =>
-            Math.Min(Portions, storage.Sum(unit => unit.RoomFor(TypeId)));
+        /// <summary>True if any of <paramref name="storage"/> has room for one more portion.</summary>
+        public bool Fits(IEnumerable<StorageUnit> storage) => storage.Any(unit => unit.RoomFor(TypeId) > 0);
 
         /// <summary>
-        /// Buys stock straight into storage, filling <paramref name="storage"/> in the order given
-        /// (see <see cref="StorageOrder"/>). Paid at once into the day's ingredients line, whatever
-        /// the balance (money can go below zero, decision 2026-11-08), for the portions that fitted.
+        /// Buys one portion into the first of <paramref name="storage"/> with room for it (see
+        /// <see cref="StorageOrder"/>), paid at once into the day's ingredients line, whatever the
+        /// balance (money can go below zero, decision 2026-11-08).
         /// </summary>
-        /// <param name="create">Makes one portion for a unit, at that unit's temperature, registered with the cooking simulation.</param>
-        /// <returns>Where the stock went: each unit that took some, and how many. Empty if nothing fitted, and nothing was paid.</returns>
-        public List<(StorageUnit Unit, int Count)> BuyInto(DayCycle days, IEnumerable<StorageUnit> storage, Func<StorageUnit, Ingredient> create)
+        /// <param name="create">Makes the portion for a unit, at that unit's temperature, registered with the cooking simulation.</param>
+        /// <returns>The unit it went into, or null if none had room: then nothing was paid.</returns>
+        public StorageUnit BuyInto(DayCycle days, IEnumerable<StorageUnit> storage, Func<StorageUnit, Ingredient> create)
         {
-            var stocked = new List<(StorageUnit, int)>();
-            var bought = 0;
             foreach (var unit in storage)
             {
-                if (bought >= Portions)
-                    break;
-                var count = unit.Stock(TypeId, () =>
-                {
-                    var portion = create(unit);
-                    portion.SetStartingFreshness(StartFreshness);
-                    return portion;
-                }, Portions - bought);
-                if (count > 0)
-                    stocked.Add((unit, count));
-                bought += count;
+                if (unit.Stock(TypeId, () => create(unit), 1) == 0)
+                    continue;
+                days.Charge(LedgerLine.Ingredients, Price);
+                return unit;
             }
-            if (bought > 0)
-                days.Charge(LedgerLine.Ingredients, PriceFor(bought));
-            return stocked;
+            return null;
         }
     }
 
