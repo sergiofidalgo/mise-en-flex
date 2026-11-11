@@ -249,6 +249,7 @@ namespace Game.Presentation.Hud
             PulseBoss();
             UpdateMoney(Time.unscaledDeltaTime);
             UpdateStart(Time.unscaledDeltaTime);
+            AnimateRestaurant(Time.unscaledDeltaTime);
             if (_saveCookbookAt >= 0f && Time.unscaledTime >= _saveCookbookAt)
                 SaveCookbookNow();
             if (_dirty)

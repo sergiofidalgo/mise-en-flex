@@ -4,6 +4,20 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-11 — The Restaurant tab shows plates, chips and a price dial
+
+**User's call, after seeing the first render:** the menu should be more exciting and more visual, with pictures of steaming plates rather than just text, ingredients as chips, the price as a dial with its neighbouring numbers, and a schedule selector that isn't just text. The "Suggested" chip covered the price change.
+
+**Decision:**
+- **Dish pictures:** each recipe is plated from the game's own models, cooked (a medium steak, golden onions), and photographed by *Tools/Game/Art/Render Dish Pictures* into `Art/UI/Dishes` and `HudStyle` (by recipe id, so no scene rebuild is needed). The list shows each plate; the chosen recipe's plate is large, top right. Steam rises from a dish while it's on the menu; a dish still to unlock is faded and cold.
+- **Ingredients are chips** with their pictures, and the cost a serving follows them.
+- **The price is a dial:** the price big in the middle, with neighbouring numbers either side, shrinking and fading like a wheel seen edge on. Each step rolls it to the new price (`_dialRollSpeed`). The suggestion, its % change and the X chip have their own line, so the chip no longer covers anything.
+- **Opening times are tiles** with a sun (Lunch), a moon (Dinner) or both (All day). Under them, the day is drawn as a bar per half hour: flat while closed, as tall as the guests coming while open, with the rushes in gold. While the tiles have the focus, the detail panel shows the same day bigger, and the guests to expect as a crowd of little figures.
+
+**Placeholders:** the sun and moon are drawn in code, the steam is soft puffs, and the dish photos use the greybox models. All of them are for the art pass to replace (the art bible's 64 px icon grid).
+
+---
+
 ## 2026-11-11 — Opening times: three slots, a faster clock, two rush hours
 
 **User's calls:**
