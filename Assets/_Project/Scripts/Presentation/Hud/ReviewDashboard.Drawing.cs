@@ -1530,6 +1530,10 @@ namespace Game.Presentation.Hud
             _canvasObject.transform.SetParent(transform, false);
             var canvas = _canvasObject.AddComponent<Canvas>();
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            // It's nested under the kitchen's HUD canvas: without its own sorting it drew in the HUD's
+            // order, under whatever the HUD made after it (a cutting dial, the guests' edge markers),
+            // so those showed over the dashboard as the day ended (2026-11-11 playtest round).
+            canvas.overrideSorting = true;
             canvas.sortingOrder = 20;
             var scaler = _canvasObject.AddComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
