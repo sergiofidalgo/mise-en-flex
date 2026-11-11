@@ -3559,6 +3559,8 @@ It hides (fading over the HUD's 0.12 s) behind the Review dashboard, the pause m
 
 **Not checked in play:** whether players expect browsing to keep what they last saw. If they do, B could wear the shown item instead of dropping it.
 
+**Superseded (2026-11-11 playtest round):** the user found A to wear unnecessary; the tailor saves as you go again (the entry "The office after the playtest" below).
+
 ## 2026-11-11 — Prep: only the shop is see-through, D-pad down opens it, Rearrange under the money
 
 **User's calls:**
@@ -3635,3 +3637,12 @@ From a longer playtest. All the user's calls:
 - **Dashboard navigation** moves between neighbouring cards along explicit paths, instead of jumping to whatever is nearest on screen.
 - **The boss's hat** is smaller, so he doesn't hide the office.
 - **The tailor saves as you go:** no A to wear. Every change applies at once, and B leaves. This replaces "At the tailor, A wears" from earlier today.
+
+## 2026-11-11 — The office after the playtest: a smaller boss's hat, and the tailor saves as you go
+
+The two office items from the playtest round above.
+
+- **The boss's hat** (`OfficeBuilder.Boss`, which also dresses his kitchen visitor, `PF_BossVisitor`): the brim is about two thirds its old width (0.68 of the fit to his head) and the hat a fifth lower (0.8); the crown keeps more of its width (0.84) so his head and grey fringe never poke through it. It's shrunk about where it sits on his head, so it stays seated. Still a white cowboy hat with its walnut band, so he reads as the boss. *Tools/Game/Build Boss Visitors* rebuilds only his and the bodyguard's kitchen prefabs; *Tools/Game/Art/Capture Boss* renders him in the office and the kitchen.
+- **The tailor saves as you go** (`TailorSession.StepItem`, `TailorPlinth`): every open item shown, in every section, is worn and saved at once, as before "A wears". A locked item still shows while browsing and isn't kept; B hops down and the chef goes back to the last open item. A does nothing while dressing. The dressing card loses "A Wear" and "· wearing", and shows only B Done (Xbox buttons only); their Spanish strings are gone from `es.csv`.
+
+**Not checked in play:** how the smaller hat reads from the office camera with chefs about, and whether the boss still stands out on his kitchen visits.
