@@ -1,3 +1,4 @@
+using Game.Data;
 using Game.Gameplay;
 using Game.Presentation.Menu;
 using Game.Simulation.Days;
@@ -20,7 +21,8 @@ namespace Game.Presentation.Hud
     /// <para>In Prep it becomes two tiles above the ready bar (the user's design, 2026-11-11): a
     /// calendar page ("FRI 5") with "Prep / Opens 18:00", and two guests' faces with "About 5
     /// guests / Groups of one". The forecast follows the tables and the menu's prices as they
-    /// change, as the night itself will.</para>
+    /// change, as the night itself will. A slim third tile under them names the View button:
+    /// "Rearrange" (the user's call, 2026-11-11), the only place it's shown.</para>
     /// </summary>
     public sealed class DayCardHud : MonoBehaviour
     {
@@ -38,6 +40,10 @@ namespace Game.Presentation.Hud
         private const float TileLineSize = 24f;
         private const float CalendarWidth = 58f, CalendarHeight = 62f, CalendarBand = 18f;
         private const float Face = 50f, FaceStep = 30f;
+        // The rearrange hint under them: a slimmer tile with the View button and its word.
+        private const float HintHeight = 56f;
+        private const float KeyWidth = 44f, KeyHeight = 30f;
+        private static readonly Color KeyColour = new Color(0.32f, 0.33f, 0.37f);
         private static readonly Color CalendarPaper = new Color(0.953f, 0.918f, 0.851f);
         private static readonly Color CalendarRed = new Color(0.788f, 0.290f, 0.227f);
         private static readonly Color CalendarInk = new Color(0.165f, 0.102f, 0.063f);
@@ -164,7 +170,8 @@ namespace Game.Presentation.Hud
             var opens = DayCardText.Opens(opensAtHour);
             var count = DayCardText.Guests(guests);
             var groups = DayCardText.Groups(groupSize);
-            var key = $"{day}|{weekday}|{title}|{opens}|{count}|{groups}";
+            var rearrange = Tr.Get("Rearrange");
+            var key = $"{day}|{weekday}|{title}|{opens}|{count}|{groups}|{rearrange}";
             if (key == _tilesShown)
                 return;
             _tilesShown = key;
@@ -188,12 +195,29 @@ namespace Game.Presentation.Hud
             var canvasWidth = ((RectTransform)_canvas.transform).rect.width;
             if (canvasWidth > 1f)
                 width = Mathf.Min(width, canvasWidth - 2f * Margin); // whole on screen, always
-            _tiles.sizeDelta = new Vector2(width, 2f * height + TileGap);
+            _tiles.sizeDelta = new Vector2(width, 2f * height + HintHeight + 2f * TileGap);
 
             var day1 = Tile(0f, width, title, opens);
             Calendar(day1, Pad + IconColumn / 2f, height / 2f, weekday, day.ToString());
             var guestsTile = Tile(height + TileGap, width, count, groups);
             Faces(guestsTile, Pad + IconColumn / 2f, height / 2f, day);
+            Hint(2f * (height + TileGap), width, rearrange);
+        }
+
+        // The View button as a key cap (two overlapping windows, drawn: no font has it) and its word,
+        // the key centred in the icon column like the icons above.
+        private void Hint(float top, float width, string word)
+        {
+            var tile = UiKit.Rect(_tiles, "Hint", 0f, top, width, HintHeight);
+            var fill = _style.CardBackground;
+            fill.a *= _style.DayCardOpacity;
+            UiKit.StrokedBox(tile, "Back", fill, _style.DayCardEdge, _style.DayCardStroke, 0f, 0f, width, HintHeight, Radius);
+            var cx = Pad + IconColumn / 2f;
+            var cy = HintHeight / 2f;
+            UiKit.RoundBox(tile, "Key", KeyColour, cx - KeyWidth / 2f, cy - KeyHeight / 2f, KeyWidth, KeyHeight, 8f);
+            UiKit.StrokedBox(tile, "Back", KeyColour, Color.white, 2f, cx - 9f, cy - 8f, 13f, 11f, 2f);
+            UiKit.StrokedBox(tile, "Front", KeyColour, Color.white, 2f, cx - 4f, cy - 3f, 13f, 11f, 2f);
+            UiKit.TextAt(_style.Bold, tile, "Word", word, TileLineSize, _style.DayText, Pad + IconColumn, cy + TileLineSize * 0.36f, width - Pad - IconColumn - Pad);
         }
 
         // One tile: the day card's look (see-through, sand outline), an icon column and two lines.
