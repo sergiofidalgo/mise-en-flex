@@ -381,7 +381,7 @@ namespace Game.Presentation.Hud
             var card = new Card { Colour = colour };
             card.Root = UiKit.Rect(_canvas.transform, $"Player{index + 1}Shop", 0f, 0f, Width, Height);
             card.Root.pivot = new Vector2(0.5f, 1f);
-            UiKit.OutlinedBox(card.Root, "Back", _style.ShopCardFill, colour, 4f, 0f, 0f, Width, Height, 22f);
+            UiKit.OutlinedBox(card.Root, "Back", _style.ShopCardFill(colour), colour, 4f, 0f, 0f, Width, Height, 22f);
             card.Edge = card.Root.Find("BackEdge")?.GetComponent<Image>();
 
             var turn = UiKit.Rect(card.Root, "Turn", 0f, 0f, Width, Height);

@@ -183,5 +183,31 @@ namespace Game.Tests.PlayMode
             yield return null;
             Assert.That(days.Phase, Is.EqualTo(DayPhase.Service), "one cook: holding Y opens up");
         }
+
+        [UnityTest]
+        public IEnumerator InPrepBTakesAReadyBack()
+        {
+            yield return Arrive();
+            yield return Join();
+            var second = InputSystem.AddDevice<Gamepad>("ForkcastTestPad2");
+            Object.FindFirstObjectByType<PlayerInputManager>().JoinPlayer(controlScheme: "Gamepad", pairWithDevices: second);
+            yield return null;
+            yield return null;
+            var days = _root.Services.Days;
+            days.Advance(); // Prep
+            yield return null;
+            var ready = Object.FindFirstObjectByType<DayLoop>().Ready;
+
+            InputSystem.QueueStateEvent(_pad, new GamepadState().WithButton(GamepadButton.North));
+            yield return new WaitForSecondsRealtime(1.1f);
+            InputSystem.QueueStateEvent(_pad, new GamepadState());
+            yield return null;
+            Assert.That(ready.IsReady(_player.playerIndex), Is.True, "holding Y readies");
+            Assert.That(days.Phase, Is.EqualTo(DayPhase.Prep), "the second cook isn't ready");
+
+            yield return Press(GamepadButton.East);
+            Assert.That(ready.IsReady(_player.playerIndex), Is.False, "B takes it back");
+            InputSystem.RemoveDevice(second);
+        }
     }
 }

@@ -14,7 +14,7 @@ namespace Game.Presentation.Hud
     /// The kitchen's ready bar in Prep (the user's design, 2026-11-11): the forkcast dashboard's
     /// footer bar (ReadyLanes) along the bottom of the screen, one segment per joined cook. A cook
     /// still prepping reads "Y Hold to start service" in their segment, which fills in their colour
-    /// as they hold Y; once ready it reads "Y Player N READY" (holding Y again takes it back). Hidden
+    /// as they hold Y; once ready it reads "B Player N READY", B taking it back, as on the dashboard. Hidden
     /// outside Prep and behind the dashboard and the pause menu. Built in code on its own canvas.
     /// </summary>
     public sealed class PrepReadyBarHud : MonoBehaviour
@@ -122,8 +122,9 @@ namespace Game.Presentation.Hud
             {
                 _shown = state;
                 var y = new ReadyLanes.Glyph("Y", _style.BadgeColor(Game.Gameplay.Stations.PromptControl.North, true));
+            var b = new ReadyLanes.Glyph("B", _style.BadgeColor(Game.Gameplay.Stations.PromptControl.East, true));
                 lanes.Label(p => _dayLoop.Ready.IsReady(p), (player, ready) => ready
-                    ? (Tr.Format("Player {player} READY", ("player", player + 1)), y)
+                    ? (Tr.Format("Player {player} READY", ("player", player + 1)), b)
                     : (Tr.Get("Hold to start service"), y));
             }
             lanes.Tick(dt, p => _dayLoop.Ready.IsReady(p), p => p >= 0 ? _dayLoop.ReadyHoldProgress(p) : 0f);
@@ -137,8 +138,9 @@ namespace Game.Presentation.Hud
             var lanes = Lanes();
             lanes.Build(players, _settings.GetPlayerColor);
             var y = new ReadyLanes.Glyph("Y", _style.BadgeColor(Game.Gameplay.Stations.PromptControl.North, true));
+            var b = new ReadyLanes.Glyph("B", _style.BadgeColor(Game.Gameplay.Stations.PromptControl.East, true));
             lanes.Label(ready.Contains, (player, isReady) => isReady
-                ? (Tr.Format("Player {player} READY", ("player", player + 1)), y)
+                ? (Tr.Format("Player {player} READY", ("player", player + 1)), b)
                 : (Tr.Get("Hold to start service"), y));
             // Long enough for the fills to settle where they're held.
             for (var i = 0; i < 60; i++)

@@ -10,7 +10,7 @@ namespace Game.Gameplay
     /// <summary>
     /// Runs the day from the players' side. In Prep each player readies up by holding Y (the
     /// user's call, 2026-11-11, as on the forkcast dashboard in Plan and Review); a tap of Y still
-    /// does its job at the station they face, and holding again takes the ready back. Menu only
+    /// does its job at the station they face. B takes a ready back, as on the dashboard. Menu only
     /// pauses. The day moves on once they all are.
     /// A service ends by itself, once everyone has left. A player whose controller is lost isn't
     /// waited for in the ready-up; during a service, the game stands still until it's back or
@@ -23,6 +23,7 @@ namespace Game.Gameplay
         [SerializeField] private Debt.BossVisitDirector _boss;
 
         private const string ReadyAction = "ButtonY";
+        private const string UnreadyAction = "ButtonB";
 
         // A press already down when a player joins isn't a hold until it's let go (StartHold).
         private readonly HashSet<PlayerInput> _seenLastFrame = new HashSet<PlayerInput>();
@@ -177,8 +178,13 @@ namespace Game.Gameplay
                 // Read for everyone, so the press that joined a player is seen and ignored. A tap
                 // is the station's (PlayerInteractor); only a hold counts here.
                 var press = _readyHold.Update(player.playerIndex, down, Time.unscaledDeltaTime);
-                if (_seenLastFrame.Contains(player) && press == MenuPress.Result.Hold)
-                    Ready.Toggle(player.playerIndex);
+                if (!_seenLastFrame.Contains(player))
+                    continue;
+                if (press == MenuPress.Result.Hold)
+                    Ready.Set(player.playerIndex, true);
+                // B takes it back (the B on their segment says so).
+                else if (Ready.IsReady(player.playerIndex) && player.actions.FindAction(UnreadyAction) is { } back && back.WasPressedThisFrame())
+                    Ready.Set(player.playerIndex, false);
             }
         }
     }

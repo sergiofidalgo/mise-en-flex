@@ -132,7 +132,9 @@ namespace Game.Presentation.Hud
         [Tooltip("Last orders and Closed.")]
         [SerializeField] private Color _dayNotice = new Color(0.96f, 0.76f, 0.25f);
         [Tooltip("The shop card's fill opacity: the kitchen shows through while a player shops (the user's call, 2026-11-11; only the shop is see-through). Text stays solid.")]
-        [SerializeField, Range(0f, 1f)] private float _shopCardOpacity = 0.6f;
+        [SerializeField, Range(0f, 1f)] private float _shopCardOpacity = 0.9f;
+        [Tooltip("How much of the player's colour is in the shop card's dark fill, as the office's cards look (2026-11-11).")]
+        [SerializeField, Range(0f, 1f)] private float _shopCardTint = 0.18f;
 
         [Header("Shapes (Unity's built-in UI sprites)")]
         [SerializeField] private Sprite _circle;
@@ -231,8 +233,13 @@ namespace Game.Presentation.Hud
         public float DayCardOpacity => _dayCardOpacity;
         public float ShopCardOpacity => _shopCardOpacity;
 
-        /// <summary>The card background as the shop card fills with it: see-through, the kitchen showing.</summary>
-        public Color ShopCardFill => new Color(_cardBackground.r, _cardBackground.g, _cardBackground.b, _shopCardOpacity);
+        /// <summary>The shop card's fill: the card background with a touch of the player's colour, see-through.</summary>
+        public Color ShopCardFill(Color player)
+        {
+            var dark = Color.Lerp(new Color(_cardBackground.r, _cardBackground.g, _cardBackground.b), player, _shopCardTint);
+            dark.a = _shopCardOpacity;
+            return dark;
+        }
         public Color DayCardEdge => _dayCardEdge;
         public float DayCardStroke => _dayCardStroke;
         public Color DayText => _dayText;

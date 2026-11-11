@@ -3553,3 +3553,8 @@ It hides (fading over the HUD's 0.12 s) behind the Review dashboard, the pause m
 - **A player rearranging the kitchen gets a tab under their card:** the D-pad with its down arm lit, a little grid for the shop, "Shop" and a down-arrow that bobs. **D-pad down opens the shop**, not Y; B closes it. Y in rearranging mode does nothing now (holding it doesn't ready up either, as before). The cursor's own hint line no longer names the shop.
 
 **Not checked in play:** whether 0.6 is readable over a busy kitchen; it's one number in the HUD style.
+
+## 2026-11-11 — The shop card's fill; B cancels a ready in Prep
+
+- **The shop card is a dark shade of the player's colour** (18% of it in the card background), at 0.9 opacity: like the office's cards, with the kitchen faintly through (`HudStyle._shopCardTint`, `_shopCardOpacity`).
+- **In Prep, B takes a ready back**, as on the dashboard; a ready lane reads "B Player N READY". Holding Y only readies now (it no longer toggles). B at a station also does the station's B, as a quick Y does.
