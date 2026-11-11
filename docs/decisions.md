@@ -4,6 +4,14 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-11 — A full bin's flies are an urgent swarm
+
+**Decision:** The bin's flies grow with it: from half full, a few small ones (6 cm), more and bigger as it fills. Once it's full they jump to a swarm: 14 a second plus a burst of 8 about every second, 11 cm each, circling twice as wide (0.32 m) and over twice as fast (`BinFillView`, "Full: a swarm"). Before, at most about ten 5 cm specks circled it, which went unnoticed.
+
+**Reason:** The user's note that the flies weren't noticeable enough and that a full bin should feel urgent.
+
+---
+
 ## 2026-11-11 — Full fridges and shelves show the same 🚫 as the bin
 
 **Decision:** A fridge or shelf whose every slot is at capacity shows the bin's 🚫 sign over it, popping in, bobbing and rocking when a player holding something faces it (`FullSign`, shared by `BinFillView` and `StorageView`). A unit with room left in a slot isn't "full", even if it refuses what someone holds because all its slots hold other ingredients; there the "put back" prompt is already greyed out. The sign sits just above the unit's top.
