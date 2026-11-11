@@ -66,6 +66,11 @@ namespace Game.Tests.PlayMode
             wide.transform.SetPositionAndRotation(new Vector3(3f, 7f, -17f), Quaternion.Euler(35f, 10f, 0f));
             yield return new WaitForSeconds(6f);
             Shoot(wide, Path.Combine(folder, "street_life_board.png"));
+
+            // And on the plaza: the bench, the planters, the pigeons between the stalls.
+            wide.transform.SetPositionAndRotation(new Vector3(-9f, 8f, -12f), Quaternion.Euler(40f, 0f, 0f));
+            yield return null;
+            Shoot(wide, Path.Combine(folder, "street_life_plaza.png"));
         }
 
         private static void SetHours(StreetLampsView lamps, float dusk)

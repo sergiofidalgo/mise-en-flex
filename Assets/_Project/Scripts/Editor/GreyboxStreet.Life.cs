@@ -108,9 +108,29 @@ namespace Game.Editor
         // on the kerb.
         private static void Furniture(Transform life)
         {
+            var middle = (BuildingSouth + BuildingNorth) / 2f;
+            var corners = new[]
+            {
+                new Vector2(GroundsWest + 0.45f, middle - 2f), new Vector2(GroundsWest + 0.45f, middle + 2f),
+                new Vector2(GroundsWest + 0.45f, GroundsNorth - 1f), new Vector2(GroundsEast - 0.45f, GroundsNorth - 1f),
+            };
+            // The street kit's own models (the city's bench, planter and hydrant), where it's there.
+            if (Kit.Available)
+            {
+                Kit.Bench(life, new Vector3(GroundsWest + 0.5f, 0f, middle), 90f); // its back to the plaza's edge
+                Solid(Last(life));
+                foreach (var corner in corners)
+                {
+                    // Long side along the edge (the kit's planter is a 1.7 m hedge trough), out of the stalls' way.
+                    Kit.Planter(life, new Vector3(corner.x, 0f, corner.y), 90f);
+                    Solid(Last(life));
+                }
+                Kit.Hydrant(life, new Vector3(BuildingEast + 4.6f, 0f, Kerb - 0.02f));
+                return;
+            }
+
             var wood = Kit.Toon("StreetBenchWood", new Color(0.52f, 0.36f, 0.24f));
             var iron = Kit.Toon("StreetLampIron", LampIron);
-            var middle = (BuildingSouth + BuildingNorth) / 2f;
 
             var bench = new GameObject("Bench").transform;
             bench.SetParent(life, false);
@@ -125,11 +145,7 @@ namespace Game.Editor
 
             var pot = Kit.Toon("StreetPlanter", new Color(0.62f, 0.4f, 0.3f));
             var shrub = Kit.Toon("StreetShrub", new Color(0.33f, 0.5f, 0.3f));
-            var spots = new[]
-            {
-                new Vector2(GroundsWest + 0.45f, middle - 1.5f), new Vector2(GroundsWest + 0.45f, middle + 1.5f),
-                new Vector2(GroundsWest + 0.45f, GroundsNorth - 0.45f), new Vector2(GroundsEast - 0.45f, GroundsNorth - 0.45f),
-            };
+            var spots = corners;
             for (var i = 0; i < spots.Length; i++)
             {
                 var planter = new GameObject("Planter").transform;
@@ -145,7 +161,7 @@ namespace Game.Editor
                 body.size = new Vector3(0.5f, 1f, 0.5f);
             }
 
-            var red = Kit.Toon("StreetHydrant", new Color(0.78f, 0.24f, 0.2f));
+            var red = Kit.Toon("StreetHydrant", new Color(0.82f, 0.2f, 0.18f)); // the kit's own red
             var hydrant = new GameObject("Hydrant").transform;
             hydrant.SetParent(life, false);
             hydrant.localPosition = new Vector3(BuildingEast + 4.6f, 0f, Kerb - 0.02f);
@@ -158,6 +174,19 @@ namespace Game.Editor
         // way round it: passers-by stop in front of it to read (StreetWalkersView).
         private static (Transform Board, Transform Spot) MenuBoard(Transform life)
         {
+            var reader = new GameObject("MenuBoardReader").transform;
+            reader.SetParent(life, false);
+            reader.localPosition = new Vector3(BuildingEast + 2.3f, 0f, BuildingSouth - 1.45f);
+            // The kit's lit menu on a stand, facing the street, where it's there.
+            if (Kit.Available)
+            {
+                Kit.MenuStand(life, new Vector3(BuildingEast + 2.3f, 0f, BuildingSouth - 0.6f), 180f);
+                var stand = Last(life);
+                stand.name = "MenuBoard";
+                Solid(stand);
+                return (stand, reader);
+            }
+
             var board = new GameObject("MenuBoard").transform;
             board.SetParent(life, false);
             board.localPosition = new Vector3(BuildingEast + 2.3f, 0f, BuildingSouth - 0.6f);
@@ -183,10 +212,40 @@ namespace Game.Editor
             body.center = new Vector3(0f, 0.5f, 0f);
             body.size = new Vector3(0.62f, 1f, 0.5f);
 
-            var spot = new GameObject("MenuBoardReader").transform;
-            spot.SetParent(life, false);
-            spot.localPosition = new Vector3(BuildingEast + 2.3f, 0f, BuildingSouth - 1.45f);
-            return (board, spot);
+            return (board, reader);
+        }
+
+        private static Transform Last(Transform parent) => parent.GetChild(parent.childCount - 1);
+
+        // A collider round a kit model's meshes, at least a metre tall so no chef climbs onto it.
+        private static void Solid(Transform group)
+        {
+            var bounds = new Bounds();
+            var any = false;
+            foreach (var filter in group.GetComponentsInChildren<MeshFilter>())
+            {
+                if (filter.sharedMesh == null)
+                    continue;
+                var mesh = filter.sharedMesh.bounds;
+                for (var corner = 0; corner < 8; corner++)
+                {
+                    var point = mesh.center + Vector3.Scale(mesh.extents,
+                        new Vector3((corner & 1) == 0 ? -1f : 1f, (corner & 2) == 0 ? -1f : 1f, (corner & 4) == 0 ? -1f : 1f));
+                    var local = group.InverseTransformPoint(filter.transform.TransformPoint(point));
+                    if (any)
+                        bounds.Encapsulate(local);
+                    else
+                        bounds = new Bounds(local, Vector3.zero);
+                    any = true;
+                }
+            }
+            if (!any)
+                return;
+            var box = group.gameObject.AddComponent<BoxCollider>();
+            var height = Mathf.Max(1f, bounds.max.y);
+            box.center = new Vector3(bounds.center.x, height / 2f, bounds.center.z);
+            box.size = new Vector3(bounds.size.x, height, bounds.size.z);
+            Debug.Log($"[GreyboxStreet] {group.name}: {bounds.size.x:0.00} x {bounds.size.y:0.00} x {bounds.size.z:0.00} m.");
         }
 
         private static void Passersby(Transform life, Transform board, Transform spot)
