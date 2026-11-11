@@ -1120,7 +1120,10 @@ namespace Game.Presentation.Hud
         // The footer strip: flush with the panel's bottom edge and sides (the user's design, 2026-11-11).
         private const float BarX = PanelX, BarTop = FooterTop + 10f, BarWidth = PanelWidth, BarHeight = PanelY + PanelHeight - FooterTop - 10f, SegmentGap = 4f;
         // The start card in the left column, under the four facts.
-        private const float StartCardTop = 822f, StartCardHeight = 84f;
+        // A round-ended pill, standing on its own centred in the gap between the cards (they end at
+        // 808) and the footer strip (the user's mock, 2026-11-11).
+        private const float StartCardHeight = 84f;
+        private const float StartCardTop = 808f + (BarTop - 808f - StartCardHeight) / 2f;
 
         [Header("Start bar")]
         [Tooltip("How quickly each segment catches up with its player's hold, per second (higher is snappier).")]
@@ -1216,10 +1219,10 @@ namespace Game.Presentation.Hud
             _startA = UiKit.Rect(_layout, "StartButton", 120f, StartCardTop, 600f, StartCardHeight);
             _startA.pivot = new Vector2(0.5f, 0.5f);
             _startA.anchoredPosition += new Vector2(300f, -StartCardHeight / 2f);
-            UiKit.StrokedBox(_startA, "Button", _buttonA, Color.white, 4f, 0f, 0f, 600f, StartCardHeight, 18f);
-            // A darker lower band gives it depth, like a key (flat, no gradient).
-            UiKit.RoundBox(_startA, "Shade", Color.Lerp(_buttonA, _ink, 0.22f), 2f, StartCardHeight * 0.62f, 596f, StartCardHeight * 0.38f - 2f, 16f);
-            UiKit.RoundBox(_startA, "ShadeTop", _buttonA, 2f, StartCardHeight * 0.55f, 596f, StartCardHeight * 0.12f, 0f);
+            var face = UiKit.StrokedBox(_startA, "Button", _buttonA, Color.white, 4f, 0f, 0f, 600f, StartCardHeight, StartCardHeight / 2f);
+            // A darker lower band gives it depth, like a key (flat, no gradient), clipped to the pill.
+            face.gameObject.AddComponent<Mask>().showMaskGraphic = true;
+            UiKit.RoundBox(face.transform, "Shade", Color.Lerp(_buttonA, _ink, 0.18f), 0f, StartCardHeight * 0.6f, 600f, StartCardHeight * 0.4f, 0f);
             _startRing = UiKit.Rect(_startA, "Ring", 0f, (StartCardHeight - 52f) / 2f, 52f, 52f);
             UiKit.StrokedCircle(_startRing, "A", _buttonA, Color.white, 4f, 0f, 0f, 52f);
             Label(Bold, _startRing, "A", 28f, Color.white, 26f, 26f + 10f, 52f, HorizontalAlignmentOptions.Center);
