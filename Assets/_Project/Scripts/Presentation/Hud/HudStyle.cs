@@ -131,8 +131,8 @@ namespace Game.Presentation.Hud
         [SerializeField] private Color _dayText = new Color(0.86f, 0.83f, 0.77f);
         [Tooltip("Last orders and Closed.")]
         [SerializeField] private Color _dayNotice = new Color(0.96f, 0.76f, 0.25f);
-        [Tooltip("The fill's opacity of every card in Prep (tiles, player cards, shop cards): the kitchen shows through while players work (the user's call, 2026-11-11). Text stays solid.")]
-        [SerializeField, Range(0f, 1f)] private float _prepCardOpacity = 0.6f;
+        [Tooltip("The shop card's fill opacity: the kitchen shows through while a player shops (the user's call, 2026-11-11; only the shop is see-through). Text stays solid.")]
+        [SerializeField, Range(0f, 1f)] private float _shopCardOpacity = 0.6f;
 
         [Header("Shapes (Unity's built-in UI sprites)")]
         [SerializeField] private Sprite _circle;
@@ -229,10 +229,10 @@ namespace Game.Presentation.Hud
         public float DayTitleSize => _dayTitleSize;
         public float DayLineSize => _dayLineSize;
         public float DayCardOpacity => _dayCardOpacity;
-        public float PrepCardOpacity => _prepCardOpacity;
+        public float ShopCardOpacity => _shopCardOpacity;
 
-        /// <summary>The card background as Prep's cards fill with it: see-through, the kitchen showing.</summary>
-        public Color PrepCardFill => new Color(_cardBackground.r, _cardBackground.g, _cardBackground.b, _prepCardOpacity);
+        /// <summary>The card background as the shop card fills with it: see-through, the kitchen showing.</summary>
+        public Color ShopCardFill => new Color(_cardBackground.r, _cardBackground.g, _cardBackground.b, _shopCardOpacity);
         public Color DayCardEdge => _dayCardEdge;
         public float DayCardStroke => _dayCardStroke;
         public Color DayText => _dayText;

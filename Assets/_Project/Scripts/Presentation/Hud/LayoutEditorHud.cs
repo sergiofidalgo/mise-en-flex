@@ -112,7 +112,8 @@ namespace Game.Presentation.Hud
                         : $"{Glyph(PromptControl.South)} {Tr.Get("place")}   [LB/RB] {Tr.Get("rotate")}   {Glyph(PromptControl.East)} {Tr.Get("cancel")}";
             }
 
-            var always = $"{Glyph(PromptControl.North)} {Tr.Get("shop")}   [Select] {Tr.Get("back to chef")}";
+            // The shop's way in (D-pad down) is on the player's card, as a tab under it.
+            var always = $"[Select] {Tr.Get("back to chef")}";
             var under = _editor.StationUnder(cursor);
             if (under == null)
                 return always;

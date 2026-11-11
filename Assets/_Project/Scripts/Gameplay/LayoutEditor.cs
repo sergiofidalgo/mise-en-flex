@@ -18,7 +18,7 @@ namespace Game.Gameplay
     /// chef waits while a cursor of theirs rearranges the kitchen. A picks up and places, RB and LB
     /// rotate, B puts what's held back where it was, and Select returns to the chef. Furniture goes exactly where they put it, snapping
     /// to what's around it when close. What's on a station moves with it. Each player has their own
-    /// cursor, and two can't hold the same thing. Y opens the shop, whose furniture is carried like any
+    /// cursor, and two can't hold the same thing. D-pad down opens the shop, whose furniture is carried like any
     /// other and paid for when it goes down (LB and RB turn its pages), and X sells what's under the cursor. The cutting board and
     /// the knife rack are each built into a counter of their own (decision 2026-11-08), moved like any piece.
     /// </summary>
@@ -31,7 +31,6 @@ namespace Game.Gameplay
         private const string CancelAction = "ButtonB";
         private const string RotateLeftAction = "RotateLeft";
         private const string RotateRightAction = "RotateRight";
-        private const string ShopAction = "ButtonY";
         private const string SellAction = "Use";
 
         public sealed class Cursor
@@ -195,8 +194,10 @@ namespace Game.Gameplay
                 {
                     Cancel(cursor);
                 }
-                else if (cursor.Held == null && player.actions[ShopAction].WasPressedThisFrame())
+                else if (cursor.Held == null && DownPressed(cursor))
                 {
+                    // D-pad down drops the shop open under the player's card (the user's call,
+                    // 2026-11-11: down, as the card's tab points, not Y).
                     cursor.ShopOpen = true;
                     cursor.Result = Placement.Ok;
                     cursor.ShopStickHeld = true; // until it's let go, so opening doesn't also move the list
@@ -398,11 +399,27 @@ namespace Game.Gameplay
             cursor.Result = Placement.Ok;
         }
 
-        // The D-pad moves through the grid, one press at a time; A buys, and B or Y closes it.
+        // A fresh press of D-pad down (or the down arrow), with the shop closed. Only a fresh press:
+        // the D-pad is let go before it counts again.
+        private bool DownPressed(Cursor cursor)
+        {
+            var move = cursor.Player.actions[NavigateAction].ReadValue<Vector2>();
+            if (move.magnitude < _shopStickThreshold)
+            {
+                cursor.ShopStickHeld = false;
+                return false;
+            }
+            if (cursor.ShopStickHeld)
+                return false;
+            cursor.ShopStickHeld = true;
+            return move.y < 0f && Mathf.Abs(move.y) >= Mathf.Abs(move.x);
+        }
+
+        // The D-pad moves through the grid, one press at a time; A buys, and B closes it.
         private void UpdateShop(Cursor cursor)
         {
             var actions = cursor.Player.actions;
-            if (actions[CancelAction].WasPressedThisFrame() || actions[ShopAction].WasPressedThisFrame())
+            if (actions[CancelAction].WasPressedThisFrame())
             {
                 cursor.ShopOpen = false;
                 return;

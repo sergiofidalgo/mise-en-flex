@@ -3544,3 +3544,12 @@ It hides (fading over the HUD's 0.12 s) behind the Review dashboard, the pause m
 **What A does (my proposal, from "both A and B should appear"):** browsing only previews; **A Wear** puts on the item shown and saves it; **B Done** hops down, and anything only browsed goes back. A dims when there's nothing to wear (already worn, or locked); a worn item reads "3 / 6 · wearing". Wearing flashes the card's edge, and A on a locked item shakes it, as the shop's buy and refusal do. Until now every item browsed past was worn and saved at once; that's gone.
 
 **Not checked in play:** whether players expect browsing to keep what they last saw. If they do, B could wear the shown item instead of dropping it.
+
+## 2026-11-11 — Prep: only the shop is see-through, D-pad down opens it, Rearrange under the money
+
+**User's calls:**
+- **Only the shop card is see-through** (`HudStyle._shopCardOpacity`, 0.6, with an outline ring so the player's colour doesn't tint the fill). The tiles and the player cards stay as they were.
+- **"Rearrange" docks top right under the money card**, as wide as it, instead of under the bottom-left tiles.
+- **A player rearranging the kitchen gets a tab under their card:** the D-pad with its down arm lit, a little grid for the shop, "Shop" and a down-arrow that bobs. **D-pad down opens the shop**, not Y; B closes it. Y in rearranging mode does nothing now (holding it doesn't ready up either, as before). The cursor's own hint line no longer names the shop.
+
+**Not checked in play:** whether 0.6 is readable over a busy kitchen; it's one number in the HUD style.

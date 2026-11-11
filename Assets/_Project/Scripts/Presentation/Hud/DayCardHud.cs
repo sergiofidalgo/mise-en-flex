@@ -240,8 +240,9 @@ namespace Game.Presentation.Hud
         private void Hint(RectTransform parent, float width, string word)
         {
             var tile = UiKit.Rect(parent, "Hint", 0f, 0f, width, HintHeight);
-            var fill = _style.PrepCardFill;
-            UiKit.OutlinedBox(tile, "Back", fill, _style.DayCardEdge, _style.DayCardStroke, 0f, 0f, width, HintHeight, Radius);
+            var fill = _style.CardBackground;
+            fill.a *= _style.DayCardOpacity;
+            UiKit.StrokedBox(tile, "Back", fill, _style.DayCardEdge, _style.DayCardStroke, 0f, 0f, width, HintHeight, Radius);
             // The key and the word centred together, as a button reads.
             var label = UiKit.TextAt(_style.Bold, tile, "Word", word, TileLineSize, _style.DayText, 0f, HintHeight / 2f + TileLineSize * 0.36f, width - KeyWidth - 12f - 28f);
             var block = KeyWidth + 12f + Mathf.Min(UiKit.Width(label), label.rectTransform.sizeDelta.x);
@@ -259,8 +260,9 @@ namespace Game.Presentation.Hud
         {
             var height = _style.DayCardHeight;
             var tile = UiKit.Rect(_tiles, "Tile", 0f, top, width, height);
-            var fill = _style.PrepCardFill;
-            UiKit.OutlinedBox(tile, "Back", fill, _style.DayCardEdge, _style.DayCardStroke, 0f, 0f, width, height, Radius);
+            var fill = _style.CardBackground;
+            fill.a *= _style.DayCardOpacity;
+            UiKit.StrokedBox(tile, "Back", fill, _style.DayCardEdge, _style.DayCardStroke, 0f, 0f, width, height, Radius);
             const float gap = 12f; // a touch looser than the day card's: the line is smaller
             var block = _style.DayTitleSize * 0.72f + gap + TileLineSize * 0.72f;
             var textTop = (height - block) / 2f;

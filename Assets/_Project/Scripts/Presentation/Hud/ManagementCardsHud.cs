@@ -17,7 +17,7 @@ namespace Game.Presentation.Hud
     /// <summary>
     /// The kitchen's player cards, top left (the user's design, 2026-11-11): in Prep, one compact
     /// card per joined player, as in the office (a still of their chef's face and their number; no
-    /// open seats here). A player who opens the shop in management mode (Y) has their card grow
+    /// open seats here). A player who opens the shop in management mode (D-pad down) has their card grow
     /// into the shop card, so four can shop at once; cards dock in a row in player-slot order and
     /// slide along as others grow and shrink.
     /// <list type="bullet">
@@ -55,7 +55,7 @@ namespace Game.Presentation.Hud
         private const float SettleDelay = 0.5f;
         private const float StillBackdropTint = 0.22f;
         private const float TabHeight = 50f;     // what shows of the rearranging tab
-        private const float TabTuck = 4f;        // its top edge lies on the card's bottom edge (the card is see-through)
+        private const float TabTuck = 12f;       // how far it tucks under the card
         private const float ChevronPeriod = 1.2f;
         private const float ChevronBob = 4f;
 
@@ -292,9 +292,9 @@ namespace Game.Presentation.Hud
             var colour = PlayerColour(index);
             var compact = new Compact { Still = new ChefStill(transform, $"KitchenPortrait{index + 1}") };
             compact.Root = UiKit.Rect(_canvas.transform, $"Player{index + 1}", 0f, 0f, CompactWidth, CompactHeight);
-            // Built first, so the card's edge is drawn over the tab's where they meet.
+            // Built first, so the card covers the tab's top: it hangs out from under the card.
             BuildTab(compact, colour);
-            UiKit.OutlinedBox(compact.Root, "Back", _style.PrepCardFill, colour, 4f, 0f, 0f, CompactWidth, CompactHeight, 18f);
+            UiKit.StrokedBox(compact.Root, "Back", _style.CardBackground, colour, 4f, 0f, 0f, CompactWidth, CompactHeight, 18f);
             var square = CompactHeight - 24f;
             var frame = UiKit.RoundBox(compact.Root, "PortraitFrame", new Color(0f, 0f, 0f, 0.25f), 12f, 12f, square, square, 16f);
             frame.gameObject.AddComponent<Mask>().showMaskGraphic = true;
@@ -308,14 +308,17 @@ namespace Game.Presentation.Hud
         }
 
         // While its player rearranges the kitchen (the user's call, 2026-11-11), a tab hangs under the
-        // card: the Y button, a little grid standing for the shop, "Shop" and a down-arrow that
-        // gently bobs. Y drops the shop open, and the card grows into it.
+        // card: the D-pad with its down arm lit, a little grid standing for the shop, "Shop" and a
+        // down-arrow that gently bobs. D-pad down drops the shop open, and the card grows into it.
         private void BuildTab(Compact compact, Color colour)
         {
             compact.Tab = UiKit.Rect(compact.Root, "ShopTab", 0f, CompactHeight - TabTuck, CompactWidth, TabTuck + TabHeight);
-            UiKit.OutlinedBox(compact.Tab, "Back", _style.PrepCardFill, colour, 4f, 10f, 0f, CompactWidth - 20f, TabTuck + TabHeight, 16f);
+            UiKit.StrokedBox(compact.Tab, "Back", _style.CardBackground, colour, 4f, 10f, 0f, CompactWidth - 20f, TabTuck + TabHeight, 16f);
             var cy = TabTuck + TabHeight / 2f;
-            DrawBadge(compact.Tab, PromptControl.North, 22f, cy - 15f, 30f);
+            // The D-pad on a key cap, its down arm lit in the player's colour: press down.
+            UiKit.RoundBox(compact.Tab, "Key", _style.BadgeColor(PromptControl.DPad, true), 22f, cy - 15f, 30f, 30f, 8f);
+            UiKit.DPad(compact.Tab, new Color(1f, 1f, 1f, 0.55f), 37f, cy, 20f);
+            UiKit.RoundBox(compact.Tab, "DPadDownLit", colour, 37f - 3.5f, cy + 1f, 7f, 9f, 1.75f);
             // The shop: a two-by-three grid of little tiles, as the shop card lays its pieces out.
             const float cell = 7f, gap = 3f;
             var gridLeft = 62f;
@@ -378,7 +381,7 @@ namespace Game.Presentation.Hud
             var card = new Card { Colour = colour };
             card.Root = UiKit.Rect(_canvas.transform, $"Player{index + 1}Shop", 0f, 0f, Width, Height);
             card.Root.pivot = new Vector2(0.5f, 1f);
-            UiKit.OutlinedBox(card.Root, "Back", _style.PrepCardFill, colour, 4f, 0f, 0f, Width, Height, 22f);
+            UiKit.OutlinedBox(card.Root, "Back", _style.ShopCardFill, colour, 4f, 0f, 0f, Width, Height, 22f);
             card.Edge = card.Root.Find("BackEdge")?.GetComponent<Image>();
 
             var turn = UiKit.Rect(card.Root, "Turn", 0f, 0f, Width, Height);
