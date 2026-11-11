@@ -51,10 +51,13 @@ namespace Game.Presentation.Office
         private const float BreathePeriod = 1.8f;      // the A badge's slow pulse, seconds
         private const float BreatheScale = 0.07f;
         // The dressing card.
-        private const float Width = 340f;
-        private const float PortraitHeight = 230f;
-        private const float RowsHeight = 196f;
-        private const float DressingHeight = PortraitHeight + RowsHeight;
+        // Laid out as the kitchen's shop card (2026-11-11): the same width, the page between LB and
+        // RB with its dots on top, the same type sizes, and B Done at the same corner.
+        private const float Width = 360f;
+        private const float HeaderHeight = 72f;
+        private const float PortraitHeight = 248f;  // the picture keeps the portrait's 512×360 shape
+        private const float RowsHeight = 140f;
+        private const float DressingHeight = HeaderHeight + PortraitHeight + RowsHeight;
         private const float PromptWidth = 220f;
         private const float PromptHeight = 64f;
         private const float HeadHeight = 2.05f;
@@ -240,28 +243,34 @@ namespace Game.Presentation.Office
             // Dressing: the portrait on top, then the controls.
             slot.Dressing = UiKit.Rect(_canvas.transform, $"Player{index + 1}Dressing", 0f, 0f, Width, DressingHeight);
             UiKit.StrokedBox(slot.Dressing, "Back", _style.CardBackground, colour, 4f, 0f, 0f, Width, DressingHeight, 22f);
-            RoundedPicture(slot.Dressing, texture, 14f, 14f, Width - 28f, PortraitHeight - 14f);
-            var rows = UiKit.Rect(slot.Dressing, "Rows", 0f, PortraitHeight, Width, RowsHeight);
-            DrawShoulder(rows, "LB", 12f, 12f);
-            DrawShoulder(rows, "RB", Width - 12f - ShoulderWidth, 12f);
-            slot.Section = UiKit.TextAt(_style.Bold, rows, "Section", "", 30f, _style.TextColor, Width / 2f, 40f, Width - 2f * (ShoulderWidth + 20f), HorizontalAlignmentOptions.Center);
+            // The page on top, as the shop card's: LB, its name, RB, a dot per section.
+            var head = UiKit.Rect(slot.Dressing, "Head", 0f, 0f, Width, HeaderHeight);
+            DrawShoulder(head, "LB", 12f, 12f);
+            DrawShoulder(head, "RB", Width - 12f - ShoulderWidth, 12f);
+            slot.Section = UiKit.TextAt(_style.Bold, head, "Section", "", 30f, _style.TextColor, Width / 2f, 40f, Width - 2f * (ShoulderWidth + 20f), HorizontalAlignmentOptions.Center);
             slot.Section.enableAutoSizing = true;
-            slot.Section.fontSizeMin = 28f;
+            slot.Section.fontSizeMin = 24f;
             slot.Section.fontSizeMax = 30f;
             slot.Dots = new Image[SectionNames.Length];
             for (var i = 0; i < slot.Dots.Length; i++)
-                slot.Dots[i] = UiKit.Ellipse(rows, "Dot", Color.white, Width / 2f - 46f + i * 20f, 54f, 12f, 12f);
-            slot.Left = UiKit.TextAt(_style.DisplayFont, rows, "Left", "‹", 44f, _style.TextColor, 14f, 112f, 26f).rectTransform;
-            slot.Item = UiKit.TextAt(_style.DisplayFont, rows, "Item", "", 34f, _style.TextColor, Width / 2f, 110f, Width - 70f, HorizontalAlignmentOptions.Center);
-            // Long names ("Feather headdress") shrink to fit rather than being cut, never below 28 px.
+                slot.Dots[i] = UiKit.Ellipse(head, "Dot", Color.white, Width / 2f - (slot.Dots.Length - 1) * 10f + i * 20f - 6f, 54f, 12f, 12f);
+
+            // The chef, the width of the card's grid.
+            RoundedPicture(slot.Dressing, texture, 16f, HeaderHeight, Width - 32f, PortraitHeight - 16f);
+
+            // The item between arrows, its place in the list (or a note when it's locked), then B Done.
+            var rows = UiKit.Rect(slot.Dressing, "Rows", 0f, HeaderHeight + PortraitHeight, Width, RowsHeight);
+            slot.Left = UiKit.TextAt(_style.DisplayFont, rows, "Left", "‹", 40f, _style.TextColor, 16f, 34f, 26f).rectTransform;
+            slot.Item = UiKit.TextAt(_style.DisplayFont, rows, "Item", "", 30f, _style.TextColor, Width / 2f, 32f, Width - 76f, HorizontalAlignmentOptions.Center);
+            // Long names ("Feather headdress") shrink to fit rather than being cut, never below 24 px.
             slot.Item.enableAutoSizing = true;
-            slot.Item.fontSizeMin = 28f;
-            slot.Item.fontSizeMax = 34f;
-            slot.Right = UiKit.TextAt(_style.DisplayFont, rows, "Right", "›", 44f, _style.TextColor, Width - 14f, 112f, 26f, HorizontalAlignmentOptions.Right).rectTransform;
-            slot.Count = UiKit.TextAt(_style.Font, rows, "Count", "", 28f, _style.TextColor, Width / 2f, 144f, 200f, HorizontalAlignmentOptions.Center);
-            slot.Locked = UiKit.TextAt(_style.Bold, rows, "Locked", Tr.Get("Locked: earn it first"), 28f, new Color(0.85f, 0.35f, 0.25f), Width / 2f, 144f, Width - 24f, HorizontalAlignmentOptions.Center);
-            DrawBadge(rows, PromptControl.East, Width - 128f, 152f, 34f);
-            UiKit.TextAt(_style.Font, rows, "Done", Tr.Get("Done"), 28f, _style.TextColor, Width - 86f, 179f, 80f);
+            slot.Item.fontSizeMin = 24f;
+            slot.Item.fontSizeMax = 30f;
+            slot.Right = UiKit.TextAt(_style.DisplayFont, rows, "Right", "›", 40f, _style.TextColor, Width - 16f, 34f, 26f, HorizontalAlignmentOptions.Right).rectTransform;
+            slot.Count = UiKit.TextAt(_style.Bold, rows, "Count", "", 21f, new Color(_style.TextColor.r, _style.TextColor.g, _style.TextColor.b, 0.78f), Width / 2f, 64f, 200f, HorizontalAlignmentOptions.Center);
+            slot.Locked = UiKit.TextAt(_style.Bold, rows, "Locked", Tr.Get("Locked: earn it first"), 22f, new Color(0.95f, 0.30f, 0.26f), Width / 2f, 64f, Width - 24f, HorizontalAlignmentOptions.Center);
+            var done = UiKit.TextAt(_style.Font, rows, "Done", Tr.Get("Done"), 24f, _style.TextColor, Width - 18f, RowsHeight - 22f, 110f, HorizontalAlignmentOptions.Right);
+            DrawBadge(rows, PromptControl.East, Width - 18f - UiKit.Width(done) - 8f - 34f, RowsHeight - 48f, 34f);
             slot.Dressing.gameObject.SetActive(false);
             return slot;
         }

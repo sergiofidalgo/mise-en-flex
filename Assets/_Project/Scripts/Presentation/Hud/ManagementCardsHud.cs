@@ -145,6 +145,18 @@ namespace Game.Presentation.Hud
             }
         }
 
+        // The same chef in every scene: each card photographs the player's own chef, who wears
+        // their saved look (ChefWardrobe), and takes the picture again should that look change.
+        private void OnEnable() => Game.Gameplay.Saving.ChefProfileFile.LookChanged += HandleLookChanged;
+
+        private void OnDisable() => Game.Gameplay.Saving.ChefProfileFile.LookChanged -= HandleLookChanged;
+
+        private void HandleLookChanged(int slot)
+        {
+            if (_compacts.TryGetValue(slot, out var compact))
+                compact.Seen = null;
+        }
+
         private void OnDestroy()
         {
             foreach (var compact in _compacts.Values)

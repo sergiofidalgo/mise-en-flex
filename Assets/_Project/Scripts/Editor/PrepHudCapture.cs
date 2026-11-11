@@ -103,6 +103,8 @@ namespace Game.Editor
             {
                 var chef = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
                 chef.transform.SetPositionAndRotation(new Vector3(200f + i * 4f, 0f, 200f), Quaternion.Euler(0f, 180f, 0f));
+                // Dressed as each player slot's saved chef, as in the game and the office.
+                chef.GetComponentInChildren<Game.Presentation.ChefWardrobe>(true)?.Show(Game.Gameplay.Saving.ChefProfileFile.Current.Look(i));
                 chefs[i] = chef.transform;
             }
             return chefs;
