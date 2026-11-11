@@ -5,6 +5,7 @@ using Game.Simulation.Items;
 using Game.Simulation.Movement;
 using Game.Simulation.Prep;
 using Game.Simulation.Quality;
+using Game.Simulation.Service;
 using UnityEngine;
 
 namespace Game.Data
@@ -131,6 +132,24 @@ namespace Game.Data
         [SerializeField, Range(0f, 1f)] private float _dirtMaxPenalty = 0.2f;
         [Tooltip("A penalty at least this big makes dirt what the guest's review is about, if nothing worse happened.")]
         [SerializeField, Range(0f, 1f)] private float _dirtNoticedFrom = 0.05f;
+        [Tooltip("Guests served per extra floor mess by each appliance in the dining room or table in the kitchen (decision 2026-11-11).")]
+        [SerializeField, Min(1)] private int _guestsPerOpenKitchenMess = 3;
+        [Tooltip("Wipes that open-kitchen mess takes.")]
+        [SerializeField, Min(0f)] private float _openKitchenMess = 1f;
+
+        [Header("Guests' surroundings (decisions 2026-11-11: soft, learnable in play)")]
+        [Tooltip("Metres from the customer door within which guests smell the wheelie bin (user's call: 4).")]
+        [SerializeField, Min(0f)] private float _binSmellRadius = 4f;
+        [Tooltip("Score (0..1) lost with the bin right at the door, fading to nothing at the radius (0.2 = 1 star, user's call).")]
+        [SerializeField, Range(0f, 1f)] private float _binSmellMaxPenalty = 0.2f;
+        [Tooltip("A smell costing at least this much is what the review may be about, if nothing worse happened (0.1 = half a star, bin within about 2 m).")]
+        [SerializeField, Range(0f, 1f)] private float _binSmellNoticedFrom = 0.1f;
+        [Tooltip("Tonight's average stars, the guest's own dish included, from which an open kitchen is a show they love; it also needs the guest not kept waiting (user's call: 4.5).")]
+        [SerializeField, Range(0f, 5f)] private float _greatNightStars = 4.5f;
+        [Tooltip("Score gained on a great night, or lost on any other, per appliance in the dining room or table in the kitchen (0.1 = half a star).")]
+        [SerializeField, Range(0f, 1f)] private float _openKitchenPerPiece = 0.1f;
+        [Tooltip("The most an open kitchen adds or takes (0.2 = 1 star, user's call).")]
+        [SerializeField, Range(0f, 1f)] private float _openKitchenMax = 0.2f;
 
         [Header("Cleaning game (trace the shape with the stick)")]
         [Tooltip("Below this push the stick reads as centred, so drift doesn't count.")]
@@ -171,6 +190,18 @@ namespace Game.Data
             FloorRadius = _dirtFloorRadius,
             MaxPenalty = _dirtMaxPenalty,
             NoticedFrom = _dirtNoticedFrom,
+            GuestsPerOpenKitchenMess = _guestsPerOpenKitchenMess,
+            OpenKitchenMess = _openKitchenMess,
+        };
+
+        public SurroundingsSettings Surroundings => new SurroundingsSettings
+        {
+            BinSmellRadius = _binSmellRadius,
+            BinSmellMaxPenalty = _binSmellMaxPenalty,
+            BinSmellNoticedFrom = _binSmellNoticedFrom,
+            GreatNightStars = _greatNightStars,
+            OpenKitchenPerPiece = _openKitchenPerPiece,
+            OpenKitchenMax = _openKitchenMax,
         };
 
         public TraceGameSettings TraceGame => new TraceGameSettings

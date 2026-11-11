@@ -108,6 +108,31 @@ namespace Game.Simulation.Quality
             };
         }
 
+        /// <summary>What the room around the guest did (decisions 2026-11-11); none until <see cref="WithSurroundings"/>.</summary>
+        public SurroundingsEffect Surroundings { get; private set; }
+
+        /// <summary>0..1: <see cref="Overall"/> before the surroundings moved it, dirt included.</summary>
+        public float OverallBeforeSurroundings => float.IsNaN(_beforeSurroundings) ? Overall : _beforeSurroundings;
+
+        private float _beforeSurroundings = float.NaN;
+
+        /// <summary>
+        /// The same score with the bin's smell taken off and an open kitchen's show or nuisance added
+        /// or taken, kept within 0..1. Apply after <see cref="WithDirt"/>, which doesn't carry it over.
+        /// Applying again replaces the earlier effect rather than adding to it.
+        /// </summary>
+        public DishScore WithSurroundings(SurroundingsEffect effect)
+        {
+            var before = OverallBeforeSurroundings;
+            return new DishScore(Items, Math.Clamp(before + effect.Total, 0f, 1f), Order, Missing, Match)
+            {
+                Dirt = Dirt,
+                DirtNoticed = DirtNoticed,
+                Surroundings = effect,
+                _beforeSurroundings = before,
+            };
+        }
+
         /// <summary>0 to 5 in half stars.</summary>
         public float Stars => (float)Math.Round(Overall * 10f, MidpointRounding.AwayFromZero) / 2f;
     }

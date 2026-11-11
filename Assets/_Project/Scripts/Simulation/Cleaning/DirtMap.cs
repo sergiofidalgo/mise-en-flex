@@ -90,6 +90,12 @@ namespace Game.Simulation.Cleaning
         /// <summary>Wipes the foam from a fire put out takes.</summary>
         public float FireFoam { get; set; } = 2f;
 
+        /// <summary>Guests served per extra mess by each piece outside its usual room (decision 2026-11-11).</summary>
+        public int GuestsPerOpenKitchenMess { get; set; } = 3;
+
+        /// <summary>Wipes that extra mess takes: grease by an appliance in the dining room, scuffs by a table in the kitchen.</summary>
+        public float OpenKitchenMess { get; set; } = 1f;
+
         /// <summary>Metres: new dirt this close to a spot on the same surface adds to it instead of making another.</summary>
         public float MergeRadius { get; set; } = 0.35f;
 

@@ -36,7 +36,7 @@ namespace Game.Simulation.Service
             var served = service.Customers.Where(c => c.Satisfaction != null).ToList();
             var reviews = service.Reviews;
             var complaints = reviews
-                .Where(r => r.Topic != ReviewTopic.Praise && r.Topic != ReviewTopic.Decent)
+                .Where(r => !ReviewTopics.IsPraise(r.Topic))
                 .GroupBy(r => r.Topic)
                 .OrderByDescending(g => g.Count())
                 .FirstOrDefault();

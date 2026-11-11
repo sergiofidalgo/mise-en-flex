@@ -73,18 +73,22 @@ namespace Game.Simulation.Service
         /// The stars they give their dish: its own stars, moved by what they expected for the price
         /// (<see cref="Service.Order.Expectation"/>), in half stars from 0 to 5. Null until served.
         /// </summary>
-        public float? RatedStars
+        public float? RatedStars => Satisfaction == null ? (float?)null : Rate(Satisfaction.Overall, Order);
+
+        /// <summary>
+        /// The stars they'd give the dish without the bin's smell or an open kitchen (decisions
+        /// 2026-11-11): how good the food and the table were. Null until served.
+        /// </summary>
+        public float? StarsBeforeSurroundings => Satisfaction == null ? (float?)null : Rate(Satisfaction.OverallBeforeSurroundings, Order);
+
+        /// <summary>A 0..1 score as stars, moved by what the guest expected for the price, in half stars.</summary>
+        public static float Rate(float overall, Order order)
         {
-            get
-            {
-                if (Satisfaction == null)
-                    return null;
-                var shift = Order?.Expectation ?? 0f;
-                if (shift == 0f)
-                    return Satisfaction.Stars;
-                var stars = (float)System.Math.Round((Satisfaction.Overall * 5f + shift) * 2f, System.MidpointRounding.AwayFromZero) / 2f;
-                return System.Math.Clamp(stars, 0f, 5f);
-            }
+            var shift = order?.Expectation ?? 0f;
+            if (shift == 0f)
+                return (float)System.Math.Round(overall * 10f, System.MidpointRounding.AwayFromZero) / 2f; // as DishScore.Stars
+            var stars = (float)System.Math.Round((overall * 5f + shift) * 2f, System.MidpointRounding.AwayFromZero) / 2f;
+            return System.Math.Clamp(stars, 0f, 5f);
         }
 
         /// <summary>What they paid when they finished eating, or null if they haven't (or never will).</summary>
