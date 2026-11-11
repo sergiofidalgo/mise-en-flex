@@ -136,6 +136,19 @@ Implements the movement and cleaning calls of the playtest round (entry below, "
 
 ---
 
+## 2026-11-11 — A ring in each player's colour at their feet, which goes with the cursor in rearranging
+
+**User's call:** in the boss's office and during Prep, each chef shows a circle on the floor in their player colour (`CoopSettings`, the same colours as the HUD and player bar), so players can tell who is who. In Prep, a player who goes into rearranging takes their circle with them: it leaves their chef and shows under their cursor, and comes back to the chef when they leave.
+
+- **Service and Review show no ring** (my default, as the request names only the office and Prep): in service the floor is busy with dirt, spills and staff, the tinted bodies already tell chefs apart, and a ring per chef would add clutter just when the floor needs reading. Easy to change if playtesting wants them (`FootRingView.Showing`).
+- **Look (placeholder):** a band 9 cm wide with an outer radius of 48 cm, 90% opaque, round a faint 22% disc; unlit and transparent without depth write (`SH_FootRing`), 3 cm above the floor so it never z-fights with the floor or the dirt decals. The chef's body hides the middle of the ring from the overhead camera, so it reads as a halo round the feet. All of it is tunable on `FootRingView`.
+- **Under a cursor the ring draws over furniture** (depth test off), so it still shows where the cursor is over a counter or table. The cursor's own floor frame hides under counters as before.
+- **Built by the builders:** `FootRings.Add` puts a `FootRings` object in each kitchen (Tools/Game/Build Greybox Kitchen) and in the office (Tools/Game/Build Office). The ring isn't part of `PF_Player`, so the chef's portraits and stills don't pick it up.
+
+**Reason:** four tinted chefs can still be hard to tell apart from the overhead camera, more so in the office's busier rooms; a coloured ring on the floor is the genre's usual answer. Moving it to the cursor makes it clear whose cursor is whose, and that the chef standing still is "parked".
+
+---
+
 ## 2026-11-11 — Cleaning and fire: spin and sweep, with the sink's ring and stick cue
 
 **User's call:** the traced-path game for the cloth, mop and extinguisher was barely playable, at times almost impossible. Of the two options (reuse the sink game, or keep "moving" but apply the sink's principles) the user chose spin and sweep.

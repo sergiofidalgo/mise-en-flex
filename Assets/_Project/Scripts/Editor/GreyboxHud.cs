@@ -115,6 +115,9 @@ namespace Game.Editor
             layoutHud.FindProperty("_cards").objectReferenceValue = cards.targetObject;
             layoutHud.ApplyModifiedPropertiesWithoutUndo();
 
+            // Each player's colour on the floor in Prep, moving to their cursor while they rearrange.
+            FootRings.Add(settings, root, Object.FindFirstObjectByType<LayoutEditor>());
+
             var markers = new SerializedObject(hud.AddComponent<CustomerIndicatorHud>());
             markers.FindProperty("_canvas").objectReferenceValue = hud.GetComponent<RectTransform>();
             markers.FindProperty("_style").objectReferenceValue = style;
