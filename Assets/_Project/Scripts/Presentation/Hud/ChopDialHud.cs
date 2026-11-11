@@ -50,8 +50,8 @@ namespace Game.Presentation.Hud
             {
                 // Not while managing: then the target is whatever the layout cursor is over (a board
                 // being placed or moved), not a board the chef is at, and the dial stuck to the
-                // cursor (the user's bug report, 2026-11-08).
-                if (player.TryGetComponent(out PlayerInteractor interactor) && !interactor.IsManaging
+                // cursor (the user's bug report, 2026-11-08). Nor once the day's dashboard is up.
+                if (player.TryGetComponent(out PlayerInteractor interactor) && !interactor.IsManaging && !interactor.IsReviewing
                     && interactor.Target is PrepStation board && interactor.Tool is Knife && !_faced.Contains(board))
                     _faced.Add(board);
             }

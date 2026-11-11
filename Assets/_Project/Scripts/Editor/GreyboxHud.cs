@@ -78,6 +78,10 @@ namespace Game.Editor
             so.FindProperty("_settings").objectReferenceValue = settings;
             so.ApplyModifiedPropertiesWithoutUndo();
 
+            // The only control hints in the kitchen: pictures on the appliances (2026-11-11 playtest round).
+            ApplianceHintsBuilder.Add(hud, style, root);
+            ApplianceHintsBuilder.AddReviewGate(hud, root); // the kitchen HUD steps aside for the dashboard
+
             var dials = hud.AddComponent<ChopDialHud>();
             var dialSo = new SerializedObject(dials);
             dialSo.FindProperty("_canvas").objectReferenceValue = hud.GetComponent<RectTransform>();
@@ -89,6 +93,7 @@ namespace Game.Editor
             tickets.FindProperty("_style").objectReferenceValue = style;
             tickets.FindProperty("_director").objectReferenceValue = Object.FindFirstObjectByType<CustomerDirector>();
             tickets.FindProperty("_catalog").objectReferenceValue = catalog;
+            tickets.FindProperty("_icons").objectReferenceValue = IngredientIconRenderer.Catalog(); // the guests' bubbles show the dish
             tickets.ApplyModifiedPropertiesWithoutUndo();
 
             var tags = new SerializedObject(hud.AddComponent<DonenessTagHud>());
