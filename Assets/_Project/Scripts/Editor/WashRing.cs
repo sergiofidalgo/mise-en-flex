@@ -160,6 +160,8 @@ namespace Game.Editor
                 {
                     var so = new SerializedObject(view);
                     so.FindProperty("_toon").objectReferenceValue = EnsureToonMaterial();
+                    // The soap's size far out (the user's call, 2026-11-11: twice its size at the rim).
+                    so.FindProperty("_soapSizeRim").floatValue = 2f;
                     so.ApplyModifiedPropertiesWithoutUndo();
                     count++;
                 }

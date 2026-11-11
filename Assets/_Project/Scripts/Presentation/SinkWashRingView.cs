@@ -52,7 +52,7 @@ namespace Game.Presentation
         [SerializeField] private Vector3 _soapSize = new Vector3(0.34f, 0.22f, 0.24f);
         [Tooltip("The soap's size at the centre and at the rim, as shares of _soapSize: it shrinks into the target as it nears the centre.")]
         [SerializeField, Min(0.1f)] private float _soapSizeCentre = 0.6f;
-        [SerializeField, Min(0.1f)] private float _soapSizeRim = 1.8f;
+        [SerializeField, Min(0.1f)] private float _soapSizeRim = 2f;
         [Tooltip("How quickly the soap swells as it leaves the centre: below 1 it grows fast at first (0.6: half way out it's already about two thirds of the way to its rim size).")]
         [SerializeField, Range(0.2f, 2f)] private float _soapGrowth = 0.6f;
         [SerializeField] private Color _good = new Color(0.45f, 0.85f, 0.40f);
