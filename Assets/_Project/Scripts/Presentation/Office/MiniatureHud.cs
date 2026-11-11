@@ -91,6 +91,10 @@ namespace Game.Presentation.Office
                 _table.Campaign.Bought -= ShowBought;
         }
 
+        // The day opening it plays: the one after its last finished day (day 1 if never opened).
+        private static int NextDay(RestaurantSave record) =>
+            Game.Simulation.Campaign.RestaurantPurchase.NeverOpened(record) ? 1 : record.FinishedDay + 1;
+
         private void ShowBought(RestaurantSave record)
         {
             _toast = Tr.Format("{name} is yours", ("name", record.Name));
@@ -183,7 +187,13 @@ namespace Game.Presentation.Office
 
             if (record != null)
             {
-                y = Line(card, _style.SemiBold, Tr.Format("Style: {style}", ("style", record.StyleName)), 26f, Cream, Pad, y, inner);
+                // Its day, as its last summary showed it (2026-11-11): the last finished day.
+                var opened = !Game.Simulation.Campaign.RestaurantPurchase.NeverOpened(record) && record.FinishedDay > 0;
+                var day = opened
+                    ? Tr.Format("Day {day} · {weekday}", ("day", record.FinishedDay), ("weekday", Game.Presentation.Hud.DayCardText.Weekday(record.FinishedDay)))
+                    : Tr.Get("Not opened yet");
+                y = Line(card, _style.Bold, day, 26f, Gold, Pad, y, inner);
+                y = Line(card, _style.SemiBold, Tr.Format("Style: {style}", ("style", record.StyleName)), 26f, Cream, Pad, y + 2f, inner);
                 y = Line(card, _style.Medium, Tr.Plural(record.Reviews.Count, "{count} review", "{count} reviews", ("count", record.Reviews.Count)), 22f, Dim, Pad, y + 2f, inner) + 12f;
                 y = Reviews(card, record.Reviews.OrderByDescending(r => r.Day).Take(MaxReviews).Select(r => (r.Stars, r.Line, r.Guest)), y, inner);
             }
@@ -216,7 +226,7 @@ namespace Game.Presentation.Office
             if (record == null)
                 x = Hint(card, PromptControl.South, Tr.Get("Buy"), x, y);
             else if (_table.Ready)
-                x = Hint(card, PromptControl.South, Tr.Get("Open for the day"), x, y);
+                x = Hint(card, PromptControl.South, Tr.Format("Open for day {day}", ("day", NextDay(record))), x, y);
             else
                 x = Waiting(card, x, y);
             Hint(card, PromptControl.East, Tr.Get("Back"), x + 24f, y);

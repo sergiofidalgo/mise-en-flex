@@ -93,6 +93,13 @@ namespace Game.Simulation.Days
 
         public int Day { get; private set; } = 1;
 
+        /// <summary>
+        /// The last day whose service has finished: today in Review, otherwise the day before (0
+        /// before any). It's what a save records (2026-11-11), so a save made on the next morning's
+        /// summary (a reply, say) can't move the restaurant on a day it hasn't played.
+        /// </summary>
+        public int LastFinishedDay => Phase == DayPhase.Review ? Day : Day - 1;
+
         public DayPhase Phase { get; private set; } = DayPhase.Plan;
 
         /// <summary>Money across all days so far. Can go negative.</summary>

@@ -74,6 +74,11 @@ namespace Game.Tests.PlayMode
             var boughtAt = bought.transform.position;
             var stationCount = services.Stations.All.Count;
 
+            // Saved as Review starts, as the game saves (since 2026-11-11 a save records the last
+            // finished day, so the day is played to its end first).
+            services.Days.Advance();
+            services.Days.Advance();
+            services.Days.FinishService(Game.Simulation.Service.ServiceSummary.From(services.Service));
             var balance = services.Days.Balance;
             var day = services.Days.Day;
             _root.SaveCampaign();

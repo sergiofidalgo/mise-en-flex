@@ -105,6 +105,12 @@ namespace Game.Presentation.Hud
 
         // The last finished day: everything forkcast shows is about it (the user's call, 2026-11-11).
         private DaySummary _summary;
+
+        /// <summary>
+        /// The day "Start" begins (2026-11-11): the same number the day loop advances to, the day
+        /// after the last finished one, so the button and where the hold lands can't disagree.
+        /// </summary>
+        public int StartsDay => Services.Days.LastFinishedDay + 1;
         private DaySummary Summary => _summary ??= DaySummary.Of(Services.Days);
 
         private void Refresh()
@@ -311,7 +317,7 @@ namespace Game.Presentation.Hud
         // Never open while forkcast shows: next is tonight in a morning, tomorrow after a service.
         private (string Value, string Label, bool Alarm) NextOpening()
         {
-            return ($"{ClockAt(0f)} {Weekday(Summary.NextDay)}", Tr.Get("Closed · Opens"), false);
+            return ($"{ClockAt(0f)} {Weekday(StartsDay)}", Tr.Get("Closed · Opens"), false);
         }
 
         // Everything that came in that night: meals and tips (the user's call: money in, not profit).
@@ -1215,14 +1221,14 @@ namespace Game.Presentation.Hud
         private void DrawHints()
         {
             var joined = JoinedPlayers();
-            var state = $"{Summary.NextDay}|{PlayerInput.all.Count}|" + string.Join(",", joined.Select(p => $"{p.playerIndex}:{_dayLoop.Ready.IsReady(p.playerIndex)}"));
+            var state = $"{StartsDay}|{PlayerInput.all.Count}|" + string.Join(",", joined.Select(p => $"{p.playerIndex}:{_dayLoop.Ready.IsReady(p.playerIndex)}"));
             if (state == _hintsShown)
                 return;
             _hintsShown = state;
             BuildLanes(joined);
 
             // The start card: what holding A does. Nobody's here yet: A joins first.
-            _startText.text = PlayerInput.all.Count == 0 ? Tr.Get("Press to join") : Tr.Format("Hold to start Day {day}", ("day", Summary.NextDay));
+            _startText.text = PlayerInput.all.Count == 0 ? Tr.Get("Press to join") : Tr.Format("Hold to start Day {day}", ("day", StartsDay));
             // The ring and the words centred together on the button.
             var textWidth = UiKit.Width(_startText);
             var left = (600f - (52f + 16f + textWidth)) / 2f;

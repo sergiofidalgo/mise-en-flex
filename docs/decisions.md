@@ -3436,3 +3436,15 @@ It hides (fading over the HUD's 0.12 s) behind the Review dashboard, the pause m
 - **Reviews** show each guest's face in a perfect circle instead of the oval (`UiKit.GuestAvatar`: their colour, a skin tone, hair and eyes from their name, the same each visit). Customers share one model, so it's a drawn stand-in rather than a portrait. The quote is bigger (32 px in the list, shrinking only for a line too long).
 
 **Not checked in play:** the pop's feel, and the avatars next to real guest names in Spanish.
+
+## 2026-11-11 — A save records the last finished day; the map card shows a restaurant's day
+
+**The bug (user's report):** "technically this restaurant is on Day 3, however once I hold to start day 4 it lands on day 5." A reply on the arrival summary saved the campaign with the live day (already the next, unplayed day 4), so the next load moved it to day 5, while the summary still said day 3.
+
+**Fixed in one place:** a save always records `DayCycle.LastFinishedDay`: today in Review, otherwise the day before. Anything saved on the arrival summary (replies, the cookbook, hires) is kept with that day, and the day can't run ahead. **Existing saves heal on load:** `RestaurantSave.FinishedDay` falls back to the last recorded day when the saved day is ahead of the history, as the user's slot is now. **"Hold to start Day N" uses the same number the day loop advances to** (`LastFinishedDay + 1`), so the button and where the hold lands can't disagree.
+
+**The map card (user's call):** an owned restaurant shows its day as its last summary did ("Day 3 · Wed"), or "Not opened yet" if never played, and A reads "Open for day 4".
+
+**Tests:** EditMode covers the last finished day in each phase, healing (ahead, equal, without history) and the user's case end to end. PlayMode finishes day 1, relaunches, replies, relaunches, and checks day 2's morning, a day-1 summary and "Start day 2". `SavePlayTests` now finishes the day before saving, as the game does. Its old mid-morning save counted an unplayed day.
+
+**Not checked:** the map card in a capture or in play.

@@ -135,6 +135,62 @@ namespace Game.Tests.EditMode
             Assert.That(DaySummary.TipsMood(tips, meals), Is.EqualTo(mood));
         }
 
+        // ---- The day a save records (the user's report, 2026-11-11: "start day 4" landed on day 5) ----
+
+        [Test]
+        public void The_last_finished_day_is_today_only_in_review()
+        {
+            var days = new DayCycle(500f);
+            Assert.That(days.LastFinishedDay, Is.Zero, "day 1's plan: nothing finished");
+            days.Advance();
+            Assert.That(days.LastFinishedDay, Is.Zero, "prep");
+            days.Advance();
+            Assert.That(days.LastFinishedDay, Is.Zero, "service");
+            days.FinishService(Night());
+            Assert.That(days.LastFinishedDay, Is.EqualTo(1), "review: day 1 is done");
+            days.Advance();
+            Assert.That(days.Day, Is.EqualTo(2));
+            Assert.That(days.LastFinishedDay, Is.EqualTo(1), "the next morning: still day 1");
+        }
+
+        [TestCase(4, 3, 3)]
+        [TestCase(3, 3, 3)]
+        [TestCase(5, 3, 3)]
+        public void A_save_ahead_of_its_history_heals_to_the_last_finished_day(int saved, int lastRecorded, int healed)
+        {
+            var save = new Game.Simulation.Saving.RestaurantSave { Day = saved };
+            for (var day = 1; day <= lastRecorded; day++)
+                save.History.Add(new DayRecord { Day = day });
+            Assert.That(save.FinishedDay, Is.EqualTo(healed));
+        }
+
+        [Test]
+        public void A_save_without_history_keeps_its_day()
+        {
+            Assert.That(new Game.Simulation.Saving.RestaurantSave { Day = 0 }.FinishedDay, Is.Zero);
+        }
+
+        [Test]
+        public void After_a_relaunch_the_summary_start_and_the_hold_all_agree()
+        {
+            // The user's save: day 3 finished, but saved as day 4 from the next morning's summary.
+            var save = new Game.Simulation.Saving.RestaurantSave { Day = 4 };
+            for (var day = 1; day <= 3; day++)
+                save.History.Add(new DayRecord { Day = day });
+            var days = DayCycle.Continuing(save.FinishedDay, 500f, history: save.History);
+            Assert.That(DaySummary.Of(days).Day, Is.EqualTo(3), "the summary is day 3's");
+            var starts = days.LastFinishedDay + 1;
+            Assert.That(starts, Is.EqualTo(4), "Start says day 4");
+            var steps = ForkcastScreen.StepsToPrep(days.Phase);
+            for (var i = 0; i < steps; i++)
+                days.Advance();
+            Assert.That(days.Day, Is.EqualTo(starts), "and holding it lands on day 4");
+
+            // Saving on that morning's summary records day 3 again, never 4.
+            var morning = DayCycle.Continuing(3, 500f, history: save.History);
+            Assert.That(morning.LastFinishedDay, Is.EqualTo(3));
+        }
+
         [Test]
         public void A_dish_night_averages_its_stars()
         {

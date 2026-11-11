@@ -22,7 +22,8 @@ namespace Game.Gameplay.Saving
         {
             var save = new RestaurantSave
             {
-                Day = services.Days.Day,
+                // The last finished day, never one still being played (2026-11-11).
+                Day = services.Days.LastFinishedDay,
             };
 
             var stations = services.Stations.All;

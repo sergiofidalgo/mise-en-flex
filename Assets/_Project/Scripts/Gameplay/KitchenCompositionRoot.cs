@@ -77,7 +77,7 @@ namespace Game.Gameplay
             var days = save != null && fresh
                 ? new DayCycle(campaign.Balance, fee, campaign.ToLoan())
                 : save != null
-                ? DayCycle.Continuing(save.Day, campaign.Balance, fee, save.DaysTowardsFee, Ledger.FromArray(save.Period), save.History, campaign.ToLoan())
+                ? DayCycle.Continuing(save.FinishedDay, campaign.Balance, fee, save.DaysTowardsFee, Ledger.FromArray(save.Period), save.History, campaign.ToLoan())
                 : new DayCycle(campaign != null ? campaign.Balance : _staffConfig.StartingMoney, fee, campaign?.ToLoan());
             days.PhaseChanged += HandlePhaseChanged;
             _reviewLines.Load(campaign?.RecentLines);
