@@ -98,6 +98,44 @@ namespace Game.Tests.EditMode
         }
 
         [Test]
+        public void The_most_ordered_meal_counts_a_dish_however_it_was_cooked()
+        {
+            var dishes = new[]
+            {
+                new DishNight { Dish = "steak, rare", Ordered = 2 },
+                new DishNight { Dish = "steak, medium", Ordered = 3 },
+                new DishNight { Dish = "omelette, soft", Ordered = 4 },
+            };
+            Assert.That(DaySummary.MostOrdered(dishes), Is.EqualTo("steak"), "5 steaks beat 4 omelettes");
+        }
+
+        [Test]
+        public void The_most_ordered_meal_goes_by_recipe_when_there_is_one_and_is_null_with_none()
+        {
+            var dishes = new[]
+            {
+                new DishNight { RecipeId = "grill.steak", Dish = "steak, rare", Ordered = 1 },
+                new DishNight { RecipeId = "grill.steak", Dish = "steak, medium", Ordered = 1 },
+                new DishNight { RecipeId = "grill.chop", Dish = "pork chop, medium", Ordered = 1 },
+            };
+            Assert.That(DaySummary.MostOrdered(dishes), Is.EqualTo("grill.steak"));
+            Assert.That(DaySummary.MostOrdered(new DishNight[0]), Is.Null);
+            Assert.That(DaySummary.MainOf("steak, medium"), Is.EqualTo("steak"));
+            Assert.That(DaySummary.MainOf("steak"), Is.EqualTo("steak"));
+        }
+
+        [TestCase(0f, 200f, DaySummary.TipMood.None)]
+        [TestCase(2f, 200f, DaySummary.TipMood.Polite)]
+        [TestCase(10f, 200f, DaySummary.TipMood.Liked)]
+        [TestCase(30f, 200f, DaySummary.TipMood.Liked)]
+        [TestCase(40f, 200f, DaySummary.TipMood.Loved)]
+        [TestCase(5f, 0f, DaySummary.TipMood.Loved)]
+        public void The_tips_caption_follows_how_generous_they_were(float tips, float meals, DaySummary.TipMood mood)
+        {
+            Assert.That(DaySummary.TipsMood(tips, meals), Is.EqualTo(mood));
+        }
+
+        [Test]
         public void A_dish_night_averages_its_stars()
         {
             var dish = new DishNight { Ordered = 3, StarSum = 7f, Rated = 2 };

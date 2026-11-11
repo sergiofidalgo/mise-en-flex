@@ -63,6 +63,64 @@ namespace Game.Simulation.Days
         }
 
         /// <summary>
+        /// The meal ordered most (the user's card, 2026-11-11), counted by dish rather than by how
+        /// it was cooked: "steak, rare" and "steak, medium" are both steak. Ties go alphabetically.
+        /// Returns the recipe id when the orders had one, otherwise the dish's own name ("steak"),
+        /// and null with nothing ordered.
+        /// </summary>
+        public static string MostOrdered(IEnumerable<DishNight> dishes)
+        {
+            var counts = new Dictionary<string, int>();
+            foreach (var dish in dishes)
+            {
+                var key = !string.IsNullOrEmpty(dish.RecipeId) ? dish.RecipeId : MainOf(dish.Dish);
+                if (key.Length == 0)
+                    continue;
+                counts.TryGetValue(key, out var count);
+                counts[key] = count + dish.Ordered;
+            }
+            return counts.Count == 0 ? null : counts.OrderByDescending(c => c.Value).ThenBy(c => c.Key, StringComparer.Ordinal).First().Key;
+        }
+
+        /// <summary>How generous the guests were, for the tips card's caption (the user's question, 2026-11-11).</summary>
+        public enum TipMood
+        {
+            None,
+            Polite,
+            Liked,
+            Loved,
+        }
+
+        /// <summary>Tips under this share of the meals are merely polite.</summary>
+        public const float PoliteTipShare = 0.05f;
+
+        /// <summary>Tips over this share of the meals mean they loved it.</summary>
+        public const float LovedTipShare = 0.15f;
+
+        /// <summary>
+        /// The night's tips against what the meals took: none, polite (under 5%), liked (5–15%),
+        /// loved (over 15%). Tips with no meal takings count as loved: someone tipped for nothing.
+        /// </summary>
+        public static TipMood TipsMood(float tips, float meals)
+        {
+            if (tips <= 0.005f)
+                return TipMood.None;
+            if (meals <= 0f)
+                return TipMood.Loved;
+            var share = tips / meals;
+            return share < PoliteTipShare ? TipMood.Polite : share > LovedTipShare ? TipMood.Loved : TipMood.Liked;
+        }
+
+        /// <summary>"steak, medium" → "steak": the dish before how it was cooked.</summary>
+        public static string MainOf(string order)
+        {
+            if (string.IsNullOrEmpty(order))
+                return "";
+            var comma = order.IndexOf(',');
+            return (comma >= 0 ? order.Substring(0, comma) : order).Trim();
+        }
+
+        /// <summary>
         /// The night's dishes from its guests: everyone served or who walked out, grouped by recipe
         /// (or by the order's name before the cookbook), with the price each sold at.
         /// </summary>

@@ -267,7 +267,8 @@ namespace Game.Presentation.Hud
         private void DrawFacts()
         {
             // The user's four (2026-11-11): what came in, who was fed, the tips, when it opens next.
-            var tiles = new[] { Earnings(), GuestsFed(), Tips(), NextOpening() };
+            // Revised by the user (2026-11-11): earnings and tips, then the meal they ordered most and the next opening.
+            var tiles = new[] { Earnings(), Tips(), MostOrdered(), NextOpening() };
             for (var i = 0; i < tiles.Length; i++)
             {
                 var x = 120f + (i % 2) * (TileWidth + TileGap);
@@ -281,6 +282,19 @@ namespace Game.Presentation.Hud
             }
 
             // The foot of the column is the start bar's (BuildStartButton).
+        }
+
+        // The finished night's most ordered meal, by dish (all its donenesses together); for a day
+        // whose dishes weren't kept, the all-time favourite.
+        private (string Value, string Label, bool Alarm) MostOrdered()
+        {
+            var key = DaySummary.MostOrdered(Summary.Dishes);
+            if (key == null && Services.DishTally.Count > 0)
+                key = DaySummary.MostOrdered(Services.DishTally.Select(d => new DishNight { Dish = d.Key, Ordered = d.Value }));
+            if (key == null)
+                return ("–", Tr.Get("Most ordered meal"), false);
+            var recipe = Services.Cookbook?.Recipes.FirstOrDefault(r => r.Id == key);
+            return (recipe != null ? Tr.Get(recipe.Name) : Capitalised(key), Tr.Get("Most ordered meal"), false);
         }
 
         private (string Value, string Label, bool Alarm) GuestsFed()
@@ -304,7 +318,7 @@ namespace Game.Presentation.Hud
         private (string Value, string Label, bool Alarm) Earnings()
         {
             var earned = Summary.HasLines ? Summary.Ledger.In : Summary.Record?.In ?? 0f;
-            return (Money(earned), Tr.Get("total earnings tonight"), false);
+            return (Money(earned), Tr.Get("today total earnings"), false);
         }
 
         // What the guests left on top, that night.
@@ -313,7 +327,15 @@ namespace Game.Presentation.Hud
             if (Summary.HasDay && !Summary.HasLines)
                 return ("–", Tr.Get("tips tonight"), false);
             var tips = Summary.Ledger.Of(LedgerLine.Tips);
-            return (Money(tips), tips > 0f ? Tr.Get("tips tonight · they liked you") : Tr.Get("tips tonight"), false);
+            // The caption follows how generous they were for what they spent (DaySummary.TipsMood).
+            var caption = DaySummary.TipsMood(tips, Summary.Ledger.Of(LedgerLine.Payments)) switch
+            {
+                DaySummary.TipMood.None => Tr.Get("tips tonight · not a penny"),
+                DaySummary.TipMood.Polite => Tr.Get("tips tonight · polite, at best"),
+                DaySummary.TipMood.Loved => Tr.Get("tips tonight · they loved you"),
+                _ => Tr.Get("tips tonight · they liked you"),
+            };
+            return (Money(tips), caption, false);
         }
 
         private static string Capitalised(string text) =>
@@ -440,7 +462,15 @@ namespace Game.Presentation.Hud
             UiKit.RoundBox(_content, "CoverTrack", _wellLight, x + 26f, y + 94f, BossWidth - 52f, 12f, 6f);
             if (covered > 0f)
                 UiKit.RoundBox(_content, "CoverFill", tone, x + 26f, y + 94f, Mathf.Max(12f, (BossWidth - 52f) * covered), 12f, 6f);
-            Label(Bold, _content, left, 19.5f, _sand, x + 26f, y + 132f, 260f);
+            // The money chip's coin before the money (the user's mock, 2026-11-11).
+            // Only where the line is the balance ("You have $810"), not on a collection night.
+            var coin = collected ? 0f : 24f;
+            if (!collected)
+            {
+                UiKit.StrokedCircle(_content, "Coin", Color.Lerp(_style.MoneyEdge, Color.white, 0.25f), Color.Lerp(_style.MoneyEdge, Color.black, 0.3f), 2.5f, x + 26f, y + 113f, coin);
+                UiKit.Ellipse(_content, "CoinFace", Color.Lerp(_style.MoneyEdge, Color.black, 0.15f), x + 26f + coin * 0.25f, y + 113f + coin * 0.25f, coin * 0.5f, coin * 0.5f);
+            }
+            Label(Bold, _content, left, 19.5f, _sand, x + 26f + (collected ? 0f : coin + 8f), y + 132f, 240f);
             if (right != null)
                 Label(Bold, _content, right, 19.5f, tone, x + BossWidth - 26f, y + 132f, 340f, HorizontalAlignmentOptions.Right);
         }
@@ -1176,7 +1206,7 @@ namespace Game.Presentation.Hud
             BuildLanes(joined);
 
             // The start card: what holding A does. Nobody's here yet: A joins first.
-            _startText.text = PlayerInput.all.Count == 0 ? Tr.Get("Press to join") : Tr.Format("Hold to start day {day}", ("day", Summary.NextDay));
+            _startText.text = PlayerInput.all.Count == 0 ? Tr.Get("Press to join") : Tr.Format("Hold to start Day {day} · {weekday}", ("day", Summary.NextDay), ("weekday", Weekday(Summary.NextDay)));
             // The ring and the words centred together on the button.
             var textWidth = UiKit.Width(_startText);
             var left = (600f - (52f + 16f + textWidth)) / 2f;
@@ -1189,16 +1219,21 @@ namespace Game.Presentation.Hud
                 UiKit.Clear(lane.Label);
                 var ready = lane.Player >= 0 && _dayLoop.Ready.IsReady(lane.Player);
                 var name = lane.Player >= 0 ? lane.Player + 1 : 1;
-                var x = 22f;
+                // Centred in the segment (the user's mock, 2026-11-11). Ready: the B as an outline
+                // ring in the label's colour, then "Player N READY".
                 if (ready)
                 {
-                    Badge(lane.Label, "B", _buttonB, x + 13f, BarHeight / 2f, 26f, 14f);
-                    x += 26f + 10f;
-                    Label(ExtraBold, lane.Label, Tr.Format("Player {player} READY", ("player", name)), 18f, lane.Colour.grayscale > 0.6f ? _ink : Color.white, x, BarHeight / 2f + 6.5f, lane.Width - x - 12f);
+                    var tone = lane.Colour.grayscale > 0.72f ? _ink : Color.white; // dark only on a light colour (yellow)
+                    var label = Label(ExtraBold, lane.Label, Tr.Format("Player {player} READY", ("player", name)), 21f, tone, 0f, BarHeight / 2f + 7.5f, lane.Width - 60f);
+                    const float ring = 30f, gap = 10f;
+                    var start = (lane.Width - (ring + gap + UiKit.Width(label))) / 2f;
+                    UiKit.StrokedCircle(lane.Label, "B", lane.Colour, tone, 3f, start, (BarHeight - ring) / 2f, ring);
+                    Label(Bold, lane.Label, "B", 16f, tone, start + ring / 2f, BarHeight / 2f + 6f, ring, HorizontalAlignmentOptions.Center);
+                    label.rectTransform.anchoredPosition = new Vector2(start + ring + gap, label.rectTransform.anchoredPosition.y);
                 }
                 else
                 {
-                    Label(SemiBold, lane.Label, Tr.Format("Waiting for Player {player}", ("player", name)), 18f, Color.Lerp(lane.Colour, _ink, 0.45f), x, BarHeight / 2f + 6.5f, lane.Width - x - 12f);
+                    Label(SemiBold, lane.Label, Tr.Format("Waiting for Player {player}", ("player", name)), 21f, Color.Lerp(lane.Colour, _ink, 0.45f), lane.Width / 2f, BarHeight / 2f + 7.5f, lane.Width - 24f, HorizontalAlignmentOptions.Center);
                 }
             }
         }
