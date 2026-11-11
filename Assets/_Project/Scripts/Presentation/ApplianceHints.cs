@@ -163,17 +163,14 @@ namespace Game.Presentation
                 }
                 else if (line.Control == PromptControl.West && line.Available)
                 {
-                    if (station is HobStation hob)
-                        x = hob.IsOnFire ? ApplianceHint.Clean : ApplianceHint.Flip;
+                    // Cleaning's X (dirt, the sink, a fire) is drawn on the mess itself by
+                    // CleanHintView (decision 2026-11-11), so only flipping's X is left here.
+                    if (station is HobStation hob && !hob.IsOnFire)
+                        x = ApplianceHint.Flip;
                     else if (station is GrillStation)
                         x = ApplianceHint.Flip;
-                    else if (station is SinkStation)
-                        x = ApplianceHint.Clean;
                 }
             }
-            // Dirt, or a fire, on the station: what X does when the station has nothing of its own.
-            if (x == null && chef.Hands.IsEmpty && chef.Cleaning != null && chef.Cleaning.Available(station) != CleaningTool.None)
-                x = ApplianceHint.Clean;
             return (triggers, x);
         }
 

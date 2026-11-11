@@ -40,7 +40,7 @@ namespace Game.Presentation
         [SerializeField] private float _away = 0.55f;
         [Tooltip("The strip's height and the X button's size, as shares of its width.")]
         [SerializeField, Min(0.01f)] private float _height = 0.18f;
-        [SerializeField, Min(0.01f)] private float _buttonSize = 0.15f;
+        [SerializeField, Min(0.01f)] private float _buttonSize = 0.215f;
 
         [Header("Crust colours, raw to charred")]
         [SerializeField] private Color _raw = new Color32(0xE8, 0xA9, 0x9A, 0xFF);

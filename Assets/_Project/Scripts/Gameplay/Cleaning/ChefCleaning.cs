@@ -134,6 +134,9 @@ namespace Game.Gameplay.Cleaning
         /// <summary>What X would start here, for the prompt.</summary>
         public CleaningTool Available(Interactable target) => Find(target, out _, out _);
 
+        /// <summary>What X would clean here, and where: the spot of dirt or the burning hob (for the hint).</summary>
+        public CleaningTool WouldClean(Interactable target, out DirtSpot spot, out HobStation fire) => Find(target, out spot, out fire);
+
         /// <summary>Starts cleaning or putting out a fire, if there's any to do.</summary>
         public bool TryStart(Interactable target)
         {

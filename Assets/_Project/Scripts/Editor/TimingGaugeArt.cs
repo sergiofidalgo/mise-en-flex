@@ -65,6 +65,14 @@ namespace Game.Editor
             flipSo.FindProperty("_onTop").objectReferenceValue = material;
             flipSo.ApplyModifiedPropertiesWithoutUndo();
 
+            if (!holder.TryGetComponent(out CleanHintView clean))
+                clean = holder.AddComponent<CleanHintView>();
+            var cleanSo = new SerializedObject(clean);
+            cleanSo.FindProperty("_root").objectReferenceValue = root;
+            cleanSo.FindProperty("_onTop").objectReferenceValue = material;
+            cleanSo.FindProperty("_hints").objectReferenceValue = Object.FindFirstObjectByType<ApplianceHints>(FindObjectsInactive.Include);
+            cleanSo.ApplyModifiedPropertiesWithoutUndo();
+
             if (!holder.TryGetComponent(out ChopGaugeView chop))
                 chop = holder.AddComponent<ChopGaugeView>();
             var chopSo = new SerializedObject(chop);
