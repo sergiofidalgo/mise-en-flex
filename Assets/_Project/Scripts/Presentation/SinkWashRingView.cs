@@ -52,7 +52,9 @@ namespace Game.Presentation
         [SerializeField] private Vector3 _soapSize = new Vector3(0.34f, 0.22f, 0.24f);
         [Tooltip("The soap's size at the centre and at the rim, as shares of _soapSize: it shrinks into the target as it nears the centre.")]
         [SerializeField, Min(0.1f)] private float _soapSizeCentre = 0.6f;
-        [SerializeField, Min(0.1f)] private float _soapSizeRim = 1.3f;
+        [SerializeField, Min(0.1f)] private float _soapSizeRim = 1.8f;
+        [Tooltip("How quickly the soap swells as it leaves the centre: below 1 it grows fast at first (0.6: half way out it's already about two thirds of the way to its rim size).")]
+        [SerializeField, Range(0.2f, 2f)] private float _soapGrowth = 0.6f;
         [SerializeField] private Color _good = new Color(0.45f, 0.85f, 0.40f);
         [SerializeField] private Color _bad = new Color(0.95f, 0.30f, 0.26f);
         [Tooltip("A rim segment still to clean: the plate's grime (the user's call, 2026-11-10).")]
@@ -86,6 +88,8 @@ namespace Game.Presentation
         [Header("Stick hint")]
         [Tooltip("Seconds off target, not pushing towards the centre, before the stick shows how.")]
         [SerializeField, Min(0f)] private float _hintDelay = 0.6f;
+        [Tooltip("Seconds after washing starts before the stick cue shows; it then stays until the soap first reaches the target (the user's call: show it at once).")]
+        [SerializeField, Min(0f)] private float _openingDelay = 0.15f;
         [Tooltip("How closely the stick must point at the centre to count as pushing the right way (cosine).")]
         [SerializeField, Range(-1f, 1f)] private float _rightWay = 0.5f;
 
@@ -115,6 +119,10 @@ namespace Game.Presentation
         /// <summary>A short world vector from the hint towards the way to push (the centre).</summary>
         public Vector3 HintTowardsWorld => _hintTowards;
         private float _stuckFor;
+        // The cue's opening: from the start of washing until the soap first reaches the target.
+        private Game.Simulation.Items.WashGame _hintGame;
+        private bool _opening;
+        private float _openingFor;
 
         private float _fade;
         private float _progress;
@@ -180,6 +188,13 @@ namespace Game.Presentation
                 rate = game.Rate;
                 hold = game.ShareProgress;
                 _targetRadius = game.GoodRadius;
+                if (game != _hintGame)
+                {
+                    // A new spell at the sink: show the stick at once, until the soap's first in.
+                    _hintGame = game;
+                    _opening = true;
+                    _openingFor = 0f;
+                }
                 UpdateStuck(game.Point.Length() > game.GoodRadius, _sink.Washer.MoveInput, dt);
             }
             else
@@ -213,7 +228,15 @@ namespace Game.Presentation
             var toCentre = -_shownPoint.normalized;
             var rightWay = stick.magnitude > 0.3f && Vector2.Dot(stick.normalized, toCentre) > _rightWay;
             _stuckFor = offTarget && !rightWay ? _stuckFor + dt : 0f;
-            var want = _stuckFor > _hintDelay ? 1f : 0f;
+            // At the start of washing it shows almost at once and stays until the soap first gets
+            // into the target; after that, only when the player seems stuck.
+            if (_opening)
+            {
+                _openingFor += dt;
+                if (!offTarget)
+                    _opening = false;
+            }
+            var want = (_opening && _openingFor > _openingDelay) || _stuckFor > _hintDelay ? 1f : 0f;
             _hintShown = Mathf.MoveTowards(_hintShown, want, dt / 0.15f);
         }
 
@@ -252,7 +275,7 @@ namespace Game.Presentation
             _soap.localPosition = new Vector3(point.x, _segmentHeight + _soapFloat + bob, point.y);
             // Small at the centre, where it fits inside the target, and bigger the further out it
             // drifts (the user's call), so how far off it is reads at a glance.
-            _soap.localScale = _soapSize * Mathf.Lerp(_soapSizeCentre, _soapSizeRim, Mathf.Clamp01(_shownPoint.magnitude));
+            _soap.localScale = _soapSize * Mathf.Lerp(_soapSizeCentre, _soapSizeRim, Mathf.Pow(Mathf.Clamp01(_shownPoint.magnitude), _soapGrowth));
             var lean = Vector3.ClampMagnitude(new Vector3(velocity.y, 0f, -velocity.x) * 6f, 20f);
             var shake = rate < 0.2f ? Mathf.Sin(Time.time * 40f) * 6f : 0f;
             _soap.localRotation = Quaternion.Euler(lean.x + shake, 25f, lean.z);
