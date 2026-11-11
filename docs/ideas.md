@@ -410,3 +410,7 @@ To work out when we get there: what scorching and spilling cost (quality, lost f
 ## Controller rebinding (logged 2026-11-10, Phase 5 milestone 6)
 
 `CLAUDE.md` says controls are rebindable in the in-game settings; the pause menu (decision 2026-11-10) doesn't have it yet. The user chose to leave it for later. Proposal: a Controls page in Settings, per player (each rebinds their own controller), using the Input System's interactive rebinding, saved as binding overrides in `settings.json`. On-screen hints would then need to follow the bindings rather than naming fixed Xbox buttons, which touches every prompt.
+
+## Seating a group from the far chairs in (proposed 2026-11-11)
+
+*From the flaky group-seating test.* Round a table for four by a wall, a guest heading for the last free chair may only get there behind a friend already sitting, and shoves them along. Seating the chairs furthest from the door first, or having guests near the door wait a moment, would avoid it. It needs a design call: who sits where in a group is visible to players.

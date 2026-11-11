@@ -44,6 +44,10 @@ namespace Game.Gameplay.Customers
             public SimVector2 Goal;
             public List<SimVector2> Points;
             public int Next;
+
+            // The seating it was planned around: someone sitting down or getting up since, it's
+            // planned again, so nobody keeps to a way behind a friend who has just sat down.
+            public StationLayout Routes;
         }
 
         [SerializeField] private KitchenCompositionRoot _root;
@@ -93,8 +97,16 @@ namespace Game.Gameplay.Customers
         private readonly HashSet<Customer> _walkedOut = new HashSet<Customer>();
         private StationLayout _layout;
 
-        // The same, keeping clear of every chair: for planning a way, not for where they can step.
+        // The same, keeping clear of every chair someone is sitting in: for planning a way, not for
+        // where they can step. Empty chairs are left out: a way past an empty chair is a way, and
+        // with every chair avoided the gaps round a table for four close (behind a chair against a
+        // wall, between it and the bar stools), so routes fell back to squeezing behind a seated
+        // friend and shoving them round the table (decision 2026-11-11). Rebuilt when who's sitting
+        // where changes.
         private StationLayout _routes;
+        private readonly Dictionary<int, Footprint> _chairs = new Dictionary<int, Footprint>();
+        private readonly HashSet<int> _routedSeats = new HashSet<int>();
+        private readonly HashSet<int> _seated = new HashSet<int>();
         private readonly Dictionary<int, ServingStation> _serving = new Dictionary<int, ServingStation>();
 
         // Outside: who's on the street (walking in, at the doorstep, queueing), the way each is
@@ -140,7 +152,7 @@ namespace Game.Gameplay.Customers
                 return;
             _layout = _root.Services.NewLayout();
             _serving.Clear();
-            var chairs = new List<Footprint>();
+            _chairs.Clear();
             foreach (var station in _root.Services.Stations.All)
             {
                 if (!(station is ServingStation serving))
@@ -149,10 +161,32 @@ namespace Game.Gameplay.Customers
                 {
                     _serving[seat] = serving;
                     var position = serving.SeatPosition(seat);
-                    chairs.Add(new Footprint(Floor(position), 0f, new SimVector2(_seatedBodyHalfWidth, _seatedBodyHalfWidth)));
+                    _chairs[seat] = new Footprint(Floor(position), 0f, new SimVector2(_seatedBodyHalfWidth, _seatedBodyHalfWidth));
                 }
             }
+            _routes = null;
+            _routedSeats.Clear();
+        }
+
+        // The way-planning layout for who's sitting now, rebuilt only when that changes.
+        private StationLayout Routes()
+        {
+            _seated.Clear();
+            foreach (var customer in _agents.Keys)
+            {
+                var sitting = customer.State == CustomerState.Waiting || customer.State == CustomerState.Eating || customer.State == CustomerState.DoneEating;
+                if (sitting && _chairs.ContainsKey(customer.Seat))
+                    _seated.Add(customer.Seat);
+            }
+            if (_routes != null && _routedSeats.SetEquals(_seated))
+                return _routes;
+            _routedSeats.Clear();
+            _routedSeats.UnionWith(_seated);
+            var chairs = new List<Footprint>();
+            foreach (var seat in _routedSeats)
+                chairs.Add(_chairs[seat]);
             _routes = _root.Services.NewLayout(chairs);
+            return _routes;
         }
 
         private void OnDestroy()
@@ -429,12 +463,13 @@ namespace Game.Gameplay.Customers
             if ((goal - here).Length() <= ArriveDistance)
                 return WalkResult.Arrived;
 
-            if (!_walks.TryGetValue(agent, out var walk) || (walk.Goal - goal).Length() > ArriveDistance)
+            var routes = Routes();
+            if (!_walks.TryGetValue(agent, out var walk) || (walk.Goal - goal).Length() > ArriveDistance || walk.Routes != routes)
             {
                 // The furniture decides whether there's a way at all. Given one, it goes around the
-                // chairs if there's room, so nobody walks into a friend already sitting.
+                // people sitting if there's room, so nobody walks into a friend already seated.
                 var way = _layout.FindPath(here, goal);
-                walk = new CustomerWalk { Goal = goal, Points = way != null ? _routes.FindPath(here, goal) ?? way : null };
+                walk = new CustomerWalk { Goal = goal, Points = way != null ? routes.FindPath(here, goal) ?? way : null, Routes = routes };
                 _walks[agent] = walk;
             }
             if (walk.Points == null)
