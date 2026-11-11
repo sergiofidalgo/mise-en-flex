@@ -3536,3 +3536,11 @@ It hides (fading over the HUD's 0.12 s) behind the Review dashboard, the pause m
 - **A bin near the customer door costs a little, by distance.** Within a few metres of the door, guests lose some satisfaction, more the closer it is, and some reviews mention the smell. Learnable in play, never a disaster.
 - **Appliances stay on the premises.** While being moved they never poke into or through a wall.
 - **Appliances may go in the dining room, and tables in the kitchen.** Placing one shows a warning that it makes mess. It always makes more mess. Guests' reaction depends on how good the restaurant is: with great food and service it's a show they love (a chef's-table bonus and glowing reviews, Michelin style); with average or poor service, they complain about the mess and noise.
+
+## 2026-11-11 — At the tailor, A wears; the player number is bigger and centred
+
+**User's calls:** the dressing card shows both A and B, as the kitchen's shop card does, and the compact player cards' number is bigger (46 px) and centred in the column right of the face, in the office and the kitchen.
+
+**What A does (my proposal, from "both A and B should appear"):** browsing only previews; **A Wear** puts on the item shown and saves it; **B Done** hops down, and anything only browsed goes back. A dims when there's nothing to wear (already worn, or locked); a worn item reads "3 / 6 · wearing". Wearing flashes the card's edge, and A on a locked item shakes it, as the shop's buy and refusal do. Until now every item browsed past was worn and saved at once; that's gone.
+
+**Not checked in play:** whether players expect browsing to keep what they last saw. If they do, B could wear the shown item instead of dropping it.

@@ -97,19 +97,34 @@ namespace Game.Tests.EditMode
         }
 
         [Test]
-        public void AnOpenItemIsWornAndSaves()
+        public void BrowsingOnlyPreviewsAndAWearsIt()
         {
             var session = new TailorSession(new ChefLook(), NothingEarned);
-            Assert.That(session.StepItem(1), Is.True, "the cap is open");
-            Assert.That(session.Worn.Hat, Is.EqualTo("cap"));
+            var before = session.Worn.Hat;
+            session.StepItem(1);
             Assert.That(session.Preview.Hat, Is.EqualTo("cap"));
+            Assert.That(session.Worn.Hat, Is.EqualTo(before), "browsing alone wears nothing");
+            Assert.That(session.Wear(), Is.EqualTo(TailorSession.WearResult.Worn), "the cap is open");
+            Assert.That(session.Worn.Hat, Is.EqualTo("cap"));
+            Assert.That(session.Wear(), Is.EqualTo(TailorSession.WearResult.AlreadyWorn));
+        }
+
+        [Test]
+        public void LeavingDropsWhatWasOnlyBrowsed()
+        {
+            var session = new TailorSession(new ChefLook(), NothingEarned);
+            var before = session.Worn.Hat;
+            session.StepItem(1);
+            session.Leave();
+            Assert.That(session.Preview.Hat, Is.EqualTo(before));
         }
 
         [Test]
         public void ALockedItemShowsButIsNotWorn()
         {
             var session = new TailorSession(new ChefLook { Hat = "headband" }, NothingEarned);
-            Assert.That(session.StepItem(1), Is.False, "the horns are locked");
+            session.StepItem(1);
+            Assert.That(session.Wear(), Is.EqualTo(TailorSession.WearResult.Locked), "the horns are locked");
             Assert.That(session.Preview.Hat, Is.EqualTo("horns"));
             Assert.That(session.ItemLocked, Is.True);
             Assert.That(session.Worn.Hat, Is.EqualTo("headband"), "still wearing the last open hat");
@@ -141,7 +156,8 @@ namespace Game.Tests.EditMode
         public void ALockedItemIsWornOnceEarned()
         {
             var session = new TailorSession(new ChefLook { Hat = "headband" }, new[] { "horns" });
-            Assert.That(session.StepItem(1), Is.True);
+            session.StepItem(1);
+            Assert.That(session.Wear(), Is.EqualTo(TailorSession.WearResult.Worn));
             Assert.That(session.Worn.Hat, Is.EqualTo("horns"));
         }
     }

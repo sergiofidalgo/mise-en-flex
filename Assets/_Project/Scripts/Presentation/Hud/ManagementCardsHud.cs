@@ -38,6 +38,7 @@ namespace Game.Presentation.Hud
         private const float Height = 500f;
         private const float CompactWidth = 210f; // the office's
         private const float CompactHeight = 108f;
+        private const float NumberSize = 46f;
         private const float Margin = 24f;
         private const float CardGap = 12f;
         private const float ShoulderWidth = 50f;
@@ -282,7 +283,9 @@ namespace Game.Presentation.Hud
             var picture = UiKit.Rect(frame.transform, "Portrait", 0f, 0f, square, square).gameObject.AddComponent<RawImage>();
             picture.texture = compact.Still.Texture;
             picture.raycastTarget = false;
-            UiKit.TextAt(_style.DisplayFont, compact.Root, "Number", $"P{index + 1}", 34f, colour, CompactHeight + 4f, 46f, 80f);
+            // The number bigger, centred in the column right of the face, as the office's.
+            var column = 12f + square;
+            UiKit.TextAt(_style.DisplayFont, compact.Root, "Number", $"P{index + 1}", NumberSize, colour, (column + CompactWidth) / 2f, CompactHeight / 2f + NumberSize * 0.36f, CompactWidth - column - 8f, HorizontalAlignmentOptions.Center);
             return compact;
         }
 
