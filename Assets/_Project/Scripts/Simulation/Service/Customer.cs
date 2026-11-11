@@ -17,6 +17,11 @@ namespace Game.Simulation.Service
         /// <summary>Walking out (gameplay moves them and calls Left).</summary>
         Leaving,
         Gone,
+        /// <summary>
+        /// Walking up the street to the door, not in yet (ServiceSimulation.GuestsWalkIn; gameplay
+        /// moves them and calls ReachDoor). Patience hasn't started.
+        /// </summary>
+        Approaching,
     }
 
     /// <summary>One customer's visit. States change through <see cref="ServiceSimulation"/>.</summary>
@@ -29,8 +34,11 @@ namespace Game.Simulation.Service
 
         public int Id { get; }
 
-        /// <summary>Service seconds when they arrived, for the guests chart.</summary>
+        /// <summary>Service seconds when they arrived at the door, for the guests chart.</summary>
         public float ArrivedAt { get; internal set; }
+
+        /// <summary>While approaching: they've reached the door, and wait there for the rest of their party.</summary>
+        public bool AtDoor { get; internal set; }
 
         public CustomerState State { get; internal set; }
 

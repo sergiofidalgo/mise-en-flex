@@ -70,17 +70,63 @@ namespace Game.Tests.PlayMode
             var customer = NextCustomer();
             yield return null;
 
+            // They set off from off screen at one end of the pavement, not in the doorway (decision
+            // 2026-11-11), and are only at the door, with their patience started, once there.
             var agent = _customers.Agents[customer];
-            Assert.That(agent.transform.position.z, Is.LessThan(-6f), "at the street door");
+            Assert.That(customer.State, Is.EqualTo(CustomerState.Approaching));
+            Assert.That(Mathf.Abs(agent.transform.position.x), Is.GreaterThan(12f), "beyond the end of the pavement");
+            Assert.That(agent.transform.position.z, Is.LessThan(-7.1f), "outside, on the street");
 
+            yield return WaitFor(() => customer.State != CustomerState.Approaching, 30f);
+            Assert.That(customer.Patience, Is.EqualTo(1f), "no patience spent on the way");
             yield return WaitFor(() => customer.State == CustomerState.Waiting, 15f);
             Assert.That(agent.transform.position.z, Is.GreaterThan(-4.2f), "at a bar table, by the wall");
+        }
+
+        [UnityTest]
+        public IEnumerator WithEveryStoolTakenTheyQueueOutsideOnThePavement()
+        {
+            yield return OpenForService();
+            var service = _root.Services.Service;
+            var guests = Enumerable.Range(0, service.SeatCount + 1).Select(_ => NextCustomer()).ToList();
+
+            // Whoever reaches the door first gets a stool; the one left over queues.
+            yield return WaitFor(() => guests.Count(g => g.State == CustomerState.Waiting) == service.SeatCount
+                && guests.Count(g => g.State == CustomerState.Queueing) == 1, 45f);
+            var queued = guests.Single(g => g.State == CustomerState.Queueing);
+            yield return new WaitForSeconds(3f); // time to walk from the doorstep to their place
+            var at = _customers.Agents[queued].transform.position;
+            var door = GameObject.Find("Street door").transform.position;
+            Assert.That(at.z, Is.LessThan(-7.1f), "outside, in front of the wall");
+            Assert.That(at.z, Is.GreaterThan(-10.3f), "on the pavement, not the road");
+            Assert.That(Mathf.Abs(at.x - door.x), Is.GreaterThan(0.8f), "beside the doorway, not in it");
+        }
+
+        [UnityTest]
+        public IEnumerator LeavingTheyWalkOffAlongTheStreet()
+        {
+            yield return OpenForService();
+            var customer = NextCustomer();
+            yield return WaitFor(() => customer.State == CustomerState.Waiting, 45f);
+            var service = _root.Services.Service;
+            while (customer.State == CustomerState.Waiting)
+                service.Tick(1f);
+            yield return WaitFor(() => customer.State == CustomerState.Gone, 15f);
+
+            // Gone for the service, but still there: walking away outside, then out of sight.
+            yield return null;
+            var body = GameObject.Find($"Customer_{customer.Id}");
+            Assert.That(body, Is.Not.Null, "they walk off rather than vanish in the doorway");
+            yield return new WaitForSeconds(2f);
+            Assert.That(body.transform.position.z, Is.LessThan(-7.1f), "outside");
+            yield return WaitFor(() => body == null, 40f);
         }
 
         [UnityTest]
         public IEnumerator AChefCanPushACustomerAndTheyComeBack()
         {
             yield return OpenForService();
+            AtTheDoorAtOnce();
             var customer = NextCustomer();
             yield return WaitFor(() => customer.State == CustomerState.Waiting, 15f);
             var agent = _customers.Agents[customer];
@@ -106,6 +152,7 @@ namespace Game.Tests.PlayMode
         public IEnumerator EveryoneGetsOutAgain()
         {
             yield return OpenForService();
+            AtTheDoorAtOnce();
             var customer = NextCustomer();
             yield return WaitFor(() => customer.State == CustomerState.Waiting, 15f);
             var service = _root.Services.Service;
@@ -149,7 +196,12 @@ namespace Game.Tests.PlayMode
             days.Advance();
             days.Advance();
             yield return null;
+            AtTheDoorAtOnce();
         }
+
+        // For tests about the dining room: customers are at the door as they're due, rather than
+        // first walking up the street (that walk has its own tests below).
+        private void AtTheDoorAtOnce() => _root.Services.Service.GuestsWalkIn = false;
 
         // A service whose timing the test controls: nobody arrives until it's asked for, and nobody
         // loses patience, whatever the settings being played with are.
@@ -252,8 +304,9 @@ namespace Game.Tests.PlayMode
             days.Advance();
             yield return null;
 
+            // Up the street first (decision 2026-11-11), then no way in past the tables.
             var customer = NextCustomer();
-            yield return WaitFor(() => customer.State == CustomerState.Gone, 15f);
+            yield return WaitFor(() => customer.State == CustomerState.Gone, 45f);
             Assert.That(customer.WalkedOut, Is.True);
             Assert.That(_root.Services.Service.LostCovers, Is.EqualTo(1));
         }
@@ -325,6 +378,7 @@ namespace Game.Tests.PlayMode
             days.Advance();
             days.Advance();
             yield return null;
+            AtTheDoorAtOnce();
             Assert.That(_root.Services.Service.SeatCount, Is.EqualTo(7));
 
             var party = NextCustomer().Party;
@@ -470,6 +524,7 @@ namespace Game.Tests.PlayMode
             yield return null;
             services.Days.Advance();
             yield return null;
+            AtTheDoorAtOnce();
 
             // The chef stays where they are, standing in a corridor: the waiter goes another way round.
             var customer = NextCustomer();
