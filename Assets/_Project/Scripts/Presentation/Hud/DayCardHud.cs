@@ -19,7 +19,7 @@ namespace Game.Presentation.Hud
     /// money card behind the forkcast dashboard and the pause menu. Built in code on its own canvas,
     /// inside the screen's margin at any resolution or aspect; the boss's phone is bottom right.
     /// <para>In Prep it becomes two tiles above the ready bar (the user's design, 2026-11-11): a
-    /// calendar page ("FRI 5") with "Prep / Opens 18:00", and two guests' faces with "About 5
+    /// calendar page ("FRI 5") with "Prep · Day 5 / Opens 18:00", and two guests' faces with "About 5
     /// guests / Groups of one". The forecast follows the tables and the menu's prices as they
     /// change, as the night itself will. The View button's "Rearrange" docks top right under the
     /// money card, as wide as it (the user's call, 2026-11-11), the only place it's shown.</para>
@@ -180,7 +180,8 @@ namespace Game.Presentation.Hud
         private void DrawTiles(int day, float opensAtHour, int guests, float groupSize)
         {
             var weekday = DayCardText.Weekday(day).ToUpperInvariant();
-            var title = DayCardText.Phase(DayPhase.Prep);
+            // "Prep · Day 5" (the user's call, 2026-11-11): the day in words beside the calendar page.
+            var title = Tr.Format("{phase} · Day {day}", ("phase", DayCardText.Phase(DayPhase.Prep)), ("day", day));
             var opens = DayCardText.Opens(opensAtHour);
             var count = DayCardText.Guests(guests);
             var groups = DayCardText.Groups(groupSize);
@@ -245,7 +246,12 @@ namespace Game.Presentation.Hud
             UiKit.StrokedBox(tile, "Back", fill, _style.DayCardEdge, _style.DayCardStroke, 0f, 0f, width, HintHeight, Radius);
             // The key and the word centred together, as a button reads.
             var label = UiKit.TextAt(_style.Bold, tile, "Word", word, TileLineSize, _style.DayText, 0f, HintHeight / 2f + TileLineSize * 0.36f, width - KeyWidth - 12f - 28f);
-            var block = KeyWidth + 12f + Mathf.Min(UiKit.Width(label), label.rectTransform.sizeDelta.x);
+            // A long word ("Reorganizar") shrinks a little to fit the money card's width rather than being cut.
+            label.enableAutoSizing = true;
+            label.fontSizeMin = 18f;
+            label.fontSizeMax = TileLineSize;
+            label.ForceMeshUpdate();
+            var block = KeyWidth + 12f + Mathf.Min(label.preferredWidth, label.rectTransform.sizeDelta.x);
             var left = (width - block) / 2f;
             label.rectTransform.anchoredPosition = new Vector2(left + KeyWidth + 12f, label.rectTransform.anchoredPosition.y);
             var cx = left + KeyWidth / 2f;

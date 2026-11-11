@@ -105,6 +105,9 @@ namespace Game.Presentation.Hud
             public TextMeshProUGUI Price;
             public TextMeshProUGUI Description;
             public TextMeshProUGUI Message;
+            public TextMeshProUGUI Buy;
+            public TextMeshProUGUI Done;
+            public RectTransform DoneBadge;
 
             // What was shown last frame, to notice what changed.
             public bool WasOpen;
@@ -419,9 +422,11 @@ namespace Game.Presentation.Hud
             card.Message = UiKit.TextAt(_style.Bold, card.Root, "Message", "", 22f, _blocked, Width / 2f, 434f, Width - 24f, HorizontalAlignmentOptions.Center);
 
             DrawBadge(card.Root, PromptControl.South, 16f, 452f, 34f);
-            UiKit.TextAt(_style.Font, card.Root, "Buy", Tr.Get("Buy"), 24f, _style.TextColor, 58f, 478f, 110f);
-            var done = UiKit.TextAt(_style.Font, card.Root, "Done", Tr.Get("Done"), 24f, _style.TextColor, Width - 18f, 478f, 110f, HorizontalAlignmentOptions.Right);
-            DrawBadge(card.Root, PromptControl.East, Width - 18f - UiKit.Width(done) - 8f - 34f, 452f, 34f);
+            card.Buy = UiKit.TextAt(_style.Font, card.Root, "Buy", "", 24f, _style.TextColor, 58f, 478f, 110f);
+            card.Done = UiKit.TextAt(_style.Font, card.Root, "Done", "", 24f, _style.TextColor, Width - 18f, 478f, 110f, HorizontalAlignmentOptions.Right);
+            // B sits just left of "Done", wherever the word ends in the language (Fill moves it).
+            card.DoneBadge = UiKit.Rect(card.Root, "DoneBadge", 0f, 452f, 34f, 34f);
+            DrawBadge(card.DoneBadge, PromptControl.East, 0f, 0f, 34f);
             return card;
         }
 
@@ -456,6 +461,15 @@ namespace Game.Presentation.Hud
                 card.Section = view.Section;
                 card.Open = 0.5f; // a quick pop on turning the page
                 card.Index = -1;
+            }
+
+            // The footer's words in the player's language now (it may have changed since the card was built).
+            var done = Tr.Get("Done");
+            if (card.Done.text != done)
+            {
+                card.Buy.text = Tr.Get("Buy");
+                card.Done.text = done;
+                card.DoneBadge.anchoredPosition = new Vector2(Width - 18f - UiKit.Width(card.Done) - 8f - 34f, -452f);
             }
 
             // The page's name between the bumpers, and a dot per page in the player's colour.
