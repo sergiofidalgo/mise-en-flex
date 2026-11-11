@@ -31,6 +31,9 @@ namespace Game.Simulation.Days
 
         public bool HasDay => Record != null;
 
+        /// <summary>False for a day saved before the books kept every line (and its dishes): only totals.</summary>
+        public bool HasLines => Record?.Lines != null && Record.Lines.Length > 0;
+
         public int Served => Record?.Served ?? 0;
         public int WalkOuts => Record?.WalkOuts ?? 0;
         public int TurnedAway => Record?.TurnedAway ?? 0;
@@ -75,7 +78,9 @@ namespace Game.Simulation.Days
                 var dish = dishes.FirstOrDefault(d => id.Length > 0 ? d.RecipeId == id : d.Dish == name);
                 if (dish == null)
                 {
-                    dish = new DishNight { RecipeId = id, Dish = name, Price = id.Length > 0 && priceOf != null ? priceOf(id) : 0 };
+                    // What the guest actually paid for it, when they did; otherwise the menu's price.
+                    var paid = guest.Bill.HasValue ? (int)Math.Round(guest.Bill.Value.Payment) : 0;
+                    dish = new DishNight { RecipeId = id, Dish = name, Price = paid > 0 ? paid : id.Length > 0 && priceOf != null ? priceOf(id) : 0 };
                     dishes.Add(dish);
                 }
                 dish.Ordered++;

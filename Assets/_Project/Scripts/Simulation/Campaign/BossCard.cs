@@ -1,3 +1,5 @@
+using System;
+
 namespace Game.Simulation.Campaign
 {
     /// <summary>
@@ -14,6 +16,27 @@ namespace Game.Simulation.Campaign
             Tomorrow,
             InDays,
         }
+
+        /// <summary>How the money stands against the collection (the user's call, 2026-11-11).</summary>
+        public enum Standing
+        {
+            /// <summary>Not enough: orange, "Short by $X".</summary>
+            Short,
+            /// <summary>Enough, with less than <see cref="JustCoveredSpare"/> of it to spare: amber.</summary>
+            JustCovered,
+            /// <summary>Enough and then some: green.</summary>
+            Covered,
+        }
+
+        /// <summary>Spare money, as a share of what's due, under which "covered" is only just.</summary>
+        public const float JustCoveredSpare = 0.1f;
+
+        /// <summary>The balance beyond what's due; 0 when short.</summary>
+        public float Spare => Math.Max(0f, Balance - Due);
+
+        public Standing Stands => IsShort ? Standing.Short
+            : Due > 0f && Spare < Due * JustCoveredSpare ? Standing.JustCovered
+            : Standing.Covered;
 
         /// <summary>Days left at or under which a shortfall turns the card urgent.</summary>
         public const int UrgentDays = 2;

@@ -3372,3 +3372,17 @@ It hides (fading over the HUD's 0.12 s) behind the Review dashboard, the pause m
 **Tunable** (`ReviewDashboard`, "Start bar"): fill speed, flash time, pulse rate and size, and how far the A sinks. The hold itself is still `_startHoldSeconds`.
 
 **Not checked in play:** whether the flash is noticed before the screen leaves on the last hold (it closes the moment everyone's ready), and the pulse's strength from the couch.
+
+## 2026-11-11 — forkcast: the footer is the start bar; six restaurant cards; the boss card shows success
+
+**From the user's solo playtest:**
+- **"The books still show empty":** the days in that save were played before Books kept every line and the night's dishes (saved before 00:29 on 2026-11-11; the file's later timestamp came from an office save rewriting old day records). Nothing was being lost. For such a day Books now says "only the totals were kept" and "Not kept for this day" instead of "Nobody ordered." A new day keeps its lines and dishes through Review and a relaunch (tested), and a dish's price is what the guest paid.
+- **Two pills for one player:** the bar counted a player whose controller had gone missing, whom the day loop doesn't wait for. forkcast now counts only joined players with a connected controller, as the day loop does (tested).
+- **The photo caption** says "Your photo · captured at close" after a service and "Your kitchen, as you left it" on arrival (it was "this morning").
+
+**User's calls:**
+- **The footer is the start bar,** full width: the A and "Hold to start day N" sit on it, and it fills as A is held. With two or more cooks it splits into one segment per joined cook in their colour, each reading "P2 waiting" or "P2 ready" at its right end (rather than a "Waiting for…" line, which ran into the segments). With one cook it's a single gold bar. The footer's control hints go: the tab bar shows LB/RB, and lists browse with the D-pad as everywhere.
+- **The left column:** the pills card goes. Under the name and rating are six cards in the tile style (the user's pick from nine): known for, per person, guests fed (with "· 1 fled" when someone walked out that night), closed · opens, best plate tonight (by the guests' stars), and tips tonight ("· they liked you").
+- **The boss card shows success:** green when the balance covers the collection ("Covered · $360 to spare"), amber when only just, under 10% to spare ("Just covers it · $18 to spare"), and orange with "Short by $X" when short; a paid collection night is green ("He's happy. For now."). The card pulses only when short with two days or fewer left. There's no boss avatar (the user's call). `BossCard.Stands` holds the rule (EditMode tests).
+
+**Not checked in play:** the segment tags with long translations, and whether amber reads as "fine, but careful".

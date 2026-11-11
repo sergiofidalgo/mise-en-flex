@@ -135,6 +135,68 @@ namespace Game.Tests.PlayMode
             Debug.Log($"[ForkcastPlanCapture] Saved screenshots to {folder}");
         }
 
+        [UnityTest]
+        public IEnumerator CaptureTheBossCardStates()
+        {
+            Assume.That(Application.isBatchMode, Is.False, "Run it in a visible editor (without -batchmode): it grabs the screen.");
+#if UNITY_EDITOR
+            UnityEditor.PlayModeWindow.SetCustomRenderingResolution(1920, 1080, "forkcast capture");
+#endif
+            yield return SceneManager.LoadSceneAsync("Kitchen_Greybox");
+            yield return null;
+            var root = Object.FindFirstObjectByType<KitchenCompositionRoot>();
+            var days = root.Services.Days;
+            var dashboard = Object.FindFirstObjectByType<ReviewDashboard>();
+            // One cook: the start bar is a single bar.
+            var pad = InputSystem.AddDevice<Gamepad>("BossCapturePad");
+            Object.FindFirstObjectByType<PlayerInputManager>().JoinPlayer(controlScheme: "Gamepad", pairWithDevices: pad);
+            for (var i = 0; i < 3; i++)
+                yield return null;
+            days.Advance();
+            days.Advance();
+            days.FinishService(Summary(served: 6, walkOuts: 0, payments: 180f, tips: 20f, walkOutLosses: 0f), wages: 0f);
+            days.History[days.History.Count - 1].Dishes.Add(new DishNight { Dish = "steak, rare", Ordered = 4, StarSum = 18f, Rated = 4, Price = 24 });
+            var due = days.NextCollection.Due;
+            var folder = Folder();
+            var shots = new System.Collections.Generic.List<Texture2D>();
+
+            // Short, two days to go; just covered; comfortably covered; a collection night paid in full.
+            yield return BossState(dashboard, days, due * 0.4f, days.Fee.EveryDays - 2, shots);
+            yield return BossState(dashboard, days, due * 1.04f, days.Fee.EveryDays - 3, shots);
+            yield return BossState(dashboard, days, due * 1.8f, days.Fee.EveryDays - 3, shots);
+            var record = days.History[days.History.Count - 1];
+            record.Collected = true;
+            record.CollectionDue = due;
+            record.CollectionPaid = due;
+            yield return BossState(dashboard, days, due * 0.5f, 0, shots);
+
+            // One picture: the four cards stacked, cropped from the 1920×1080 frames.
+            const int x = 752, top = 250, width = 626, height = 176;
+            var sheet = new Texture2D(width, height * shots.Count, TextureFormat.RGB24, false);
+            for (var i = 0; i < shots.Count; i++)
+                sheet.SetPixels(0, (shots.Count - 1 - i) * height, width, height, shots[i].GetPixels(x, shots[i].height - top - height, width, height));
+            sheet.Apply();
+            File.WriteAllBytes(Path.Combine(folder, "forkcast_boss_card_states.png"), sheet.EncodeToPNG());
+            File.WriteAllBytes(Path.Combine(folder, "forkcast_one_player.png"), shots[2].EncodeToPNG());
+            InputSystem.RemoveDevice(pad);
+            foreach (var shot in shots)
+                Object.Destroy(shot);
+            Object.Destroy(sheet);
+        }
+
+        private static IEnumerator BossState(ReviewDashboard dashboard, DayCycle days, float balance, int daysTowardsFee, System.Collections.Generic.List<Texture2D> shots)
+        {
+            if (days.Balance > balance)
+                days.TrySpend(days.Balance - balance);
+            else
+                days.Receive(balance - days.Balance);
+            typeof(DayCycle).GetProperty(nameof(DayCycle.DaysTowardsFee)).SetValue(days, daysTowardsFee);
+            dashboard.ShowForCapture(0, 0, false);
+            yield return new WaitForSecondsRealtime(1.2f);
+            yield return new WaitForEndOfFrame();
+            shots.Add(ScreenCapture.CaptureScreenshotAsTexture());
+        }
+
         // The summary's setters are private (it's made from a finished service); a test fixture fills them in.
         private static Game.Simulation.Service.ServiceSummary Summary(int served, int walkOuts, float payments, float tips, float walkOutLosses)
         {

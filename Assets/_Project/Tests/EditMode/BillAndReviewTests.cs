@@ -180,6 +180,37 @@ namespace Game.Tests.EditMode
             }
         }
 
+        // The user's report (2026-11-11): a day whose meals earned money said "Nobody ordered". The
+        // night's dishes go on the finished day's record, and they're still there after a save.
+        [Test]
+        public void A_served_steak_shows_in_the_days_dishes_and_survives_a_save()
+        {
+            var service = Service();
+            Run(service, 13f * Minute);
+            var customer = service.AtSeat(0);
+            var plate = PlateOf(Steak(70f));
+            service.Serve(0, plate, DishScorer.Score(plate, new ScoringSettings(), customer.Order));
+            service.Tick(16f * Minute);
+
+            var days = new Game.Simulation.Days.DayCycle(100f);
+            days.Advance();
+            days.Advance();
+            days.FinishService(ServiceSummary.From(service));
+            days.History[0].Dishes = Game.Simulation.Days.DaySummary.DishesOf(service.Customers, _ => 24);
+
+            var record = Game.Simulation.Days.DaySummary.Of(days).Record;
+            Assert.That(record.Dishes.Count, Is.EqualTo(1));
+            Assert.That(record.Dishes[0].Dish, Does.StartWith("steak"));
+            Assert.That(record.Dishes[0].Ordered, Is.EqualTo(1));
+            Assert.That(record.Dishes[0].Price, Is.GreaterThan(0), "what the guest paid");
+            Assert.That(Game.Simulation.Days.DaySummary.Of(days).Ledger.Of(Game.Simulation.Days.LedgerLine.Payments), Is.GreaterThan(0f));
+
+            var json = UnityEngine.JsonUtility.ToJson(record);
+            var back = UnityEngine.JsonUtility.FromJson<Game.Simulation.Days.DayRecord>(json);
+            Assert.That(back.Dishes.Count, Is.EqualTo(1), "kept through a save");
+            Assert.That(back.Lines.Length, Is.GreaterThan(0));
+        }
+
         [Test]
         public void CustomersPayAndReviewWhenTheyFinishEating()
         {
