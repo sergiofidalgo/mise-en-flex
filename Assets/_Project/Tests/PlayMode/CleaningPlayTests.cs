@@ -133,6 +133,12 @@ namespace Game.Tests.PlayMode
             for (var i = 0; i < 10; i++)
                 yield return null;
             Assert.That(hob.IsOnFire, Is.True, "turning the gas off doesn't put it out");
+            // The fire sign has popped in over the hob (the user's call, 2026-11-11).
+            var settle = Time.realtimeSinceStartup + 0.6f;
+            while (Time.realtimeSinceStartup < settle)
+                yield return null;
+            var sign = hob.transform.Find("FireSign");
+            Assert.That(sign != null && sign.gameObject.activeInHierarchy, Is.True, "a fire sign floats over the burning hob");
             Capture("fire");
 
             StandAt(hob);
@@ -140,6 +146,10 @@ namespace Game.Tests.PlayMode
             yield return HoldXAndTrace(() => !hob.IsOnFire, 25f);
 
             Assert.That(hob.IsOnFire, Is.False, "three sweeps put it out");
+            var gone = Time.realtimeSinceStartup + 0.5f;
+            while (Time.realtimeSinceStartup < gone)
+                yield return null;
+            Assert.That(sign.gameObject.activeInHierarchy, Is.False, "the sign goes when the fire is out");
             Assert.That(_chef.IsBusy, Is.False);
             Assert.That(Services.Dirt.Spots.Any(s => s.Kind == DirtKind.Foam), Is.True, "foam is left on the floor");
             Assert.That(Services.Dirt.Spots.Any(s => s.Kind == DirtKind.Scorch), Is.True, "and soot from the burnt pan");

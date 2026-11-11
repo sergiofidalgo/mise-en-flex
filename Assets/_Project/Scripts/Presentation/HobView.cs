@@ -67,6 +67,20 @@ namespace Game.Presentation
         [Tooltip("A smouldering pan's tongues lean in and grow as it gets close to catching.")]
         [SerializeField, Range(0f, 1f)] private float _smoulderShow = 0.45f;
 
+        [Header("Fire sign (the user's note, 2026-11-11)")]
+        [Tooltip("Height of the fire sign above the hob (m).")]
+        [SerializeField, Min(0f)] private float _fireSignHeight = 1.7f;
+        [Tooltip("The sign's width in the world (m).")]
+        [SerializeField, Min(0.05f)] private float _fireSignSize = 0.62f;
+        [Tooltip("How long it takes to pop in or out (s).")]
+        [SerializeField, Min(0.01f)] private float _fireSignPop = 0.18f;
+        [Tooltip("How much bigger it swells on each beat (share of its size), and beats a second: urgent, like an alarm.")]
+        [SerializeField, Range(0f, 0.5f)] private float _fireSignPulse = 0.14f;
+        [SerializeField, Min(0f)] private float _fireSignBeat = 2.5f;
+        [Tooltip("Degrees it rocks either way, and how fast.")]
+        [SerializeField, Min(0f)] private float _fireSignRock = 6f;
+        [SerializeField, Min(0f)] private float _fireSignRockRate = 9f;
+
         [SerializeField] private Color _burnerOff = new Color(0.08f, 0.08f, 0.09f);
         [SerializeField] private Color _burnerFull = new Color(1f, 0.35f, 0.05f);
         [SerializeField] private Color _pipOff = new Color(0.12f, 0.12f, 0.13f);
@@ -78,6 +92,9 @@ namespace Game.Presentation
 
         private MaterialPropertyBlock _block;
         private Renderer[] _fire;
+        private Transform _fireSign;
+        private float _fireSignShown;
+        private static Sprite _fireSprite;
         // The gas hob's heat knob, a child called "Knob", turned with the dial; the induction hob has none.
         private Transform _knob;
         private Quaternion _knobOff;
@@ -110,6 +127,119 @@ namespace Game.Presentation
             var burning = _hob.IsOnFire;
             ShowFlames(burning ? 1f : _hob.Hob.Dial);
             ShowPanFire(burning ? 1f : SmoulderShown());
+            ShowFireSign(burning);
+        }
+
+        // A sign over a hob on fire, like the bin's full sign but urgent: it pops in, then beats and
+        // rocks until the fire is out, so a fire reads from across the kitchen (the user's call).
+        private void ShowFireSign(bool burning)
+        {
+            var step = _fireSignPop > 0f ? Time.deltaTime / _fireSignPop : 1f;
+            _fireSignShown = Mathf.MoveTowards(_fireSignShown, burning ? 1f : 0f, step);
+            if (_fireSignShown <= 0f)
+            {
+                if (_fireSign != null && _fireSign.gameObject.activeSelf)
+                    _fireSign.gameObject.SetActive(false);
+                return;
+            }
+
+            if (_fireSign == null)
+                _fireSign = BuildFireSign();
+            if (!_fireSign.gameObject.activeSelf)
+                _fireSign.gameObject.SetActive(true);
+
+            // A quick swell on each beat, settling between, like a heartbeat.
+            var beat = Mathf.Repeat(Time.time * _fireSignBeat, 1f);
+            var swell = 1f + _fireSignPulse * Mathf.Exp(-beat * 6f);
+            _fireSign.localScale = Vector3.one * (_fireSignSize * Overshoot(_fireSignShown) * swell);
+            _fireSign.position = transform.position + Vector3.up * _fireSignHeight;
+
+            // Flat to the camera, so it reads as a sign from the overhead angle, rocking a little.
+            var camera = Camera.main;
+            if (camera != null)
+                _fireSign.rotation = camera.transform.rotation * Quaternion.Euler(0f, 0f, _fireSignRock * Mathf.Sin(Time.time * _fireSignRockRate));
+        }
+
+        private Transform BuildFireSign()
+        {
+            var go = new GameObject("FireSign");
+            go.transform.SetParent(transform, false);
+            var sprite = go.AddComponent<SpriteRenderer>();
+            sprite.sprite = FireSprite();
+            sprite.sortingOrder = 10;
+            return go.transform;
+        }
+
+        // 0..1 to a scale that swells a little past 1 and settles back (ease-out-back), as the bin's sign.
+        private static float Overshoot(float t)
+        {
+            const float c1 = 1.70158f;
+            const float c3 = c1 + 1f;
+            var u = t - 1f;
+            return 1f + c3 * u * u * u + c1 * u * u;
+        }
+
+        // A fire sign drawn in code, matching the bin's: a red disc with a dark rim, and a flame
+        // in it, orange with a yellow heart. Needs no texture asset.
+        // TODO(Phase 9): swap for a drawn icon if the art pass wants one.
+        private static Sprite FireSprite()
+        {
+            if (_fireSprite != null)
+                return _fireSprite;
+
+            const int size = 128;
+            const float outer = 0.5f;
+            const float rimWidth = 0.035f;
+            const float softEdge = 1.5f / size;
+            var red = new Color(0.86f, 0.16f, 0.14f, 1f);
+            var rim = new Color(0.10f, 0.08f, 0.08f, 1f);
+            var flame = new Color(1f, 0.62f, 0.12f, 1f);
+            var heart = new Color(1f, 0.93f, 0.55f, 1f);
+
+            var pixels = new Color[size * size];
+            for (var y = 0; y < size; y++)
+            {
+                for (var x = 0; x < size; x++)
+                {
+                    var px = (x + 0.5f) / size - 0.5f;
+                    var py = (y + 0.5f) / size - 0.5f;
+                    var r = Mathf.Sqrt(px * px + py * py);
+                    var colour = r > outer - rimWidth ? rim
+                        : InFlame(px, py + 0.02f, 1.35f) ? (InFlame(px, py + 0.1f, 0.7f) ? heart : flame)
+                        : red;
+                    colour.a = Mathf.Clamp01((outer - r) / softEdge);
+                    pixels[y * size + x] = colour;
+                }
+            }
+
+            var texture = new Texture2D(size, size, TextureFormat.RGBA32, false)
+            {
+                name = "TEX_HobFireSign",
+                wrapMode = TextureWrapMode.Clamp,
+                filterMode = FilterMode.Bilinear,
+            };
+            texture.SetPixels(pixels);
+            texture.Apply(false, true);
+            _fireSprite = Sprite.Create(texture, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), size);
+            return _fireSprite;
+        }
+
+        // A flame: a round base that narrows to a tip leaning a little to one side, at a given size.
+        private static bool InFlame(float x, float y, float scale)
+        {
+            x /= scale;
+            y /= scale;
+            const float baseY = -0.12f;
+            const float baseRadius = 0.17f;
+            if ((x * x) + (y - baseY) * (y - baseY) <= baseRadius * baseRadius)
+                return true;
+            if (y < baseY || y > 0.3f)
+                return false;
+            // Above the base the width shrinks to nothing at the tip, which leans right as it rises.
+            var t = (y - baseY) / (0.3f - baseY);
+            var halfWidth = baseRadius * (1f - t) * (1f - 0.25f * t);
+            var lean = 0.06f * t * t;
+            return Mathf.Abs(x - lean) <= halfWidth;
         }
 
         private float SmoulderShown()
