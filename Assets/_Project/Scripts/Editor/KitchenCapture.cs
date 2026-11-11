@@ -195,6 +195,24 @@ namespace Game.Editor
             }
             Render(camera, target, board + new Vector3(0.4f, 0.9f, -0.2f), CloseHeight, Path.Combine(folder, "cutting.png"));
 
+            // Food as it ages (decision 2026-11-11): each row fresh, stale (30%), nearly spoiled (12%)
+            // and mouldy (5%), left to right; steak, tomato, onion and diced onion, back to front.
+            // The views only update in play, so each is shown its state by hand.
+            var aging = new Vector3(40f, 0f, 0f);
+            var ages = new[] { 1f, 0.3f, 0.12f, 0.05f };
+            var foods = new[] { "Steak", "Tomato", "Onion", "DicedOnion" };
+            for (var row = 0; row < foods.Length; row++)
+                for (var col = 0; col < ages.Length; col++)
+                {
+                    var food = Spawn($"Assets/_Project/Prefabs/Items/PF_Item_{foods[row]}.prefab", aging + new Vector3((col - 1.5f) * 0.45f, 0f, (1.5f - row) * 0.4f));
+                    var view = food != null ? food.GetComponent<Game.Presentation.IngredientView>() : null;
+                    if (view == null)
+                        continue;
+                    view.ShowFreshness(ages[col]);
+                    view.ShowState(0f, 4f, 4f, 4f);
+                }
+            Render(camera, target, aging + new Vector3(0f, 0.9f, -0.5f), CloseHeight * 0.9f, Path.Combine(folder, "freshness.png"));
+
             target.Release();
             UnityEngine.Object.DestroyImmediate(camera.gameObject);
             Debug.Log($"[KitchenCapture] Saved to {folder}");

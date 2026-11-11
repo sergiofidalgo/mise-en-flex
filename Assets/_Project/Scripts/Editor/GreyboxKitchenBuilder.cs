@@ -22,7 +22,7 @@ namespace Game.Editor
         private const string ControlsPath = "Assets/_Project/Data/Input/GameControls.inputactions";
         private const string SettingsFolder = "Assets/_Project/Data/Settings";
         private const string CoopSettingsPath = SettingsFolder + "/CoopSettings.asset";
-        private const string TuningConfigPath = SettingsFolder + "/TuningConfig.asset";
+        public const string TuningConfigPath = SettingsFolder + "/TuningConfig.asset";
         private const string EquipmentPath = SettingsFolder + "/EquipmentTier_Basic.asset";
         private const string RealismPath = SettingsFolder + "/RealismSettings.asset";
         private const string ServiceConfigPath = SettingsFolder + "/ServiceConfig.asset";
