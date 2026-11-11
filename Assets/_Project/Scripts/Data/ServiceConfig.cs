@@ -6,12 +6,39 @@ using UnityEngine;
 namespace Game.Data
 {
     /// <summary>
-    /// Tuning for a dinner service (decisions 2026-11-02: ~5 real minutes, waves with a rush).
-    /// Times are in in-game minutes; at 60x that's also real seconds.
+    /// Tuning for a service (decisions 2026-11-02, waves with a rush; opening times and two rush
+    /// hours since 2026-11-11). Times are in in-game minutes; at 60x that's also real seconds. The
+    /// service clock is the exception: an hour on it is <c>_clockHourMinutes</c> in-game minutes.
     /// </summary>
     [CreateAssetMenu(menuName = "Game/Service Config", fileName = "ServiceConfig")]
     public sealed class ServiceConfig : ScriptableObject
     {
+        /// <summary>One choice of opening times on the Restaurant tab.</summary>
+        [Serializable]
+        public sealed class OpeningSlotEntry
+        {
+            [Tooltip("What the save keeps; don't rename once players have saved it.")]
+            [SerializeField] private string _id;
+            [Tooltip("Its name in English, translated where shown.")]
+            [SerializeField] private string _name;
+            [Tooltip("The hour the doors open (12 = 12:00).")]
+            [SerializeField, Range(0f, 23.5f)] private float _opens;
+            [Tooltip("The hour they close (24 = midnight).")]
+            [SerializeField, Range(0.5f, 30f)] private float _closes;
+
+            public OpeningSlotEntry() { }
+
+            public OpeningSlotEntry(string id, string name, float opens, float closes)
+            {
+                _id = id;
+                _name = name;
+                _opens = opens;
+                _closes = closes;
+            }
+
+            public OpeningSlot ToSlot() => new OpeningSlot(_id, _name, _opens, _closes);
+        }
+
         [Serializable]
         public sealed class TipCurveStop
         {
@@ -69,14 +96,36 @@ namespace Game.Data
             public float Weight => _weight;
         }
 
-        [Tooltip("In-game hours the service runs (5 ≈ 5 real minutes).")]
+        [Header("Opening times (the user's calls, 2026-11-11)")]
+        [Tooltip("In-game minutes that make an hour on the service clock: 30 = an hour passes in 30 real seconds at the usual 60× time scale. Only the clock: cooking, patience and eating keep their own times.")]
+        [SerializeField, Min(1f)] private float _clockHourMinutes = 30f;
+
+        [Tooltip("The choices on forkcast's Restaurant tab. Each sets when service opens and closes, so how long it lasts and how many guests come.")]
+        [SerializeField] private OpeningSlotEntry[] _openingSlots =
+        {
+            new OpeningSlotEntry("lunch", "Lunch", 12f, 16f),
+            new OpeningSlotEntry("dinner", "Dinner", 18f, 24f),
+            new OpeningSlotEntry("allday", "All day", 12f, 24f),
+        };
+
+        [Tooltip("The slot a new restaurant (or an older save) opens with.")]
+        [SerializeField] private string _defaultOpening = "dinner";
+
+        [Tooltip("The hours the rushes peak at, on the clock: guests come Rush Multiplier times as often for Rush Half Width hours either side.")]
+        [SerializeField] private float[] _rushHours = { 14f, 21f };
+
+        [Tooltip("Clock hours a rush lasts either side of its peak (1 = 13:00–15:00 around 14:00).")]
+        [SerializeField, Min(0f)] private float _rushHalfWidthHours = 1f;
+
+        [Tooltip("Minutes on the clock before closing when the door shuts to new customers.")]
+        [SerializeField, Min(0f)] private float _lastOrdersMinutes = 30f;
+
+        [Header("Without opening times (tests and old scenes)")]
+        [Tooltip("In-game hours a service runs when no opening times apply.")]
         [SerializeField, Min(0.1f)] private float _durationHours = 5f;
 
-        [Tooltip("Clock time the service opens, for display (18 = 18:00).")]
+        [Tooltip("Clock time the service opens when no opening times apply (18 = 18:00).")]
         [SerializeField, Range(0f, 23.99f)] private float _opensAt = 18f;
-
-        [Tooltip("In-game minutes before the end when the door closes to new customers.")]
-        [SerializeField, Min(0f)] private float _lastOrdersMinutes = 30f;
 
         [Tooltip("Average in-game minutes between customers outside the rush.")]
         [SerializeField, Min(0.5f)] private float _arrivalIntervalMinutes = 25f;
@@ -84,7 +133,7 @@ namespace Game.Data
         [Tooltip("± fraction of random variation in each gap between customers.")]
         [SerializeField, Range(0f, 0.9f)] private float _arrivalJitter = 0.35f;
 
-        [Tooltip("When the rush starts and ends, as fractions of the service.")]
+        [Tooltip("Without opening times: when the rush starts and ends, as fractions of the service.")]
         [SerializeField, Range(0f, 1f)] private float _rushStart = 0.35f;
         [SerializeField, Range(0f, 1f)] private float _rushEnd = 0.6f;
 
@@ -219,6 +268,11 @@ namespace Game.Data
         [SerializeField, Min(0.1f)] private float _walkSpeed = 1.6f;
 
         public float OpensAt => _opensAt;
+
+        /// <summary>A fresh set of opening times, the default slot chosen (the user's calls, 2026-11-11).</summary>
+        public OpeningTimes NewOpeningTimes() => new OpeningTimes(
+            (_openingSlots ?? Array.Empty<OpeningSlotEntry>()).Where(e => e != null).Select(e => e.ToSlot()),
+            _defaultOpening, _clockHourMinutes * 60f, _lastOrdersMinutes, _rushHours, _rushHalfWidthHours);
         public string RestaurantName => _restaurantName;
         public string Area => _area;
         public string StyleName => _styleName;

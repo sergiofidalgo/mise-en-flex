@@ -205,6 +205,18 @@ namespace Game.Simulation.Service
             _nextArrivalIn = NextGap(Elapsed);
         }
 
+        /// <summary>
+        /// Sets the opening times, as the doors open: they can change right up to then (2026-11-11).
+        /// The first arrival is timed again for the new clock.
+        /// </summary>
+        public void SetOpening(OpeningTimes opening)
+        {
+            if (_customers.Count > 0)
+                throw new InvalidOperationException("The opening times are set before the first customer.");
+            opening.Apply(Settings);
+            _nextArrivalIn = NextGap(Elapsed);
+        }
+
         /// <summary>Gameplay: the customer has reached their stool.</summary>
         public void SitDown(Customer customer)
         {
@@ -499,14 +511,10 @@ namespace Game.Simulation.Service
             return true;
         }
 
-        // Gap to the next arrival: the base interval (shorter during the rush) with random jitter.
+        // Gap to the next arrival: the base interval (shorter during a rush) with random jitter.
         private float NextGap(float at)
         {
-            var fraction = Settings.DurationSeconds > 0f ? at / Settings.DurationSeconds : 0f;
-            // Prices shift how many come (decision 2026-11-10): twice the demand, half the gap.
-            var interval = Settings.ArrivalIntervalSeconds / Math.Max(0.01f, Settings.Menu?.Demand ?? 1f);
-            if (fraction >= Settings.RushStart && fraction < Settings.RushEnd)
-                interval /= Math.Max(0.01f, Settings.RushMultiplier);
+            var interval = Settings.ArrivalInterval(at);
             var jitter = 1f + Settings.ArrivalJitter * (float)(_random.NextDouble() * 2.0 - 1.0);
             return Math.Max(1f, interval * jitter);
         }

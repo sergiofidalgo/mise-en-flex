@@ -129,11 +129,11 @@ namespace Game.Presentation.Hud
                 case Tab.Overview:
                     DrawOverview();
                     break;
+                case Tab.Restaurant:
+                    DrawCookbook();
+                    break;
                 case Tab.Books:
                     DrawBooks();
-                    break;
-                case Tab.Cookbook:
-                    DrawCookbook();
                     break;
                 case Tab.Staff:
                     DrawStaff();
@@ -319,7 +319,7 @@ namespace Game.Presentation.Hud
         // Never open while forkcast shows: next is tonight in a morning, tomorrow after a service.
         private (string Value, string Label, bool Alarm) NextOpening()
         {
-            return ($"{ClockAt(0f)} {Weekday(StartsDay)}", Tr.Get("Closed · Opens"), false);
+            return ($"{NextOpensAt()} {Weekday(StartsDay)}", Tr.Get("Closed · Opens"), false);
         }
 
         // Everything that came in that night: meals and tips (the user's call: money in, not profit).
@@ -398,14 +398,13 @@ namespace Game.Presentation.Hud
                 return;
             }
 
-            // Scroll so the chosen card is whole: start from the top and drop cards until it fits.
-            var heights = reviews.Select(r => CardHeight(r, false)).ToList();
-            var first = 0;
-            while (first < _selected && ListTop + Enumerable.Range(first, _selected - first + 1).Sum(i => heights[i] + 14f) - 14f > ListBottom)
-                first++;
+            // Scroll only as far as the chosen card needs to be whole (ScrollWindow): a step moves
+            // the highlight, not the list.
+            var heights = reviews.Select(r => CardHeight(r, false) + 14f).ToList();
+            var first = _reviewFirst = ScrollWindow.First(_reviewFirst, Selected, heights, ListBottom - ListTop + 14f);
             var y = ListTop;
             for (var i = first; i < reviews.Count && y < ListBottom; i++)
-                y = ReviewCard(_list, reviews[i], y, i == _selected && !_onFilters, false) + 14f;
+                y = ReviewCard(_list, reviews[i], y, i == Selected && !OnFilters, false) + 14f;
         }
 
         // The boss's card, the Overview's headline, after the user's simpler frame (2026-11-10):
@@ -507,7 +506,7 @@ namespace Game.Presentation.Hud
         // also has a gold ring.
         private float FilterChip(Filter filter, int count, float x, float y)
         {
-            var active = filter == _filter;
+            var active = filter == ShownFilter;
             var back = active ? _ink : filter == Filter.WalkOuts ? _alarm : _card;
             var fore = active ? _paper : filter == Filter.WalkOuts ? _alarmText : _ink;
             var star = filter == Filter.Low || filter == Filter.High;
@@ -533,7 +532,7 @@ namespace Game.Presentation.Hud
             var index = first.transform.GetSiblingIndex();
             var fill = UiKit.RoundBox(_content, text + "Chip", back, x, y, width, 39f, 19.5f);
             fill.transform.SetSiblingIndex(index);
-            if (active && _onFilters)
+            if (active && OnFilters)
             {
                 var ring = UiKit.RoundBox(_content, "Focus", _gold, x - 4f, y - 4f, width + 8f, 47f, 23.5f);
                 ring.transform.SetSiblingIndex(index);
@@ -870,137 +869,6 @@ namespace Game.Presentation.Hud
             return percent > 0 ? $"+{percent}%" : $"−{-percent}%";
         }
 
-        // ---- Cookbook: the first player picks the menu and prices it (decision 2026-11-10) ----
-
-        private const float RecipeListWidth = 470f, RecipeRow = 92f, DetailX = 1256f;
-
-        private void DrawCookbook()
-        {
-            var book = Services.Cookbook;
-            if (book == null || book.Recipes.Count == 0)
-            {
-                Label(Serif, _content, Tr.Get("No cookbook here."), 26.67f, _muted, RightX, 320f);
-                return;
-            }
-            var chosen = Mathf.Clamp(_selected, 0, book.Recipes.Count - 1);
-
-            // The list, scrolled so the chosen recipe shows.
-            var fits = Mathf.FloorToInt((FooterTop - 20f - 262f) / (RecipeRow + 12f));
-            var first = book.Recipes.Count <= fits ? 0 : Mathf.Clamp(chosen - fits / 2, 0, book.Recipes.Count - fits);
-            var y = 262f;
-            for (var i = first; i < book.Recipes.Count && i < first + fits; i++)
-            {
-                RecipeCard(book, book.Recipes[i], y, i == chosen);
-                y += RecipeRow + 12f;
-            }
-
-            DrawRecipe(book, book.Recipes[chosen]);
-        }
-
-        private void RecipeCard(Game.Simulation.Cookbook.RecipeBook book, Game.Simulation.Cookbook.Recipe recipe, float y, bool chosen)
-        {
-            if (chosen)
-                UiKit.RoundBox(_content, "Highlight", _gold, RightX - 5.67f, y - 5.67f, RecipeListWidth + 11.33f, RecipeRow + 11.33f, 20f);
-            UiKit.StrokedBox(_content, "Recipe", _cardLight, chosen ? _gold : _cardEdge, 2.67f, RightX, y, RecipeListWidth, RecipeRow, 15f);
-            Label(Bold, _content, Tr.Get(recipe.Name), 23f, _ink, RightX + 24f, y + 38f, RecipeListWidth - 120f);
-            var on = book.IsUnlocked(recipe.Id);
-            var status = on
-                ? Tr.Format("On the menu · {price}", ("price", Money(book.PriceOf(recipe.Id))))
-                : Tr.Format("Unlock · {price}", ("price", Money(recipe.UnlockCost)));
-            var colour = on ? _goodText : Services.Days.Balance >= recipe.UnlockCost ? _muted : _badText;
-            Label(on ? SemiBold : Medium, _content, status, 19.5f, colour, RightX + 24f, y + 70f, RecipeListWidth - 48f);
-            ComplexityDots(recipe.Complexity, RightX + RecipeListWidth - 24f - 3f * 20f, y + 26f);
-        }
-
-        private void ComplexityDots(int complexity, float x, float y)
-        {
-            for (var i = 0; i < 3; i++)
-                UiKit.Ellipse(_content, "Complexity", i < complexity ? _gold : _rule, x + i * 20f, y, 14f, 14f);
-        }
-
-        // The chosen recipe: what it is, what it needs and costs, and its price with what to expect.
-        private void DrawRecipe(Game.Simulation.Cookbook.RecipeBook book, Game.Simulation.Cookbook.Recipe recipe)
-        {
-            const float width = RightEdge - DetailX, top = 262f, bottom = 932f;
-            const float x = DetailX + 28f;
-            UiKit.RoundBox(_content, "Detail", _card, DetailX, top, width, bottom - top, 18f);
-            Label(ExtraBold, _content, Tr.Get(recipe.Name), 34f, _ink, x, top + 54f, width - 56f, tracking: -0.8f);
-            ComplexityDots(recipe.Complexity, x, top + 76f);
-            var word = recipe.Complexity <= 1 ? Tr.Get("simple") : recipe.Complexity == 2 ? Tr.Get("some work") : Tr.Get("demanding");
-            Label(Medium, _content, word, 20f, _body, x + 70f, top + 90f, 200f);
-
-            Caps(_content, "NEEDS", x, top + 136f);
-            var px = x;
-            foreach (var appliance in recipe.Appliances)
-                px = Pill(_content, Tr.Get(appliance), SemiBold, 19.5f, _paper, _ink, px, top + 150f, 36f, 14f, 25f, RightEdge - 28f) + 10f;
-
-            Caps(_content, "INGREDIENTS", x, top + 224f);
-            var ix = x;
-            for (var i = 0; i < recipe.IngredientTypeIds.Count; i++)
-            {
-                var icon = _icons != null ? _icons.Find(recipe.IngredientTypeIds[i]) : null;
-                if (icon != null)
-                {
-                    UiKit.Picture(_content, "Ingredient", icon, ix, top + 238f, 40f, 40f);
-                    ix += 44f;
-                }
-                var name = Label(Medium, _content, Tr.Get(recipe.Ingredients[i]), 20f, _ink, ix, top + 266f, 200f);
-                ix += UiKit.Width(name) + 22f;
-            }
-            Label(Medium, _content, Tr.Format("about {cost} a serving", ("cost", Money(recipe.IngredientCost))), 20f, _body, x, top + 308f, width - 56f);
-            UiKit.RoundBox(_content, "Rule", _rule, x, top + 332f, width - 56f, 2f, 0f);
-
-            var on = book.IsUnlocked(recipe.Id);
-            if (on)
-            {
-                var price = book.PriceOf(recipe.Id);
-                var ratio = book.RatioOf(recipe);
-                Caps(_content, "PRICE", x, top + 370f);
-                Label(ExtraBold, _content, "‹", 48f, _ink, x, top + 434f, 30f);
-                Label(ExtraBold, _content, Money(price), 54f, _ink, x + 120f, top + 436f, 170f, HorizontalAlignmentOptions.Center, -1.5f);
-                Label(ExtraBold, _content, "›", 48f, _ink, x + 216f, top + 434f, 30f);
-                var suggested = Tr.Format("suggested {price}", ("price", Money(recipe.SuggestedPrice)));
-                Label(Medium, _content, suggested, 20f, _body, x + 270f, top + 414f, 230f);
-                if (price != recipe.SuggestedPrice)
-                {
-                    Label(Bold, _content, Percent(ratio), 20f, ratio > 1f ? _badText : _goodText, x + 270f, top + 442f, 230f);
-                    // X puts it back: shown where the price is.
-                    Chip(_content, "X", Tr.Get("Suggested"), RightEdge - 20f, top + 420f);
-                }
-
-                // What this price does: tonight's guests, from the whole menu's prices, and this dish's stars.
-                Caps(_content, "AT THESE PRICES", x, top + 492f);
-                var demand = book.BuildMenu().Demand;
-                var change = Mathf.RoundToInt((demand - 1f) * 100f);
-                var guests = change == 0 ? Tr.Get("Guests: as many as at the suggested prices")
-                    : change < 0 ? Tr.Format("Guests: about {percent}% fewer", ("percent", -change))
-                    : Tr.Format("Guests: about {percent}% more", ("percent", change));
-                Label(Medium, _content, guests, 21.33f, change < 0 ? _badText : _ink, x, top + 528f, width - 56f);
-                var shift = Game.Simulation.Cookbook.PriceResponse.Expectation(ratio, book.Pricing);
-                var stars = Mathf.Abs(shift) < 0.05f ? Tr.Get("Stars: rated as the dish deserves")
-                    : shift < 0f ? Tr.Format("Stars: {stars} fewer for the same dish", ("stars", (-shift).ToString("0.#")))
-                    : Tr.Format("Stars: {stars} more for the same dish", ("stars", shift.ToString("0.#")));
-                Label(Medium, _content, stars, 21.33f, shift < 0f ? _badText : _ink, x, top + 562f, width - 56f);
-                Label(Medium, _content, Tr.Format("earns about {value}", ("value", Money(price - recipe.IngredientCost))) + " " + Tr.Get("a serving"), 21.33f, _ink, x, top + 596f, width - 56f);
-            }
-            else
-            {
-                var affordable = Services.Days.Balance >= recipe.UnlockCost;
-                Caps(_content, "UNLOCK", x, top + 370f);
-                Label(ExtraBold, _content, Money(recipe.UnlockCost), 54f, affordable ? _ink : _badText, x, top + 436f, 260f, tracking: -1.5f);
-                // A (a tap) unlocks: shown beside the price, as the rows show theirs.
-                Chip(_content, "A", Tr.Get("Unlock"), x + 270f, top + 428f, fromLeft: true);
-                Label(Medium, _content, Tr.Format("You have {amount}", ("amount", Money(Services.Days.Balance))), 20f, _body, x + 270f, top + 414f, 230f);
-                Label(Medium, _content, Tr.Format("suggested {price}", ("price", Money(recipe.SuggestedPrice))) + " · " +
-                    Tr.Format("earns about {value}", ("value", Money(recipe.SuggestedPrice - recipe.IngredientCost))), 21.33f, _ink, x, top + 516f, width - 56f);
-            }
-
-            if (_unlockResult == Game.Simulation.Cookbook.UnlockResult.CantAfford)
-                Label(Bold, _content, Tr.Get("not enough money"), 22f, _badText, x, top + 636f - 6f, width - 56f);
-            else if (_unlockResult == Game.Simulation.Cookbook.UnlockResult.Unlocked && on)
-                Label(Bold, _content, Tr.Get("On the menu from tomorrow"), 22f, _goodText, x, top + 630f, width - 56f);
-        }
-
         // ---- Staff: the team, then today's candidates (the user's call, 2026-11-10) ----
 
         private const float MemberHeight = 96f, CandidateHeight = 76f, RowGap = 10f;
@@ -1009,7 +877,7 @@ namespace Game.Presentation.Hud
         {
             var staff = Services.Staff;
             var rows = StaffBoard.Rows(staff);
-            var selected = Mathf.Clamp(_selected, 0, Mathf.Max(0, rows.Count - 1));
+            var selected = Mathf.Clamp(Selected, 0, Mathf.Max(0, rows.Count - 1));
             var balance = Services.Days.Balance;
             var y = 262f;
 
@@ -1122,8 +990,8 @@ namespace Game.Presentation.Hud
         private string TabName(Tab tab) => tab switch
         {
             Tab.Overview => Tr.Get("Overview"),
+            Tab.Restaurant => Tr.Get("Restaurant"),
             Tab.Books => Tr.Get("Books"),
-            Tab.Cookbook => Tr.Get("Cookbook"),
             _ => Tr.Get("Staff"),
         };
 

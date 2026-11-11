@@ -91,6 +91,80 @@ namespace Game.Tests.PlayMode
         }
 
         [UnityTest]
+        public IEnumerator TheTabsRunOverviewRestaurantBooksStaff()
+        {
+            yield return Arrive();
+            yield return Join();
+            Assert.That(_dashboard.ShownTab, Is.EqualTo("Overview"));
+            foreach (var tab in new[] { "Restaurant", "Books", "Staff", "Overview" })
+            {
+                yield return Press(GamepadButton.RightShoulder);
+                Assert.That(_dashboard.ShownTab, Is.EqualTo(tab));
+            }
+        }
+
+        [UnityTest]
+        public IEnumerator UnlockingADishWarmsItUpAndSettles()
+        {
+            // The unlock moment (2026-11-11): A on a locked dish buys it, and it warms up on screen.
+            yield return Arrive();
+            yield return Join();
+            var book = _root.Services.Cookbook;
+            Assume.That(book, Is.Not.Null);
+            Assume.That(book.Recipes.Count, Is.GreaterThan(1));
+            var second = book.Recipes[1];
+            Assume.That(book.IsUnlocked(second.Id), Is.False);
+            _root.Services.Days.Receive(second.UnlockCost + 100f);
+
+            yield return Press(GamepadButton.RightShoulder);
+            Assume.That(_dashboard.ShownTab, Is.EqualTo("Restaurant"));
+            yield return Press(GamepadButton.DpadDown);
+            yield return Press(GamepadButton.South);
+
+            Assert.That(book.IsUnlocked(second.Id), Is.True, "A unlocked the second dish");
+            Assert.That(_dashboard.IsWarmingUp, Is.True, "and it's warming up");
+            yield return new WaitForSecondsRealtime(1.8f);
+            Assert.That(_dashboard.IsWarmingUp, Is.False, "the moment settles");
+        }
+
+        [UnityTest]
+        public IEnumerator AShortDPadPressStepsOneRowWithASecondCookIdle()
+        {
+            // The playtest's jumping (2026-11-11): with a second cook idle, a held D-pad stepped every
+            // frame, so a short press raced to the bottom of the list.
+            yield return Arrive();
+            yield return Join();
+            var second = InputSystem.AddDevice<Gamepad>("ForkcastTestPad2");
+            Object.FindFirstObjectByType<PlayerInputManager>().JoinPlayer(controlScheme: "Gamepad", pairWithDevices: second);
+            yield return null;
+            yield return null;
+            try
+            {
+                var services = _root.Services;
+                services.Days.Receive(1000f);
+                Assume.That(services.Staff.Hired.Count, Is.Zero);
+                Assume.That(services.Staff.Candidates.Count, Is.GreaterThanOrEqualTo(3));
+                var target = services.Staff.Candidates[1];
+
+                yield return Press(GamepadButton.LeftShoulder);
+                Assume.That(_dashboard.ShownTab, Is.EqualTo("Staff"));
+                // Held for less than the repeat delay: one step, from the first candidate to the second.
+                InputSystem.QueueStateEvent(_pad, new GamepadState().WithButton(GamepadButton.DpadDown));
+                yield return new WaitForSecondsRealtime(0.15f);
+                InputSystem.QueueStateEvent(_pad, new GamepadState());
+                yield return null;
+                yield return Press(GamepadButton.South);
+
+                Assert.That(services.Staff.Hired.Count, Is.EqualTo(1));
+                Assert.That(services.Staff.Hired[0].Name, Is.EqualTo(target.Name), "one row down, not the bottom");
+            }
+            finally
+            {
+                InputSystem.RemoveDevice(second);
+            }
+        }
+
+        [UnityTest]
         public IEnumerator HoldingYFillsStartAndOpensPrep()
         {
             yield return Arrive();

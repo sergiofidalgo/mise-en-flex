@@ -55,6 +55,73 @@ Implements the movement and cleaning calls of the playtest round (entry below, "
 
 ---
 
+## 2026-11-11 — The Restaurant tab shows plates, chips and a price dial
+
+**User's call, after seeing the first render:** the menu should be more exciting and more visual, with pictures of steaming plates rather than just text, ingredients as chips, the price as a dial with its neighbouring numbers, and a schedule selector that isn't just text. The "Suggested" chip covered the price change.
+
+**Decision:**
+- **Dish pictures:** each recipe is plated from the game's own models, cooked (a medium steak, golden onions), and photographed by *Tools/Game/Art/Render Dish Pictures* into `Art/UI/Dishes` and `HudStyle` (by recipe id, so no scene rebuild is needed). The list shows each plate; the chosen recipe's plate is large, top right. Steam rises from a dish while it's on the menu; a dish still to unlock is faded and cold.
+- **Ingredients are chips** with their pictures, and the cost a serving follows them.
+- **The price is a dial:** the price big in the middle, with neighbouring numbers either side, shrinking and fading like a wheel seen edge on. Each step rolls it to the new price (`_dialRollSpeed`). The suggestion, its % change and the X chip have their own line, so the chip no longer covers anything.
+- **Opening times are tiles** with a sun (Lunch), a moon (Dinner) or both (All day). Under them, the day is drawn as a bar per half hour: flat while closed, as tall as the guests coming while open, with the rushes in gold. While the tiles have the focus, the detail panel shows the same day bigger, and the guests to expect as a crowd of little figures.
+
+- **The unlock moment (the user's pick from the proposals):** A on a locked dish buys it, and the dish warms up over 1.3 s (`_unlockWarmSeconds`). Its plate's colour comes back as it swells a little, its steam fades in, gold sparks burst from the big plate, and its card lights gold while "On the menu" pops in. The money chip drops as it does for any purchase. `ForkcastPlanPlayTests.UnlockingADishWarmsItUpAndSettles` covers it; `DashboardCapture` holds it a third of the way in for a still.
+
+**Placeholders:** the sun and moon are drawn in code, the steam is soft puffs, and the dish photos use the greybox models. All of them are for the art pass to replace (the art bible's 64 px icon grid).
+
+---
+
+## 2026-11-11 — Opening times: three slots, a faster clock, two rush hours
+
+**User's calls:**
+- **The Restaurant tab sets the opening times**, which set how long service lasts and how many guests come.
+- **An hour on the clock is 30 real seconds** (it was 60). **Only the clock speeds up:** cooking, staff, guests' patience (35 s) and eating (15 s) keep their real-time feel, and `TuningConfig.TimeScale` stays 60.
+- **A long service includes lunch,** from 12:00 to 00:00.
+- **A longer service has two rush hours instead of one,** around 14:00 and 21:00.
+
+**Our calls within those (flagged for play):**
+- **Three slots** (`ServiceConfig`, "Opening times"):
+
+  | Slot | Hours | Real length | Rushes | Groups expected* |
+  | --- | --- | --- | --- | --- |
+  | Lunch | 12:00–16:00 | 2 min | 13:00–15:00 | about 6.6 |
+  | Dinner (default) | 18:00–00:00 | 3 min | 20:00–22:00 | about 9 |
+  | All day | 12:00–00:00 | 6 min | both | about 18.6 |
+
+  \*At the grill's base rate and suggested prices, before group sizes. Today's 5-minute 18:00–23:00 service brought about 15.
+- **Rushes are clock hours,** an hour either side of each peak (`_rushHours` 14 and 21, `_rushHalfWidthHours` 1), at the existing `_rushMultiplier` (2×). Outside them guests come at the existing pace (a group every 25 real seconds, before prices and the restaurant's guest rate). The old rush, a fraction of the service, is kept only where no opening times apply (tests, old scenes).
+- **Last orders are 30 minutes on the clock** (15 real seconds) before closing.
+- **When it counts: the next service.** In Review that's tomorrow's; in the morning's Plan it's today's, since the doors haven't opened yet (`ServiceSimulation.SetOpening`, as the menu is set). The tab says which.
+- **Saved per restaurant** (`RestaurantSave.Opening`, a slot id). An older save, or an id no longer in the list, opens for Dinner. Like prices, a change in Review saves after a moment; one made in Plan is kept with the day.
+- **Player 1 sets it,** as with the menu.
+- **How it reads:** an "OPENING TIMES" card sits over the recipes, with one chip per slot (the chosen one dark) and its hours underneath. Up from the first recipe reaches the chips; left and right choose at once, with no A press, the same way the Overview's filters work; down goes back to the recipes. While the chips have the focus, the detail panel shows the slot's hours, how many real minutes service lasts, its rush hours and the guests to expect at today's prices and tables (the same forecast as Prep's tile). The Overview's "Closed · Opens" card, the day card and Prep's tile follow the chosen slot.
+- **The clock everywhere is the service's** (`ServiceClock`): the day card, the debug overlay, and the "left at" time in reviews. A walk-out's "waited N minutes" stays in patience minutes, the time the guest actually waited.
+
+**Not done:** wages and rent don't depend on the hours open, so All day costs only the players' effort and energy (in `ideas.md`).
+
+**Tests:** `OpeningTimesTests` (EditMode) covers the slots, the clock, the rushes, the guest counts, arrivals really doubling in a rush, and a choice made before opening retiming the service.
+
+**Design doc:** §daily loop and §customers describe one 5-minute dinner service with a single rush. They should describe the opening slots and the two rush hours.
+
+---
+
+## 2026-11-11 — forkcast: the Restaurant tab, and the D-pad steps to the obvious neighbour
+
+**User's calls (playtest round):** the Cookbook tab is now **Restaurant** (Spanish "Restaurante") and comes second: Overview, Restaurant, Books, Staff. Browsing should move between neighbouring cards instead of jumping.
+
+**What made it jump:**
+- **One repeat timer for everyone.** With a second cook joined and idle, the idle pad reset the timer every frame, so a held D-pad from the first cook stepped every frame and a short press raced to the bottom of the list.
+- **Lists that moved under the highlight.** The reviews worked out their scroll from the top again on each step, and the recipes re-centred on each step.
+
+**Decision** (`ForkcastNavigation.cs`, plain simulation code):
+- **Each player's D-pad steps on its own timing** (`NavRepeat`): a fresh press steps at once, holding repeats (0.22 s, as before), and a new direction steps at once.
+- **Explicit neighbours** (`ChipsOverList`): a tab is a row of chips over a list, or just a list. On the chips, left and right go to the next chip (no wrapping) and down to the top of the list. In the list, up and down go to the next item, and up from the top rises to the chip in force. Left and right on an item adjust it (a recipe's price) and never move the focus. The Overview's filters and reviews, the Restaurant tab's recipes and the Staff rows all follow it.
+- **Lists scroll only as far as the choice needs** (`ScrollWindow`), and never leave a gap below the list's end.
+
+**Tests:** `ForkcastNavigationTests` (EditMode); `ForkcastPlanPlayTests` checks the tab order and a short press with an idle second cook moving one row.
+
+---
+
 ## 2026-11-11 — Cleaning and fire: spin and sweep, with the sink's ring and stick cue
 
 **User's call:** the traced-path game for the cloth, mop and extinguisher was barely playable, at times almost impossible. Of the two options (reuse the sink game, or keep "moving" but apply the sink's principles) the user chose spin and sweep.

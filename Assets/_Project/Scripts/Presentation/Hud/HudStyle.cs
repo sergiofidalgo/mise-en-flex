@@ -166,6 +166,32 @@ namespace Game.Presentation.Hud
         [Tooltip("One head-and-shoulders picture per customer look, in the customer prefab's order, on a clear background.")]
         [SerializeField] private Sprite[] _customerPortraits = System.Array.Empty<Sprite>();
 
+        /// <summary>A recipe's plated picture, by its cookbook id.</summary>
+        [System.Serializable]
+        public sealed class DishPicture
+        {
+            [SerializeField] private string _recipeId;
+            [SerializeField] private Sprite _picture;
+
+            public string RecipeId => _recipeId;
+            public Sprite Picture => _picture;
+        }
+
+        [Header("Dish pictures (Tools/Game/Art/Render Dish Pictures)")]
+        [Tooltip("Each cookbook recipe plated and cooked, on a clear background, for forkcast's Restaurant tab.")]
+        [SerializeField] private DishPicture[] _dishPictures = System.Array.Empty<DishPicture>();
+
+        /// <summary>The recipe's plated picture (2026-11-11), or null until the pictures are rendered.</summary>
+        public Sprite Dish(string recipeId)
+        {
+            foreach (var dish in _dishPictures ?? System.Array.Empty<DishPicture>())
+            {
+                if (dish != null && dish.RecipeId == recipeId)
+                    return dish.Picture;
+            }
+            return null;
+        }
+
         // Each falls back to the HUD font until Tools/Game/Apply UI Art has filled it in.
         public TMP_FontAsset Medium => _medium != null ? _medium : _font;
         public TMP_FontAsset SemiBold => _semiBold != null ? _semiBold : _font;

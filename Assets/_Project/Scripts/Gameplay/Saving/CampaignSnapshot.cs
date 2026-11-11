@@ -75,6 +75,8 @@ namespace Game.Gameplay.Saving
             save.Dishes.AddRange(services.DishTally.Select(d => new DishCount { Dish = d.Key, Count = d.Value }));
             if (services.Cookbook != null)
                 save.Prices.AddRange(services.Cookbook.PriceRecords());
+            if (services.Opening != null)
+                save.Opening = services.Opening.Slot.Id;
             save.DaysTowardsFee = services.Days.DaysTowardsFee;
             save.Period = services.Days.Period.ToArray();
             save.History.AddRange(services.Days.History);

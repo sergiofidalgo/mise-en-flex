@@ -143,12 +143,13 @@ namespace Game.Presentation.Hud
             if (prep)
             {
                 Forecast(services);
-                DrawTiles(services.Days.Day, services.ServiceConfig.OpensAt, _guests, _groupSize);
+                DrawTiles(services.Days.Day, services.Service.Settings.Clock.OpensAtHour, _guests, _groupSize);
                 DrawRearrange();
                 return;
             }
             var service = services.Service;
-            Draw(services.Days.Day, services.Days.Phase, service != null ? service.Phase : ServicePhase.Open, services.ServiceConfig.OpensAt, service != null ? service.Elapsed : 0f);
+            var clock = service != null ? service.Settings.Clock : new ServiceClock(services.ServiceConfig.OpensAt);
+            Draw(services.Days.Day, services.Days.Phase, service != null ? service.Phase : ServicePhase.Open, clock.OpensAtHour, service != null ? service.Elapsed : 0f, clock.SecondsPerHour);
         }
 
         // Tonight's forecast, worked out twice a second, not every frame: it builds the menu to read
@@ -309,18 +310,18 @@ namespace Game.Presentation.Hud
         }
 
         /// <summary>Draws the card at once outside Play mode, for a still.</summary>
-        public void Preview(int day, DayPhase phase, ServicePhase service, float opensAtHour, float elapsedSeconds)
+        public void Preview(int day, DayPhase phase, ServicePhase service, float opensAtHour, float elapsedSeconds, float secondsPerHour = 3600f)
         {
             Awake();
             _group.alpha = 1f;
-            Draw(day, phase, service, opensAtHour, elapsedSeconds);
+            Draw(day, phase, service, opensAtHour, elapsedSeconds, secondsPerHour);
             Canvas.ForceUpdateCanvases();
         }
 
-        private void Draw(int day, DayPhase phase, ServicePhase service, float opensAtHour, float elapsedSeconds)
+        private void Draw(int day, DayPhase phase, ServicePhase service, float opensAtHour, float elapsedSeconds, float secondsPerHour = 3600f)
         {
             var title = DayCardText.Title(day);
-            var (line, notice) = DayCardText.Line(phase, service, opensAtHour, elapsedSeconds);
+            var (line, notice) = DayCardText.Line(phase, service, opensAtHour, elapsedSeconds, secondsPerHour);
             var key = title + "\n" + line + notice;
             if (key == _shown)
                 return; // the text changes once a game minute, so the layout does too

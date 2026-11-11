@@ -53,14 +53,30 @@ namespace Game.Tests.PlayMode
             var folder = Folder();
 
             var dashboard = Object.FindFirstObjectByType<ReviewDashboard>();
-            // Four tabs since 2026-11-10: Overview (with the reviews), Menu & Books, Cookbook, Staff.
+            // Four tabs since 2026-11-11: Overview (with the reviews), Restaurant, Books, Staff.
             yield return Shoot(dashboard, 0, 0, false, Path.Combine(folder, "dashboard_overview.png"));
             yield return Shoot(dashboard, 0, 0, true, Path.Combine(folder, "dashboard_reply_wheel.png"));
             yield return Shoot(dashboard, 0, 0, false, Path.Combine(folder, "dashboard_filter_walkouts.png"), 1, true);
-            yield return Shoot(dashboard, 1, 0, false, Path.Combine(folder, "dashboard_menu_books.png"));
-            yield return Shoot(dashboard, 2, 1, false, Path.Combine(folder, "dashboard_cookbook_locked.png"));
+            yield return Shoot(dashboard, 2, 0, false, Path.Combine(folder, "dashboard_books.png"));
+            // The opening times with the focus on them (2026-11-11): Dinner, then All day with both rushes.
+            yield return Shoot(dashboard, 1, 0, false, Path.Combine(folder, "dashboard_restaurant_opening_dinner.png"), 0, true);
+            services.Opening.Choose(2);
+            yield return Shoot(dashboard, 1, 0, false, Path.Combine(folder, "dashboard_restaurant_opening_allday.png"), 0, true);
+            services.Opening.Choose(1);
+            yield return Shoot(dashboard, 1, 1, false, Path.Combine(folder, "dashboard_restaurant_locked.png"));
+            // The unlock moment (2026-11-11), held a third of the way in: sparks, flash, the plate warming.
+            var rings = services.Cookbook.Recipes[1];
+            services.Days.Receive(rings.UnlockCost);
+            services.Cookbook.TryUnlock(rings.Id, services.Days.TrySpend);
+            dashboard.ShowForCapture(1, 1, false);
+            dashboard.HoldUnlockForCapture(rings.Id, 0.35f);
+            yield return null;
+            yield return new WaitForEndOfFrame();
+            var unlocking = ScreenCapture.CaptureScreenshotAsTexture();
+            File.WriteAllBytes(Path.Combine(folder, "dashboard_restaurant_unlocking.png"), unlocking.EncodeToPNG());
+            Object.Destroy(unlocking);
             services.Cookbook.SetPrice(services.Cookbook.Recipes[0].Id, services.Cookbook.Recipes[0].SuggestedPrice + 4);
-            yield return Shoot(dashboard, 2, 0, false, Path.Combine(folder, "dashboard_cookbook_priced.png"));
+            yield return Shoot(dashboard, 1, 0, false, Path.Combine(folder, "dashboard_restaurant_priced.png"));
             yield return Shoot(dashboard, 3, 0, false, Path.Combine(folder, "dashboard_staff_empty.png"));
             foreach (var candidate in services.Staff.Candidates.Take(2))
                 services.Staff.Restore(new Game.Simulation.Staff.StaffMember(candidate));

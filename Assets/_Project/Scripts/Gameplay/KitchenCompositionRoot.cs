@@ -81,11 +81,21 @@ namespace Game.Gameplay
                 : new DayCycle(campaign != null ? campaign.Balance : _staffConfig.StartingMoney, fee, campaign?.ToLoan());
             days.PhaseChanged += HandlePhaseChanged;
             _reviewLines.Load(campaign?.RecentLines);
+            // The opening times are this restaurant's, chosen on forkcast's Restaurant tab (2026-11-11).
+            _opening = _serviceConfig.NewOpeningTimes();
+            _opening.Load(save?.Opening);
             var service = NewService(days.Day);
             Services = new KitchenServices(cooking, new ItemViewRegistry(_itemCatalog), _itemCatalog, _equipment, _tuning, _realism, service, _serviceConfig, days, new StaffRoster(), _staffConfig, stations, _floorPlan);
             Services.Staff.Candidates = _staffConfig.CandidatesFor(days.Day);
             Services.ReviewLines = _reviewLines;
             Services.Cookbook = NewCookbook(campaign, save);
+            Services.Opening = _opening;
+            // A choice made before the doors open counts for this service: Prep's tiles follow it.
+            _opening.Changed += _ =>
+            {
+                if (Services.Service.Customers.Count == 0 && Services.Days.Phase != DayPhase.Review)
+                    Services.Service.SetOpening(_opening);
+            };
             Services.Boss = campaign?.ToEscalation() ?? new Game.Simulation.Campaign.BossEscalation();
             Services.RestaurantsOwned = System.Math.Max(1, campaign?.Restaurants?.Count ?? 1);
             Services.RestaurantName = Pick(save?.Name, Played?.Name, _serviceConfig.RestaurantName);
@@ -396,15 +406,37 @@ namespace Game.Gameplay
             Services.Fires.Settings = _tuning.Fire;
         }
 
+        private Game.Simulation.Service.OpeningTimes _opening;
+
         private ServiceSimulation NewService(int day)
         {
-            var settings = _serviceConfig.ToSettings(day);
-            Played?.ScaleService(settings); // a bigger room draws more guests (milestone 3)
+            var settings = ServiceSettingsFor(day);
             settings.Reviews.Memory = _reviewLines;
             // Guests who posted on earlier days might come back (built again once a save is loaded).
             if (Services != null)
                 settings.Reviews.Guests?.Rebuild(Services.ReviewHistory, day);
             return new ServiceSimulation(settings, 0, _realism.CustomerPatience); // seats open with the doors
+        }
+
+        // A day's service as configured for this restaurant: its guest rate and its opening times.
+        private Game.Simulation.Service.ServiceSettings ServiceSettingsFor(int day, int openingSlot = -1)
+        {
+            var settings = _serviceConfig.ToSettings(day);
+            Played?.ScaleService(settings); // a bigger room draws more guests (milestone 3)
+            _opening?.Apply(settings, openingSlot);
+            return settings;
+        }
+
+        /// <summary>
+        /// How many guests a service with opening slot <paramref name="slot"/> should bring, at
+        /// today's prices and tables (the same forecast as Prep's tile): what the Restaurant tab shows.
+        /// </summary>
+        public int ExpectedGuests(int slot)
+        {
+            var settings = ServiceSettingsFor(Services.Days.Day + (Services.Days.Phase == DayPhase.Review ? 1 : 0), slot);
+            var demand = Services.Cookbook != null ? Services.Cookbook.BuildMenu().Demand : 1f;
+            var tables = Services.Stations.All.OfType<Game.Gameplay.Stations.TableStation>().Select(t => t.SeatCount).Where(n => n > 0).ToList();
+            return Game.Simulation.Service.GuestForecast.Guests(settings, demand, tables);
         }
 
         /// <summary>
@@ -437,7 +469,9 @@ namespace Game.Gameplay
         {
             if (phase == DayPhase.Service)
             {
-                // Prices can change right up to opening, so the menu is set as the doors open.
+                // Prices and opening times can change right up to opening, so they're set as the doors open.
+                if (Services.Opening != null && Services.Service.Customers.Count == 0)
+                    Services.Service.SetOpening(Services.Opening);
                 if (Services.Cookbook != null && Services.Service.Customers.Count == 0)
                     Services.Service.SetMenu(Services.Cookbook.BuildMenu());
                 OpenSeats();

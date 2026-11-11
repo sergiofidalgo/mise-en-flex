@@ -137,7 +137,7 @@ namespace Game.Presentation
                 return;
 
             var service = services.Service;
-            var clock = services.ServiceConfig.OpensAt * 60f + service.Elapsed / 60f; // in-game minutes since midnight
+            var clock = service.Settings.Clock.MinutesAt(service.Elapsed); // minutes since midnight on the service clock
             var hours = (int)(clock / 60f) % 24;
             var minutes = (int)clock % 60;
             var state = !_root.ServiceStarted ? Coloured("not started", Dim) : service.Phase switch

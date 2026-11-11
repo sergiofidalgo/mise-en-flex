@@ -109,7 +109,7 @@ namespace Game.Tests.PlayMode
             Object.Destroy(holding);
             InputSystem.QueueStateEvent(pads[1], new UnityEngine.InputSystem.LowLevel.GamepadState());
             yield return null;
-            yield return ShootTab(dashboard, 1, Path.Combine(folder, "forkcast_review_books.png"));
+            yield return ShootTab(dashboard, 2, Path.Combine(folder, "forkcast_review_books.png"));
 
             // The next morning (as after leaving and joining again): still day 1's summary.
             Object.FindFirstObjectByType<DayLoop>().Ready.Clear();
@@ -118,7 +118,7 @@ namespace Game.Tests.PlayMode
                 yield return null;
             Assert.That(days.Phase, Is.EqualTo(DayPhase.Plan));
             yield return Shoot(dashboard, -1, Path.Combine(folder, "forkcast_plan_overview_urgent.png"));
-            yield return ShootTab(dashboard, 1, Path.Combine(folder, "forkcast_plan_books.png"));
+            yield return ShootTab(dashboard, 2, Path.Combine(folder, "forkcast_plan_books.png"));
 
             // Start day: straight into Prep, where the strip says how many guests to expect.
             days.Advance();
