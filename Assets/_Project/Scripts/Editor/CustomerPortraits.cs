@@ -33,8 +33,8 @@ namespace Game.Editor
         private const float LookDownDegrees = 6f;
         // From the hat's top to the shoulders, as multiples of the head's height.
         private const float AboveHead = 0.75f;
-        private const float BelowHead = 0.85f;
-        private const float Margin = 1.06f;
+        private const float BelowHead = 0.45f;
+        private const float Margin = 0.94f; // under 1: the circle crops the corners anyway
 
         [MenuItem("Tools/Game/Bake Customer Portraits")]
         public static void Bake()
@@ -132,7 +132,7 @@ namespace Game.Editor
             // A tall hat stretches the frame up to its top, but not past a head's height above.
             var tallest = look.GetComponentsInChildren<Renderer>().Where(r => r.enabled && r.gameObject.activeInHierarchy)
                 .Select(r => r.bounds.max.y).DefaultIfEmpty(top).Max();
-            top = Mathf.Clamp(tallest + headHeight * 0.08f, head.max.y + headHeight * 0.2f, head.max.y + headHeight);
+            top = Mathf.Clamp(tallest + headHeight * 0.08f, head.max.y + headHeight * 0.1f, head.max.y + headHeight * 0.6f);
             var bottom = head.min.y - headHeight * BelowHead;
             var centre = new Vector3(head.center.x, (top + bottom) / 2f, head.center.z);
             var distance = (top - bottom) / 2f / Mathf.Tan(FieldOfView * 0.5f * Mathf.Deg2Rad) * Margin;

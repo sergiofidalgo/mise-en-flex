@@ -538,25 +538,79 @@ namespace Game.Presentation.Hud
             }
             return x + width;
         }
-        // A reply adds the owner's line under the review (one reply per review), or two when it's long.
-        private float CardHeight(ReviewRecord review, bool overview) =>
-            (overview ? 118f : 110f) + (review.Reply >= 0 ? 68f + (ReplyLines(review) > 1 ? ReplyLineHeight : 0f) : 0f);
+        // The finished day the cards are dated against; a capture sets its own.
+        private int? _captureToday;
+        private int Today => _captureToday ?? Summary.Day;
 
-        private const float ReplyWidth = 860f, ReplySize = 21.33f, ReplyLineHeight = 27f;
+        /// <summary>
+        /// Draws review cards at once, without Play mode or a running kitchen, for the capture tool
+        /// (Tools/Game/Capture Review Cards): <paramref name="reviews"/> top to bottom on the dashboard's
+        /// paper, dated against <paramref name="today"/>, with <paramref name="selected"/> chosen.
+        /// </summary>
+        public Canvas DrawCardsForCapture(IReadOnlyList<ReviewRecord> reviews, int today, int selected)
+        {
+            _captureToday = today;
+            var canvasObject = new GameObject("ReviewCardsCapture", typeof(RectTransform));
+            var canvas = canvasObject.AddComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            var scaler = canvasObject.AddComponent<CanvasScaler>();
+            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            scaler.referenceResolution = new Vector2(1920f, 1080f);
+            var root = UiKit.Rect(canvasObject.transform, "Layout", 0f, 0f, 1920f, 1080f);
+            root.anchorMin = root.anchorMax = root.pivot = new Vector2(0.5f, 0.5f);
+            root.anchoredPosition = Vector2.zero;
+            UiKit.RoundBox(root, "Paper", _paper, 0f, 0f, 1920f, 1080f, 0f);
+            _measure = UiKit.TextAt(Medium, root, "Measure", "", ReplySize, Color.clear, -4000f, -4000f, ContentWidth, lines: 4);
+            var y = 40f;
+            for (var i = 0; i < reviews.Count && y < 1040f; i++)
+                y = ReviewCard(root, reviews[i], y, i == selected, false) + 14f;
+            _captureToday = null;
+            return canvas;
+        }
+
+        // ---- Review cards, as speech bubbles (the user's pick, option B, 2026-11-11) ----
+        // Left, the guest: their portrait, name and what kind of guest they are. Right, what they
+        // said in a bubble, the owner's answer in a darker bubble from the other side, then a quiet
+        // line of facts: the rating, what they had and paid. No quotation marks: the bubble says it.
+
+        private const float CardPad = 22f, GuestColumn = 112f, GuestGap = 18f, Portrait = 84f;
+        private const float QuoteSize = 30f, QuotePitch = 38f, QuoteInset = 20f;
+        private const float ReplySize = 24f, ReplyPitch = 32f, ReplyIndent = 56f, ReplyInset = 20f;
+        private const float BubbleGap = 12f, FactsHeight = 44f, BubbleCorner = 18f, TailCorner = 5f;
+        private const int QuoteMaxLines = 3, ReplyMaxLines = 3;
+
+        private static float ContentX => CardLeft + CardPad + GuestColumn + GuestGap;
+        private static float ContentWidth => CardWidth - CardPad - GuestColumn - GuestGap - CardPad;
+
+        // The guest's column: portrait, gap, name, gap, type chip.
+        private const float GuestHeight = Portrait + 10f + 24f + 8f + 28f;
+
         private TextMeshProUGUI _measure;
 
-        // How many lines a reply wraps to, measured with the reply's own font, size and width.
-        private int ReplyLines(ReviewRecord review)
+        private float CardHeight(ReviewRecord review, bool overview)
         {
-            var text = ShownReply(review);
-            if (_measure == null || string.IsNullOrEmpty(text))
+            var right = Bubble(QuoteLines(review), QuoteSize, QuotePitch) + FactsHeight;
+            if (review.Reply >= 0)
+                right += BubbleGap + Bubble(Lines(ShownReply(review), Medium, ReplySize, ContentWidth - ReplyIndent - 2f * ReplyInset, ReplyMaxLines), ReplySize, ReplyPitch);
+            return CardPad + Mathf.Max(right, GuestHeight) + CardPad - 6f;
+        }
+
+        // A bubble's height for this many lines: padding, the first line, then the pitch per line.
+        private static float Bubble(int lines, float size, float pitch) => 14f + size + (lines - 1) * pitch + 18f;
+
+        private int QuoteLines(ReviewRecord review) =>
+            Lines(Game.Data.ReviewText.Line(review), Serif, QuoteSize, ContentWidth - 2f * QuoteInset, QuoteMaxLines);
+
+        // How many lines text wraps to, measured with its own font, size and width.
+        private int Lines(string text, TMP_FontAsset font, float size, float width, int most)
+        {
+            if (_measure == null || string.IsNullOrEmpty(text) || font == null)
                 return 1;
-            _measure.font = Medium;
-            _measure.fontSize = ReplySize;
-            var height = _measure.GetPreferredValues(text, ReplyWidth, 0f).y;
-            var face = Medium.faceInfo;
-            var line = face.lineHeight * ReplySize / face.pointSize;
-            return height > line * 1.5f ? 2 : 1;
+            _measure.font = font;
+            _measure.fontSize = size;
+            var height = _measure.GetPreferredValues(text, width, 0f).y;
+            var line = font.faceInfo.lineHeight * size / font.faceInfo.pointSize;
+            return Mathf.Clamp(Mathf.RoundToInt(height / line), 1, most);
         }
 
         // TextMeshPro spaces lines by the font's own line height; this sets an exact pitch instead.
@@ -575,73 +629,96 @@ namespace Game.Presentation.Hud
             return string.IsNullOrEmpty(written) ? ReplyText(review) : written;
         }
 
+        // What kind of guest they were (the user's call, 2026-11-11), so a critic or an influencer
+        // stands out once they've posted: their own colours; everyone else a quiet chip.
+        private (string Name, Color Back, Color Text) GuestType(ReviewRecord review) => (Persona)review.Persona switch
+        {
+            Persona.Critic => (Tr.Get("Food critic"), _gold, _ink),
+            Persona.Influencer => (Tr.Get("Influencer"), Hex(0xe58fae), _ink),
+            Persona.Foodie => (Tr.Get("Foodie"), Hex(0xcfe3d6), _goodText),
+            Persona.Tourist => (Tr.Get("Tourist"), _card, _body),
+            Persona.Local => (Tr.Get("Local"), _card, _body),
+            _ => (Tr.Get("Regular"), _card, _body),
+        };
+
+        // A speech bubble: rounded, with one sharp corner pointing at whoever's talking.
+        private void SpeechBubble(Transform parent, string name, Color fill, float x, float y, float width, float height, bool tailLeft)
+        {
+            UiKit.RoundBox(parent, name, fill, x, y, width, height, BubbleCorner);
+            UiKit.RoundBox(parent, name + "Tail", fill, tailLeft ? x : x + width - BubbleCorner, y + height - BubbleCorner, BubbleCorner, BubbleCorner, TailCorner);
+        }
+
         // One review card at y; returns its bottom.
         private float ReviewCard(Transform parent, ReviewRecord review, float y, bool selected, bool overview)
         {
-            var height = CardHeight(review, overview) + (selected && overview && review.Reply < 0 ? 4f : 0f);
+            var height = CardHeight(review, overview);
+            var walkedOut = review.WalkedOut;
             if (selected)
                 UiKit.RoundBox(parent, "Highlight", _gold, CardLeft - 5.67f, y - 5.67f, CardWidth + 11.33f, height + 11.33f, 20f);
-            UiKit.StrokedBox(parent, "Review", _cardLight, selected ? _gold : _cardEdge, 2.67f, CardLeft, y, CardWidth, height, 15f);
+            UiKit.StrokedBox(parent, "Review", walkedOut ? Hex(0xfcefe6) : _cardLight, selected ? _gold : walkedOut ? _alarm : _cardEdge, 2.67f, CardLeft, y, CardWidth, height, 15f);
 
-            // The guest's face in a perfect circle: the customer they came as (the user's calls, 2026-11-11).
-            UiKit.GuestPortrait(parent, _style.CustomerPortrait(review.Look, review.Guest), review.Guest, CardLeft + 20f, y + (overview ? 28f : 22f), 62f, _ink);
-            var nameBase = y + (overview ? 38f : 34f);
-            // In the player's language: the guest's name slot looked up there (decision 2026-11-09).
-            var name = Label(Bold, parent, Game.Data.GuestNames.Display(review), 20f, _ink, 857f, nameBase, 300f);
-            var meta = (string.IsNullOrEmpty(review.Order) ? "" : $"· {Game.Data.ReviewText.Order(review.Order)} ") + $"· {ClockAt(review.ArrivedAt)}";
-            if (review.Day != Summary.Day)
-                meta += Tr.Format(" · day {day}", ("day", review.Day));
-            // A guest who's posted before (decision 2026-11-09).
-            if (review.Visit == 2)
-                meta += Tr.Get(" · back again");
-            else if (review.Visit > 2)
-                meta += Tr.Format(" · visit {visit}", ("visit", review.Visit));
-            Label(Medium, parent, meta, 19f, _muted, 857f + UiKit.Width(name) + 12f, nameBase, 420f);
-            // Written in the player's language from its templates and facts (decision 2026-11-09).
-            // Bigger on the Overview (the user's call, 2026-11-11); a long line shrinks to fit rather than cut off.
-            var quote = Label(Serif, parent, $"“{Game.Data.ReviewText.Line(review)}”", overview ? 38f : 32f, _ink, 857f, y + (overview ? 84f : 73f), 670f);
-            quote.textWrappingMode = TextWrappingModes.NoWrap;
-            // Only a line too long for the card shrinks; the rest stay at full size.
-            if (UiKit.Width(quote) > 670f)
-            {
-                quote.enableAutoSizing = true;
-                quote.fontSizeMin = 22f;
-                quote.fontSizeMax = overview ? 38f : 32f;
-            }
+            // The guest: the customer they came as, their name, what kind of guest (2026-11-11).
+            var type = GuestType(review);
+            var critic = (Persona)review.Persona == Persona.Critic;
+            var columnCentre = CardLeft + CardPad + GuestColumn / 2f;
+            var top = y + CardPad;
+            UiKit.GuestPortrait(parent, _style.CustomerPortrait(review.Look, review.Guest), review.Guest,
+                columnCentre - Portrait / 2f, top, Portrait, critic ? _gold : _ink);
+            Label(Bold, parent, Game.Data.GuestNames.Display(review), 19f, _ink, columnCentre, top + Portrait + 10f + 20f, GuestColumn + 16f, HorizontalAlignmentOptions.Center);
+            var chip = Label(critic ? Bold : SemiBold, parent, type.Name, 15f, type.Text, columnCentre, top + Portrait + 10f + 24f + 8f + 19f, GuestColumn + 16f, HorizontalAlignmentOptions.Center);
+            var chipWidth = Mathf.Min(GuestColumn + 16f, UiKit.Width(chip) + 22f);
+            var chipBox = UiKit.RoundBox(parent, "Type", type.Back, columnCentre - chipWidth / 2f, top + Portrait + 10f + 24f + 8f, chipWidth, 26f, 13f);
+            chipBox.transform.SetSiblingIndex(chip.transform.GetSiblingIndex());
 
-            // Right: the rating, then what it paid or cost, and Reply while it's unanswered.
-            var pillTop = y + (overview ? 19f : 15f);
-            if (review.WalkedOut)
-            {
-                UiKit.RoundBox(parent, "Rating", _alarm, 1547f, pillTop, 229f, 42f, 21f);
-                UiKit.RoundBox(parent, "Dash", _badText, 1564f, pillTop + 19f, 24f, 4f, 2f);
-                Stars(parent, 1605f, pillTop + 9f, 24f, 33f, 0f);
-            }
-            else
-            {
-                UiKit.RoundBox(parent, "Rating", _paper, 1546f, pillTop, 230f, 42f, 21f);
-                Label(ExtraBold, parent, $"{review.RatedStars:0.0}", 24f, _ink, 1555f, pillTop + 30f, 50f);
-                Stars(parent, 1605f, pillTop + 9f, 24f, 33f, review.RatedStars);
-            }
+            // What they said, in their bubble. Written in the player's language (decision 2026-11-09).
+            var lines = QuoteLines(review);
+            var bubble = Bubble(lines, QuoteSize, QuotePitch);
+            SpeechBubble(parent, "Said", walkedOut ? _alarm : Hex(0xf1e5cf), ContentX, top, ContentWidth, bubble, tailLeft: true);
+            var quote = UiKit.TextAt(Serif, parent, "Quote", Game.Data.ReviewText.Line(review), QuoteSize, _ink, ContentX + QuoteInset, top + 14f + QuoteSize, ContentWidth - 2f * QuoteInset, lines: QuoteMaxLines);
+            LineHeight(quote, QuotePitch);
+            var below = top + bubble;
 
-            var chipBase = y + (overview ? 92f : 88f);
-            var chipText = review.WalkedOut
-                ? Tr.Format("Walked out · {amount}", ("amount", Money(-review.Penalty)))
-                : review.Tip > 0f ? Tr.Format("{paid} + {tip} tip", ("paid", Money(review.Paid)), ("tip", Money(review.Tip))) : Tr.Format("{paid} · no tip", ("paid", Money(review.Paid)));
-            var chipLeft = RightPill(parent, chipText, review.WalkedOut ? Bold : SemiBold, 16.67f, review.WalkedOut ? _alarm : _card, review.WalkedOut ? _alarmText : _wellLight, 1776f, chipBase - 21f, 30f, 12f);
-            if (selected && review.Reply < 0)
-                ReplyButton(parent, chipLeft - 8f, chipBase - 21f + 15f);
-
+            // The owner's answer: bigger, from the other side, no heading (the user's call).
             if (review.Reply >= 0)
             {
-                var top = y + 107f;
-                UiKit.RoundBox(parent, "Thread", _gold, 856f, top, 3f, 54f + (ReplyLines(review) > 1 ? ReplyLineHeight : 0f), 0f);
-                UiKit.Picture(parent, "Mark", _style.ReplyMark, 876f, top + 4f, 14f, 18f);
-                var owner = Label(Bold, parent, ShownName, 16.67f, _wellLight, 897f, top + 18f, 300f);
-                Label(Medium, parent, review.Day == Summary.Day ? Tr.Get("· owner · just now") : Tr.Get("· owner"), 16.67f, _quiet, 897f + UiKit.Width(owner) + 7f, top + 18f, 300f);
-                var reply = UiKit.TextAt(Medium, parent, "Reply", ShownReply(review), ReplySize, _ink, 877f, top + 45f, ReplyWidth, lines: 2);
-                LineHeight(reply, ReplyLineHeight);
+                var replyWidth = ContentWidth - ReplyIndent;
+                var replyLines = Lines(ShownReply(review), Medium, ReplySize, replyWidth - 2f * ReplyInset, ReplyMaxLines);
+                var replyHeight = Bubble(replyLines, ReplySize, ReplyPitch);
+                below += BubbleGap;
+                SpeechBubble(parent, "Answer", Hex(0x2f4a3f), ContentX + ReplyIndent, below, replyWidth, replyHeight, tailLeft: false);
+                var reply = UiKit.TextAt(Medium, parent, "Reply", ShownReply(review), ReplySize, Hex(0xf3ead9), ContentX + ReplyIndent + ReplyInset, below + 14f + ReplySize, replyWidth - 2f * ReplyInset, lines: ReplyMaxLines);
+                LineHeight(reply, ReplyPitch);
+                below += replyHeight;
             }
+
+            // The facts, under the conversation: the rating, what they had and what it paid.
+            var baseline = below + 32f;
+            float x;
+            if (walkedOut)
+                x = ContentX + 4f + UiKit.Width(Label(Bold, parent, Tr.Get("Walked out"), 20f, _badText, ContentX + 4f, baseline, 300f));
+            else
+            {
+                var score = Label(ExtraBold, parent, $"{review.RatedStars:0.0}", 21f, _ink, ContentX + 4f, baseline, 60f);
+                x = Stars(parent, ContentX + 4f + UiKit.Width(score) + 8f, baseline - 19f, 21f, 25f, review.RatedStars);
+            }
+            var facts = string.IsNullOrEmpty(review.Order) ? "" : $" · {Game.Data.ReviewText.Order(review.Order)}";
+            facts += walkedOut ? $" · {Money(-review.Penalty)}"
+                : review.Tip > 0f ? " · " + Tr.Format("{paid} + {tip} tip", ("paid", Money(review.Paid)), ("tip", Money(review.Tip)))
+                : " · " + Tr.Format("{paid} · no tip", ("paid", Money(review.Paid)));
+            if (review.Day != Today)
+                facts += Tr.Format(" · day {day}", ("day", review.Day));
+            // A guest who's posted before (decision 2026-11-09).
+            if (review.Visit == 2)
+                facts += Tr.Get(" · back again");
+            else if (review.Visit > 2)
+                facts += Tr.Format(" · visit {visit}", ("visit", review.Visit));
+            Label(Medium, parent, facts, 19f, walkedOut ? _alarmText : _muted, x + 6f, baseline, ContentWidth - (x - ContentX) - 150f);
+
+            var right = CardLeft + CardWidth - CardPad;
+            if (review.Reply >= 0)
+                Label(Medium, parent, Tr.Get("Answered"), 18f, _quiet, right, baseline, 200f, HorizontalAlignmentOptions.Right);
+            else if (selected)
+                ReplyButton(parent, right, baseline - 7f);
             return y + height;
         }
 
@@ -1543,7 +1620,7 @@ namespace Game.Presentation.Hud
             _popover = UiKit.Rect(_layout, "Popover", 0f, 0f, 1920f, 1080f);
 
             // Never shown: measures how many lines a reply wraps to, so its card can make room.
-            _measure = UiKit.TextAt(Medium, _layout, "Measure", "", ReplySize, Color.clear, -4000f, -4000f, ReplyWidth, lines: 2);
+            _measure = UiKit.TextAt(Medium, _layout, "Measure", "", ReplySize, Color.clear, -4000f, -4000f, ContentWidth, lines: 4);
         }
     }
 }

@@ -4,6 +4,16 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-11 — Review cards: the customer who came, as a conversation
+
+**Decision (user's calls):**
+- **The guest's face is the customer they came as.** Each customer wears one of the customer prefab's 3D looks, picked by the simulation (`ServiceConfig` "customer looks", which a test keeps equal to the prefab's). The review saves it, and a returning guest is drawn only from guests who wore the same look, so they come back looking the same. Tools/Game/Bake Customer Portraits photographs each look into a sprite on `HudStyle`; reviews from older saves pick a look from the guest's name.
+- **Option B, speech bubbles.** Left, the portrait, the name and the guest's type (regular, local, tourist, foodie, influencer, food critic; critics get a gold chip and ring). Right, what they said in a bubble, without quotation marks; the owner's answer in a dark green bubble from the other side, bigger and without a heading; then one line of facts: rating, order, what they paid, and "back again". The time of day is gone.
+
+**Reason:** a drawn icon didn't connect the review to anyone the players saw in the room, and the old card's type sizes and spacing didn't sit well together. The guest type lets players spot a critic's or an influencer's visit.
+
+**Cost:** cards are taller (about 190 px), so the list shows about two and a half at once. A returning guest is a little rarer, since they must have worn the same look. A guest's type and look are still picked separately (a "tourist" can wear gym clothes).
+
 ## 2026-11-11 — A full bin's flies are an urgent swarm
 
 **Decision:** The bin's flies grow with it: from half full, a few small ones (6 cm), more and bigger as it fills. Once it's full they jump to a swarm: 14 a second plus a burst of 8 about every second, 11 cm each, circling twice as wide (0.32 m) and over twice as fast (`BinFillView`, "Full: a swarm"). Before, at most about ten 5 cm specks circled it, which went unnoticed.
