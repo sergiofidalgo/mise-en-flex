@@ -27,6 +27,8 @@ namespace Game.Presentation.Hud
         [Tooltip("The players' shop cards; without them the shop shows in the cursor's label.")]
         [SerializeField] private ManagementCardsHud _cards;
         [SerializeField] private Color _blocked = new Color(0.95f, 0.30f, 0.26f);
+        [Tooltip("Allowed but costly: a piece outside its usual room (decisions 2026-11-11).")]
+        [SerializeField] private Color _warning = new Color(1f, 0.72f, 0.22f);
         [Tooltip("Metres above the floor where the label sits.")]
         [SerializeField, Min(0f)] private float _labelHeight = 1.4f;
         [SerializeField] private Vector2 _padding = new Vector2(12f, 6f);
@@ -105,11 +107,13 @@ namespace Game.Presentation.Hud
                     Placement.NoFreeCounter => Tr.Get("no free counter for it"),
                     _ => null,
                 };
-                return problem != null
-                    ? $"{HudStyle.Colored(problem, _blocked)}\n[LB/RB] {Tr.Get("rotate")}   {Glyph(PromptControl.East)} {Tr.Get("cancel")}"
-                    : cursor.Held is StreetDoor
+                if (problem != null)
+                    return $"{HudStyle.Colored(problem, _blocked)}\n[LB/RB] {Tr.Get("rotate")}   {Glyph(PromptControl.East)} {Tr.Get("cancel")}";
+                // Shown while it's carried over the other room, before A: placing still takes one press.
+                var mess = cursor.OutOfItsRoom ? MessWarning(cursor.Held) + "\n" : "";
+                return mess + (cursor.Held is StreetDoor
                         ? $"{Glyph(PromptControl.South)} {Tr.Get("place")}   {Glyph(PromptControl.East)} {Tr.Get("cancel")}"
-                        : $"{Glyph(PromptControl.South)} {Tr.Get("place")}   [LB/RB] {Tr.Get("rotate")}   {Glyph(PromptControl.East)} {Tr.Get("cancel")}";
+                        : $"{Glyph(PromptControl.South)} {Tr.Get("place")}   [LB/RB] {Tr.Get("rotate")}   {Glyph(PromptControl.East)} {Tr.Get("cancel")}");
             }
 
             var always = $"{Glyph(PromptControl.North)} {Tr.Get("shop")}   [Select] {Tr.Get("back to chef")}";
@@ -121,8 +125,13 @@ namespace Game.Presentation.Hud
             var chairs = under is TableStation table && table.HasChoiceOfChairs
                 ? "[RB] " + Tr.Format("add chair {price}", ("price", Money(_editor.ChairPrice))) + "   [LB] " + Tr.Get("remove") + "   " + Tr.Format("{count} now", ("count", table.ChairCount)) + "\n"
                 : "";
-            return $"{move}{(sale != null ? "   " + sale : "")}\n{chairs}{always}";
+            var placedMess = _editor.IsOutOfItsRoom(under) ? MessWarning(under) + "\n" : "";
+            return $"{placedMess}{move}{(sale != null ? "   " + sale : "")}\n{chairs}{always}";
         }
+
+        // An appliance in the dining room, or a table in the kitchen: allowed, but it always makes mess.
+        private string MessWarning(Interactable piece) => HudStyle.Colored(
+            Tr.Get(piece.BelongsInDiningRoom ? "guests in the kitchen make mess" : "cooking in the dining room makes mess"), _warning);
 
         private string SaleText(LayoutEditor.Cursor cursor, Interactable station)
         {

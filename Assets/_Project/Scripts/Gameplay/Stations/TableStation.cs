@@ -105,6 +105,22 @@ namespace Game.Gameplay.Stations
             }
         }
 
+        /// <summary>
+        /// While it's carried: shows only the chairs that would have room where it would land, so a
+        /// chair never shows inside a wall (decisions 2026-11-11). Placing arranges them for real.
+        /// </summary>
+        public void PreviewChairs(Footprint at, FloorPlan building)
+        {
+            var used = 0;
+            foreach (var chair in _chairs)
+            {
+                var show = used < _chairCount && building.CanStand(SeatAt(chair, at));
+                chair.Seat.gameObject.SetActive(show);
+                if (show)
+                    used++;
+            }
+        }
+
         private static System.Numerics.Vector2 SeatAt(Chair chair, Footprint at)
         {
             var local = chair.Seat.localPosition;
