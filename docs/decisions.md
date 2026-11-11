@@ -4,7 +4,7 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
-## 2026-11-11 — The kitchen HUD clean-up: debug behind F1, hints on the appliances, nothing over the dashboard
+## 2026-11-11 — The kitchen HUD clean-up: debug behind F1, hints on the appliances, guests' bubbles, nothing over the dashboard
 
 Built from the playtest round's HUD call (below).
 
@@ -14,7 +14,12 @@ Built from the playtest round's HUD call (below).
   - **Where they sit:** on the appliance's top at the edge across from the chef, LT RT then X, facing the camera, so they read at all 8 rotations with the chef on any side. They're drawn over the chef, as the wash ring is (`Game/FX/HintOnTop`).
   - **When:** they fade and pop in (0.2 s) while a chef faces the appliance and the action is possible. Each stops showing for a player once that player has done it 3 times (`_usesBeforeFading`, tunable). The count covers this play session only and isn't saved.
 - **Nothing of the kitchen over the dashboard:** the dashboard's canvas is nested in the HUD canvas, and without `overrideSorting` it drew under whatever the HUD made later (the cutting dial and "press X in the green", the guests' edge markers). It now sorts on its own. `ReviewHidesKitchenHud` also hides the whole kitchen HUD layer while forkcast is open: dials, gauges, tags, tickets, markers and the bell. Screens with their own canvas (the dashboard, shop cards, the boss's phone) are left alone. The cutting dial also ends for a chef once the dashboard is up.
-- **Not covered:** floor spills (nothing to sit on), ringing the bell (X at the pass), and cutting (its dial still says "press X in the green" until the first cut). Each was left out on purpose; see the open questions in the hand-over.
+- **Guests speak in bubbles** (the user's call, approved through Main build): the dark order ticket and its patience bar are replaced by a speech bubble over each seated guest. It's cream paper with an ink outline and a tail, showing the dish's picture (its name if there's no picture), the doneness word in its colour (darkened for paper), and "+" and the side's picture.
+  - **Patience:** below 60% patience the bubble warms towards the patience colour, up to 60% of it. Below 35% it rocks about its tail, up to 9° at 3.5 rocks a second, each guest out of step. All are tunable on `OrderTicketHud`.
+  - **Queueing:** a guest queueing in view gets a "…" bubble that warms and wobbles the same way.
+  - **Never overlapping, never clipped:** bubbles nearest the camera are placed first; one that would overlap steps up above the other, or along the top edge if stepping up would leave the screen. All of them are kept inside the screen's margin, with room for the wobble. A guest out of view has their edge marker instead of a bubble.
+- **The quality-score card over the pass** stays behind the developer toggle (above). The off-screen guest markers and the review cards where guests leave are unchanged.
+- **Not covered:** floor spills (nothing to sit on), ringing the bell (X at the pass), and cutting (its dial still says "press X in the green" until the first cut). Each was left out on purpose and is an open question for the user.
 
 **Reason:** the user found the kitchen cluttered and the floating panels abrupt. Hints built into the appliances keep the scene readable and go away once learnt.
 

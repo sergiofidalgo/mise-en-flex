@@ -93,6 +93,7 @@ namespace Game.Editor
             tickets.FindProperty("_style").objectReferenceValue = style;
             tickets.FindProperty("_director").objectReferenceValue = Object.FindFirstObjectByType<CustomerDirector>();
             tickets.FindProperty("_catalog").objectReferenceValue = catalog;
+            tickets.FindProperty("_icons").objectReferenceValue = IngredientIconRenderer.Catalog(); // the guests' bubbles show the dish
             tickets.ApplyModifiedPropertiesWithoutUndo();
 
             var tags = new SerializedObject(hud.AddComponent<DonenessTagHud>());

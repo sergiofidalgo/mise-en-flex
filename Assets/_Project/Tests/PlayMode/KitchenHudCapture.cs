@@ -49,7 +49,7 @@ namespace Game.Tests.PlayMode
             // Guests: enough to fill a few seats.
             var service = services.Service;
             service.GuestsWalkIn = false; // straight to their seats: the street isn't what's shown here
-            for (var i = 0; i < 4; i++)
+            for (var i = 0; i < service.SeatCount + 2; i++) // a full bar and two queueing: a busy room
             {
                 var count = service.Customers.Count;
                 while (service.Customers.Count == count)

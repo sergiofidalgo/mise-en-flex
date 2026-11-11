@@ -201,5 +201,33 @@ namespace Game.Tests.PlayMode
 
         private static int Dials() => Object.FindObjectsByType<RectTransform>(FindObjectsSortMode.None)
             .Count(r => r.name.StartsWith("ChopDial_") && r.gameObject.activeInHierarchy);
+
+        [UnityTest]
+        public IEnumerator GuestsBubblesNeverOverlapAndStayOnScreen()
+        {
+            yield return OpenKitchenInService();
+            var service = Services.Service;
+            service.GuestsWalkIn = false;
+            // A full room and a queue: every seat's bubble plus the queue's "…" ones.
+            for (var i = 0; i < service.SeatCount + 3; i++)
+            {
+                var count = service.Customers.Count;
+                while (service.Customers.Count == count)
+                    service.Tick(1f);
+            }
+            yield return Wait(6f); // they find their seats
+
+            var bubbles = Object.FindFirstObjectByType<OrderTicketHud>();
+            var placed = bubbles.Placed.ToList();
+            Assert.That(placed.Count, Is.GreaterThanOrEqualTo(service.SeatCount), "a bubble per seated guest at least");
+            for (var i = 0; i < placed.Count; i++)
+            for (var j = i + 1; j < placed.Count; j++)
+                Assert.That(placed[i].Overlaps(placed[j]), Is.False, $"bubbles {i} and {j} overlap");
+            var canvas = (RectTransform)bubbles.transform;
+            var half = canvas.rect.size / 2f;
+            foreach (var rect in placed)
+                Assert.That(rect.xMin >= -half.x && rect.xMax <= half.x && rect.yMin >= -half.y && rect.yMax <= half.y, Is.True, $"{rect} is on screen");
+            Assert.That(Object.FindObjectsByType<RectTransform>(FindObjectsSortMode.None).Any(r => r.name.StartsWith("Ticket_")), Is.False, "no old tickets");
+        }
     }
 }
