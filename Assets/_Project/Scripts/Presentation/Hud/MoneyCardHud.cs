@@ -43,6 +43,12 @@ namespace Game.Presentation.Hud
         private TextMeshProUGUI _amount;
         private MoneyTicker _ticker;
         private float _width = MinWidth;
+
+        /// <summary>The card's width now, so what docks under it can match (Prep's Rearrange).</summary>
+        public float Width => _width;
+
+        /// <summary>The card's height.</summary>
+        public float CardHeight => Height;
         private bool _known;          // a balance has been shown
         private IMoneySource _source; // the kitchen's or the office's, on the same object
 

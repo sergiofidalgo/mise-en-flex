@@ -21,8 +21,8 @@ namespace Game.Presentation.Hud
     /// <para>In Prep it becomes two tiles above the ready bar (the user's design, 2026-11-11): a
     /// calendar page ("FRI 5") with "Prep / Opens 18:00", and two guests' faces with "About 5
     /// guests / Groups of one". The forecast follows the tables and the menu's prices as they
-    /// change, as the night itself will. A slim third tile under them names the View button:
-    /// "Rearrange" (the user's call, 2026-11-11), the only place it's shown.</para>
+    /// change, as the night itself will. The View button's "Rearrange" docks top right under the
+    /// money card, as wide as it (the user's call, 2026-11-11), the only place it's shown.</para>
     /// </summary>
     public sealed class DayCardHud : MonoBehaviour
     {
@@ -51,6 +51,8 @@ namespace Game.Presentation.Hud
         [SerializeField] private HudStyle _style;
         [SerializeField] private KitchenCompositionRoot _root;
         [SerializeField] private PauseMenu _pause;
+        [Tooltip("The money card, top right: Prep's Rearrange docks under it at its width. Found in the scene if empty.")]
+        [SerializeField] private MoneyCardHud _money;
 
         private Canvas _canvas;
         private RectTransform _card;
@@ -61,6 +63,9 @@ namespace Game.Presentation.Hud
         private TextMeshProUGUI _line;
         private string _shown;
         private RectTransform _tiles;
+        private RectTransform _rearrange;
+        private string _rearrangeShown;
+        private CanvasGroup _rearrangeGroup;
         private CanvasGroup _tilesGroup;
         private string _tilesShown;
         private int _guests;
@@ -108,6 +113,11 @@ namespace Game.Presentation.Hud
             _tiles = UiKit.Rect(_canvas.transform, "PrepTiles", 0f, 0f, TileMinWidth, 2f * height + TileGap);
             _tiles.anchorMin = _tiles.anchorMax = _tiles.pivot = new Vector2(0f, 0f);
             _tiles.anchoredPosition = new Vector2(Margin, BarHeight + Margin);
+            _rearrange = UiKit.Rect(_tiles.parent, "Rearrange", 0f, 0f, 210f, HintHeight);
+            _rearrange.anchorMin = _rearrange.anchorMax = _rearrange.pivot = new Vector2(1f, 1f);
+            _rearrangeGroup = _rearrange.gameObject.AddComponent<CanvasGroup>();
+            _rearrangeGroup.alpha = 0f;
+            _rearrangeGroup.blocksRaycasts = false;
             _tilesGroup = _tiles.gameObject.AddComponent<CanvasGroup>();
             _tilesGroup.alpha = 0f;
             _tilesGroup.blocksRaycasts = false;
@@ -127,12 +137,14 @@ namespace Game.Presentation.Hud
             var tilesGoal = prep ? 1f : 0f;
             _group.alpha = fade <= 0f ? cardGoal : Mathf.MoveTowards(_group.alpha, cardGoal, Time.unscaledDeltaTime / fade);
             _tilesGroup.alpha = fade <= 0f ? tilesGoal : Mathf.MoveTowards(_tilesGroup.alpha, tilesGoal, Time.unscaledDeltaTime / fade);
+            _rearrangeGroup.alpha = _tilesGroup.alpha;
             if (!shown)
                 return;
             if (prep)
             {
                 Forecast(services);
                 DrawTiles(services.Days.Day, services.ServiceConfig.OpensAt, _guests, _groupSize);
+                DrawRearrange();
                 return;
             }
             var service = services.Service;
@@ -158,7 +170,9 @@ namespace Game.Presentation.Hud
             Awake();
             _group.alpha = 0f;
             _tilesGroup.alpha = 1f;
+            _rearrangeGroup.alpha = 1f;
             DrawTiles(day, opensAtHour, guests, groupSize);
+            DrawRearrange();
             Canvas.ForceUpdateCanvases();
         }
 
@@ -170,8 +184,7 @@ namespace Game.Presentation.Hud
             var opens = DayCardText.Opens(opensAtHour);
             var count = DayCardText.Guests(guests);
             var groups = DayCardText.Groups(groupSize);
-            var rearrange = Tr.Get("Rearrange");
-            var key = $"{day}|{weekday}|{title}|{opens}|{count}|{groups}|{rearrange}";
+            var key = $"{day}|{weekday}|{title}|{opens}|{count}|{groups}";
             if (key == _tilesShown)
                 return;
             _tilesShown = key;
@@ -195,29 +208,50 @@ namespace Game.Presentation.Hud
             var canvasWidth = ((RectTransform)_canvas.transform).rect.width;
             if (canvasWidth > 1f)
                 width = Mathf.Min(width, canvasWidth - 2f * Margin); // whole on screen, always
-            _tiles.sizeDelta = new Vector2(width, 2f * height + HintHeight + 2f * TileGap);
+            _tiles.sizeDelta = new Vector2(width, 2f * height + TileGap);
 
             var day1 = Tile(0f, width, title, opens);
             Calendar(day1, Pad + IconColumn / 2f, height / 2f, weekday, day.ToString());
             var guestsTile = Tile(height + TileGap, width, count, groups);
             Faces(guestsTile, Pad + IconColumn / 2f, height / 2f, day);
-            Hint(2f * (height + TileGap), width, rearrange);
+        }
+
+        // Rearrange under the money card, top right, as wide as it; rebuilt when the width or the
+        // language changes.
+        private void DrawRearrange()
+        {
+            if (_money == null)
+                _money = FindFirstObjectByType<MoneyCardHud>();
+            var width = _money != null ? Mathf.Round(_money.Width) : 210f;
+            var below = _money != null ? _money.CardHeight : 108f;
+            var word = Tr.Get("Rearrange");
+            var key = $"{width}|{word}";
+            _rearrange.anchoredPosition = new Vector2(-Margin, -(Margin + below + TileGap));
+            if (key == _rearrangeShown)
+                return;
+            _rearrangeShown = key;
+            UiKit.Clear(_rearrange);
+            _rearrange.sizeDelta = new Vector2(width, HintHeight);
+            Hint(_rearrange, width, word);
         }
 
         // The View button as a key cap (two overlapping windows, drawn: no font has it) and its word,
         // the key centred in the icon column like the icons above.
-        private void Hint(float top, float width, string word)
+        private void Hint(RectTransform parent, float width, string word)
         {
-            var tile = UiKit.Rect(_tiles, "Hint", 0f, top, width, HintHeight);
-            var fill = _style.CardBackground;
-            fill.a *= _style.DayCardOpacity;
-            UiKit.StrokedBox(tile, "Back", fill, _style.DayCardEdge, _style.DayCardStroke, 0f, 0f, width, HintHeight, Radius);
-            var cx = Pad + IconColumn / 2f;
+            var tile = UiKit.Rect(parent, "Hint", 0f, 0f, width, HintHeight);
+            var fill = _style.PrepCardFill;
+            UiKit.OutlinedBox(tile, "Back", fill, _style.DayCardEdge, _style.DayCardStroke, 0f, 0f, width, HintHeight, Radius);
+            // The key and the word centred together, as a button reads.
+            var label = UiKit.TextAt(_style.Bold, tile, "Word", word, TileLineSize, _style.DayText, 0f, HintHeight / 2f + TileLineSize * 0.36f, width - KeyWidth - 12f - 28f);
+            var block = KeyWidth + 12f + Mathf.Min(UiKit.Width(label), label.rectTransform.sizeDelta.x);
+            var left = (width - block) / 2f;
+            label.rectTransform.anchoredPosition = new Vector2(left + KeyWidth + 12f, label.rectTransform.anchoredPosition.y);
+            var cx = left + KeyWidth / 2f;
             var cy = HintHeight / 2f;
             UiKit.RoundBox(tile, "Key", KeyColour, cx - KeyWidth / 2f, cy - KeyHeight / 2f, KeyWidth, KeyHeight, 8f);
             UiKit.StrokedBox(tile, "Back", KeyColour, Color.white, 2f, cx - 9f, cy - 8f, 13f, 11f, 2f);
             UiKit.StrokedBox(tile, "Front", KeyColour, Color.white, 2f, cx - 4f, cy - 3f, 13f, 11f, 2f);
-            UiKit.TextAt(_style.Bold, tile, "Word", word, TileLineSize, _style.DayText, Pad + IconColumn, cy + TileLineSize * 0.36f, width - Pad - IconColumn - Pad);
         }
 
         // One tile: the day card's look (see-through, sand outline), an icon column and two lines.
@@ -225,9 +259,8 @@ namespace Game.Presentation.Hud
         {
             var height = _style.DayCardHeight;
             var tile = UiKit.Rect(_tiles, "Tile", 0f, top, width, height);
-            var fill = _style.CardBackground;
-            fill.a *= _style.DayCardOpacity;
-            UiKit.StrokedBox(tile, "Back", fill, _style.DayCardEdge, _style.DayCardStroke, 0f, 0f, width, height, Radius);
+            var fill = _style.PrepCardFill;
+            UiKit.OutlinedBox(tile, "Back", fill, _style.DayCardEdge, _style.DayCardStroke, 0f, 0f, width, height, Radius);
             const float gap = 12f; // a touch looser than the day card's: the line is smaller
             var block = _style.DayTitleSize * 0.72f + gap + TileLineSize * 0.72f;
             var textTop = (height - block) / 2f;

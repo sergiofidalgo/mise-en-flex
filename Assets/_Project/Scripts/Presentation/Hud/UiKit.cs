@@ -81,6 +81,24 @@ namespace Game.Presentation.Hud
             return RoundBox(parent, name, fill, x + half, y + half, width - stroke, height - stroke, Mathf.Max(0f, radius - half));
         }
 
+        /// <summary>
+        /// As <see cref="StrokedBox"/>, but the border is a ring rather than a box behind the fill, so a
+        /// see-through fill shows what's under the card and not the border's colour (Prep's cards,
+        /// 2026-11-11). The ring is named <paramref name="name"/>Edge, as StrokedBox's.
+        /// </summary>
+        public static Image OutlinedBox(Transform parent, string name, Color fill, Color edge, float stroke, float x, float y, float width, float height, float radius)
+        {
+            var half = stroke / 2f;
+            var back = RoundBox(parent, name, fill, x + half, y + half, width - stroke, height - stroke, Mathf.Max(0f, radius - half));
+            var ring = Rect(parent, name + "Edge", x - half, y - half, width + stroke, height + stroke).gameObject.AddComponent<Image>();
+            ring.color = edge;
+            ring.raycastTarget = false;
+            ring.sprite = RingSprite(radius + half, stroke);
+            ring.type = Image.Type.Sliced;
+            ring.fillCenter = false;
+            return back;
+        }
+
         /// <summary>A circle or, when width and height differ, an ellipse.</summary>
         public static Image Ellipse(Transform parent, string name, Color color, float x, float y, float width, float height)
         {
@@ -348,6 +366,31 @@ namespace Game.Presentation.Hud
             var sprite = Sprite.Create(texture, new UnityEngine.Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), 100f * ShapeScale, 0, SpriteMeshType.FullRect, new Vector4(border, border, border, border));
             sprite.name = $"Rounded{key / 4f}";
             RoundedSprites[key] = sprite;
+            return sprite;
+        }
+
+        private static readonly Dictionary<(int, int), Sprite> RingSprites = new Dictionary<(int, int), Sprite>();
+
+        /// <summary>A nine-sliced rounded ring: corners of <paramref name="radius"/>, <paramref name="stroke"/> thick, hollow.</summary>
+        public static Sprite RingSprite(float radius, float stroke)
+        {
+            radius = Mathf.Max(radius, stroke + 1f);
+            var key = (Mathf.RoundToInt(radius * 4f), Mathf.RoundToInt(stroke * 4f));
+            if (RingSprites.TryGetValue(key, out var cached) && cached != null)
+                return cached;
+            var r = key.Item1 / 4f * ShapeScale;
+            var t = key.Item2 / 4f * ShapeScale;
+            var border = Mathf.CeilToInt(r) + 1;
+            var size = border * 2 + 2;
+            // Inside the outer edge and outside the inner one, the stroke's width in.
+            var texture = Shape(size, (px, py) =>
+            {
+                var outer = RoundedBoxDistance(px, py, size, r);
+                return Mathf.Max(outer, -(outer + t));
+            });
+            var sprite = Sprite.Create(texture, new UnityEngine.Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), 100f * ShapeScale, 0, SpriteMeshType.FullRect, new Vector4(border, border, border, border));
+            sprite.name = $"Ring{key.Item1 / 4f}x{key.Item2 / 4f}";
+            RingSprites[key] = sprite;
             return sprite;
         }
 

@@ -54,6 +54,10 @@ namespace Game.Presentation.Hud
         private const float OpenTime = 0.12f;
         private const float SettleDelay = 0.5f;
         private const float StillBackdropTint = 0.22f;
+        private const float TabHeight = 50f;     // what shows of the rearranging tab
+        private const float TabTuck = 4f;        // its top edge lies on the card's bottom edge (the card is see-through)
+        private const float ChevronPeriod = 1.2f;
+        private const float ChevronBob = 4f;
 
         [SerializeField] private HudStyle _style;
         [SerializeField] private CoopSettings _coop;
@@ -64,6 +68,7 @@ namespace Game.Presentation.Hud
         private readonly Dictionary<int, Card> _cards = new Dictionary<int, Card>();
         private readonly Dictionary<int, Compact> _compacts = new Dictionary<int, Compact>();
         private readonly List<(int Player, Transform Chef, View Shop)> _row = new List<(int, Transform, View)>();
+        private readonly HashSet<int> _rearranging = new HashSet<int>();
         private Canvas _canvas;
 
         /// <summary>What a shop card shows: the page, the choice, and how the last press went.</summary>
@@ -115,6 +120,8 @@ namespace Game.Presentation.Hud
         private sealed class Compact
         {
             public RectTransform Root;
+            public RectTransform Tab;       // rearranging: Y drops the shop open
+            public RectTransform Chevron;
             public ChefStill Still;
             public Transform Seen;      // the chef last frame, to notice a join
             public float SettleAt = -1f;
@@ -170,6 +177,7 @@ namespace Game.Presentation.Hud
         private void LateUpdate()
         {
             _row.Clear();
+            _rearranging.Clear();
             var services = _root != null ? _root.Services : null;
             var prep = services != null && services.Days != null && services.Days.Phase == DayPhase.Prep && !services.Forkcast.IsOpen;
             foreach (var player in PlayerInput.all.Where(p => !PlayerPresence.IsLost(p)).OrderBy(p => p.playerIndex))
@@ -179,7 +187,11 @@ namespace Game.Presentation.Hud
                 if (cursor != null)
                     _row.Add((player.playerIndex, player.transform, ViewOf(cursor)));
                 else if (prep)
+                {
                     _row.Add((player.playerIndex, player.transform, null));
+                    if (player.TryGetComponent(out PlayerInteractor hands) && hands.IsManaging)
+                        _rearranging.Add(player.playerIndex);
+                }
             }
             Lay(Time.unscaledDeltaTime, live: true);
         }
@@ -225,6 +237,7 @@ namespace Game.Presentation.Hud
                         _compacts[player] = compact = BuildCompact(player);
                     compact.Root.gameObject.SetActive(true);
                     Photograph(player, compact, chef, live);
+                    ShowTab(compact, _rearranging.Contains(player));
                     var left = Mathf.Min(x, CanvasWidth() - Margin - CompactWidth);
                     compact.Root.anchoredPosition = new Vector2(left, -Margin);
                     x += CompactWidth + CardGap;
@@ -241,11 +254,14 @@ namespace Game.Presentation.Hud
         /// Draws the row at once outside Play mode, for a still: each player's chef (photographed
         /// for their compact card), and the shop for whoever has one.
         /// </summary>
-        public Canvas Preview(IReadOnlyList<(int Player, Transform Chef, View Shop)> row)
+        public Canvas Preview(IReadOnlyList<(int Player, Transform Chef, View Shop)> row, IEnumerable<int> rearranging = null)
         {
             Awake();
             _row.Clear();
             _row.AddRange(row);
+            _rearranging.Clear();
+            if (rearranging != null)
+                _rearranging.UnionWith(rearranging);
             foreach (var compact in _compacts.Values)
                 compact.Seen = null; // a fresh still of everyone
             Lay(1f, live: false);
@@ -276,7 +292,9 @@ namespace Game.Presentation.Hud
             var colour = PlayerColour(index);
             var compact = new Compact { Still = new ChefStill(transform, $"KitchenPortrait{index + 1}") };
             compact.Root = UiKit.Rect(_canvas.transform, $"Player{index + 1}", 0f, 0f, CompactWidth, CompactHeight);
-            UiKit.StrokedBox(compact.Root, "Back", _style.CardBackground, colour, 4f, 0f, 0f, CompactWidth, CompactHeight, 18f);
+            // Built first, so the card's edge is drawn over the tab's where they meet.
+            BuildTab(compact, colour);
+            UiKit.OutlinedBox(compact.Root, "Back", _style.PrepCardFill, colour, 4f, 0f, 0f, CompactWidth, CompactHeight, 18f);
             var square = CompactHeight - 24f;
             var frame = UiKit.RoundBox(compact.Root, "PortraitFrame", new Color(0f, 0f, 0f, 0.25f), 12f, 12f, square, square, 16f);
             frame.gameObject.AddComponent<Mask>().showMaskGraphic = true;
@@ -287,6 +305,45 @@ namespace Game.Presentation.Hud
             var column = 12f + square;
             UiKit.TextAt(_style.DisplayFont, compact.Root, "Number", $"P{index + 1}", NumberSize, colour, (column + CompactWidth) / 2f, CompactHeight / 2f + NumberSize * 0.36f, CompactWidth - column - 8f, HorizontalAlignmentOptions.Center);
             return compact;
+        }
+
+        // While its player rearranges the kitchen (the user's call, 2026-11-11), a tab hangs under the
+        // card: the Y button, a little grid standing for the shop, "Shop" and a down-arrow that
+        // gently bobs. Y drops the shop open, and the card grows into it.
+        private void BuildTab(Compact compact, Color colour)
+        {
+            compact.Tab = UiKit.Rect(compact.Root, "ShopTab", 0f, CompactHeight - TabTuck, CompactWidth, TabTuck + TabHeight);
+            UiKit.OutlinedBox(compact.Tab, "Back", _style.PrepCardFill, colour, 4f, 10f, 0f, CompactWidth - 20f, TabTuck + TabHeight, 16f);
+            var cy = TabTuck + TabHeight / 2f;
+            DrawBadge(compact.Tab, PromptControl.North, 22f, cy - 15f, 30f);
+            // The shop: a two-by-three grid of little tiles, as the shop card lays its pieces out.
+            const float cell = 7f, gap = 3f;
+            var gridLeft = 62f;
+            for (var i = 0; i < 6; i++)
+                UiKit.RoundBox(compact.Tab, "Cell", Dim(0.85f), gridLeft + (i % 3) * (cell + gap), cy - cell - gap / 2f + (i / 3) * (cell + gap), cell, cell, 1.5f);
+            UiKit.TextAt(_style.Bold, compact.Tab, "Shop", Tr.Get("Shop"), 22f, _style.TextColor, gridLeft + 3f * cell + 2f * gap + 10f, cy + 8f, 80f);
+            // The down-arrow, two short bars meeting at a point, in the player's colour.
+            compact.Chevron = UiKit.Rect(compact.Tab, "Chevron", CompactWidth - 46f, cy - 10f, 20f, 20f);
+            compact.Chevron.pivot = new Vector2(0.5f, 0.5f);
+            compact.Chevron.anchoredPosition += new Vector2(10f, -10f);
+            for (var side = -1; side <= 1; side += 2)
+            {
+                var bar = UiKit.RoundBox(compact.Chevron, "Stroke", colour, 0f, 0f, 13f, 4f, 2f).rectTransform;
+                bar.pivot = new Vector2(0.5f, 0.5f);
+                bar.anchoredPosition = new Vector2(10f + side * 4f, -10f);
+                bar.localRotation = Quaternion.Euler(0f, 0f, side * 45f);
+            }
+            compact.Tab.gameObject.SetActive(false);
+        }
+
+        private void ShowTab(Compact compact, bool rearranging)
+        {
+            compact.Tab.gameObject.SetActive(rearranging);
+            if (!rearranging)
+                return;
+            // A slow bob down, pointing the way the shop opens.
+            var bob = 0.5f - 0.5f * Mathf.Cos(2f * Mathf.PI * Time.unscaledTime / ChevronPeriod);
+            compact.Chevron.anchoredPosition = new Vector2(compact.Chevron.anchoredPosition.x, -(TabTuck + TabHeight / 2f) - ChevronBob * bob);
         }
 
         // A still, not a live picture: taken as the player joins, and once more as they settle.
@@ -321,7 +378,7 @@ namespace Game.Presentation.Hud
             var card = new Card { Colour = colour };
             card.Root = UiKit.Rect(_canvas.transform, $"Player{index + 1}Shop", 0f, 0f, Width, Height);
             card.Root.pivot = new Vector2(0.5f, 1f);
-            UiKit.StrokedBox(card.Root, "Back", _style.CardBackground, colour, 4f, 0f, 0f, Width, Height, 22f);
+            UiKit.OutlinedBox(card.Root, "Back", _style.PrepCardFill, colour, 4f, 0f, 0f, Width, Height, 22f);
             card.Edge = card.Root.Find("BackEdge")?.GetComponent<Image>();
 
             var turn = UiKit.Rect(card.Root, "Turn", 0f, 0f, Width, Height);

@@ -65,6 +65,7 @@ namespace Game.Editor
                 ManagementCardsHud.View Shop(ShopSection section, int index, float balance) => ManagementCardsHud.PreviewView(catalog, section, index, balance);
 
                 Shoot(camera, money, day, bar, cards, Row(chefs, 2), new Dictionary<int, float> { [1] = 0.34f }, new[] { 0 }, 5, 5, 1f, "prep_two_cooks.png");
+                Shoot(camera, money, day, bar, cards, Row(chefs, 2), new Dictionary<int, float>(), new int[0], 5, 5, 1f, "prep_rearranging.png", rearranging: new[] { 1 });
                 Shoot(camera, money, day, bar, cards, Row(chefs, 2, (0, Shop(ShopSection.Appliances, 0, 200f))), new Dictionary<int, float>(), new int[0], 5, 5, 1f, "prep_shop.png");
                 Shoot(camera, money, day, bar, cards, Row(chefs, 4, (1, Shop(ShopSection.Furniture, 4, 676f)), (2, Shop(ShopSection.Kitchenware, 1, 676f))),
                     new Dictionary<int, float> { [1] = 0.6f }, new[] { 0, 2 }, 12, 14, 2.4f, "prep_four_cooks.png");
@@ -115,7 +116,7 @@ namespace Game.Editor
 
         // The scene with the money card, then the tiles, the player cards and the bar over that.
         private static void Shoot(Camera camera, MoneyCardHud money, DayCardHud day, PrepReadyBarHud bar, ManagementCardsHud cards,
-            List<(int, Transform, ManagementCardsHud.View)> row, Dictionary<int, float> holding, int[] ready, int dayNumber, int guests, float groupSize, string file, bool crop = false)
+            List<(int, Transform, ManagementCardsHud.View)> row, Dictionary<int, float> holding, int[] ready, int dayNumber, int guests, float groupSize, string file, bool crop = false, int[] rearranging = null)
         {
             var players = row.Select(r => r.Item1).ToArray();
             var path = Path.Combine(Folder, file);
@@ -133,11 +134,11 @@ namespace Game.Editor
                 session.SaveOver(Pixels(path), path);
             }
 
-            cards.Preview(row);
+            cards.Preview(row, rearranging);
             var hud = cards.GetComponentInParent<Canvas>().rootCanvas;
             using (var session = UiCapture.Prepare(hud))
             {
-                cards.Preview(row);
+                cards.Preview(row, rearranging);
                 session.SaveOver(Pixels(path), path);
             }
 

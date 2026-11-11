@@ -175,6 +175,7 @@ namespace Game.Editor
             day.FindProperty("_style").objectReferenceValue = style;
             day.FindProperty("_root").objectReferenceValue = root;
             day.FindProperty("_pause").objectReferenceValue = pause;
+            day.FindProperty("_money").objectReferenceValue = moneyCard.GetComponent<MoneyCardHud>();
             day.ApplyModifiedPropertiesWithoutUndo();
 
             // Prep's ready bar along the bottom, the dashboard footer's (the user's design, 2026-11-11).
