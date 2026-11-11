@@ -4,6 +4,18 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-12 — LT RT keys that step aside, the ingredient wheel in the scene, translucent runny stains
+
+**User's calls, from play and screenshots:** LT RT shouldn't persist while browsing storage or cooking, and should be smaller and tied to the appliance. The ingredient wheel should match the other contextual interactions. Stains should be more realistic: less flat, a little translucent.
+
+- **LT RT** (`ApplianceHints`): drawn as small toon keys, the family of the gauges' X: a dark key with an Ink outline and white letters, 32 px at 1080p however far the camera is. On a gas hob they sit by the heat knob; elsewhere at the appliance's far edge. They hide while the slot menu is open, while a trigger is pulled, and while a hob's food shows its crust strip. The appliance hints have no X any more: flipping's X is on the strip, cleaning's on the mess. They still fade once learnt.
+- **The ingredient wheel** (`SlotWheelView`), for storage, stalls and the tray menu, replacing the flat card: four tiles over the station, laid out like the face buttons (A below, B right, X left, Y above). The user chose square tiles with rounded corners, close together, over circles. Each tile has the ingredient's picture, a ×N count in its corner (made bigger at the user's request) and its button in Xbox colours on its outer edge. Empty slots are dimmed, the player's colour ring sits at the hub, and a tile pops when something is taken. It faces the camera, is sized in pixels (190 px across) and stays on screen. A round count badge was tried and the user preferred the corner count.
+- **Stains** (`CleaningView`): a smooth, wobbly outline with one or two runs, a shallow dome with smooth normals, and small splatter drops round it. They're a little translucent through a new blended toon shader (`Game/ToonStain`, `MAT_FX_Stain`): the body at 72% opacity, the rim lighter, the sheen and highlight stronger, foam nearly opaque.
+- **Verified:** EditMode passes. PlayMode: the HUD, gauge and wheel tests pass (`KitchenHudPlayTests` were updated to these rules). The rest of the full run passed apart from the 2 Casa Lucía tests, which need that scene built. Captures via `ContextHintsCapture`. **Not yet played by hand.**
+- **Known:** the scene shows faintly through the wheel's tiles (the on-top toon shader); readable, left for the art pass.
+
+---
+
 ## 2026-11-11 — The cleaning X on the mess, greasier stains, floor dirt slows chefs, hold X turns in the office
 
 **User's calls, from play:** the X hint was too big, and on a stain nothing showed, so the user didn't know what to do. Stains should look greasier and more varied. Stepping in floor dirt should noticeably slow a chef. Dirt only affects guests through reviews (no visible reaction). Holding X and the stick should turn the chef on the spot in the office too.
