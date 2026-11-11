@@ -64,10 +64,8 @@ namespace Game.Data
         [SerializeField] private DialValues _chef = new DialValues(0.8f, 1.5f, 0.75f, 0.8f, 1.5f);
 
         [Header("Minigame complexity")]
-        [Tooltip("Doublings of forgiveness from the dial's middle to its end: targets grow and run-away forces shrink by 2^(Strength × (0.5 − complexity)).")]
+        [Tooltip("Doublings of forgiveness from the dial's middle to its end: the push needed shrinks and the speed that counts grows by 2^(Strength × (0.5 − complexity)).")]
         [SerializeField, Min(0f)] private float _complexityStrength = 1f;
-        [Tooltip("Extra pushes per plate at the sink over the whole dial: 4 means complexity 0 has two fewer, 1 has two more.")]
-        [SerializeField, Min(0f)] private float _complexityCorrectionsSpan = 4f;
 
         // The players' own settings, set at runtime from the settings file. Not serialized, so the
         // asset keeps the designer's defaults.
@@ -94,7 +92,6 @@ namespace Game.Data
         public MinigameComplexitySettings Complexity => new MinigameComplexitySettings
         {
             Strength = _complexityStrength,
-            CorrectionsSpan = _complexityCorrectionsSpan,
         };
 
         /// <summary>Uses the players' chosen values from now on (the settings in the pause menu).</summary>

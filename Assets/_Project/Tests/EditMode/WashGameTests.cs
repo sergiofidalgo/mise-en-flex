@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Numerics;
 using Game.Data;
 using Game.Simulation.Items;
@@ -8,6 +7,7 @@ using UnityEditor;
 
 namespace Game.Tests.EditMode
 {
+    /// <summary>Washing by circling the stick (decision 2026-11-11, playtest round).</summary>
     public class WashGameTests
     {
         private const float Frame = 1f / 60f;
@@ -15,182 +15,125 @@ namespace Game.Tests.EditMode
         private static WashGameSettings RealSettings =>
             AssetDatabase.LoadAssetAtPath<TuningConfig>("Assets/_Project/Data/Settings/TuningConfig.asset").WashGame;
 
-        // Plays for some seconds, reacting to where the point was `reactionTime` ago, like a person.
-        private static float Plates(WashGameSettings settings, Func<Vector2, Vector2, Vector2> player, float seconds, int seed, float reactionTime = 0.15f)
+        // Plates washed in some seconds by a hand that puts the stick at hand(t).
+        private static float Plates(WashGameSettings settings, Func<float, Vector2> hand, float seconds)
         {
-            var game = new WashGame(settings, seed);
-            var seen = new Queue<(Vector2 Point, Vector2 Velocity)>();
-            var delay = (int)(reactionTime / Frame);
+            var game = new WashGame(settings);
             var washed = 0f;
-            var last = game.Point;
             for (var t = 0f; t < seconds; t += Frame)
-            {
-                seen.Enqueue((game.Point, (game.Point - last) / Frame));
-                last = game.Point;
-                var stick = Vector2.Zero;
-                if (seen.Count > delay)
-                {
-                    var (point, velocity) = seen.Dequeue();
-                    stick = player(point, velocity);
-                }
-                washed += game.Tick(Frame, stick);
-            }
+                washed += game.Tick(Frame, hand(t));
             return washed;
         }
 
-        private static Vector2 Clamp(Vector2 stick) => stick.LengthSquared() > 1f ? Vector2.Normalize(stick) : stick;
-
-        [Test]
-        public void DoingNothingNeverCleansAPlate()
+        // A round circle, `loops` a second; negative goes the other way.
+        private static Func<float, Vector2> Circle(float loops, float radius = 0.9f) => t =>
         {
-            for (var seed = 0; seed < 20; seed++)
-                Assert.That(Plates(RealSettings, (_, _) => Vector2.Zero, 120f, seed), Is.EqualTo(0f), $"seed {seed}");
-        }
+            var angle = t * loops * Math.PI * 2.0;
+            return new Vector2((float)Math.Cos(angle), (float)Math.Sin(angle)) * radius;
+        };
 
-        [Test]
-        public void HoldingTheStickOneWayDoesntCleanOne()
+        // A rough square: the thumb runs along the stick's edges, corner to corner.
+        private static Func<float, Vector2> Square(float loops) => t =>
         {
-            for (var seed = 0; seed < 20; seed++)
-                Assert.That(Plates(RealSettings, (_, _) => new Vector2(0.3f, 0f), 60f, seed), Is.LessThan(0.5f), $"seed {seed}");
-        }
-
-        [Test]
-        public void ASteadyHandCleansPlatesAtAGoodPace()
-        {
-            for (var seed = 0; seed < 10; seed++)
-            {
-                var plates = Plates(RealSettings, (point, velocity) => Clamp(-point - velocity * 0.35f), 30f, seed);
-                // Continuous scrubbing, quicker nearer the centre, three shares; quicker plates
-                // (2026-11-11): about 2.7 s a plate.
-                Assert.That(plates, Is.GreaterThan(7.5f), $"seed {seed}: under 4 s a plate");
-            }
-        }
-
-        // Retuned 2026-11-04 (playtest: too hard, too much inertia): ordinary over-correcting is now
-        // forgiven, but slamming the stick around with slow reactions still costs a lot.
-        [Test]
-        public void PanickingIsMuchWorseThanASteadyHand()
-        {
-            var steady = 0f;
-            var panicked = 0f;
-            for (var seed = 0; seed < 10; seed++)
-            {
-                steady += Plates(RealSettings, (point, velocity) => Clamp(-point - velocity * 0.35f), 30f, seed);
-                panicked += Plates(RealSettings, (point, _) => Clamp(-point * 20f), 30f, seed, reactionTime: 0.35f);
-            }
-            Assert.That(panicked, Is.LessThan(steady * 0.6f));
-        }
-
-        [Test]
-        public void TheNudgeCantPushAPointBackIntoRange()
-        {
-            var settings = RealSettings;
-            Assert.That(settings.Nudge, Is.LessThan(settings.Instability * settings.OkRadius), "keeps doing nothing from ever working");
-            Assert.That(settings.StartRadius, Is.GreaterThan(settings.OkRadius));
-        }
-
-        [Test]
-        public void ScrubbingIsQuickestAtTheCentreAndStopsAtTheOkRadius()
-        {
-            // The user's call (2026-11-10): the closer to the centre, the quicker.
-            var settings = new WashGameSettings { Nudge = 0f, Instability = 0f, Damping = 0f, OkRadius = 0.6f, StartRadius = 0f };
-            Assert.That(new WashGame(settings, 1).Rate, Is.EqualTo(1f), "full speed at the very centre");
-
-            settings.StartRadius = 0.3f;
-            Assert.That(new WashGame(settings, 1).Rate, Is.EqualTo(0.5f).Within(0.01f), "half speed halfway out");
-
-            settings.StartRadius = 0.7f;
-            Assert.That(new WashGame(settings, 1).Rate, Is.EqualTo(0f), "nothing beyond the OK radius");
-        }
-
-        [Test]
-        public void ThePlateCleansAllTheTimeTheSoapIsClose()
-        {
-            // A still point (no drift, no stick): it washes every frame, more the closer it sits.
-            float WashedAt(float radius)
-            {
-                var settings = new WashGameSettings { Nudge = 0f, Instability = 0f, Damping = 0f, StartRadius = radius, SecondsPerPlate = 2.4f };
-                var game = new WashGame(settings, 1);
-                var washed = 0f;
-                for (var i = 0; i < 12; i++) // 0.2 s, well short of a share
-                    washed += game.Tick(Frame, Vector2.Zero);
-                return washed;
-            }
-
-            Assert.That(WashedAt(0.1f), Is.GreaterThan(WashedAt(0.4f)));
-            Assert.That(WashedAt(0.4f), Is.GreaterThan(0f), "not only in the target");
-            Assert.That(WashedAt(0.65f), Is.EqualTo(0f));
-        }
-
-        // A calm, still point in the centre with no drift: only the rules act on it.
-        private static WashGameSettings StillSettings => new WashGameSettings
-        {
-            Nudge = 0f, Instability = 0f, Damping = 6f, StartRadius = 0f, SecondsPerPlate = 2.4f, Corrections = 2, PushSpeed = 3.5f,
+            var along = (t * loops) % 1f * 4f;
+            var side = (int)along;
+            var f = along - side;
+            Vector2[] corners = { new Vector2(0.75f, 0.75f), new Vector2(-0.75f, 0.75f), new Vector2(-0.75f, -0.75f), new Vector2(0.75f, -0.75f) };
+            return Vector2.Lerp(corners[side], corners[(side + 1) % 4], f);
         };
 
         [Test]
-        public void EachThirdCleanPushesThePointAway()
+        public void DoingNothingNeverWashesAPlate()
         {
-            // At full speed a third of a plate takes 2.4 / 3 = 0.8 s.
-            var game = new WashGame(StillSettings, 1);
-            var pushes = 0;
-            game.Pushed += _ => pushes++;
+            Assert.That(Plates(RealSettings, _ => Vector2.Zero, 120f), Is.Zero);
+        }
+
+        [Test]
+        public void HoldingTheStickOneWayNeverWashes()
+        {
+            Assert.That(Plates(RealSettings, _ => new Vector2(0.9f, 0f), 60f), Is.Zero);
+        }
+
+        [Test]
+        public void WaggingBackAndForthNeverWashes()
+        {
+            // Wagging through half a turn and back: only new turning counts.
+            Assert.That(Plates(RealSettings, t => new Vector2((float)Math.Cos(Math.Sin(t * 6.0) * 1.5), (float)Math.Sin(Math.Sin(t * 6.0) * 1.5)) * 0.9f, 30f),
+                Is.LessThan(0.15f), "at most the first sweep counts");
+        }
+
+        [Test]
+        public void ASteadyCircleWashesAPlateInAboutThreeSeconds()
+        {
+            var settings = RealSettings;
+            var plates = Plates(settings, Circle(settings.CircleSpeed), 30f);
+            Assert.That(30f / plates, Is.InRange(2.2f, 3.4f), "seconds a plate");
+        }
+
+        [Test]
+        public void EitherDirectionWashesTheSame()
+        {
+            var clockwise = Plates(RealSettings, Circle(-1.2f), 20f);
+            var anticlockwise = Plates(RealSettings, Circle(1.2f), 20f);
+            Assert.That(clockwise, Is.GreaterThan(4f));
+            Assert.That(clockwise, Is.EqualTo(anticlockwise).Within(0.1f));
+        }
+
+        [Test]
+        public void ChangingDirectionMidwayKeepsWashing()
+        {
+            var game = new WashGame(RealSettings);
             var washed = 0f;
-            for (var i = 0; i < 45; i++) // 0.75 s
-                washed += game.Tick(Frame, Vector2.Zero);
-            Assert.That(pushes, Is.EqualTo(0), "the first share isn't clean yet");
-            Assert.That(game.ShareProgress, Is.GreaterThan(0.9f));
-
-            for (var i = 0; i < 6; i++) // past 0.8 s
-                washed += game.Tick(Frame, Vector2.Zero);
-            Assert.That(pushes, Is.EqualTo(1));
-            Assert.That(washed, Is.EqualTo(1f / 3f).Within(0.02f), "a share's worth, nothing carried past it");
-            for (var i = 0; i < 30; i++)
-                game.Tick(Frame, Vector2.Zero);
-            Assert.That(game.Point.Length(), Is.GreaterThan(game.GoodRadius), "kicked out of the centre");
+            for (var t = 0f; t < 10f; t += Frame)
+                washed += game.Tick(Frame, Circle(t < 5f ? 1.2f : -1.2f)(t));
+            var steady = Plates(RealSettings, Circle(1.2f), 10f);
+            Assert.That(washed, Is.GreaterThan(steady * 0.8f), "only the turn back is lost");
         }
 
         [Test]
-        public void APlateIsWashedInThreeSharesFromThreeSides()
+        public void RoughShapesCountAsCircles()
         {
-            // An ideal hand pulls the point straight back to the centre.
-            var game = new WashGame(StillSettings, 7);
-            var directions = new List<Vector2>();
-            game.Pushed += directions.Add;
-            var washed = 0f;
-            for (var t = 0f; t < 20f && washed < 1f - 1e-4f; t += Frame)
-                washed += game.Tick(Frame, Clamp(-game.Point * 4f));
+            var round = Plates(RealSettings, Circle(1.2f), 20f);
+            Assert.That(Plates(RealSettings, Square(1.2f), 20f), Is.GreaterThan(round * 0.9f), "a square");
+            Assert.That(Plates(RealSettings, t => Circle(1.2f)(t) * new Vector2(1f, 0.55f), 20f), Is.GreaterThan(round * 0.9f), "a squashed oval");
+            Assert.That(Plates(RealSettings, Circle(1.2f, radius: 0.5f), 20f), Is.GreaterThan(round * 0.9f), "a small circle, past the push needed");
+        }
 
-            Assert.That(washed, Is.EqualTo(1f).Within(1e-4f), "a whole plate, exactly");
-            Assert.That(game.StagesDone, Is.EqualTo(3), "three shares (the user's call)");
-            Assert.That(directions.Count, Is.EqualTo(2), "no push after the last one");
-            // Evenly spread with a little randomness: the pushes about 120° apart, at least 80°.
-            for (var i = 0; i < directions.Count; i++)
-            for (var j = i + 1; j < directions.Count; j++)
+        [Test]
+        public void CirclingFasterThanTheCapWashesNoFaster()
+        {
+            var settings = RealSettings;
+            var atCap = Plates(settings, Circle(settings.CircleSpeed), 20f);
+            Assert.That(Plates(settings, Circle(settings.CircleSpeed * 2f), 20f), Is.LessThanOrEqualTo(atCap * 1.02f));
+        }
+
+        [Test]
+        public void SlammingTheStickAboutWashesLittle()
+        {
+            var random = new Random(3);
+            var slammed = Plates(RealSettings, _ =>
             {
-                var angle = Math.Acos(Math.Clamp(Vector2.Dot(directions[i], directions[j]), -1f, 1f)) * 180.0 / Math.PI;
-                Assert.That(angle, Is.GreaterThan(80.0), $"pushes {i} and {j}");
-            }
+                var angle = random.NextDouble() * Math.PI * 2.0;
+                return new Vector2((float)Math.Cos(angle), (float)Math.Sin(angle));
+            }, 30f);
+            Assert.That(slammed, Is.LessThan(Plates(RealSettings, Circle(1.2f), 30f) * 0.25f));
         }
 
         [Test]
-        public void ThePointStaysInsideTheCircle()
+        public void TheSoapFollowsTheStick()
         {
-            var game = new WashGame(new WashGameSettings(), 1);
-            for (var i = 0; i < 600; i++)
-            {
-                game.Tick(Frame, new Vector2(1f, 0f));
-                Assert.That(game.Point.Length(), Is.LessThanOrEqualTo(1.0001f));
-            }
+            var game = new WashGame(RealSettings);
+            game.Tick(Frame, new Vector2(0.3f, -0.6f));
+            Assert.That(game.Point.X, Is.EqualTo(0.3f).Within(1e-5f));
+            Assert.That(game.Point.Y, Is.EqualTo(-0.6f).Within(1e-5f));
         }
 
         [Test]
-        public void ANewPlateStartsOffCentre()
+        public void TheSinkSharesTheClothsPushAndTurnBack()
         {
-            var settings = new WashGameSettings();
-            var game = new WashGame(settings, 1);
-            game.NewPlate();
-            Assert.That(game.Point.Length(), Is.EqualTo(settings.StartRadius).Within(0.001f));
+            var tuning = AssetDatabase.LoadAssetAtPath<TuningConfig>("Assets/_Project/Data/Settings/TuningConfig.asset");
+            Assert.That(tuning.WashGame.MinPush, Is.EqualTo(tuning.TraceGame.MinPush), "one control for every cleaning job");
+            Assert.That(tuning.WashGame.TurnBack, Is.EqualTo(tuning.TraceGame.TurnBack));
         }
     }
 }
