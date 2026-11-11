@@ -275,6 +275,11 @@ namespace Game.Editor
                 // The tower's front has its own crowd (OfficeBuilder.Entrance.cs): walkers keep clear of it.
                 if (k % 2 == 0 && start < 18f && start + length > -18f)
                     start = start < 0f ? -50f - (float)_random.NextDouble() * 10f : 19f + (float)_random.NextDouble() * 20f;
+                // And the south pavement's keep clear of the avenue's mouth: the camera comes through
+                // it and stops on that pavement, and one of them walked through the lens (the
+                // user's note, 2026-11-11).
+                if (k % 2 == 1 && start < AvenueFronts + 3f && start + length > -AvenueFronts - 3f)
+                    start = start < 0f ? -AvenueFronts - 3f - length : AvenueFronts + 3f;
                 var walker = Passerby(street, "Walker", new Vector3(start, 0.15f, z), 90f);
                 walker.gameObject.AddComponent<LaneMover>().Set(new Vector3(start, 0.15f, z), new Vector3(start + length, 0.15f, z),
                     1.1f + (float)_random.NextDouble() * 0.5f, true, 0.5f + (float)_random.NextDouble() * 3f, (float)_random.NextDouble());

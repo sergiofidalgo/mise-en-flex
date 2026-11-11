@@ -662,13 +662,13 @@ namespace Game.Editor
         // ---- Over the whole scene -----------------------------------------------------------------
 
         // The helicopter's pass in the opening (OpeningFlyby), in the floor's own coordinates.
-        // The camera looks level over the floor only for a moment as it crests the cornice, then
-        // tips down onto it, so a pass up in the sky is out of the frame almost at once. This one
-        // runs low, a few metres over the floor's level and just beyond the terrace rail, right
-        // to left: against the skyline as the camera crests, over the roofs as it tips down.
-        private static readonly Vector3 FlybyFrom = new Vector3(75f, 6f, 34f);
-        private static readonly Vector3 FlybyVia = new Vector3(0f, 3.5f, 30f);
-        private static readonly Vector3 FlybyTo = new Vector3(-72f, 8f, 22f);
+        // Low over the back of the floor itself, east to west, crossing the middle of the wide shot
+        // just as the camera lands (the user's note, 2026-11-11: they hadn't noticed it up in the
+        // sky, which the camera sees only for a moment at the cornice). 5 m up over the middle
+        // of the floor: above the lamps and the trees, and big in the frame.
+        private static readonly Vector3 FlybyFrom = new Vector3(64f, 7f, 10f);
+        private static readonly Vector3 FlybyVia = new Vector3(0f, 4.5f, 1f);
+        private static readonly Vector3 FlybyTo = new Vector3(-66f, 9f, 10f);
 
         // Called after the rooms and the city are built.
         private static void AddLife(Transform rooms)
@@ -693,13 +693,13 @@ namespace Game.Editor
             MakeDynamic(flyer.gameObject);
             // In the opening it leaves its lap for one pass over the terrace as the camera crests
             // the tower (the user's note, 2026-11-11: it had stopped showing there): in from the
-            // east, low past the terrace rail, away to the west.
+            // east, low over the back of the floor, away to the west.
             var pass = new SerializedObject(flyer.gameObject.AddComponent<Game.Presentation.Office.OpeningFlyby>());
             pass.FindProperty("_loop").objectReferenceValue = lap;
             pass.FindProperty("_from").vector3Value = FlybyFrom;
             pass.FindProperty("_via").vector3Value = FlybyVia;
             pass.FindProperty("_to").vector3Value = FlybyTo;
-            pass.FindProperty("_seconds").floatValue = 7f;
+            pass.FindProperty("_seconds").floatValue = 6.5f;
             pass.ApplyModifiedPropertiesWithoutUndo();
 
             // Pigeons on the boss's terrace: along the rail and on his helipad, pecking. They fly off

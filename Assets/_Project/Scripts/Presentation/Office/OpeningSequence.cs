@@ -28,8 +28,10 @@ namespace Game.Presentation.Office
         [SerializeField] private OpeningElevator _elevator;
         [Tooltip("The helicopter that crosses the top of the tower as the camera crests it; optional.")]
         [SerializeField] private OpeningFlyby _flyby;
+        [Tooltip("The couriers parked outside the restaurant, who get their orders and ride off once the camera stops.")]
+        [SerializeField] private Game.Presentation.Office.Ambience.CourierDeparture[] _departures = System.Array.Empty<Game.Presentation.Office.Ambience.CourierDeparture>();
         [Tooltip("How far through the climb's time (0–1) the helicopter starts its pass.")]
-        [SerializeField, Range(0f, 1f)] private float _flybyFrom = 0.5f;
+        [SerializeField, Range(0f, 1f)] private float _flybyFrom = 0.55f;
         [Tooltip("Everything below the floor that only the opening sees (the street 120 m down with its people and lights, the tower's rooms, the lift): switched off once the camera lands, as nobody sees it from the floor (the 60 fps budget with four players).")]
         [SerializeField] private GameObject[] _offAfterLanding = System.Array.Empty<GameObject>();
         [Tooltip("The floor's own HUD (the player bar): hidden until the camera lands (the user's note, 2026-11-10).")]
@@ -43,9 +45,9 @@ namespace Game.Presentation.Office
         [SerializeField, Min(0.5f)] private float _saveNotice = 3.5f;
         [SerializeField, Min(0.05f)] private float _fade = 0.5f;
         [SerializeField, Min(1f)] private float _flightSeconds = 8f;
-        [SerializeField, Min(1f)] private float _climbSeconds = 12f;
+        [SerializeField, Min(1f)] private float _climbSeconds = 9f;
         [Tooltip("How far through the climb (0–1) the camera starts turning from the tower's glass onto the floor's view.")]
-        [SerializeField, Range(0.5f, 0.98f)] private float _turnFrom = 0.86f;
+        [SerializeField, Range(0.3f, 0.98f)] private float _turnFrom = 0.55f;
         [SerializeField, Min(0.05f)] private float _menuFade = 0.45f;
         [Tooltip("How long the camera rests on the entrance before the menu comes up (A skips). Short: the user found two seconds too long.")]
         [SerializeField, Min(0f)] private float _menuDelay = 0.25f;
@@ -53,6 +55,11 @@ namespace Game.Presentation.Office
         [Header("Haze")]
         [Tooltip("Fog distances during the flight and the menu, thinner so the tower shows from the street.")]
         [SerializeField] private Vector2 _streetFog = new Vector2(170f, 650f);
+
+        [Header("Lamps")]
+        [Tooltip("Between these points of the climb's time (0–1) the street's flat-banded lamp light fades to the floor's smooth one.")]
+        [SerializeField, Range(0f, 1f)] private float _bandsFadeFrom = 0.5f;
+        [SerializeField, Range(0f, 1f)] private float _bandsFadeTo = 0.8f;
 
         private Stage _stage;
         private float _clock;
@@ -84,6 +91,7 @@ namespace Game.Presentation.Office
             _returning = Game.Gameplay.Saving.CampaignLaunch.Decided && Game.Gameplay.PlayerRoster.HasCarried;
             _officeFog = new Vector2(RenderSettings.fogStartDistance, RenderSettings.fogEndDistance);
             SetFog(0f);
+            LampLighting.SetBandMix(1f);
             if (_follow != null)
                 _follow.enabled = false;
             _players.DisableJoining();
@@ -191,9 +199,10 @@ namespace Game.Presentation.Office
                     // Over the top of the glass, the camera tips onto the floor's own view, looking down at the follow camera's angle.
                     var position = OpeningPath.Climb(_climbPath, _landingRotation, _turnFrom, t, out var rotation);
                     _camera.transform.SetPositionAndRotation(position, rotation);
-                    SetFog(OpeningPath.Ease(t));
+                    SetFog(OpeningPath.ClimbEase(t));
+                    LampLighting.SetBandMix(1f - Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(_bandsFadeFrom, _bandsFadeTo, t)));
                     if (_elevator != null)
-                        _elevator.Track(position.y);
+                        _elevator.Track(position.y, t);
                     if (_flyby != null && t >= _flybyFrom)
                         _flyby.Begin();
                     if (t >= 1f)
@@ -231,6 +240,7 @@ namespace Game.Presentation.Office
             Enter(Stage.Landed);
             _menu.SetShown(false, 0f);
             SetFog(1f);
+            LampLighting.SetBandMix(0f); // the floor's lamps are smooth (the user's call, 2026-11-09)
             _follow.enabled = true;
             if (_elevator != null)
                 _elevator.Release();
@@ -265,6 +275,10 @@ namespace Game.Presentation.Office
         {
             _stage = stage;
             _clock = 0f;
+            if (stage == Stage.Menu)
+                foreach (var courier in _departures)
+                    if (courier != null)
+                        courier.Begin();
         }
 
         private void Place(CameraPose pose, Quaternion? rotation)

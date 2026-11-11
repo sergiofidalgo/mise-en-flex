@@ -108,6 +108,7 @@ namespace Game.Editor
             camera.aspect = Width / (float)Height;
             var rotation = Quaternion.Euler(Tilt, 0f, 0f);
 
+            Game.Presentation.LampLighting.SetBandMix(0f); // the floor as it plays: smooth lamps
             Render(camera, camera.GetComponent<OfficeCamera>().Wanted(), rotation, Path.Combine(folder, "office_wide.png"));
             var back = 1f / Mathf.Tan(Tilt * Mathf.Deg2Rad);
             foreach (var (name, target, height) in Shots)
@@ -131,6 +132,7 @@ namespace Game.Editor
         {
             FreezeAMoment();
             FreezeTheRest();
+            Game.Presentation.LampLighting.SetBandMix(1f); // the street as it plays: flat-banded lamps
             var sequence = UnityEngine.Object.FindFirstObjectByType<OpeningSequence>();
             if (sequence == null)
                 return;
@@ -192,32 +194,40 @@ namespace Game.Editor
             var turnFrom = so.FindProperty("_turnFrom").floatValue;
             var climbSeconds = so.FindProperty("_climbSeconds").floatValue;
             var flybyFrom = so.FindProperty("_flybyFrom").floatValue;
-            foreach (var t in new[] { 0.15f, 0.3f, 0.45f, 0.6f, 0.65f, 0.7f, 0.74f, 0.78f, 0.84f, 0.9f, 1f })
+            foreach (var t in new[] { 0.15f, 0.3f, 0.45f, 0.55f, 0.62f, 0.7f, 0.78f, 0.86f, 0.93f, 1f })
             {
                 var position = OpeningPath.Climb(whole, landingRotation, turnFrom, t, out var rotation);
                 if (lift != null && lift.Cab != null)
-                    lift.Cab.position = new Vector3(lift.Cab.position.x, OpeningPath.LiftHeight(position.y, lift.Lead, lift.Bottom, lift.Top, lift.Settle), lift.Cab.position.z);
+                    lift.Cab.position = new Vector3(lift.Cab.position.x, lift.HeightAt(position.y, t), lift.Cab.position.z);
                 if (flyby != null && t >= flybyFrom)
                     flyby.Place((t - flybyFrom) * climbSeconds);
-                RenderSettings.fogStartDistance = Mathf.Lerp(fog.x, officeFog.x, OpeningPath.Ease(t));
-                RenderSettings.fogEndDistance = Mathf.Lerp(fog.y, officeFog.y, OpeningPath.Ease(t));
+                Game.Presentation.LampLighting.SetBandMix(1f - Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(so.FindProperty("_bandsFadeFrom").floatValue, so.FindProperty("_bandsFadeTo").floatValue, t)));
+                RenderSettings.fogStartDistance = Mathf.Lerp(fog.x, officeFog.x, OpeningPath.ClimbEase(t));
+                RenderSettings.fogEndDistance = Mathf.Lerp(fog.y, officeFog.y, OpeningPath.ClimbEase(t));
                 Render(camera, position, rotation, Path.Combine(folder, $"opening_climb_{Mathf.RoundToInt(t * 100):000}.png"));
             }
             // The same street and floors with the lamps' light in flat steps (LampLighting's trial
             // dial), to judge beside the smooth ones.
             RenderSettings.fogStartDistance = fog.x;
             RenderSettings.fogEndDistance = fog.y;
-            foreach (var bands in new[] { 3f, 5f })
+            Game.Presentation.LampLighting.SetBandMix(1f);
+            foreach (var bands in new[] { 0f, 3f, 5f })
             {
                 Shader.SetGlobalFloat("_GameLampBands", bands);
                 var stop = flight[flight.Length - 1];
                 Render(camera, stop.Position, stop.Rotation, Path.Combine(folder, $"look_street_bands{bands:0}.png"));
                 var position = OpeningPath.Climb(whole, landingRotation, turnFrom, 0.45f, out var rotation);
                 if (lift != null && lift.Cab != null)
-                    lift.Cab.position = new Vector3(lift.Cab.position.x, OpeningPath.LiftHeight(position.y, lift.Lead, lift.Bottom, lift.Top, lift.Settle), lift.Cab.position.z);
+                    lift.Cab.position = new Vector3(lift.Cab.position.x, lift.HeightAt(position.y, 0.45f), lift.Cab.position.z);
                 Render(camera, position, rotation, Path.Combine(folder, $"look_floors_bands{bands:0}.png"));
             }
-            Shader.SetGlobalFloat("_GameLampBands", 0f);
+            // Back to the scene's own setting.
+            var lamps = UnityEngine.Object.FindFirstObjectByType<Game.Presentation.LampLighting>();
+            if (lamps != null)
+            {
+                lamps.enabled = false;
+                lamps.enabled = true;
+            }
             RenderSettings.fogStartDistance = officeFog.x;
             RenderSettings.fogEndDistance = officeFog.y;
         }

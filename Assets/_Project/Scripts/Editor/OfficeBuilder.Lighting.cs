@@ -42,6 +42,9 @@ namespace Game.Editor
             // hand; 2.5 lets intensities stay readable numbers per lamp.
             var lighting = new UnityEditor.SerializedObject(new GameObject("LampLighting").AddComponent<LampLighting>());
             lighting.FindProperty("_localLights").floatValue = 3f;
+            // On trial in play (2026-11-11): the lamps' light in three flat steps, towards the
+            // kitchen's finish. 0 puts the smooth falloff back.
+            lighting.FindProperty("_lampBands").floatValue = 3f;
             lighting.ApplyModifiedPropertiesWithoutUndo();
         }
 

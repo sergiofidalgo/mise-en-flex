@@ -4,6 +4,18 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-11 — The opening, seventh pass: couriers that leave, a shorter climb that lands with the lift, the flat-band lamps on trial
+
+The user's notes after playing the sixth pass:
+- **Waiting couriers get their order and go** (`CourierDeparture`, begun when the camera stops at the entrance): 2.2 s after the stop the courier sitting on the first scooter puts the phone away, takes the bars and rides off east through the gap in the barriers; at 5.5 s the one standing between the scooters walks to the second, gets on and follows. Once only: they don't come back while the menu is up. The riders who come and go along the street carry on as before.
+- **Someone walked through the lens.** The walkers on the south pavement had no rule keeping them out of the avenue's mouth, where the camera comes through and stops on that same pavement. They now keep 3 m clear of the mouth either side, as the north pavement's keep clear of the tower's front.
+- **The climb is 9 s, from 12 s, and lands with the lift.** Three changes:
+  - *Pace* (`OpeningPath.ClimbEase`): the same gentle start, but the second half is 1 − (1 − u)^1.5 where it was a smoothstep, so the camera no longer creeps the last quarter onto the landing.
+  - *Turn:* the camera starts turning onto the floor's view from 55% of the path (it was 86%), while it is still climbing the top floors, so it comes over the cornice already looking down instead of rising first and tipping after.
+  - *The lift* (`OpeningPath.LiftClimb`): beside the camera up to 14 m under the top; from half-way through the climb's time it covers those last floors on its own, quickly at first and slowing, and comes up into the floor's elevator at the moment the camera reaches the wide shot. Before, it arrived about three quarters of the way through and the camera spent three more seconds settling. **Cost:** for the last four seconds the cab is not beside the camera; it is inside the tower under the cornice, out of sight, until it comes up through the floor.
+- **The helicopter flies low over the floor itself** as the camera lands: east to west over the middle of the floor, 5 m up, crossing the middle of the wide shot at about the moment of landing and gone a second or two after. Up in the sky it was in view for under a second at the cornice and the user never saw it. It passes over the play area while players get control; say if that's too much.
+- **The lamps' flat bands are on for the street and the tower, in play** (3 bands), so the finish can be judged there: the user couldn't find it, because it was only in captured stills. Between half and four fifths of the way through the climb they fade back to the smooth falloff (`_GameLampBandMix`, `OpeningSequence` "Lamps"), so the boss's floor keeps the smooth lamps the user chose on 2026-11-09: tried on the floor itself, three bands left dark blotches on its carpets. On trial: Lamp Bands on the scene's LampLighting object, 0 for smooth everywhere. To be confirmed or put back by the user.
+
 ## 2026-11-11 — The opening, sixth pass: a lift that stays in frame, taller floors, the helicopter, couriers riding
 
 The user's notes after playing the fifth pass ("overall feels good, with some notes"):
