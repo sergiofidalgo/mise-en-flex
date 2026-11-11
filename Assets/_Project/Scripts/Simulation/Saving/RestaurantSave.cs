@@ -13,6 +13,15 @@ namespace Game.Simulation.Saving
     public sealed class RestaurantSave
     {
         /// <summary>
+        /// The last day it finished, as saved; a save from before 2026-11-11 could be a day ahead of
+        /// its history (saved on the next morning's summary), and is healed back to the last
+        /// recorded day. A property, so it isn't written to the file.
+        /// </summary>
+        public int FinishedDay => History != null && History.Count > 0 && Day > History[History.Count - 1].Day
+            ? History[History.Count - 1].Day
+            : Day;
+
+        /// <summary>
         /// The id of the <c>RestaurantDefinition</c> it was bought as (its size, street, vendors).
         /// A restaurant migrated from a version-1 file is the grill (<see cref="Version1Restaurant.GrillId"/>).
         /// </summary>

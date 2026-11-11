@@ -51,6 +51,18 @@ namespace Game.Presentation.Hud
         }
 
         /// <summary>Today's phase in the player's language.</summary>
+        /// <summary>The day's weekday, short: day 1 is a Monday.</summary>
+        public static string Weekday(int day) => (((day - 1) % 7 + 7) % 7) switch
+        {
+            0 => Tr.Get("Mon"),
+            1 => Tr.Get("Tue"),
+            2 => Tr.Get("Wed"),
+            3 => Tr.Get("Thu"),
+            4 => Tr.Get("Fri"),
+            5 => Tr.Get("Sat"),
+            _ => Tr.Get("Sun"),
+        };
+
         public static string Phase(DayPhase phase) => phase switch
         {
             DayPhase.Plan => Tr.In("phase", "Plan"),

@@ -123,6 +123,39 @@ namespace Game.Tests.PlayMode
             UnityEngine.InputSystem.InputSystem.RemoveDevice(first);
         }
 
+        // The user's report (2026-11-11): a reply on the morning's summary saved the next day as if
+        // played, so "Start day 2" landed on day 3. Now a save always records the last finished day.
+        [UnityTest]
+        public IEnumerator ARelaunchAReplyAndARelaunchKeepTheDay()
+        {
+            SaveSlots.Delete(CampaignLaunch.Slot);
+            CampaignLaunch.StartNew();
+            yield return Open();
+            var days = _root.Services.Days;
+            Finish(ingredients: 30f, payments: 90f, tips: 5f, served: 3);
+            var review = new Game.Simulation.Saving.ReviewRecord { Day = 1, Guest = "Ana P.", Order = "steak, medium", Stars = 3f, Line = "Fine." };
+            _root.Services.ReviewHistory.Add(review);
+            _root.SaveCampaign();
+
+            CampaignLaunch.Continue(CampaignLaunch.Slot);
+            yield return Open();
+            Assert.That(_root.Services.Days.Day, Is.EqualTo(2), "the morning after day 1");
+            var waiting = _root.Services.ReviewHistory.Find(r => r.Guest == "Ana P.");
+            _root.ReplyTo(waiting, Game.Simulation.Service.ReviewReply.Thank); // saves, on the morning's summary
+
+            CampaignLaunch.Continue(CampaignLaunch.Slot);
+            yield return Open();
+            days = _root.Services.Days;
+            Assert.That(days.Day, Is.EqualTo(2), "still the morning of day 2, not day 3");
+            Assert.That(_dashboard.ShownDay.Day, Is.EqualTo(1), "the summary is day 1's");
+            Assert.That(_dashboard.StartsDay, Is.EqualTo(2), "Start says day 2");
+            Assert.That(_root.Services.ReviewHistory.Find(r => r.Guest == "Ana P.").Reply, Is.GreaterThanOrEqualTo(0), "the reply was kept");
+            var steps = ForkcastScreen.StepsToPrep(days.Phase);
+            for (var i = 0; i < steps; i++)
+                days.Advance();
+            Assert.That(days.Day, Is.EqualTo(2), "and the hold lands on day 2");
+        }
+
         [UnityTest]
         public IEnumerator HoldingAReadiesAndBTakesItBack()
         {
