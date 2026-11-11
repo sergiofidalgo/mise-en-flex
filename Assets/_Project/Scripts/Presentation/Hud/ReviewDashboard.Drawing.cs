@@ -1291,26 +1291,12 @@ namespace Game.Presentation.Hud
         [SerializeField, Range(0f, 0.1f)] private float _buttonPulse = 0.02f;
         [SerializeField, Range(0.8f, 1f)] private float _buttonPressed = 0.96f;
 
-        private sealed class Lane
-        {
-            public int Player;
-            public RectTransform Fill;
-            public float Width;
-            public float Shown;
-            public Color Colour;
-            public RectTransform Label;
-            /// <summary>Real seconds left in the pop that marks this cook becoming ready.</summary>
-            public float Pop;
-            public bool WasReady;
-        }
-
         private string _hintsShown;
         private RectTransform _bar;
         private RectTransform _lanes;
         private TextMeshProUGUI _startText;
         private RectTransform _startRing;
-        private readonly List<Lane> _laneList = new List<Lane>();
-        private string _lanesFor;
+        private ReadyLanes _readyLanes;
         private RectTransform _startA;
         private Image _startFlash;
         private int _startReady;
@@ -1321,7 +1307,7 @@ namespace Game.Presentation.Hud
             PlayerInput.all.Where(p => !PlayerPresence.IsLost(p)).OrderBy(p => p.playerIndex).ToList();
 
         /// <summary>How many segments the start bar shows, for tests.</summary>
-        public int StartSegments => _laneList.Count;
+        public int StartSegments => _readyLanes != null ? _readyLanes.Count : 0;
 
         // Called every frame, but only rebuilt when who's here or ready changes.
         private void DrawHints()
@@ -1341,28 +1327,15 @@ namespace Game.Presentation.Hud
             _startRing.anchoredPosition = new Vector2(left, _startRing.anchoredPosition.y);
             _startText.rectTransform.anchoredPosition = new Vector2(left + 52f + 16f, _startText.rectTransform.anchoredPosition.y);
 
-            // Each segment says whose it is and whether they're in; a ready one shows B to take it back.
-            foreach (var lane in _laneList)
+            // Each segment says whose it is and whether they're in; a ready one shows B to take it back
+            // (centred in the segment, the user's mock, 2026-11-11).
+            _readyLanes.Label(p => _dayLoop.Ready.IsReady(p), (player, ready) =>
             {
-                UiKit.Clear(lane.Label);
-                var ready = lane.Player >= 0 && _dayLoop.Ready.IsReady(lane.Player);
-                var name = lane.Player >= 0 ? lane.Player + 1 : 1;
-                // Centred in the segment (the user's mock, 2026-11-11). Ready: the red B badge, then
-                // "Player N READY".
-                if (ready)
-                {
-                    var tone = lane.Colour.grayscale > 0.72f ? _ink : Color.white; // dark only on a light colour (yellow)
-                    var label = Label(ExtraBold, lane.Label, Tr.Format("Player {player} READY", ("player", name)), 21f, tone, 0f, BarHeight / 2f + 7.5f, lane.Width - 60f);
-                    const float ring = 30f, gap = 10f;
-                    var start = (lane.Width - (ring + gap + UiKit.Width(label))) / 2f;
-                    Badge(lane.Label, "B", _buttonB, start + ring / 2f, BarHeight / 2f, ring, 15f);
-                    label.rectTransform.anchoredPosition = new Vector2(start + ring + gap, label.rectTransform.anchoredPosition.y);
-                }
-                else
-                {
-                    Label(SemiBold, lane.Label, Tr.Format("Waiting for Player {player}", ("player", name)), 21f, Color.Lerp(lane.Colour, _ink, 0.45f), lane.Width / 2f, BarHeight / 2f + 7.5f, lane.Width - 24f, HorizontalAlignmentOptions.Center);
-                }
-            }
+                var name = player >= 0 ? player + 1 : 1;
+                return ready
+                    ? (Tr.Format("Player {player} READY", ("player", name)), new ReadyLanes.Glyph("B", _buttonB))
+                    : (Tr.Format("Waiting for Player {player}", ("player", name)), (ReadyLanes.Glyph?)null);
+            });
         }
 
         private void BuildStartButton()
@@ -1373,6 +1346,20 @@ namespace Game.Presentation.Hud
             mask.gameObject.AddComponent<Mask>().showMaskGraphic = false;
             _bar = UiKit.Rect(mask.transform, "StartBar", 0f, PanelRadius, BarWidth, BarHeight);
             _lanes = UiKit.Rect(_bar, "Lanes", 0f, 0f, BarWidth, BarHeight);
+            _readyLanes = new ReadyLanes(_lanes, BarWidth, BarHeight, new ReadyLanes.Look
+            {
+                ReadyFont = ExtraBold,
+                WaitingFont = SemiBold,
+                BadgeFont = Bold,
+                FontSize = 21f,
+                Light = _cardLight,
+                Ink = _ink,
+                Nobody = _gold,
+                Gap = SegmentGap,
+                FillSpeed = _startFillSpeed,
+                PopSeconds = _readyPopSeconds,
+                Pop = _readyPop,
+            });
             _startFlash = UiKit.RoundBox(_bar, "Flash", new Color(1f, 1f, 1f, 0f), 0f, 0f, BarWidth, BarHeight, 0f);
 
             // The start button in the left column (the user's mock, 2026-11-11): one button in the
@@ -1393,68 +1380,18 @@ namespace Game.Presentation.Hud
         }
 
         // One segment per joined cook, in player-slot order; rebuilt only when who's here changes.
-        private void BuildLanes(List<PlayerInput> joined)
-        {
-            var key = string.Join(",", joined.Select(p => p.playerIndex));
-            if (key == _lanesFor)
-                return;
-            _lanesFor = key;
-            UiKit.Clear(_lanes);
-            _laneList.Clear();
-            var count = Mathf.Max(1, joined.Count);
-            var width = (BarWidth - (count - 1) * SegmentGap) / count;
-            for (var i = 0; i < count; i++)
-            {
-                var x = i * (width + SegmentGap);
-                var lane = new Lane { Player = i < joined.Count ? joined[i].playerIndex : -1, Width = width };
-                // Their own colour, even alone (the design): pale while waiting, solid as they hold.
-                lane.Colour = lane.Player >= 0 ? _settings.GetPlayerColor(lane.Player) : _gold;
-                UiKit.RoundBox(_lanes, "Empty", Color.Lerp(_cardLight, lane.Colour, 0.3f), x, 0f, width, BarHeight, 0f);
-                lane.Fill = UiKit.RoundBox(_lanes, "Fill", lane.Colour, x, 0f, 0f, BarHeight, 0f).rectTransform;
-                lane.Label = UiKit.Rect(_lanes, "Label", x, 0f, width, BarHeight);
-                // Scaled about its centre for the pop as the cook becomes ready.
-                lane.Label.pivot = new Vector2(0.5f, 0.5f);
-                lane.Label.anchoredPosition += new Vector2(width / 2f, -BarHeight / 2f);
-                _laneList.Add(lane);
-            }
-        }
+        private void BuildLanes(List<PlayerInput> joined) =>
+            _readyLanes.Build(joined.Select(p => p.playerIndex).ToList(), _settings.GetPlayerColor);
 
         // Every frame while forkcast is up: each segment eases to its player's hold, the A pulses or sinks.
         private void UpdateStart(float dt)
         {
             if (_bar == null)
                 return;
-            var ease = 1f - Mathf.Exp(-_startFillSpeed * dt);
-            var anyHold = false;
-            var ready = 0;
-            foreach (var lane in _laneList)
-            {
-                float target;
-                if (lane.Player < 0)
-                    target = _start.MostProgress;
-                else if (_dayLoop.Ready.IsReady(lane.Player))
-                {
-                    target = 1f;
-                    ready++;
-                }
-                else
-                    target = _start.Progress(lane.Player);
-                if (_laneList.Count == 1)
-                    target = Mathf.Max(target, _start.MostProgress);
-                anyHold |= lane.Player >= 0 ? _start.Progress(lane.Player) > 0f && !_dayLoop.Ready.IsReady(lane.Player) : _start.MostProgress > 0f;
-                lane.Shown = Mathf.Abs(lane.Shown - target) < 0.001f ? target : Mathf.Lerp(lane.Shown, target, ease);
-                lane.Fill.sizeDelta = new Vector2(lane.Width * lane.Shown, BarHeight);
-
-                // A gentle pop of their label as they become ready: up a little, easing back.
-                var isReady = lane.Player >= 0 && _dayLoop.Ready.IsReady(lane.Player);
-                if (isReady && !lane.WasReady)
-                    lane.Pop = _readyPopSeconds;
-                lane.WasReady = isReady;
-                lane.Pop = Mathf.Max(0f, lane.Pop - dt);
-                var t = _readyPopSeconds > 0f ? lane.Pop / _readyPopSeconds : 0f;
-                var pop = 1f + _readyPop * Mathf.Sin(t * Mathf.PI);
-                lane.Label.localScale = new Vector3(pop, pop, 1f);
-            }
+            // With one segment, anyone's hold fills it (a lone cook, or nobody joined yet).
+            var single = _readyLanes.Count == 1;
+            var (anyHold, ready) = _readyLanes.Tick(dt, p => _dayLoop.Ready.IsReady(p),
+                p => p < 0 || single ? Mathf.Max(p >= 0 ? _start.Progress(p) : 0f, _start.MostProgress) : _start.Progress(p));
 
             if (ready > _startReady)
                 _startFlashLeft = _startFlashSeconds;

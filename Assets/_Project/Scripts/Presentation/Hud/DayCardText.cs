@@ -50,7 +50,35 @@ namespace Game.Presentation.Hud
             };
         }
 
-        /// <summary>Today's phase in the player's language.</summary>
+        /// <summary>
+        /// Prep's guests line (the user's call, 2026-11-11): "About 5 guests", the forecast's
+        /// whole number.
+        /// </summary>
+        public static string Guests(int count) => Tr.Plural(count, "About {n} guest", "About {n} guests");
+
+        /// <summary>When the doors open, under "Prep": "Opens 18:00".</summary>
+        public static string Opens(float opensAtHour) => Tr.Format("Opens {time}", ("time", Clock(Minutes(opensAtHour, 0f))));
+
+        /// <summary>
+        /// The average group size the tables bring (GuestForecast.GroupSize), in words: "Groups of
+        /// one", "Groups of one or two", up to "Groups of three"; bigger tables read "Groups of about
+        /// N". Halfway between two sizes names both, so a mixed room doesn't read as all pairs.
+        /// </summary>
+        public static string Groups(float average)
+        {
+            if (average < 1.3f)
+                return Tr.Get("Groups of one");
+            if (average < 1.7f)
+                return Tr.Get("Groups of one or two");
+            if (average < 2.3f)
+                return Tr.Get("Groups of two");
+            if (average < 2.7f)
+                return Tr.Get("Groups of two or three");
+            if (average < 3.3f)
+                return Tr.Get("Groups of three");
+            return Tr.Format("Groups of about {count}", ("count", (int)System.Math.Round(average)));
+        }
+
         /// <summary>The day's weekday, short: day 1 is a Monday.</summary>
         public static string Weekday(int day) => (((day - 1) % 7 + 7) % 7) switch
         {
@@ -63,6 +91,7 @@ namespace Game.Presentation.Hud
             _ => Tr.Get("Sun"),
         };
 
+        /// <summary>Today's phase in the player's language.</summary>
         public static string Phase(DayPhase phase) => phase switch
         {
             DayPhase.Plan => Tr.In("phase", "Plan"),

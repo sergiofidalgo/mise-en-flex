@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using Game.Data;
 using Game.Gameplay;
 using Game.Gameplay.Stations;
@@ -13,9 +12,10 @@ using UnityEngine.InputSystem;
 namespace Game.Presentation.Hud
 {
     /// <summary>
-    /// The service's progress on screen: how to join, the Prep strip and the lost-controller pause.
-    /// The day, phase and clock are on the day card (DayCardHud, decision 2026-11-10); Plan and Review
-    /// are the forkcast dashboard's (ReviewDashboard, the user's call 2026-11-10).
+    /// The service's progress on screen: how to join, the morning's delivery and the lost-controller
+    /// pause. The day, phase, clock and tonight's guests are on the day card (DayCardHud); who's
+    /// ready in Prep is the ready bar's (PrepReadyBarHud, the user's design 2026-11-11); Plan and
+    /// Review are the forkcast dashboard's (ReviewDashboard, the user's call 2026-11-10).
     /// </summary>
     public sealed class ServiceStatusHud : MonoBehaviour
     {
@@ -26,7 +26,10 @@ namespace Game.Presentation.Hud
         [SerializeField] private CoopSettings _settings;
 
         [Header("Layout")]
-        [Tooltip("Canvas pixels above the bottom of the screen for the small Prep strip.")]
+        // The ready bar's height (PrepReadyBarHud), which the delivery line sits above.
+        private const float ReadyBarHeight = 62f;
+
+        [Tooltip("Canvas pixels above the ready bar for the morning's delivery.")]
         [SerializeField, Min(0f)] private float _stripBottomMargin = 14f;
         [SerializeField, Min(8f)] private float _stripFontSize = 28f;
         [SerializeField] private Vector2 _stripPadding = new Vector2(14f, 6f);
@@ -38,23 +41,14 @@ namespace Game.Presentation.Hud
         [Header("Text")]
         [SerializeField] private string _joinText = "Press A to join";
         [SerializeField] private string _deliveryText = "Delivered to storage:";
-        // The strip's words; its buttons are drawn (HintStrip), since hints name only Xbox buttons.
-        [SerializeField] private string _rearrangeHint = "Rearrange";
-        [SerializeField] private string _openUpHint = "Hold: open up";
-        [SerializeField] private string _playerReadyText = "READY";
-        [SerializeField] private string _playerWaitingText = "not ready";
-        [SerializeField] private string _playerLostText = "controller lost";
         [SerializeField] private string _pausedText = "Paused: {players}, reconnect your controller";
         [SerializeField] private string _carryOnText = "Press Menu to carry on without them";
         [SerializeField] private Color _waitingColor = new Color(0.60f, 0.62f, 0.66f);
         [SerializeField] private Color _goodColor = new Color(0.45f, 0.85f, 0.40f);
         [SerializeField] private Color _badColor = new Color(0.95f, 0.30f, 0.26f);
 
-        private readonly StringBuilder _text = new StringBuilder();
         private WorldLabel _card;
         private WorldLabel _strip;
-        private HintStrip _keys;
-        private readonly List<(string Key, string Text)> _hints = new List<(string, string)>();
         private float _prepStartedAt = -1f;
 
         private void Start()
@@ -63,7 +57,6 @@ namespace Game.Presentation.Hud
             _card.FontSize = _cardFontSize;
             _strip = WorldLabel.Create(_style, _canvas, "PrepStrip", _stripPadding, new Vector2(0.5f, 0f));
             _strip.FontSize = _stripFontSize;
-            _keys = new HintStrip(_style, _canvas, "PhaseHints");
         }
 
         private void LateUpdate()
@@ -72,13 +65,11 @@ namespace Game.Presentation.Hud
                 return;
 
             var days = _root.Services.Days;
-            _keys.Tick(Time.unscaledDeltaTime);
 
             if (days.Phase != DayPhase.Prep)
             {
                 _prepStartedAt = -1f;
                 _strip.Hide();
-                _keys.Hide();
             }
             else if (_prepStartedAt < 0f)
             {
@@ -89,14 +80,12 @@ namespace Game.Presentation.Hud
             if (_root.Services.Forkcast.IsOpen)
             {
                 _card.Hide();
-                _keys.Hide();
                 return;
             }
 
             if (PlayerInput.all.Count == 0)
             {
                 _card.ShowAt(Tr.Get(_joinText), Vector2.zero);
-                _keys.Hide();
                 return;
             }
 
@@ -105,7 +94,6 @@ namespace Game.Presentation.Hud
             {
                 _card.Hide();
                 _strip.Hide();
-                _keys.Hide();
                 return;
             }
 
@@ -119,9 +107,9 @@ namespace Game.Presentation.Hud
             switch (days.Phase)
             {
                 case DayPhase.Prep:
-                    // Players work through this phase and need to see the kitchen: a strip, not a card.
+                    // Players work through this phase and need to see the kitchen: no card.
                     _card.Hide();
-                    ShowStrip(DayPhase.Prep, _openUpHint);
+                    ShowDelivery();
                     break;
                 default:
                     _card.Hide();
@@ -129,62 +117,20 @@ namespace Game.Presentation.Hud
             }
         }
 
-        // The buttons on a drawn strip at the bottom; who's ready and the delivery just above it.
-        private void ShowStrip(DayPhase phase, string holdHint)
-        {
-            var bottom = -_canvas.rect.height / 2f + _stripBottomMargin;
-            _hints.Clear();
-            _hints.Add((HintStrip.View, Tr.Get(_rearrangeHint)));
-            if (holdHint != null)
-            {
-                var holder = HoldBar.Holder();
-                var hold = Tr.Get(holdHint);
-                if (holder != null)
-                    hold += "  " + HoldBar.Text(holder, _settings.GetPlayerColor(holder.playerIndex), _waitingColor);
-                _hints.Add((HintStrip.Menu, hold));
-            }
-            // While they prep, how many to expect tonight (the user's call, 2026-11-10): it follows the
-            // tables as they're moved and the menu's prices, as the night itself will.
-            var lead = DayCardText.Phase(phase);
-            if (phase == DayPhase.Prep)
-                lead += "  ·  " + Tr.Format("about {count} guests tonight", ("count", ExpectedGuests()));
-            _keys.Show(lead, _hints, _stripBottomMargin);
-
-            var above = StripText();
-            if (string.IsNullOrEmpty(above))
-                _strip.Hide();
-            else
-                _strip.ShowAt(above, new Vector2(0f, bottom + _keys.StripHeight + 6f));
-        }
-
-        // Worked out twice a second, not every frame: it builds the menu to read its demand.
-        private int _expected;
-        private float _expectedAt = -1f;
-
-        private int ExpectedGuests()
-        {
-            if (_expectedAt >= 0f && Time.unscaledTime - _expectedAt < 0.5f)
-                return _expected;
-            _expectedAt = Time.unscaledTime;
-            var services = _root.Services;
-            var tables = services.Stations.All.OfType<Game.Gameplay.Stations.TableStation>().Select(t => t.SeatCount).Where(n => n > 0).ToList();
-            var demand = services.Cookbook != null ? services.Cookbook.BuildMenu().Demand : 1f;
-            _expected = Game.Simulation.Service.GuestForecast.Guests(services.Service.Settings, demand, tables);
-            return _expected;
-        }
-
-        private string StripText()
+        // The morning's delivery, for a few seconds, just above the ready bar.
+        private void ShowDelivery()
         {
             var services = _root.Services;
-            var text = PlayerInput.all.Count > 1 ? ReadyLine() : "";
-
-            // Just long enough to read: the stock shows on the storage itself.
             if (_prepStartedAt >= 0f && services.LastDelivery.Count > 0 && Time.unscaledTime - _prepStartedAt < _deliverySeconds)
             {
                 var parts = services.LastDelivery.Select(d => Tr.Format("{count} {what}", ("count", d.Count), ("what", services.Catalog.DisplayName(d.TypeId))));
-                text += (text.Length > 0 ? "\n" : "") + $"{Tr.Get(_deliveryText)} {string.Join(", ", parts)}";
+                var bottom = -_canvas.rect.height / 2f + _stripBottomMargin;
+                _strip.ShowAt($"{Tr.Get(_deliveryText)} {string.Join(", ", parts)}", new Vector2(0f, bottom + ReadyBarHeight));
             }
-            return text;
+            else
+            {
+                _strip.Hide();
+            }
         }
 
         // Words, not numbers, like the candidates' descriptions. New staff haven't settled in yet.
@@ -222,25 +168,6 @@ namespace Game.Presentation.Hud
             var text = $"<b>{Tr.Format(_pausedText, ("players", names))}</b>";
             // Only someone still playing can carry on, so with nobody left the second line would lie.
             return waiting.Count < PlayerInput.all.Count ? $"{text}\n{Tr.Get(_carryOnText)}" : text;
-        }
-
-        private string ReadyLine()
-        {
-            _text.Clear();
-            foreach (var player in PlayerInput.all.OrderBy(p => p.playerIndex))
-            {
-                var name = $"P{player.playerIndex + 1}";
-                if (_dayLoop.ControllerPause.IsLost(player.playerIndex))
-                {
-                    // Not waited for: the day moves on without them.
-                    _text.Append(HudStyle.Colored($"{name} {Tr.Get(_playerLostText)}", _badColor) + "   ");
-                    continue;
-                }
-                _text.Append(_dayLoop.Ready.IsReady(player.playerIndex)
-                    ? $"<b>{HudStyle.Colored($"{name} {Tr.Get(_playerReadyText)}", _settings.GetPlayerColor(player.playerIndex))}</b>   "
-                    : HudStyle.Colored($"{name} {Tr.Get(_playerWaitingText)}", _waitingColor) + "   ");
-            }
-            return _text.ToString().TrimEnd();
         }
 
         // In the player's language and currency (Locale).

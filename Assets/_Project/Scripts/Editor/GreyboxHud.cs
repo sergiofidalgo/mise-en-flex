@@ -177,6 +177,15 @@ namespace Game.Editor
             day.FindProperty("_pause").objectReferenceValue = pause;
             day.ApplyModifiedPropertiesWithoutUndo();
 
+            // Prep's ready bar along the bottom, the dashboard footer's (the user's design, 2026-11-11).
+            var bar = new SerializedObject(new GameObject("PrepReadyBar").AddComponent<PrepReadyBarHud>());
+            bar.FindProperty("_style").objectReferenceValue = style;
+            bar.FindProperty("_root").objectReferenceValue = root;
+            bar.FindProperty("_dayLoop").objectReferenceValue = root.GetComponent<DayLoop>();
+            bar.FindProperty("_settings").objectReferenceValue = settings;
+            bar.FindProperty("_pause").objectReferenceValue = pause;
+            bar.ApplyModifiedPropertiesWithoutUndo();
+
             var reviews = new SerializedObject(hud.AddComponent<ReviewPopupHud>());
             reviews.FindProperty("_canvas").objectReferenceValue = hud.GetComponent<RectTransform>();
             reviews.FindProperty("_style").objectReferenceValue = style;
