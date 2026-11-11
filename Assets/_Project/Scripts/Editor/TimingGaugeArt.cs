@@ -1,0 +1,75 @@
+using Game.Gameplay;
+using Game.Presentation;
+using Game.Presentation.Hud;
+using UnityEditor;
+using UnityEditor.SceneManagement;
+using UnityEngine;
+
+namespace Game.Editor
+{
+    /// <summary>
+    /// Adds the timing gauges to the kitchen (decision 2026-11-11): the flip's crust strip under the
+    /// pans and the cutting dial over the boards, as toon pieces in the scene. They replace the flat
+    /// HUD gauges (<see cref="FlipGaugeHud"/>, <see cref="ChopDialHud"/>), which the menu item removes
+    /// from an open kitchen and the HUD builder no longer adds. Called by the kitchen builder; safe
+    /// to run again.
+    /// </summary>
+    public static class TimingGaugeArt
+    {
+        private const string ObjectName = "TimingGauges";
+
+        /// <summary>Adds the gauges to the open kitchen scene without rebuilding it.</summary>
+        [MenuItem("Tools/Game/Apply Timing Gauges")]
+        public static void ApplyToOpenScene()
+        {
+            var root = Object.FindFirstObjectByType<KitchenCompositionRoot>();
+            if (root == null)
+            {
+                Debug.LogWarning("Open the kitchen scene first.");
+                return;
+            }
+            AddTo(root);
+            EditorSceneManager.MarkSceneDirty(root.gameObject.scene);
+            Debug.Log("[TimingGauges] Added the crust strip and the cutting dial; the flat HUD gauges are removed. Save the scene to keep it.");
+        }
+
+        /// <summary>Batch: opens a kitchen scene (-scenePath, default the greybox), applies and saves it.</summary>
+        public static void ApplyAndSave()
+        {
+            var path = "Assets/_Project/Scenes/Kitchen_Greybox.unity";
+            var args = System.Environment.GetCommandLineArgs();
+            for (var i = 0; i < args.Length - 1; i++)
+                if (args[i] == "-scenePath")
+                    path = args[i + 1];
+            var scene = EditorSceneManager.OpenScene(path);
+            ApplyToOpenScene();
+            EditorSceneManager.SaveScene(scene);
+        }
+
+        public static void AddTo(KitchenCompositionRoot root)
+        {
+            foreach (var old in Object.FindObjectsByType<FlipGaugeHud>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+                Object.DestroyImmediate(old);
+            foreach (var old in Object.FindObjectsByType<ChopDialHud>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+                Object.DestroyImmediate(old);
+
+            var holder = GameObject.Find(ObjectName);
+            if (holder == null)
+                holder = new GameObject(ObjectName);
+            var material = WashRing.EnsureToonMaterial();
+
+            if (!holder.TryGetComponent(out FlipCrustGaugeView flip))
+                flip = holder.AddComponent<FlipCrustGaugeView>();
+            var flipSo = new SerializedObject(flip);
+            flipSo.FindProperty("_root").objectReferenceValue = root;
+            flipSo.FindProperty("_onTop").objectReferenceValue = material;
+            flipSo.ApplyModifiedPropertiesWithoutUndo();
+
+            if (!holder.TryGetComponent(out ChopGaugeView chop))
+                chop = holder.AddComponent<ChopGaugeView>();
+            var chopSo = new SerializedObject(chop);
+            chopSo.FindProperty("_onTop").objectReferenceValue = material;
+            chopSo.ApplyModifiedPropertiesWithoutUndo();
+        }
+    }
+}
