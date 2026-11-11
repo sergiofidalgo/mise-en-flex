@@ -58,6 +58,11 @@ namespace Game.Tests.PlayMode
             yield return Shoot(dashboard, 0, 0, true, Path.Combine(folder, "dashboard_reply_wheel.png"));
             yield return Shoot(dashboard, 0, 0, false, Path.Combine(folder, "dashboard_filter_walkouts.png"), 1, true);
             yield return Shoot(dashboard, 2, 0, false, Path.Combine(folder, "dashboard_books.png"));
+            // The opening times with the focus on them (2026-11-11): Dinner, then All day with both rushes.
+            yield return Shoot(dashboard, 1, 0, false, Path.Combine(folder, "dashboard_restaurant_opening_dinner.png"), 0, true);
+            services.Opening.Choose(2);
+            yield return Shoot(dashboard, 1, 0, false, Path.Combine(folder, "dashboard_restaurant_opening_allday.png"), 0, true);
+            services.Opening.Choose(1);
             yield return Shoot(dashboard, 1, 1, false, Path.Combine(folder, "dashboard_restaurant_locked.png"));
             services.Cookbook.SetPrice(services.Cookbook.Recipes[0].Id, services.Cookbook.Recipes[0].SuggestedPrice + 4);
             yield return Shoot(dashboard, 1, 0, false, Path.Combine(folder, "dashboard_restaurant_priced.png"));
