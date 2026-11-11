@@ -4,6 +4,22 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-11 — The price's consequences as one row of icons; room for six steps
+
+**User's note:** the dial still wasn't exciting, and the text under the price was too much. Show the consequences with icons and values in one row, and leave room for recipes of up to six steps.
+
+**Decision:**
+- **One row of three chips under the dial,** each an icon, a value and a word:
+  - guests (a person, "−13% guests"; "=" when unchanged);
+  - stars (a star, "−0.5 stars");
+  - earnings (the money chip's coin, "$18 each").
+  Green helps, red hurts. The chips punch with every step of the dial. The sentences ("Guests: about 13% fewer", …) are gone.
+- **The suggestion moved to the PRICE heading:** "PRICE · suggested $20 +20%", with X Suggested on the right.
+- **The dial has a ruler:** ticks every half step along its foot, sliding with the numbers. The suggested price is a gold star on the ruler. Landing on it clicks into place: the middle number turns gold, the well flashes, the star swells, and the kitchen's chime plays.
+- **Six steps fit:** the price area starts lower (`PriceTop`), and steps are 34 px apart, closing to 30 px for six.
+
+---
+
 ## 2026-11-11 — The Restaurant tab: owned and unowned dishes apart, how to cook, a springier dial, a bigger unlock
 
 **User's notes:** the money dial didn't feel good; the unlock animation should be bigger; dishes you own and those you don't should look much more different, and both should explain how they're cooked.
