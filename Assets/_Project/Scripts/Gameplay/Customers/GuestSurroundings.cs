@@ -43,11 +43,31 @@ namespace Game.Gameplay.Customers
 
         /// <summary>
         /// Pieces outside their usual room: appliances in the dining room, tables in the kitchen,
-        /// each with the floor point beside it where its extra mess lands.
-        /// TODO(layout-open-kitchen): set this from the layout's out-of-place query once that branch
-        /// lands. Until then nothing is ever out of place, so the open-kitchen rules never fire in play.
+        /// each with the floor point beside it where its extra mess lands. Null for none; the
+        /// composition root reads it from the layout (<see cref="LayoutEditor.OutOfTheirRooms"/>).
         /// </summary>
         public Func<IReadOnlyList<OutOfPlacePiece>> OutOfPlace { get; set; }
+
+        // Metres in front of a piece's front edge where its extra mess lands: on the floor where
+        // people stand to use it, not under it, so a mop can reach it.
+        private const float MessInFront = 0.35f;
+
+        /// <summary>The layout's out-of-place pieces as the simulation reads them.</summary>
+        public static IReadOnlyList<OutOfPlacePiece> Describe(IReadOnlyList<Stations.Interactable> pieces)
+        {
+            if (pieces == null || pieces.Count == 0)
+                return Nothing;
+            var described = new List<OutOfPlacePiece>(pieces.Count);
+            foreach (var piece in pieces)
+            {
+                if (piece == null)
+                    continue;
+                var kind = piece is Stations.TableStation ? OutOfPlaceKind.TableInKitchen : OutOfPlaceKind.ApplianceInDiningRoom;
+                var at = piece.transform.position + piece.transform.forward * (piece.HalfSize.Y + MessInFront);
+                described.Add(new OutOfPlacePiece(kind, at.x, at.z));
+            }
+            return described;
+        }
 
         /// <summary>Metres from the door to the bin's nearest side, on the ground; infinity without both.</summary>
         public float BinDistance

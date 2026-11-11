@@ -3569,4 +3569,4 @@ It hides (fading over the HUD's 0.12 s) behind the Review dashboard, the pause m
 
 **All values are in TuningConfig** ("Guests' surroundings", plus two in "Dirt").
 
-**Not wired yet:** which pieces are out of place comes from the layout work on `claude/layout-open-kitchen` (`GuestSurroundings.OutOfPlace`, a flagged TODO). Until it's connected, the open-kitchen rules are tested but never fire in play.
+**Which pieces count** comes from the layout (`LayoutEditor.OutOfTheirRooms()`), asked as each guest is served. A table is a table in the kitchen; anything else is an appliance in the dining room. Each piece's extra mess lands 0.35 m in front of its front edge, where people stand to use it.
