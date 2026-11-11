@@ -69,6 +69,20 @@ namespace Game.Gameplay.Customers
         [Tooltip("Real seconds they keep squeezing through once they've started.")]
         [SerializeField, Min(0f)] private float _squeezeSeconds = 1.5f;
 
+        [Header("The street (decision 2026-11-11)")]
+        [Tooltip("Where customers appear and walk off: off screen at each end of the pavement. The line between them is the way along it. Empty: they appear in the doorway, as before.")]
+        [SerializeField] private Transform[] _streetEnds = System.Array.Empty<Transform>();
+        [Tooltip("Metres out from the door where they step in, and the queue's distance from the wall.")]
+        [SerializeField, Min(0.3f)] private float _doorstep = 0.9f;
+        [Tooltip("Metres along the wall from the doorstep to the first in the queue, clear of the doorway.")]
+        [SerializeField, Min(0f)] private float _queueStart = 1.2f;
+        [Tooltip("Metres between people queueing.")]
+        [SerializeField, Min(0.3f)] private float _queueSpacing = 0.75f;
+        [Tooltip("Metres between members of a group walking in, one behind another.")]
+        [SerializeField, Min(0.3f)] private float _partyGap = 0.8f;
+        [Tooltip("Real seconds after which someone still walking in is at the door anyway, so a blocked street can't hold up a service.")]
+        [SerializeField, Min(1f)] private float _approachTimeout = 40f;
+
         private readonly Dictionary<Customer, CustomerAgent> _agents = new Dictionary<Customer, CustomerAgent>();
         private readonly Dictionary<CustomerAgent, CustomerWalk> _walks = new Dictionary<CustomerAgent, CustomerWalk>();
         private readonly Dictionary<CustomerAgent, Progress> _progress = new Dictionary<CustomerAgent, Progress>();
@@ -83,15 +97,40 @@ namespace Game.Gameplay.Customers
         private StationLayout _routes;
         private readonly Dictionary<int, ServingStation> _serving = new Dictionary<int, ServingStation>();
 
+        // Outside: who's on the street (walking in, at the doorstep, queueing), the way each is
+        // following there, when they set off, and who's walking off after their visit.
+        private sealed class StreetWalk
+        {
+            public readonly List<Vector3> Points = new List<Vector3>();
+            public int Next;
+            public float Since;
+        }
+
+        private readonly HashSet<CustomerAgent> _outside = new HashSet<CustomerAgent>();
+        private readonly Dictionary<CustomerAgent, StreetWalk> _streetWalks = new Dictionary<CustomerAgent, StreetWalk>();
+        private readonly List<(CustomerAgent Agent, StreetWalk Walk)> _departing = new List<(CustomerAgent, StreetWalk)>();
+        private readonly System.Random _streetRandom = new System.Random(11);
+        private readonly Dictionary<Customer, int> _partyEnds = new Dictionary<Customer, int>();
+
         /// <summary>Every customer in the scene and their body, for HUD labels.</summary>
         public IReadOnlyDictionary<Customer, CustomerAgent> Agents => _agents;
+
+        // Whether there's a street to walk in along.
+        private bool HasStreet => _streetEnds.Length >= 2 && _streetEnds[0] != null && _streetEnds[1] != null;
 
         private void Start()
         {
             _service = _root.Services.Service;
-            _service.Arrived += HandleArrived;
+            Listen(_service);
             _root.Services.ServiceReplaced += HandleServiceReplaced;
             _root.Services.Days.PhaseChanged += HandlePhaseChanged;
+        }
+
+        private void Listen(ServiceSimulation service)
+        {
+            service.GuestsWalkIn = HasStreet;
+            service.Arrived += HandleArrived;
+            service.Appeared += HandleAppeared;
         }
 
         // Furniture only moves between services, so the way through it is worked out as doors open.
@@ -121,6 +160,7 @@ namespace Game.Gameplay.Customers
             if (_service != null)
             {
                 _service.Arrived -= HandleArrived;
+                _service.Appeared -= HandleAppeared;
                 _root.Services.ServiceReplaced -= HandleServiceReplaced;
                 _root.Services.Days.PhaseChanged -= HandlePhaseChanged;
             }
@@ -129,17 +169,53 @@ namespace Game.Gameplay.Customers
         private void HandleServiceReplaced(ServiceSimulation old, ServiceSimulation next)
         {
             old.Arrived -= HandleArrived;
-            next.Arrived += HandleArrived;
+            old.Appeared -= HandleAppeared;
+            Listen(next);
             _service = next;
+            _partyEnds.Clear();
         }
 
+        // At the door. Someone who walked in up the street already has a body.
         private void HandleArrived(Customer customer)
         {
+            if (_agents.ContainsKey(customer))
+                return;
             var agent = Instantiate(_customerPrefab, _door.position, _door.rotation);
             agent.name = $"Customer_{customer.Id}";
             agent.Initialize(customer);
             agent.Slide = _layout.Slide;
             _agents[customer] = agent;
+        }
+
+        // Setting off up the street (decision 2026-11-11): from off screen at one end of the
+        // pavement, a group one behind another, along it to the doorstep.
+        private void HandleAppeared(Customer customer)
+        {
+            var leader = customer.Party[0];
+            var place = 0;
+            for (var i = 0; i < customer.Party.Count; i++)
+                if (customer.Party[i] == customer)
+                    place = i;
+            // A group comes from one end, picked at random for its first member.
+            if (!_partyEnds.TryGetValue(leader, out var side))
+            {
+                side = _streetRandom.Next(2);
+                _partyEnds[leader] = side;
+            }
+            var end = _streetEnds[side].position;
+            var lane = LanePoint(Doorstep());
+            var away = (end - lane).normalized;
+            var start = end + away * (_partyGap * place);
+
+            var agent = Instantiate(_customerPrefab, start, Quaternion.LookRotation(-away, Vector3.up));
+            agent.name = $"Customer_{customer.Id}";
+            agent.Initialize(customer);
+            _agents[customer] = agent;
+            _outside.Add(agent);
+            var walk = new StreetWalk { Since = Time.time };
+            walk.Points.Add(lane);
+            walk.Points.Add(Doorstep());
+            _streetWalks[agent] = walk;
         }
 
         private void Update()
@@ -155,8 +231,54 @@ namespace Game.Gameplay.Customers
                 var agent = pair.Value;
                 var stride = step * agent.SpeedFactor; // their own pace
                 agent.Intent = SimVector2.Zero;
+                var outside = _outside.Contains(agent);
                 switch (customer.State)
                 {
+                    case CustomerState.Approaching:
+                        // Up the street to the doorstep; there they're at the door, and wait for the
+                        // rest of their group. Taking too long (something in the way), they're there.
+                        if (customer.AtDoor)
+                            break;
+                        var walk = _streetWalks[agent];
+                        if (Time.time - walk.Since > _approachTimeout)
+                            agent.transform.position = Doorstep();
+                        if (Time.time - walk.Since > _approachTimeout || FollowStreet(agent, walk, stride))
+                        {
+                            _streetWalks.Remove(agent);
+                            agent.Face(_door.forward);
+                            _service.ReachDoor(customer);
+                        }
+                        break;
+                    case CustomerState.WalkingToSeat when outside:
+                        // In through the door from the doorstep; inside, round the furniture as anyone.
+                        if (agent.WalkTowards(_door.position, stride, ArriveDistance))
+                        {
+                            _outside.Remove(agent);
+                            agent.Slide = _layout.Slide;
+                        }
+                        break;
+                    case CustomerState.Queueing when outside || HasStreet:
+                        // The queue is outside, along the front wall (decision 2026-11-11).
+                        if (!outside)
+                        {
+                            // Anyone inside (in the doorway when it filled up) goes back out first.
+                            if (Walk(agent, _door.position, stride) == WalkResult.NoWay)
+                                agent.WalkTowards(_door.position, stride, ArriveDistance);
+                            if ((Floor(agent.transform.position) - Floor(_door.position)).Length() <= DoorReach)
+                            {
+                                _outside.Add(agent);
+                                agent.Slide = null;
+                            }
+                        }
+                        else if (agent.WalkTowards(StreetQueueSpot(customer), stride, ArriveDistance))
+                        {
+                            agent.Face(_door.position - agent.transform.position); // looking to the door
+                        }
+                        break;
+                    case CustomerState.Leaving when outside:
+                        // Turned away (or out of patience) before coming in: off they go.
+                        _service.Left(customer);
+                        break;
                     case CustomerState.WalkingToSeat:
                         var toSeat = Walk(agent, SeatSpot(customer.Seat), stride);
                         if (toSeat == WalkResult.Arrived)
@@ -196,12 +318,106 @@ namespace Game.Gameplay.Customers
 
             foreach (var customer in _gone)
             {
-                _walks.Remove(_agents[customer]);
-                _backToSeatAt.Remove(_agents[customer]);
-                _progress.Remove(_agents[customer]);
-                Destroy(_agents[customer].gameObject);
+                var agent = _agents[customer];
+                _walks.Remove(agent);
+                _backToSeatAt.Remove(agent);
+                _progress.Remove(agent);
+                _streetWalks.Remove(agent);
                 _agents.Remove(customer);
+                if (HasStreet)
+                    Depart(agent, _outside.Remove(agent));
+                else
+                    Destroy(agent.gameObject);
             }
+
+            // Out of the restaurant's hands: walking off along the street, gone at its end.
+            for (var i = _departing.Count - 1; i >= 0; i--)
+            {
+                var (agent, walk) = _departing[i];
+                if (agent == null || FollowStreet(agent, walk, step * agent.SpeedFactor))
+                {
+                    if (agent != null)
+                        Destroy(agent.gameObject);
+                    _departing.RemoveAt(i);
+                }
+            }
+        }
+
+        // Off along the street to the far end from where they stand (or a random one in the middle).
+        private void Depart(CustomerAgent agent, bool alreadyOutside)
+        {
+            agent.Slide = null;
+            agent.Intent = SimVector2.Zero;
+            var walk = new StreetWalk { Since = Time.time };
+            if (!alreadyOutside)
+                walk.Points.Add(Doorstep());
+            var lane = LanePoint(alreadyOutside ? agent.transform.position : Doorstep());
+            walk.Points.Add(lane);
+            walk.Points.Add(_streetEnds[_streetRandom.Next(2)].position);
+            _departing.Add((agent, walk));
+        }
+
+        // A step along a street walk; true once at its last point.
+        private static bool FollowStreet(CustomerAgent agent, StreetWalk walk, float step)
+        {
+            while (walk.Next < walk.Points.Count)
+            {
+                var before = agent.transform.position;
+                var arrived = agent.WalkTowards(walk.Points[walk.Next], step, ArriveDistance);
+                var moved = agent.transform.position - before;
+                agent.Intent = new SimVector2(moved.x, moved.z);
+                if (!arrived)
+                    return false;
+                walk.Next++;
+                step -= moved.magnitude;
+                if (step <= 1e-4f)
+                    return walk.Next >= walk.Points.Count;
+            }
+            return true;
+        }
+
+        // Just outside the door, where people step in and out of the street.
+        private Vector3 Doorstep() => _door.position - _door.forward * _doorstep;
+
+        // The nearest point on the way along the pavement (the line between the street's ends).
+        private Vector3 LanePoint(Vector3 position)
+        {
+            var a = _streetEnds[0].position;
+            var b = _streetEnds[1].position;
+            var along = b - a;
+            var t = Mathf.Clamp01(Vector3.Dot(position - a, along) / Mathf.Max(along.sqrMagnitude, 1e-4f));
+            var point = a + along * t;
+            point.y = position.y;
+            return point;
+        }
+
+        // A place in the queue outside: along the front wall from beside the doorstep, on the side
+        // with more wall, so the line never stands in the doorway or the way out to the market.
+        private Vector3 StreetQueueSpot(Customer customer)
+        {
+            var place = 0;
+            foreach (var queued in _service.Queue)
+            {
+                if (queued == customer)
+                    break;
+                place++;
+            }
+            var side = _door.right;
+            if (WallLeft(-side) > WallLeft(side))
+                side = -side;
+            return Doorstep() + side * (_queueStart + _queueSpacing * place);
+        }
+
+        // How far the room goes from the door in a direction along the wall, in metres.
+        private float WallLeft(Vector3 direction)
+        {
+            var room = _root.Services.FloorPlan;
+            var here = _door.position;
+            var x = direction.x > 1e-3f ? (room.RoomMax.X - here.x) / direction.x
+                : direction.x < -1e-3f ? (room.RoomMin.X - here.x) / direction.x : float.MaxValue;
+            var z = direction.z > 1e-3f ? (room.RoomMax.Y - here.z) / direction.z
+                : direction.z < -1e-3f ? (room.RoomMin.Y - here.z) / direction.z : float.MaxValue;
+            return Mathf.Min(x, z);
         }
 
         // One step of the way to a target, around the furniture and giving way to people. Someone

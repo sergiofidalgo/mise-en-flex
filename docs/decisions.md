@@ -4,6 +4,32 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-11 — Customers walk in along the street and queue outside on the pavement
+
+**User's notes:** customers appeared right in the doorway instead of walking the scene. They should walk in, or queue by the entrance. The user chose a queue outside on the pavement over the old spots inside by the door.
+
+**Decision:**
+- **Walking in:** new customers appear off screen beyond one end of the pavement, chosen at random per group. A group walks one behind another along the pavement to the doorstep.
+- **The door:** the service only seats, queues or turns them away once the whole group is there (`CustomerState.Approaching`, `ServiceSimulation.GuestsWalkIn`, `ReachDoor`). Their patience and time inside start at the door, and their arrival time (the guests chart) is counted there.
+- **Stuck walkers:** anyone still walking after 40 real seconds is put at the door, so a blocked street can't hold up a service.
+- **The queue:** it forms outside along the front wall, from beside the doorstep towards the side with more wall. It never stands in the doorway or on the way out to the market. Someone waiting inside when the room filled walks back out to it.
+- **Turned away:** turned-away guests, and queuers who run out of patience, walk off without coming in.
+- **Leaving:** guests leaving after their meal are counted as gone at the door, as before, so a service still ends on time. They then walk off along the pavement to either end and disappear off screen.
+- **Where it applies:** the street's two ends are set by `GreyboxStreet`. A kitchen without them keeps the old way: customers appear in the doorway.
+
+**Reason:** a guest appearing in the doorway reads as a bug. A walk up the street shows who's coming, and a line outside reads at a glance from the overhead camera (chaos you can plan for). It also keeps the dining room clear for chefs and staff. Patience starts at the door because players can't do anything about the walk.
+
+**Tests:**
+- **EditMode:** `ServiceWalkInTests` covers approaching, patience starting at the door, seating, queueing and turning away at the door, and the service waiting for everyone still on the street.
+- **PlayMode:** `CustomerPlayTests` adds the walk-in from off screen, the queue outside and the walk-off. Six existing dining-room tests open with the walk-in off, because they're about tables, groups, the waiter, pushing and leaving by the door, not the street: the two table tests, the group, the waiter, the push and the walk-out.
+- **Capture:** `StreetQueueCapture`, run by name.
+
+**Known limit:** the walk outside is straight lines, with no way round obstacles. That's fine for a door on the front wall. A door moved to a side wall would have guests walk through the plaza's stalls or the parked cars.
+
+**Design doc:** §customers doesn't describe how guests arrive. It should say they walk in along the street and queue outside.
+
+---
+
 ## 2026-11-10 — Washing cleans continuously, quicker nearer the centre; the rim turns from grime to water
 
 **User's calls, after playing:** the ring should fill all the time, faster the closer the soap is to the centre; the LS cue was too small to notice; the target should be a little bigger; the rim should go from dark brown to blue, like water cleaning the grime.

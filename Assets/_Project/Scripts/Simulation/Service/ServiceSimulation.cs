@@ -94,6 +94,14 @@ namespace Game.Simulation.Service
         /// <summary>The customer patience realism dial; read every tick, so it can change mid-service.</summary>
         public float PatienceMultiplier { get; set; }
 
+        /// <summary>
+        /// Whether new customers first walk in along the street (decision 2026-11-11): they appear
+        /// <see cref="CustomerState.Approaching"/>, and only at the door (<see cref="ReachDoor"/>)
+        /// are they seated, queued or turned away, and does their patience start. Off, they're at
+        /// the door the moment they're due. Gameplay turns it on where there's a street to walk.
+        /// </summary>
+        public bool GuestsWalkIn { get; set; }
+
         /// <summary>Average stars of the customers served so far (0–5), or null before the first.</summary>
         public float? AverageStars
         {
@@ -133,8 +141,14 @@ namespace Game.Simulation.Service
         /// <summary>Raised when a customer leaves a review.</summary>
         public event Action<Review> Reviewed;
 
-        /// <summary>Raised for each new customer, after they've been given a seat or a queue spot (or walked away).</summary>
+        /// <summary>
+        /// Raised for each customer at the door, after they've been given a seat or a queue spot (or
+        /// walked away). With <see cref="GuestsWalkIn"/>, after <see cref="Appeared"/>.
+        /// </summary>
         public event Action<Customer> Arrived;
+
+        /// <summary>Raised for each new customer setting off up the street, with <see cref="GuestsWalkIn"/> on.</summary>
+        public event Action<Customer> Appeared;
 
         public void Tick(float seconds)
         {
@@ -143,8 +157,8 @@ namespace Game.Simulation.Service
 
             foreach (var customer in _customers)
             {
-                if (customer.State == CustomerState.Gone)
-                    continue;
+                if (customer.State == CustomerState.Gone || customer.State == CustomerState.Approaching)
+                    continue; // on the street, they aren't in yet: no time inside, no patience spent
                 customer.SecondsInRestaurant += seconds;
                 if (customer.State == CustomerState.Waiting || customer.State == CustomerState.Queueing)
                     DrainPatience(customer, seconds);
@@ -234,6 +248,21 @@ namespace Game.Simulation.Service
             _seats = new Customer[next];
         }
 
+        /// <summary>
+        /// Gameplay: an approaching customer has reached the door. Once the whole party has, they're
+        /// seated, queued or turned away, as anyone due at the door is.
+        /// </summary>
+        public void ReachDoor(Customer customer)
+        {
+            if (customer.State != CustomerState.Approaching)
+                return;
+            customer.AtDoor = true;
+            foreach (var member in customer.Party)
+                if (!member.AtDoor)
+                    return;
+            Admit(customer.Party);
+        }
+
         /// <summary>Gameplay: the customer has walked out of the door.</summary>
         public void Left(Customer customer)
         {
@@ -269,6 +298,25 @@ namespace Game.Simulation.Service
                 party[i] = new Customer(_nextId++) { Order = Settings.Menu?.Pick(_orderRandom), Party = party, ArrivedAt = Elapsed };
                 _customers.Add(party[i]);
             }
+
+            if (GuestsWalkIn)
+            {
+                // Up the street first; at the door they're seated, queued or turned away (ReachDoor).
+                foreach (var member in party)
+                    member.State = CustomerState.Approaching;
+                foreach (var member in party)
+                    Appeared?.Invoke(member);
+                return;
+            }
+            Admit(party);
+        }
+
+        // At the door: a free table, a place in the queue, or away again.
+        private void Admit(IReadOnlyList<Customer> party)
+        {
+            var size = party.Count;
+            foreach (var member in party)
+                member.ArrivedAt = Elapsed;
 
             if (TrySeat(party))
             {

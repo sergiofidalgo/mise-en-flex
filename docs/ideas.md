@@ -4,6 +4,12 @@ Ideas worth keeping that aren't decided or scheduled yet. When one is accepted, 
 
 ---
 
+## Passers-by on the street
+
+Walkers who stroll along the pavement and never come in (decision 2026-11-11 gives customers the same walk). The street would feel alive, and a customer turning in at the door would stand out. A busy lunchtime street could also hint at the rush before it reaches the door. It's cheap now that customers walk the pavement, but it's a feature of its own, so it isn't built.
+
+---
+
 ## Restaurants without a kitchen yet
 
 *Added 2026-11-10 · Relevant phase: 6b or 7 · Pillars: your restaurant, your identity*

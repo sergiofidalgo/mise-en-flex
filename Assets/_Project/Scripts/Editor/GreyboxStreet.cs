@@ -101,6 +101,7 @@ namespace Game.Editor
             Backdrop(street);
             Bounds(street);
             Doorway();
+            CustomerStreet(street);
 
             if (camera != null && camera.TryGetComponent(out FramingCamera framing))
             {
@@ -341,6 +342,36 @@ namespace Game.Editor
                 edge.localPosition = centre;
                 edge.gameObject.AddComponent<BoxCollider>().size = size;
             }
+        }
+
+        // Where customers walk in from and off to (decision 2026-11-11): off screen beyond each end of
+        // the pavement, on a line along it nearer the kerb, clear of the queue along the front wall.
+        private const float CustomerLaneFromWall = 2.2f;
+        private const float CustomerEndsBeyondGrounds = 4f;
+
+        private static void CustomerStreet(Transform street)
+        {
+            var director = Object.FindFirstObjectByType<Game.Gameplay.Customers.CustomerDirector>();
+            if (director == null)
+            {
+                Debug.LogError("[GreyboxStreet] No customer director; customers will appear in the doorway.");
+                return;
+            }
+            var lane = BuildingSouth - CustomerLaneFromWall;
+            var ends = new Transform[2];
+            var xs = new[] { GroundsWest - CustomerEndsBeyondGrounds, GroundsEast + CustomerEndsBeyondGrounds };
+            for (var i = 0; i < ends.Length; i++)
+            {
+                ends[i] = new GameObject(i == 0 ? "CustomerStreet_West" : "CustomerStreet_East").transform;
+                ends[i].SetParent(street, false);
+                ends[i].localPosition = new Vector3(xs[i], 0f, lane);
+            }
+            var so = new SerializedObject(director);
+            var list = so.FindProperty("_streetEnds");
+            list.arraySize = ends.Length;
+            for (var i = 0; i < ends.Length; i++)
+                list.GetArrayElementAtIndex(i).objectReferenceValue = ends[i];
+            so.ApplyModifiedPropertiesWithoutUndo();
         }
 
         // The opening in the outer wall where the street door stands.
