@@ -3683,3 +3683,13 @@ The two office items from the playtest round above.
 - **The tailor saves as you go** (`TailorSession.StepItem`, `TailorPlinth`): every open item shown, in every section, is worn and saved at once, as before "A wears". A locked item still shows while browsing and isn't kept; B hops down and the chef goes back to the last open item. A does nothing while dressing. The dressing card loses "A Wear" and "· wearing", and shows only B Done (Xbox buttons only); their Spanish strings are gone from `es.csv`.
 
 **Not checked in play:** how the smaller hat reads from the office camera with chefs about, and whether the boss still stands out on his kitchen visits.
+
+## 2026-11-11 — Full screen: a Display row in Settings, Esc still pauses
+
+The user asked for a way to play in full screen, switched from Settings. Their call, from the options offered:
+- **A Display row in Settings: Full screen / Windowed** (`SettingsModel`, so the main menu and the pause menu both have it). It's saved in `settings.json` (`PlayerSettings.FullScreen`, on by default, so older files start full screen) and a built game starts the way it was left (`WindowModeKeys`). Full screen is Unity's borderless full-screen window, which suits macOS best. Windowed is three quarters of the display, and the window can now be resized (Player Settings → Resizable Window, on).
+- **Esc keeps pausing.** It doesn't leave full screen: one key doing two things would throw players out of full screen whenever they paused mid-service. To leave full screen, open the pause menu and flip Display, which works the same on a controller.
+- **Ctrl+Cmd+F**, the Mac's own shortcut, toggles full screen from anywhere, as a keyboard extra for testing. No hint names it (hints show Xbox buttons only).
+- **In the Editor**, where Unity's full-screen calls do nothing, *Tools/Game/Play Full Screen* (also the Display row and Ctrl+Cmd+F, in Play mode) opens a frameless Game view covering the Editor's display (`FullScreenPlay`). Leaving Play mode closes it. It isn't saved, so playing in the Editor never changes how the built game starts. It relies on Unity's internal `GameView` class, so a Unity upgrade may need it updated.
+
+**Not checked in play:** whether the Editor's full-screen view covers the display exactly (Retina scaling, the menu bar, a second monitor) and keeps controller input; a built game's switch both ways; and whether macOS also reacts to Ctrl+Cmd+F in a build, which would toggle twice.

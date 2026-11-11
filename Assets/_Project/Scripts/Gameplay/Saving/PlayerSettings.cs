@@ -7,8 +7,8 @@ using UnityEngine;
 namespace Game.Gameplay.Saving
 {
     /// <summary>
-    /// The players' settings, shared by every slot (decision 2026-11-08): the five realism dials and the
-    /// language, changed in the pause menu (decision 2026-11-10). The preset isn't stored; it's read
+    /// The players' settings, shared by every slot (decision 2026-11-08): the five realism dials, the
+    /// language and the window mode, changed in the pause menu (decision 2026-11-10). The preset isn't stored; it's read
     /// back from the dials. A dial missing from an older file (-1) takes the designer's default.
     /// </summary>
     [Serializable]
@@ -25,9 +25,16 @@ namespace Game.Gameplay.Saving
         /// <summary>The language the game is shown in, by code (decision 2026-11-09).</summary>
         public string Language = "en";
 
+        /// <summary>Full screen or a window, in a built game (decision 2026-11-11). Older files start full screen.</summary>
+        public bool FullScreen = true;
+
         private static string Path => System.IO.Path.Combine(SaveSlots.Root, FileName);
 
-        /// <summary>The saved settings, with the designer's defaults for anything never set.</summary>
+        /// <summary>
+        /// The saved settings, with the designer's defaults for anything never set. Without
+        /// <paramref name="defaults"/> (a reader that only wants the window mode), unset dials stay -1,
+        /// which is what the file means by "not set", so saving them back changes nothing.
+        /// </summary>
         public static PlayerSettings Load(RealismSettings defaults)
         {
             PlayerSettings settings = null;
@@ -41,7 +48,8 @@ namespace Game.Gameplay.Saving
                 Debug.LogWarning($"Couldn't read the settings ({exception.Message}); using the defaults.");
             }
             settings ??= new PlayerSettings();
-            settings.FillMissing(defaults.Defaults);
+            if (defaults != null)
+                settings.FillMissing(defaults.Defaults);
             return settings;
         }
 

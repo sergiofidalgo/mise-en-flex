@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Game.Data;
+using Game.Gameplay.Display;
 using Game.Gameplay.Saving;
 using Game.Presentation.Hud;
 using Game.Simulation.Realism;
@@ -10,7 +11,8 @@ namespace Game.Presentation.Menu
 {
     /// <summary>
     /// The settings rows, shared by the pause menu and the main menu (decision 2026-11-10): the
-    /// realism preset (Relaxed / Standard / Chef, or Custom), the language, and the five dials under
+    /// realism preset (Relaxed / Standard / Chef, or Custom), the language, full screen or a window
+    /// (decision 2026-11-11), and the five dials under
     /// Advanced (game design §12). Each change is saved at once to <c>settings.json</c> (shared by
     /// every slot) and applied to <see cref="RealismSettings"/>, which the simulation reads. Each menu
     /// draws the rows its own way.
@@ -39,6 +41,7 @@ namespace Game.Presentation.Menu
         {
             Preset,
             Language,
+            Display,
             Advanced,
             Precision,
             Spoilage,
@@ -47,7 +50,7 @@ namespace Game.Presentation.Menu
             Hygiene,
         }
 
-        private static readonly Line[] TopLines = { Line.Preset, Line.Language, Line.Advanced };
+        private static readonly Line[] TopLines = { Line.Preset, Line.Language, Line.Display, Line.Advanced };
         private static readonly Line[] AdvancedLines = { Line.Precision, Line.Spoilage, Line.Patience, Line.Complexity, Line.Hygiene };
 
         private readonly RealismSettings _realism;
@@ -120,6 +123,11 @@ namespace Game.Presentation.Menu
 
         private void Change(Line line, int step)
         {
+            if (line == Line.Display)
+            {
+                ChangeDisplay();
+                return;
+            }
             var dials = Settings.Dials;
             switch (line)
             {
@@ -150,12 +158,27 @@ namespace Game.Presentation.Menu
                     return;
             }
             Settings.Dials = dials;
+            // Ctrl+Cmd+F may have switched the window while this page was open.
+            if (!Application.isEditor)
+                Settings.FullScreen = WindowMode.IsFullScreen;
             Settings.Save();
             if (_style != null && _style.Languages != null)
                 _style.Languages.Load();
             Settings.ApplyTo(_realism);
             if (line == Line.Language)
                 LanguageChanged?.Invoke();
+        }
+
+        // Either way sideways flips it. In the Editor it opens or closes the full-screen Game view and
+        // isn't saved, so playing in the Editor never changes how the built game starts.
+        private void ChangeDisplay()
+        {
+            var fullScreen = !WindowMode.IsFullScreen;
+            WindowMode.Set(fullScreen);
+            if (Application.isEditor)
+                return;
+            Settings.FullScreen = fullScreen;
+            Settings.Save();
         }
 
         // On a grid of `size`, so the presets' values (0.25, 0.8…) are landed on exactly.
@@ -169,6 +192,7 @@ namespace Game.Presentation.Menu
             {
                 Line.Preset => new Row(Tr.Get("Difficulty"), PresetName(Preset), PresetWhat(Preset)),
                 Line.Language => new Row(Tr.Get("Language"), LanguageName(Settings.Language), Tr.Get("Everything, old reviews included, switches at once")),
+                Line.Display => new Row(Tr.Get("Display"), WindowMode.IsFullScreen ? Tr.Get("Full screen") : Tr.Get("Windowed"), Tr.Get("The whole screen, or a window beside your other apps")),
                 Line.Advanced => new Row(Tr.Get("Advanced"), "", Tr.Get("Each realism dial on its own"), opens: true),
                 Line.Precision => new Row(Tr.Get("Cooking precision"), $"{dials.CookingPrecision * 100f:0}%", Tr.Get("How narrow the doneness windows are")),
                 Line.Spoilage => new Row(Tr.Get("Spoilage"), $"×{dials.Spoilage:0.##}", Tr.Get("How fast food loses freshness")),
