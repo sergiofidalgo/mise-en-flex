@@ -3528,3 +3528,11 @@ It hides (fading over the HUD's 0.12 s) behind the Review dashboard, the pause m
 **Dropped:** the old Prep strip (its "Rearrange" and "Hold: open up" hints and the "P1 not ready" line). Nothing on screen names the View button for rearranging now.
 
 **Not checked in play:** how holding Y feels, at a storage slot especially; the pictures' size in the tiles; and the faces in the cards for real chefs.
+
+## 2026-11-11 — The wheelie bin moves, appliances stay inside the walls, and kitchens and dining rooms can mix
+
+**User's calls, after the bin got its model (SM_WheelieBin):**
+- **The bin moves in rearranging, along the building's outer walls.** It always stands flush against an outside wall and doesn't follow the cursor at once: it rolls after it on its wheels, a little behind.
+- **A bin near the customer door costs a little, by distance.** Within a few metres of the door, guests lose some satisfaction, more the closer it is, and some reviews mention the smell. Learnable in play, never a disaster.
+- **Appliances stay on the premises.** While being moved they never poke into or through a wall.
+- **Appliances may go in the dining room, and tables in the kitchen.** Placing one shows a warning that it makes mess. It always makes more mess. Guests' reaction depends on how good the restaurant is: with great food and service it's a show they love (a chef's-table bonus and glowing reviews, Michelin style); with average or poor service, they complain about the mess and noise.
