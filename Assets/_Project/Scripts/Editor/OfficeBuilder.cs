@@ -1011,13 +1011,24 @@ namespace Game.Editor
             // The hat was made for the first chef's head (0.19 m, its centre 0.66 m above a 0.85 m
             // waist): scale it to the kit's head (0.27 m, its centre at 1.36 m) about that centre.
             const float oldHeadCentre = 0.66f, oldHeadRadius = 0.19f, newHeadRadius = 0.27f, newHeadCentre = 1.36f;
-            var hatScale = CharacterArt.Available ? newHeadRadius / oldHeadRadius : 1f;
-            var hatAt = CharacterArt.Available
-                ? new Vector3(0f, newHeadCentre - hatScale * oldHeadCentre, 0f)
+            var fit = CharacterArt.Available ? newHeadRadius / oldHeadRadius : 1f;
+            // Smaller than a straight fit (the user's playtest, 2026-11-11: it hid too much of the
+            // office): the brim shrinks most, as it's what covers the room from the camera above;
+            // the crown keeps more of its width so the head and hair never poke through it, and is
+            // a little lower. Shrunk about where the hat sits on the head, so it stays seated.
+            const float brimSize = 0.68f, crownWidth = 0.84f, hatHeight = 0.8f, oldHatBase = 0.8f;
+            var shrink = CharacterArt.Available;
+            var high = fit * (shrink ? hatHeight : 1f);
+            var seat = newHeadCentre + fit * (oldHatBase - oldHeadCentre); // the brim's underside, on the head
+            var hatAt = shrink
+                ? new Vector3(0f, seat - high * oldHatBase, 0f)
                 : new Vector3(0f, ChefWaist, 0f);
-            Model(boss, "HatBrim", OfficeModel, "OfficeHatBrim", hat, hatAt, 0f, scale: hatScale);
-            Model(boss, "HatCrown", OfficeModel, "OfficeHatCrown", hat, hatAt, 0f, scale: hatScale);
-            Model(boss, "HatBand", OfficeModel, "OfficeHatBand", Toon("OfficeWalnut", Walnut), hatAt, 0f, scale: hatScale);
+            Vector3 Size(float wide) => new Vector3(fit * wide, high, fit * wide);
+            var brim = Size(shrink ? brimSize : 1f);
+            var crown = Size(shrink ? crownWidth : 1f);
+            Model(boss, "HatBrim", OfficeModel, "OfficeHatBrim", hat, hatAt, 0f, scale3: brim);
+            Model(boss, "HatCrown", OfficeModel, "OfficeHatCrown", hat, hatAt, 0f, scale3: crown);
+            Model(boss, "HatBand", OfficeModel, "OfficeHatBand", Toon("OfficeWalnut", Walnut), hatAt, 0f, scale3: crown);
             // A bolo tie at the collar.
             var bolo = CharacterArt.Available ? new Vector3(0f, 1.0f, 0.33f) : new Vector3(0f, ChefWaist + 0.36f, 0.27f);
             Block(boss, "Bolo", Toon("OfficeBrass", Brass), bolo, new Vector3(0.08f, 0.08f, 0.03f));
