@@ -64,13 +64,15 @@ namespace Game.Simulation.Realism
             var ease = Ease(complexity, settings);
             return new TraceGameSettings
             {
-                DeadZone = trace.DeadZone,
-                // A wider band round the path, and faster loops allowed: quicker, sloppier cleaning.
-                Tolerance = trace.Tolerance * ease,
-                MaxStickSpeed = trace.MaxStickSpeed * ease,
-                Reach = trace.Reach,
+                // A lighter push and a shorter sweep count, and faster loops count: quicker, sloppier cleaning.
+                MinPush = trace.MinPush / ease,
+                TurnBack = trace.TurnBack,
+                MaxTurnRate = trace.MaxTurnRate,
+                MaxSweepRate = trace.MaxSweepRate,
+                Buffer = trace.Buffer,
+                SweepEdge = Math.Min(0.95f, trace.SweepEdge / ease),
                 CircleSpeed = trace.CircleSpeed * ease,
-                FigureEightSpeed = trace.FigureEightSpeed * ease,
+                WideCircleSpeed = trace.WideCircleSpeed * ease,
                 SweepSpeed = trace.SweepSpeed * ease,
             };
         }

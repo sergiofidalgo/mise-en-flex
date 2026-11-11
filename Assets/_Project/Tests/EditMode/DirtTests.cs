@@ -207,134 +207,147 @@ namespace Game.Tests.EditMode
         }
     }
 
-    /// <summary>The cleaning game (decision 2026-11-10): trace the shape with the stick to wipe.</summary>
+    /// <summary>The cleaning game (decision 2026-11-11): spin the stick (cloth, mop) or sweep it (extinguisher).</summary>
     public class TraceGameTests
     {
         private const float Frame = 1f / 60f;
         private readonly TraceGameSettings _settings = new TraceGameSettings();
 
-        // A hand that keeps the stick a little ahead of the marker, on the path.
-        // A wobble is a slow drift off the line, as a thumb wanders, not noise every frame.
-        private static float Follow(TraceGame game, float seconds, float lead = 0.06f, float wobble = 0f)
+        // Spins the stick round at `turnsPerSecond` (negative: the other way), pushed `push` of the way.
+        private static float Spin(TraceGame game, float seconds, float turnsPerSecond, float push = 0.9f)
         {
             var wiped = 0f;
             for (var t = 0f; t < seconds; t += Frame)
             {
-                var target = TraceGame.PointAt(game.Shape, game.Along + lead);
-                var shake = new Vector2((float)Math.Sin(t * 7.0), (float)Math.Cos(t * 5.0)) * wobble;
-                wiped += game.Tick(Frame, target + shake);
+                var angle = t * turnsPerSecond * Math.PI * 2.0;
+                wiped += game.Tick(Frame, new Vector2((float)Math.Cos(angle), (float)Math.Sin(angle)) * push);
             }
             return wiped;
         }
 
+        // Wags the stick side to side, `sweepsPerSecond` times there and back, `reach` of the way out.
+        private static float Wag(TraceGame game, float seconds, float sweepsPerSecond, float reach = 0.9f)
+        {
+            var wiped = 0f;
+            for (var t = 0f; t < seconds; t += Frame)
+                wiped += game.Tick(Frame, new Vector2((float)(reach * Math.Sin(t * sweepsPerSecond * Math.PI * 2.0)), 0f));
+            return wiped;
+        }
+
         [TestCase(TraceShape.Circle)]
-        [TestCase(TraceShape.FigureEight)]
-        [TestCase(TraceShape.Sweep)]
-        public void FollowingThePathWipesAboutALoopAtTheShapesSpeed(TraceShape shape)
+        [TestCase(TraceShape.WideCircle)]
+        public void SpinningQuicklyWipesAtTheToolsSpeed(TraceShape shape)
         {
             var game = new TraceGame(shape, _settings);
-            var wiped = Follow(game, 3f);
+            var wiped = Spin(game, 3f, turnsPerSecond: 2.5f);
             var top = _settings.SpeedFor(shape) * 3f;
-            // Time is summed frame by frame, so allow the one frame it overruns by.
-            Assert.That(wiped, Is.InRange(top * 0.6f, top + _settings.SpeedFor(shape) * Frame * 1.5f));
+            Assert.That(wiped, Is.InRange(top * 0.9f, top + _settings.SpeedFor(shape) * Frame * 2f), "capped at the tool's speed");
             Assert.That(game.Loops, Is.EqualTo(wiped).Within(1e-3f));
+            Assert.That(game.OnTrack, Is.True);
         }
 
         [Test]
-        public void AShakyHandStillWipesItIsForgiving()
+        public void SpinningSlowlyWipesSlowlyEveryTurnCounts()
         {
             var game = new TraceGame(TraceShape.Circle, _settings);
-            Assert.That(Follow(game, 3f, wobble: 0.2f), Is.GreaterThan(1.5f));
+            Assert.That(Spin(game, 4f, turnsPerSecond: 0.5f), Is.EqualTo(2f).Within(0.1f));
         }
 
         [Test]
-        public void CirclingTheStickRoundItsRimCleansWithACloth()
+        public void EitherWayRoundCleans()
+        {
+            Assert.That(Spin(new TraceGame(TraceShape.Circle, _settings), 3f, turnsPerSecond: -0.8f), Is.EqualTo(2.4f).Within(0.15f));
+        }
+
+        [Test]
+        public void ChangingDirectionKeepsCleaningAfterTheTurnBack()
         {
             var game = new TraceGame(TraceShape.Circle, _settings);
-            var wiped = 0f;
-            for (var t = 0f; t < 3f; t += Frame)
-            {
-                // A loop a second, the stick pushed all the way.
-                var angle = t * Math.PI * 2;
-                wiped += game.Tick(Frame, new Vector2((float)Math.Cos(angle), (float)Math.Sin(angle)));
-            }
-            Assert.That(wiped, Is.GreaterThan(2f));
+            var one = Spin(game, 2f, 0.8f);
+            var other = Spin(game, 3f, -0.8f);
+            Assert.That(one, Is.GreaterThan(1.4f));
+            Assert.That(other, Is.GreaterThan(1.4f), "the other way counts once it's clearly spinning that way");
         }
 
         [Test]
-        public void ARestingStickDoesNothing()
+        public void ARestingOrBarelyPushedStickDoesNothing()
         {
-            // On a lobe of the eight, away from its crossing in the middle.
-            var game = new TraceGame(TraceShape.FigureEight, _settings, 0.25f);
-            var wiped = 0f;
-            for (var t = 0f; t < 5f; t += Frame)
-                wiped += game.Tick(Frame, new Vector2(0.05f, -0.05f));
-            Assert.That(wiped, Is.EqualTo(0f));
+            var game = new TraceGame(TraceShape.Circle, _settings);
+            Assert.That(Spin(game, 4f, 1f, push: _settings.MinPush * 0.7f), Is.EqualTo(0f));
             Assert.That(game.OnTrack, Is.False);
         }
 
         [Test]
-        public void ARestingStickOnlyCarriesTheMarkerThroughTheEightsCrossingNotRoundIt()
+        public void WaggingTheStickBackAndForthDoesNotSpin()
         {
-            var game = new TraceGame(TraceShape.FigureEight, _settings, 0.45f);
-            var wiped = 0f;
-            for (var t = 0f; t < 5f; t += Frame)
-                wiped += game.Tick(Frame, Vector2.Zero);
-            Assert.That(wiped, Is.LessThan(0.15f));
-        }
-
-        [Test]
-        public void HoldingOneSpotOrWigglingThereDoesNothing()
-        {
+            // ±100° back and forth, twice a second, for five seconds.
             var game = new TraceGame(TraceShape.Circle, _settings);
-            var spot = TraceGame.PointAt(TraceShape.Circle, 0.05f);
             var wiped = 0f;
             for (var t = 0f; t < 5f; t += Frame)
             {
-                var wiggle = (int)(t * 10) % 2 == 0 ? 0.03f : -0.03f;
-                wiped += game.Tick(Frame, TraceGame.PointAt(TraceShape.Circle, 0.05f + wiggle));
+                var angle = Math.Sin(t * 4.0 * Math.PI) * (100.0 * Math.PI / 180.0);
+                wiped += game.Tick(Frame, new Vector2((float)Math.Cos(angle), (float)Math.Sin(angle)) * 0.9f);
             }
-            Assert.That(wiped, Is.LessThan(0.1f), "only the first stretch up to that spot counts");
-            Assert.That(Vector2.Distance(game.Marker, spot), Is.LessThan(0.2f));
+            Assert.That(wiped, Is.LessThan(0.35f), "only the first swing's ground counts");
         }
 
         [Test]
-        public void SlammingTheStickAboutWipesFarLessThanTracing()
+        public void SlammingTheStickAboutWipesFarLessThanSpinning()
         {
             var random = new Random(3);
-            var game = new TraceGame(TraceShape.FigureEight, _settings);
+            var game = new TraceGame(TraceShape.WideCircle, _settings);
             var wiped = 0f;
             for (var t = 0f; t < 5f; t += Frame)
             {
                 var angle = random.NextDouble() * Math.PI * 2;
                 wiped += game.Tick(Frame, new Vector2((float)Math.Cos(angle), (float)Math.Sin(angle)));
             }
-            var traced = Follow(new TraceGame(TraceShape.FigureEight, _settings), 5f);
-            Assert.That(wiped, Is.LessThan(traced * 0.4f));
+            var spun = Spin(new TraceGame(TraceShape.WideCircle, _settings), 5f, 1f);
+            Assert.That(wiped, Is.LessThan(spun * 0.5f));
         }
 
         [Test]
-        public void GoingTheWrongWayWipesNothing()
+        public void SweepingSideToSidePutsOutAFire()
         {
-            var game = new TraceGame(TraceShape.Circle, _settings, 0.5f);
-            Assert.That(Follow(game, 3f, lead: -0.05f), Is.EqualTo(0f));
+            var game = new TraceGame(TraceShape.Sweep, _settings);
+            var wiped = Wag(game, 4f, sweepsPerSecond: 0.6f);
+            Assert.That(wiped, Is.EqualTo(0.6f * 4f).Within(0.35f), "a loop per sweep there and back");
         }
 
         [Test]
-        public void TheFigureEightsCrossingDoesNotThrowTheMarkerOntoTheOtherLobe()
+        public void SweepingQuicklyIsCappedAtTheExtinguishersSpeed()
         {
-            var game = new TraceGame(TraceShape.FigureEight, _settings);
-            var wiped = Follow(game, 1f / _settings.FigureEightSpeed * 2.2f);
-            Assert.That(wiped, Is.GreaterThan(1.5f), "two full eights, through the crossing twice each");
+            var wiped = Wag(new TraceGame(TraceShape.Sweep, _settings), 3f, sweepsPerSecond: 3f);
+            Assert.That(wiped, Is.LessThanOrEqualTo(_settings.SweepSpeed * 3f + 0.05f));
+            Assert.That(wiped, Is.GreaterThan(_settings.SweepSpeed * 3f * 0.6f));
+        }
+
+        [Test]
+        public void JigglingInTheMiddleOrNotReachingTheSidesDoesNothingMuch()
+        {
+            var jiggle = Wag(new TraceGame(TraceShape.Sweep, _settings), 5f, sweepsPerSecond: 2f, reach: 0.2f);
+            Assert.That(jiggle, Is.LessThan(0.2f));
         }
 
         [TestCase(TraceShape.Circle)]
-        [TestCase(TraceShape.FigureEight)]
+        [TestCase(TraceShape.WideCircle)]
         [TestCase(TraceShape.Sweep)]
-        public void EveryShapeFitsInsideTheStick(TraceShape shape)
+        public void EveryMotionFitsInsideTheStick(TraceShape shape)
         {
             for (var i = 0; i < 100; i++)
                 Assert.That(TraceGame.PointAt(shape, i / 100f).Length(), Is.LessThanOrEqualTo(0.85f));
+        }
+
+        [TestCase(TraceShape.Circle)]
+        [TestCase(TraceShape.WideCircle)]
+        [TestCase(TraceShape.Sweep)]
+        public void FollowingTheHintsPathCleans(TraceShape shape)
+        {
+            // As the play test's hand does: round the hint's path at a steady loop a second.
+            var game = new TraceGame(shape, _settings);
+            for (var t = 0f; t < 4f; t += Frame)
+                game.Tick(Frame, TraceGame.PointAt(shape, t));
+            Assert.That(game.Loops, Is.GreaterThan(_settings.SpeedFor(shape) * 4f * 0.6f));
         }
     }
 }

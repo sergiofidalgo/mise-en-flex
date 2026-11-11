@@ -32,7 +32,7 @@ namespace Game.Presentation.Hud
         [SerializeField, Range(0f, 1f)] private float _opacity = 0.9f;
 
         private readonly List<Hint> _hints = new List<Hint>();
-        private readonly List<SinkWashRingView> _views = new List<SinkWashRingView>();
+        private readonly List<IStickHintSource> _sources = new List<IStickHintSource>();
         private float _nextLook;
         private float? _push;
 
@@ -55,35 +55,46 @@ namespace Game.Presentation.Hud
                 return;
             _push = push;
 
-            // Sinks come and go with the layout editor: look for them now and then.
+            // Sinks and cleaning come and go with the layout editor: look for them now and then.
             if (Time.unscaledTime >= _nextLook || !Application.isPlaying)
             {
                 _nextLook = Time.unscaledTime + 1f;
-                _views.Clear();
-                _views.AddRange(FindObjectsByType<SinkWashRingView>(FindObjectsSortMode.None));
+                _sources.Clear();
+                foreach (var behaviour in FindObjectsByType<MonoBehaviour>(FindObjectsSortMode.None))
+                {
+                    if (behaviour is IStickHintSource source)
+                        _sources.Add(source);
+                }
             }
 
-            for (var i = 0; i < _views.Count; i++)
+            var used = 0;
+            foreach (var source in _sources)
             {
-                var hint = i < _hints.Count ? _hints[i] : Build();
-                var view = _views[i];
-                var amount = view != null ? view.HintAmount : 0f;
-                hint.Group.alpha = amount * _opacity;
-                hint.Root.gameObject.SetActive(amount > 0f);
-                if (amount <= 0f)
+                if (source == null || (source is Object unity && unity == null))
                     continue;
-                Place(hint, view, camera, amount);
+                for (var i = 0; i < source.HintCount; i++)
+                {
+                    var wanted = source.HintAt(i);
+                    if (wanted.Amount <= 0f)
+                        continue;
+                    var hint = used < _hints.Count ? _hints[used] : Build();
+                    used++;
+                    hint.Group.alpha = wanted.Amount * _opacity;
+                    hint.Root.gameObject.SetActive(true);
+                    Place(hint, wanted, camera);
+                }
             }
-            for (var i = _views.Count; i < _hints.Count; i++)
+            for (var i = used; i < _hints.Count; i++)
                 _hints[i].Root.gameObject.SetActive(false);
         }
 
-        private void Place(Hint hint, SinkWashRingView view, Camera camera, float amount)
+        private void Place(Hint hint, StickHint wanted, Camera camera)
         {
+            var amount = wanted.Amount;
             // From the camera's viewport (fractions of its view) to the canvas, which covers it:
             // the same whatever the window's or a capture's pixel size.
-            var at = camera.WorldToViewportPoint(view.HintWorldPosition);
-            var to = camera.WorldToViewportPoint(view.HintWorldPosition + view.HintTowardsWorld);
+            var at = camera.WorldToViewportPoint(wanted.World);
+            var to = camera.WorldToViewportPoint(wanted.World + wanted.Towards);
             if (at.z <= 0f)
             {
                 hint.Root.gameObject.SetActive(false);
@@ -96,11 +107,32 @@ namespace Game.Presentation.Hud
             hint.Root.localScale = Vector3.one * (1f + 0.5f * (1f - amount) * (1f - amount));
             HudBounds.KeepInside(hint.Root, _canvas, _style != null ? _style.ScreenMargin : 12f);
 
-            // Push, hold, let go: the cap eases out the way to go and springs back.
-            var direction = Vector2.Scale((Vector2)(to - at), canvasSize).normalized;
-            var phase = Mathf.Repeat(Time.unscaledTime * _pushes, 1f);
-            var push = _push ?? (phase < 0.45f ? Mathf.SmoothStep(0f, 1f, phase / 0.45f) : phase < 0.7f ? 1f : Mathf.SmoothStep(1f, 0f, (phase - 0.7f) / 0.3f));
-            hint.Cap.anchoredPosition = direction * (_travel * push);
+            switch (wanted.Motion)
+            {
+                case StickMotion.Spin:
+                {
+                    // Round and round, clockwise on screen (either way works).
+                    var turn = (_push ?? Time.unscaledTime * _pushes) * Mathf.PI * 2f;
+                    hint.Cap.anchoredPosition = new Vector2(Mathf.Sin(turn), Mathf.Cos(turn)) * _travel;
+                    break;
+                }
+                case StickMotion.Wag:
+                {
+                    // Side to side, easing at each end like a hand sweeping.
+                    var swing = Mathf.Sin((_push ?? Time.unscaledTime * _pushes) * Mathf.PI * 2f);
+                    hint.Cap.anchoredPosition = new Vector2(swing * _travel, 0f);
+                    break;
+                }
+                default:
+                {
+                    // Push, hold, let go: the cap eases out the way to go and springs back.
+                    var direction = Vector2.Scale((Vector2)(to - at), canvasSize).normalized;
+                    var phase = Mathf.Repeat(Time.unscaledTime * _pushes, 1f);
+                    var push = _push ?? (phase < 0.45f ? Mathf.SmoothStep(0f, 1f, phase / 0.45f) : phase < 0.7f ? 1f : Mathf.SmoothStep(1f, 0f, (phase - 0.7f) / 0.3f));
+                    hint.Cap.anchoredPosition = direction * (_travel * push);
+                    break;
+                }
+            }
         }
 
         private Hint Build()

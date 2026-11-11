@@ -20,7 +20,7 @@ namespace Game.Presentation
     /// Everything turns with the camera, never the sink: pushing the stick up moves the soap, and
     /// dips the plate, up on screen however the sink has been turned in the layout editor.
     /// </summary>
-    public sealed class SinkWashRingView : MonoBehaviour
+    public sealed class SinkWashRingView : MonoBehaviour, IStickHintSource
     {
         private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
         private const string PlatePrefix = "DirtyPlate";
@@ -118,6 +118,10 @@ namespace Game.Presentation
 
         /// <summary>A short world vector from the hint towards the way to push (the centre).</summary>
         public Vector3 HintTowardsWorld => _hintTowards;
+
+        public int HintCount => 1;
+
+        public StickHint HintAt(int index) => new StickHint(HintAmount, _hintWorld, _hintTowards, StickMotion.Push);
         private float _stuckFor;
         // The cue's opening: from the start of washing until the soap first reaches the target.
         private Game.Simulation.Items.WashGame _hintGame;

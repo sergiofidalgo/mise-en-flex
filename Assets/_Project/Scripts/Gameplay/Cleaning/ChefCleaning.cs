@@ -13,20 +13,20 @@ namespace Game.Gameplay.Cleaning
     {
         None,
 
-        /// <summary>Tables and counters: small circles.</summary>
+        /// <summary>Tables and counters: spin the stick round.</summary>
         Cloth,
 
-        /// <summary>The floor: wide figure-eights.</summary>
+        /// <summary>The floor: spin the stick round, slower and heavier.</summary>
         Mop,
 
-        /// <summary>A pan fire: side-to-side sweeps.</summary>
+        /// <summary>A pan fire: wag the stick from side to side.</summary>
         Extinguisher,
     }
 
     /// <summary>
     /// A chef cleaning or putting out a fire (decision 2026-11-10): with empty hands, hold X by dirt
     /// or a burning hob and the chef pulls out a cloth, a mop or the extinguisher, stays put, and the
-    /// stick traces the shape drawn on the dirt or the flames. Letting go of X, or B, stops; what was
+    /// stick spins (cloth, mop) or sweeps side to side (extinguisher) to clean (decision 2026-11-11). Letting go of X, or B, stops; what was
     /// wiped stays wiped. A finished patch moves straight on to the next one in reach while X is
     /// still held. The extinguisher is always to hand, with nothing to buy.
     ///
@@ -285,7 +285,7 @@ namespace Game.Gameplay.Cleaning
 
         public static TraceShape ShapeOf(CleaningTool tool) => tool switch
         {
-            CleaningTool.Mop => TraceShape.FigureEight,
+            CleaningTool.Mop => TraceShape.WideCircle,
             CleaningTool.Extinguisher => TraceShape.Sweep,
             _ => TraceShape.Circle,
         };

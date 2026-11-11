@@ -16,19 +16,20 @@ namespace Game.Presentation
     /// crumbs where guests ate, a splash with shards where a plate broke, soot by a burnt pan, grey
     /// footprints, white foam after a fire. Each shrinks as it's wiped and is gone when clean.</para>
     ///
-    /// <para><b>The game</b> is drawn on the dirt itself (the station is the interface, 2026-11-09): a
-    /// track of beads in the shape to trace, lit in the chef's colour up to the marker, chevrons
-    /// ahead showing the way, and the tool's head (mop, cloth, extinguisher nozzle) riding the marker,
-    /// so the stick visibly moves it. It turns with the camera, never the furniture: pushing the
-    /// stick up moves the marker up the screen at any of the 8 rotations, with the chef on any side.
-    /// The track is drawn over the chef (<c>Game/ToonOnTop</c>), like the wash ring.</para>
+    /// <para><b>The game</b> is drawn on the dirt itself, as at the sink (decisions 2026-11-09 and
+    /// 2026-11-11): a ring of chunky segments round the spot that turn from grime to water as it's
+    /// wiped (from flame to foam for a fire), clockwise from the top, and the tool's head (cloth,
+    /// mop, extinguisher nozzle) following the stick, so spinning or wagging the stick visibly
+    /// spins or sweeps it. When the chef hasn't started, or has stalled, it asks the HUD for the
+    /// stick cue, spinning or wagging. The ring turns with the camera, never the furniture, and is
+    /// drawn over the chef (<c>Game/ToonOnTop</c>), like the wash ring.</para>
     /// </summary>
-    public sealed class CleaningView : MonoBehaviour
+    public sealed class CleaningView : MonoBehaviour, IStickHintSource
     {
         private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
 
-        private const int TrackBeads = 36;
-        private const int Chevrons = 3;
+        private const int RingSegments = 15;
+        private const float SegmentGap = 0.09f;
 
         [SerializeField] private KitchenCompositionRoot _root;
         [SerializeField] private CoopSettings _settings;
@@ -54,18 +55,27 @@ namespace Game.Presentation
         [Tooltip("Metres a patch sits above what it's on, so it never flickers into it.")]
         [SerializeField, Min(0f)] private float _lift = 0.004f;
 
-        [Header("Track")]
-        [Tooltip("Metres from the middle to the track's edge, per tool: cloth, mop, extinguisher.")]
+        [Header("Ring")]
+        [Tooltip("Metres from the middle to the ring's centre line, per tool: cloth, mop, extinguisher.")]
         [SerializeField] private Vector3 _trackRadius = new Vector3(0.45f, 0.75f, 0.5f);
-        [Tooltip("Metres above the dirt (or the pan) the track floats, per tool: cloth, mop, extinguisher.")]
+        [Tooltip("Metres above the dirt (or the pan) the ring floats, per tool: cloth, mop, extinguisher.")]
         [SerializeField] private Vector3 _trackHeight = new Vector3(0.03f, 0.03f, 0.32f);
-        [SerializeField, Min(0.001f)] private float _beadSize = 0.06f;
-        [SerializeField, Min(0.001f)] private float _markerSize = 0.16f;
-        [SerializeField] private Color _ahead = new Color(0.97f, 0.97f, 0.95f);
-        [SerializeField] private Color _offTrack = new Color(0.95f, 0.30f, 0.26f);
-        [Tooltip("How far ahead of the marker the chevrons point the way, in loops.")]
-        [SerializeField, Range(0f, 0.3f)] private float _chevronLead = 0.06f;
-        [SerializeField, Range(0f, 0.3f)] private float _pulse = 0.12f;
+        [Tooltip("The ring's width and height, as shares of its radius.")]
+        [SerializeField] private Vector2 _ringShape = new Vector2(0.22f, 0.09f);
+        [Tooltip("Still dirty, and clean: segments blend between them as the spot is wiped.")]
+        [SerializeField] private Color _grime = new Color(0.36f, 0.23f, 0.12f);
+        [SerializeField] private Color _clean = new Color(0.33f, 0.66f, 0.92f);
+        [Tooltip("For a fire: still burning, and put out.")]
+        [SerializeField] private Color _flame = new Color(0.95f, 0.42f, 0.12f);
+        [SerializeField] private Color _foam = new Color(0.94f, 0.96f, 0.98f);
+        [Tooltip("Ring size swing while the stick is cleaning (share of its size).")]
+        [SerializeField, Range(0f, 0.3f)] private float _pulse = 0.04f;
+
+        [Header("Stick cue")]
+        [Tooltip("Seconds after cleaning starts before the stick cue shows; it stays until the stick first cleans.")]
+        [SerializeField, Min(0f)] private float _openingDelay = 0.15f;
+        [Tooltip("Seconds without cleaning, once started, before the cue shows again.")]
+        [SerializeField, Min(0f)] private float _stalledDelay = 0.8f;
 
         [Header("Tools")]
         [SerializeField] private Color _mopHead = new Color(0.85f, 0.82f, 0.7f);
@@ -86,13 +96,30 @@ namespace Game.Presentation
         private sealed class Kit
         {
             public Transform Root;
-            public Renderer[] Beads;
-            public Renderer[] Chevrons;
-            public Renderer Marker;
+            public Renderer[] Segments;
+            public float BuiltRadius;
             public Transform Tool;
             public Renderer ToolHead;
             public Transform Handle;
             public CleaningTool Built;
+
+            // The stick cue: the game it's for, whether it has cleaned yet, and time without cleaning.
+            public TraceGame CueGame;
+            public bool Started;
+            public float Idle;
+            public float Hint;
+            public Vector3 Centre;
+            public StickMotion Motion;
+        }
+
+        private readonly List<Kit> _hinting = new List<Kit>();
+
+        public int HintCount => _hinting.Count;
+
+        public StickHint HintAt(int index)
+        {
+            var kit = _hinting[index];
+            return new StickHint(kit.Hint, kit.Centre, Vector3.zero, kit.Motion);
         }
 
         private void Awake()
@@ -238,6 +265,7 @@ namespace Game.Presentation
 
         private void ShowGames()
         {
+            _hinting.Clear();
             _idle.Clear();
             foreach (var pair in _kits)
             {
@@ -283,55 +311,76 @@ namespace Game.Presentation
             var tool = chef.Tool;
             var index = tool == CleaningTool.Mop ? 1 : tool == CleaningTool.Extinguisher ? 2 : 0;
             var radius = _trackRadius[index];
-            var colour = PlayerColour(chef);
+            var fire = tool == CleaningTool.Extinguisher;
+            if (kit.Segments == null || !Mathf.Approximately(kit.BuiltRadius, radius))
+                BuildRing(kit, radius);
 
             // Laid flat and turned to the camera: stick up is screen up, wherever the chef stands.
-            var (right, forward) = ScreenAxes();
+            var (_, forward) = ScreenAxes();
             var centre = chef.Where + Vector3.up * _trackHeight[index];
+            var pulse = game.OnTrack ? 1f + _pulse * Mathf.Sin(Time.time * 18f) : 1f;
             kit.Root.SetPositionAndRotation(centre, Quaternion.LookRotation(forward, Vector3.up));
+            kit.Root.localScale = Vector3.one * pulse;
 
-            Vector3 OnTrack(float along)
+            // The ring fills clockwise from the top: each segment turns from grime to water (flame
+            // to foam) as the job's progress passes through it.
+            var progress = Mathf.Clamp01(chef.Progress);
+            for (var i = 0; i < kit.Segments.Length; i++)
             {
-                var p = TraceGame.PointAt(game.Shape, along - Mathf.Floor(along));
-                return new Vector3(p.X * radius, 0f, p.Y * radius);
+                var clean = Mathf.Clamp01(progress * kit.Segments.Length - i);
+                SetColor(kit.Segments[i], fire ? Color.Lerp(_flame, _foam, clean) : Color.Lerp(_grime, _clean, clean));
             }
 
-            // Beads behind the marker light up in the chef's colour, as far as this loop has gone.
-            var marker = game.Along;
-            for (var i = 0; i < kit.Beads.Length; i++)
+            // The tool's head follows the stick, in the ring's frame.
+            var stick = game.Marker;
+            ShowTool(chef, kit, kit.Root.TransformPoint(new Vector3(stick.X * radius, 0f, stick.Y * radius)));
+
+            // The stick cue: at the start until the stick first cleans, then whenever it stalls.
+            if (kit.CueGame != game)
             {
-                var along = i / (float)kit.Beads.Length;
-                var bead = kit.Beads[i];
-                bead.transform.localPosition = OnTrack(along);
-                var behind = (marker - along + 1f) % 1f;
-                var lit = behind < Mathf.Max(0.02f, Mathf.Repeat(game.Loops, 1f)) || game.Loops >= 1f;
-                SetColor(bead, lit ? colour : _ahead);
-                bead.transform.localScale = Vector3.one * _beadSize * (lit ? 1.15f : 0.9f);
+                kit.CueGame = game;
+                kit.Started = false;
+                kit.Idle = 0f;
             }
-
-            // Chevrons a little ahead show which way round to go.
-            for (var i = 0; i < kit.Chevrons.Length; i++)
-            {
-                var at = marker + _chevronLead * (i + 1);
-                var here = OnTrack(at);
-                var next = OnTrack(at + 0.01f);
-                var chevron = kit.Chevrons[i];
-                chevron.transform.localPosition = here;
-                chevron.transform.localRotation = Quaternion.LookRotation(next - here, Vector3.up) * Quaternion.Euler(0f, 45f, 0f);
-                chevron.transform.localScale = new Vector3(_beadSize * 1.6f, _beadSize * 0.5f, _beadSize * 1.6f);
-                SetColor(chevron, game.OnTrack ? colour : _ahead);
-            }
-
-            // The marker pulses while it's being pulled along, and goes red when the stick has lost it.
-            var pulse = game.OnTrack ? 1f + _pulse * Mathf.Sin(Time.time * 18f) : 0.9f;
-            kit.Marker.transform.localPosition = OnTrack(marker) + Vector3.up * 0.01f;
-            kit.Marker.transform.localScale = new Vector3(_markerSize, _markerSize * 0.5f, _markerSize) * pulse;
-            SetColor(kit.Marker, game.OnTrack ? colour : _offTrack);
-
-            ShowTool(chef, kit, kit.Root.TransformPoint(OnTrack(marker)));
+            kit.Idle = game.OnTrack ? 0f : kit.Idle + Time.deltaTime;
+            if (game.OnTrack)
+                kit.Started = true;
+            var want = kit.Started ? kit.Idle > _stalledDelay : kit.Idle > _openingDelay;
+            kit.Hint = Mathf.MoveTowards(kit.Hint, want ? 1f : 0f, Time.deltaTime / 0.15f);
+            kit.Centre = centre;
+            kit.Motion = fire ? StickMotion.Wag : StickMotion.Spin;
+            if (kit.Hint > 0f)
+                _hinting.Add(kit);
         }
 
-        // The tool's head rides the marker; the mop's handle reaches back to the chef's hands.
+        // The ring's segments round the middle: chunky toon blocks, drawn over the chef.
+        private void BuildRing(Kit kit, float radius)
+        {
+            if (kit.Segments != null)
+            {
+                foreach (var segment in kit.Segments)
+                {
+                    if (segment != null)
+                    {
+                        Destroy(segment.GetComponent<MeshFilter>().sharedMesh);
+                        Destroy(segment.gameObject);
+                    }
+                }
+            }
+            var width = radius * _ringShape.x;
+            var height = radius * _ringShape.y;
+            var step = Mathf.PI * 2f / RingSegments;
+            kit.Segments = new Renderer[RingSegments];
+            for (var i = 0; i < RingSegments; i++)
+            {
+                var mesh = StationKitMeshes.RingSector(radius - width / 2f, radius + width / 2f,
+                    (i + SegmentGap * 0.5f) * step, (i + 1 - SegmentGap * 0.5f) * step, height, height * 0.35f);
+                kit.Segments[i] = Piece(kit.Root, mesh, _onTop, _grime, 0);
+            }
+            kit.BuiltRadius = radius;
+        }
+
+        // The tool's head follows the stick; the mop's handle reaches back to the chef's hands.
         private void ShowTool(ChefCleaning chef, Kit kit, Vector3 marker)
         {
             if (kit.Built != chef.Tool)
@@ -375,15 +424,9 @@ namespace Game.Presentation
 
         private Kit BuildKit()
         {
-            var root = new GameObject("CleaningTrack").transform;
+            var root = new GameObject("CleaningRing").transform;
             root.SetParent(transform, false);
-            var kit = new Kit { Root = root, Beads = new Renderer[TrackBeads], Chevrons = new Renderer[Chevrons] };
-            for (var i = 0; i < TrackBeads; i++)
-                kit.Beads[i] = Piece(root, _sphere, _onTop, _ahead, 0);
-            for (var i = 0; i < Chevrons; i++)
-                kit.Chevrons[i] = Piece(root, _cube, _onTop, _ahead, 1);
-            kit.Marker = Piece(root, _cylinder, _onTop, _ahead, 2);
-            return kit;
+            return new Kit { Root = root };
         }
 
         private void BuildTool(Kit kit, CleaningTool tool)

@@ -79,11 +79,13 @@ namespace Game.Tests.PlayMode
             _chef.transform.rotation = Quaternion.LookRotation(toward, Vector3.up);
         }
 
-        // Holds X and steers the left stick a little ahead of the marker, as a player watching the
-        // track would, until done() or the time runs out.
+        // Holds X and works the left stick as a player following the hint would: round and round
+        // for the cloth and mop, side to side for the extinguisher, a loop a second, until done()
+        // or the time runs out (decision 2026-11-11: spin and sweep).
         private IEnumerator HoldXAndTrace(Func<bool> done, float seconds, string captureAs = null)
         {
             var frames = 0;
+            var began = Time.time;
             var until = Time.realtimeSinceStartup + seconds;
             while (!done() && Time.realtimeSinceStartup < until)
             {
@@ -91,10 +93,11 @@ namespace Game.Tests.PlayMode
                 var game = _chef.Cleaning != null ? _chef.Cleaning.Game : null;
                 if (game != null)
                 {
-                    var next = TraceGame.PointAt(game.Shape, (game.Along + 0.06f) % 1f);
+                    // A loop a second of game time, as a person would, whatever the frame rate.
+                    var next = TraceGame.PointAt(game.Shape, Time.time - began);
                     stick = new Vector2(next.X, next.Y);
                     // The stick's default dead zone (0.125 to 0.925) rescales what's pushed: push so
-                    // the game reads the point itself, as a player watching the marker ends up doing.
+                    // the game reads the point itself.
                     if (stick.sqrMagnitude > 1e-6f)
                         stick = stick.normalized * (0.125f + stick.magnitude * 0.8f);
                 }

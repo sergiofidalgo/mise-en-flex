@@ -3,165 +3,249 @@ using System.Numerics;
 
 namespace Game.Simulation.Cleaning
 {
-    /// <summary>The shape a tool traces (decision 2026-11-10).</summary>
+    /// <summary>The motion a tool wants (decision 2026-11-11: spin and sweep).</summary>
     public enum TraceShape
     {
-        /// <summary>The cloth, on tables and counters: small circles.</summary>
+        /// <summary>The cloth, on tables and counters: spin the stick round, quickly.</summary>
         Circle,
 
-        /// <summary>The mop, on the floor: a wide figure-eight.</summary>
-        FigureEight,
+        /// <summary>The mop, on the floor: spin the stick round too, slower and heavier.</summary>
+        WideCircle,
 
-        /// <summary>The extinguisher: side-to-side sweeps across the base of the flames.</summary>
+        /// <summary>The extinguisher: wag the stick from side to side across the flames.</summary>
         Sweep,
     }
 
     /// <summary>Tuning for <see cref="TraceGame"/>. Distances are in stick units (1 = pushed all the way).</summary>
     public sealed class TraceGameSettings
     {
-        /// <summary>
-        /// Below this push the stick reads as centred (a thumb resting, or a worn stick's drift). A
-        /// centred stick can only pull the marker where the path runs near the middle, such as the
-        /// crossing of the mop's eight: everywhere else the path is out of its reach.
-        /// </summary>
-        public float DeadZone { get; set; } = 0.15f;
+        /// <summary>How far the stick must be pushed for its turning to count (cloth and mop). A thumb resting, or a worn stick's drift, does nothing.</summary>
+        public float MinPush { get; set; } = 0.4f;
 
         /// <summary>
-        /// Stick units a second. The stick moving faster than this (slammed about rather than
-        /// steered) doesn't pull the marker. Circling the rim at a loop a second is about 6.
+        /// Radians the stick must turn back the other way before spinning that way counts instead
+        /// (cloth and mop). Large, so wagging back and forth never adds up: going back 270° is
+        /// clearly spinning the other way.
         /// </summary>
-        public float MaxStickSpeed { get; set; } = 15f;
+        public float TurnBack { get; set; } = 4.7f;
 
-        /// <summary>How far from the path the stick can be and still pull the marker along. Wide = forgiving.</summary>
-        public float Tolerance { get; set; } = 0.4f;
+        /// <summary>How far to each side the stick must go for a sweep to reach that side (extinguisher).</summary>
+        public float SweepEdge { get; set; } = 0.55f;
 
-        /// <summary>How far ahead along the path (in loops) the marker can be pulled from where it is.</summary>
-        public float Reach { get; set; } = 0.15f;
+        /// <summary>
+        /// Fastest a hand turns or sweeps the stick: radians a second (spinning) and stick units a
+        /// second (sweeping). A stick that jumps faster than this between two frames was slammed,
+        /// not moved, and doesn't count. A brisk 2.5 turns a second is about 16 rad/s.
+        /// </summary>
+        public float MaxTurnRate { get; set; } = 30f;
+        public float MaxSweepRate { get; set; } = 25f;
 
-        /// <summary>Fastest loops a second, per shape: the cloth's circles are quickest, the mop's eights slowest.</summary>
+        /// <summary>
+        /// Loops of motion held back to be counted at the tool's speed: a sweep crosses the middle
+        /// far faster than its average, and this keeps that burst rather than throwing it away.
+        /// </summary>
+        public float Buffer { get; set; } = 0.5f;
+
+        /// <summary>
+        /// Fastest loops a second that count, per tool: spinning (or sweeping) faster than this
+        /// cleans no faster, so slamming the stick isn't rewarded. A loop is a full turn, or a sweep
+        /// there and back. The cloth is quickest, the mop slowest.
+        /// </summary>
         public float CircleSpeed { get; set; } = 1.1f;
-        public float FigureEightSpeed { get; set; } = 0.7f;
+        public float WideCircleSpeed { get; set; } = 0.7f;
         public float SweepSpeed { get; set; } = 0.9f;
 
         public float SpeedFor(TraceShape shape) => shape switch
         {
-            TraceShape.FigureEight => FigureEightSpeed,
+            TraceShape.WideCircle => WideCircleSpeed,
             TraceShape.Sweep => SweepSpeed,
             _ => CircleSpeed,
         };
     }
 
     /// <summary>
-    /// Cleaning and putting out fires by hand (game design §15.8, decision 2026-11-10): a path lies
-    /// on the dirt, and the stick, held where the path is, pulls a marker round it. Each loop wipes
-    /// one layer. It's about moving, where the sink is about holding still: the stick's position is
-    /// the point (not its speed), so circling the stick draws the circle.
+    /// Cleaning and putting out fires by hand (game design §15.8; decisions 2026-11-10 and
+    /// 2026-11-11). It's about moving, where the sink is about holding still, but with the sink's
+    /// forgiveness (the user's call, after the traced path proved near impossible at times): no
+    /// path to stay on. The cloth and the mop clean while the stick is spun round, either way;
+    /// the extinguisher while it's wagged from side to side. Faster cleans faster, up to the tool's
+    /// speed. Each loop wipes one layer.
     ///
-    /// The marker only goes forward, and only work past the furthest point reached counts, so
-    /// wiggling at one spot does nothing. Pulled too far off the path, or let go, it waits.
+    /// Only new progress counts: turning the stick a little back and forth, or jiggling it in the
+    /// middle, adds nothing.
     /// </summary>
     public sealed class TraceGame
     {
-        // Points tested along the reachable stretch when finding where the stick is on the path.
-        private const int SearchSteps = 24;
-
         private readonly TraceGameSettings _settings;
-        private double _along;
-        private double _furthest;
-        private bool _hasStick;
+        private double _loops;
+        private double _pending;
+
+        // Spinning: the stick's last angle, the way round it's going, and how far it has turned
+        // that way since it started (or turned back), and the furthest it has been.
+        private bool _hasAngle;
+        private double _lastAngle;
+        private int _turning;
+        private double _turned;
+        private double _furthestTurned;
+
+        // Sweeping: where the stick first was, the side it's heading for (+1 right, -1 left, 0 until
+        // it first moves) and the furthest across this leg.
+        private bool _hasSweep;
+        private double _sweepStart;
+        private double _lastX;
+        private int _heading;
+        private double _furthestAcross;
 
         /// <param name="start">Where on the loop to start (0..1), so each patch begins somewhere new.</param>
         public TraceGame(TraceShape shape, TraceGameSettings settings, float start = 0f)
         {
             Shape = shape;
             _settings = settings;
-            _along = _furthest = start - Math.Floor(start);
-            StartedAt = _along;
+            Start = start - (float)Math.Floor(start);
         }
 
         public TraceShape Shape { get; }
 
-        /// <summary>Where the marker is along the loop, 0..1.</summary>
-        public float Along => (float)(_along - Math.Floor(_along));
+        /// <summary>Where on the loop it is, 0..1: the start plus the loops done so far.</summary>
+        public float Along => (float)((Start + _loops) - Math.Floor(Start + _loops));
 
-        /// <summary>The marker, in stick units.</summary>
-        public Vector2 Marker => PointAt(Shape, Along);
+        /// <summary>Where the tool's head is, in stick units: it follows the stick.</summary>
+        public Vector2 Marker => Stick;
 
         /// <summary>Loops done since it started (wipes given).</summary>
-        public float Loops => (float)(_furthest - StartedAt);
+        public float Loops => (float)_loops;
 
-        /// <summary>True while the stick is pulling the marker along.</summary>
+        /// <summary>True while the stick's motion is cleaning.</summary>
         public bool OnTrack { get; private set; }
 
-        /// <summary>The stick as last read, for the view's hint.</summary>
+        /// <summary>The stick as last read.</summary>
         public Vector2 Stick { get; private set; }
 
-        private double StartedAt { get; }
+        private float Start { get; }
 
-        /// <summary>Moves the marker towards where the stick is on the path.</summary>
-        /// <returns>Wipes done this tick (loops of new path traced).</returns>
+        /// <returns>Wipes done this tick (loops of new motion).</returns>
         public float Tick(float seconds, Vector2 stick)
         {
             if (stick.LengthSquared() > 1f)
                 stick = Vector2.Normalize(stick);
-            if (stick.Length() < _settings.DeadZone)
-                stick = Vector2.Zero;
-            var jumped = _hasStick && seconds > 0f && Vector2.Distance(stick, Stick) / seconds > _settings.MaxStickSpeed;
             Stick = stick;
-            _hasStick = true;
             OnTrack = false;
-            if (seconds <= 0f || jumped)
+            if (seconds <= 0f)
                 return 0f;
 
-            // The point on the path nearest the stick, from a little behind the marker to its reach
-            // ahead: looking only nearby is what tells the two crossings of an eight apart.
-            var behind = _settings.Reach * 0.5;
-            var bestAt = _along;
-            var bestDistance = float.MaxValue;
-            for (var i = 0; i <= SearchSteps; i++)
-            {
-                var at = _along - behind + (behind + _settings.Reach) * i / SearchSteps;
-                var distance = Vector2.Distance(PointAt(Shape, (float)(at - Math.Floor(at))), stick);
-                if (distance < bestDistance)
-                {
-                    bestDistance = distance;
-                    bestAt = at;
-                }
-            }
-            if (bestDistance > _settings.Tolerance)
+            var moved = Shape == TraceShape.Sweep ? Sweep(stick, seconds) : Spin(stick, seconds);
+            // Counted at up to the tool's speed: motion faster than that waits in a small buffer
+            // (so a sweep's quick middle isn't lost) and what overflows it cleans no faster.
+            _pending = Math.Min(_pending + moved, Math.Max(_settings.Buffer, 0.0));
+            var counted = Math.Min(_pending, _settings.SpeedFor(Shape) * seconds);
+            if (counted <= 0.0)
                 return 0f;
-
+            _pending -= counted;
+            _loops += counted;
             OnTrack = true;
-            var step = Math.Min(bestAt - _along, _settings.SpeedFor(Shape) * seconds);
-            _along += step;
-            if (_along <= _furthest)
-                return 0f;
-            var gained = _along - _furthest;
-            _furthest = _along;
-            return (float)gained;
+            return (float)counted;
         }
 
+        // Loops of new turning: only past the furthest the stick has turned this way counts.
+        private double Spin(Vector2 stick, float seconds)
+        {
+            if (stick.Length() < _settings.MinPush)
+            {
+                _hasAngle = false; // let go: picking it up again elsewhere isn't a turn
+                return 0.0;
+            }
+            var angle = Math.Atan2(stick.Y, stick.X);
+            if (!_hasAngle)
+            {
+                _hasAngle = true;
+                _lastAngle = angle;
+                return 0.0;
+            }
+
+            var change = angle - _lastAngle;
+            change -= Math.Round(change / (2.0 * Math.PI)) * 2.0 * Math.PI; // the short way round
+            _lastAngle = angle;
+            if (Math.Abs(change) > _settings.MaxTurnRate * seconds)
+                return 0.0; // slammed, not turned
+            if (_turning == 0)
+            {
+                if (Math.Abs(change) < 1e-6)
+                    return 0.0;
+                _turning = Math.Sign(change);
+            }
+
+            _turned += change * _turning;
+            if (_turned > _furthestTurned)
+            {
+                var gained = _turned - _furthestTurned;
+                _furthestTurned = _turned;
+                return gained / (2.0 * Math.PI);
+            }
+            if (_turned < _furthestTurned - _settings.TurnBack)
+            {
+                // Clearly spinning the other way now: that way counts from here.
+                _turning = -_turning;
+                _turned = 0.0;
+                _furthestTurned = 0.0;
+            }
+            return 0.0;
+        }
+
+        // Loops of new sweeping: each leg runs from one side to the other (half a loop); only
+        // ground past the furthest reached on this leg counts.
+        private double Sweep(Vector2 stick, float seconds)
+        {
+            var edge = Math.Max(0.05, _settings.SweepEdge);
+            var jumped = _hasSweep && Math.Abs(stick.X - _lastX) > _settings.MaxSweepRate * seconds;
+            _lastX = stick.X;
+            if (jumped)
+                return 0.0; // slammed, not swept
+            var x = Math.Clamp(stick.X, -edge, edge);
+            if (!_hasSweep)
+            {
+                _hasSweep = true;
+                _sweepStart = x;
+                return 0.0;
+            }
+            if (_heading == 0)
+            {
+                // The first push either way sets the first leg's way, counting from where it began.
+                if (Math.Abs(x - _sweepStart) < 0.05)
+                    return 0.0;
+                _heading = Math.Sign(x - _sweepStart);
+                _furthestAcross = Across(_sweepStart, edge);
+            }
+
+            var across = Across(x, edge);
+            if (across <= _furthestAcross)
+                return 0.0;
+            var gained = across - _furthestAcross;
+            _furthestAcross = across;
+            if (across >= 1.0)
+            {
+                // Reached the side: the next leg heads back.
+                _heading = -_heading;
+                _furthestAcross = 0.0;
+            }
+            return gained * 0.5;
+        }
+
+        // 0 at the side it's leaving, 1 at the side it's heading for.
+        private double Across(double x, double edge) => (x * _heading + edge) / (2.0 * edge);
+
         /// <summary>
-        /// A point on the shape, in stick units: up on the stick is +Y. Each shape fits the stick's
-        /// circle with room to spare, so it can be traced with the stick near its rim.
+        /// The motion as a path in stick units, for hints and tests: up on the stick is +Y. A
+        /// circle for the cloth, a wider one for the mop, side to side for the extinguisher.
         /// </summary>
         public static Vector2 PointAt(TraceShape shape, float along)
         {
             var angle = along * Math.PI * 2.0;
             switch (shape)
             {
-                case TraceShape.FigureEight:
-                    // A lemniscate of Gerono laid on its side: two lobes left and right, crossing in the middle.
-                    return new Vector2((float)(0.8 * Math.Sin(angle)), (float)(0.45 * Math.Sin(2.0 * angle)));
+                case TraceShape.WideCircle:
+                    return new Vector2((float)(0.82 * Math.Cos(angle)), (float)(0.82 * Math.Sin(angle)));
                 case TraceShape.Sweep:
-                {
-                    // Left to right and back along a shallow arc that bows upwards, as a nozzle sweeps
-                    // the base of a fire. The way back runs a little lower, so the loop has a width.
-                    var x = 0.8 * Math.Sin(angle);
-                    var bow = 1.0 - (x / 0.8) * (x / 0.8);
-                    var lane = 0.08 * Math.Cos(angle);
-                    return new Vector2((float)x, (float)(-0.2 + 0.35 * bow + lane));
-                }
+                    return new Vector2((float)(0.8 * Math.Sin(angle)), (float)(0.1 * Math.Cos(angle)));
                 default:
                     return new Vector2((float)(0.72 * Math.Cos(angle)), (float)(0.72 * Math.Sin(angle)));
             }

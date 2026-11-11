@@ -132,20 +132,18 @@ namespace Game.Data
         [Tooltip("A penalty at least this big makes dirt what the guest's review is about, if nothing worse happened.")]
         [SerializeField, Range(0f, 1f)] private float _dirtNoticedFrom = 0.05f;
 
-        [Header("Cleaning game (trace the shape with the stick)")]
-        [Tooltip("Below this push the stick reads as centred, so drift doesn't count.")]
-        [SerializeField, Range(0f, 1f)] private float _traceDeadZone = 0.15f;
-        [Tooltip("How far the stick can be from the path and still pull the marker. Wide = forgiving.")]
-        [SerializeField, Range(0.05f, 1f)] private float _traceTolerance = 0.4f;
-        [Tooltip("How far ahead along the path (in loops) the marker can be pulled at once.")]
-        [SerializeField, Range(0.02f, 0.5f)] private float _traceReach = 0.15f;
-        [Tooltip("Stick units a second above which the stick is slammed rather than steered, and doesn't count.")]
-        [SerializeField, Min(1f)] private float _traceMaxStickSpeed = 15f;
-        [Tooltip("Fastest loops a second with the cloth (circles).")]
+        [Header("Cleaning game (spin and sweep the stick, decision 2026-11-11)")]
+        [Tooltip("How far the stick must be pushed for spinning it to count (cloth and mop).")]
+        [SerializeField, Range(0f, 1f)] private float _spinMinPush = 0.4f;
+        [Tooltip("Radians the stick must turn back before spinning the other way counts (large, so wagging doesn't).")]
+        [SerializeField, Range(1f, 6.2f)] private float _spinTurnBack = 4.7f;
+        [Tooltip("How far to each side the stick must go to complete a sweep (extinguisher).")]
+        [SerializeField, Range(0.1f, 1f)] private float _sweepEdge = 0.55f;
+        [Tooltip("Fastest turns a second that count with the cloth.")]
         [SerializeField, Min(0.05f)] private float _clothSpeed = 1.1f;
-        [Tooltip("Fastest loops a second with the mop (figure-eights).")]
+        [Tooltip("Fastest turns a second that count with the mop.")]
         [SerializeField, Min(0.05f)] private float _mopSpeed = 0.7f;
-        [Tooltip("Fastest sweeps a second with the extinguisher.")]
+        [Tooltip("Fastest sweeps (there and back) a second that count with the extinguisher.")]
         [SerializeField, Min(0.05f)] private float _extinguisherSpeed = 0.9f;
         [Tooltip("Metres from the chef that floor dirt can be mopped.")]
         [SerializeField, Min(0f)] private float _mopReach = 1.1f;
@@ -175,12 +173,11 @@ namespace Game.Data
 
         public TraceGameSettings TraceGame => new TraceGameSettings
         {
-            DeadZone = _traceDeadZone,
-            Tolerance = _traceTolerance,
-            Reach = _traceReach,
-            MaxStickSpeed = _traceMaxStickSpeed,
+            MinPush = _spinMinPush,
+            TurnBack = _spinTurnBack,
+            SweepEdge = _sweepEdge,
             CircleSpeed = _clothSpeed,
-            FigureEightSpeed = _mopSpeed,
+            WideCircleSpeed = _mopSpeed,
             SweepSpeed = _extinguisherSpeed,
         };
 

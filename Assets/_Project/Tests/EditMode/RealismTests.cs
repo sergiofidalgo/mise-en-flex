@@ -113,7 +113,8 @@ namespace Game.Tests.EditMode
 
             var trace = new TraceGameSettings();
             var traced = MinigameComplexity.Scale(trace, 0.5f, _asset.Complexity);
-            Assert.That(traced.Tolerance, Is.EqualTo(trace.Tolerance).Within(1e-5f));
+            Assert.That(traced.MinPush, Is.EqualTo(trace.MinPush).Within(1e-5f));
+            Assert.That(traced.SweepEdge, Is.EqualTo(trace.SweepEdge).Within(1e-5f));
             Assert.That(traced.CircleSpeed, Is.EqualTo(trace.CircleSpeed).Within(1e-5f));
         }
 
@@ -155,22 +156,25 @@ namespace Game.Tests.EditMode
         }
 
         [Test]
-        public void LowerComplexityForgivesAStickFurtherOffThePath()
+        public void LowerComplexityCountsALighterPushAndShorterSweeps()
         {
             var trace = new TraceGameSettings();
-            var off = trace.Tolerance * 1.1f; // just outside the tuned band
-            Assert.That(MinigameComplexity.Scale(trace, 0.25f, _asset.Complexity).Tolerance, Is.GreaterThan(off));
-            Assert.That(MinigameComplexity.Scale(trace, 0.8f, _asset.Complexity).Tolerance, Is.LessThan(trace.Tolerance));
+            var relaxed = MinigameComplexity.Scale(trace, 0.25f, _asset.Complexity);
+            var chef = MinigameComplexity.Scale(trace, 0.8f, _asset.Complexity);
+            Assert.That(relaxed.MinPush, Is.LessThan(trace.MinPush));
+            Assert.That(chef.MinPush, Is.GreaterThan(trace.MinPush));
+            Assert.That(relaxed.SweepEdge, Is.LessThan(trace.SweepEdge));
+            Assert.That(chef.SweepEdge, Is.GreaterThan(trace.SweepEdge));
         }
 
-        // A hand that always leads the marker a little along the circle: as fast as the game allows.
+        // A hand spinning the stick faster than any setting counts: what's counted is the game's cap.
         private float LoopsIn(float seconds, float complexity)
         {
             var settings = MinigameComplexity.Scale(new TraceGameSettings(), complexity, _asset.Complexity);
             var game = new TraceGame(TraceShape.Circle, settings);
             const float Step = 1f / 60f;
             for (var t = 0f; t < seconds; t += Step)
-                game.Tick(Step, TraceGame.PointAt(TraceShape.Circle, game.Along + 0.08f));
+                game.Tick(Step, TraceGame.PointAt(TraceShape.Circle, t * 2.5f));
             return game.Loops;
         }
 

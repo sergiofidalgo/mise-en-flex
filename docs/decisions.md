@@ -4,6 +4,20 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-11 — Cleaning and fire: spin and sweep, with the sink's ring and stick cue
+
+**User's call:** the traced-path game for the cloth, mop and extinguisher was barely playable, at times almost impossible. Of the two options (reuse the sink game, or keep "moving" but apply the sink's principles) the user chose spin and sweep.
+
+- **Cloth and mop: spin the stick round, either way** (`TraceGame`). No path to stay on: any turning of a stick pushed past 0.4 cleans. Only new turning counts, so wagging back and forth adds nothing; spinning the other way counts once the stick has clearly turned back (270°). The mop's figure-eight is gone (its crossing was a trap): it spins too, slower.
+- **Extinguisher: wag the stick from side to side.** Each leg from one side (0.55 out) to the other is half a loop, so a fire's three loops are three sweeps there and back. Jiggling in the middle adds nothing.
+- **Faster cleans faster, up to the tool's speed** (cloth 1.1, mop 0.7, extinguisher 0.9 loops a second). Motion over that waits in a small buffer (half a loop) rather than being thrown away, so a sweep's quick middle still counts; a stick jumping faster than a hand can move it (30 rad/s turning, 25 units/s sweeping) was slammed and doesn't count.
+- **Shown as at the sink:** a ring of 15 chunky toon segments round the dirt (or over the burning pan) fills clockwise from the top, from grime to water (flame to foam for a fire), drawn over the chef; the tool's head follows the stick, so the cloth visibly circles. The beads, chevrons and marker are gone.
+- **The stick cue** (the sink's flat stick, now shared through `IStickHintSource`): spinning for the cloth and mop, wagging for the extinguisher; it shows 0.15 s after cleaning starts until the stick first cleans, and again whenever it stalls for 0.8 s.
+- **Amounts are unchanged**, as are hold X to start and X or B to stop. The complexity dial now lowers the push needed and the sweep's width, and raises the speeds.
+- **Verified:** the EditMode tests and the cleaning play tests (a fire put out with the extinguisher, a spill mopped, a table wiped), driven by a hand spinning or wagging a loop a second. Not yet played by hand.
+
+---
+
 ## 2026-11-11 — Review cards: the customer who came, as a conversation
 
 **Decision (user's calls):**
