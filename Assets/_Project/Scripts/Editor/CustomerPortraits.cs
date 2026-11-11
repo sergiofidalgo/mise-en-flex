@@ -5,9 +5,6 @@ using Game.Presentation.Hud;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
-using UnityEngine.Rendering;
-using UnityEngine.Rendering.Universal;
-using UnityEngine.SceneManagement;
 
 namespace Game.Editor
 {
@@ -48,7 +45,7 @@ namespace Game.Editor
             Directory.CreateDirectory(Folder);
 
             var scene = EditorSceneManager.NewPreviewScene();
-            var target = new RenderTexture(Size, Size, 24, RenderTextureFormat.ARGB32, RenderTextureReadWrite.sRGB) { antiAliasing = 4 }; // the pipeline's MSAA
+            var target = PhotoStudio.Target(Size);
             try
             {
                 var person = (GameObject)PrefabUtility.InstantiatePrefab(prefab, scene);
@@ -57,9 +54,9 @@ namespace Game.Editor
                 var looks = person.transform.Cast<Transform>().Where(t => t.name.StartsWith("Look_")).ToArray();
 
                 // The kitchen's warm sun from the front, and a soft fill so the far cheek isn't black.
-                Light(scene, "Key", Quaternion.Euler(35f, 200f, 0f), 1.15f, new Color(1f, 0.96f, 0.9f));
-                Light(scene, "Fill", Quaternion.Euler(15f, 140f, 0f), 0.45f, new Color(0.85f, 0.9f, 1f));
-                var camera = Camera(scene);
+                PhotoStudio.Light(scene, "Key", Quaternion.Euler(35f, 200f, 0f), 1.15f, new Color(1f, 0.96f, 0.9f));
+                PhotoStudio.Light(scene, "Fill", Quaternion.Euler(15f, 140f, 0f), 0.45f, new Color(0.85f, 0.9f, 1f));
+                var camera = PhotoStudio.Camera(scene, FieldOfView);
 
                 var paths = new string[looks.Length];
                 for (var i = 0; i < looks.Length; i++)
@@ -73,7 +70,7 @@ namespace Game.Editor
                     }
                     Frame(camera, looks[i], head.bounds);
                     paths[i] = $"{Folder}/TEX_Portrait_Customer_{i}_{looks[i].name.Substring("Look_".Length)}.png";
-                    Render(camera, target, paths[i]);
+                    PhotoStudio.Render(camera, target, paths[i]);
                 }
 
                 AssetDatabase.Refresh();
@@ -96,34 +93,6 @@ namespace Game.Editor
             }
         }
 
-        private static void Light(Scene scene, string name, Quaternion rotation, float intensity, Color colour)
-        {
-            var light = new GameObject(name).AddComponent<Light>();
-            SceneManager.MoveGameObjectToScene(light.gameObject, scene);
-            light.type = LightType.Directional;
-            light.transform.rotation = rotation;
-            light.intensity = intensity;
-            light.color = colour;
-            light.shadows = LightShadows.None;
-        }
-
-        private static Camera Camera(Scene scene)
-        {
-            var camera = new GameObject("PortraitCamera").AddComponent<Camera>();
-            SceneManager.MoveGameObjectToScene(camera.gameObject, scene);
-            camera.scene = scene;
-            camera.fieldOfView = FieldOfView;
-            camera.nearClipPlane = 0.05f;
-            camera.farClipPlane = 20f;
-            camera.clearFlags = CameraClearFlags.SolidColor;
-            camera.allowHDR = false;
-            camera.allowMSAA = true;
-            // As the game draws people: the ink outline and the grading come with post-processing,
-            // which fills the background, so the clear background is recovered by Render below.
-            camera.GetUniversalAdditionalCameraData().renderPostProcessing = true;
-            return camera;
-        }
-
         // Head and shoulders, the hat included: the head's centre a little above the middle.
         private static void Frame(Camera camera, Transform look, Bounds head)
         {
@@ -140,61 +109,6 @@ namespace Game.Editor
             // Customers face +Z: the camera stands in front, turned a little to one side.
             var rotation = Quaternion.Euler(LookDownDegrees, 180f + TurnDegrees, 0f);
             camera.transform.SetPositionAndRotation(centre - rotation * Vector3.forward * distance, rotation);
-        }
-
-        // Rendered on black and on white: where the two agree the person covers the pixel, and how
-        // far they differ (against how far the backgrounds differ) is how see-through it is. That
-        // keeps the outline's soft edge without guessing a key colour.
-        private static void Render(Camera camera, RenderTexture target, string path)
-        {
-            var onBlack = Shoot(camera, target, Color.black);
-            var onWhite = Shoot(camera, target, Color.white);
-            // The backgrounds as they came out, after grading, from a corner.
-            var black = onBlack[0];
-            var white = onWhite[0];
-            var spread = Mathf.Max(1f, (white.r - black.r + white.g - black.g + white.b - black.b) / 3f);
-            var pixels = new Color32[onBlack.Length];
-            for (var i = 0; i < pixels.Length; i++)
-            {
-                var b = onBlack[i];
-                var w = onWhite[i];
-                var seen = ((w.r - b.r) + (w.g - b.g) + (w.b - b.b)) / 3f / spread;
-                var alpha = Mathf.Clamp01(1f - seen);
-                if (alpha < 0.01f)
-                {
-                    pixels[i] = new Color32(0, 0, 0, 0);
-                    continue;
-                }
-                // The colour without the black background mixed in.
-                byte Unmix(byte value, byte back) => (byte)Mathf.Clamp(Mathf.RoundToInt((value - back * (1f - alpha)) / alpha), 0, 255);
-                pixels[i] = new Color32(Unmix(b.r, black.r), Unmix(b.g, black.g), Unmix(b.b, black.b), (byte)Mathf.RoundToInt(alpha * 255f));
-            }
-            var image = new Texture2D(Size, Size, TextureFormat.RGBA32, false);
-            image.SetPixels32(pixels);
-            image.Apply();
-            File.WriteAllBytes(path, image.EncodeToPNG());
-            Object.DestroyImmediate(image);
-        }
-
-        private static Color32[] Shoot(Camera camera, RenderTexture target, Color background)
-        {
-            camera.backgroundColor = background;
-            camera.targetTexture = target;
-            var request = new RenderPipeline.StandardRequest { destination = target };
-            if (RenderPipeline.SupportsRenderRequest(camera, request))
-                RenderPipeline.SubmitRenderRequest(camera, request);
-            else
-                camera.Render();
-
-            var previous = RenderTexture.active;
-            RenderTexture.active = target;
-            var image = new Texture2D(Size, Size, TextureFormat.RGBA32, false);
-            image.ReadPixels(new Rect(0, 0, Size, Size), 0, 0);
-            image.Apply();
-            RenderTexture.active = previous;
-            var pixels = image.GetPixels32();
-            Object.DestroyImmediate(image);
-            return pixels;
         }
     }
 }
