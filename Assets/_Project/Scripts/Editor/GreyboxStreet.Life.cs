@@ -36,12 +36,83 @@ namespace Game.Editor
             var life = new GameObject("StreetLife").transform;
             life.SetParent(street, false);
 
+            Neighbours(street);
+            Park(street);
             LampsAndWindows(life, root);
             Furniture(life);
             var (board, spot) = MenuBoard(life);
             Passersby(life, board, spot);
             Pigeons(life);
             Extractor(life, root);
+        }
+
+        // What closes the scene (the user's note, 2026-11-11: "model adjacent scenery to close the
+        // scene so the boundaries are justified organically"). The plaza and the parking lot used to
+        // end at an invisible wall on open grass. Now the restaurant stands in a street: a block of
+        // the city's shops and flats on each side, their fronts on the same pavement and their side
+        // walls where the plaza and the lot end, running on past anything the camera shows.
+        private const float NeighbourGap = 0.3f;
+        private const float NeighbourWidth = 8f;
+
+        private static void Neighbours(Transform street)
+        {
+            if (!Kit.Available)
+                return;
+            var blocks = new GameObject("Neighbours").transform;
+            blocks.SetParent(street, false);
+            // From the pavement back past the fence, so nothing shows behind them from the plaza.
+            var depth = GroundsNorth + 1.5f - BuildingSouth;
+            var z = BuildingSouth + depth / 2f;
+            var index = 0;
+            foreach (var side in new[] { -1f, 1f })
+            {
+                var edge = side < 0f ? GroundsWest - NeighbourGap : GroundsEast + NeighbourGap;
+                for (var k = 0; Mathf.Abs(edge) + NeighbourWidth <= StreetEnd + NeighbourWidth; k++)
+                {
+                    // Two storeys by the restaurant, so the camera's view of the plaza and the lot
+                    // stays open; taller further off.
+                    var height = k == 0 ? 7.8f : 9f + (index % 3) * 1.6f;
+                    var building = OfficeBuilder.StreetBuilding(blocks, new Vector3(edge + side * NeighbourWidth / 2f, 0f, z), 180f,
+                        NeighbourWidth, depth, height, index++);
+                    if (k == 0)
+                    {
+                        // A mural on the wall that looks over the plaza (the steak) or the lot (the
+                        // sunset), so the scene's edge is something to look at. Turned 180°, the
+                        // building's local −X is east.
+                        OfficeBuilder.StreetMural(building, NeighbourWidth, height, plusX: side > 0f, mural: side < 0f ? 2 : 1, size: 4.6f);
+                        // Its side wall is where the plaza (or the lot) ends: solid, floor to roof.
+                        var wall = building.gameObject.AddComponent<BoxCollider>();
+                        wall.center = new Vector3(0f, -height / 2f, 0f);
+                        wall.size = new Vector3(NeighbourWidth, height, depth);
+                    }
+                    edge += side * (NeighbourWidth + 0.5f); // a narrow alley between buildings
+                }
+            }
+        }
+
+        // Across the road: a park. A pavement, a clipped hedge with gaps, trees behind it, benches
+        // looking over the road. Low, so it never comes between the camera and the restaurant.
+        private static void Park(Transform street)
+        {
+            var park = new GameObject("Park").transform;
+            park.SetParent(street, false);
+            Slab(park, "FarPavement", Paving, -StreetEnd, StreetEnd, RoadSouth - 2.4f, RoadSouth);
+            Box(park, "FarKerb", Mat("StreetKerb", KerbStone), new Vector3(0f, 0.05f, RoadSouth), new Vector3(StreetEnd * 2f, 0.1f, 0.2f));
+
+            var hedge = Kit.Toon("KitHedge", new Color(0.24f, 0.45f, 0.3f));
+            var hedgeZ = RoadSouth - 2.8f;
+            const float run = 9f;
+            for (var x = -StreetEnd + 1f; x + run - 1.6f <= StreetEnd; x += run)
+            {
+                // A gap in the hedge every nine metres: a way into the park.
+                Box(park, "Hedge", hedge, new Vector3(x + (run - 1.6f) / 2f, 0.5f, hedgeZ), new Vector3(run - 1.6f, 1f, 0.7f));
+                if (!Kit.Available)
+                    continue;
+                OfficeBuilder.StreetTree(park, new Vector3(x + 2.2f, 0f, hedgeZ - 2.2f), 0.75f);
+                OfficeBuilder.StreetTree(park, new Vector3(x + 6.4f, 0f, hedgeZ - 4.4f), 0.9f);
+                if (Mathf.RoundToInt((x + StreetEnd) / run) % 2 == 0)
+                    Kit.Bench(park, new Vector3(x + 3.7f, 0f, RoadSouth - 1.9f), 0f); // back to the hedge, looking over the road
+            }
         }
 
         // Lamps along the kerb, on the kerbstone itself, their heads over the pavement; and the

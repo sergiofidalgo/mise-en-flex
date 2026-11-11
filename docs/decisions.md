@@ -16,6 +16,16 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 - **The extractor** (`ExtractorVentView`, `StreetHours.Extraction`): a steel stack off the back wall by the east corner. It steams as hard as the kitchen cooks (nothing with the hobs off, a wisp with them hot and empty, a full plume with two hobs cooking flat out, easing over two seconds) and pours dark smoke while a pan is on fire.
 - **Dressing:** the street kit's own models (the city's bench, hedge planters, hydrant, and its lit menu stand for the menu board): a bench between two planters on the plaza's west edge, planters in the back corners, a hydrant on the kerb. Doors and windows on the houses, a breeze in the trees. Plain boxes stand in where the kit isn't there.
 
+**The same day, the user's second note:** "model adjacent scenery to close the scene so the boundaries are justified organically", and the box cars were "very underwhelming".
+
+- **The restaurant stands in a street now.** A block of the city's shops and flats (`RowBuilding`, through `OfficeBuilder.StreetBuilding`) stands on each side, fronts on the same pavement, running 22 m past the grounds either way. The plaza and the parking lot end at their side walls, which are solid, where they used to end at an invisible wall on open grass. The nearest building each side is two storeys (7.8 m), so the camera's view of the plaza and the lot stays open, and carries a mural: the steak over the plaza, the sunset over the lot. Their shops' own lamps are left out: this street is lit by its day.
+- **A park across the road:** a far pavement, a clipped hedge with a gap every nine metres, trees behind it, benches looking over the road. Low on purpose, as it lies under the camera. The kerb is still the limit that way; the traffic is the reason.
+- **The road, pavement and grass run on** to the ends of the neighbours' blocks.
+- **Cars are the city's models** (`SM_Cars`: sedans, hatchbacks, taxis, vans), five on the road, and they keep right: the lane by the restaurant's kerb drives west. Two are parked in the lot's bays and are solid.
+- **The street is seeded** from the building's size, so each restaurant's cars and neighbours come out the same on every build.
+
+**To judge in play, for these:** whether the neighbours ever come between the camera and a chef at the far edge of the plaza or the lot; whether graffiti tags on the neighbours' shutters suit this street; the parked cars' size in the lot.
+
 **Where things stand, and why:** everything is placed from the building's walls, so every restaurant's street gets it. Nothing stands in the guests' lane, their queue along the front wall, or the bin's track; lamps and the hydrant are on the kerbstone, beyond where chefs can walk.
 
 **Verified:** EditMode `StreetWalkersTests` (lanes, coming round again, stepping aside without stopping, staying on the pavement, the board, one reader, the dusk hours, the extractor). Stills by `StreetLifeCapture`, run by name.

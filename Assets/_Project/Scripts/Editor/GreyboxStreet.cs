@@ -35,6 +35,8 @@ namespace Game.Editor
         private static float GroundsNorth => BuildingNorth + 0.9f;
         private static float Kerb => BuildingSouth - 3.2f;
         private static float RoadSouth => Kerb - 6.7f;
+        // How far the road, the pavement and the neighbours run either way: past anything the camera shows.
+        private static float StreetEnd => Mathf.Max(-GroundsWest, GroundsEast) + 22f;
         private static float PlazaEast => BuildingWest - 0.5f;
         private static float ParkingWest => BuildingEast + 0.5f;
 
@@ -85,6 +87,8 @@ namespace Game.Editor
             Canopies = layout.Canopies;
 
             var street = new GameObject("Street").transform;
+            // The same cars and neighbours every time this restaurant's street is built.
+            OfficeBuilder.StreetSeed(2611_11 + Mathf.RoundToInt(BuildingEast * 10f) + Mathf.RoundToInt(BuildingNorth * 100f));
 
             Ground(street);
             Road(street);
@@ -110,38 +114,49 @@ namespace Game.Editor
         private static void Ground(Transform street)
         {
             // 60 m by 40 m around the grill's building, and as much bigger as a bigger building is.
-            var extraWidth = BuildingEast - BuildingWest - 8.2f;
+            // Wide enough to lie under the whole street, the neighbours and the park across the road.
             var extraDepth = BuildingNorth - BuildingSouth - 9.2f;
             var grass = Box(street, "Grass", Mat("StreetGrass", Grass),
-                new Vector3((GroundsWest + GroundsEast) / 2f, -0.03f, (BuildingSouth + BuildingNorth) / 2f - 1.5f),
-                new Vector3(60f + extraWidth, 0.02f, 40f + extraDepth));
+                new Vector3(0f, -0.03f, (BuildingSouth + BuildingNorth) / 2f - 4f),
+                new Vector3(StreetEnd * 2f + 10f, 0.02f, 50f + extraDepth));
             grass.AddComponent<BoxCollider>();
 
             // The brick pavement along the front, from the plaza to the parking lot.
-            Slab(street, "Pavement", Brick, GroundsWest, GroundsEast, Kerb, BuildingSouth);
-            Box(street, "Kerb", Mat("StreetKerb", KerbStone), new Vector3((GroundsWest + GroundsEast) / 2f, 0.05f, Kerb), new Vector3(GroundsEast - GroundsWest + 20f, 0.1f, 0.2f));
+            // It runs on past both ends with the road, in front of the neighbours' shops.
+            Slab(street, "Pavement", Brick, -StreetEnd, StreetEnd, Kerb, BuildingSouth);
+            Box(street, "Kerb", Mat("StreetKerb", KerbStone), new Vector3(0f, 0.05f, Kerb), new Vector3(StreetEnd * 2f, 0.1f, 0.2f));
         }
 
         // The road along the front, with cars passing both ways. Chefs can't step off the kerb.
         private static void Road(Transform street)
         {
-            Slab(street, "Road", Asphalt, -30f, 30f, RoadSouth, Kerb - 0.1f);
+            Slab(street, "Road", Asphalt, -StreetEnd, StreetEnd, RoadSouth, Kerb - 0.1f);
             var line = Mat("StreetLaneLine", LaneLine);
             var middle = (Kerb + RoadSouth) / 2f;
-            for (var x = -28f; x < 28f; x += 3f)
+            for (var x = -StreetEnd + 2f; x < StreetEnd - 2f; x += 3f)
                 Box(street, "LaneDash", line, new Vector3(x, 0.006f, middle), new Vector3(1.4f, 0.004f, 0.15f));
 
-            var lanes = new[] { (middle + 1.6f, 1f), (middle - 1.6f, -1f) };
-            for (var k = 0; k < 4; k++)
+            // Keep right: the lane by the restaurant's kerb drives west, the far one east.
+            var lanes = new[] { (middle + 1.6f, -1f), (middle - 1.6f, 1f) };
+            for (var k = 0; k < 5; k++)
             {
                 var (z, dir) = lanes[k % 2];
                 var car = Car(street, CarPaints[k % CarPaints.Length]);
-                car.gameObject.AddComponent<LaneMover>().Set(new Vector3(-dir * 30f, 0f, z), new Vector3(dir * 30f, 0f, z), 6f + k, false, 0f, k / 4f);
+                car.gameObject.AddComponent<LaneMover>().Set(new Vector3(-dir * StreetEnd, 0f, z), new Vector3(dir * StreetEnd, 0f, z), 5.5f + k * 0.8f, false, 0f, k / 5f + 0.07f * (k % 2));
             }
         }
 
         private static Transform Car(Transform parent, Color paint)
         {
+            // The city's modelled cars (the user's note, 2026-11-11: the box cars were underwhelming):
+            // sedans, hatchbacks, taxis and vans. The boxes stand in without the models.
+            if (Kit.Available)
+            {
+                var modelled = OfficeBuilder.StreetCar(parent);
+                if (modelled.GetComponentInChildren<Renderer>() != null)
+                    return modelled;
+                Object.DestroyImmediate(modelled.gameObject);
+            }
             var car = new GameObject("Car").transform;
             car.SetParent(parent, false);
             var body = Mat($"StreetCar_{ColorUtility.ToHtmlStringRGB(paint)}", paint);
@@ -243,9 +258,17 @@ namespace Game.Editor
             var line = Mat("StreetParkingLine", ParkingLine);
             for (var z = BuildingSouth + 1.1f; z <= BuildingNorth - 0.1f; z += 2.6f)
                 Box(street, "ParkingLine", line, new Vector3((ParkingWest + 1.5f + GroundsEast) / 2f, 0.006f, z), new Vector3(GroundsEast - ParkingWest - 1.5f, 0.004f, 0.08f));
-            var parked = Car(street, CarPaints[1]);
-            parked.localPosition = new Vector3(GroundsEast - 2f, 0f, BuildingSouth + 2.4f);
-            parked.localRotation = Quaternion.Euler(0f, 90f, 0f);
+            // Two cars in the bays (each 2.6 m wide), nose in from the lot's aisle; a bay left between them.
+            foreach (var bay in new[] { 0, 1 })
+            {
+                var parked = Car(street, CarPaints[1 + bay]);
+                parked.localPosition = new Vector3(GroundsEast - 2.3f, 0f, BuildingSouth + 2.4f + bay * 2.6f);
+                parked.localRotation = Quaternion.Euler(0f, 90f, 0f);
+                // Solid: a chef walks round a parked car, not through it.
+                var body = parked.gameObject.AddComponent<BoxCollider>();
+                body.center = new Vector3(0f, 0.9f, 0f);
+                body.size = new Vector3(1.8f, 1.8f, 4.2f);
+            }
 
             // The one trash container (the mockup's recycling area is too much, the user's note).
             TrashContainer(street, new Vector3(BuildingEast + 0.75f, 0f, BuildingNorth - 3.3f));
