@@ -26,6 +26,10 @@ namespace Game.Presentation.Office
         [SerializeField] private OpeningHud _hud;
         [Tooltip("The glass lift on the tower's front, which rides up with the camera on the climb; optional.")]
         [SerializeField] private OpeningElevator _elevator;
+        [Tooltip("The helicopter that crosses the top of the tower as the camera crests it; optional.")]
+        [SerializeField] private OpeningFlyby _flyby;
+        [Tooltip("How far through the climb's time (0–1) the helicopter starts its pass.")]
+        [SerializeField, Range(0f, 1f)] private float _flybyFrom = 0.5f;
         [Tooltip("Everything below the floor that only the opening sees (the street 120 m down with its people and lights, the tower's rooms, the lift): switched off once the camera lands, as nobody sees it from the floor (the 60 fps budget with four players).")]
         [SerializeField] private GameObject[] _offAfterLanding = System.Array.Empty<GameObject>();
         [Tooltip("The floor's own HUD (the player bar): hidden until the camera lands (the user's note, 2026-11-10).")]
@@ -184,14 +188,14 @@ namespace Game.Presentation.Office
                         break;
                     }
                     var t = Mathf.Clamp01(_clock / _climbSeconds);
-                    var eased = OpeningPath.Ease(t);
-                    var pose = OpeningPath.SampleEven(_climbPath, eased);
                     // Over the top of the glass, the camera tips onto the floor's own view, looking down at the follow camera's angle.
-                    var turn = Mathf.Clamp01((eased - _turnFrom) / (1f - _turnFrom));
-                    Place(pose, Quaternion.Slerp(pose.Rotation, _landingRotation, OpeningPath.Ease(turn)));
-                    SetFog(eased);
+                    var position = OpeningPath.Climb(_climbPath, _landingRotation, _turnFrom, t, out var rotation);
+                    _camera.transform.SetPositionAndRotation(position, rotation);
+                    SetFog(OpeningPath.Ease(t));
                     if (_elevator != null)
-                        _elevator.Track(_camera.transform.position.y);
+                        _elevator.Track(position.y);
+                    if (_flyby != null && t >= _flybyFrom)
+                        _flyby.Begin();
                     if (t >= 1f)
                         Land();
                     break;
@@ -221,6 +225,9 @@ namespace Game.Presentation.Office
 
         private void Land()
         {
+            // Skipped before the camera could have seen it: the helicopter stays on its lap.
+            if (_flyby != null && _stage != Stage.Climb)
+                _flyby.Cancel();
             Enter(Stage.Landed);
             _menu.SetShown(false, 0f);
             SetFog(1f);

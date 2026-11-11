@@ -126,6 +126,45 @@ namespace Game.Presentation.Office
             return Sample(poses, (segment + u) / lengths.Length);
         }
 
+        /// <summary>
+        /// The climb's camera at <paramref name="t"/> (0–1 of its time): eased along the curve through
+        /// <paramref name="path"/> (whose last pose is the landing), and from <paramref name="turnFrom"/>
+        /// of the way turning from the curve's own look onto <paramref name="landing"/>, the floor's view.
+        /// </summary>
+        public static Vector3 Climb(CameraPose[] path, Quaternion landing, float turnFrom, float t, out Quaternion rotation)
+        {
+            var eased = Ease(t);
+            var pose = SampleEven(path, eased);
+            var turn = Mathf.Clamp01((eased - turnFrom) / Mathf.Max(1e-4f, 1f - turnFrom));
+            rotation = Quaternion.Slerp(pose.Rotation, landing, Ease(turn));
+            return pose.Position;
+        }
+
+        /// <summary>
+        /// The lift's height beside a camera at <paramref name="cameraHeight"/>: locked
+        /// <paramref name="lead"/> metres from it, with no lag (a cab chasing the camera on a spring
+        /// fell 7 m behind at the climb's top speed and out of the frame; the user's note,
+        /// 2026-11-11), never under <paramref name="bottom"/>. Near <paramref name="top"/> it eases
+        /// into its stop instead of hitting it: over the last <paramref name="settle"/> metres either
+        /// side of where it would have arrived, it follows a parabola that leaves the camera's line
+        /// at full speed and meets the stop at none, so the camera sees it arrive and carries on.
+        /// </summary>
+        public static float LiftHeight(float cameraHeight, float lead, float bottom, float top, float settle)
+        {
+            var wanted = cameraHeight + lead;
+            var gap = top - wanted;
+            float height;
+            if (settle <= 1e-4f)
+                height = Mathf.Min(wanted, top);
+            else if (gap >= settle)
+                height = wanted;
+            else if (gap <= -settle)
+                height = top;
+            else
+                height = top - (gap + settle) * (gap + settle) / (4f * settle);
+            return Mathf.Max(bottom, height);
+        }
+
         // Through p1 at u = 0 and p2 at u = 1. Centripetal (knots spaced by the square root of each
         // stretch's length, Barry and Goldman's form): unlike the uniform curve it never overshoots
         // or loops where a short stretch follows a long one, so the camera never swings back.

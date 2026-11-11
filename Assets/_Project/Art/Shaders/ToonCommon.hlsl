@@ -34,6 +34,11 @@ half3 ToonRamp(float value)
 // shapes naturally, a smooth falloff rather than toon bands (the user's call, 2026-11-09), and
 // wrap a little round the sides facing away, as a room's bounce light would.
 float _GameLocalLights;
+// A trial (2026-11-11, the user's note: the city and the tower look "too 3D" beside the kitchen):
+// above 0, the lamps' light falls in that many flat steps instead of a smooth falloff, as the
+// sun's does in the three-band ramp. A global the scene sets (LampLighting); unset, it is 0 and
+// nothing changes.
+float _GameLampBands;
 
 half3 LocalLights(half3 albedo, float3 positionWS, float3 normalWS, float4 positionCS)
 {
@@ -50,7 +55,20 @@ half3 LocalLights(half3 albedo, float3 positionWS, float3 normalWS, float4 posit
         half wrap = saturate(dot(normalWS, light.direction) * 0.7 + 0.3);
         sum += light.color * (light.distanceAttenuation * wrap);
     LIGHT_LOOP_END
-    return albedo * sum * _GameLocalLights;
+    sum *= _GameLocalLights;
+    if (_GameLampBands > 0.5)
+    {
+        // Step the brightness, keep the colour. Steps are taken on b / (1 + b), which squeezes
+        // any brightness into 0–1, so a lamp's bright core gets as many steps as its dim edge
+        // instead of all of them crowding round the bulb. Each step's edge is a fixed sliver of a
+        // step wide (no screen derivatives: this sits behind a branch).
+        half brightness = max(dot(sum, half3(0.299, 0.587, 0.114)), 1e-4);
+        half squeezed = brightness / (1.0 + brightness) * _GameLampBands;
+        half stepped = (floor(squeezed) + smoothstep(0.44, 0.56, frac(squeezed))) / _GameLampBands;
+        stepped = min(stepped, 0.88);
+        sum *= stepped / (1.0 - stepped) / brightness;
+    }
+    return albedo * sum;
 #else
     return half3(0, 0, 0);
 #endif

@@ -120,6 +120,8 @@ namespace Game.Editor
             // The opening's street, 120 m below the floor: looking along it, and up at the tower.
             Render(camera, new Vector3(40f, -118.2f, -24f), Quaternion.Euler(4f, -90f, 0f), Path.Combine(folder, "street_along.png"));
             Render(camera, new Vector3(14f, -116.5f, -36f), Quaternion.Euler(-12f, -20f, 0f), Path.Combine(folder, "street_lobby.png"));
+            // Straight down on the closed street: who rides and walks where.
+            Render(camera, new Vector3(0f, -78f, -24f), Quaternion.Euler(90f, 0f, 0f), Path.Combine(folder, "street_plan.png"));
             OpeningFrames(camera, folder);
             Debug.Log($"[OfficeCapture] Saved to {folder}");
         }
@@ -139,8 +141,12 @@ namespace Game.Editor
             var officeFog = new Vector2(RenderSettings.fogStartDistance, RenderSettings.fogEndDistance);
             RenderSettings.fogStartDistance = fog.x;
             RenderSettings.fogEndDistance = fog.y;
+            var riders = UnityEngine.Object.FindObjectsByType<Game.Presentation.Office.Ambience.RouteMover>(FindObjectsSortMode.InstanceID);
             foreach (var t in new[] { 0f, 0.5f, 1f })
             {
+                // The couriers where they'd be that far into the approach (8 s), a few seconds after the scene starts.
+                foreach (var rider in riders)
+                    rider.Freeze(4f + t * 8f);
                 var pose = OpeningPath.SampleEven(flight, t);
                 Render(camera, pose.Position, pose.Rotation, Path.Combine(folder, $"opening_flight_{Mathf.RoundToInt(t * 100):000}.png"));
             }
@@ -173,29 +179,45 @@ namespace Game.Editor
                 }
             }
 
-            // The glass lift rides with the camera on the climb (OpeningElevator): put the cab where it would be.
+            // The climb as the game plays it (OpeningPath.Climb): up beside the lift, over the cornice,
+            // onto the floor's wide shot. The cab is put where it would be beside the camera
+            // (OpeningElevator), and the helicopter where its pass would have it (OpeningFlyby).
             var lift = UnityEngine.Object.FindFirstObjectByType<OpeningElevator>();
-            var liftSo = lift != null ? new SerializedObject(lift) : null;
-            void PlaceCab(float cameraHeight)
+            var flyby = UnityEngine.Object.FindFirstObjectByType<OpeningFlyby>();
+            var landing = camera.GetComponent<OfficeCamera>().Wanted();
+            var landingRotation = Quaternion.Euler(Tilt, 0f, 0f);
+            var whole = new CameraPose[path.Length + 1];
+            path.CopyTo(whole, 0);
+            whole[whole.Length - 1] = new CameraPose(landing, landing + landingRotation * Vector3.forward * 30f);
+            var turnFrom = so.FindProperty("_turnFrom").floatValue;
+            var climbSeconds = so.FindProperty("_climbSeconds").floatValue;
+            var flybyFrom = so.FindProperty("_flybyFrom").floatValue;
+            foreach (var t in new[] { 0.15f, 0.3f, 0.45f, 0.6f, 0.65f, 0.7f, 0.74f, 0.78f, 0.84f, 0.9f, 1f })
             {
-                if (liftSo == null)
-                    return;
-                var cab = (Transform)liftSo.FindProperty("_cab").objectReferenceValue;
-                var y = Mathf.Clamp(cameraHeight + liftSo.FindProperty("_lead").floatValue, liftSo.FindProperty("_bottom").floatValue, liftSo.FindProperty("_top").floatValue);
-                cab.position = new Vector3(cab.position.x, y, cab.position.z);
+                var position = OpeningPath.Climb(whole, landingRotation, turnFrom, t, out var rotation);
+                if (lift != null && lift.Cab != null)
+                    lift.Cab.position = new Vector3(lift.Cab.position.x, OpeningPath.LiftHeight(position.y, lift.Lead, lift.Bottom, lift.Top, lift.Settle), lift.Cab.position.z);
+                if (flyby != null && t >= flybyFrom)
+                    flyby.Place((t - flybyFrom) * climbSeconds);
+                RenderSettings.fogStartDistance = Mathf.Lerp(fog.x, officeFog.x, OpeningPath.Ease(t));
+                RenderSettings.fogEndDistance = Mathf.Lerp(fog.y, officeFog.y, OpeningPath.Ease(t));
+                Render(camera, position, rotation, Path.Combine(folder, $"opening_climb_{Mathf.RoundToInt(t * 100):000}.png"));
             }
-            for (var i = 1; i < path.Length; i++)
+            // The same street and floors with the lamps' light in flat steps (LampLighting's trial
+            // dial), to judge beside the smooth ones.
+            RenderSettings.fogStartDistance = fog.x;
+            RenderSettings.fogEndDistance = fog.y;
+            foreach (var bands in new[] { 3f, 5f })
             {
-                PlaceCab(path[i].Position.y);
-                Render(camera, path[i].Position, path[i].Rotation, Path.Combine(folder, $"opening_climb_{i}.png"));
+                Shader.SetGlobalFloat("_GameLampBands", bands);
+                var stop = flight[flight.Length - 1];
+                Render(camera, stop.Position, stop.Rotation, Path.Combine(folder, $"look_street_bands{bands:0}.png"));
+                var position = OpeningPath.Climb(whole, landingRotation, turnFrom, 0.45f, out var rotation);
+                if (lift != null && lift.Cab != null)
+                    lift.Cab.position = new Vector3(lift.Cab.position.x, OpeningPath.LiftHeight(position.y, lift.Lead, lift.Bottom, lift.Top, lift.Settle), lift.Cab.position.z);
+                Render(camera, position, rotation, Path.Combine(folder, $"look_floors_bands{bands:0}.png"));
             }
-            // Halfway between climb poses too, where the curve bends.
-            for (var i = 1; i <= 4; i++)
-            {
-                var pose = OpeningPath.SampleEven(path, i / 5f);
-                PlaceCab(pose.Position.y);
-                Render(camera, pose.Position, pose.Rotation, Path.Combine(folder, $"opening_climbing_{i * 20:000}.png"));
-            }
+            Shader.SetGlobalFloat("_GameLampBands", 0f);
             RenderSettings.fogStartDistance = officeFog.x;
             RenderSettings.fogEndDistance = officeFog.y;
         }

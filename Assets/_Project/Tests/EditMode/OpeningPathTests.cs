@@ -88,5 +88,52 @@ namespace Game.Tests.EditMode
             Assert.That(OpeningPath.Sample(new[] { Poses[1] }, 0.7f).Position, Is.EqualTo(Poses[1].Position));
             Assert.That(OpeningPath.Sample(System.Array.Empty<CameraPose>(), 0.5f).Position, Is.EqualTo(Vector3.zero));
         }
+
+        [Test]
+        public void TheLiftRidesLockedToTheCameraWithNoLag()
+        {
+            // Mid-climb, however fast the camera goes, the cab is exactly its lead away.
+            Assert.That(OpeningPath.LiftHeight(-60f, -1.1f, -119.85f, 0f, 4f), Is.EqualTo(-61.1f).Within(1e-4f));
+            Assert.That(OpeningPath.LiftHeight(-20f, -1.1f, -119.85f, 0f, 4f), Is.EqualTo(-21.1f).Within(1e-4f));
+        }
+
+        [Test]
+        public void TheLiftWaitsAtTheStreetAndStopsAtTheTop()
+        {
+            Assert.That(OpeningPath.LiftHeight(-119.5f, -1.1f, -119.85f, 0f, 4f), Is.EqualTo(-119.85f), "never under the street");
+            Assert.That(OpeningPath.LiftHeight(40f, -1.1f, -119.85f, 0f, 4f), Is.EqualTo(0f), "never over its top stop");
+        }
+
+        [Test]
+        public void TheLiftEasesIntoItsTopStop()
+        {
+            // Rising steadily past the top, the cab never goes down, never jumps, and slows to nothing.
+            var last = OpeningPath.LiftHeight(-12f, -1.1f, -119.85f, 0f, 4f);
+            var lastStep = float.MaxValue;
+            for (var camera = -11.9f; camera <= 8f; camera += 0.1f)
+            {
+                var now = OpeningPath.LiftHeight(camera, -1.1f, -119.85f, 0f, 4f);
+                var step = now - last;
+                Assert.That(step, Is.GreaterThanOrEqualTo(-1e-5f), $"went down at {camera}");
+                Assert.That(step, Is.LessThanOrEqualTo(lastStep + 1e-4f), $"sped up at {camera}");
+                Assert.That(step, Is.LessThanOrEqualTo(0.1f + 1e-4f), $"outran the camera at {camera}");
+                last = now;
+                lastStep = step;
+            }
+            Assert.That(last, Is.EqualTo(0f).Within(1e-4f));
+            Assert.That(lastStep, Is.EqualTo(0f).Within(1e-4f), "at rest by the end");
+        }
+
+        [Test]
+        public void TheClimbEndsOnTheLandingLookingTheFloorsWay()
+        {
+            var landing = Quaternion.Euler(55f, 0f, 0f);
+            var start = OpeningPath.Climb(Poses, landing, 0.86f, 0f, out var first);
+            Assert.That(Vector3.Distance(start, Poses[0].Position), Is.LessThan(1e-4f));
+            Assert.That(Quaternion.Angle(first, Poses[0].Rotation), Is.LessThan(0.01f), "the curve's own look until the turn");
+            var end = OpeningPath.Climb(Poses, landing, 0.86f, 1f, out var last);
+            Assert.That(Vector3.Distance(end, Poses[Poses.Length - 1].Position), Is.LessThan(1e-4f));
+            Assert.That(Quaternion.Angle(last, landing), Is.LessThan(0.01f));
+        }
     }
 }

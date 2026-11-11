@@ -18,7 +18,10 @@ namespace Game.Editor
     /// </summary>
     public static partial class OfficeBuilder
     {
-        private const float TowerStorey = 3.4f;
+        // Tall storeys (the user's note, 2026-11-11: fewer floors or higher ceilings on the climb):
+        // 24 floors of 4.6 m where there were 33 of 3.4 m, so each one stays in the frame a third
+        // longer as the camera passes and its people have room over their heads.
+        private const float TowerStorey = 4.6f;
         private const float TowerBay = 2.2f;
         private const float TowerPodium = 5f; // the lobby's height at the street
         // Where the camera climbs (the user's notes, 2026-11-10): the middle of the front, the lift
@@ -141,7 +144,44 @@ namespace Game.Editor
                 if (f % 10 != 9)
                     TowerRoom(rooms, top - f * TowerStorey - TowerStorey, f);
             _indoors = false;
-            TowerLift(tower, ground + 0.15f, top - TowerStorey);
+            // The lift's own top stop is the boss's floor itself: the cab comes up through the
+            // cornice into the floor's elevator, where the camera sees it arrive (the user's note,
+            // 2026-11-11). Its shaft's bronze stops under the cornice.
+            TowerLift(tower, ground + 0.15f, top - TowerStorey, 0.02f);
+            TowerCradle(tower, top);
+        }
+
+        // Window cleaners on the tower's own front (the user's note, 2026-11-11: more detail on the
+        // buildings): a cradle hung from davits on the cornice, east of the lift where the climbing
+        // camera passes it about two thirds of the way up, two cleaners wiping the glass, its
+        // cables running on up the face to the top.
+        private static void TowerCradle(Transform tower, float top)
+        {
+            const float x = 10.4f;
+            var steel = Toon("OfficeRoofMetal", new Color(0.7f, 0.71f, 0.72f));
+            var yellow = Toon("OfficeCrane", CraneYellow);
+            var hang = TowerFace - 0.8f;
+            var rest = -CityDepth + 74f;
+            foreach (var side in new[] { -1.3f, 1.3f })
+                Block(tower, "CradleDavit", steel, new Vector3(x + side, top + 0.2f, hang + 0.6f), new Vector3(0.16f, 0.16f, 1.7f));
+            var cradle = new GameObject("Cradle").transform;
+            cradle.SetParent(tower, false);
+            cradle.localPosition = new Vector3(x, rest, hang);
+            Block(cradle, "Deck", yellow, Vector3.zero, new Vector3(3f, 0.15f, 0.8f));
+            foreach (var z in new[] { -0.38f, 0.38f })
+                Block(cradle, "Rail", yellow, new Vector3(0f, 0.15f, z), new Vector3(3f, z < 0f ? 0.9f : 0.35f, 0.05f));
+            foreach (var side in new[] { -1.3f, 1.3f })
+                Block(cradle, "Cable", Toon("OfficeInk", Ink), new Vector3(side, 0.1f, 0.2f), new Vector3(0.04f, top + 0.2f - rest - 0.1f, 0.04f));
+            Block(cradle, "Bucket", Toon("OfficeHeliportBlue", new Color(0.25f, 0.5f, 0.8f)), new Vector3(0f, 0.15f, -0.1f), new Vector3(0.3f, 0.32f, 0.3f));
+            foreach (var (side, shirt) in new[] { (-0.8f, new Color(0.3f, 0.5f, 0.75f)), (0.8f, new Color(0.95f, 0.55f, 0.2f)) })
+            {
+                var cleaner = Person(cradle, "Cleaner", new Vector3(side, 0.15f, 0.05f), 0f, shirt, new Color(0.22f, 0.24f, 0.3f), 1f,
+                    look => { look.Hat = CharacterArt.HatKind.Cap; look.HatColor = new Color(0.98f, 0.82f, 0.2f); });
+                // Wiping the glass, side to side.
+                if (cleaner != null)
+                    Wobble(cleaner.gameObject, Oscillate.Shape.Wave, Vector3.zero, new Vector3(0f, 25f, 0f), 1.1f + 0.3f * side);
+            }
+            MakeDynamic(cradle.gameObject);
         }
 
         // The panes' painted rooms (SH_InteriorCard), sized to the panes.
@@ -710,18 +750,18 @@ namespace Game.Editor
         // the boss's floor's elevator, so the chef who gets in at the street comes out upstairs. A
         // glass cab between bronze posts, seen through the front glass as the camera climbs beside it;
         // OpeningElevator drives it.
-        private static void TowerLift(Transform tower, float bottom, float topStop)
+        private static void TowerLift(Transform tower, float bottom, float shaftTop, float topStop)
         {
             var bronze = Toon("OfficeTowerBronze", new Color(0.45f, 0.32f, 0.2f));
             var brass = Toon("OfficeBrass", Brass);
             var shaft = new GameObject("TowerLift").transform;
             shaft.SetParent(tower, false);
-            var height = topStop + 2.8f - bottom;
+            var height = shaftTop + 2.8f - bottom;
             foreach (var x in new[] { -ShaftHalfWidth, ShaftHalfWidth })
             foreach (var z in new[] { ShaftSouth + 0.25f, ShaftNorth })
                 Block(shaft, "Post", bronze, new Vector3(x, bottom, z), new Vector3(0.14f, height, 0.14f));
             // A bronze frame round the shaft at every floor.
-            for (var y = topStop; y > bottom + 3f; y -= TowerStorey)
+            for (var y = shaftTop; y > bottom + 3f; y -= TowerStorey)
             {
                 foreach (var z in new[] { ShaftSouth + 0.25f, ShaftNorth })
                     Block(shaft, "Ring", bronze, new Vector3(0f, y, z), new Vector3(2f * ShaftHalfWidth, 0.12f, 0.12f));
@@ -737,7 +777,12 @@ namespace Game.Editor
             var cabDepth = ShaftNorth - ShaftSouth - 0.45f;
             cab.localPosition = new Vector3(0f, bottom, (ShaftSouth + ShaftNorth) / 2f + 0.12f);
             Block(cab, "Floor", brass, new Vector3(0f, -0.15f, 0f), new Vector3(w, 0.15f, cabDepth));
-            Block(cab, "Roof", brass, new Vector3(0f, h, 0f), new Vector3(w, 0.15f, cabDepth));
+            // A glass roof in a brass rim: on the boss's floor the camera looks down into the cab,
+            // and a solid roof hid the chef as they arrived.
+            foreach (var z in new[] { -1f, 1f })
+                Block(cab, "RoofRim", brass, new Vector3(0f, h, z * (cabDepth / 2f - 0.06f)), new Vector3(w, 0.15f, 0.12f));
+            foreach (var x in new[] { -1f, 1f })
+                Block(cab, "RoofRim", brass, new Vector3(x * (w / 2f - 0.06f), h, 0f), new Vector3(0.12f, 0.15f, cabDepth - 0.24f));
             foreach (var (x, z) in new[] { (-1f, -1f), (1f, -1f), (-1f, 1f), (1f, 1f) })
                 Block(cab, "CabPost", brass, new Vector3(x * (w / 2f - 0.05f), 0f, z * (cabDepth / 2f - 0.05f)), new Vector3(0.1f, h, 0.1f));
             Block(cab, "Handrail", brass, new Vector3(0f, 0.95f, -cabDepth / 2f + 0.08f), new Vector3(w - 0.2f, 0.05f, 0.05f));
@@ -747,7 +792,8 @@ namespace Game.Editor
                 Cube(cab, "GlassSide", glass, new Vector3(x * w / 2f, 0f, 0f), new Vector3(0.03f, h, cabDepth - 0.1f));
             foreach (var x in new[] { -1f, 1f })
                 Block(cab, "Door", Toon("OfficeLiftDoor", new Color(0.62f, 0.5f, 0.3f)), new Vector3(x * w / 4f, 0f, cabDepth / 2f - 0.05f), new Vector3(w / 2f - 0.04f, h, 0.06f));
-            Cube(cab, "StripLight", Unlit("OfficeBulb", Bulb), new Vector3(0f, h - 0.06f, 0f), new Vector3(w - 0.6f, 0.04f, 0.3f));
+            Cube(cab, "GlassRoof", glass, new Vector3(0f, h + 0.05f, 0f), new Vector3(w - 0.2f, 0.03f, cabDepth - 0.2f));
+            Cube(cab, "StripLight", Unlit("OfficeBulb", Bulb), new Vector3(0f, h - 0.06f, cabDepth / 2f - 0.25f), new Vector3(w - 0.6f, 0.04f, 0.12f));
             Point(cab, "CabLight", new Vector3(0f, h - 0.5f, -0.3f), Incandescent, 5f, 2.4f);
             MakeDynamic(cab.gameObject);
 
