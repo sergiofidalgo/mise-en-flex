@@ -29,6 +29,8 @@ namespace Game.Presentation.Hud
         [SerializeField] private PauseMenu _pause;
         [SerializeField] private Color _light = new Color(1f, 0.973f, 0.925f);
         [SerializeField] private Color _ink = new Color(0.169f, 0.129f, 0.106f);
+        [Tooltip("How solid a segment is while it waits, so the kitchen's front shows through (the user's call, 2026-11-11). Filled by a hold, it's solid.")]
+        [SerializeField, Range(0f, 1f)] private float _idleOpacity = 0.7f;
 
         private Canvas _canvas;
         private RectTransform _bar;
@@ -89,6 +91,7 @@ namespace Game.Presentation.Hud
                 FontSize = 21f,
                 Light = _light,
                 Ink = _ink,
+                IdleOpacity = _idleOpacity,
             });
             _shown = null;
             return _lanes;

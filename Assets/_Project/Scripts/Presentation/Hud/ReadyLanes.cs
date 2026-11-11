@@ -27,6 +27,8 @@ namespace Game.Presentation.Hud
             /// <summary>The bar's colour with nobody joined yet.</summary>
             public Color Nobody = new Color(0.89f, 0.69f, 0.29f);
             public float Gap = 4f;
+            /// <summary>How solid a segment's waiting part is; the part filled by a hold is always solid.</summary>
+            public float IdleOpacity = 1f;
             public float FillSpeed = 12f;
             public float PopSeconds = 0.45f;
             public float Pop = 0.18f;
@@ -95,7 +97,9 @@ namespace Game.Presentation.Hud
                 var lane = new Lane { Player = i < players.Count ? players[i] : -1, Width = width };
                 // Their own colour, even alone: pale while waiting, solid as they hold.
                 lane.Colour = lane.Player >= 0 ? colourOf(lane.Player) : _look.Nobody;
-                UiKit.RoundBox(_parent, "Empty", Color.Lerp(_look.Light, lane.Colour, 0.3f), x, 0f, width, _height, 0f);
+                var idle = Color.Lerp(_look.Light, lane.Colour, 0.3f);
+                idle.a = _look.IdleOpacity;
+                UiKit.RoundBox(_parent, "Empty", idle, x, 0f, width, _height, 0f);
                 lane.Fill = UiKit.RoundBox(_parent, "Fill", lane.Colour, x, 0f, 0f, _height, 0f).rectTransform;
                 lane.Label = UiKit.Rect(_parent, "Label", x, 0f, width, _height);
                 // Scaled about its centre for the pop as the cook becomes ready.
