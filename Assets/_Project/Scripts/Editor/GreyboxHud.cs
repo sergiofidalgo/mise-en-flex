@@ -82,11 +82,7 @@ namespace Game.Editor
             ApplianceHintsBuilder.Add(hud, style, root);
             ApplianceHintsBuilder.AddReviewGate(hud, root); // the kitchen HUD steps aside for the dashboard
 
-            var dials = hud.AddComponent<ChopDialHud>();
-            var dialSo = new SerializedObject(dials);
-            dialSo.FindProperty("_canvas").objectReferenceValue = hud.GetComponent<RectTransform>();
-            dialSo.FindProperty("_dialPrefab").objectReferenceValue = BuildChopDial(style).GetComponent<ChopDialView>();
-            dialSo.ApplyModifiedPropertiesWithoutUndo();
+            // The cutting dial and the flip gauge are in the scene now (TimingGaugeArt, decision 2026-11-11).
 
             var tickets = new SerializedObject(hud.AddComponent<OrderTicketHud>());
             tickets.FindProperty("_canvas").objectReferenceValue = hud.GetComponent<RectTransform>();
@@ -131,11 +127,6 @@ namespace Game.Editor
             bell.FindProperty("_style").objectReferenceValue = style;
             bell.FindProperty("_root").objectReferenceValue = root;
             bell.ApplyModifiedPropertiesWithoutUndo();
-
-            var flips = new SerializedObject(hud.AddComponent<FlipGaugeHud>());
-            flips.FindProperty("_canvas").objectReferenceValue = hud.GetComponent<RectTransform>();
-            flips.FindProperty("_root").objectReferenceValue = root;
-            flips.ApplyModifiedPropertiesWithoutUndo();
 
             // The washing game is drawn on the sink (WashRing); its stick hint is HUD art, here.
             WashRing.AddStickHint(hud, style);

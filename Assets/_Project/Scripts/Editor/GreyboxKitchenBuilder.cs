@@ -637,6 +637,7 @@ namespace Game.Editor
 
             GreyboxAudio.AddTo(root, camera);
             CleaningArt.AddTo(root);
+            TimingGaugeArt.AddTo(root);
 
             GreyboxAssets.EnsureFolder(System.IO.Path.GetDirectoryName(layout.ScenePath));
             EditorSceneManager.SaveScene(scene, layout.ScenePath);
