@@ -260,6 +260,24 @@ namespace Game.Presentation.Hud
         /// a skin tone and hair from their name, two eyes and shoulders. Customers share one model,
         /// so this stands in for a portrait; the same guest always gets the same face.
         /// </summary>
+        /// <summary>
+        /// A guest's portrait in a perfect circle: their avatar colour behind the baked picture of the
+        /// customer they came as (2026-11-11). Without a picture, the drawn face stands in.
+        /// </summary>
+        public static void GuestPortrait(Transform parent, Sprite portrait, string guest, float x, float y, float diameter, Color edge)
+        {
+            if (portrait == null)
+            {
+                GuestAvatar(parent, guest, x, y, diameter, edge);
+                return;
+            }
+            var ring = Rect(parent, "Avatar", x, y, diameter, diameter);
+            Ellipse(ring, "Edge", edge, -3f, -3f, diameter + 6f, diameter + 6f);
+            var back = Ellipse(ring, "Back", AvatarColour(guest), 0f, 0f, diameter, diameter);
+            back.gameObject.AddComponent<UnityEngine.UI.Mask>().showMaskGraphic = true;
+            Picture(back.transform, "Portrait", portrait, 0f, 0f, diameter, diameter);
+        }
+
         public static void GuestAvatar(Transform parent, string guest, float x, float y, float diameter, Color edge)
         {
             var ring = Rect(parent, "Avatar", x, y, diameter, diameter);

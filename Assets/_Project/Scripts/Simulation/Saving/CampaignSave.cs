@@ -293,6 +293,12 @@ namespace Game.Simulation.Saving
         /// <summary>The guest's last initial, e.g. "S".</summary>
         public string GuestInitial = "";
 
+        /// <summary>
+        /// Which customer look they wore, for the card's portrait (2026-11-11); -1 in older saves,
+        /// whose cards pick one from the guest's name.
+        /// </summary>
+        public int Look = -1;
+
         /// <summary>What they ordered, e.g. "steak, medium"; empty if they never ordered.</summary>
         public string Order = "";
 

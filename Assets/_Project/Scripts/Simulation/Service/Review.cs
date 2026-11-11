@@ -173,7 +173,7 @@ namespace Game.Simulation.Service
             var topic = customer.Satisfaction == null ? ReviewTopic.WalkedOut : ChooseTopic(customer.Satisfaction, customer.PatienceWhenServed ?? 1f, settings, stars);
             var voiced = settings.Style != null || settings.Generic != null;
             // Sometimes it's someone who's been before, and who they are carries over.
-            var returning = voiced ? settings.Guests?.Draw(random) : null;
+            var returning = voiced ? settings.Guests?.Draw(random, customer.Look) : null;
             var persona = returning?.Persona ?? (voiced ? ReviewVoices.PickPersona(settings.Style, settings.Generic, random) : Persona.Regular);
             // The dice are only rolled when someone might stay quiet, so settings where everyone
             // posts give the same reviews as before. A returning guest has more to say.

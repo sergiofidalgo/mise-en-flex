@@ -14,6 +14,12 @@ namespace Game.Presentation
         [Tooltip("Each look's walking pace relative to the usual speed, in the same order: part of the character.")]
         [SerializeField] private float[] _paces = System.Array.Empty<float>();
 
+        /// <summary>How many looks there are.</summary>
+        public int Count => _looks.Length;
+
+        /// <summary>The look shown now.</summary>
+        public int Shown { get; private set; } = -1;
+
         private void Awake()
         {
             if (_looks.Length == 0)
@@ -21,9 +27,18 @@ namespace Game.Presentation
             Show(Random.Range(0, _looks.Length));
         }
 
+        // A customer wears the look the simulation gave them, which their review card shows
+        // (2026-11-11). Agents get their customer just after they're made, so this waits for Start.
+        private void Start()
+        {
+            if (TryGetComponent<Game.Gameplay.Customers.CustomerAgent>(out var agent) && agent.Customer != null && agent.Customer.Look >= 0)
+                Show(agent.Customer.Look % Mathf.Max(1, _looks.Length));
+        }
+
         /// <summary>Shows look <paramref name="index"/> and hides the others, and walks at its pace.</summary>
         public void Show(int index)
         {
+            Shown = index;
             for (var i = 0; i < _looks.Length; i++)
                 if (_looks[i] != null)
                     _looks[i].SetActive(i == index);

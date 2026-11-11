@@ -106,6 +106,9 @@ namespace Game.Data
         [Tooltip("Random seed: the same seed plays the same service, which helps tuning.")]
         [SerializeField] private int _seed = 1;
 
+        [Tooltip("How many 3D looks the customer prefab has (Tools/Game/Build Greybox Kitchen makes them). Each customer wears one, and their review card shows its portrait.")]
+        [SerializeField, Min(0)] private int _customerLooks = 6;
+
         [Header("Menu (orders)")]
         [Tooltip("What every customer orders, cooked to a doneness.")]
         [SerializeField] private IngredientDefinition _main;
@@ -258,6 +261,7 @@ namespace Game.Data
             PatienceSeconds = _patienceMinutes * 60f,
             QueuePatienceRate = _queuePatienceRate,
             Seed = unchecked(_seed + day - 1),
+            CustomerLooks = _customerLooks,
             Menu = BuildMenu(),
             Payment = new PaymentSettings
             {

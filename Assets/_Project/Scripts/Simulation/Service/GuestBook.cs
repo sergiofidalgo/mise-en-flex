@@ -31,6 +31,9 @@ namespace Game.Simulation.Service
         public Persona Persona;
         public int LastDay;
         public int Visits;
+
+        /// <summary>The look they came in last time, or -1 if their reviews are older than looks.</summary>
+        public int Look = -1;
         public GuestMemory Memory;
 
         /// <summary>The owner's mood in the reply they got, if they got one.</summary>
@@ -79,6 +82,7 @@ namespace Game.Simulation.Service
                     Initial = last.GuestInitial,
                     Persona = (Persona)last.Persona,
                     LastDay = last.Day,
+                    Look = last.Look,
                     Visits = visits.Count(),
                     Memory = MemoryOf(last),
                     ReplyMood = last.Reply >= 0 ? (OwnerMood)last.ReplyMood : OwnerMood.Fresh,
@@ -88,17 +92,20 @@ namespace Game.Simulation.Service
 
         /// <summary>
         /// Someone who's been before, drawn by how willing they are to return, or null. Each comes
-        /// back at most once a day: a drawn guest leaves the book until it's rebuilt.
+        /// back at most once a day: a drawn guest leaves the book until it's rebuilt. With
+        /// <paramref name="look"/>, only guests who wore that look (or whose look isn't known) can be
+        /// drawn, so a returning guest's card shows the same face as before (2026-11-11).
         /// </summary>
-        public KnownGuest Draw(Random random)
+        public KnownGuest Draw(Random random, int look = -1)
         {
             if (_guests.Count == 0 || random.NextDouble() >= ReturnShare)
                 return null;
-            var total = _guests.Sum(Weight);
+            var candidates = look < 0 ? _guests : _guests.Where(g => g.Look < 0 || g.Look == look).ToList();
+            var total = candidates.Sum(Weight);
             if (total <= 0f)
                 return null;
             var roll = (float)random.NextDouble() * total;
-            foreach (var guest in _guests)
+            foreach (var guest in candidates)
             {
                 roll -= Weight(guest);
                 if (roll <= 0f)

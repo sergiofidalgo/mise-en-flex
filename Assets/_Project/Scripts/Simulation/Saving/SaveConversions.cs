@@ -42,6 +42,7 @@ namespace Game.Simulation.Saving
                 Guest = review.Returning?.Name ?? guest ?? "",
                 GuestSlot = review.Returning?.Slot ?? slot,
                 GuestInitial = review.Returning?.Initial ?? initial ?? "",
+                Look = customer?.Look ?? -1,
                 Order = order == null ? "" : OrderName(order),
                 ArrivedAt = customer?.ArrivedAt ?? 0f,
                 WalkedOut = customer?.WalkedOut ?? false,

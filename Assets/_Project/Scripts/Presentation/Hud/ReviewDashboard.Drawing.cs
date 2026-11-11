@@ -583,8 +583,8 @@ namespace Game.Presentation.Hud
                 UiKit.RoundBox(parent, "Highlight", _gold, CardLeft - 5.67f, y - 5.67f, CardWidth + 11.33f, height + 11.33f, 20f);
             UiKit.StrokedBox(parent, "Review", _cardLight, selected ? _gold : _cardEdge, 2.67f, CardLeft, y, CardWidth, height, 15f);
 
-            // The guest's face in a perfect circle (the user's call, 2026-11-11).
-            UiKit.GuestAvatar(parent, review.Guest, CardLeft + 20f, y + (overview ? 28f : 22f), 62f, _ink);
+            // The guest's face in a perfect circle: the customer they came as (the user's calls, 2026-11-11).
+            UiKit.GuestPortrait(parent, _style.CustomerPortrait(review.Look, review.Guest), review.Guest, CardLeft + 20f, y + (overview ? 28f : 22f), 62f, _ink);
             var nameBase = y + (overview ? 38f : 34f);
             // In the player's language: the guest's name slot looked up there (decision 2026-11-09).
             var name = Label(Bold, parent, Game.Data.GuestNames.Display(review), 20f, _ink, 857f, nameBase, 300f);

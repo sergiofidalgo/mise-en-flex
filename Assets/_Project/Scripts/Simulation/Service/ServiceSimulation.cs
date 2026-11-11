@@ -31,6 +31,7 @@ namespace Game.Simulation.Service
         private readonly Random _random;
         // Orders roll on their own generator, so changing the menu doesn't move the arrivals.
         private readonly Random _orderRandom;
+        private readonly Random _lookRandom;
         private readonly Random _reviewRandom;
         // Group sizes too: the first numbers of seats a table has don't change who comes when.
         private readonly Random _partyRandom;
@@ -52,6 +53,8 @@ namespace Game.Simulation.Service
             _orderRandom = new Random(unchecked(settings.Seed * 31 + 17));
             _reviewRandom = new Random(unchecked(settings.Seed * 31 + 29));
             _partyRandom = new Random(unchecked(settings.Seed * 31 + 41));
+            // Its own dice, so adding looks changed nobody's order, party or review.
+            _lookRandom = new Random(unchecked(settings.Seed * 31 + 53));
             _nextArrivalIn = NextGap(0f);
         }
 
@@ -296,6 +299,7 @@ namespace Game.Simulation.Service
             for (var i = 0; i < size; i++)
             {
                 party[i] = new Customer(_nextId++) { Order = Settings.Menu?.Pick(_orderRandom), Party = party, ArrivedAt = Elapsed };
+                party[i].Look = Settings.CustomerLooks > 0 ? _lookRandom.Next(Settings.CustomerLooks) : -1;
                 _customers.Add(party[i]);
             }
 

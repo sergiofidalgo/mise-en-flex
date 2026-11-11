@@ -40,6 +40,12 @@ namespace Game.Simulation.Service
         /// <summary>Customers who can wait by the door for a seat; more than that walk away.</summary>
         public int MaxQueue { get; set; } = 3;
 
+        /// <summary>
+        /// How many looks customers come in (the customer prefab's 3D looks); each customer gets one,
+        /// so the review card can show the person who came (user's call, 2026-11-11). 0 for none.
+        /// </summary>
+        public int CustomerLooks { get; set; }
+
         /// <summary>Random seed, so a service plays the same way each time while tuning.</summary>
         public int Seed { get; set; } = 1;
 

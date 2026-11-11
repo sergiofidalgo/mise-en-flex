@@ -156,6 +156,10 @@ namespace Game.Presentation.Hud
         [SerializeField] private Sprite _warningIcon;
         [SerializeField] private Sprite _replyMark;
 
+        [Header("Customer portraits (Tools/Game/Bake Customer Portraits)")]
+        [Tooltip("One head-and-shoulders picture per customer look, in the customer prefab's order, on a clear background.")]
+        [SerializeField] private Sprite[] _customerPortraits = System.Array.Empty<Sprite>();
+
         // Each falls back to the HUD font until Tools/Game/Apply UI Art has filled it in.
         public TMP_FontAsset Medium => _medium != null ? _medium : _font;
         public TMP_FontAsset SemiBold => _semiBold != null ? _semiBold : _font;
@@ -169,6 +173,25 @@ namespace Game.Presentation.Hud
         public Sprite StarEmpty => _starEmpty;
         public Sprite WarningIcon => _warningIcon;
         public Sprite ReplyMark => _replyMark;
+
+        /// <summary>
+        /// The portrait of customer look <paramref name="look"/> (2026-11-11). Reviews from before looks
+        /// were saved (look -1) get one from the guest's name, so the same guest always has the same
+        /// face. Null until the portraits are baked.
+        /// </summary>
+        public Sprite CustomerPortrait(int look, string guest)
+        {
+            if (_customerPortraits == null || _customerPortraits.Length == 0)
+                return null;
+            if (look < 0)
+            {
+                var hash = 0;
+                foreach (var c in guest ?? "")
+                    hash = unchecked(hash * 31 + c);
+                look = hash & 0x7fffffff;
+            }
+            return _customerPortraits[look % _customerPortraits.Length];
+        }
 
         public Game.Data.LanguageTables Languages => _languages;
 

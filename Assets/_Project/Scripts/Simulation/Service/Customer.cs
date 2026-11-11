@@ -34,6 +34,9 @@ namespace Game.Simulation.Service
 
         public int Id { get; }
 
+        /// <summary>Which of the customer looks they wear, or -1 when there are none; their review card shows it.</summary>
+        public int Look { get; internal set; } = -1;
+
         /// <summary>Service seconds when they arrived at the door, for the guests chart.</summary>
         public float ArrivedAt { get; internal set; }
 
