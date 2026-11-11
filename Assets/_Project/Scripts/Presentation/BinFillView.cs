@@ -23,23 +23,23 @@ namespace Game.Presentation
         [Tooltip("Flies buzzing round the bin once it's getting full.")]
         [SerializeField] private ParticleSystem _flies;
         [Tooltip("How full the bin is when the first flies come, and how many arrive a second when it's full.")]
-        [SerializeField, Range(0f, 1f)] private float _fliesFrom = 0.5f;
-        [SerializeField, Min(0f)] private float _flyRate = 3f;
+        [SerializeField, Range(0f, 1f)] private float _fliesFrom = 0.65f;
+        [SerializeField, Min(0f)] private float _flyRate = 1.5f;
 
-        [Header("Full: a swarm (the user's note, 2026-11-11)")]
+        [Header("Full: a swarm (the user's notes, 2026-11-11: urgent, but not intrusive)")]
         [Tooltip("Once full, flies a second, so it reads as urgent from across the kitchen.")]
-        [SerializeField, Min(0f)] private float _swarmRate = 14f;
+        [SerializeField, Min(0f)] private float _swarmRate = 5f;
         [Tooltip("Size of a fly while it's getting full, and once it's full (m).")]
-        [SerializeField] private Vector2 _flySize = new Vector2(0.06f, 0.11f);
+        [SerializeField] private Vector2 _flySize = new Vector2(0.045f, 0.07f);
         [Tooltip("How wide they circle while it's getting full, and once it's full (m).")]
-        [SerializeField] private Vector2 _swarmRadius = new Vector2(0.14f, 0.32f);
+        [SerializeField] private Vector2 _swarmRadius = new Vector2(0.14f, 0.2f);
         [Tooltip("How much faster they circle and how much more they dart about once it's full.")]
-        [SerializeField, Min(1f)] private float _swarmFrenzy = 2.2f;
+        [SerializeField, Min(1f)] private float _swarmFrenzy = 1.5f;
         [Tooltip("Once full, a burst of flies this often (s), so the swarm pulses rather than just hangs there.")]
-        [SerializeField, Min(0.1f)] private float _burstEvery = 1.1f;
-        [SerializeField, Min(0)] private int _burstCount = 8;
+        [SerializeField, Min(0.1f)] private float _burstEvery = 2.2f;
+        [SerializeField, Min(0)] private int _burstCount = 3;
         [Tooltip("Most flies alive at once.")]
-        [SerializeField, Min(1)] private int _maxFlies = 70;
+        [SerializeField, Min(1)] private int _maxFlies = 24;
         [Tooltip("How fast the mound rises to its new level, in metres per second.")]
         [SerializeField, Min(0f)] private float _riseSpeed = 0.5f;
 
