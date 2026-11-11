@@ -123,6 +123,37 @@ namespace Game.Tests.PlayMode
             UnityEngine.InputSystem.InputSystem.RemoveDevice(first);
         }
 
+        [UnityTest]
+        public IEnumerator HoldingAReadiesAndBTakesItBack()
+        {
+            SaveSlots.Delete(CampaignLaunch.Slot);
+            CampaignLaunch.StartNew();
+            yield return Open();
+            var manager = Object.FindFirstObjectByType<UnityEngine.InputSystem.PlayerInputManager>();
+            var one = UnityEngine.InputSystem.InputSystem.AddDevice<UnityEngine.InputSystem.Gamepad>("ReadyPad1");
+            var two = UnityEngine.InputSystem.InputSystem.AddDevice<UnityEngine.InputSystem.Gamepad>("ReadyPad2");
+            var p1 = manager.JoinPlayer(controlScheme: "Gamepad", pairWithDevices: one);
+            manager.JoinPlayer(controlScheme: "Gamepad", pairWithDevices: two);
+            for (var i = 0; i < 3; i++)
+                yield return null;
+            var ready = Object.FindFirstObjectByType<DayLoop>().Ready;
+
+            UnityEngine.InputSystem.InputSystem.QueueStateEvent(one, new UnityEngine.InputSystem.LowLevel.GamepadState().WithButton(UnityEngine.InputSystem.LowLevel.GamepadButton.South));
+            yield return new WaitForSecondsRealtime(1.1f);
+            UnityEngine.InputSystem.InputSystem.QueueStateEvent(one, new UnityEngine.InputSystem.LowLevel.GamepadState());
+            yield return null;
+            Assert.That(ready.IsReady(p1.playerIndex), Is.True, "a hold puts P1 in");
+            Assert.That(_root.Services.Days.Phase, Is.EqualTo(DayPhase.Plan), "P2 isn't ready yet");
+
+            UnityEngine.InputSystem.InputSystem.QueueStateEvent(one, new UnityEngine.InputSystem.LowLevel.GamepadState().WithButton(UnityEngine.InputSystem.LowLevel.GamepadButton.East));
+            yield return null;
+            UnityEngine.InputSystem.InputSystem.QueueStateEvent(one, new UnityEngine.InputSystem.LowLevel.GamepadState());
+            yield return null;
+            Assert.That(ready.IsReady(p1.playerIndex), Is.False, "B takes it back");
+            UnityEngine.InputSystem.InputSystem.RemoveDevice(one);
+            UnityEngine.InputSystem.InputSystem.RemoveDevice(two);
+        }
+
         private void Finish(float ingredients, float payments, float tips, int served, int steaks = 0)
         {
             var days = _root.Services.Days;

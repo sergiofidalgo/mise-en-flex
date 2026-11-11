@@ -253,7 +253,14 @@ namespace Game.Presentation.Hud
                 var tap = startPress == MenuPress.Result.Tap;
                 if (startPress == MenuPress.Result.Hold && !_choosingReply)
                 {
-                    _dayLoop.Ready.Toggle(player.playerIndex);
+                    _dayLoop.Ready.Set(player.playerIndex, true);
+                    continue;
+                }
+                // B takes a ready back (the B on their segment says so); the reply wheel has B first.
+                if (!_choosingReply && _dayLoop.Ready.IsReady(player.playerIndex) && Pressed(actions, "ButtonB"))
+                {
+                    _dayLoop.Ready.Set(player.playerIndex, false);
+                    _start.Disarm(player.playerIndex);
                     continue;
                 }
 

@@ -3412,3 +3412,15 @@ It hides (fading over the HUD's 0.12 s) behind the Review dashboard, the pause m
 - **The boss card shows success:** green when the balance covers the collection ("Covered · $360 to spare"), amber when only just, under 10% to spare ("Just covers it · $18 to spare"), and orange with "Short by $X" when short; a paid collection night is green ("He's happy. For now."). The card pulses only when short with two days or fewer left. There's no boss avatar (the user's call). `BossCard.Stands` holds the rule (EditMode tests).
 
 **Not checked in play:** the segment tags with long translations, and whether amber reads as "fine, but careful".
+
+## 2026-11-11 — forkcast after the user's design: four cards, a green start button, a footer of player segments
+
+**User's design and answers:**
+- **Left column:** under the name and rating, four cards: total earnings tonight (money in: meals and tips, not profit), guests fed (· 1 fled), tips tonight, and Closed · Opens. "Known for", "per person" and "best plate tonight" go.
+- **The start button** is a standalone, round-ended green pill (the Xbox A's green, white edge, the A as a white ring, "Hold to start day N" in white), centred in the gap between the cards and the footer. It animates as a unit: a gentle pulse at rest, sinking while anyone holds A (`_buttonPulse`, `_buttonPressed`, `_buttonPulsePerSecond`).
+- **The footer** is a strip flush with the panel's bottom edge, with one segment per joined cook in their colour, even alone. A waiting segment is pale, reading "Waiting for Player N". Holding A fills that cook's own segment; once ready it's solid, reading "(B) Player N READY".
+- **B takes a ready back** (`ReadyCheck.Set`). A second hold of A no longer toggles.
+
+**Tested:** `ReadyCheck.Set` (EditMode). Holding A readies and B takes it back, with two pads (PlayMode).
+
+**Not checked in play:** whether the pulse and sink read well from the couch, and the footer's tags in Spanish.
