@@ -11,5 +11,8 @@ namespace Game.Presentation.Hud
 
         /// <summary>True while a page of this scene sits over the card's corner.</summary>
         bool Covered { get; }
+
+        /// <summary>True once after money was paid out on purpose (a stall purchase), for the card's shake.</summary>
+        bool TakePaidOut() => false;
     }
 }

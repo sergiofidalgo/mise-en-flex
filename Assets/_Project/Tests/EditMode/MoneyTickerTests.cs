@@ -30,6 +30,18 @@ namespace Game.Tests.EditMode
         public void BackToEnglish() => Locale.Language = "en";
 
         [Test]
+        public void ATomatoBoughtForCentsStillShakesTheCardRed()
+        {
+            var ticker = At(100f);
+            ticker.Set(99.6f); // cents alone, not paid out: quiet
+            Assert.That(ticker.Direction, Is.EqualTo(MoneyChange.None));
+
+            ticker.Set(99.5f, paidOut: true); // a portion bought at a stall, same whole amount shown
+            Assert.That(ticker.Direction, Is.EqualTo(MoneyChange.Down));
+            Assert.That(ticker.Tint, Is.GreaterThan(0f));
+        }
+
+        [Test]
         public void TheFirstBalanceShowsAtOnce()
         {
             var ticker = At(1250f);

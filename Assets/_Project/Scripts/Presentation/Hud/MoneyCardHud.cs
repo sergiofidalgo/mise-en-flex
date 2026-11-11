@@ -121,7 +121,7 @@ namespace Game.Presentation.Hud
             }
             else
             {
-                _ticker.Set(balance.Value);
+                _ticker.Set(balance.Value, _source.TakePaidOut());
             }
             _ticker.Tick(dt);
             Draw();
