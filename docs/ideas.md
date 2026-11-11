@@ -4,9 +4,21 @@ Ideas worth keeping that aren't decided or scheduled yet. When one is accepted, 
 
 ---
 
-## Passers-by on the street
+## Street life, next touches
 
-Walkers who stroll along the pavement and never come in (decision 2026-11-11 gives customers the same walk). The street would feel alive, and a customer turning in at the door would stand out. A busy lunchtime street could also hint at the rush before it reaches the door. It's cheap now that customers walk the pavement, but it's a feature of its own, so it isn't built.
+*Added 2026-11-11 · Pillars: chaos you can plan for; your restaurant, your identity*
+
+The first pass is built (decision 2026-11-11, "The street comes alive"): passers-by, a menu board they stop at, pigeons, lamps at dusk, the extractor. What was left out, roughly in the order I'd build it:
+
+- **The street warns of the rush.** Foot traffic thickens in the half hour before each rush (14:00 and 21:00), so a glance outside says what's coming. `StreetWalkersView`'s away times are the dial; it needs the service clock wired in.
+- **The street reacts to the restaurant.** The better the rating, the more passers-by stop at the menu board; some glance at a long queue; they hurry past a full, smelly bin; now and then someone photographs the sign (the city's `CameraFlash`).
+- **A real evening.** Only lamps and windows change at dusk; the daylight doesn't. Dimming and cooling the sun through a dinner service is a look change to judge in play (the art bible asks for a cooler exterior and service at dusk).
+- **Market life.** Vendors behind their counters, shoppers browsing and queueing at the stalls, a van unloading in Prep, stalls packing away at Close.
+- **More kinds of walker.** A dog walker, a jogger, a pram, a pair talking; someone sitting on the bench.
+- **More on the road.** A bus and its stop, cyclists, cars that pull into the parking lot and leave. No delivery scooters: those are a mechanic for later (the user, 2026-11-11).
+- **A gull or a cat at the bin** when it's full, and pigeons that scatter from the wheelie bin as it rolls, not only from chefs.
+- **Sound.** A street bed (birdsong, market chatter, traffic), muffled when the camera is indoors.
+- **Each street its own dressing.** Riverside and the other streets get their own lamps, benches and birds from the same kit.
 
 ---
 

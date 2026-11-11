@@ -17,7 +17,7 @@ namespace Game.Editor
     /// a doorway in the wall wherever the street door stands. Greybox shapes, on the same prefabs
     /// and objects real models will replace.
     /// </summary>
-    public static class GreyboxStreet
+    public static partial class GreyboxStreet
     {
 
         // The building's outer wall faces, from the restaurant's KitchenLayout (Phase 6, milestone 3).
@@ -94,6 +94,7 @@ namespace Game.Editor
             Bounds(street);
             Doorway();
             CustomerStreet(street);
+            Life(street, root);
 
             if (camera != null && camera.TryGetComponent(out FramingCamera framing))
             {
@@ -391,16 +392,22 @@ namespace Game.Editor
             view.ApplyModifiedPropertiesWithoutUndo();
         }
 
+        // The houses behind: one every 7.5 m along the back, their fronts to the restaurant.
+        private static readonly Vector2 HouseSize = new Vector2(5.5f, 4.5f); // along the street, deep
+        private static float HouseZ => BuildingNorth + 6.9f;
+        private static int HouseCount => Mathf.FloorToInt((GroundsEast + 0.5f - (GroundsWest + 2f)) / 7.5f) + 1;
+        private static float HouseX(int i) => GroundsWest + 2f + i * 7.5f;
+
         // Behind the restaurant: a fence, houses and trees. Backdrop only.
         private static void Backdrop(Transform street)
         {
             Box(street, "BackFence", Mat("StreetFence", Wood), new Vector3((GroundsWest + GroundsEast) / 2f, 0.5f, GroundsNorth + 0.2f), new Vector3(GroundsEast - GroundsWest, 1f, 0.08f));
-            for (var x = GroundsWest + 2f; x <= GroundsEast + 0.5f; x += 7.5f)
+            for (var i = 0; i < HouseCount; i++)
             {
-                var i = Mathf.RoundToInt((x - GroundsWest - 2f) / 7.5f);
+                var x = HouseX(i);
                 var walls = Mat($"StreetHouse_{i % HouseWalls.Length}", HouseWalls[i % HouseWalls.Length]);
-                Box(street, "House", walls, new Vector3(x, 1.6f, BuildingNorth + 6.9f), new Vector3(5.5f, 3.2f, 4.5f));
-                Box(street, "Roof", Mat("StreetRoof", new Color(0.36f, 0.3f, 0.3f)), new Vector3(x, 3.4f, BuildingNorth + 6.9f), new Vector3(5.9f, 0.4f, 4.9f));
+                Box(street, "House", walls, new Vector3(x, 1.6f, HouseZ), new Vector3(HouseSize.x, 3.2f, HouseSize.y));
+                Box(street, "Roof", Mat("StreetRoof", new Color(0.36f, 0.3f, 0.3f)), new Vector3(x, 3.4f, HouseZ), new Vector3(HouseSize.x + 0.4f, 0.4f, HouseSize.y + 0.4f));
             }
             var leaves = Mat("StreetLeaves", new Color(0.3f, 0.45f, 0.3f));
             var trunk = Mat("StreetTrunk", Wood);
@@ -410,6 +417,9 @@ namespace Game.Editor
                 var crown = GreyboxAssets.CreatePrimitive(PrimitiveType.Sphere, "Crown", street, leaves, keepCollider: false);
                 crown.transform.localPosition = new Vector3(x, 2.4f, BuildingNorth + 3.4f);
                 crown.transform.localScale = Vector3.one * 2f;
+                // A breeze in the leaves: each crown leans and swells a little, out of step.
+                crown.AddComponent<Oscillate>().Set(Oscillate.Shape.Wave, new Vector3(0.05f, 0f, 0f), Vector3.zero,
+                    new Vector3(0.04f, -0.03f, 0.04f), 4.5f + Mathf.Repeat(x * 0.37f, 1.5f), 0.2f, Mathf.Repeat(x * 0.61f, 1f));
             }
         }
 

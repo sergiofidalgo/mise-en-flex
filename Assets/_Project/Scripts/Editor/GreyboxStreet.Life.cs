@@ -1,0 +1,288 @@
+using System.Collections.Generic;
+using Game.Gameplay;
+using Game.Presentation.Office.Ambience;
+using Game.Presentation.Street;
+using UnityEditor;
+using UnityEngine;
+
+namespace Game.Editor
+{
+    /// <summary>
+    /// The street's life (the user's request, 2026-11-11: "a lot of details just like we do in the
+    /// city, birds, people roaming around"): people walking past, some stopping at a menu board;
+    /// pigeons that scatter when a chef comes close; lamps and windows that light at dusk; the
+    /// kitchen's extractor steaming as hard as the kitchen cooks; a bench, planters, a hydrant.
+    /// Everything stands clear of the three things that move out here: the lane guests arrive by,
+    /// their queue along the front wall, and the wheelie bin's track round the building.
+    /// </summary>
+    public static partial class GreyboxStreet
+    {
+        // The pavement is 3.2 m deep. From the wall: the queue (about 0.6), a lane of walkers
+        // heading east (1.25), the sign's pole (1.7), the guests' lane (2.2), a lane of walkers
+        // heading west (2.75), the kerb.
+        private const float WalkerLaneFromWall = 1.25f;
+        private const float WalkerLaneFromKerb = 0.45f;
+        private const int Walkers = 6;
+        private const float PigeonScale = 0.65f;
+
+        private static readonly Color LampIron = new Color(0.16f, 0.17f, 0.2f);
+        private static readonly Color LampLight = new Color(1f, 0.82f, 0.58f);
+        private static readonly Color WindowLit = new Color(1f, 0.8f, 0.5f);
+        private static readonly Color WindowDark = new Color(0.24f, 0.29f, 0.38f);
+        private static readonly Color Steel = new Color(0.72f, 0.73f, 0.75f);
+
+        private static void Life(Transform street, KitchenCompositionRoot root)
+        {
+            var life = new GameObject("StreetLife").transform;
+            life.SetParent(street, false);
+
+            LampsAndWindows(life, root);
+            Furniture(life);
+            var (board, spot) = MenuBoard(life);
+            Passersby(life, board, spot);
+            Pigeons(life);
+            Extractor(life, root);
+        }
+
+        // Lamps along the kerb, on the kerbstone itself, their heads over the pavement; and the
+        // houses' windows and doors. Both light at dusk (StreetLampsView).
+        private static void LampsAndWindows(Transform life, KitchenCompositionRoot root)
+        {
+            var iron = Kit.Toon("StreetLampIron", LampIron);
+            var bulbOn = Kit.Glow("StreetBulbOn", new Color(1f, 0.9f, 0.68f));
+            var bulbOff = Kit.Toon("StreetBulbOff", new Color(0.82f, 0.82f, 0.78f));
+            var lights = new List<Light>();
+            var bulbs = new List<Renderer>();
+            for (var x = GroundsWest + 2f; x <= GroundsEast - 1f; x += 7f)
+            {
+                var lamp = new GameObject("StreetLamp").transform;
+                lamp.SetParent(life, false);
+                lamp.localPosition = new Vector3(x, 0f, Kerb - 0.02f);
+                Box(lamp, "Post", iron, new Vector3(0f, 1.7f, 0f), new Vector3(0.1f, 3.4f, 0.1f));
+                Box(lamp, "Foot", iron, new Vector3(0f, 0.12f, 0f), new Vector3(0.2f, 0.24f, 0.2f));
+                Box(lamp, "Arm", iron, new Vector3(0f, 3.37f, 0.35f), new Vector3(0.06f, 0.06f, 0.8f));
+                Box(lamp, "Head", iron, new Vector3(0f, 3.32f, 0.62f), new Vector3(0.3f, 0.1f, 0.46f));
+                bulbs.Add(Box(lamp, "Bulb", bulbOff, new Vector3(0f, 3.26f, 0.62f), new Vector3(0.2f, 0.04f, 0.34f)).GetComponent<Renderer>());
+
+                var light = new GameObject("Light").AddComponent<Light>();
+                light.transform.SetParent(lamp, false);
+                light.transform.localPosition = new Vector3(0f, 3f, 0.7f);
+                light.type = LightType.Point;
+                light.color = LampLight;
+                light.range = 7f;
+                light.intensity = 1f;
+                light.shadows = LightShadows.None;
+                lights.Add(light);
+            }
+
+            // Two windows and a door on each house's front. Two houses in three have someone in.
+            var lit = Kit.Glow("StreetWindowOn", WindowLit);
+            var dark = Kit.Toon("StreetWindowOff", WindowDark);
+            var door = Kit.Toon("StreetHouseDoor", Wood);
+            var front = HouseZ - HouseSize.y / 2f - 0.02f;
+            var windows = new List<Renderer>();
+            for (var i = 0; i < HouseCount; i++)
+            {
+                Box(life, "HouseDoor", door, new Vector3(HouseX(i), 0.85f, front), new Vector3(0.8f, 1.7f, 0.04f));
+                for (var k = 0; k < 2; k++)
+                {
+                    var window = Box(life, "HouseWindow", dark, new Vector3(HouseX(i) + (k == 0 ? -1.5f : 1.5f), 1.9f, front), new Vector3(0.9f, 1f, 0.04f));
+                    if ((i * 2 + k) % 3 != 0)
+                        windows.Add(window.GetComponent<Renderer>());
+                }
+            }
+
+            var view = new SerializedObject(life.gameObject.AddComponent<StreetLampsView>());
+            view.FindProperty("_root").objectReferenceValue = root;
+            SetObjects(view.FindProperty("_lights"), lights);
+            SetObjects(view.FindProperty("_bulbs"), bulbs);
+            view.FindProperty("_bulbOn").objectReferenceValue = bulbOn;
+            view.FindProperty("_bulbOff").objectReferenceValue = bulbOff;
+            SetObjects(view.FindProperty("_windows"), windows);
+            view.FindProperty("_windowOn").objectReferenceValue = lit;
+            view.FindProperty("_windowOff").objectReferenceValue = dark;
+            view.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        // A bench on the plaza's far edge, planters at the corners nobody walks through, a hydrant
+        // on the kerb.
+        private static void Furniture(Transform life)
+        {
+            var wood = Kit.Toon("StreetBenchWood", new Color(0.52f, 0.36f, 0.24f));
+            var iron = Kit.Toon("StreetLampIron", LampIron);
+            var middle = (BuildingSouth + BuildingNorth) / 2f;
+
+            var bench = new GameObject("Bench").transform;
+            bench.SetParent(life, false);
+            bench.localPosition = new Vector3(GroundsWest + 0.45f, 0f, middle);
+            Box(bench, "Seat", wood, new Vector3(0.05f, 0.45f, 0f), new Vector3(0.45f, 0.07f, 1.6f));
+            Box(bench, "Back", wood, new Vector3(-0.17f, 0.78f, 0f), new Vector3(0.06f, 0.4f, 1.6f));
+            foreach (var z in new[] { -0.65f, 0.65f })
+                Box(bench, "Leg", iron, new Vector3(0f, 0.22f, z), new Vector3(0.42f, 0.44f, 0.06f));
+            var seat = bench.gameObject.AddComponent<BoxCollider>();
+            seat.center = new Vector3(0f, 0.5f, 0f);
+            seat.size = new Vector3(0.55f, 1f, 1.6f);
+
+            var pot = Kit.Toon("StreetPlanter", new Color(0.62f, 0.4f, 0.3f));
+            var shrub = Kit.Toon("StreetShrub", new Color(0.33f, 0.5f, 0.3f));
+            var spots = new[]
+            {
+                new Vector2(GroundsWest + 0.45f, middle - 1.5f), new Vector2(GroundsWest + 0.45f, middle + 1.5f),
+                new Vector2(GroundsWest + 0.45f, GroundsNorth - 0.45f), new Vector2(GroundsEast - 0.45f, GroundsNorth - 0.45f),
+            };
+            for (var i = 0; i < spots.Length; i++)
+            {
+                var planter = new GameObject("Planter").transform;
+                planter.SetParent(life, false);
+                planter.localPosition = new Vector3(spots[i].x, 0f, spots[i].y);
+                Box(planter, "Pot", pot, new Vector3(0f, 0.22f, 0f), new Vector3(0.5f, 0.44f, 0.5f));
+                var leaves = GreyboxAssets.CreatePrimitive(PrimitiveType.Sphere, "Shrub", planter, shrub, keepCollider: false);
+                leaves.transform.localPosition = new Vector3(0f, 0.62f, 0f);
+                leaves.transform.localScale = new Vector3(0.6f, 0.55f, 0.6f);
+                leaves.AddComponent<Oscillate>().Set(Oscillate.Shape.Wave, Vector3.zero, Vector3.zero, new Vector3(0.03f, -0.02f, 0.03f), 3.5f + i * 0.4f, 0.2f, i * 0.27f);
+                var body = planter.gameObject.AddComponent<BoxCollider>();
+                body.center = new Vector3(0f, 0.5f, 0f);
+                body.size = new Vector3(0.5f, 1f, 0.5f);
+            }
+
+            var red = Kit.Toon("StreetHydrant", new Color(0.78f, 0.24f, 0.2f));
+            var hydrant = new GameObject("Hydrant").transform;
+            hydrant.SetParent(life, false);
+            hydrant.localPosition = new Vector3(BuildingEast + 4.6f, 0f, Kerb - 0.02f);
+            Box(hydrant, "Body", red, new Vector3(0f, 0.28f, 0f), new Vector3(0.2f, 0.56f, 0.2f));
+            Box(hydrant, "Cap", red, new Vector3(0f, 0.6f, 0f), new Vector3(0.26f, 0.08f, 0.26f));
+            Box(hydrant, "Outlets", red, new Vector3(0f, 0.38f, 0f), new Vector3(0.36f, 0.1f, 0.1f));
+        }
+
+        // The menu on an A-board by the sign, beyond the building's corner and clear of the bin's
+        // way round it: passers-by stop in front of it to read (StreetWalkersView).
+        private static (Transform Board, Transform Spot) MenuBoard(Transform life)
+        {
+            var board = new GameObject("MenuBoard").transform;
+            board.SetParent(life, false);
+            board.localPosition = new Vector3(BuildingEast + 2.3f, 0f, BuildingSouth - 0.6f);
+            var frame = Kit.Toon("StreetBenchWood", new Color(0.52f, 0.36f, 0.24f));
+            var slate = Kit.Toon("StreetSlate", new Color(0.17f, 0.2f, 0.2f));
+            var chalk = Kit.Toon("StreetChalk", new Color(0.93f, 0.92f, 0.86f));
+            foreach (var side in new[] { -1f, 1f })
+            {
+                // Each leaf leans in to meet the other at the top; the one facing the street carries the menu.
+                var leaf = new GameObject(side < 0f ? "Front" : "Back").transform;
+                leaf.SetParent(board, false);
+                leaf.localPosition = new Vector3(0f, 0f, side * 0.2f);
+                leaf.localRotation = Quaternion.Euler(-side * 12f, 0f, 0f);
+                Box(leaf, "Frame", frame, new Vector3(0f, 0.5f, 0f), new Vector3(0.62f, 1f, 0.04f));
+                Box(leaf, "Slate", slate, new Vector3(0f, 0.55f, side * 0.022f), new Vector3(0.52f, 0.74f, 0.01f));
+                if (side > 0f)
+                    continue;
+                Box(leaf, "Heading", chalk, new Vector3(0f, 0.82f, -0.03f), new Vector3(0.3f, 0.05f, 0.005f));
+                for (var line = 0; line < 4; line++)
+                    Box(leaf, "Line", chalk, new Vector3(-0.04f + (line % 2) * 0.03f, 0.68f - line * 0.11f, -0.03f), new Vector3(0.34f - (line % 2) * 0.06f, 0.025f, 0.005f));
+            }
+            var body = board.gameObject.AddComponent<BoxCollider>();
+            body.center = new Vector3(0f, 0.5f, 0f);
+            body.size = new Vector3(0.62f, 1f, 0.5f);
+
+            var spot = new GameObject("MenuBoardReader").transform;
+            spot.SetParent(life, false);
+            spot.localPosition = new Vector3(BuildingEast + 2.3f, 0f, BuildingSouth - 1.45f);
+            return (board, spot);
+        }
+
+        private static void Passersby(Transform life, Transform board, Transform spot)
+        {
+            var walkers = new GameObject("Passersby").transform;
+            walkers.SetParent(life, false);
+            var view = new SerializedObject(walkers.gameObject.AddComponent<StreetWalkersView>());
+            view.FindProperty("_prefab").objectReferenceValue = GreyboxService.BuildPasserbyPrefab();
+            view.FindProperty("_count").intValue = Walkers;
+            // In and out where the guests come and go: beyond the camera's view at each end.
+            view.FindProperty("_west").floatValue = GroundsWest - CustomerEndsBeyondGrounds;
+            view.FindProperty("_east").floatValue = GroundsEast + CustomerEndsBeyondGrounds;
+            var lanes = view.FindProperty("_lanes");
+            lanes.arraySize = 2;
+            lanes.GetArrayElementAtIndex(0).floatValue = BuildingSouth - WalkerLaneFromWall;
+            lanes.GetArrayElementAtIndex(1).floatValue = Kerb + WalkerLaneFromKerb;
+            view.FindProperty("_minZ").floatValue = Kerb + 0.35f;
+            view.FindProperty("_maxZ").floatValue = BuildingSouth - 0.9f;
+            view.FindProperty("_board").objectReferenceValue = board;
+            view.FindProperty("_boardSpot").objectReferenceValue = spot;
+            view.FindProperty("_boardLane").intValue = 0;
+            view.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        // Pigeons pecking about the plaza and the parking lot, and perched on the sign and the
+        // back fence. A chef coming close sends them up and away over the houses; they glide back
+        // once it's quiet (the terrace's birds, TerraceBirdsView).
+        private static void Pigeons(Transform life)
+        {
+            var flock = new GameObject("Pigeons").transform;
+            flock.SetParent(life, false);
+            var middle = (BuildingSouth + BuildingNorth) / 2f;
+            var fence = GroundsNorth + 0.2f;
+            var perches = new[]
+            {
+                // The middle of the plaza, between the stalls.
+                new Vector3(BuildingWest - 5.6f, 0.01f, middle - 0.3f), new Vector3(BuildingWest - 5.1f, 0.01f, middle - 0.6f),
+                new Vector3(BuildingWest - 4.8f, 0.01f, middle + 0.1f), new Vector3(BuildingWest - 5.9f, 0.01f, middle + 0.4f),
+                // The plaza's corner by the pavement.
+                new Vector3(GroundsWest + 1.1f, 0.01f, BuildingSouth + 0.7f), new Vector3(GroundsWest + 1.6f, 0.01f, BuildingSouth + 0.45f),
+                // On the restaurant's sign.
+                new Vector3(SignX - 0.45f, 4.1f, SignZ), new Vector3(SignX + 0.3f, 4.1f, SignZ),
+                // Along the back fence.
+                new Vector3(BuildingWest - 3f, 1f, fence), new Vector3(BuildingWest - 2.55f, 1f, fence), new Vector3(BuildingEast + 2.2f, 1f, fence),
+                // The far end of the parking lot.
+                new Vector3(GroundsEast - 1.2f, 0.01f, BuildingNorth - 1f), new Vector3(GroundsEast - 1.8f, 0.01f, BuildingNorth - 0.6f),
+            };
+            var birds = new List<Transform>();
+            for (var i = 0; i < perches.Length; i++)
+            {
+                var bird = OfficeBuilder.StreetPigeon(flock, perches[i], Mathf.Repeat(i * 137.5f, 360f));
+                // The city's birds are oversized to read from its far camera; here the camera is close.
+                bird.localScale = Vector3.one * PigeonScale;
+                birds.Add(bird);
+            }
+
+            var view = new SerializedObject(flock.gameObject.AddComponent<TerraceBirdsView>());
+            SetObjects(view.FindProperty("_birds"), birds);
+            // Up and away to the north, over the houses, ending high: there's no roof edge to drop behind.
+            view.FindProperty("_outward").vector2Value = new Vector2(0f, 1f);
+            view.FindProperty("_flyOffDistance").floatValue = 22f;
+            view.FindProperty("_flyOffRise").floatValue = 3f;
+            view.FindProperty("_flyOffDip").floatValue = -5f;
+            view.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        // The kitchen's extractor: a steel stack rising off the back wall by the east corner, with
+        // a cowl. It steams with the hobs and smokes with a fire (ExtractorVentView).
+        private static void Extractor(Transform life, KitchenCompositionRoot root)
+        {
+            var stack = new GameObject("Extractor").transform;
+            stack.SetParent(life, false);
+            stack.localPosition = new Vector3(BuildingEast - 1f, 1f, BuildingNorth - 0.1f);
+            var steel = Kit.Toon("KitSteel", Steel);
+            Box(stack, "Duct", steel, new Vector3(0f, 0.85f, 0f), new Vector3(0.34f, 1.7f, 0.34f));
+            Box(stack, "Collar", steel, new Vector3(0f, 0.05f, 0f), new Vector3(0.44f, 0.1f, 0.44f));
+            Box(stack, "Cowl", steel, new Vector3(0f, 1.86f, 0f), new Vector3(0.52f, 0.08f, 0.52f));
+
+            var mouth = new GameObject("Mouth").transform;
+            mouth.SetParent(stack, false);
+            mouth.localPosition = new Vector3(0f, 1.95f, 0f);
+            var steam = OfficeBuilder.StreetPuffs(mouth, "Steam", 3.5f, 0.7f, 0.35f, 0.7f, new Color(0.95f, 0.95f, 0.97f, 0.55f));
+            var smoke = OfficeBuilder.StreetPuffs(mouth, "Smoke", 4f, 0.9f, 0.5f, 0.9f, new Color(0.2f, 0.19f, 0.19f, 0.8f));
+
+            var view = new SerializedObject(stack.gameObject.AddComponent<ExtractorVentView>());
+            view.FindProperty("_root").objectReferenceValue = root;
+            view.FindProperty("_steam").objectReferenceValue = steam;
+            view.FindProperty("_smoke").objectReferenceValue = smoke;
+            view.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        private static void SetObjects<T>(SerializedProperty list, IReadOnlyList<T> values) where T : Object
+        {
+            list.arraySize = values.Count;
+            for (var i = 0; i < values.Count; i++)
+                list.GetArrayElementAtIndex(i).objectReferenceValue = values[i];
+        }
+    }
+}

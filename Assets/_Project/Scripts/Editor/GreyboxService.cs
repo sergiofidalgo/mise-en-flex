@@ -13,6 +13,7 @@ namespace Game.Editor
     public static class GreyboxService
     {
         private const string CustomerPrefabPath = "Assets/_Project/Prefabs/PF_Customer.prefab";
+        private const string PasserbyPrefabPath = "Assets/_Project/Prefabs/PF_Passerby.prefab";
 
         // The street door is in the south wall (where is each restaurant's KitchenLayout); customers
         // wait along the east wall until a seat's free.
@@ -108,27 +109,7 @@ namespace Game.Editor
             // The v9.2 people (concept 2026-11-09): every archetype is built, and one shows per customer.
             if (CharacterArt.Available)
             {
-                var looks = new System.Collections.Generic.List<GameObject>();
-                var paces = new System.Collections.Generic.List<float>();
-                foreach (var look in CharacterArt.CustomerLooks())
-                {
-                    paces.Add(look.Pace);
-                    var visuals = new GameObject("Look_" + look.Name);
-                    visuals.transform.SetParent(root.transform, false);
-                    CharacterArt.Build(visuals.transform, look);
-                    looks.Add(visuals);
-                }
-                var picker = new SerializedObject(root.AddComponent<Game.Presentation.CharacterLookPicker>());
-                var list = picker.FindProperty("_looks");
-                list.arraySize = looks.Count;
-                for (var i = 0; i < looks.Count; i++)
-                    list.GetArrayElementAtIndex(i).objectReferenceValue = looks[i];
-                var paceList = picker.FindProperty("_paces");
-                paceList.arraySize = paces.Count;
-                for (var i = 0; i < paces.Count; i++)
-                    paceList.GetArrayElementAtIndex(i).floatValue = paces[i];
-                picker.ApplyModifiedPropertiesWithoutUndo();
-
+                AddLooks(root);
                 var built = PrefabUtility.SaveAsPrefabAsset(root, CustomerPrefabPath);
                 Object.DestroyImmediate(root);
                 return built;
@@ -144,6 +125,53 @@ namespace Game.Editor
             nose.transform.localPosition = new Vector3(0f, CustomerScale.y * 1.45f, CustomerScale.z * 0.5f);
 
             var prefab = PrefabUtility.SaveAsPrefabAsset(root, CustomerPrefabPath);
+            Object.DestroyImmediate(root);
+            return prefab;
+        }
+
+        // Every customer archetype on one body, with the picker that shows one of them.
+        private static void AddLooks(GameObject root)
+        {
+            var looks = new System.Collections.Generic.List<GameObject>();
+            var paces = new System.Collections.Generic.List<float>();
+            foreach (var look in CharacterArt.CustomerLooks())
+            {
+                paces.Add(look.Pace);
+                var visuals = new GameObject("Look_" + look.Name);
+                visuals.transform.SetParent(root.transform, false);
+                CharacterArt.Build(visuals.transform, look);
+                looks.Add(visuals);
+            }
+            var picker = new SerializedObject(root.AddComponent<Game.Presentation.CharacterLookPicker>());
+            var list = picker.FindProperty("_looks");
+            list.arraySize = looks.Count;
+            for (var i = 0; i < looks.Count; i++)
+                list.GetArrayElementAtIndex(i).objectReferenceValue = looks[i];
+            var paceList = picker.FindProperty("_paces");
+            paceList.arraySize = paces.Count;
+            for (var i = 0; i < paces.Count; i++)
+                paceList.GetArrayElementAtIndex(i).floatValue = paces[i];
+            picker.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        /// <summary>
+        /// Someone who walks past the restaurant and never comes in (StreetWalkersView): the
+        /// customers' own archetypes, so the street's people and the dining room's are the same
+        /// people, but with no agent, so nothing seats them, pushes them or waits for them.
+        /// </summary>
+        public static GameObject BuildPasserbyPrefab()
+        {
+            var root = new GameObject("PF_Passerby");
+            if (CharacterArt.Available)
+                AddLooks(root);
+            else
+            {
+                var body = GreyboxAssets.CreatePrimitive(
+                    PrimitiveType.Capsule, "Body", root.transform, GreyboxAssets.EnsureMaterial("Passerby", new Color(0.55f, 0.6f, 0.68f)), keepCollider: false);
+                body.transform.localScale = CustomerScale;
+                body.transform.localPosition = new Vector3(0f, CustomerScale.y, 0f);
+            }
+            var prefab = PrefabUtility.SaveAsPrefabAsset(root, PasserbyPrefabPath);
             Object.DestroyImmediate(root);
             return prefab;
         }

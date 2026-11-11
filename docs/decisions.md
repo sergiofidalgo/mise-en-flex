@@ -4,6 +4,28 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-11 — The street comes alive: passers-by, a menu board, pigeons, lamps at dusk, the extractor
+
+**The user's request:** more detail outside the kitchen, "just like we do in the city, birds, people roaming around", and no delivery scooters yet (a mechanic for later). Asked which ideas to build first, the user left the choice to me; this is the first pass I proposed. The rest is in `ideas.md` ("Street life, next touches").
+
+- **Passers-by** (`StreetWalkers`, `StreetWalkersView`, `PF_Passerby`): six people, the customers' own archetypes without an agent, each rolled anew every time one comes round. They walk two lanes of the pavement, east at 1.25 m from the front wall and west at 0.45 m from the kerb, either side of the lane guests arrive by (2.2 m), in and out at the same off-screen ends. One stays away 2–16 s between passes, so three or four are in sight.
+- **They never block anyone.** They have no bodies to bump into. They step aside (0.7 m, within the pavement) for a chef, guest or staff member within 1.3 m and come back to their lane once past; they never stop for anyone, so nobody standing in a lane can hold the street up. Reason: a chef carrying a plate must never be stopped by scenery.
+- **A menu board** stands by the sign, beyond the building's east corner and clear of the wheelie bin's way round it. About three in ten of the eastbound walkers stop in front of it for 3–7 s, facing it, and walk on. One reader at a time; the others walk round them. It isn't by the door because the door can be moved and the queue forms beside it.
+- **Pigeons** (the terrace's `TerraceBirdsView`, at 0.65 of the city's size): thirteen, on the plaza, the parking lot, the back fence and the sign. A chef within 2.5 m sends them up and away north over the houses, the neighbours with them; they glide back 20–40 s later once nobody's near. `_flyOffDip` may now be negative, for birds on the ground with no roof edge to drop behind.
+- **Lamps and windows at dusk** (`StreetLampsView`, `StreetHours.Dark`): five lamps on the kerbstone and two houses in three light up from 19:00 on the service's clock, one after another over six seconds, and stay lit through closing and the review. A lunch never sees them. **Only lamps and windows change:** the daylight stays as it is, because a darker evening is a change of look for the user to judge in play.
+- **The extractor** (`ExtractorVentView`, `StreetHours.Extraction`): a steel stack off the back wall by the east corner. It steams as hard as the kitchen cooks (nothing with the hobs off, a wisp with them hot and empty, a full plume with two hobs cooking flat out, easing over two seconds) and pours dark smoke while a pan is on fire.
+- **Dressing:** a bench and planters along the plaza's west edge and the back corners, a hydrant on the kerb, doors and windows on the houses, a breeze in the trees and shrubs.
+
+**Where things stand, and why:** everything is placed from the building's walls, so every restaurant's street gets it. Nothing stands in the guests' lane, their queue along the front wall, or the bin's track; lamps and the hydrant are on the kerbstone, beyond where chefs can walk.
+
+**Verified:** EditMode `StreetWalkersTests` (lanes, coming round again, stepping aside without stopping, staying on the pavement, the board, one reader, the dusk hours, the extractor). Stills by `StreetLifeCapture`, run by name.
+
+**To judge in play:** whether six walkers distract during service (`_count`, `_awayMin`/`_awayMax` on Passersby); whether a walker is ever mistaken for a guest; the pigeons' flight from the ground; the lamps' pools on a street that's still in daylight; whether the stack reads from the kitchen camera.
+
+**Design doc:** §customers and §economy (suppliers) don't describe the street beyond the stalls. A line on the street's life would belong there.
+
+---
+
 ## 2026-11-11 — The opening, sixth pass: a lift that stays in frame, taller floors, the helicopter, couriers riding
 
 The user's notes after playing the fifth pass ("overall feels good, with some notes"):

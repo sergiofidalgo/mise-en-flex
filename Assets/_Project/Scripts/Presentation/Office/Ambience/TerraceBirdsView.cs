@@ -34,8 +34,8 @@ namespace Game.Presentation.Office.Ambience
         [SerializeField, Min(0f)] private float _flyOffDistance = 25f;
         [Tooltip("Metres: the arc's rise. With the dip below, it peaks about 5.5 m above the perch.")]
         [SerializeField, Min(0f)] private float _flyOffRise = 7.5f;
-        [Tooltip("Metres below the perch it ends, dropping away towards the roofs.")]
-        [SerializeField, Min(0f)] private float _flyOffDip = 8f;
+        [Tooltip("Metres below the perch it ends, dropping away towards the roofs. Below zero, it ends that far above: for birds on the ground, which have nowhere to drop to.")]
+        [SerializeField] private float _flyOffDip = 8f;
         [Tooltip("The way out, across the ground (X, Z): over the rail. Flights lean this way rather than into the office.")]
         [SerializeField] private Vector2 _outward = new Vector2(0f, 1f);
         [Tooltip("How much flights lean the way out, against straight away from the chef.")]
