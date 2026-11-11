@@ -83,6 +83,22 @@ namespace Game.Tests.EditMode
             Assert.That(Run(hold, 0, true, 0.5f, 4), Is.EqualTo(MenuPress.Result.None), "used by the reply wheel");
         }
 
+        // ---- Ready: A puts you in, B takes it back (2026-11-11) ----
+
+        [Test]
+        public void Holding_again_keeps_you_ready_and_B_takes_it_back()
+        {
+            var ready = new ReadyCheck();
+            ready.Set(1, true);
+            ready.Set(1, true);
+            Assert.That(ready.IsReady(1), Is.True, "a second hold doesn't un-ready");
+            Assert.That(ready.ReadyCount, Is.EqualTo(1));
+            ready.Set(1, false);
+            Assert.That(ready.IsReady(1), Is.False);
+            ready.Set(1, false);
+            Assert.That(ready.ReadyCount, Is.Zero);
+        }
+
         // ---- The boss card ----
 
         [Test]

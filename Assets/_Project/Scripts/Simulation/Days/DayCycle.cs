@@ -247,6 +247,18 @@ namespace Game.Simulation.Days
 
         public void Clear() => _ready.Clear();
 
+        /// <summary>
+        /// Sets a player in or out (forkcast, the user's call 2026-11-11): holding A puts them in and
+        /// holding it again doesn't take it back; B does.
+        /// </summary>
+        public void Set(int player, bool ready)
+        {
+            if (ready)
+                _ready.Add(player);
+            else
+                _ready.Remove(player);
+        }
+
         public bool IsEveryoneReady(int playerCount) => playerCount > 0 && _ready.Count >= playerCount;
 
         /// <summary>

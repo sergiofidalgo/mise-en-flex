@@ -262,43 +262,25 @@ namespace Game.Presentation.Hud
 
         // Six tiles, three rows of two, from the name and rating down to the panel's foot (the user's
         // pick, 2026-11-11): known for, per person, guests fed, next opening, tonight's best plate, tips.
-        private const float TileTop = 628f, TileWidth = 294f, TileHeight = 92f, TileGap = 12f;
+        private const float TileTop = 628f, TileWidth = 294f, TileHeight = 84f, TileGap = 12f;
 
         private void DrawFacts()
         {
-            var tiles = new[] { KnownFor(), PerPerson(), GuestsFed(), NextOpening(), BestPlate(), Tips() };
+            // The user's four (2026-11-11): what came in, who was fed, the tips, when it opens next.
+            var tiles = new[] { Earnings(), GuestsFed(), Tips(), NextOpening() };
             for (var i = 0; i < tiles.Length; i++)
             {
                 var x = 120f + (i % 2) * (TileWidth + TileGap);
                 var y = TileTop + (i / 2) * (TileHeight + TileGap);
                 UiKit.RoundBox(_left, "Fact", _card, x, y, TileWidth, TileHeight, 16f);
-                var value = Label(ExtraBold, _left, tiles[i].Value, 28f, tiles[i].Alarm ? _badText : _ink, x + 20f, y + 44f, TileWidth - 40f, tracking: -0.5f);
+                var value = Label(ExtraBold, _left, tiles[i].Value, 28f, tiles[i].Alarm ? _badText : _ink, x + 20f, y + 40f, TileWidth - 40f, tracking: -0.5f);
                 value.enableAutoSizing = true;
                 value.fontSizeMin = 18f;
                 value.fontSizeMax = 28f;
-                Label(Medium, _left, tiles[i].Label, 17.33f, _muted, x + 20f, y + 73f, TileWidth - 40f);
+                Label(Medium, _left, tiles[i].Label, 17.33f, _muted, x + 20f, y + 67f, TileWidth - 40f);
             }
 
             // The foot of the column is the start bar's (BuildStartButton).
-        }
-
-        // The dish most ordered so far, or the menu's first while nothing's been ordered.
-        private (string Value, string Label, bool Alarm) KnownFor()
-        {
-            if (Services.DishTally.Count > 0)
-            {
-                var dish = Services.DishTally.OrderByDescending(d => d.Value).ThenBy(d => d.Key).First().Key;
-                return (Capitalised(dish), Tr.Get("known for"), false);
-            }
-            var first = Services.Cookbook?.Menu.FirstOrDefault();
-            return (first != null ? Tr.Get(first.Name) : Tr.Get(ShownStyle), Tr.Get("on the menu"), false);
-        }
-
-        private (string Value, string Label, bool Alarm) PerPerson()
-        {
-            var range = PlacesFacts.PricePerPerson(MenuPrices());
-            var value = range == null ? "–" : $"{Money(range.Value.Low)}–{Money(range.Value.High)}";
-            return (value, Tr.Get("per person"), false);
         }
 
         private (string Value, string Label, bool Alarm) GuestsFed()
@@ -315,16 +297,14 @@ namespace Game.Presentation.Hud
         // Never open while forkcast shows: next is tonight in a morning, tomorrow after a service.
         private (string Value, string Label, bool Alarm) NextOpening()
         {
-            return ($"{ClockAt(0f)} {Weekday(Summary.NextDay)}", Tr.Get("closed · opens"), false);
+            return ($"{ClockAt(0f)} {Weekday(Summary.NextDay)}", Tr.Get("Closed · Opens"), false);
         }
 
-        // The finished night's best-rated dish, by the guests' own stars.
-        private (string Value, string Label, bool Alarm) BestPlate()
+        // Everything that came in that night: meals and tips (the user's call: money in, not profit).
+        private (string Value, string Label, bool Alarm) Earnings()
         {
-            var best = Summary.Dishes.Where(d => d.Stars.HasValue).OrderByDescending(d => d.Stars.Value).ThenByDescending(d => d.Ordered).FirstOrDefault();
-            if (best == null)
-                return ("–", Tr.Get("best plate tonight"), false);
-            return (DishName(best), Tr.Format("best plate tonight · {stars} stars", ("stars", best.Stars.Value.ToString("0.0"))), false);
+            var earned = Summary.HasLines ? Summary.Ledger.In : Summary.Record?.In ?? 0f;
+            return (Money(earned), Tr.Get("total earnings tonight"), false);
         }
 
         // What the guests left on top, that night.
@@ -1137,8 +1117,10 @@ namespace Game.Presentation.Hud
         // D-pad as every menu does. Each segment eases after its hold, and a white flash pops as a
         // hold completes; the A pulses at rest and sinks while held.
 
-        private const float BarX = 96f, BarTop = 962f, BarWidth = 1728f, BarHeight = 52f, SegmentGap = 6f;
-        private const float BarTextX = 70f;
+        // The footer strip: flush with the panel's bottom edge and sides (the user's design, 2026-11-11).
+        private const float BarX = PanelX, BarTop = FooterTop + 10f, BarWidth = PanelWidth, BarHeight = PanelY + PanelHeight - FooterTop - 10f, SegmentGap = 4f;
+        // The start card in the left column, under the four facts.
+        private const float StartCardTop = 822f, StartCardHeight = 84f;
 
         [Header("Start bar")]
         [Tooltip("How quickly each segment catches up with its player's hold, per second (higher is snappier).")]
@@ -1158,13 +1140,13 @@ namespace Game.Presentation.Hud
             public float Width;
             public float Shown;
             public Color Colour;
-            public TextMeshProUGUI Tag;
+            public RectTransform Label;
         }
 
         private string _hintsShown;
         private RectTransform _bar;
         private RectTransform _lanes;
-        private RectTransform _barText;
+        private TextMeshProUGUI _startText;
         private readonly List<Lane> _laneList = new List<Lane>();
         private string _lanesFor;
         private RectTransform _startA;
@@ -1187,44 +1169,48 @@ namespace Game.Presentation.Hud
             if (state == _hintsShown)
                 return;
             _hintsShown = state;
-            UiKit.Clear(_barText);
             BuildLanes(joined);
 
-            // Nobody's here yet (a kitchen opened straight into the summary): A joins first.
-            var text = PlayerInput.all.Count == 0 ? Tr.Get("Press to join") : Tr.Format("Hold to start day {day}", ("day", Summary.NextDay));
-            var label = Label(Bold, _barText, text, 26f, _ink, BarTextX, BarHeight / 2f + 9f, 700f);
-            Readable(label);
-            // With two or more cooks, each segment says whose it is and whether they're in: who's
-            // still to hold A reads off the bar itself ("P2 waiting"), clear of the start text.
-            foreach (var lane in _laneList.Where(l => l.Tag != null))
-            {
-                var ready = _dayLoop.Ready.IsReady(lane.Player);
-                lane.Tag.text = ready ? Tr.Format("P{player} ready", ("player", lane.Player + 1)) : Tr.Format("P{player} waiting", ("player", lane.Player + 1));
-                lane.Tag.color = ready ? (lane.Colour.grayscale > 0.6f ? _ink : Color.white) : Color.Lerp(lane.Colour, _ink, 0.35f);
-            }
-        }
+            // The start card: what holding A does. Nobody's here yet: A joins first.
+            _startText.text = PlayerInput.all.Count == 0 ? Tr.Get("Press to join") : Tr.Format("Hold to start day {day}", ("day", Summary.NextDay));
 
-        // Text on the bar sits over pale and coloured segments alike: a thin paper outline keeps it readable on both.
-        private void Readable(TextMeshProUGUI label)
-        {
-            label.outlineWidth = 0.18f;
-            label.outlineColor = _cardLight;
+            // Each segment says whose it is and whether they're in; a ready one shows B to take it back.
+            foreach (var lane in _laneList)
+            {
+                UiKit.Clear(lane.Label);
+                var ready = lane.Player >= 0 && _dayLoop.Ready.IsReady(lane.Player);
+                var name = lane.Player >= 0 ? lane.Player + 1 : 1;
+                var x = 22f;
+                if (ready)
+                {
+                    Badge(lane.Label, "B", _buttonB, x + 13f, BarHeight / 2f, 26f, 14f);
+                    x += 26f + 10f;
+                    Label(ExtraBold, lane.Label, Tr.Format("Player {player} READY", ("player", name)), 18f, lane.Colour.grayscale > 0.6f ? _ink : Color.white, x, BarHeight / 2f + 6.5f, lane.Width - x - 12f);
+                }
+                else
+                {
+                    Label(SemiBold, lane.Label, Tr.Format("Waiting for Player {player}", ("player", name)), 18f, Color.Lerp(lane.Colour, _ink, 0.45f), x, BarHeight / 2f + 6.5f, lane.Width - x - 12f);
+                }
+            }
         }
 
         private void BuildStartButton()
         {
-            // The footer's bar, clipped to its rounded shape so the segments' outer ends follow it.
-            var bar = UiKit.RoundBox(_layout, "StartBar", _cardEdge, BarX, BarTop, BarWidth, BarHeight, BarHeight / 2f);
-            bar.gameObject.AddComponent<Mask>().showMaskGraphic = true;
-            _bar = bar.rectTransform;
+            // The footer strip, clipped to the panel's rounded bottom: the mask's top corners sit
+            // above the strip, out of sight, so only its bottom corners round off.
+            var mask = UiKit.RoundBox(_layout, "StartMask", Color.white, BarX, BarTop - PanelRadius, BarWidth, BarHeight + PanelRadius, PanelRadius);
+            mask.gameObject.AddComponent<Mask>().showMaskGraphic = false;
+            _bar = UiKit.Rect(mask.transform, "StartBar", 0f, PanelRadius, BarWidth, BarHeight);
             _lanes = UiKit.Rect(_bar, "Lanes", 0f, 0f, BarWidth, BarHeight);
             _startFlash = UiKit.RoundBox(_bar, "Flash", new Color(1f, 1f, 1f, 0f), 0f, 0f, BarWidth, BarHeight, 0f);
-            _barText = UiKit.Rect(_bar, "Text", 0f, 0f, BarWidth, BarHeight);
-            // The A on the bar's left, scaled about its centre for the pulse and the press.
-            _startA = UiKit.Rect(_bar, "A", 6f, 2f, 48f, 48f);
+
+            // The start card in the left column: the big A and "Hold to start day N".
+            var card = UiKit.RoundBox(_layout, "StartCard", _card, 120f, StartCardTop, 600f, StartCardHeight, 16f);
+            _startA = UiKit.Rect(card.transform, "A", 18f, (StartCardHeight - 60f) / 2f, 60f, 60f);
             _startA.pivot = new Vector2(0.5f, 0.5f);
-            _startA.anchoredPosition += new Vector2(24f, -24f);
-            Badge(_startA, "A", _buttonA, 24f, 24f, 44f, 22f);
+            _startA.anchoredPosition += new Vector2(30f, -30f);
+            Badge(_startA, "A", _buttonA, 30f, 30f, 54f, 28f);
+            _startText = UiKit.TextAt(ExtraBold, card.transform, "Text", "", 34f, _ink, 96f, StartCardHeight / 2f + 12f, 490f);
         }
 
         // One segment per joined cook, in player-slot order; rebuilt only when who's here changes.
@@ -1242,13 +1228,11 @@ namespace Game.Presentation.Hud
             {
                 var x = i * (width + SegmentGap);
                 var lane = new Lane { Player = i < joined.Count ? joined[i].playerIndex : -1, Width = width };
-                lane.Colour = lane.Player >= 0 && count > 1 ? _settings.GetPlayerColor(lane.Player) : _gold;
-                // Pale in their colour while empty; the fill is solid, growing from the left.
-                UiKit.RoundBox(_lanes, "Empty", Color.Lerp(_cardLight, lane.Colour, count > 1 ? 0.22f : 0.12f), x, 0f, width, BarHeight, 0f);
+                // Their own colour, even alone (the design): pale while waiting, solid as they hold.
+                lane.Colour = lane.Player >= 0 ? _settings.GetPlayerColor(lane.Player) : _gold;
+                UiKit.RoundBox(_lanes, "Empty", Color.Lerp(_cardLight, lane.Colour, 0.3f), x, 0f, width, BarHeight, 0f);
                 lane.Fill = UiKit.RoundBox(_lanes, "Fill", lane.Colour, x, 0f, 0f, BarHeight, 0f).rectTransform;
-                // Whose segment it is, at its right end (the start text has the bar's left).
-                if (count > 1)
-                    lane.Tag = UiKit.TextAt(ExtraBold, _lanes, "Name", "", 19f, Color.Lerp(lane.Colour, _ink, 0.35f), x + width - 18f, BarHeight / 2f + 7f, 200f, HorizontalAlignmentOptions.Right);
+                lane.Label = UiKit.Rect(_lanes, "Label", x, 0f, width, BarHeight);
                 _laneList.Add(lane);
             }
         }
