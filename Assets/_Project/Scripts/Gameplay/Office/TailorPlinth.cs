@@ -9,20 +9,18 @@ namespace Game.Gameplay.Office
     /// <summary>
     /// One of the tailor's step-ladders (the user's notes, 2026-11-09): any player at its foot
     /// presses A and hops up onto the top step, where they dress (their own slot's chef). The chef
-    /// stops and faces the camera; left and right browse the items, and A wears the one shown (the
-    /// user's call, 2026-11-11, as A buys at the kitchen's shop); wearing saves at once, as
-    /// everything done in the office does, and what was only browsed goes back as they leave. LB and RB change what's being changed (hat, face, skin, accessory, outfit); the stick
-    /// or the D-pad, left and right, picks the item, at once on a press and quickly repeating while
-    /// held (the user found the first version sluggish). B hops back down. Locked items show while browsing but aren't kept. The tailor walks
+    /// stops and faces the camera. LB and RB change what's being changed (hat, face, skin,
+    /// accessory, outfit); the D-pad, left and right, picks the item, at once on a press and quickly
+    /// repeating while held (the user found the first version sluggish). Every open item shown is
+    /// worn and saved at once, as everything done in the office is: there's no A to confirm (the
+    /// user's call, 2026-11-11 playtest, replacing A to wear). B hops back down. Locked items show
+    /// while browsing but aren't kept: stepping off goes back to the last open one. The tailor walks
     /// over to whoever has just climbed up (see TailorAttendant).
     /// </summary>
     public sealed class TailorPlinth : MonoBehaviour
     {
         /// <summary>Raised after every step: +1/-1 for the item, 0 when the section changed. For feedback.</summary>
         public event System.Action<int> Stepped;
-
-        /// <summary>Raised when A is pressed to wear what's shown, with what came of it. For feedback.</summary>
-        public event System.Action<TailorSession.WearResult> Wore;
 
         private const string InteractAction = "Interact";
         private const string BackAction = "ButtonB";
@@ -102,14 +100,6 @@ namespace Game.Gameplay.Office
             if (Pressed(_dresser, BackAction))
             {
                 Close();
-                return;
-            }
-            if (Pressed(_dresser, InteractAction))
-            {
-                var result = Session.Wear();
-                if (result == TailorSession.WearResult.Worn)
-                    ChefProfileFile.SetLook(_dresser.playerIndex, Session.Worn);
-                Wore?.Invoke(result);
                 return;
             }
             if (Pressed(_dresser, PreviousSectionAction) || Pressed(_dresser, NextSectionAction))
@@ -217,7 +207,8 @@ namespace Game.Gameplay.Office
 
         private void Step(int direction)
         {
-            Session.StepItem(direction);
+            if (Session.StepItem(direction))
+                ChefProfileFile.SetLook(_dresser.playerIndex, Session.Worn);
             Stepped?.Invoke(direction);
         }
 

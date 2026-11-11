@@ -64,8 +64,6 @@ namespace Game.Presentation.Office
         private const float HeadHeight = 2.05f;
         private const float Badge = 40f;
         private const float PopTime = 0.16f;
-        private const float FlashTime = 0.35f;   // the shop card's
-        private const float ShakeTime = 0.3f;
         private const float ShoulderWidth = 50f;
         // A second still this long after joining, once the chef has settled into their first pose.
         private const float SettleDelay = 0.5f;
@@ -125,11 +123,6 @@ namespace Game.Presentation.Office
             public float ItemPop = 1f;     // 0 just changed, 1 settled
             public float SectionPop = 1f;
             public int Nudge;              // the arrow last pressed: -1, 0 or 1
-            public CanvasGroup Wear;       // A Wear, dimmed when there's nothing to wear
-            public RectTransform ItemRow;  // shaken when A is refused
-            public Image Edge;             // flashed when A wears something
-            public float Flash = 1f;
-            public float Shake = 1f;
         }
 
         // How the portrait frames each section, from the chef's feet: the head for hats, faces and
@@ -165,7 +158,6 @@ namespace Game.Presentation.Office
                     continue;
                 _prompts[plinth] = BuildPrompt();
                 plinth.Stepped += direction => HandleStepped(plinth, direction);
-                plinth.Wore += result => HandleWore(plinth, result);
             }
             ChefProfileFile.LookChanged += HandleLookChanged;
         }
@@ -254,7 +246,6 @@ namespace Game.Presentation.Office
             // Dressing: the portrait on top, then the controls.
             slot.Dressing = UiKit.Rect(_canvas.transform, $"Player{index + 1}Dressing", 0f, 0f, Width, DressingHeight);
             UiKit.StrokedBox(slot.Dressing, "Back", _style.CardBackground, colour, 4f, 0f, 0f, Width, DressingHeight, 22f);
-            slot.Edge = slot.Dressing.Find("BackEdge")?.GetComponent<Image>();
             // The page on top, as the shop card's: LB, its name, RB, a dot per section.
             var head = UiKit.Rect(slot.Dressing, "Head", 0f, 0f, Width, HeaderHeight);
             DrawShoulder(head, "LB", 12f, 12f);
@@ -271,23 +262,18 @@ namespace Game.Presentation.Office
             RoundedPicture(slot.Dressing, texture, 16f, HeaderHeight, Width - 32f, PortraitHeight - 16f);
 
             // The item between arrows, its place in the list (or a note when it's locked), then B Done.
-var rows = UiKit.Rect(slot.Dressing, "Rows", 0f, HeaderHeight + PortraitHeight, Width, RowsHeight);
-            // The item row in its own holder, so a refused A can shake it.
-            slot.ItemRow = UiKit.Rect(rows, "ItemRow", 0f, 0f, Width, 80f);
-            slot.Left = UiKit.TextAt(_style.DisplayFont, slot.ItemRow, "Left", "‹", 40f, _style.TextColor, 16f, 34f, 26f).rectTransform;
-            slot.Item = UiKit.TextAt(_style.DisplayFont, slot.ItemRow, "Item", "", 30f, _style.TextColor, Width / 2f, 32f, Width - 76f, HorizontalAlignmentOptions.Center);
+            // Nothing to confirm: whatever open item is shown is worn and saved at once (the
+            // user's call, 2026-11-11 playtest), so the card only offers B Done.
+            var rows = UiKit.Rect(slot.Dressing, "Rows", 0f, HeaderHeight + PortraitHeight, Width, RowsHeight);
+            slot.Left = UiKit.TextAt(_style.DisplayFont, rows, "Left", "‹", 40f, _style.TextColor, 16f, 34f, 26f).rectTransform;
+            slot.Item = UiKit.TextAt(_style.DisplayFont, rows, "Item", "", 30f, _style.TextColor, Width / 2f, 32f, Width - 76f, HorizontalAlignmentOptions.Center);
             // Long names ("Feather headdress") shrink to fit rather than being cut, never below 24 px.
             slot.Item.enableAutoSizing = true;
             slot.Item.fontSizeMin = 24f;
             slot.Item.fontSizeMax = 30f;
-            slot.Right = UiKit.TextAt(_style.DisplayFont, slot.ItemRow, "Right", "›", 40f, _style.TextColor, Width - 16f, 34f, 26f, HorizontalAlignmentOptions.Right).rectTransform;
-            slot.Count = UiKit.TextAt(_style.Bold, slot.ItemRow, "Count", "", 21f, new Color(_style.TextColor.r, _style.TextColor.g, _style.TextColor.b, 0.78f), Width / 2f, 64f, 200f, HorizontalAlignmentOptions.Center);
-            slot.Locked = UiKit.TextAt(_style.Bold, slot.ItemRow, "Locked", Tr.Get("Locked: earn it first"), 22f, new Color(0.95f, 0.30f, 0.26f), Width / 2f, 64f, Width - 24f, HorizontalAlignmentOptions.Center);
-            // A Wear on the left, B Done on the right, as the shop card's A Buy and B Done.
-            var wear = UiKit.Rect(rows, "Wear", 0f, 0f, Width / 2f, RowsHeight);
-            slot.Wear = wear.gameObject.AddComponent<CanvasGroup>();
-            DrawBadge(wear, PromptControl.South, 16f, RowsHeight - 48f, 34f);
-            UiKit.TextAt(_style.Font, wear, "Label", Tr.Get("Wear"), 24f, _style.TextColor, 58f, RowsHeight - 22f, Width / 2f - 64f);
+            slot.Right = UiKit.TextAt(_style.DisplayFont, rows, "Right", "›", 40f, _style.TextColor, Width - 16f, 34f, 26f, HorizontalAlignmentOptions.Right).rectTransform;
+            slot.Count = UiKit.TextAt(_style.Bold, rows, "Count", "", 21f, new Color(_style.TextColor.r, _style.TextColor.g, _style.TextColor.b, 0.78f), Width / 2f, 64f, 200f, HorizontalAlignmentOptions.Center);
+            slot.Locked = UiKit.TextAt(_style.Bold, rows, "Locked", Tr.Get("Locked: earn it first"), 22f, new Color(0.95f, 0.30f, 0.26f), Width / 2f, 64f, Width - 24f, HorizontalAlignmentOptions.Center);
             var done = UiKit.TextAt(_style.Font, rows, "Done", Tr.Get("Done"), 24f, _style.TextColor, Width - 18f, RowsHeight - 22f, 110f, HorizontalAlignmentOptions.Right);
             DrawBadge(rows, PromptControl.East, Width - 18f - UiKit.Width(done) - 8f - 34f, RowsHeight - 48f, 34f);
             slot.Dressing.gameObject.SetActive(false);
@@ -400,19 +386,6 @@ var rows = UiKit.Rect(slot.Dressing, "Rows", 0f, HeaderHeight + PortraitHeight, 
         }
 
         // ---- Each frame ---------------------------------------------------------------------------
-
-        // A answers at once, as at the kitchen's shop: the edge flashes as it's worn, the item shakes
-        // when it's locked (the card already says so).
-        private void HandleWore(TailorPlinth plinth, TailorSession.WearResult result)
-        {
-            var index = plinth.DresserSlot;
-            if (index < 0 || index >= _slots.Count)
-                return;
-            if (result == TailorSession.WearResult.Worn)
-                _slots[index].Flash = 0f;
-            else if (result == TailorSession.WearResult.Locked)
-                _slots[index].Shake = 0f;
-        }
 
         private void HandleStepped(TailorPlinth plinth, int direction)
         {
@@ -609,7 +582,7 @@ var rows = UiKit.Rect(slot.Dressing, "Rows", 0f, HeaderHeight + PortraitHeight, 
             var name = session.Module == WardrobeModule.Skin
                 ? Tr.Format("Tone {n}", ("n", session.ItemIndex + 1))
                 : Tr.Get(session.Item.Name);
-            var text = $"{section}|{name}|{session.ItemIndex}|{session.ItemLocked}|{session.ItemWorn}";
+            var text = $"{section}|{name}|{session.ItemIndex}|{session.ItemLocked}";
             if (text == slot.Text)
                 return;
             slot.Text = text;
@@ -619,25 +592,15 @@ var rows = UiKit.Rect(slot.Dressing, "Rows", 0f, HeaderHeight + PortraitHeight, 
                 slot.Dots[i].color = i == section ? PlayerColour(slot.Index) : dim;
             slot.Item.text = name;
             slot.Item.alpha = session.ItemLocked ? _style.UnavailableOpacity : 1f;
-            // What they have on says so; anything else waits for A.
-            slot.Count.text = session.ItemWorn
-                ? $"{session.ItemIndex + 1} / {session.ItemCount}  ·  {Tr.Get("wearing")}"
-                : $"{session.ItemIndex + 1} / {session.ItemCount}";
-            slot.Wear.alpha = session.ItemLocked || session.ItemWorn ? 0.35f : 1f;
+            slot.Count.text = $"{session.ItemIndex + 1} / {session.ItemCount}";
             slot.Count.gameObject.SetActive(!session.ItemLocked);
             slot.Locked.gameObject.SetActive(session.ItemLocked);
         }
 
         // Quick pops so every press shows: the item swells and settles, its arrow kicks out, a new
         // section swells. Short (0.16 s) so they never hold the next press back.
-        private void Animate(Slot slot, float dt)
+        private static void Animate(Slot slot, float dt)
         {
-            slot.Flash = Mathf.Min(1f, slot.Flash + dt / FlashTime);
-            slot.Shake = Mathf.Min(1f, slot.Shake + dt / ShakeTime);
-            if (slot.Edge != null)
-                slot.Edge.color = Color.Lerp(Color.white, PlayerColour(slot.Index), slot.Flash);
-            var shake = slot.Shake < 1f ? Mathf.Sin(slot.Shake * Mathf.PI * 6f) * 8f * (1f - slot.Shake) : 0f;
-            slot.ItemRow.anchoredPosition = new Vector2(shake, slot.ItemRow.anchoredPosition.y);
             slot.ItemPop = Mathf.Min(1f, slot.ItemPop + dt / PopTime);
             slot.SectionPop = Mathf.Min(1f, slot.SectionPop + dt / PopTime);
             slot.Item.rectTransform.localScale = Vector3.one * (1f + 0.18f * Bump(slot.ItemPop));
