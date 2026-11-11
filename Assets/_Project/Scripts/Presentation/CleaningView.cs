@@ -52,6 +52,10 @@ namespace Game.Presentation
             new Color(0.93f, 0.96f, 0.98f), // foam
         };
         [SerializeField] private Color _shardColor = new Color(0.95f, 0.95f, 0.92f);
+        [Tooltip("Game/ToonStain: blended, so stains are a little translucent (the user's call, 2026-11-11). Empty: opaque toon.")]
+        [SerializeField] private Material _stain;
+        [Tooltip("How opaque a stain's body is (foam is always thicker).")]
+        [SerializeField, Range(0.2f, 1f)] private float _stainOpacity = 0.72f;
         [Tooltip("The soaked rim under a stain, as a share of its colour (darker).")]
         [SerializeField, Range(0f, 1f)] private float _rimShade = 0.62f;
         [Tooltip("The sheen pool's and the highlight's blend towards white: greasy, not flat.")]
@@ -210,27 +214,59 @@ namespace Game.Presentation
         // ...a lighter pool of sheen towards the light, a bright highlight in it, and a few glossy
         // droplets round the edge: the stain reads wet and greasy under the toon shading. Its own
         // random, so the crumbs round it stay as they were.
+        private Material StainMaterial => _stain != null ? _stain : _toon;
+
+        // A stain layer's colour with its opacity: the body's, times a share for the layer (a rim
+        // more see-through, the highlight less). Foam is thick, so nearly opaque.
+        private Color Film(Color color, DirtSpot spot, float share)
+        {
+            var opacity = spot.Kind == DirtKind.Foam ? 0.92f : _stainOpacity;
+            color.a = _stain != null ? Mathf.Clamp01(opacity * share) : 1f;
+            return color;
+        }
+
+        // Small splats flung out round the puddle, each with its own darker rim.
+        private void BuildSplatters(Transform root, DirtSpot spot, Color color)
+        {
+            var random = new System.Random(spot.Id * 15485863 + 5);
+            var count = 3 + random.Next(4);
+            for (var i = 0; i < count; i++)
+            {
+                var angle = (float)(random.NextDouble() * Mathf.PI * 2f);
+                var distance = 0.55f + (float)random.NextDouble() * 0.3f;
+                var size = 0.08f + (float)random.NextDouble() * 0.12f;
+                var shape = BlobMesh(random);
+                var at = new Vector3(Mathf.Cos(angle) * distance, 0f, Mathf.Sin(angle) * distance);
+                var rim = Piece(root, shape, StainMaterial, Film(color * _rimShade, spot, 0.8f), 0);
+                rim.transform.localPosition = at;
+                rim.transform.localScale = new Vector3(size * 1.15f, 0.5f, size * 1.15f);
+                var body = Piece(root, shape, StainMaterial, Film(color, spot, 1f), 1);
+                body.transform.localPosition = at + new Vector3(0f, 0.001f, 0f);
+                body.transform.localScale = new Vector3(size, 0.7f, size);
+            }
+        }
+
         private void BuildGrease(Transform root, DirtSpot spot, Color color)
         {
             var random = new System.Random(spot.Id * 104729 + 17);
             var grease = new GameObject("Grease").transform;
             grease.SetParent(root, false);
-            var sheen = Piece(grease, BlobMesh(random), _toon, Color.Lerp(color, Color.white, _sheen), 0);
-            sheen.transform.localPosition = new Vector3(-0.1f, 0.003f, 0.08f);
-            sheen.transform.localScale = new Vector3(0.5f, 1f, 0.38f);
-            var shine = Piece(grease, BlobMesh(random), _toon, Color.Lerp(color, Color.white, _shine), 0);
-            shine.transform.localPosition = new Vector3(-0.17f, 0.005f, 0.13f);
-            shine.transform.localScale = new Vector3(0.16f, 1f, 0.1f);
+            var sheen = Piece(grease, BlobMesh(random), StainMaterial, Film(Color.Lerp(color, Color.white, _sheen), spot, 0.75f), 2);
+            sheen.transform.localPosition = new Vector3(-0.1f, 0.009f, 0.08f);
+            sheen.transform.localScale = new Vector3(0.5f, 0.45f, 0.38f);
+            var shine = Piece(grease, BlobMesh(random), StainMaterial, Film(Color.Lerp(color, Color.white, _shine), spot, 1.15f), 3);
+            shine.transform.localPosition = new Vector3(-0.15f, 0.013f, 0.12f);
+            shine.transform.localScale = new Vector3(0.16f, 0.3f, 0.1f);
             var drops = 2 + random.Next(3);
             for (var i = 0; i < drops; i++)
             {
                 var angle = (float)(random.NextDouble() * Mathf.PI * 2f);
                 var distance = 0.5f + (float)random.NextDouble() * 0.18f;
-                var drop = Piece(grease, _sphere, _toon, color, 0);
+                var drop = Piece(grease, _sphere, StainMaterial, Film(color, spot, 1.05f), 1);
                 var size = 0.05f + (float)random.NextDouble() * 0.06f;
                 drop.transform.localPosition = new Vector3(Mathf.Cos(angle) * distance, 0.004f, Mathf.Sin(angle) * distance);
                 drop.transform.localScale = new Vector3(size, 0.012f, size * 0.8f);
-                var glint = Piece(grease, _sphere, _toon, Color.Lerp(color, Color.white, _shine), 0);
+                var glint = Piece(grease, _sphere, StainMaterial, Film(Color.Lerp(color, Color.white, _shine), spot, 1.15f), 3);
                 glint.transform.localPosition = drop.transform.localPosition + new Vector3(-size * 0.2f, 0.006f, size * 0.2f);
                 glint.transform.localScale = new Vector3(size * 0.35f, 0.006f, size * 0.3f);
             }
@@ -246,13 +282,16 @@ namespace Game.Presentation
 
             var shape = BlobMesh(random);
             // Greasy, not flat (the user's call, 2026-11-11): a darker soaked rim under the body...
-            var rim = Piece(root, shape, _toon, color * _rimShade, 0);
+            var rim = Piece(root, shape, StainMaterial, Film(color * _rimShade, spot, 0.8f), 0);
             rim.transform.localScale = new Vector3(1.1f, 0.6f, 1.1f);
-            var blob = Piece(root, shape, _toon, color, 0);
+            var blob = Piece(root, shape, StainMaterial, Film(color, spot, 1f), 1);
             blob.transform.localPosition = new Vector3(0f, 0.001f, 0f);
             blob.transform.localScale = Vector3.one;
             if (spot.Kind != DirtKind.Scuff)
+            {
+                BuildSplatters(root, spot, color);
                 BuildGrease(root, spot, color);
+            }
 
             // Bits round it: crumbs where guests ate, shards from a broken plate, flecks of soot or foam.
             var bits = spot.Kind == DirtKind.Scuff ? 0 : 5;
@@ -275,7 +314,7 @@ namespace Game.Presentation
                 rim.enabled = false;
                 for (var i = 0; i < 4; i++)
                 {
-                    var sole = Piece(root, _cube, _toon, color, 0);
+                    var sole = Piece(root, _cube, StainMaterial, Film(color, spot, 1f), 1);
                     sole.transform.localPosition = new Vector3((i % 2 == 0 ? -0.12f : 0.12f), 0.004f, -0.3f + i * 0.2f);
                     sole.transform.localScale = new Vector3(0.12f, 0.008f, 0.22f);
                 }
@@ -299,33 +338,67 @@ namespace Game.Presentation
 
         private static Mesh BlobMesh(System.Random random)
         {
-            const int sides = 14;
-            const float thickness = 0.006f;
-            var radii = new float[sides];
-            for (var i = 0; i < sides; i++)
-                radii[i] = 0.36f + (float)random.NextDouble() * 0.16f;
+            // A puddle, not a slab (the user's call, 2026-11-11: still too flat). The outline is a
+            // smooth wobble (a few sine waves of falling strength, plus one or two runs where it
+            // spread further), and the surface domes gently up from a thin edge with smooth
+            // normals, so the toon light bands across it like a liquid's surface.
+            const int sides = 48;
+            const int rings = 5;
+            const float dome = 0.014f;   // height at the middle
+            const float edge = 0.002f;   // height at the rim, before the skirt down to the surface
+            var waves = new (int K, float A, float Phase)[5];
+            for (var w = 0; w < waves.Length; w++)
+                waves[w] = (2 + w, (0.13f - 0.02f * w) * (0.5f + (float)random.NextDouble()), (float)(random.NextDouble() * Mathf.PI * 2f));
+            var runs = 1 + random.Next(2);
+            var runAt = new float[runs];
+            for (var r = 0; r < runs; r++)
+                runAt[r] = (float)(random.NextDouble() * Mathf.PI * 2f);
 
-            var vertices = new List<Vector3> { new Vector3(0f, thickness, 0f) };
+            float Radius(float angle)
+            {
+                var r = 0.42f;
+                foreach (var (k, a, phase) in waves)
+                    r += 0.42f * a * Mathf.Sin(k * angle + phase);
+                foreach (var at in runAt)
+                {
+                    var d = Mathf.DeltaAngle(angle * Mathf.Rad2Deg, at * Mathf.Rad2Deg) / 25f;
+                    r += 0.12f * Mathf.Exp(-d * d);
+                }
+                return Mathf.Clamp(r, 0.2f, 0.62f);
+            }
+
+            var vertices = new List<Vector3> { new Vector3(0f, dome, 0f) };
             var triangles = new List<int>();
+            for (var ring = 1; ring <= rings; ring++)
+            {
+                var t = ring / (float)rings;
+                // Flat-topped near the middle, curving down to the edge, as liquid does.
+                var height = Mathf.Lerp(edge, dome, Mathf.Sqrt(Mathf.Max(0f, 1f - t * t * t)));
+                for (var i = 0; i < sides; i++)
+                {
+                    var angle = i * Mathf.PI * 2f / sides;
+                    var r = Radius(angle) * t;
+                    vertices.Add(new Vector3(Mathf.Cos(angle) * r, height, Mathf.Sin(angle) * r));
+                }
+            }
+            // A short skirt down to the surface, sharing the rim's vertices so the edge stays soft.
             for (var i = 0; i < sides; i++)
             {
                 var angle = i * Mathf.PI * 2f / sides;
-                vertices.Add(new Vector3(Mathf.Cos(angle) * radii[i], thickness, Mathf.Sin(angle) * radii[i]));
+                var r = Radius(angle) * 1.03f;
+                vertices.Add(new Vector3(Mathf.Cos(angle) * r, 0f, Mathf.Sin(angle) * r));
             }
-            for (var i = 0; i < sides; i++)
-                triangles.AddRange(new[] { 0, 1 + (i + 1) % sides, 1 + i });
 
-            // The rim, down to the surface.
+            int At(int ring, int i) => 1 + (ring - 1) * sides + (i % sides);
             for (var i = 0; i < sides; i++)
+                triangles.AddRange(new[] { 0, At(1, i + 1), At(1, i) });
+            for (var ring = 1; ring <= rings; ring++)
             {
-                var a = vertices[1 + i];
-                var b = vertices[1 + (i + 1) % sides];
-                var start = vertices.Count;
-                vertices.Add(a);
-                vertices.Add(b);
-                vertices.Add(new Vector3(b.x, 0f, b.z));
-                vertices.Add(new Vector3(a.x, 0f, a.z));
-                triangles.AddRange(new[] { start, start + 1, start + 2, start, start + 2, start + 3 });
+                for (var i = 0; i < sides; i++)
+                {
+                    int a = At(ring, i), b = At(ring, i + 1), c = At(ring + 1, i + 1), d = At(ring + 1, i);
+                    triangles.AddRange(new[] { a, b, c, a, c, d });
+                }
             }
 
             var mesh = new Mesh { name = "DirtBlob" };
