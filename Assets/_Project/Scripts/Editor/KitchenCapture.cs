@@ -72,6 +72,10 @@ namespace Game.Editor
             Render(camera, target, new Vector3(-3f, 0.9f, -4f), StreetHeight, Path.Combine(folder, "street_whole.png"));
             // The wheelie bin against the side wall, as close as the game camera comes.
             var bin = GameObject.Find("TrashContainer");
+            // Its flies only move in play, so pose them mid-loop for the picture.
+            var binFlies = bin != null ? bin.GetComponent<Game.Presentation.BinFlies>() : null;
+            if (binFlies != null)
+                binFlies.Pose(2.3f);
             if (bin != null)
                 Render(camera, target, bin.transform.position + Vector3.up * 0.7f, PlayHeight, Path.Combine(folder, "street_bin.png"));
             // Food sitting on a counter, at the size counters show it (only seen in play).
