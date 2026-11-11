@@ -1127,11 +1127,11 @@ namespace Game.Presentation.Hud
         [SerializeField, Min(0.1f)] private float _startFillSpeed = 12f;
         [Tooltip("Seconds the white flash takes to fade after a player's hold completes.")]
         [SerializeField, Min(0.01f)] private float _startFlashSeconds = 0.45f;
-        [Tooltip("Pulses a second of the A badge while nobody's holding.")]
-        [SerializeField, Min(0.01f)] private float _startPulsePerSecond = 0.7f;
-        [Tooltip("How much the A badge grows at the top of a pulse, and how far it sinks while held.")]
-        [SerializeField, Range(0f, 0.3f)] private float _startPulse = 0.07f;
-        [SerializeField, Range(0.5f, 1f)] private float _startPressed = 0.86f;
+        [Tooltip("Pulses a second of the start button while nobody's holding.")]
+        [SerializeField, Min(0.01f)] private float _buttonPulsePerSecond = 0.7f;
+        [Tooltip("How much the start button grows at the top of a pulse, and how far it sinks while held.")]
+        [SerializeField, Range(0f, 0.1f)] private float _buttonPulse = 0.02f;
+        [SerializeField, Range(0.8f, 1f)] private float _buttonPressed = 0.96f;
 
         private sealed class Lane
         {
@@ -1147,6 +1147,7 @@ namespace Game.Presentation.Hud
         private RectTransform _bar;
         private RectTransform _lanes;
         private TextMeshProUGUI _startText;
+        private RectTransform _startRing;
         private readonly List<Lane> _laneList = new List<Lane>();
         private string _lanesFor;
         private RectTransform _startA;
@@ -1173,6 +1174,11 @@ namespace Game.Presentation.Hud
 
             // The start card: what holding A does. Nobody's here yet: A joins first.
             _startText.text = PlayerInput.all.Count == 0 ? Tr.Get("Press to join") : Tr.Format("Hold to start day {day}", ("day", Summary.NextDay));
+            // The ring and the words centred together on the button.
+            var textWidth = UiKit.Width(_startText);
+            var left = (600f - (52f + 16f + textWidth)) / 2f;
+            _startRing.anchoredPosition = new Vector2(left, _startRing.anchoredPosition.y);
+            _startText.rectTransform.anchoredPosition = new Vector2(left + 52f + 16f, _startText.rectTransform.anchoredPosition.y);
 
             // Each segment says whose it is and whether they're in; a ready one shows B to take it back.
             foreach (var lane in _laneList)
@@ -1204,13 +1210,20 @@ namespace Game.Presentation.Hud
             _lanes = UiKit.Rect(_bar, "Lanes", 0f, 0f, BarWidth, BarHeight);
             _startFlash = UiKit.RoundBox(_bar, "Flash", new Color(1f, 1f, 1f, 0f), 0f, 0f, BarWidth, BarHeight, 0f);
 
-            // The start card in the left column: the big A and "Hold to start day N".
-            var card = UiKit.RoundBox(_layout, "StartCard", _card, 120f, StartCardTop, 600f, StartCardHeight, 16f);
-            _startA = UiKit.Rect(card.transform, "A", 18f, (StartCardHeight - 60f) / 2f, 60f, 60f);
+            // The start button in the left column (the user's mock, 2026-11-11): one green button in
+            // the Xbox A's colour, a white edge, the A as a white ring and "Hold to start day N" in
+            // white, centred. It animates as a unit: a gentle pulse at rest, sinking while held.
+            _startA = UiKit.Rect(_layout, "StartButton", 120f, StartCardTop, 600f, StartCardHeight);
             _startA.pivot = new Vector2(0.5f, 0.5f);
-            _startA.anchoredPosition += new Vector2(30f, -30f);
-            Badge(_startA, "A", _buttonA, 30f, 30f, 54f, 28f);
-            _startText = UiKit.TextAt(ExtraBold, card.transform, "Text", "", 34f, _ink, 96f, StartCardHeight / 2f + 12f, 490f);
+            _startA.anchoredPosition += new Vector2(300f, -StartCardHeight / 2f);
+            UiKit.StrokedBox(_startA, "Button", _buttonA, Color.white, 4f, 0f, 0f, 600f, StartCardHeight, 18f);
+            // A darker lower band gives it depth, like a key (flat, no gradient).
+            UiKit.RoundBox(_startA, "Shade", Color.Lerp(_buttonA, _ink, 0.22f), 2f, StartCardHeight * 0.62f, 596f, StartCardHeight * 0.38f - 2f, 16f);
+            UiKit.RoundBox(_startA, "ShadeTop", _buttonA, 2f, StartCardHeight * 0.55f, 596f, StartCardHeight * 0.12f, 0f);
+            _startRing = UiKit.Rect(_startA, "Ring", 0f, (StartCardHeight - 52f) / 2f, 52f, 52f);
+            UiKit.StrokedCircle(_startRing, "A", _buttonA, Color.white, 4f, 0f, 0f, 52f);
+            Label(Bold, _startRing, "A", 28f, Color.white, 26f, 26f + 10f, 52f, HorizontalAlignmentOptions.Center);
+            _startText = UiKit.TextAt(ExtraBold, _startA, "Text", "", 38f, Color.white, 0f, StartCardHeight / 2f + 13f, 520f);
         }
 
         // One segment per joined cook, in player-slot order; rebuilt only when who's here changes.
@@ -1270,7 +1283,7 @@ namespace Game.Presentation.Hud
             _startFlashLeft = Mathf.Max(0f, _startFlashLeft - dt);
             _startFlash.color = new Color(1f, 1f, 1f, 0.6f * (_startFlashSeconds > 0f ? _startFlashLeft / _startFlashSeconds : 0f));
 
-            var scale = anyHold ? _startPressed : 1f + _startPulse * Mathf.Sin(Time.unscaledTime * Mathf.PI * 2f * _startPulsePerSecond);
+            var scale = anyHold ? _buttonPressed : 1f + _buttonPulse * Mathf.Sin(Time.unscaledTime * Mathf.PI * 2f * _buttonPulsePerSecond);
             _startA.localScale = new Vector3(scale, scale, 1f);
         }
 
