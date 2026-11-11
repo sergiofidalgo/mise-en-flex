@@ -64,6 +64,17 @@ namespace Game.Tests.PlayMode
             yield return Shoot(dashboard, 1, 0, false, Path.Combine(folder, "dashboard_restaurant_opening_allday.png"), 0, true);
             services.Opening.Choose(1);
             yield return Shoot(dashboard, 1, 1, false, Path.Combine(folder, "dashboard_restaurant_locked.png"));
+            // The unlock moment (2026-11-11), held a third of the way in: sparks, flash, the plate warming.
+            var rings = services.Cookbook.Recipes[1];
+            services.Days.Receive(rings.UnlockCost);
+            services.Cookbook.TryUnlock(rings.Id, services.Days.TrySpend);
+            dashboard.ShowForCapture(1, 1, false);
+            dashboard.HoldUnlockForCapture(rings.Id, 0.35f);
+            yield return null;
+            yield return new WaitForEndOfFrame();
+            var unlocking = ScreenCapture.CaptureScreenshotAsTexture();
+            File.WriteAllBytes(Path.Combine(folder, "dashboard_restaurant_unlocking.png"), unlocking.EncodeToPNG());
+            Object.Destroy(unlocking);
             services.Cookbook.SetPrice(services.Cookbook.Recipes[0].Id, services.Cookbook.Recipes[0].SuggestedPrice + 4);
             yield return Shoot(dashboard, 1, 0, false, Path.Combine(folder, "dashboard_restaurant_priced.png"));
             yield return Shoot(dashboard, 3, 0, false, Path.Combine(folder, "dashboard_staff_empty.png"));

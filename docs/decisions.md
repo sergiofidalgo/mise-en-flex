@@ -14,6 +14,8 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 - **The price is a dial:** the price big in the middle, with neighbouring numbers either side, shrinking and fading like a wheel seen edge on. Each step rolls it to the new price (`_dialRollSpeed`). The suggestion, its % change and the X chip have their own line, so the chip no longer covers anything.
 - **Opening times are tiles** with a sun (Lunch), a moon (Dinner) or both (All day). Under them, the day is drawn as a bar per half hour: flat while closed, as tall as the guests coming while open, with the rushes in gold. While the tiles have the focus, the detail panel shows the same day bigger, and the guests to expect as a crowd of little figures.
 
+- **The unlock moment (the user's pick from the proposals):** A on a locked dish buys it, and the dish warms up over 1.3 s (`_unlockWarmSeconds`). Its plate's colour comes back as it swells a little, its steam fades in, gold sparks burst from the big plate, and its card lights gold while "On the menu" pops in. The money chip drops as it does for any purchase. `ForkcastPlanPlayTests.UnlockingADishWarmsItUpAndSettles` covers it; `DashboardCapture` holds it a third of the way in for a still.
+
 **Placeholders:** the sun and moon are drawn in code, the steam is soft puffs, and the dish photos use the greybox models. All of them are for the art pass to replace (the art bible's 64 px icon grid).
 
 ---

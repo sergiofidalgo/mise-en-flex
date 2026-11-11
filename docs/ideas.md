@@ -422,7 +422,7 @@ To work out when we get there: what scorching and spilling cost (quality, lost f
 ## The Restaurant tab, next touches (proposed 2026-11-11)
 
 *From making the tab more visual.* Not built; each is small:
-- **An unlock moment:** pressing A on a locked dish warms it up. The plate's colour comes back, steam starts, the card flips from "Unlock" to "On the menu" with a pop, and the money chip drops.
+- **A sound for the unlock moment** (built without one, 2026-11-11): a sizzle as the dish warms up.
 - **A tick for each dial step** (a soft click), and a gentle shake when the price can't go lower.
 - **Popularity on the plate:** a small "★ 4.2 · 12 sold" badge from the dish's reviews and the day's orders, so pricing decisions show their effect.
 - **Doneness on the plate:** the recipe's ordered donenesses as three small steak cross-sections (rare, medium, well done) with how often each is ordered.

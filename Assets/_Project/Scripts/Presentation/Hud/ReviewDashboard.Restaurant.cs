@@ -49,6 +49,51 @@ namespace Game.Presentation.Hud
         // Steam over the plates on the menu, animated every frame.
         private readonly List<Wisp> _steam = new List<Wisp>();
 
+        [Tooltip("Seconds an unlocked dish takes to warm up: its colour comes back, steam starts, sparks fly, its card pops.")]
+        [SerializeField, Min(0.2f)] private float _unlockWarmSeconds = 1.3f;
+        [Tooltip("How far the unlock sparks fly from the plate, in pixels.")]
+        [SerializeField, Min(0f)] private float _unlockSparkReach = 170f;
+
+        // The unlock moment (the user's pick, 2026-11-11): the dish warming up, and when it began.
+        private string _warming;
+        private float _warmStart;
+        // What the warm-up animates, registered as the tab is drawn.
+        private readonly List<Image> _warmPlates = new List<Image>();
+        private readonly List<Image> _warmFlashes = new List<Image>();
+        private readonly List<TextMeshProUGUI> _warmLabels = new List<TextMeshProUGUI>();
+        private readonly List<(Image Image, Vector2 From, float Angle, float Size)> _sparks = new List<(Image, Vector2, float, float)>();
+
+        // A dish still to unlock: faded, a little grey, cold.
+        private static readonly Color ColdTint = new Color(0.82f, 0.78f, 0.72f, 0.75f);
+
+        /// <summary>Whether a dish just unlocked is still warming up, for tests.</summary>
+        public bool IsWarmingUp => _warming != null;
+
+        /// <summary>Starts the unlock moment for a dish just unlocked.</summary>
+        private void WarmUp(string recipeId)
+        {
+            _warming = recipeId;
+            _warmStart = Time.unscaledTime;
+        }
+
+        // 0..1 through the warm-up of this dish; 1 for any other dish, or none.
+        private float Warmth(string recipeId) =>
+            _warming == null || recipeId != _warming ? 1f
+            : _warmFrozenAt >= 0f ? _warmFrozenAt
+            : Mathf.Clamp01((Time.unscaledTime - _warmStart) / _unlockWarmSeconds);
+
+        // For a still: the unlock moment held at one point (-1 runs it as usual).
+        private float _warmFrozenAt = -1f;
+
+        /// <summary>For the capture test: shows the unlock moment of a dish, held <paramref name="progress"/> of the way through.</summary>
+        public void HoldUnlockForCapture(string recipeId, float progress)
+        {
+            _warming = recipeId;
+            _warmFrozenAt = Mathf.Clamp(progress, 0f, 0.99f);
+            Refresh();
+            AnimateWarmUp();
+        }
+
         private sealed class Wisp
         {
             public Image Image;
@@ -56,12 +101,17 @@ namespace Game.Presentation.Hud
             public float Rise;     // how far it rises
             public float Size;     // its size at the start
             public float Phase;    // 0..1 along its life at time zero
+            public bool Warming;   // fades in with the unlock moment
         }
 
         private void DrawCookbook()
         {
             _dial.Clear();
             _steam.Clear();
+            _warmPlates.Clear();
+            _warmFlashes.Clear();
+            _warmLabels.Clear();
+            _sparks.Clear();
             var opening = Services.Opening;
             var listTop = 262f;
             if (opening != null)
@@ -104,6 +154,10 @@ namespace Game.Presentation.Hud
                 UiKit.RoundBox(_content, "Highlight", _gold, RightX - 5.67f, y - 5.67f, RecipeListWidth + 11.33f, RecipeRow + 11.33f, 20f);
             UiKit.StrokedBox(_content, "Recipe", _cardLight, chosen ? _gold : _cardEdge, 2.67f, RightX, y, RecipeListWidth, RecipeRow, 15f);
             var on = book.IsUnlocked(recipe.Id);
+            var warmingUp = on && Warmth(recipe.Id) < 1f;
+            // Just unlocked: the card lights up gold behind its plate and words.
+            if (warmingUp)
+                _warmFlashes.Add(UiKit.RoundBox(_content, "UnlockFlash", Alpha(_gold, 0f), RightX + 3f, y + 3f, RecipeListWidth - 6f, RecipeRow - 6f, 13f));
 
             // The plate (its picture has room above for steam, so it's drawn a little high); still to
             // unlock, it's faded and cold.
@@ -117,7 +171,14 @@ namespace Game.Presentation.Hud
                 ? Tr.Format("On the menu · {price}", ("price", Money(book.PriceOf(recipe.Id))))
                 : Tr.Format("Unlock · {price}", ("price", Money(recipe.UnlockCost)));
             var colour = on ? _goodText : Services.Days.Balance >= recipe.UnlockCost ? _muted : _badText;
-            Label(on ? SemiBold : Medium, _content, status, 19.5f, colour, textX, y + 70f, RecipeListWidth - (textX - RightX) - 20f);
+            var line = Label(on ? SemiBold : Medium, _content, status, 19.5f, colour, textX, y + 70f, RecipeListWidth - (textX - RightX) - 20f);
+            if (warmingUp)
+            {
+                // "On the menu" pops in from its left end.
+                line.rectTransform.pivot = new Vector2(0f, 0.5f);
+                line.rectTransform.anchoredPosition += new Vector2(0f, -line.rectTransform.sizeDelta.y / 2f);
+                _warmLabels.Add(line);
+            }
             ComplexityDots(recipe.Complexity, RightX + RecipeListWidth - 24f - 3f * 20f, y + 26f);
         }
 
@@ -140,13 +201,28 @@ namespace Game.Presentation.Hud
         private void DishPicture(Recipe recipe, float x, float y, float size, bool on, bool steam)
         {
             var picture = _style.Dish(recipe.Id);
-            var tint = on ? Color.white : new Color(0.82f, 0.78f, 0.72f, 0.75f);
+            var warmth = on ? Warmth(recipe.Id) : 0f;
+            var tint = Color.Lerp(ColdTint, Color.white, warmth);
+            Image image = null;
             if (picture != null)
-                UiKit.Picture(_content, "Dish", picture, x, y, size, size, tint);
+                image = UiKit.Picture(_content, "Dish", picture, x, y, size, size, tint);
             else if (_icons != null && _icons.Find(recipe.MainTypeId) is Sprite icon)
-                UiKit.Picture(_content, "Dish", icon, x + size * 0.15f, y + size * 0.15f, size * 0.7f, size * 0.7f, tint);
-            if (steam)
-                Steam(x + size / 2f, y + size * 0.5f, size * 0.6f, size * 0.24f, size > 120f ? 6 : 3);
+                image = UiKit.Picture(_content, "Dish", icon, x + size * 0.15f, y + size * 0.15f, size * 0.7f, size * 0.7f, tint);
+            var warmingUp = on && warmth < 1f;
+            if (warmingUp && image != null)
+            {
+                // Swells about its middle: the pivot moves there and the position follows.
+                var rect = image.rectTransform;
+                rect.pivot = new Vector2(0.5f, 0.5f);
+                rect.anchoredPosition += new Vector2(rect.sizeDelta.x / 2f, -rect.sizeDelta.y / 2f);
+                _warmPlates.Add(image);
+            }
+            // While it warms up, its steam starts (the chosen card's and the big plate's alike).
+            if (steam || warmingUp)
+                Steam(x + size / 2f, y + size * 0.5f, size * 0.6f, size * 0.24f, size > 120f ? 6 : 3, warmingUp);
+            // The big plate throws gold sparks as it comes on.
+            if (warmingUp && size > 120f)
+                Sparks(x + size / 2f, y + size * 0.62f, 14);
         }
 
         // The chosen recipe: its plate, what it needs, its ingredients as chips, and its price on a
@@ -343,13 +419,13 @@ namespace Game.Presentation.Hud
         }
 
         // Wisps rising from (x, y), each on its own part of the cycle.
-        private void Steam(float x, float y, float rise, float size, int wisps)
+        private void Steam(float x, float y, float rise, float size, int wisps, bool warming = false)
         {
             for (var i = 0; i < wisps; i++)
             {
                 var image = UiKit.Picture(_content, "Steam", Puff, x, y, size, size, Color.clear);
                 image.rectTransform.pivot = new Vector2(0.5f, 0.5f);
-                _steam.Add(new Wisp { Image = image, Base = new Vector2(x, y), Rise = rise, Size = size, Phase = (float)i / wisps });
+                _steam.Add(new Wisp { Image = image, Base = new Vector2(x, y), Rise = rise, Size = size, Phase = (float)i / wisps, Warming = warming });
             }
             AnimateSteam();
         }
@@ -370,7 +446,70 @@ namespace Game.Presentation.Hud
                 // Centred on its point (pivot in the middle); the frame's y runs down, so rising is up.
                 rect.anchoredPosition = new Vector2(wisp.Base.x + sway, -(wisp.Base.y - wisp.Rise * life));
                 var fade = Mathf.Sin(Mathf.PI * life);
-                wisp.Image.color = new Color(_steamColour.r, _steamColour.g, _steamColour.b, _steamColour.a * fade * fade);
+                var strength = wisp.Warming ? Warmth(_warming) : 1f;
+                wisp.Image.color = new Color(_steamColour.r, _steamColour.g, _steamColour.b, _steamColour.a * fade * fade * strength);
+            }
+        }
+
+        // Gold sparks bursting from a point, each on its own heading.
+        private void Sparks(float x, float y, int count)
+        {
+            for (var i = 0; i < count; i++)
+            {
+                var size = 16f + (i * 7 % 5) * 4f;
+                var image = UiKit.Picture(_content, "Spark", Puff, x, y, size, size, Alpha(_gold, 0f));
+                image.rectTransform.pivot = new Vector2(0.5f, 0.5f);
+                // Spread round the top half mostly, as if thrown up from the plate.
+                var angle = Mathf.Lerp(-200f, 20f, (i + 0.5f) / count) * Mathf.Deg2Rad + (i % 3 - 1) * 0.12f;
+                _sparks.Add((image, new Vector2(x, y), angle, size));
+            }
+        }
+
+        // The unlock moment, frame by frame: the plate warms, the card flashes and its line pops,
+        // sparks fly out and fade. Ends by drawing the tab as it stays.
+        private void AnimateWarmUp()
+        {
+            if (_warming == null)
+                return;
+            var t = Warmth(_warming);
+            var warm = 1f - (1f - t) * (1f - t);
+            foreach (var plate in _warmPlates)
+            {
+                if (plate == null)
+                    continue;
+                plate.color = Color.Lerp(ColdTint, Color.white, warm);
+                // A little swell as it comes on.
+                var swell = 1f + 0.08f * Mathf.Sin(Mathf.PI * Mathf.Clamp01(t * 1.6f));
+                plate.rectTransform.localScale = new Vector3(swell, swell, 1f);
+            }
+            foreach (var flash in _warmFlashes)
+            {
+                if (flash != null)
+                    flash.color = Alpha(_gold, 0.55f * (1f - t) * Mathf.Clamp01(t * 8f));
+            }
+            foreach (var label in _warmLabels)
+            {
+                if (label == null)
+                    continue;
+                var pop = 1f + 0.3f * Mathf.Sin(Mathf.PI * Mathf.Clamp01(t * 2.2f));
+                label.rectTransform.localScale = new Vector3(pop, pop, 1f);
+            }
+            foreach (var (image, from, angle, size) in _sparks)
+            {
+                if (image == null)
+                    continue;
+                var reach = _unlockSparkReach * (1f - (1f - t) * (1f - t) * (1f - t));
+                // They fly out and drop a little, as thrown sparks do.
+                var at = from + new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * reach + new Vector2(0f, 60f * t * t);
+                image.rectTransform.anchoredPosition = new Vector2(at.x, -at.y);
+                var s = size * Mathf.Lerp(1.2f, 0.4f, t);
+                image.rectTransform.sizeDelta = new Vector2(s, s);
+                image.color = Alpha(Color.Lerp(_gold, Color.white, 0.35f), Mathf.Clamp01(t * 10f) * Mathf.Clamp01((1f - t) * 1.6f));
+            }
+            if (t >= 1f)
+            {
+                _warming = null;
+                _dirty = true;
             }
         }
 
@@ -378,7 +517,11 @@ namespace Game.Presentation.Hud
         private void AnimateRestaurant(float dt)
         {
             if (_tab != Tab.Restaurant)
+            {
+                _warming = null;
                 return;
+            }
+            AnimateWarmUp();
             if (_steam.Count > 0)
                 AnimateSteam();
             if (_dial.Count > 0 && Mathf.Abs(_dialOffset) > 0.001f)

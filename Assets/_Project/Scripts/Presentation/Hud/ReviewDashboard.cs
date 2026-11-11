@@ -226,6 +226,8 @@ namespace Game.Presentation.Hud
         /// <summary>For the capture test: shows a tab with a review chosen and, if asked, the reply wheel open, at once.</summary>
         public Canvas ShowForCapture(int tab, int selected, bool choosingReply, int filter = 0, bool onFilters = false)
         {
+            _warming = null;
+            _warmFrozenAt = -1f;
             _canvasObject.SetActive(true);
             _tab = (Tab)Mathf.Clamp(tab, 0, 3);
             _overview.Set(onFilters, Mathf.Clamp(filter, 0, FilterCount - 1), _tab == Tab.Overview ? selected : 0);
@@ -551,7 +553,10 @@ namespace Game.Presentation.Hud
             {
                 _unlockResult = book.TryUnlock(recipe.Id, Services.Days.TrySpend);
                 if (_unlockResult == Game.Simulation.Cookbook.UnlockResult.Unlocked)
+                {
                     SaveCookbookNow(force: true);
+                    WarmUp(recipe.Id);
+                }
                 _dirty = true;
             }
             else if (Pressed(actions, "Use") && book.IsUnlocked(recipe.Id) && book.PriceOf(recipe.Id) != recipe.SuggestedPrice)

@@ -104,6 +104,30 @@ namespace Game.Tests.PlayMode
         }
 
         [UnityTest]
+        public IEnumerator UnlockingADishWarmsItUpAndSettles()
+        {
+            // The unlock moment (2026-11-11): A on a locked dish buys it, and it warms up on screen.
+            yield return Arrive();
+            yield return Join();
+            var book = _root.Services.Cookbook;
+            Assume.That(book, Is.Not.Null);
+            Assume.That(book.Recipes.Count, Is.GreaterThan(1));
+            var second = book.Recipes[1];
+            Assume.That(book.IsUnlocked(second.Id), Is.False);
+            _root.Services.Days.Receive(second.UnlockCost + 100f);
+
+            yield return Press(GamepadButton.RightShoulder);
+            Assume.That(_dashboard.ShownTab, Is.EqualTo("Restaurant"));
+            yield return Press(GamepadButton.DpadDown);
+            yield return Press(GamepadButton.South);
+
+            Assert.That(book.IsUnlocked(second.Id), Is.True, "A unlocked the second dish");
+            Assert.That(_dashboard.IsWarmingUp, Is.True, "and it's warming up");
+            yield return new WaitForSecondsRealtime(1.8f);
+            Assert.That(_dashboard.IsWarmingUp, Is.False, "the moment settles");
+        }
+
+        [UnityTest]
         public IEnumerator AShortDPadPressStepsOneRowWithASecondCookIdle()
         {
             // The playtest's jumping (2026-11-11): with a second cook idle, a held D-pad stepped every
