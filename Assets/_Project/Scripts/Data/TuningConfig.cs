@@ -41,8 +41,21 @@ namespace Game.Data
         [Tooltip("Seconds from full speed to a stop after letting go of the stick.")]
         [SerializeField, Min(0f)] private float _decelerationTime = 0.06f;
 
-        [Tooltip("Degrees per second the chef turns to face the stick. 1080 = a half turn in ~0.17 s.")]
-        [SerializeField, Min(0f)] private float _turnSpeedDegrees = 1080f;
+        [Tooltip("Degrees per second the chef turns to face the stick at full push. Slower than walking feels (decision 2026-11-11: was 1080): 600 = a half turn in 0.3 s.")]
+        [SerializeField, Min(0f)] private float _turnSpeedDegrees = 600f;
+
+        [Tooltip("Share of the turn speed at the lightest push, rising to all of it at full push: a small nudge turns the chef gently instead of swinging them off the counter.")]
+        [SerializeField, Range(0.05f, 1f)] private float _lightPushTurnShare = 0.35f;
+
+        [Header("Facing assist (decision 2026-11-11)")]
+        [Tooltip("Metres to a station's centre within which a chef who has stopped turns to face it. A chef at a counter's front is about 1 m from its centre. 0 turns the assist off.")]
+        [SerializeField, Min(0f)] private float _facingAssistRange = 1.3f;
+
+        [Tooltip("Degrees either side of facing within which the assist turns a stopped chef to the station they're targeting.")]
+        [SerializeField, Range(0f, 90f)] private float _facingAssistHalfAngle = 40f;
+
+        [Tooltip("Degrees per second of the assist's turn: gentle, so it settles rather than snaps.")]
+        [SerializeField, Min(0f)] private float _facingAssistTurnSpeed = 300f;
 
         [Header("Interaction")]
         [Tooltip("Metres from the chef to a station's centre. A counter is 1 m deep, so 1.5 reaches about 0.65 m past its front edge.")]
@@ -307,7 +320,8 @@ namespace Game.Data
         public float FridgeTemperature => _fridgeTemperature;
 
         public MovementSettings Movement =>
-            new MovementSettings(_moveSpeed, _accelerationTime, _decelerationTime, _turnSpeedDegrees);
+            new MovementSettings(_moveSpeed, _accelerationTime, _decelerationTime, _turnSpeedDegrees,
+                _lightPushTurnShare, _facingAssistRange, _facingAssistHalfAngle, _facingAssistTurnSpeed);
 
         public TargetingSettings Targeting =>
             new TargetingSettings(_interactRange, _interactHalfAngle, _targetStickiness);
