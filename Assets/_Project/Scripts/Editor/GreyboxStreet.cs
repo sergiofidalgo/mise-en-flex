@@ -272,6 +272,10 @@ namespace Game.Editor
             var collider = bin.AddComponent<BoxCollider>();
             collider.center = new Vector3(0f, 0.67f, 0f);
             collider.size = new Vector3(1.2f, 1.34f, 1.8f);
+            // Flies over the lid: it smells, and guests by the door notice (decision 2026-11-11).
+            var flies = new SerializedObject(bin.AddComponent<Game.Presentation.BinFlies>());
+            flies.FindProperty("_material").objectReferenceValue = Kit.Toon("BinFly", new Color(0.09f, 0.09f, 0.1f));
+            flies.ApplyModifiedPropertiesWithoutUndo();
 
             if (PilotArt.FindMesh(model, "WheelieBinBody") == null)
             {

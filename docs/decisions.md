@@ -3536,3 +3536,18 @@ It hides (fading over the HUD's 0.12 s) behind the Review dashboard, the pause m
 - **A bin near the customer door costs a little, by distance.** Within a few metres of the door, guests lose some satisfaction, more the closer it is, and some reviews mention the smell. Learnable in play, never a disaster.
 - **Appliances stay on the premises.** While being moved they never poke into or through a wall.
 - **Appliances may go in the dining room, and tables in the kitchen.** Placing one shows a warning that it makes mess. It always makes more mess. Guests' reaction depends on how good the restaurant is: with great food and service it's a show they love (a chef's-table bonus and glowing reviews, Michelin style); with average or poor service, they complain about the mess and noise.
+
+## 2026-11-11 — Guests feel the bin and the open kitchen
+
+**User's calls, building on "The wheelie bin moves…" above:**
+- **The bin's smell reaches 4 m from the customer door** and costs up to **1 star** with the bin right at the door, fading in a straight line to nothing at 4 m (`Surroundings.BinSmell`). Reviews mention it when it costs at least half a star (bin within about 2 m). Today's layouts keep the bin about 5.5 m from the door, so they're untouched. Distance is from the door to the bin's nearest side, read each time a guest is served, so a moved door or bin counts at once.
+- **The bin has flies over it** (`BinFlies`, added by the street builder), so players can tell why guests by the door grumble.
+- **A great night is tonight's average stars ≥ 4.5, this guest's own dish included, and this guest not kept waiting** (patience at serving above the slow-service mark). Stars are counted before the bin and the open kitchen, so a show doesn't feed itself and a complaint doesn't spiral.
+- **An open kitchen moves a guest's score up to ±1 star:** half a star per appliance in the dining room or table in the kitchen, capped at one. On a great night it's a bonus and praise-worthy guests write chef's-table reviews (`ChefsTable`); otherwise it's a penalty and guests complain about mess and noise (`OpenKitchenMess`).
+- **An open kitchen always makes more mess:** every 3 guests served, each out-of-place piece leaves a wipe of floor dirt beside it (grease by an appliance, footprints by a table), scaled by the hygiene dial.
+
+**Review priority:** food problems, then dirt, then the bin, then open-kitchen complaints, then a slow wait; a praise-worthy meal during a show becomes a chef's-table review. `ChefsTable` counts as praise for replies, sharing and the summary.
+
+**All values are in TuningConfig** ("Guests' surroundings", plus two in "Dirt").
+
+**Not wired yet:** which pieces are out of place comes from the layout work on `claude/layout-open-kitchen` (`GuestSurroundings.OutOfPlace`, a flagged TODO). Until it's connected, the open-kitchen rules are tested but never fire in play.

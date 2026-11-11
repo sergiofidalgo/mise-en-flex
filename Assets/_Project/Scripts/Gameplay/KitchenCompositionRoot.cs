@@ -96,6 +96,10 @@ namespace Game.Gameplay
                 station.Bind(Services);
             ApplyCleaningTuning();
             Services.Messes = new Cleaning.KitchenMess(Services);
+            // Read where the door and the bin stand at each guest, so moving either is felt at once.
+            var door = FindFirstObjectByType<StreetDoor>();
+            if (door != null)
+                Services.Surroundings = new Game.Gameplay.Customers.GuestSurroundings(Services, door.transform, GameObject.Find(Game.Gameplay.Customers.GuestSurroundings.BinName)?.transform);
 
             if (save != null)
                 CampaignSnapshot.RestoreContents(save, placed, Services);

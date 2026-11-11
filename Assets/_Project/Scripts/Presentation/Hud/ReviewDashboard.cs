@@ -652,6 +652,9 @@ namespace Game.Presentation.Hud
             ReviewTopic.SlowService => Game.Data.Tr.Get("Slow service"),
             ReviewTopic.WalkedOut => Game.Data.Tr.Get("Gave up waiting"),
             ReviewTopic.Dirty => Game.Data.Tr.Get("Dirty table"),
+            ReviewTopic.BinSmell => Game.Data.Tr.Get("Bins by the door"),
+            ReviewTopic.ChefsTable => Game.Data.Tr.Get("Loved the open kitchen"),
+            ReviewTopic.OpenKitchenMess => Game.Data.Tr.Get("Kitchen mess and noise"),
             _ => topic.ToString(),
         };
 
