@@ -52,6 +52,11 @@ namespace Game.Presentation
             new Color(0.93f, 0.96f, 0.98f), // foam
         };
         [SerializeField] private Color _shardColor = new Color(0.95f, 0.95f, 0.92f);
+        [Tooltip("The soaked rim under a stain, as a share of its colour (darker).")]
+        [SerializeField, Range(0f, 1f)] private float _rimShade = 0.62f;
+        [Tooltip("The sheen pool's and the highlight's blend towards white: greasy, not flat.")]
+        [SerializeField, Range(0f, 1f)] private float _sheen = 0.32f;
+        [SerializeField, Range(0f, 1f)] private float _shine = 0.75f;
         [Tooltip("Smallest a patch shrinks to before it goes, as a share of its size.")]
         [SerializeField, Range(0f, 1f)] private float _cleanestShown = 0.3f;
         [Tooltip("Metres a patch sits above what it's on, so it never flickers into it.")]
@@ -195,6 +200,40 @@ namespace Game.Presentation
             var turn = spot.Host is Component host && host != null ? host.transform.eulerAngles.y : 0f;
             patch.rotation = Quaternion.Euler(0f, turn + spot.Id * 47f, 0f);
             patch.localScale = new Vector3(shown, 1f, shown);
+
+            // The sheen faces the light, however the patch is turned: up and left on screen.
+            var grease = patch.Find("Grease");
+            if (grease != null)
+                grease.rotation = Quaternion.identity;
+        }
+
+        // ...a lighter pool of sheen towards the light, a bright highlight in it, and a few glossy
+        // droplets round the edge: the stain reads wet and greasy under the toon shading. Its own
+        // random, so the crumbs round it stay as they were.
+        private void BuildGrease(Transform root, DirtSpot spot, Color color)
+        {
+            var random = new System.Random(spot.Id * 104729 + 17);
+            var grease = new GameObject("Grease").transform;
+            grease.SetParent(root, false);
+            var sheen = Piece(grease, BlobMesh(random), _toon, Color.Lerp(color, Color.white, _sheen), 0);
+            sheen.transform.localPosition = new Vector3(-0.1f, 0.003f, 0.08f);
+            sheen.transform.localScale = new Vector3(0.5f, 1f, 0.38f);
+            var shine = Piece(grease, BlobMesh(random), _toon, Color.Lerp(color, Color.white, _shine), 0);
+            shine.transform.localPosition = new Vector3(-0.17f, 0.005f, 0.13f);
+            shine.transform.localScale = new Vector3(0.16f, 1f, 0.1f);
+            var drops = 2 + random.Next(3);
+            for (var i = 0; i < drops; i++)
+            {
+                var angle = (float)(random.NextDouble() * Mathf.PI * 2f);
+                var distance = 0.5f + (float)random.NextDouble() * 0.18f;
+                var drop = Piece(grease, _sphere, _toon, color, 0);
+                var size = 0.05f + (float)random.NextDouble() * 0.06f;
+                drop.transform.localPosition = new Vector3(Mathf.Cos(angle) * distance, 0.004f, Mathf.Sin(angle) * distance);
+                drop.transform.localScale = new Vector3(size, 0.012f, size * 0.8f);
+                var glint = Piece(grease, _sphere, _toon, Color.Lerp(color, Color.white, _shine), 0);
+                glint.transform.localPosition = drop.transform.localPosition + new Vector3(-size * 0.2f, 0.006f, size * 0.2f);
+                glint.transform.localScale = new Vector3(size * 0.35f, 0.006f, size * 0.3f);
+            }
         }
 
         // A flat, lumpy blob with a few crumbs (or shards) round it, different for every spot.
@@ -205,8 +244,15 @@ namespace Game.Presentation
             var random = new System.Random(spot.Id * 7919);
             var color = Pick(_patchColor, (int)spot.Kind, Color.gray);
 
-            var blob = Piece(root, BlobMesh(random), _toon, color, 0);
+            var shape = BlobMesh(random);
+            // Greasy, not flat (the user's call, 2026-11-11): a darker soaked rim under the body...
+            var rim = Piece(root, shape, _toon, color * _rimShade, 0);
+            rim.transform.localScale = new Vector3(1.1f, 0.6f, 1.1f);
+            var blob = Piece(root, shape, _toon, color, 0);
+            blob.transform.localPosition = new Vector3(0f, 0.001f, 0f);
             blob.transform.localScale = Vector3.one;
+            if (spot.Kind != DirtKind.Scuff)
+                BuildGrease(root, spot, color);
 
             // Bits round it: crumbs where guests ate, shards from a broken plate, flecks of soot or foam.
             var bits = spot.Kind == DirtKind.Scuff ? 0 : 5;
@@ -226,6 +272,7 @@ namespace Game.Presentation
             if (spot.Kind == DirtKind.Scuff)
             {
                 blob.enabled = false;
+                rim.enabled = false;
                 for (var i = 0; i < 4; i++)
                 {
                     var sole = Piece(root, _cube, _toon, color, 0);
@@ -237,6 +284,19 @@ namespace Game.Presentation
         }
 
         // A lumpy disc of radius about 0.5, a few millimetres thick, flat-shaded.
+        /// <summary>
+        /// A spot's stain as drawn on the floor or table: its lumpy outline (the same random shape,
+        /// seeded by the spot), its colour and its size in metres. For the cleaning hint, which
+        /// shows the stain over whatever hides it.
+        /// </summary>
+        public (Mesh Shape, Color Colour, float Size, float Turn) Stain(DirtSpot spot)
+        {
+            var kind = (int)spot.Kind;
+            var size = Pick(_patchSize, kind, 0.4f) * Mathf.Sqrt(Mathf.Clamp(spot.Peak, 0.5f, 4f) / 2f);
+            var turn = spot.Host is Component host && host != null ? host.transform.eulerAngles.y : 0f;
+            return (BlobMesh(new System.Random(spot.Id * 7919)), Pick(_patchColor, kind, Color.gray), size, turn + spot.Id * 47f);
+        }
+
         private static Mesh BlobMesh(System.Random random)
         {
             const int sides = 14;
