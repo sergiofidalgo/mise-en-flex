@@ -5,23 +5,12 @@ namespace Game.Simulation.Characters
     /// <summary>
     /// One player dressing at the tailor (decision 2026-11-09). LB and RB pick a module, left and
     /// right an item in it. The chef shows whatever is picked (<see cref="Preview"/>), locked items
-    /// too, so players can see what's to come. A wears it (<see cref="Wear"/>, the user's call
-    /// 2026-11-11, as A buys at the kitchen's shop): what they wear (<see cref="Worn"/>) takes only
-    /// items that are open, and is what saves. Leaving puts the preview back to what's worn.
+    /// too, so players can see what's to come. What they wear (<see cref="Worn"/>) follows every
+    /// open item picked, at once, and is what saves (the user's call, 2026-11-11 playtest: no A to
+    /// wear). Leaving puts the preview back to what's worn, dropping a locked item still shown.
     /// </summary>
     public sealed class TailorSession
     {
-        /// <summary>What pressing A to wear the picked item did.</summary>
-        public enum WearResult
-        {
-            /// <summary>Now worn, and to be saved.</summary>
-            Worn,
-            /// <summary>Already wearing it: nothing to do.</summary>
-            AlreadyWorn,
-            /// <summary>Not earned yet: shown, never worn.</summary>
-            Locked,
-        }
-
         private readonly ICollection<string> _unlocked;
         private int _module;
 
@@ -56,29 +45,23 @@ namespace Game.Simulation.Characters
             _module = ((_module + direction) % count + count) % count;
         }
 
-        /// <summary>Shows the next item (+1) or the one before (-1) in the module, wrapping round. Only a preview until it's worn.</summary>
-        public void StepItem(int direction)
+        /// <summary>
+        /// Shows the next item (+1) or the one before (-1) in the module, wrapping round, and wears it
+        /// if it's open. Returns true if what's worn changed, so the caller saves.
+        /// </summary>
+        public bool StepItem(int direction)
         {
             var items = Wardrobe.Options(Module);
             var index = ((ItemIndex + direction) % items.Count + items.Count) % items.Count;
-            Preview.Set(Module, items[index].Id);
+            var item = items[index];
+            Preview.Set(Module, item.Id);
+            if (Wardrobe.IsLocked(item, _unlocked) || Worn.Get(Module) == item.Id)
+                return false;
+            Worn.Set(Module, item.Id);
+            return true;
         }
 
-        /// <summary>True when the picked item is the one worn in its module.</summary>
-        public bool ItemWorn => Worn.Get(Module) == Preview.Get(Module);
-
-        /// <summary>Wears the picked item, if it's open. The caller saves on <see cref="WearResult.Worn"/>.</summary>
-        public WearResult Wear()
-        {
-            if (ItemLocked)
-                return WearResult.Locked;
-            if (ItemWorn)
-                return WearResult.AlreadyWorn;
-            Worn.Set(Module, Item.Id);
-            return WearResult.Worn;
-        }
-
-        /// <summary>Done dressing: the chef goes back to what they wear, dropping anything only browsed.</summary>
+        /// <summary>Done dressing: the chef goes back to what they wear, dropping any locked preview.</summary>
         public void Leave()
         {
             foreach (var module in Wardrobe.Modules)
