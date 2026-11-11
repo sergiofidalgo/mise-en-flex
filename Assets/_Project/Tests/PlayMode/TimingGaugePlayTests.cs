@@ -232,6 +232,34 @@ namespace Game.Tests.PlayMode
             Assert.That(view.Showing, Is.EqualTo(1), "a spill at the chef's feet: the X on it");
         }
 
+        [UnityTest]
+        public IEnumerator HoldingRTAtStorageShowsTheWheelAndHidesTheTriggerHint()
+        {
+            yield return OpenKitchenInPrep();
+            var wheel = Object.FindFirstObjectByType<SlotWheelView>();
+            var hints = Object.FindFirstObjectByType<ApplianceHints>();
+            Assume.That(wheel, Is.Not.Null, "run Tools/Game/Apply Timing Gauges (or rebuild the kitchen) first");
+            var fridge = Services.Stations.All.OfType<StorageStation>().First();
+            StandAt(fridge);
+            yield return Wait(0.6f);
+            Assert.That(wheel.Showing, Is.Zero, "no wheel until RT is held");
+            if (hints != null)
+                Assert.That(hints.IsShowing(fridge, triggers: true), Is.True, "LT RT on the fridge while facing it");
+
+            var until = Time.realtimeSinceStartup + 0.6f;
+            while (Time.realtimeSinceStartup < until)
+            {
+                InputSystem.QueueStateEvent(_pad, new GamepadState { rightTrigger = 1f });
+                yield return null;
+            }
+            Assert.That(wheel.Showing, Is.EqualTo(1), "RT held: the wheel over the fridge");
+            if (hints != null)
+                Assert.That(hints.IsShowing(fridge, triggers: true), Is.False, "and the LT RT hint gone while browsing");
+            InputSystem.QueueStateEvent(_pad, new GamepadState());
+            yield return Wait(0.4f);
+            Assert.That(wheel.Showing, Is.Zero, "let go of RT: the wheel goes");
+        }
+
         // What the camera sees, when TIMING_CAPTURE names a folder.
         private static void Capture(string name)
         {

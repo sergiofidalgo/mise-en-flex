@@ -29,6 +29,7 @@ namespace Game.Editor
                 return;
             }
             AddTo(root);
+            CleaningArt.AddTo(root); // the stains' translucent material, without a rebuild
             EditorSceneManager.MarkSceneDirty(root.gameObject.scene);
             Debug.Log("[TimingGauges] Added the crust strip and the cutting dial; the flat HUD gauges are removed. Save the scene to keep it.");
         }
@@ -72,6 +73,25 @@ namespace Game.Editor
             cleanSo.FindProperty("_onTop").objectReferenceValue = material;
             cleanSo.FindProperty("_hints").objectReferenceValue = Object.FindFirstObjectByType<ApplianceHints>(FindObjectsInactive.Include);
             cleanSo.ApplyModifiedPropertiesWithoutUndo();
+
+            // The appliance hints' LT RT as toon keys, the gauges' family.
+            foreach (var hints in Object.FindObjectsByType<ApplianceHints>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            {
+                var hintsSo = new SerializedObject(hints);
+                hintsSo.FindProperty("_onTop").objectReferenceValue = material;
+                hintsSo.ApplyModifiedPropertiesWithoutUndo();
+            }
+
+            // The ingredient wheel, over storage, stalls and trays, in place of the flat card.
+            if (!holder.TryGetComponent(out SlotWheelView wheel))
+                wheel = holder.AddComponent<SlotWheelView>();
+            var wheelSo = new SerializedObject(wheel);
+            wheelSo.FindProperty("_onTop").objectReferenceValue = material;
+            wheelSo.FindProperty("_iconMaterial").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Material>("Assets/_Project/Art/Materials/MAT_FX_HintOnTop.mat");
+            wheelSo.FindProperty("_icons").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Game.Data.IngredientIcons>("Assets/_Project/Data/UI/IngredientIcons.asset");
+            wheelSo.FindProperty("_style").objectReferenceValue = GreyboxHud.EnsureStyle();
+            wheelSo.FindProperty("_settings").objectReferenceValue = WashRing.FindSettings();
+            wheelSo.ApplyModifiedPropertiesWithoutUndo();
 
             if (!holder.TryGetComponent(out ChopGaugeView chop))
                 chop = holder.AddComponent<ChopGaugeView>();

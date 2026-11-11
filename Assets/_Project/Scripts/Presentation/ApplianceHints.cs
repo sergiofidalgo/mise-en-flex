@@ -50,14 +50,18 @@ namespace Game.Presentation
         [SerializeField] private Sprite _trigger;
         [Tooltip("Game/FX/HintOnTop: unlit, drawn over the chef.")]
         [SerializeField] private Material _material;
+        [Tooltip("Game/ToonOnTop: when set, LT RT are drawn as toon keys like the gauges' X (decision 2026-11-11) instead of the glyph sprites.")]
+        [SerializeField] private Material _onTop;
 
         [Header("Learning")]
         [Tooltip("Times a player does an action before its hint stops showing for them.")]
         [SerializeField, Min(1)] private int _usesBeforeFading = 3;
 
         [Header("Look")]
-        [Tooltip("Height of a button picture (m).")]
+        [Tooltip("Height of a button picture (m) as built; it's then scaled to _pixels on screen.")]
         [SerializeField, Min(0.05f)] private float _size = 0.32f;
+        [Tooltip("Height of a button picture on a 1080p screen, whatever the camera's distance: the X hint's size (the user's call, 2026-11-11: 32).")]
+        [SerializeField, Min(8f)] private float _pixels = 32f;
         [Tooltip("Gap between the appliance's top and the bottom of a picture (m).")]
         [SerializeField, Min(0f)] private float _lift = 0.03f;
         [Tooltip("How far in from the far edge the pictures stand (m).")]
@@ -105,6 +109,10 @@ namespace Game.Presentation
                     || (chef.Cleaning != null && chef.Cleaning.IsCleaning))
                     continue;
                 var (triggers, x) = HintsFor(chef, station);
+                // Not while doing it (a trigger pulled, the slot menu open), and not at a hob whose
+                // food shows its crust strip: the strip is the interface then (the user's call).
+                if (triggers.HasValue && (chef.IsSlotMenuOpen || TriggerPulled(chef) || Cooking(station)))
+                    triggers = null;
                 triggers = triggers.HasValue && UsesOf(chef.PlayerIndex, triggers.Value) < _usesBeforeFading ? triggers : null;
                 x = x.HasValue && UsesOf(chef.PlayerIndex, x.Value) < _usesBeforeFading ? x : null;
                 if (triggers == null && x == null)
@@ -163,15 +171,25 @@ namespace Game.Presentation
                 }
                 else if (line.Control == PromptControl.West && line.Available)
                 {
-                    // Cleaning's X (dirt, the sink, a fire) is drawn on the mess itself by
-                    // CleanHintView (decision 2026-11-11), so only flipping's X is left here.
-                    if (station is HobStation hob && !hob.IsOnFire)
-                        x = ApplianceHint.Flip;
-                    else if (station is GrillStation)
-                        x = ApplianceHint.Flip;
+                    // Every X is drawn where it acts now (decision 2026-11-11): flipping's on the
+                    // crust strip, cleaning's on the mess (CleanHintView). None here.
                 }
             }
             return (triggers, x);
+        }
+
+        private bool TriggerPulled(PlayerInteractor chef) => _watched.TryGetValue(chef, out var watch) && watch.Pulled;
+
+        // Food in this hob's pan (or on this grill) that shows the crust or doneness strip.
+        private bool Cooking(Interactable station)
+        {
+            var pan = station is HobStation hob ? hob.Hob?.Pan : null;
+            if (pan == null)
+                return false;
+            foreach (var food in pan.Contents)
+                if (food != null && (Game.Simulation.Cooking.FlipGauge.Shows(food) || Game.Simulation.Cooking.FlipGauge.ShowsStages(food)))
+                    return true;
+            return false;
         }
 
         // Counts each time a player does what a hint teaches, wherever they do it.
@@ -276,8 +294,21 @@ namespace Game.Presentation
             var both = pair.Triggers.Width + _gap + pair.X.Width;
             var left = middle - alongWorld * (both / 2f);
             var facing = camera.transform.rotation;
-            pair.Triggers.Root.SetPositionAndRotation(left + alongWorld * (pair.Triggers.Width / 2f), facing);
+            // Sized on screen like the gauges' X, so it's the same small button in any kitchen.
+            // In world size: the hints hang under this object, which may itself be scaled.
+            var scale = TimingGaugeKit.MetresFor(camera, middle, _pixels) / _size / Mathf.Max(0.001f, transform.lossyScale.x);
+            var triggersAt = left + alongWorld * (pair.Triggers.Width / 2f);
+            // A gas hob's LT RT sit by its heat knob: what they turn.
+            var knob = station.transform.Find(HobView.KnobName);
+            if (knob != null)
+                triggersAt = knob.position + Vector3.up * (_lift + _size * scale / 2f) + camera.transform.up * (_size * scale * 0.6f);
+            pair.Triggers.Root.SetPositionAndRotation(triggersAt, facing);
             pair.X.Root.SetPositionAndRotation(left + alongWorld * (both - pair.X.Width / 2f), facing);
+            // Only badges Tick has just sized this frame (a hidden one keeps its scale).
+            if (pair.Triggers.Shown > 0f)
+                pair.Triggers.Root.localScale *= scale;
+            if (pair.X.Shown > 0f)
+                pair.X.Root.localScale *= scale;
         }
 
         private Pair Build(Interactable station)
@@ -292,22 +323,45 @@ namespace Game.Presentation
             // LT RT: two trigger bodies side by side, letters on top.
             pair.Triggers = new Badge { Root = new GameObject("Hint_LT_RT").transform };
             pair.Triggers.Root.SetParent(root, false);
+            if (_onTop != null)
+            {
+                // Toon keys, the same family as the gauges' X: a dark key with an Ink rim each.
+                var key = _size * 0.9f;
+                for (var side = -1; side <= 1; side += 2)
+                {
+                    var rim = TimingGaugeKit.Block(pair.Triggers.Root, "KeyRim", _onTop, TimingGaugeKit.Ink, 30);
+                    TimingGaugeKit.Place(rim, new Vector2(side * key * 0.56f, 0f), new Vector2(key + _size * 0.1f, _size * 1.1f), 0.01f, 0f);
+                    var body = TimingGaugeKit.Block(pair.Triggers.Root, "Key", _onTop, new Color(0.2f, 0.21f, 0.24f), 31);
+                    TimingGaugeKit.Place(body, new Vector2(side * key * 0.56f, 0f), new Vector2(key, _size), 0.01f, -0.01f);
+                }
+                pair.Triggers.Width = key * 2.12f;
+                Letter(pair.Triggers, "LT", new Vector3(-key * 0.56f, 0f, -0.02f), _triggerLetters, 0.42f);
+                Letter(pair.Triggers, "RT", new Vector3(key * 0.56f, 0f, -0.02f), _triggerLetters, 0.42f);
+                BuildX(pair);
+                pair.Triggers.Root.gameObject.SetActive(false);
+                pair.X.Root.gameObject.SetActive(false);
+                return pair;
+            }
             var triggerWidth = Body(pair.Triggers, _trigger, new Vector3(-0.5f, 0f, 0f));
             Body(pair.Triggers, _trigger, new Vector3(0.5f, 0f, 0f), triggerWidth);
             pair.Triggers.Width = triggerWidth * 1.92f;
             Letter(pair.Triggers, "LT", new Vector3(-triggerWidth * 0.46f, -_size * 0.06f, 0f), _triggerLetters, 0.42f);
             Letter(pair.Triggers, "RT", new Vector3(triggerWidth * 0.46f, -_size * 0.06f, 0f), _triggerLetters, 0.42f);
 
-            // X: the round body, the letter in Xbox blue.
-            pair.X = new Badge { Root = new GameObject("Hint_X").transform };
-            pair.X.Root.SetParent(root, false);
-            pair.X.Width = Body(pair.X, _button, Vector3.zero);
-            var blue = _style != null ? _style.BadgeColor(PromptControl.West, true) : new Color(0.25f, 0.55f, 0.95f);
-            Letter(pair.X, "X", new Vector3(0f, _size * 0.02f, 0f), blue, 0.62f);
-
+            BuildX(pair);
             pair.Triggers.Root.gameObject.SetActive(false);
             pair.X.Root.gameObject.SetActive(false);
             return pair;
+        }
+
+        // X: the round body, the letter in Xbox blue (unused since every X moved to where it acts).
+        private void BuildX(Pair pair)
+        {
+            pair.X = new Badge { Root = new GameObject("Hint_X").transform };
+            pair.X.Root.SetParent(pair.Root, false);
+            pair.X.Width = Body(pair.X, _button, Vector3.zero);
+            var blue = _style != null ? _style.BadgeColor(PromptControl.West, true) : new Color(0.25f, 0.55f, 0.95f);
+            Letter(pair.X, "X", new Vector3(0f, _size * 0.02f, 0f), blue, 0.62f);
         }
 
         // A kit body scaled to the hint's height; returns its width (m). Placed by its width when
@@ -352,7 +406,8 @@ namespace Game.Presentation
             var height = label.textBounds.size.y;
             if (height > 0.0001f)
                 label.fontSize *= _size * heightShare / height;
-            label.sortingOrder = 21;
+            // Over the bodies: above the toon keys' order (30, 31) when they're used.
+            label.sortingOrder = _onTop != null ? 35 : 21;
             badge.Letters.Add(label);
         }
 
@@ -363,7 +418,7 @@ namespace Game.Presentation
                 return _letterMaterial != null ? _letterMaterial : font?.material;
             _letterMaterial = new Material(font.material) { name = "HintLetters" };
             _letterMaterial.SetFloat(ZTestId, (float)CompareFunction.Always);
-            _letterMaterial.renderQueue = (_material != null ? _material.renderQueue : 3020) + 1;
+            _letterMaterial.renderQueue = (_onTop != null ? _onTop.renderQueue + 5 : (_material != null ? _material.renderQueue : 3020)) + 1;
             return _letterMaterial;
         }
 

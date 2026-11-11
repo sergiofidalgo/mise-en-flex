@@ -228,6 +228,53 @@ namespace Game.Presentation
             return best;
         }
 
+        /// <summary>
+        /// A flat rounded rectangle facing -Z (the camera, in a camera-facing root), <paramref name="width"/>
+        /// by <paramref name="height"/> with corners of <paramref name="radius"/>, and a little depth.
+        /// </summary>
+        public static Mesh RoundedRect(float width, float height, float radius, float depth = 0.01f, int cornerSteps = 6)
+        {
+            radius = Mathf.Min(radius, Mathf.Min(width, height) * 0.5f);
+            var hx = width * 0.5f - radius;
+            var hy = height * 0.5f - radius;
+            var outline = new System.Collections.Generic.List<Vector2>();
+            Vector2[] centres = { new Vector2(hx, hy), new Vector2(-hx, hy), new Vector2(-hx, -hy), new Vector2(hx, -hy) };
+            for (var c = 0; c < 4; c++)
+            {
+                for (var i = 0; i <= cornerSteps; i++)
+                {
+                    var angle = (c * 90f + i * 90f / cornerSteps) * Mathf.Deg2Rad;
+                    outline.Add(centres[c] + new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * radius);
+                }
+            }
+            var vertices = new System.Collections.Generic.List<Vector3> { new Vector3(0f, 0f, -depth * 0.5f) };
+            var triangles = new System.Collections.Generic.List<int>();
+            foreach (var point in outline)
+                vertices.Add(new Vector3(point.x, point.y, -depth * 0.5f));
+            var n = outline.Count;
+            // The face, towards -Z (the camera): wound clockwise as seen from there.
+            for (var i = 0; i < n; i++)
+                triangles.AddRange(new[] { 0, 1 + (i + 1) % n, 1 + i });
+            // The sides, back to +Z.
+            var start = vertices.Count;
+            foreach (var point in outline)
+            {
+                vertices.Add(new Vector3(point.x, point.y, -depth * 0.5f));
+                vertices.Add(new Vector3(point.x, point.y, depth * 0.5f));
+            }
+            for (var i = 0; i < n; i++)
+            {
+                int a0 = start + i * 2, a1 = a0 + 1, b0 = start + ((i + 1) % n) * 2, b1 = b0 + 1;
+                triangles.AddRange(new[] { a0, a1, b1, a0, b1, b0 });
+            }
+            var mesh = new Mesh { name = "RoundedRect" };
+            mesh.SetVertices(vertices);
+            mesh.SetTriangles(triangles, 0);
+            mesh.RecalculateNormals();
+            mesh.RecalculateBounds();
+            return mesh;
+        }
+
         public static float EaseOutBack(float t)
         {
             t = Mathf.Clamp01(t);

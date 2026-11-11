@@ -82,6 +82,15 @@ namespace Game.Tests.PlayMode
             yield return Wait(1.5f);
             Capture("hob_searing");
 
+            // An empty pan on the hob: the LT RT hint by the knob, before any cooking.
+            var other = Services.Stations.All.OfType<HobStation>().FirstOrDefault(h => h != hob && h.Hob.Pan != null && h.Hob.Pan.Contents.Count == 0);
+            if (other != null)
+            {
+                StandAt(other);
+                yield return Wait(0.6f);
+                Capture("hob_empty");
+            }
+
             var fridge = Services.Stations.All.OfType<StorageStation>().First();
             StandAt(fridge);
             yield return Wait(0.6f);
