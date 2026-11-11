@@ -4,6 +4,19 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-11 — Flipping and cutting get in-scene timing gauges: a crust strip and a knife dial
+
+**User's calls:** the flip and cutting HUDs didn't match the scene, and the flip's X felt detached from its gauge. These stay timing games (X in a cadence to cut, X at the right moment to flip), not stick games like cleaning. Rings were rejected in favour of bars and gauges. From three mock-ups each, the user chose **flip C (crust strip)** and **cut A (half dial with a knife needle)**, judged in the real scene and then made about a third smaller ("size is right").
+
+- **One family look, not one mechanic:** both are chunky toon pieces in the scene (`Game/ToonOnTop`, as the wash and cleaning rings) with an Ink outline. They face the camera, so they read at every rotation, are kept inside the screen, and sit on the far side of the station from the chef so the chef's body never covers them. They're sized in screen pixels (strip 150 px wide, dial 140 px at 1080p), so they look the same in every kitchen. The Xbox X sits on the window to press in, so there's no caption. Grades show as a shape and a colour: ✓ good, – off, ✕ bad (`TimingGaugeKit`).
+- **Flip, the crust strip** (`FlipCrustGaugeView`, replacing `FlipGaugeHud`): the strip is the crust's own colours (raw, golden, brown, dark, charred). A white marker follows the browning of the side facing down. The golden window is framed in green with the X under it, and both pulse while the marker is in it. On the flip, the existing pan toss throws the steak, and a mark pops over the window: ✓ golden, – pale (early), ✕ scorched (late). The mark is feedback only, from the browning the moment before; scoring is unchanged. Then the strip becomes the doneness strip. Near burning, the dark end flashes red and the strip shakes.
+- **Cut, the knife dial** (`ChopGaugeView`, replacing `ChopDialHud`/`ChopDialView`): a wood-dark half fan with the sweet spot (green core, amber edges) and the X just outside it. The needle is a knife. Each cut flashes the fan in the grade's colour (a pop for good, a shake for a miss), leaves a tick where the blade was and pops a mark over the X. Pips in an arc inside the fan fill with each cut's colour. The "press X in the green", "faster" and "slower" texts are gone; the knife speeding up is the only streak cue.
+- **Wiring:** `TimingGaugeArt` (Tools/Game/Apply Timing Gauges, also called by the kitchen builder) adds the views and removes the flat HUD gauges. `GreyboxHud` no longer adds them. The old HUD classes are still in the code, unused, until main has the new views.
+- **Verified:** EditMode (`TimingGaugeTests`: grading) and PlayMode (`TimingGaugePlayTests`: a steak flipped golden with X shows ✓ and then the doneness strip; X cuts at the board; a board on the middle island keeps its dial). `BoardAndKnifePlayTests` now counts the new dials. Captures with `TIMING_CAPTURE=<folder>`. **Not yet played by hand.**
+- **Later:** a slice falling from the board on each cut (art phase); a thicker outline if the 2 px Ink reads too thin at this size.
+
+---
+
 ## 2026-11-11 — Controls and cleaning from the playtest: gentler turning, a facing assist, hold X for every cleaning job, washing by circles
 
 Implements the movement and cleaning calls of the playtest round (entry below, "Playtest round").
