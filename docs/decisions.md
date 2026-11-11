@@ -3536,3 +3536,22 @@ It hides (fading over the HUD's 0.12 s) behind the Review dashboard, the pause m
 - **A bin near the customer door costs a little, by distance.** Within a few metres of the door, guests lose some satisfaction, more the closer it is, and some reviews mention the smell. Learnable in play, never a disaster.
 - **Appliances stay on the premises.** While being moved they never poke into or through a wall.
 - **Appliances may go in the dining room, and tables in the kitchen.** Placing one shows a warning that it makes mess. It always makes more mess. Guests' reaction depends on how good the restaurant is: with great food and service it's a show they love (a chef's-table bonus and glowing reviews, Michelin style); with average or poor service, they complain about the mess and noise.
+
+## 2026-11-11 — Rearranging: pieces stop at the walls, and the open kitchen's warning
+
+**Why pieces showed inside walls:** `KitchenPlan.Check` already refused a spot where any corner reached past a wall's face, but the carried piece was still drawn wherever the cursor was, and the cursor only stays inside the building's outer walls. So a piece pushed against a wall, or a turned piece near one, showed half inside it (red, refused), and one carried from the kitchen to the dining room passed through the dividing wall. Square pieces whose centre was in the area never clipped; turned ones near a wall did too, as the wall snap only worked square on.
+
+**Fix (Simulation):** `KitchenPlan.Snap` now keeps the landing inside the room, by how far the piece's corners reach along each axis at its turn. Pushed further, a piece stays flush against the wall and slides along it, at any of the 8 turns and any size.
+
+**Tables' chairs while carried:** a carried table now shows only the chairs that would have room where it would land (`TableStation.PreviewChairs`), as placing already did. Before, a bar table turned towards a wall showed its stool half a metre inside it.
+
+**Checked against the real models** (`OpenKitchenPlayTests`): every piece in the grill kitchen, pushed into each wall at all 8 turns, stays out of the walls, with one known exception. Cabinets' worktops (CabinetArt) overhang their 1 m body by 2.5 cm, so against a wall the lip sits 2.5 cm into it, as it already did in the builder's own layout. That's hidden inside the 20 cm wall, so the test allows 3 cm. A stool can stand in the kitchen door's gap, which isn't a wall.
+
+**User's calls on the open kitchen (this session's questions):**
+- **The warning shows while carrying**, as an amber line on the carried piece's label once it's over the other room ("cooking in the dining room makes mess" / "guests in the kitchen make mess"), before A. Hovering a placed piece that's out of its room repeats it.
+- **Placing still takes one press.** The warning informs, never blocks.
+- **The dividing wall is jumped at its middle:** a carried piece sits flush against it on the cursor's side and moves to the other room once the cursor passes the wall's middle. Nothing may straddle it.
+
+**Rules now:** the plan has two rooms (`Room.Kitchen`, `Room.DiningRoom`); any piece may stand in either. Each piece has a usual room (tables `DiningRoom`, the rest `Kitchen`). Doors, other pieces, people and chairs still block as before. The street door keeps its own rule. `KitchenPlan.OutOfTheirRooms()` and `LayoutEditor.OutOfTheirRooms()` list the pieces out of their usual room, for the mess and guests' reaction (built in another session).
+
+**Not checked in play:** whether guests and the waiter reach a table in the kitchen comfortably through the kitchen door, and how the jump over the dividing wall feels with a stick.

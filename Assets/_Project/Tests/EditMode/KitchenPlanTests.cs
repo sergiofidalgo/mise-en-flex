@@ -323,5 +323,174 @@ namespace Game.Tests.EditMode
             Assert.That(plan.PositionOf(piece), Is.EqualTo(new Vector2(2f, 2f)));
             Assert.That(plan.Pieces.Count(), Is.EqualTo(1));
         }
+
+        // ---- Appliances stay on the premises (decisions 2026-11-11) ----
+        // In Plan(), the kitchen's wall faces are x = ±4.9, z = -2.9 and 3.9. In TwoRooms(), the
+        // dining room's are x = ±4.9, z = -7.9 and -3.1: the dividing wall runs from -3.1 to -2.9.
+
+        private static KitchenPlan TwoRooms()
+        {
+            var plan = Plan();
+            plan.AddRoom(Room.DiningRoom, new Vector2(-4.4f, -7.4f), new Vector2(4.4f, -3.6f));
+            return plan;
+        }
+
+        // Every corner of the piece where it would land is between one room's wall faces.
+        private static void AssertWithinWalls(Vector2 at, float degrees, Vector2 halfSize, float north, float south)
+        {
+            foreach (var corner in new Footprint(at, degrees, halfSize).Corners(0.5f))
+            {
+                Assert.That(corner.X, Is.InRange(-4.9f - 1e-3f, 4.9f + 1e-3f), $"corner {corner} pokes through a side wall");
+                Assert.That(corner.Y, Is.InRange(south - 1e-3f, north + 1e-3f), $"corner {corner} pokes through a wall");
+            }
+        }
+
+        [Test]
+        public void ACarriedPieceStopsAgainstTheWallInsteadOfGoingIntoIt()
+        {
+            var plan = Plan();
+            var piece = new object();
+            plan.Add(piece, Vector2.Zero);
+
+            var landing = plan.Snap(piece, new Vector2(5.6f, 1f), 0f);
+            AssertNear(landing, new Vector2(4.4f, 1f));
+            Assert.That(plan.Check(piece, landing, 0f, Nobody), Is.EqualTo(Placement.Ok));
+        }
+
+        [TestCase(45f)]
+        [TestCase(135f)]
+        [TestCase(225f)]
+        [TestCase(315f)]
+        public void ATurnedPieceIsKeptInsideTheWalls(float degrees)
+        {
+            var plan = Plan();
+            var piece = new object();
+            plan.Add(piece, Vector2.Zero);
+
+            // Turned, its corner reaches 0.71 m from its centre, past where a square one stops.
+            var landing = plan.Snap(piece, new Vector2(4.4f, 3.4f), degrees);
+            AssertWithinWalls(landing, degrees, Vector2.Zero, 3.9f, -2.9f);
+            AssertNear(landing, new Vector2(4.9f - 0.7071f, 3.9f - 0.7071f));
+            Assert.That(plan.Check(piece, landing, degrees, Nobody), Is.EqualTo(Placement.Ok));
+        }
+
+        [TestCase(0f)]
+        [TestCase(45f)]
+        [TestCase(90f)]
+        [TestCase(135f)]
+        [TestCase(180f)]
+        [TestCase(225f)]
+        [TestCase(270f)]
+        [TestCase(315f)]
+        public void ALongPieceStaysInsideTheWallsAtAnyOfTheEightTurns(float degrees)
+        {
+            var plan = Plan();
+            var piece = new object();
+            var half = new Vector2(1f, 0.4f);
+            plan.Add(piece, Vector2.Zero, 0f, half);
+
+            foreach (var push in new[] { new Vector2(9f, 0f), new Vector2(-9f, 0f), new Vector2(0f, 9f), new Vector2(0f, -2.9f), new Vector2(9f, 9f) })
+            {
+                var landing = plan.Snap(piece, push, degrees);
+                AssertWithinWalls(landing, degrees, half, 3.9f, -2.9f);
+                Assert.That(plan.Check(piece, landing, degrees, Nobody), Is.EqualTo(Placement.Ok), $"pushed to {push}");
+            }
+        }
+
+        [Test]
+        public void WithTheDiningRoomOpenAnApplianceCanGoThere()
+        {
+            var plan = TwoRooms();
+            var hob = new object();
+            plan.Add(hob, Vector2.Zero);
+
+            Assert.That(plan.Check(hob, new Vector2(0f, -5f), 0f, Nobody), Is.EqualTo(Placement.Ok));
+            Assert.That(plan.RoomAt(new Vector2(0f, -5f)), Is.EqualTo(Room.DiningRoom));
+            Assert.That(plan.RoomAt(new Vector2(0f, 1f)), Is.EqualTo(Room.Kitchen));
+            Assert.That(plan.RoomAt(new Vector2(0f, -3f)), Is.Null, "inside the dividing wall");
+        }
+
+        [Test]
+        public void NothingStraddlesTheDividingWall()
+        {
+            var plan = TwoRooms();
+            var hob = new object();
+            plan.Add(hob, Vector2.Zero);
+
+            Assert.That(plan.Check(hob, new Vector2(0f, -3f), 0f, Nobody), Is.EqualTo(Placement.OutsideTheKitchen));
+            Assert.That(plan.Check(hob, new Vector2(0f, -2.6f), 0f, Nobody), Is.EqualTo(Placement.OutsideTheKitchen));
+        }
+
+        [TestCase(0f)]
+        [TestCase(45f)]
+        public void ACarriedPieceJumpsTheDividingWallAtItsMiddle(float degrees)
+        {
+            var plan = TwoRooms();
+            var hob = new object();
+            plan.Add(hob, Vector2.Zero);
+
+            var kitchenSide = plan.Snap(hob, new Vector2(0.3f, -2.95f), degrees);
+            AssertWithinWalls(kitchenSide, degrees, Vector2.Zero, 3.9f, -2.9f);
+            Assert.That(plan.Check(hob, kitchenSide, degrees, Nobody), Is.EqualTo(Placement.Ok));
+
+            var diningSide = plan.Snap(hob, new Vector2(0.3f, -3.05f), degrees);
+            AssertWithinWalls(diningSide, degrees, Vector2.Zero, -3.1f, -7.9f);
+            Assert.That(plan.Check(hob, diningSide, degrees, Nobody), Is.EqualTo(Placement.Ok));
+        }
+
+        [Test]
+        public void PiecesOutsideTheirUsualRoomAreListed()
+        {
+            var plan = TwoRooms();
+            var hobInTheKitchen = new object();
+            var hobInTheDiningRoom = new object();
+            var tableInTheDiningRoom = new object();
+            var tableInTheKitchen = new object();
+            plan.Add(hobInTheKitchen, new Vector2(-2f, 1f));
+            plan.Add(hobInTheDiningRoom, new Vector2(-2f, -5f));
+            plan.Add(tableInTheDiningRoom, new Vector2(2f, -5f));
+            plan.SetUsualRoom(tableInTheDiningRoom, Room.DiningRoom);
+            plan.Add(tableInTheKitchen, new Vector2(2f, 1f));
+            plan.SetUsualRoom(tableInTheKitchen, Room.DiningRoom);
+
+            Assert.That(plan.OutOfTheirRooms(), Is.EquivalentTo(new[] { hobInTheDiningRoom, tableInTheKitchen }));
+            Assert.That(plan.UsualRoomOf(tableInTheKitchen), Is.EqualTo(Room.DiningRoom));
+            Assert.That(plan.UsualRoomOf(hobInTheKitchen), Is.EqualTo(Room.Kitchen));
+            Assert.That(plan.RoomOf(tableInTheKitchen), Is.EqualTo(Room.Kitchen));
+        }
+
+        [Test]
+        public void ACarriedPieceSaysWhetherItWouldBeOutOfItsRoom()
+        {
+            var plan = TwoRooms();
+            var hob = new object();
+            plan.Add(hob, Vector2.Zero);
+
+            Assert.That(plan.IsOutOfItsRoom(hob, new Vector2(0f, 1f)), Is.False);
+            Assert.That(plan.IsOutOfItsRoom(hob, new Vector2(0f, -5f)), Is.True);
+            Assert.That(plan.IsOutOfItsRoom(hob, new Vector2(0f, -3f)), Is.False, "nowhere isn't another room");
+        }
+
+        [Test]
+        public void APieceWithItsOwnAreaIsNeverOutOfItsRoom()
+        {
+            var plan = TwoRooms();
+            var door = new object();
+            plan.Add(door, new Vector2(0f, -7.5f));
+            plan.GiveArea(door, new Vector2(-6f, -9f), new Vector2(6f, 5f));
+
+            Assert.That(plan.OutOfTheirRooms(), Is.Empty);
+            Assert.That(plan.IsOutOfItsRoom(door, new Vector2(0f, 1f)), Is.False);
+        }
+
+        [Test]
+        public void ARemovedPieceIsNoLongerListed()
+        {
+            var plan = TwoRooms();
+            var hob = new object();
+            plan.Add(hob, new Vector2(0f, -5f));
+            plan.Remove(hob);
+            Assert.That(plan.OutOfTheirRooms(), Is.Empty);
+        }
     }
 }
