@@ -150,10 +150,15 @@ namespace Game.Tests.PlayMode
                 var until = Time.realtimeSinceStartup + 5f;
                 while (dial.GradeAt(Time.unscaledTimeAsDouble + 0.02) != ChopGrade.Good && Time.realtimeSinceStartup < until)
                     yield return null;
+                var spotBefore = dial.SweetSpot;
                 yield return PressX();
                 if (cut == 0)
                     Capture("chop_cut");
                 yield return Wait(0.3f);
+                if (dial.LastGrade == ChopGrade.Good && dial.SweetSpotStep > 0f)
+                    Assert.That(dial.SweetSpot, Is.Not.EqualTo(spotBefore), "a good cut steps the sweet spot along");
+                if (cut == 0)
+                    Capture("chop_stepped");
             }
             Assert.That(dial.Hits, Is.GreaterThanOrEqualTo(2), "X cuts at the board");
             Capture("chop_pips");

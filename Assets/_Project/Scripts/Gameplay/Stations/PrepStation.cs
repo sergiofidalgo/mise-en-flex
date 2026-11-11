@@ -46,7 +46,8 @@ namespace Game.Gameplay.Stations
             _counter = new PrepCounter(
                 whole => services.Cooking.Transform(whole, services.Catalog.Find(whole.Properties.CutIntoTypeId).ToProperties()),
                 services.Tuning.ChopPacing,
-                services.Tuning.ChopSweepDegrees);
+                services.Tuning.ChopSweepDegrees,
+                () => global::Game.Simulation.Realism.MinigameComplexity.SweetSpotStepScale(services.Realism.MinigameComplexity));
             _counter.CutFinished += HandleCutFinished;
             _container = new PrepContainer(this);
         }

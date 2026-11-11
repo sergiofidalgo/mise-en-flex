@@ -13,6 +13,7 @@ namespace Game.Simulation.Prep
     /// </summary>
     public sealed class PrepCounter : IItemContainer, IItemHolder
     {
+        private readonly Func<float> _stepScale;
         private readonly Func<Ingredient, Ingredient> _cut;
         private readonly ChopPacing _pacing;
         private readonly float _sweepDegrees;
@@ -23,9 +24,14 @@ namespace Game.Simulation.Prep
         /// <param name="cut">Turns a finished whole ingredient into its cut form (via the cooking simulation).</param>
         /// <param name="pacing">How each cut's grade changes the dial's speed.</param>
         /// <param name="sweepDegrees">Width of the cutting dial's arc.</param>
-        public PrepCounter(Func<Ingredient, Ingredient> cut, ChopPacing? pacing = null, float sweepDegrees = DefaultSweepDegrees)
+        /// <param name="stepScale">
+        /// Multiplies each ingredient's sweet-spot step, read as each dial is made: the minigame
+        /// complexity dial (decision 2026-11-11). Null leaves the steps as tuned.
+        /// </param>
+        public PrepCounter(Func<Ingredient, Ingredient> cut, ChopPacing? pacing = null, float sweepDegrees = DefaultSweepDegrees, Func<float> stepScale = null)
         {
             _cut = cut;
+            _stepScale = stepScale;
             _pacing = pacing ?? ChopPacing.Default;
             _sweepDegrees = sweepDegrees;
         }
@@ -117,7 +123,8 @@ namespace Game.Simulation.Prep
             Cuts = 0;
             var p = ingredient.Properties;
             Dial = IsCuttable(ingredient)
-                ? new ChopDial(p.ChopSecondsPerSweep, _sweepDegrees, p.SweetSpotPosition, p.SweetSpotGoodHalfWidth, p.SweetSpotOkHalfWidth, _pacing)
+                ? new ChopDial(p.ChopSecondsPerSweep, _sweepDegrees, p.SweetSpotPosition, p.SweetSpotGoodHalfWidth, p.SweetSpotOkHalfWidth, _pacing,
+                    p.SweetSpotStep * (_stepScale?.Invoke() ?? 1f))
                 : null;
         }
 

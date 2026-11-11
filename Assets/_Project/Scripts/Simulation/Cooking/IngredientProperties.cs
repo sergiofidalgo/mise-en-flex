@@ -106,6 +106,12 @@ namespace Game.Simulation.Cooking
         /// <summary>Degrees either side for an Early/Late cut; beyond is a Miss.</summary>
         public float SweetSpotOkHalfWidth { get; set; } = 40f;
 
+        /// <summary>
+        /// Degrees the sweet spot steps along the sweep after each Good cut, as if working down the
+        /// ingredient (decision 2026-11-11); 0 keeps it still. Big for rough cuts, small for fine ones.
+        /// </summary>
+        public float SweetSpotStep { get; set; }
+
         /// <summary>In-game seconds of rest off the pan for full marks (steak); 0 if resting isn't scored.</summary>
         public float RestTargetSeconds { get; set; }
     }

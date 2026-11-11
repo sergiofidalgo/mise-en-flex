@@ -49,6 +49,17 @@ namespace Game.Simulation.Realism
             };
         }
 
+        /// <summary>
+        /// How much of each ingredient's sweet-spot step the cutting dial uses (decision 2026-11-11):
+        /// none up to 0.25 (relaxed: pure cadence), rising to all of it at 0.5 (as tuned) and half as
+        /// much again at 1.
+        /// </summary>
+        public static float SweetSpotStepScale(float complexity)
+        {
+            var c = Math.Clamp(complexity, 0f, 1f);
+            return c <= 0.5f ? Math.Clamp((c - 0.25f) / 0.25f, 0f, 1f) : 1f + (c - 0.5f);
+        }
+
         public static TraceGameSettings Scale(TraceGameSettings trace, float complexity, MinigameComplexitySettings settings)
         {
             var ease = Ease(complexity, settings);

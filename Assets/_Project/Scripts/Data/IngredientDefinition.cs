@@ -109,6 +109,8 @@ namespace Game.Data
         [SerializeField, Min(0f)] private float _sweetSpotGood = 20f;
         [Tooltip("Degrees either side for an Early/Late cut; beyond is a Miss.")]
         [SerializeField, Min(0f)] private float _sweetSpotOk = 40f;
+        [Tooltip("Degrees the sweet spot steps along after each Good cut, working down the ingredient (0 = still). Bigger for rough cuts, smaller for fine ones. The minigame complexity dial scales it.")]
+        [SerializeField, Min(0f)] private float _sweetSpotStep;
 
         public string TypeId => _typeId;
         public string DisplayName => string.IsNullOrEmpty(_displayName) ? _typeId : _displayName;
@@ -144,6 +146,7 @@ namespace Game.Data
             SweetSpotPosition = _sweetSpotPosition,
             SweetSpotGoodHalfWidth = _sweetSpotGood,
             SweetSpotOkHalfWidth = _sweetSpotOk,
+            SweetSpotStep = _sweetSpotStep,
         };
     }
 }
