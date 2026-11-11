@@ -129,11 +129,11 @@ namespace Game.Presentation.Hud
                 case Tab.Overview:
                     DrawOverview();
                     break;
+                case Tab.Restaurant:
+                    DrawCookbook();
+                    break;
                 case Tab.Books:
                     DrawBooks();
-                    break;
-                case Tab.Cookbook:
-                    DrawCookbook();
                     break;
                 case Tab.Staff:
                     DrawStaff();
@@ -398,14 +398,13 @@ namespace Game.Presentation.Hud
                 return;
             }
 
-            // Scroll so the chosen card is whole: start from the top and drop cards until it fits.
-            var heights = reviews.Select(r => CardHeight(r, false)).ToList();
-            var first = 0;
-            while (first < _selected && ListTop + Enumerable.Range(first, _selected - first + 1).Sum(i => heights[i] + 14f) - 14f > ListBottom)
-                first++;
+            // Scroll only as far as the chosen card needs to be whole (ScrollWindow): a step moves
+            // the highlight, not the list.
+            var heights = reviews.Select(r => CardHeight(r, false) + 14f).ToList();
+            var first = _reviewFirst = ScrollWindow.First(_reviewFirst, Selected, heights, ListBottom - ListTop + 14f);
             var y = ListTop;
             for (var i = first; i < reviews.Count && y < ListBottom; i++)
-                y = ReviewCard(_list, reviews[i], y, i == _selected && !_onFilters, false) + 14f;
+                y = ReviewCard(_list, reviews[i], y, i == Selected && !OnFilters, false) + 14f;
         }
 
         // The boss's card, the Overview's headline, after the user's simpler frame (2026-11-10):
@@ -507,7 +506,7 @@ namespace Game.Presentation.Hud
         // also has a gold ring.
         private float FilterChip(Filter filter, int count, float x, float y)
         {
-            var active = filter == _filter;
+            var active = filter == ShownFilter;
             var back = active ? _ink : filter == Filter.WalkOuts ? _alarm : _card;
             var fore = active ? _paper : filter == Filter.WalkOuts ? _alarmText : _ink;
             var star = filter == Filter.Low || filter == Filter.High;
@@ -533,7 +532,7 @@ namespace Game.Presentation.Hud
             var index = first.transform.GetSiblingIndex();
             var fill = UiKit.RoundBox(_content, text + "Chip", back, x, y, width, 39f, 19.5f);
             fill.transform.SetSiblingIndex(index);
-            if (active && _onFilters)
+            if (active && OnFilters)
             {
                 var ring = UiKit.RoundBox(_content, "Focus", _gold, x - 4f, y - 4f, width + 8f, 47f, 23.5f);
                 ring.transform.SetSiblingIndex(index);
@@ -882,11 +881,11 @@ namespace Game.Presentation.Hud
                 Label(Serif, _content, Tr.Get("No cookbook here."), 26.67f, _muted, RightX, 320f);
                 return;
             }
-            var chosen = Mathf.Clamp(_selected, 0, book.Recipes.Count - 1);
+            var chosen = Mathf.Clamp(Selected, 0, book.Recipes.Count - 1);
 
-            // The list, scrolled so the chosen recipe shows.
+            // The list, scrolled only as far as the chosen recipe needs to show (ScrollWindow).
             var fits = Mathf.FloorToInt((FooterTop - 20f - 262f) / (RecipeRow + 12f));
-            var first = book.Recipes.Count <= fits ? 0 : Mathf.Clamp(chosen - fits / 2, 0, book.Recipes.Count - fits);
+            var first = _recipeFirst = ScrollWindow.First(_recipeFirst, chosen, book.Recipes.Count, fits);
             var y = 262f;
             for (var i = first; i < book.Recipes.Count && i < first + fits; i++)
             {
@@ -1009,7 +1008,7 @@ namespace Game.Presentation.Hud
         {
             var staff = Services.Staff;
             var rows = StaffBoard.Rows(staff);
-            var selected = Mathf.Clamp(_selected, 0, Mathf.Max(0, rows.Count - 1));
+            var selected = Mathf.Clamp(Selected, 0, Mathf.Max(0, rows.Count - 1));
             var balance = Services.Days.Balance;
             var y = 262f;
 
@@ -1122,8 +1121,8 @@ namespace Game.Presentation.Hud
         private string TabName(Tab tab) => tab switch
         {
             Tab.Overview => Tr.Get("Overview"),
+            Tab.Restaurant => Tr.Get("Restaurant"),
             Tab.Books => Tr.Get("Books"),
-            Tab.Cookbook => Tr.Get("Cookbook"),
             _ => Tr.Get("Staff"),
         };
 

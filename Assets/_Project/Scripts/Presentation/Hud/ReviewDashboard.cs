@@ -19,12 +19,12 @@ namespace Game.Presentation.Hud
     /// morning's screen: it stays up from Review into Plan and opens when a kitchen loads into Plan;
     /// in Plan, B puts it away and Y brings it back (<see cref="ForkcastScreen"/>).
     /// <list type="bullet">
-    /// <item>Overview: the boss's debt first, the night's numbers, then every review; the stick
+    /// <item>Overview: the boss's debt first, the night's numbers, then every review; the D-pad
     /// browses them (and rises to their filters), Y opens the reply wheel.</item>
+    /// <item>Restaurant (the Cookbook tab until the playtest round, 2026-11-11): the first player
+    /// (Player 1) browses recipes, unlocks them (A) and sets prices (D-pad left and right, X back to
+    /// the suggestion). Saved at once; it counts from the next service.</item>
     /// <item>Books: the finished day's money line by line, what was ordered, and the trend.</item>
-    /// <item>Cookbook: the first player (Player 1) browses recipes, unlocks them (A) and sets prices
-    /// (stick left and right, X back to the suggestion). Saved at once; it counts from the next
-    /// service.</item>
     /// <item>Staff: the team and today's candidates. In Plan anyone browses them with the D-pad, A
     /// hires and Y lets someone go; in Review it's read-only.</item>
     /// </list>
@@ -36,8 +36,10 @@ namespace Game.Presentation.Hud
         private enum Tab
         {
             Overview,
+            // The menu and opening times (the playtest round, 2026-11-11: the Cookbook tab renamed,
+            // Books moved to third).
+            Restaurant,
             Books,
-            Cookbook,
             Staff,
         }
 
@@ -74,7 +76,9 @@ namespace Game.Presentation.Hud
         [Header("Feel")]
         [Tooltip("How far the stick goes before it moves to the next review.")]
         [SerializeField, Range(0.1f, 1f)] private float _stickThreshold = 0.5f;
-        [Tooltip("Real seconds between steps while the stick is held.")]
+        [Tooltip("Real seconds a D-pad press is held before it starts repeating.")]
+        [SerializeField, Min(0.05f)] private float _stickFirstRepeat = 0.22f;
+        [Tooltip("Real seconds between steps while the D-pad stays held.")]
         [SerializeField, Min(0.05f)] private float _stickRepeat = 0.22f;
         [Tooltip("Seconds the stick is held on a price before it starts stepping by itself.")]
         [SerializeField, Min(0.05f)] private float _priceRepeatDelay = 0.4f;
@@ -94,12 +98,17 @@ namespace Game.Presentation.Hud
         [SerializeField] private string _standGroundReply = "We stand by our kitchen.";
 
         private Tab _tab;
-        private int _selected;
         private bool _choosingReply;
-        private Filter _filter;
-        // On the Reviews tab, the stick can rise from the top review to the filter chips.
-        private bool _onFilters;
-        private float _nextStickStep;
+        // Each tab's focus, moved along explicit paths (ChipsOverList, the playtest round 2026-11-11):
+        // the Overview's filter chips over its reviews, the Restaurant tab's recipes, the Staff rows.
+        private readonly ChipsOverList _overview = new ChipsOverList();
+        private readonly ChipsOverList _restaurant = new ChipsOverList();
+        private readonly ChipsOverList _staff = new ChipsOverList();
+        // Every player's D-pad steps on its own timing.
+        private readonly NavRepeat _nav = new NavRepeat();
+        // The first review and recipe shown: lists scroll only as far as the choice needs.
+        private int _reviewFirst;
+        private int _recipeFirst;
         // The cookbook's price stick: its direction, and when it steps again.
         private int _priceDirection;
         private float _nextPriceStep;
@@ -119,6 +128,14 @@ namespace Game.Presentation.Hud
         private int _shownForDay = -1;
 
         private KitchenServices Services => _root.Services;
+
+        private ChipsOverList Focus => _tab == Tab.Overview ? _overview : _tab == Tab.Restaurant ? _restaurant : _staff;
+        // The chosen review, recipe or staff row on the tab shown.
+        private int Selected => Focus.Item;
+        private Filter ShownFilter => (Filter)_overview.Chip;
+        // On the Overview, the D-pad can rise from the top review to the filter chips.
+        private bool OnFilters => _tab == Tab.Overview && _overview.OnChips;
+        private static int FilterCount => System.Enum.GetValues(typeof(Filter)).Length;
 
         private void Start()
         {
@@ -182,10 +199,11 @@ namespace Game.Presentation.Hud
             {
                 _shownForDay = Services.Days.Day;
                 _tab = Tab.Overview;
-                _selected = 0;
+                _overview.Reset();
+                _restaurant.Reset(_restaurant.Chip);
+                _staff.Reset();
+                _reviewFirst = _recipeFirst = 0;
                 _choosingReply = false;
-                _filter = Filter.All;
-                _onFilters = false;
                 _unlockResult = null;
                 _staffResult = StaffBoard.Outcome.Nothing;
                 TakePhoto(atClose: true);
@@ -199,15 +217,20 @@ namespace Game.Presentation.Hud
         /// <summary>Whether the dashboard is on screen now.</summary>
         public bool IsShowing => _canvasObject != null && _canvasObject.activeSelf;
 
+        /// <summary>The tab shown, by its name (Overview, Restaurant, Books, Staff), for tests.</summary>
+        public string ShownTab => _tab.ToString();
+
         /// <summary>For the capture test: shows a tab with a review chosen and, if asked, the reply wheel open, at once.</summary>
         public Canvas ShowForCapture(int tab, int selected, bool choosingReply, int filter = 0, bool onFilters = false)
         {
             _canvasObject.SetActive(true);
             _tab = (Tab)Mathf.Clamp(tab, 0, 3);
-            _selected = selected;
+            _overview.Set(onFilters, Mathf.Clamp(filter, 0, FilterCount - 1), _tab == Tab.Overview ? selected : 0);
+            if (_tab == Tab.Restaurant)
+                _restaurant.Set(false, _restaurant.Chip, selected);
+            if (_tab == Tab.Staff)
+                _staff.Set(false, 0, selected);
             _choosingReply = choosingReply;
-            _filter = (Filter)Mathf.Clamp(filter, 0, 4);
-            _onFilters = onFilters;
             Refresh();
             UpdateMoney(0f);
             _dirty = false;
@@ -240,6 +263,9 @@ namespace Game.Presentation.Hud
             // The press that brought it back (Y) mustn't also act on it, e.g. let someone go.
             if (Time.frameCount == _openedFrame)
                 return;
+            _nav.Threshold = _stickThreshold;
+            _nav.FirstDelay = _stickFirstRepeat;
+            _nav.Interval = _stickRepeat;
             foreach (var player in PlayerInput.all)
             {
                 // Y: a hold fills the Start button and readies this player, a tap does Y's job here
@@ -252,6 +278,10 @@ namespace Game.Presentation.Hud
                 var actions = player.actions;
                 var tapY = startPress == MenuPress.Result.Tap;
                 var pressA = Pressed(actions, "Interact");
+                // The D-pad or the arrow keys (Navigate; the stick is too loose for lists, the user's
+                // call 2026-11-10), stepped on this player's own timing.
+                var move = actions["Gameplay/Navigate"].ReadValue<Vector2>();
+                var step = _nav.Update(player.playerIndex, move.x, move.y, Time.unscaledTime);
                 if (startPress == MenuPress.Result.Hold && !_choosingReply)
                 {
                     _dayLoop.Ready.Set(player.playerIndex, true);
@@ -265,27 +295,34 @@ namespace Game.Presentation.Hud
                     continue;
                 }
 
-                if (_tab == Tab.Staff)
+                // Tabs first, on every tab: LB and RB.
+                if (_tab != Tab.Overview || !_choosingReply)
                 {
                     if (Pressed(actions, "RotateLeft"))
+                    {
                         SwitchTab(-1);
-                    else if (Pressed(actions, "RotateRight"))
+                        continue;
+                    }
+                    if (Pressed(actions, "RotateRight"))
+                    {
                         SwitchTab(1);
-                    else
-                        ReadStaff(actions, pressA, tapY);
-                    continue;
+                        continue;
+                    }
                 }
 
-                if (_tab == Tab.Cookbook)
+                if (_tab == Tab.Staff)
                 {
-                    if (Pressed(actions, "RotateLeft"))
-                        SwitchTab(-1);
-                    else if (Pressed(actions, "RotateRight"))
-                        SwitchTab(1);
-                    else if (player == CookbookPlayer())
-                        ReadCookbook(actions, pressA);
+                    ReadStaff(step, pressA, tapY);
                     continue;
                 }
+                if (_tab == Tab.Restaurant)
+                {
+                    if (player == CookbookPlayer())
+                        ReadRestaurant(actions, move, step, pressA);
+                    continue;
+                }
+                if (_tab == Tab.Books)
+                    continue;
 
                 // The wheel puts each reply on the face button in its place: X left, Y top, A bottom.
                 if (_choosingReply)
@@ -321,23 +358,8 @@ namespace Game.Presentation.Hud
                     SwitchTab(1);
                 else if (!_choosingReply && tapY && SelectedReview() is ReviewRecord review && review.Reply < 0)
                     SetChoosing(true);
-
-                // The D-pad or the arrow keys (Navigate; the stick is too loose for lists, the user's
-                // call 2026-11-10): up and down browse, left and right change the filter on the chips.
-                var move = actions["Gameplay/Navigate"].ReadValue<Vector2>();
-                if (move.magnitude < _stickThreshold)
-                {
-                    _nextStickStep = 0f;
-                }
-                else if (Time.unscaledTime >= _nextStickStep)
-                {
-                    // A fresh push moves at once; holding repeats.
-                    _nextStickStep = Time.unscaledTime + _stickRepeat;
-                    if (Mathf.Abs(move.y) >= Mathf.Abs(move.x))
-                        Browse(move.y > 0f ? -1 : 1);
-                    else if (_onFilters)
-                        ChangeFilter(move.x > 0f ? 1 : -1);
-                }
+                else
+                    BrowseOverview(step);
             }
         }
 
@@ -350,72 +372,34 @@ namespace Game.Presentation.Hud
         private void SwitchTab(int step)
         {
             var count = System.Enum.GetValues(typeof(Tab)).Length;
-            if (_tab == Tab.Cookbook)
+            if (_tab == Tab.Restaurant)
                 SaveCookbookNow();
             _tab = (Tab)(((int)_tab + step + count) % count);
-            _selected = 0;
+            // Each tab opens at its list's top; the Overview keeps its filter, as before.
+            _overview.Reset(_overview.Chip);
+            _restaurant.Reset(_restaurant.Chip);
+            _staff.Reset();
+            _reviewFirst = _recipeFirst = 0;
+            _nav.Clear();
             _unlockResult = null;
             _staffResult = StaffBoard.Outcome.Nothing;
             _priceDirection = 0;
             _choosingReply = false;
-            _onFilters = false;
             _dirty = true;
         }
 
-        private void Browse(int step)
+        // The Overview: the filter chips over the reviews. Left and right along the chips change the
+        // filter, and the list follows at once, from its top.
+        private void BrowseOverview(NavDirection step)
         {
+            if (step == NavDirection.None)
+                return;
+            var outcome = _overview.Move(step, FilterCount, ListedReviews().Count);
+            if (outcome == NavOutcome.Nothing || outcome == NavOutcome.AdjustDown || outcome == NavOutcome.AdjustUp)
+                return;
+            if (outcome == NavOutcome.ChipChanged)
+                _reviewFirst = 0;
             _choosingReply = false;
-            if (_tab == Tab.Staff)
-            {
-                _selected = StaffBoard.Step(_selected, step, StaffBoard.Rows(Services.Staff).Count);
-                _staffResult = StaffBoard.Outcome.Nothing;
-                _dirty = true;
-                return;
-            }
-            if (_tab == Tab.Cookbook)
-            {
-                var recipes = Services.Cookbook?.Recipes.Count ?? 0;
-                if (recipes > 0)
-                    _selected = Mathf.Clamp(_selected + step, 0, recipes - 1);
-                _unlockResult = null;
-                _dirty = true;
-                return;
-            }
-            if (_tab == Tab.Overview)
-            {
-                // Up from the top review reaches the filters; down from them returns to the list.
-                if (_onFilters)
-                {
-                    if (step > 0)
-                    {
-                        _onFilters = false;
-                        _selected = 0;
-                        _dirty = true;
-                    }
-                    return;
-                }
-                if (step < 0 && _selected == 0)
-                {
-                    _onFilters = true;
-                    _dirty = true;
-                    return;
-                }
-            }
-            var count = ListedReviews().Count;
-            if (count == 0)
-                return;
-            _selected = Mathf.Clamp(_selected + step, 0, count - 1);
-            _dirty = true;
-        }
-
-        // Left and right along the chips; the list follows at once, from its top.
-        private void ChangeFilter(int step)
-        {
-            var next = Mathf.Clamp((int)_filter + step, 0, System.Enum.GetValues(typeof(Filter)).Length - 1);
-            if (next == (int)_filter)
-                return;
-            _filter = (Filter)next;
-            _selected = 0;
             _dirty = true;
         }
 
@@ -440,30 +424,28 @@ namespace Game.Presentation.Hud
 
         // Anyone at the dashboard: up and down browse, A hires the chosen candidate, Y lets the chosen
         // team member go. A refusal says why rather than doing nothing.
-        private void ReadStaff(InputActionAsset actions, bool pressA, bool tapY)
+        private void ReadStaff(NavDirection step, bool pressA, bool tapY)
         {
-            var move = actions["Gameplay/Navigate"].ReadValue<Vector2>();
-            if (move.magnitude < _stickThreshold || Mathf.Abs(move.y) < Mathf.Abs(move.x))
-                _nextStickStep = 0f;
-            else if (Time.unscaledTime >= _nextStickStep)
+            var rows = StaffBoard.Rows(Services.Staff);
+            if ((step == NavDirection.Up || step == NavDirection.Down) && _staff.Move(step, 0, rows.Count) == NavOutcome.Moved)
             {
-                _nextStickStep = Time.unscaledTime + _stickRepeat;
-                Browse(move.y > 0f ? -1 : 1);
+                _staffResult = StaffBoard.Outcome.Nothing;
+                _dirty = true;
             }
 
-            var rows = StaffBoard.Rows(Services.Staff);
-            _selected = Mathf.Clamp(_selected, 0, Mathf.Max(0, rows.Count - 1));
+            _staff.Clamp(0, rows.Count);
             if (rows.Count == 0)
                 return;
-            var row = rows[_selected];
+            var selected = _staff.Item;
+            var row = rows[selected];
             if (pressA && row.IsCandidate)
             {
                 _staffResultName = row.Candidate.Name;
-                _staffResult = StaffBoard.Hire(Services.Staff, _selected, Services.Days.Balance, StaffEditable);
+                _staffResult = StaffBoard.Hire(Services.Staff, selected, Services.Days.Balance, StaffEditable);
                 // The new member joins the team at the bottom of it: the choice follows them there.
                 if (_staffResult == StaffBoard.Outcome.Hired)
                 {
-                    _selected = Services.Staff.Hired.Count - 1;
+                    _staff.Set(false, 0, Services.Staff.Hired.Count - 1);
                     SaveStaffNow();
                 }
                 _dirty = true;
@@ -471,10 +453,10 @@ namespace Game.Presentation.Hud
             else if (tapY && !row.IsCandidate)
             {
                 _staffResultName = row.Member.Name;
-                _staffResult = StaffBoard.LetGo(Services.Staff, _selected, StaffEditable);
+                _staffResult = StaffBoard.LetGo(Services.Staff, selected, StaffEditable);
                 if (_staffResult == StaffBoard.Outcome.LetGo)
                     SaveStaffNow();
-                _selected = StaffBoard.Step(_selected, 0, StaffBoard.Rows(Services.Staff).Count);
+                _staff.Clamp(0, StaffBoard.Rows(Services.Staff).Count);
                 _dirty = true;
             }
         }
@@ -487,7 +469,7 @@ namespace Game.Presentation.Hud
                 _root.SaveCampaign();
         }
 
-        // ---- The cookbook (decision 2026-11-10) ----
+        // ---- The Restaurant tab: the menu (decision 2026-11-10) ----
 
         // Player 1 sets the menu: the lowest player slot here, so someone always can.
         private PlayerInput CookbookPlayer()
@@ -502,25 +484,22 @@ namespace Game.Presentation.Hud
         }
 
         // Up and down browse; left and right step the chosen dish's price by 1, at once and then
-        // repeating while held; A unlocks; X puts the price back to the suggestion.
-        private void ReadCookbook(InputActionAsset actions, bool pressA)
+        // repeating while held (faster than browsing); A unlocks; X puts the price back to the suggestion.
+        private void ReadRestaurant(InputActionAsset actions, Vector2 move, NavDirection step, bool pressA)
         {
             var book = Services.Cookbook;
             if (book == null || book.Recipes.Count == 0)
                 return;
-            var recipe = book.Recipes[Mathf.Clamp(_selected, 0, book.Recipes.Count - 1)];
-
-            var move = actions["Gameplay/Navigate"].ReadValue<Vector2>();
-            var vertical = move.magnitude >= _stickThreshold && Mathf.Abs(move.y) >= Mathf.Abs(move.x);
-            var horizontal = move.magnitude >= _stickThreshold && !vertical ? (move.x > 0f ? 1 : -1) : 0;
-            if (!vertical)
-                _nextStickStep = 0f;
-            else if (Time.unscaledTime >= _nextStickStep)
+            if ((step == NavDirection.Up || step == NavDirection.Down) && _restaurant.Move(step, 0, book.Recipes.Count) == NavOutcome.Moved)
             {
-                _nextStickStep = Time.unscaledTime + _stickRepeat;
-                Browse(move.y > 0f ? -1 : 1);
+                _unlockResult = null;
+                _dirty = true;
             }
+            _restaurant.Clamp(0, book.Recipes.Count);
+            var recipe = book.Recipes[_restaurant.Item];
 
+            var direction = _nav.DirectionOf(move.x, move.y);
+            var horizontal = direction == NavDirection.Right ? 1 : direction == NavDirection.Left ? -1 : 0;
             if (horizontal == 0 || !book.IsUnlocked(recipe.Id))
             {
                 _priceDirection = 0;
@@ -593,7 +572,7 @@ namespace Game.Presentation.Hud
 
         private List<ReviewRecord> ListedReviews() => _tab switch
         {
-            Tab.Overview => AllReviews().Where(r => Matches(r, _filter)).ToList(),
+            Tab.Overview => AllReviews().Where(r => Matches(r, ShownFilter)).ToList(),
             _ => new List<ReviewRecord>(),
         };
 
@@ -613,10 +592,10 @@ namespace Game.Presentation.Hud
         // Nothing is chosen while the filters have the focus, so Y does nothing there.
         private ReviewRecord SelectedReview()
         {
-            if (_tab != Tab.Overview || _onFilters)
+            if (_tab != Tab.Overview || OnFilters)
                 return null;
             var list = ListedReviews();
-            return _selected >= 0 && _selected < list.Count ? list[_selected] : null;
+            return Selected >= 0 && Selected < list.Count ? list[Selected] : null;
         }
 
         // In the player's language and currency (Locale): "$2,340.50" in English, "2.340,50 €" in Spanish.

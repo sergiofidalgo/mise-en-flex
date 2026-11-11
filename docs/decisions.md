@@ -4,6 +4,23 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-11 — forkcast: the Restaurant tab, and the D-pad steps to the obvious neighbour
+
+**User's calls (playtest round):** the Cookbook tab is now **Restaurant** (Spanish "Restaurante") and comes second: Overview, Restaurant, Books, Staff. Browsing should move between neighbouring cards instead of jumping.
+
+**What made it jump:**
+- **One repeat timer for everyone.** With a second cook joined and idle, the idle pad reset the timer every frame, so a held D-pad from the first cook stepped every frame and a short press raced to the bottom of the list.
+- **Lists that moved under the highlight.** The reviews worked out their scroll from the top again on each step, and the recipes re-centred on each step.
+
+**Decision** (`ForkcastNavigation.cs`, plain simulation code):
+- **Each player's D-pad steps on its own timing** (`NavRepeat`): a fresh press steps at once, holding repeats (0.22 s, as before), and a new direction steps at once.
+- **Explicit neighbours** (`ChipsOverList`): a tab is a row of chips over a list, or just a list. On the chips, left and right go to the next chip (no wrapping) and down to the top of the list. In the list, up and down go to the next item, and up from the top rises to the chip in force. Left and right on an item adjust it (a recipe's price) and never move the focus. The Overview's filters and reviews, the Restaurant tab's recipes and the Staff rows all follow it.
+- **Lists scroll only as far as the choice needs** (`ScrollWindow`), and never leave a gap below the list's end.
+
+**Tests:** `ForkcastNavigationTests` (EditMode); `ForkcastPlanPlayTests` checks the tab order and a short press with an idle second cook moving one row.
+
+---
+
 ## 2026-11-11 — Cleaning and fire: spin and sweep, with the sink's ring and stick cue
 
 **User's call:** the traced-path game for the cloth, mop and extinguisher was barely playable, at times almost impossible. Of the two options (reuse the sink game, or keep "moving" but apply the sink's principles) the user chose spin and sweep.

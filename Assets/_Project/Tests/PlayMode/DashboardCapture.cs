@@ -53,14 +53,14 @@ namespace Game.Tests.PlayMode
             var folder = Folder();
 
             var dashboard = Object.FindFirstObjectByType<ReviewDashboard>();
-            // Four tabs since 2026-11-10: Overview (with the reviews), Menu & Books, Cookbook, Staff.
+            // Four tabs since 2026-11-11: Overview (with the reviews), Restaurant, Books, Staff.
             yield return Shoot(dashboard, 0, 0, false, Path.Combine(folder, "dashboard_overview.png"));
             yield return Shoot(dashboard, 0, 0, true, Path.Combine(folder, "dashboard_reply_wheel.png"));
             yield return Shoot(dashboard, 0, 0, false, Path.Combine(folder, "dashboard_filter_walkouts.png"), 1, true);
-            yield return Shoot(dashboard, 1, 0, false, Path.Combine(folder, "dashboard_menu_books.png"));
-            yield return Shoot(dashboard, 2, 1, false, Path.Combine(folder, "dashboard_cookbook_locked.png"));
+            yield return Shoot(dashboard, 2, 0, false, Path.Combine(folder, "dashboard_books.png"));
+            yield return Shoot(dashboard, 1, 1, false, Path.Combine(folder, "dashboard_restaurant_locked.png"));
             services.Cookbook.SetPrice(services.Cookbook.Recipes[0].Id, services.Cookbook.Recipes[0].SuggestedPrice + 4);
-            yield return Shoot(dashboard, 2, 0, false, Path.Combine(folder, "dashboard_cookbook_priced.png"));
+            yield return Shoot(dashboard, 1, 0, false, Path.Combine(folder, "dashboard_restaurant_priced.png"));
             yield return Shoot(dashboard, 3, 0, false, Path.Combine(folder, "dashboard_staff_empty.png"));
             foreach (var candidate in services.Staff.Candidates.Take(2))
                 services.Staff.Restore(new Game.Simulation.Staff.StaffMember(candidate));
