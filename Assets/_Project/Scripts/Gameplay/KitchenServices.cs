@@ -118,6 +118,9 @@ namespace Game.Gameplay
         /// </summary>
         public Game.Simulation.Cookbook.RecipeBook Cookbook { get; set; }
 
+        /// <summary>This restaurant's opening times, chosen on forkcast's Restaurant tab (2026-11-11).</summary>
+        public Game.Simulation.Service.OpeningTimes Opening { get; set; }
+
         /// <summary>What was put in storage this morning (a new campaign's starter stock), as (type id, portions).</summary>
         public List<(string TypeId, int Count)> LastDelivery { get; set; } = new List<(string, int)>();
 

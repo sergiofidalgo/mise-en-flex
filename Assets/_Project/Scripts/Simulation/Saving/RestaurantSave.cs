@@ -71,6 +71,12 @@ namespace Game.Simulation.Saving
 
         /// <summary>Dirt left from service, cleaned the next morning (decision 2026-11-06).</summary>
         public List<DirtRecord> Dirt = new List<DirtRecord>();
+
+        /// <summary>
+        /// The opening times chosen for the next service, by slot id (2026-11-11). Empty in an older
+        /// file: the Service Config's default slot.
+        /// </summary>
+        public string Opening = "";
     }
 
     /// <summary>

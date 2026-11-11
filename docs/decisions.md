@@ -4,6 +4,40 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-11 — Opening times: three slots, a faster clock, two rush hours
+
+**User's calls:**
+- **The Restaurant tab sets the opening times**, which set how long service lasts and how many guests come.
+- **An hour on the clock is 30 real seconds** (it was 60). **Only the clock speeds up:** cooking, staff, guests' patience (35 s) and eating (15 s) keep their real-time feel, and `TuningConfig.TimeScale` stays 60.
+- **A long service includes lunch,** from 12:00 to 00:00.
+- **A longer service has two rush hours instead of one,** around 14:00 and 21:00.
+
+**Our calls within those (flagged for play):**
+- **Three slots** (`ServiceConfig`, "Opening times"):
+
+  | Slot | Hours | Real length | Rushes | Groups expected* |
+  | --- | --- | --- | --- | --- |
+  | Lunch | 12:00–16:00 | 2 min | 13:00–15:00 | about 6.6 |
+  | Dinner (default) | 18:00–00:00 | 3 min | 20:00–22:00 | about 9 |
+  | All day | 12:00–00:00 | 6 min | both | about 18.6 |
+
+  \*At the grill's base rate and suggested prices, before group sizes. Today's 5-minute 18:00–23:00 service brought about 15.
+- **Rushes are clock hours,** an hour either side of each peak (`_rushHours` 14 and 21, `_rushHalfWidthHours` 1), at the existing `_rushMultiplier` (2×). Outside them guests come at the existing pace (a group every 25 real seconds, before prices and the restaurant's guest rate). The old rush, a fraction of the service, is kept only where no opening times apply (tests, old scenes).
+- **Last orders are 30 minutes on the clock** (15 real seconds) before closing.
+- **When it counts: the next service.** In Review that's tomorrow's; in the morning's Plan it's today's, since the doors haven't opened yet (`ServiceSimulation.SetOpening`, as the menu is set). The tab says which.
+- **Saved per restaurant** (`RestaurantSave.Opening`, a slot id). An older save, or an id no longer in the list, opens for Dinner. Like prices, a change in Review saves after a moment; one made in Plan is kept with the day.
+- **Player 1 sets it,** as with the menu.
+- **How it reads:** an "OPENING TIMES" card sits over the recipes, with one chip per slot (the chosen one dark) and its hours underneath. Up from the first recipe reaches the chips; left and right choose at once, with no A press, the same way the Overview's filters work; down goes back to the recipes. While the chips have the focus, the detail panel shows the slot's hours, how many real minutes service lasts, its rush hours and the guests to expect at today's prices and tables (the same forecast as Prep's tile). The Overview's "Closed · Opens" card, the day card and Prep's tile follow the chosen slot.
+- **The clock everywhere is the service's** (`ServiceClock`): the day card, the debug overlay, and the "left at" time in reviews. A walk-out's "waited N minutes" stays in patience minutes, the time the guest actually waited.
+
+**Not done:** wages and rent don't depend on the hours open, so All day costs only the players' effort and energy (in `ideas.md`).
+
+**Tests:** `OpeningTimesTests` (EditMode) covers the slots, the clock, the rushes, the guest counts, arrivals really doubling in a rush, and a choice made before opening retiming the service.
+
+**Design doc:** §daily loop and §customers describe one 5-minute dinner service with a single rush. They should describe the opening slots and the two rush hours.
+
+---
+
 ## 2026-11-11 — forkcast: the Restaurant tab, and the D-pad steps to the obvious neighbour
 
 **User's calls (playtest round):** the Cookbook tab is now **Restaurant** (Spanish "Restaurante") and comes second: Overview, Restaurant, Books, Staff. Browsing should move between neighbouring cards instead of jumping.

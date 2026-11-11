@@ -16,10 +16,12 @@ namespace Game.Presentation.Hud
         public static string Title(int day) => Tr.Format("Day {day}", ("day", day));
 
         /// <summary>
-        /// Game minutes since midnight: the opening hour, then one game minute for each real second
-        /// of service (the clock the kitchen has always shown).
+        /// Minutes since midnight on the service clock: the opening hour, then an hour for every
+        /// <paramref name="secondsPerHour"/> in-game seconds of service (1800 since 2026-11-11: an
+        /// hour in 30 real seconds; 3600, the default, is the old clock).
         /// </summary>
-        public static float Minutes(float opensAtHour, float elapsedSeconds) => opensAtHour * 60f + elapsedSeconds / 60f;
+        public static float Minutes(float opensAtHour, float elapsedSeconds, float secondsPerHour = 3600f) =>
+            opensAtHour * 60f + elapsedSeconds / System.Math.Max(1f, secondsPerHour) * 60f;
 
         /// <summary>A 24-hour clock, "18:05", wrapping past midnight.</summary>
         public static string Clock(float minutes)
@@ -34,14 +36,14 @@ namespace Game.Presentation.Hud
         /// The second line, and whether it's a notice (Last orders, Closed) to show in the notice
         /// colour.
         /// </summary>
-        public static (string Text, bool Notice) Line(DayPhase phase, ServicePhase service, float opensAtHour, float elapsedSeconds)
+        public static (string Text, bool Notice) Line(DayPhase phase, ServicePhase service, float opensAtHour, float elapsedSeconds, float secondsPerHour = 3600f)
         {
             var name = Phase(phase);
             if (phase == DayPhase.Plan || phase == DayPhase.Prep)
                 return (Tr.Format("{phase} · opens {time}", ("phase", name), ("time", Clock(Minutes(opensAtHour, 0f)))), false);
             if (phase != DayPhase.Service)
                 return (name, false);
-            var time = Clock(Minutes(opensAtHour, elapsedSeconds));
+            var time = Clock(Minutes(opensAtHour, elapsedSeconds, secondsPerHour));
             return service switch
             {
                 ServicePhase.LastOrders => (Tr.Format("Last orders · {time}", ("time", time)), true),

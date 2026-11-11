@@ -25,6 +25,49 @@ namespace Game.Simulation.Service
         /// <summary>How many times more often customers arrive during the rush.</summary>
         public float RushMultiplier { get; set; } = 2f;
 
+        /// <summary>
+        /// The clock the service runs on: when it opens and how long an hour is (the user's call,
+        /// 2026-11-11: an hour passes in 30 real seconds). The default is the old clock, 18:00 and
+        /// one in-game second to the second.
+        /// </summary>
+        public ServiceClock Clock { get; set; } = new ServiceClock();
+
+        /// <summary>
+        /// The hours the rushes peak at, on <see cref="Clock"/> (opening times, 2026-11-11: 14:00 and
+        /// 21:00). Empty or null: the old single rush from <see cref="RushStart"/> to <see cref="RushEnd"/>.
+        /// </summary>
+        public float[] RushHours { get; set; }
+
+        /// <summary>A rush lasts this many clock hours either side of its peak.</summary>
+        public float RushHalfWidthHours { get; set; } = 1f;
+
+        /// <summary>The average gap to the next arrival at <paramref name="at"/> in-game seconds into the service.</summary>
+        public float ArrivalInterval(float at)
+        {
+            // Prices shift how many come (decision 2026-11-10): twice the demand, half the gap.
+            var interval = ArrivalIntervalSeconds / System.Math.Max(0.01f, Menu?.Demand ?? 1f);
+            if (InRush(at))
+                interval /= System.Math.Max(0.01f, RushMultiplier);
+            return interval;
+        }
+
+        /// <summary>Whether <paramref name="at"/> in-game seconds into the service falls in a rush.</summary>
+        public bool InRush(float at)
+        {
+            if (RushHours != null && RushHours.Length > 0)
+            {
+                var hour = (Clock ?? new ServiceClock()).HourAt(at);
+                foreach (var peak in RushHours)
+                {
+                    if (hour >= peak - RushHalfWidthHours && hour < peak + RushHalfWidthHours)
+                        return true;
+                }
+                return false;
+            }
+            var fraction = DurationSeconds > 0f ? at / DurationSeconds : 0f;
+            return fraction >= RushStart && fraction < RushEnd;
+        }
+
         /// <summary>In-game seconds a customer spends eating.</summary>
         public float EatSeconds { get; set; } = 15f * 60f;
 

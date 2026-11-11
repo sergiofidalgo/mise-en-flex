@@ -319,7 +319,7 @@ namespace Game.Presentation.Hud
         // Never open while forkcast shows: next is tonight in a morning, tomorrow after a service.
         private (string Value, string Label, bool Alarm) NextOpening()
         {
-            return ($"{ClockAt(0f)} {Weekday(StartsDay)}", Tr.Get("Closed · Opens"), false);
+            return ($"{NextOpensAt()} {Weekday(StartsDay)}", Tr.Get("Closed · Opens"), false);
         }
 
         // Everything that came in that night: meals and tips (the user's call: money in, not profit).
@@ -869,31 +869,110 @@ namespace Game.Presentation.Hud
             return percent > 0 ? $"+{percent}%" : $"−{-percent}%";
         }
 
-        // ---- Cookbook: the first player picks the menu and prices it (decision 2026-11-10) ----
+        // ---- Restaurant: the opening times over the menu (decision 2026-11-10; opening times and the
+        // tab's name, 2026-11-11). The first player picks the times, the menu and its prices. ----
 
         private const float RecipeListWidth = 470f, RecipeRow = 92f, DetailX = 1256f;
+        private const float OpeningTop = 262f, OpeningHeight = 150f;
 
         private void DrawCookbook()
         {
+            var opening = Services.Opening;
+            var listTop = 262f;
+            if (opening != null)
+            {
+                DrawOpeningCard(opening);
+                listTop = OpeningTop + OpeningHeight + 16f;
+            }
+
             var book = Services.Cookbook;
             if (book == null || book.Recipes.Count == 0)
             {
-                Label(Serif, _content, Tr.Get("No cookbook here."), 26.67f, _muted, RightX, 320f);
+                Label(Serif, _content, Tr.Get("No cookbook here."), 26.67f, _muted, RightX, listTop + 58f);
+                if (opening != null)
+                    DrawOpeningDetail(opening);
                 return;
             }
             var chosen = Mathf.Clamp(Selected, 0, book.Recipes.Count - 1);
 
             // The list, scrolled only as far as the chosen recipe needs to show (ScrollWindow).
-            var fits = Mathf.FloorToInt((FooterTop - 20f - 262f) / (RecipeRow + 12f));
+            var fits = Mathf.Max(1, Mathf.FloorToInt((FooterTop - 20f - listTop) / (RecipeRow + 12f)));
             var first = _recipeFirst = ScrollWindow.First(_recipeFirst, chosen, book.Recipes.Count, fits);
-            var y = 262f;
+            var y = listTop;
             for (var i = first; i < book.Recipes.Count && i < first + fits; i++)
             {
-                RecipeCard(book, book.Recipes[i], y, i == chosen);
+                RecipeCard(book, book.Recipes[i], y, i == chosen && !_restaurant.OnChips);
                 y += RecipeRow + 12f;
             }
 
-            DrawRecipe(book, book.Recipes[chosen]);
+            if (opening != null && _restaurant.OnChips)
+                DrawOpeningDetail(opening);
+            else
+                DrawRecipe(book, book.Recipes[chosen]);
+        }
+
+        // The opening times as a card over the recipes: a chip per slot, the chosen one dark (as the
+        // Overview's filters), with a gold ring while the focus is on them; under them, the hours.
+        private void DrawOpeningCard(Game.Simulation.Service.OpeningTimes opening)
+        {
+            var focused = _restaurant.OnChips;
+            if (focused)
+                UiKit.RoundBox(_content, "Highlight", _gold, RightX - 5.67f, OpeningTop - 5.67f, RecipeListWidth + 11.33f, OpeningHeight + 11.33f, 20f);
+            UiKit.StrokedBox(_content, "Opening", _cardLight, focused ? _gold : _cardEdge, 2.67f, RightX, OpeningTop, RecipeListWidth, OpeningHeight, 15f);
+            Caps(_content, Tr.Get("OPENING TIMES"), RightX + 24f, OpeningTop + 34f);
+
+            // The chips share the card's width; each name shrinks to fit rather than overflowing.
+            const float gap = 10f, chipTop = OpeningTop + 50f, chipHeight = 42f;
+            var count = opening.Slots.Count;
+            var width = (RecipeListWidth - 48f - gap * (count - 1)) / count;
+            for (var i = 0; i < count; i++)
+            {
+                var x = RightX + 24f + i * (width + gap);
+                var active = i == opening.Chosen;
+                if (active && focused)
+                    UiKit.RoundBox(_content, "Focus", _gold, x - 4f, chipTop - 4f, width + 8f, chipHeight + 8f, (chipHeight + 8f) / 2f);
+                UiKit.RoundBox(_content, "Slot", active ? _ink : _card, x, chipTop, width, chipHeight, chipHeight / 2f);
+                var name = Label(SemiBold, _content, Tr.Get(opening.Slots[i].Name), 19.5f, active ? _paper : _ink, x + width / 2f, chipTop + 28f, width - 16f, HorizontalAlignmentOptions.Center);
+                name.enableAutoSizing = true;
+                name.fontSizeMin = 14f;
+                name.fontSizeMax = 19.5f;
+            }
+
+            Label(Medium, _content, OpeningHours(opening.Slot), 19.5f, _body, RightX + 24f, OpeningTop + 126f, RecipeListWidth - 48f);
+        }
+
+        // "18:00–00:00"
+        private static string OpeningHours(Game.Simulation.Service.OpeningSlot slot) =>
+            $"{Game.Simulation.Service.ServiceClock.Format(slot.Opens * 60f)}–{Game.Simulation.Service.ServiceClock.Format(slot.Closes * 60f)}";
+
+        // What the chosen opening times mean, in the detail panel while the focus is on them: the
+        // hours, how long service lasts for real, its rush hours and the guests to expect.
+        private void DrawOpeningDetail(Game.Simulation.Service.OpeningTimes opening)
+        {
+            const float width = RightEdge - DetailX, top = 262f, bottom = 932f;
+            const float x = DetailX + 28f;
+            var slot = opening.Slot;
+            UiKit.RoundBox(_content, "Detail", _card, DetailX, top, width, bottom - top, 18f);
+            Label(ExtraBold, _content, Tr.Get(slot.Name), 34f, _ink, x, top + 54f, width - 56f, tracking: -0.8f);
+            Label(ExtraBold, _content, OpeningHours(slot), 54f, _ink, x, top + 134f, width - 56f, tracking: -1.5f);
+
+            // Real minutes: an hour on the clock is SecondsPerHour in-game seconds, at TimeScale a real second.
+            var realMinutes = slot.Hours * opening.SecondsPerHour / Mathf.Max(1f, Services.Tuning.TimeScale) / 60f;
+            Label(Medium, _content, Tr.Format("Service lasts about {minutes} minutes", ("minutes", realMinutes.ToString("0.#"))), 21.33f, _body, x, top + 184f, width - 56f);
+            UiKit.RoundBox(_content, "Rule", _rule, x, top + 212f, width - 56f, 2f, 0f);
+
+            Caps(_content, Tr.Get("RUSH HOURS"), x, top + 252f);
+            var rushes = opening.RushesIn(slot).ToList();
+            var rushText = rushes.Count == 0 ? Tr.Get("No rush: a steady trickle")
+                : string.Join(" · ", rushes.Select(r => $"{Game.Simulation.Service.ServiceClock.Format(r.From * 60f)}–{Game.Simulation.Service.ServiceClock.Format(r.To * 60f)}"));
+            Label(Bold, _content, rushText, 24f, _ink, x, top + 290f, width - 56f);
+
+            Caps(_content, Tr.Get("AT THESE PRICES"), x, top + 352f);
+            Label(Medium, _content, DayCardText.Guests(_root.ExpectedGuests(opening.Chosen)), 24f, _ink, x, top + 390f, width - 56f);
+
+            // When it counts: the service after this screen, today's in the morning, tomorrow's after a service.
+            var when = Services.Days.Phase == DayPhase.Review ? Tr.Get("From tomorrow's service") : Tr.Get("From today's service");
+            Label(SemiBold, _content, when, 21.33f, _goodText, x, top + 452f, width - 56f);
         }
 
         private void RecipeCard(Game.Simulation.Cookbook.RecipeBook book, Game.Simulation.Cookbook.Recipe recipe, float y, bool chosen)
@@ -968,7 +1047,7 @@ namespace Game.Presentation.Hud
                 }
 
                 // What this price does: tonight's guests, from the whole menu's prices, and this dish's stars.
-                Caps(_content, "AT THESE PRICES", x, top + 492f);
+                Caps(_content, Tr.Get("AT THESE PRICES"), x, top + 492f);
                 var demand = book.BuildMenu().Demand;
                 var change = Mathf.RoundToInt((demand - 1f) * 100f);
                 var guests = change == 0 ? Tr.Get("Guests: as many as at the suggested prices")

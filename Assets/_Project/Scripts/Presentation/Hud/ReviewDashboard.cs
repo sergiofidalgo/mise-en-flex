@@ -136,6 +136,9 @@ namespace Game.Presentation.Hud
         // On the Overview, the D-pad can rise from the top review to the filter chips.
         private bool OnFilters => _tab == Tab.Overview && _overview.OnChips;
         private static int FilterCount => System.Enum.GetValues(typeof(Filter)).Length;
+        // The Restaurant tab's chips are the opening times; the chosen one is the slot in force.
+        private int OpeningCount => Services.Opening?.Slots.Count ?? 0;
+        private int OpeningChosen => Services.Opening?.Chosen ?? 0;
 
         private void Start()
         {
@@ -200,7 +203,7 @@ namespace Game.Presentation.Hud
                 _shownForDay = Services.Days.Day;
                 _tab = Tab.Overview;
                 _overview.Reset();
-                _restaurant.Reset(_restaurant.Chip);
+                _restaurant.Reset(OpeningChosen);
                 _staff.Reset();
                 _reviewFirst = _recipeFirst = 0;
                 _choosingReply = false;
@@ -227,7 +230,7 @@ namespace Game.Presentation.Hud
             _tab = (Tab)Mathf.Clamp(tab, 0, 3);
             _overview.Set(onFilters, Mathf.Clamp(filter, 0, FilterCount - 1), _tab == Tab.Overview ? selected : 0);
             if (_tab == Tab.Restaurant)
-                _restaurant.Set(false, _restaurant.Chip, selected);
+                _restaurant.Set(onFilters, OpeningChosen, selected);
             if (_tab == Tab.Staff)
                 _staff.Set(false, 0, selected);
             _choosingReply = choosingReply;
@@ -377,7 +380,7 @@ namespace Game.Presentation.Hud
             _tab = (Tab)(((int)_tab + step + count) % count);
             // Each tab opens at its list's top; the Overview keeps its filter, as before.
             _overview.Reset(_overview.Chip);
-            _restaurant.Reset(_restaurant.Chip);
+            _restaurant.Reset(OpeningChosen);
             _staff.Reset();
             _reviewFirst = _recipeFirst = 0;
             _nav.Clear();
@@ -483,19 +486,43 @@ namespace Game.Presentation.Hud
             return first;
         }
 
-        // Up and down browse; left and right step the chosen dish's price by 1, at once and then
-        // repeating while held (faster than browsing); A unlocks; X puts the price back to the suggestion.
+        // The opening times over the recipes (2026-11-11). On the times, left and right choose a slot
+        // at once (it counts from the next service) and down goes to the recipes. On a recipe, up and
+        // down browse (up from the first rises to the times); left and right step its price by 1, at
+        // once and then repeating while held (faster than browsing); A unlocks; X puts the price back
+        // to the suggestion.
         private void ReadRestaurant(InputActionAsset actions, Vector2 move, NavDirection step, bool pressA)
         {
             var book = Services.Cookbook;
-            if (book == null || book.Recipes.Count == 0)
+            var recipes = book?.Recipes.Count ?? 0;
+            var chips = OpeningCount;
+            if (_restaurant.OnChips || chips > 0 && recipes == 0)
+            {
+                if (!_restaurant.OnChips)
+                    _restaurant.Set(true, OpeningChosen, 0);
+                var outcome = _restaurant.Move(step, chips, recipes);
+                if (outcome == NavOutcome.ChipChanged)
+                {
+                    Services.Opening.Choose(_restaurant.Chip);
+                    // Saved as prices are, after a moment, in Review; kept with the day in Plan.
+                    _saveCookbookAt = Time.unscaledTime + _priceSaveDelay;
+                }
+                if (outcome != NavOutcome.Nothing)
+                    _dirty = true;
+                _priceDirection = 0;
                 return;
-            if ((step == NavDirection.Up || step == NavDirection.Down) && _restaurant.Move(step, 0, book.Recipes.Count) == NavOutcome.Moved)
+            }
+            if (recipes == 0)
+                return;
+            if ((step == NavDirection.Up || step == NavDirection.Down) && _restaurant.Move(step, chips, recipes) == NavOutcome.Moved)
             {
                 _unlockResult = null;
+                _priceDirection = 0;
                 _dirty = true;
+                if (_restaurant.OnChips)
+                    return;
             }
-            _restaurant.Clamp(0, book.Recipes.Count);
+            _restaurant.Clamp(chips, recipes);
             var recipe = book.Recipes[_restaurant.Item];
 
             var direction = _nav.DirectionOf(move.x, move.y);
@@ -607,11 +634,9 @@ namespace Game.Presentation.Hud
         private static string Money(float amount, bool cents, bool signed) =>
             Game.Data.Locale.Money(amount, Game.Data.MoneyStyle.Whole, signed);
 
-        private string ClockAt(float serviceSeconds)
-        {
-            var minutes = Services.ServiceConfig.OpensAt * 60f + serviceSeconds / 60f;
-            return $"{(int)(minutes / 60f) % 24:00}:{(int)minutes % 60:00}";
-        }
+        // When the next service opens: the opening times chosen for it (2026-11-11).
+        private string NextOpensAt() =>
+            ServiceClock.Format((Services.Opening != null ? Services.Opening.Slot.Opens : Services.ServiceConfig.OpensAt) * 60f);
 
         private static string ReasonFor(ReviewTopic topic) => topic switch
         {

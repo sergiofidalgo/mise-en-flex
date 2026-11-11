@@ -121,6 +121,12 @@ namespace Game.Simulation.Service
         /// <summary>The hour the doors open, for times such as when a guest left.</summary>
         public float OpensAtHour { get; set; } = 18f;
 
+        /// <summary>
+        /// The service's clock, for when a guest left; null reads <see cref="OpensAtHour"/> on the
+        /// old clock (an in-game second to the second).
+        /// </summary>
+        public ServiceClock Clock { get; set; }
+
         // Not every guest posts (user's call, 2026-11-09): a night worth talking about is likelier to
         // be reviewed than a forgettable one. 1 means everyone posts.
         public float PraiseShare { get; set; } = 1f;
@@ -230,8 +236,8 @@ namespace Game.Simulation.Service
         {
             var order = customer.Order;
             var got = customer.Satisfaction != null ? Main(customer.Satisfaction)?.DonenessName : null;
-            // Service time runs a second to the game minute, as the dashboard's clock reads it.
-            var left = settings.OpensAtHour * 60f + (customer.ArrivedAt + customer.SecondsInRestaurant) / 60f;
+            // On the service's clock, as the day card reads it (an hour is 30 real seconds since 2026-11-11).
+            var left = (settings.Clock ?? new ServiceClock(settings.OpensAtHour)).MinutesAt(customer.ArrivedAt + customer.SecondsInRestaurant);
             return new ReviewFacts
             {
                 Main = order?.MainName.ToLowerInvariant() ?? "",

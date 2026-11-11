@@ -414,3 +414,7 @@ To work out when we get there: what scorching and spilling cost (quality, lost f
 ## Seating a group from the far chairs in (proposed 2026-11-11)
 
 *From the flaky group-seating test.* Round a table for four by a wall, a guest heading for the last free chair may only get there behind a friend already sitting, and shoves them along. Seating the chairs furthest from the door first, or having guests near the door wait a moment, would avoid it. It needs a design call: who sits where in a group is visible to players.
+
+## Longer hours cost more (proposed 2026-11-11)
+
+*From opening times.* All day (12:00–00:00) brings about twice Dinner's guests, but wages and rent stay the same, so beyond the players' effort and energy it costs nothing. Wages could follow the hours open (staff paid per hour), which would make choosing All day a real trade-off once staff are hired. It needs a design call on how wages are shown and paid.
