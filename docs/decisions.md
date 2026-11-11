@@ -4,6 +4,22 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-11 — The kitchen HUD clean-up: debug behind F1, hints on the appliances, nothing over the dashboard
+
+Built from the playtest round's HUD call (below).
+
+- **Debug panels behind a developer toggle:** the cooking overlay and the served-dish quality card show only with `DeveloperHud.Visible`, off by default. F1 flips it. In the Editor it's remembered between Play sessions; a build always starts with it off.
+- **No control cards on counters.** `PromptHud` now shows a card only while a menu is open: a fridge's, shelf's or stall's slot diamond while RT is held, or a tray's menu. Those are choices, not hints. The list cards ("LT RT heat / X flip / A take pan") are gone.
+- **Button pictures on the appliances** (`ApplianceHints`): LT RT at a hob (heat) and at storage or a stall (browse), X at a hob or grill with food in the pan (flip) and at anything with dirt, a sink with plates, or a fire (clean). They use the control-glyph kit's dark trigger and button bodies, with the letters in the HUD's bold font. X is in Xbox blue.
+  - **Where they sit:** on the appliance's top at the edge across from the chef, LT RT then X, facing the camera, so they read at all 8 rotations with the chef on any side. They're drawn over the chef, as the wash ring is (`Game/FX/HintOnTop`).
+  - **When:** they fade and pop in (0.2 s) while a chef faces the appliance and the action is possible. Each stops showing for a player once that player has done it 3 times (`_usesBeforeFading`, tunable). The count covers this play session only and isn't saved.
+- **Nothing of the kitchen over the dashboard:** the dashboard's canvas is nested in the HUD canvas, and without `overrideSorting` it drew under whatever the HUD made later (the cutting dial and "press X in the green", the guests' edge markers). It now sorts on its own. `ReviewHidesKitchenHud` also hides the whole kitchen HUD layer while forkcast is open: dials, gauges, tags, tickets, markers and the bell. Screens with their own canvas (the dashboard, shop cards, the boss's phone) are left alone. The cutting dial also ends for a chef once the dashboard is up.
+- **Not covered:** floor spills (nothing to sit on), ringing the bell (X at the pass), and cutting (its dial still says "press X in the green" until the first cut). Each was left out on purpose; see the open questions in the hand-over.
+
+**Reason:** the user found the kitchen cluttered and the floating panels abrupt. Hints built into the appliances keep the scene readable and go away once learnt.
+
+---
+
 ## 2026-11-11 — Cleaning and fire: spin and sweep, with the sink's ring and stick cue
 
 **User's call:** the traced-path game for the cloth, mop and extinguisher was barely playable, at times almost impossible. Of the two options (reuse the sink game, or keep "moving" but apply the sink's principles) the user chose spin and sweep.
