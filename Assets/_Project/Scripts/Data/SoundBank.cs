@@ -107,6 +107,12 @@ namespace Game.Data
         [Tooltip("Customers coming in. The interval makes a party arriving together one sound.")]
         [SerializeField] private SoundCue _chime = new SoundCue(0.5f, 0.02f, 1f);
 
+        [Header("Delivery (decision 2026-11-12)")]
+        [Tooltip("An order coming in on the delivery tablet: two notes and a buzz, nothing like the door's chime.")]
+        [SerializeField] private SoundCue _deliveryPing = new SoundCue(0.6f, 0f, 0.4f);
+        [Tooltip("A courier's scooter pulling up outside: the last warning to get the box on the counter.")]
+        [SerializeField] private SoundCue _courierHorn = new SoundCue(0.45f, 0.03f, 0.6f);
+
         [Header("Mix")]
         [Tooltip("How far sounds pan with their place on screen: 0 is centred, 1 is hard left and right at the screen's edges.")]
         [SerializeField, Range(0f, 1f)] private float _stereoWidth = 0.5f;
@@ -141,6 +147,8 @@ namespace Game.Data
         public SoundCue Clack => _clack;
         public SoundCue Till => _till;
         public SoundCue Chime => _chime;
+        public SoundCue DeliveryPing => _deliveryPing;
+        public SoundCue CourierHorn => _courierHorn;
         public float StereoWidth => _stereoWidth;
     }
 }

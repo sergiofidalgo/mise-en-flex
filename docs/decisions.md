@@ -24,6 +24,33 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 **To judge in play (none of it can be judged from stills):** whether it's funny; the arc's height and length; whether 2.75 s is the right price; whether the horn is fair warning at the cars' speeds; how the camera behaves as a chef nears the end of the street and while they're carried back; how the tucked chef sits against the bodyguard; whether guests or passers-by should react.
 
 **Not done:** guests and passers-by aren't hit and don't react; no review line or reputation cost for lying in the road; staff never go near the road.
+---
+
+## 2026-11-12 — Delivery: orders from the app, a counter, free boxes and couriers
+
+**The user's idea:** a new kind of customer, the delivery couriers already seen in the opening (lime cap and bag, scooter). Players buy a special counter, leave the food there, a courier rides up for it, pays and leaves, and "the review will tell later if the order delivered matched well with the client expectations".
+
+Decided with the user in conversation:
+
+- **No order rail.** The user first thought of order cards in the top-left corner, as other cooking games have. I argued that would undo the 2026-11-11 bubbles; the user then proposed the courier carrying the order over their head "as a regular customer would", which needs no rail at all.
+- **The bubble comes before the courier.** If the order only appeared with the courier, they'd stand through the whole cook. So an order's bubble first stands over its place on the delivery counter, with the app's badge and a ring that runs down until the courier pulls up; then the same bubble is over the courier's head as they walk in and wait. (The user: "bubble before and on the courier seems reasonable".)
+- **Boxes are free** (the user: "boxes do not cost money"). A pile of delivery boxes never runs out. A box is filled and carried exactly as a plate is, so there's nothing new to learn; it leaves with the courier and nothing comes back to wash.
+- **A signifier when an order comes in** (the user asked for sight and sound): the order tablet on the counter flashes lime and buzzes, the bubble pops up from it, and a two-note ping with a phone buzz plays, nothing like the door's chime. A scooter horn sounds from the street as the courier comes into view: the last warning.
+
+How it works (`DeliveryService`, part of `ServiceSimulation`; `DeliveryCounterStation`, `BoxPileStation`, `CourierDirector`):
+
+- **Owning a delivery counter puts the restaurant on the app.** Each counter has two places, and each place holds one open order: the counters are the capacity. With every place taken, the app shows the restaurant as busy and that order goes elsewhere (it isn't queued). No counter, no orders. Orders stop at last orders; what's open runs its course, and the service waits for deliveries still on the road before it finishes.
+- **The courier takes whatever stands on their order's place, right or wrong, and doesn't look in the box** (learn by playing). They pay the order's price less the app's commission, and nobody tips. A box put down goes to the place whose order it matches, else the order whose courier comes soonest, else any free place; the prompt says whether it's as ordered.
+- **The ride is part of the cooking.** The food is scored as it reaches the customer: it cools on the way as if it had sat out on a plate for the ride's cooling time, and a box lets only about a third of that through. Timing the dish to the courier is the skill; boxing it early costs temperature twice.
+- **A plate works too, and it's gone.** A delivery order can go out on a plate: no insulation, and the plate never comes back.
+- **The review comes later**, when the ride is over, marked as a delivery in the save (`ReviewRecord.Delivery`). Anything ordered and missing is refunded then (less the commission never paid on it), so an empty-ish box isn't free money.
+- **A courier kept waiting leaves.** Their patience only runs at the counter, on the guests' patience dial. When it's gone the order is cancelled: nothing paid, nothing fined, and a one-star review from the customer who never got their food.
+- **Couriers are people in the room:** the scooter rides in along the kerb and parks past the door; the courier walks in round the furniture by the shortest way to any reachable side of the counter, is pushed and pushes like anyone, and walks back out to ride off. A counter boxed in by furniture is still reached (in a straight line), so a bad layout shows as an odd walk rather than orders that can never be collected.
+- **Nobody eats from a box at a table** (tables and the waiter refuse them), and boxes don't go on the clean plate stack.
+
+Tuning (Service Config, "Delivery"): an order about every 50 in-game minutes outside the rush (prices and the rush move it as they move guests), 45 minutes from order to courier, 20 minutes of courier patience, a 20-minute ride with 18 cooking minutes of cooling on a plate (a box: 35% of it), 25% commission. The counter costs 140; the boxes are free. All first guesses, to be tuned by playing.
+
+Placeholders, flagged: the counter, tablet, box and box pile are greybox shapes; the app's badge is a lime disc with the couriers' chevron; both sounds are synthesised stand-ins. Reviews of delivered food use the dining room's voices, so a line can mention the room; delivery needs lines of its own. The review listing doesn't yet show which reviews came from the app.
 
 ---
 

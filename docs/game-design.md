@@ -185,6 +185,15 @@ Quality drives payment, tips and reviews. **Open:** the scoring formula and weig
 - **Incognito critics** visit unannounced and weigh heavily.
 - **Influencers** amplify a visit, for better or worse.
 
+### 7.4 Delivery (decided 2026-11-12)
+
+- **Couriers are a second kind of customer.** A delivery counter, bought like any furniture, puts the restaurant on a delivery app. Each of its places holds one open order, so counters are the capacity; without one, no orders come.
+- **The order's bubble comes first.** It stands over its place on the counter, with the app's badge and a ring counting down to the courier; a ping from the counter's tablet announces it. When the courier pulls up (a horn from the street), the bubble is over their head as they walk in.
+- **Boxes, not plates.** A free pile of delivery boxes; a box is filled and carried as a plate is, leaves with the courier, and makes no washing-up. A plate works too, but it's gone.
+- **The courier takes what's on their order's place** without checking it, pays the price less the app's commission, never tips, and rides off. Kept waiting too long, they leave: the order is cancelled and the customer leaves one star.
+- **The ride is part of the cooking.** The food is judged as it arrives: cooled by the ride, less so in a box. The review comes in later, and anything missing is refunded.
+- **Why it earns its place:** it gives a small counter restaurant a different game from a dining room (identity), it rewards timing a dish to an arrival rather than to a seat (craft), and the countdown makes it plannable (chaos you can plan for). A courier is a person, not a pipeline.
+
 ---
 
 ## 8. Restaurant identity

@@ -86,6 +86,61 @@ namespace Game.Editor
             SetArray(so.FindProperty("_queueSpots"), queue);
             so.ApplyModifiedPropertiesWithoutUndo();
 
+            // Delivery couriers (decision 2026-11-12): they ride up, walk in to the delivery counter
+            // and ride off. The road they ride is set by the street (GreyboxStreet.CourierRoad).
+            var couriers = new SerializedObject(zone.gameObject.AddComponent<CourierDirector>());
+            couriers.FindProperty("_root").objectReferenceValue = root;
+            couriers.FindProperty("_customers").objectReferenceValue = director;
+            couriers.FindProperty("_courierPrefab").objectReferenceValue = BuildCourierPrefab().GetComponent<CourierAgent>();
+            couriers.FindProperty("_scooterPrefab").objectReferenceValue = BuildScooterPrefab();
+            couriers.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        private const string CourierPrefabPath = "Assets/_Project/Prefabs/PF_Courier.prefab";
+        private const string ScooterPrefabPath = "Assets/_Project/Prefabs/PF_CourierScooter.prefab";
+
+        // A courier on foot: the opening's courier (lime cap and bag on a dark jacket), with an agent.
+        private static GameObject BuildCourierPrefab()
+        {
+            var root = new GameObject("PF_Courier");
+            var agent = new SerializedObject(root.AddComponent<CourierAgent>());
+            agent.FindProperty("_bodyRadius").floatValue = CustomerBodyRadius;
+            agent.ApplyModifiedPropertiesWithoutUndo();
+            OfficeBuilder.StreetSeed(2611_12); // the same courier every build
+            var rig = CharacterArt.Available
+                ? OfficeBuilder.Courier(root.transform, Vector3.zero, 0f, SignArt.CourierPatch(new Color(0.16f, 0.42f, 0.14f)))
+                : null;
+            if (rig == null)
+            {
+                var body = GreyboxAssets.CreatePrimitive(
+                    PrimitiveType.Capsule, "Body", root.transform, GreyboxAssets.EnsureMaterial("Courier", OfficeBuilder.CourierLime), keepCollider: false);
+                body.transform.localScale = CustomerScale;
+                body.transform.localPosition = new Vector3(0f, CustomerScale.y, 0f);
+            }
+            var prefab = PrefabUtility.SaveAsPrefabAsset(root, CourierPrefabPath);
+            Object.DestroyImmediate(root);
+            return prefab;
+        }
+
+        // Their scooter, with the courier sitting on it as a child named Rider, hidden while they're on foot.
+        private static GameObject BuildScooterPrefab()
+        {
+            var root = new GameObject("PF_CourierScooter");
+            OfficeBuilder.StreetSeed(2611_12);
+            Kit.Scooter(root.transform, Vector3.zero, 0f, new Color(0.93f, 0.93f, 0.9f), OfficeBuilder.CourierLime, withBox: false);
+            var rider = CharacterArt.Available
+                ? OfficeBuilder.Courier(root.transform, new Vector3(0f, 0f, -0.36f), 0f, SignArt.CourierPatch(new Color(0.16f, 0.42f, 0.14f)))
+                : null;
+            if (rider != null)
+            {
+                OfficeBuilder.Sit(rider, 0.745f);
+                rider.RightShoulder.localRotation = Quaternion.Euler(-58f, 0f, -10f);
+                rider.LeftShoulder.localRotation = Quaternion.Euler(-58f, 0f, 10f);
+                rider.Figure.parent.name = "Rider";
+            }
+            var prefab = PrefabUtility.SaveAsPrefabAsset(root, ScooterPrefabPath);
+            Object.DestroyImmediate(root);
+            return prefab;
         }
 
         /// <summary>
