@@ -16,6 +16,8 @@ The first pass is built (decision 2026-11-11, "The street comes alive"): passers
 - **Market life.** Vendors behind their counters, shoppers browsing and queueing at the stalls, a van unloading in Prep, stalls packing away at Close.
 - **More kinds of walker.** A dog walker, a jogger, a pram, a pair talking; someone sitting on the bench.
 - **More on the road.** A bus and its stop, cyclists, cars that pull into the parking lot and leave. No delivery scooters: those are a mechanic for later (the user, 2026-11-11).
+- **A tram street for another restaurant** (the user, 2026-11-12: "leave the tram for another restaurant"). Rails set in cobbles where the road is, a tram gliding past every minute or so with its bell, no cars. It gives that street its own identity and makes the kerb a limit nobody questions.
+- **More to look at:** a clock tower on the skyline whose hands show the service clock, string lights and bunting across the street lit at dusk, a café terrace next door (the kit has the tables), a fountain in the plaza, a busker with a few listeners, silhouettes at the neighbours' windows, a flock wheeling overhead.
 - **A gull or a cat at the bin** when it's full, and pigeons that scatter from the wheelie bin as it rolls, not only from chefs.
 - **Sound.** A street bed (birdsong, market chatter, traffic), muffled when the camera is indoors.
 - **Each street its own dressing.** Riverside and the other streets get their own lamps, benches and birds from the same kit.
