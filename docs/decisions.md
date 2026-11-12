@@ -47,6 +47,7 @@ This replaces the 440 px column from earlier the same day.
 - **The dial only shows whole numbers;** a needle shows the tenths. Each D-pad step moves the drum a tenth of the gap between two numbers, so $24.30 has the needle three tenths of the way from 24 to 25. The exact price is written beside the heading: "PRICE $24.30".
   - Crossing a whole number ticks fully, like a detent; a step between numbers ticks lighter and higher.
   - Held, the steps speed up to one every 0.03 s (`_priceRepeatFastest`), about $3 a second.
+- **"Kitchen costs $6" is red** (2026-11-12): it's money going out.
 - **The whole number the price is on is black** (2026-11-12): from 24.0 to 24.9, "24" shows at full strength, wherever the needle sits; the others fade with distance.
 - **The guests and profit chips fit their words,** side by side from the left. Once the price has moved off the suggestion, X (the small X ★ badge) appears at the row's far right.
 

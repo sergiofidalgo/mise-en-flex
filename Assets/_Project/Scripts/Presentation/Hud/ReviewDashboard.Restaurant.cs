@@ -362,7 +362,8 @@ namespace Game.Presentation.Hud
             for (var i = 0; i < recipe.IngredientTypeIds.Count; i++)
                 ix = IngredientChip(recipe.IngredientTypeIds[i], Tr.Get(recipe.Ingredients[i]), ix, top + 174f) + 8f;
             // What a serving's ingredients cost, named plainly (the user's call, 2026-11-11).
-            Label(Medium, _content, Tr.Format("Kitchen costs {cost}", ("cost", Money(recipe.IngredientCost))), 17.33f, _body, x, top + 252f, plateLeft - x);
+            // In red: money going out (the user's call, 2026-11-12).
+            Label(Medium, _content, Tr.Format("Kitchen costs {cost}", ("cost", Money(recipe.IngredientCost))), 17.33f, _badText, x, top + 252f, plateLeft - x);
 
             DrawSteps(recipe, on, x, top + 290f, inner);
             UiKit.RoundBox(_content, "Rule", _rule, x, top + PriceTop - 8f, inner, 2f, 0f);
