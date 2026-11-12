@@ -13,6 +13,13 @@ namespace Game.Presentation
     {
         private static readonly int LocalLights = Shader.PropertyToID("_GameLocalLights");
         private static readonly int LampBands = Shader.PropertyToID("_GameLampBands");
+        private static readonly int LampBandMix = Shader.PropertyToID("_GameLampBandMix");
+
+        /// <summary>
+        /// How much of the flat-banded lamp light shows, 0–1 (1 until someone says otherwise): the
+        /// opening fades it out as the camera lands on the boss's floor.
+        /// </summary>
+        public static void SetBandMix(float mix) => Shader.SetGlobalFloat(LampBandMix, Mathf.Clamp01(mix));
 
         [Tooltip("How strongly lamps light surfaces: 1 is as the lights are set.")]
         [SerializeField, Min(0f)] private float _localLights = 1f;
@@ -33,6 +40,7 @@ namespace Game.Presentation
         {
             Shader.SetGlobalFloat(LocalLights, _localLights);
             Shader.SetGlobalFloat(LampBands, Mathf.Round(_lampBands));
+            Shader.SetGlobalFloat(LampBandMix, 1f);
         }
     }
 }

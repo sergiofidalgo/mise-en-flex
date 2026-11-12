@@ -6,8 +6,9 @@ namespace Game.Presentation.Office
     /// The glass lift on the front of the boss's tower (user's note, 2026-11-09: "as the camera goes
     /// up the building you could see the elevator with a chef going up through it"). It waits at the
     /// street; on the climb it rides locked to the camera's height, so the chef inside stays in
-    /// frame the whole way (the user's note, 2026-11-11: it fell out of view), eases into its stop at
-    /// the boss's floor where the camera sees it arrive, and once the camera has landed and the chef
+    /// frame (the user's note, 2026-11-11: it fell out of view), then covers the last few floors on
+    /// its own while the camera goes over the cornice, coming up into the boss's floor's elevator
+    /// exactly as the camera lands, and once the camera has landed and the chef
     /// has stepped out it sinks back down the shaft and switches itself off.
     /// </summary>
     public sealed class OpeningElevator : MonoBehaviour
@@ -20,8 +21,12 @@ namespace Game.Presentation.Office
         [SerializeField] private float _top;
         [Tooltip("How far above the camera's height the cab floor rides, so the chef sits in the middle of the frame (m).")]
         [SerializeField] private float _lead = 1.5f;
-        [Tooltip("Metres either side of the top stop over which the cab eases into it.")]
+        [Tooltip("Metres over which the cab eases off the camera's pace where it stops riding beside it.")]
         [SerializeField, Min(0f)] private float _settle = 4f;
+        [Tooltip("The last metres under the top stop, which the cab covers on its own so as to arrive exactly as the camera lands.")]
+        [SerializeField, Min(0f)] private float _approach = 14f;
+        [Tooltip("How far through the climb's time (0–1) that last stretch starts.")]
+        [SerializeField, Range(0f, 0.95f)] private float _approachFrom = 0.5f;
         [Tooltip("Seconds the cab takes to pick up the camera's pace as the climb starts.")]
         [SerializeField, Min(0.01f)] private float _catchUp = 0.35f;
         [Tooltip("The empty cab's speed on its way back down (m/s).")]
@@ -38,17 +43,21 @@ namespace Game.Presentation.Office
         public float Bottom => _bottom;
         public float Top => _top;
         public float Settle => _settle;
+
+        /// <summary>The cab floor's height for a camera at <paramref name="cameraHeight"/>, <paramref name="progress"/> (0–1) through the climb's time.</summary>
+        public float HeightAt(float cameraHeight, float progress) =>
+            OpeningPath.LiftClimb(cameraHeight, progress, _lead, _bottom, _top, _settle, _approach, _approachFrom);
         public Transform Cab => _cab;
 
         private void Awake() => Place(_bottom);
 
-        /// <summary>Rides along with a camera at <paramref name="cameraHeight"/>; call every frame of the climb.</summary>
-        public void Track(float cameraHeight)
+        /// <summary>Rides along with a camera at <paramref name="cameraHeight"/>, <paramref name="progress"/> (0–1) through the climb's time; call every frame of the climb.</summary>
+        public void Track(float cameraHeight, float progress)
         {
             if (_cab == null)
                 return;
             _returning = false;
-            var wanted = OpeningPath.LiftHeight(cameraHeight, _lead, _bottom, _top, _settle);
+            var wanted = HeightAt(cameraHeight, progress);
             if (!_tracking)
             {
                 // Wherever the cab stands as the climb starts, it closes on its place beside the

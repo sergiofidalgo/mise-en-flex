@@ -39,6 +39,9 @@ float _GameLocalLights;
 // sun's does in the three-band ramp. A global the scene sets (LampLighting); unset, it is 0 and
 // nothing changes.
 float _GameLampBands;
+// How much of the stepped light shows, 0–1: the opening fades it out as the camera lands, so the
+// street and the tower are flat-banded and the boss's floor keeps its smooth lamps.
+float _GameLampBandMix;
 
 half3 LocalLights(half3 albedo, float3 positionWS, float3 normalWS, float4 positionCS)
 {
@@ -66,7 +69,7 @@ half3 LocalLights(half3 albedo, float3 positionWS, float3 normalWS, float4 posit
         half squeezed = brightness / (1.0 + brightness) * _GameLampBands;
         half stepped = (floor(squeezed) + smoothstep(0.44, 0.56, frac(squeezed))) / _GameLampBands;
         stepped = min(stepped, 0.88);
-        sum *= stepped / (1.0 - stepped) / brightness;
+        sum = lerp(sum, sum * (stepped / (1.0 - stepped) / brightness), saturate(_GameLampBandMix));
     }
     return albedo * sum;
 #else

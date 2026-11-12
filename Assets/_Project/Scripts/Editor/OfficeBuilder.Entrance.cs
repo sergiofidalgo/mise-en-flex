@@ -453,7 +453,10 @@ namespace Game.Editor
         {
             var patch = SignArt.CourierPatch(new Color(0.16f, 0.42f, 0.14f));
             var first = Kit.Scooter(entrance, new Vector3(3.2f, 0.02f, NorthKerb - 0.85f), 72f, new Color(0.93f, 0.93f, 0.9f), CourierLime, withBox: false);
-            Kit.Scooter(entrance, new Vector3(5.2f, 0.02f, NorthKerb - 0.6f), 104f, new Color(0.22f, 0.24f, 0.28f), CourierLime, patch: patch);
+            var second = Kit.Scooter(entrance, new Vector3(5.2f, 0.02f, NorthKerb - 0.6f), 104f, new Color(0.22f, 0.24f, 0.28f), CourierLime, patch: patch);
+            MakeDynamic(first.gameObject);
+            MakeDynamic(second.gameObject);
+            var grip = new[] { new Vector3(-58f, 0f, -10f), new Vector3(-58f, 0f, 10f) };
 
             // On the first scooter's seat (0.38 behind its middle, 0.745 up), scrolling.
             var seated = Courier(first, new Vector3(0f, 0f, -0.36f), 0f, patch);
@@ -465,19 +468,46 @@ namespace Game.Editor
                 Point(phone, "ScreenGlow", new Vector3(0f, 0f, -0.2f), new Color(0.75f, 0.85f, 1f), 1.4f, 1.2f);
                 Wobble(seated.RightShoulder.gameObject, Oscillate.Shape.Pulse, Vector3.zero, new Vector3(-5f, 0f, 0f), 1.4f, 0.3f);
                 MakeDynamic(seated.RightShoulder.gameObject);
+                // Soon after the camera stops, their order's up: the phone goes away and they ride
+                // off east (the user's note, 2026-11-11), out through the gap in the barriers.
+                first.gameObject.AddComponent<CourierDeparture>().Set(2.2f, null, Vector3.zero, null, new[] { phone.gameObject },
+                    new[] { seated.RightShoulder, seated.LeftShoulder }, grip, WayOut(first.localPosition, 6.8f));
             }
             // Waiting between the scooters, looking at the restaurant: their bag faces the street.
             var waiting = Courier(entrance, new Vector3(4.2f, 0.15f, NorthKerb + 0.9f), 8f, patch);
             if (waiting != null)
+            {
                 Breathe(waiting.Figure.gameObject);
+                // A few seconds after the first, this one walks to the other scooter, gets on and
+                // follows: the standing figure is swapped for one sitting on it (no bag on that
+                // one: the scooter carries the box).
+                var mounted = Courier(second, new Vector3(0f, 0f, -0.36f), 0f, patch, bag: false);
+                if (mounted != null)
+                {
+                    Sit(mounted, 0.745f);
+                    mounted.RightShoulder.localRotation = Quaternion.Euler(grip[0]);
+                    mounted.LeftShoulder.localRotation = Quaternion.Euler(grip[1]);
+                    var rider = mounted.Figure.parent.gameObject;
+                    rider.SetActive(false);
+                    second.gameObject.AddComponent<CourierDeparture>().Set(5.5f, waiting.Figure.parent, new Vector3(4.75f, 0.15f, NorthKerb + 0.25f), rider,
+                        System.Array.Empty<GameObject>(), System.Array.Empty<Transform>(), System.Array.Empty<Vector3>(), WayOut(second.localPosition, 8.6f));
+                }
+            }
             // To and fro with the orders.
             var runner = Courier(entrance, new Vector3(5.6f, 0.15f, NorthKerb + 0.6f), 0f, patch);
             if (runner != null)
                 Walk(runner.Figure.parent, new Vector3(5.65f, 0.15f, NorthKerb + 0.5f), new Vector3(5.6f, 0.15f, TowerFace - 2.3f), 1.25f, 2.2f, 0.2f);
         }
 
+        // A parked scooter's way out: off the kerb onto the couriers' lane, east through the gap in
+        // the barriers and away.
+        private static Vector3[] WayOut(Vector3 from, float joinsLaneAt) => new[]
+        {
+            from, new Vector3(joinsLaneAt, from.y, CourierLane), new Vector3(46f, from.y, CourierLane),
+        };
+
         // A courier: the uniform and the bag, on anyone.
-        private static CharacterArt.Rig Courier(Transform parent, Vector3 at, float facing, Material patch)
+        private static CharacterArt.Rig Courier(Transform parent, Vector3 at, float facing, Material patch, bool bag = true)
         {
             var person = new GameObject("Courier").transform;
             person.SetParent(parent, false);
@@ -499,7 +529,8 @@ namespace Game.Editor
                 Object.DestroyImmediate(person.gameObject);
                 return null;
             }
-            Kit.DeliveryBag(rig.Waist, new Vector3(0f, -0.02f, -0.37f), 180f, CourierLime, 1.3f, patch);
+            if (bag)
+                Kit.DeliveryBag(rig.Waist, new Vector3(0f, -0.02f, -0.37f), 180f, CourierLime, 1.3f, patch);
             MakeDynamic(person.gameObject);
             return rig;
         }
@@ -581,7 +612,7 @@ namespace Game.Editor
         // through the gap in the barriers at either end; the far one is 7 m from the camera's stop,
         // so nothing passes close to the lens (the user's note, 2026-11-10).
         private const float CourierLane = -22.7f;
-        private const float CourierLaneSouth = -23.9f;
+        private const float CourierLaneSouth = -23.1f; // no nearer: at −23.9 a rider filled the bottom of the frame at the stop
         private const float CrossingLane = -24.9f;
 
         // Movement from edge to edge (the user's note, 2026-11-11: the approach felt a bit static;

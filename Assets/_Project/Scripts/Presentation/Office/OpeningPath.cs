@@ -133,11 +133,43 @@ namespace Game.Presentation.Office
         /// </summary>
         public static Vector3 Climb(CameraPose[] path, Quaternion landing, float turnFrom, float t, out Quaternion rotation)
         {
-            var eased = Ease(t);
+            var eased = ClimbEase(t);
             var pose = SampleEven(path, eased);
             var turn = Mathf.Clamp01((eased - turnFrom) / Mathf.Max(1e-4f, 1f - turnFrom));
             rotation = Quaternion.Slerp(pose.Rotation, landing, Ease(turn));
             return pose.Position;
+        }
+
+        /// <summary>
+        /// The climb's pace: a gentle start as <see cref="Ease"/>'s, but a later, firmer stop. The
+        /// second half is 1 − (1 − u)^1.5 in place of the smoothstep's cubic: the two meet at the
+        /// middle at the same speed, and where the smoothstep spent its last quarter creeping onto
+        /// the landing (the user's note, 2026-11-11: the last move was too slow), this is still at
+        /// a third of its top speed a twentieth from the end.
+        /// </summary>
+        public static float ClimbEase(float t)
+        {
+            t = Mathf.Clamp01(t);
+            if (t < 0.5f)
+                return t * t * (3f - 2f * t);
+            var left = 2f * (1f - t);
+            return 1f - 0.5f * left * Mathf.Sqrt(left);
+        }
+
+        /// <summary>
+        /// The lift's height through the whole climb, so that it reaches <paramref name="top"/>
+        /// exactly as the climb ends and the camera lands (the user's note, 2026-11-11: "as soon as
+        /// the elevator reached the top the camera should be in the correct position"). It rides
+        /// beside the camera (<see cref="LiftHeight"/>) up to <paramref name="approach"/> metres
+        /// under the top; from <paramref name="approachFrom"/> of the climb's time it covers that
+        /// last stretch on its own, quickly at first and slowing into its stop (1 − (1 − u)²), while
+        /// the camera goes over the cornice and turns onto the floor.
+        /// </summary>
+        public static float LiftClimb(float cameraHeight, float progress, float lead, float bottom, float top, float settle, float approach, float approachFrom)
+        {
+            var beside = LiftHeight(cameraHeight, lead, bottom, top - approach, settle);
+            var u = Mathf.Clamp01((progress - approachFrom) / Mathf.Max(1e-4f, 1f - approachFrom));
+            return Mathf.Min(top, beside + approach * (1f - (1f - u) * (1f - u)));
         }
 
         /// <summary>
