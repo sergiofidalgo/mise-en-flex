@@ -27,7 +27,8 @@ namespace Game.Presentation.Hud
     /// </summary>
     public sealed partial class ReviewDashboard
     {
-        private const float RecipeListWidth = 470f, RecipeRow = 92f, DetailX = 1256f;
+        // Wider since the left column narrowed (2026-11-12): the list, then the dish's detail to the edge.
+        private const float RecipeListWidth = 520f, RecipeRow = 92f, DetailX = RightX + RecipeListWidth + 22f;
         private const float OpeningTop = 262f, OpeningHeight = 214f;
         private const float DetailTop = 262f, DetailBottom = 932f;
         private const float GroupHeader = 32f;

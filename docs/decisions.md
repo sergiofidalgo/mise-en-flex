@@ -4,6 +4,20 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-12 — forkcast's left column narrows to 440 px
+
+**User's call:** the left column took too much of the panel (600 of 1,760 px) and left too little for the tabs. We chose one narrower layout for every tab, not a column that shrinks on some tabs, so nothing jumps when switching tabs with LB/RB.
+
+**Decision:**
+- **The left column is 440 px** (`LeftX`, `LeftWidth`). The photo keeps its height (338 px) and is cropped to the middle of the shot, not squashed. The name shrinks to fit. The four fact tiles are about 214 px each, with captions that shrink rather than cut off. The Start button spans the column, and its words shrink if a long one doesn't fit beside the Y.
+- **The right side starts 44 px after it and is about 1,200 px wide** (it was 1,036). Every tab's positions now follow `RightX`, `RightWidth` and `HalfWidth` instead of fixed pixels:
+  - Overview: the boss card is 700 wide.
+  - Restaurant: the list is 520 wide, and the dish's detail takes the rest.
+  - Books: the top two cards share the width.
+  - Staff rows are wider.
+
+---
+
 ## 2026-11-12 — Prices in tenths, shown on a dial of whole numbers
 
 **User's calls:**

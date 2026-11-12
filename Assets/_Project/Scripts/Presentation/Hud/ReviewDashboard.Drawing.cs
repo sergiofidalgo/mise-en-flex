@@ -61,8 +61,13 @@ namespace Game.Presentation.Hud
 
         private const float PanelX = 80f, PanelY = 56f, PanelWidth = 1760f, PanelHeight = 968f, PanelRadius = 26f;
         private const float HeaderBottom = 140f, FooterTop = 952f;
-        private const float RightX = 764f, RightWidth = 1036f, RightEdge = 1800f;
-        private const float CardLeft = 765f, CardWidth = 1034f;
+        // The left column is 440 wide (the user's call, 2026-11-12: it was 600, leaving too little
+        // room for the tabs); the right side starts 44 after it and runs to the same edge.
+        private const float LeftX = 120f, LeftWidth = 440f;
+        private const float RightX = LeftX + LeftWidth + 44f, RightEdge = 1800f, RightWidth = RightEdge - RightX;
+        private const float CardLeft = RightX + 1f, CardWidth = RightWidth - 2f;
+        // Two cards side by side on the right (the Books tab's top row).
+        private const float HalfWidth = (RightWidth - 22f) / 2f;
         // The Overview's review list, under the boss and the filters.
         private const float ListTop = 500f, ListBottom = 936f;
 
@@ -234,7 +239,8 @@ namespace Game.Presentation.Hud
         {
             UiKit.Clear(_left);
             var all = Services.ReviewHistory;
-            Label(ExtraBold, _left, ShownName, 46f, _ink, 120f, 566f, 600f, tracking: -1.4f);
+            var title = Label(ExtraBold, _left, ShownName, 46f, _ink, LeftX, 566f, 900f, tracking: -1.4f);
+            Fit(title, LeftWidth, 28f);
 
             // Stars and count, then price band and category, on one line as a listing has them.
             var x = 120f;
@@ -249,7 +255,7 @@ namespace Game.Presentation.Hud
             {
                 x += UiKit.Width(Label(Medium, _left, Tr.Get("No reviews yet"), 20f, _muted, x, 603f, 300f)) + 10f;
             }
-            Label(Medium, _left, $"· {Locale.PriceBand(PriceBand())} · {Tr.Get(ShownStyle)}", 20f, _body, x, 603f, 720f - x);
+            Label(Medium, _left, $"· {Locale.PriceBand(PriceBand())} · {Tr.Get(ShownStyle)}", 20f, _body, x, 603f, LeftX + LeftWidth - x);
 
             DrawFacts();
         }
@@ -270,7 +276,7 @@ namespace Game.Presentation.Hud
 
         // Six tiles, three rows of two, from the name and rating down to the panel's foot (the user's
         // pick, 2026-11-11): known for, per person, guests fed, next opening, tonight's best plate, tips.
-        private const float TileTop = 628f, TileWidth = 294f, TileHeight = 84f, TileGap = 12f;
+        private const float TileTop = 628f, TileGap = 12f, TileWidth = (LeftWidth - TileGap) / 2f, TileHeight = 84f;
 
         private void DrawFacts()
         {
@@ -279,14 +285,16 @@ namespace Game.Presentation.Hud
             var tiles = new[] { Earnings(), Tips(), MostOrdered(), NextOpening() };
             for (var i = 0; i < tiles.Length; i++)
             {
-                var x = 120f + (i % 2) * (TileWidth + TileGap);
+                var x = LeftX + (i % 2) * (TileWidth + TileGap);
                 var y = TileTop + (i / 2) * (TileHeight + TileGap);
                 UiKit.RoundBox(_left, "Fact", _card, x, y, TileWidth, TileHeight, 16f);
                 var value = Label(ExtraBold, _left, tiles[i].Value, 28f, tiles[i].Alarm ? _badText : _ink, x + 20f, y + 40f, TileWidth - 40f, tracking: -0.5f);
                 value.enableAutoSizing = true;
                 value.fontSizeMin = 18f;
                 value.fontSizeMax = 28f;
-                Label(Medium, _left, tiles[i].Label, 17.33f, _muted, x + 20f, y + 67f, TileWidth - 40f);
+                // Shrinks to fit the narrower tiles (2026-11-12) rather than being cut short.
+                var caption = Label(Medium, _left, tiles[i].Label, 17.33f, _muted, x + 20f, y + 67f, 400f);
+                Fit(caption, TileWidth - 34f, 13f);
             }
 
             // The foot of the column is the start bar's (BuildStartButton).
@@ -359,7 +367,7 @@ namespace Game.Presentation.Hud
             Keycap(_tabs, "LB", RightX, 185f, 54f, 36f);
             Keycap(_tabs, "RB", RightEdge - 54f, 185f, 54f, 36f);
             UiKit.RoundBox(_tabs, "Rule", _rule, RightX, 233f, RightWidth, 3f, 0f);
-            var x = 846f;
+            var x = RightX + 82f;
             foreach (Tab tab in System.Enum.GetValues(typeof(Tab)))
             {
                 var text = TabName(tab);
@@ -374,7 +382,7 @@ namespace Game.Presentation.Hud
 
         // ---- Overview: the boss first, the night's numbers, then every review ----
 
-        private const float BossWidth = 604f, TopRowHeight = 150f, FilterTop = 440f;
+        private const float BossWidth = 700f, TopRowHeight = 150f, FilterTop = 440f;
 
         private void DrawOverview()
         {
@@ -825,7 +833,7 @@ namespace Game.Presentation.Hud
         // the finished day's even after a relaunch (2026-11-11).
         private void DrawTonightsMenu()
         {
-            const float x = 1293f, width = 507f, top = 262f, height = 301f, rowHeight = 54f;
+            const float x = RightX + HalfWidth + 22f, width = HalfWidth, top = 262f, height = 301f, rowHeight = 54f;
             UiKit.RoundBox(_content, "Menu", _card, x, top, width, height, 18f);
             Caps(_content, Tr.Get("WHAT THEY ORDERED"), x + 26f, top + 38f);
             var dishes = Summary.Dishes.OrderByDescending(d => d.Ordered).ToList();
@@ -946,10 +954,10 @@ namespace Game.Presentation.Hud
         {
             UiKit.StrokedBox(_content, "Member", _cardLight, chosen ? _gold : _cardEdge, chosen ? 4f : 2.67f, CardLeft, y, CardWidth, MemberHeight, 15f);
             UiKit.StrokedEllipse(_content, "Avatar", UiKit.AvatarColour(member.Name), _ink, 4f, CardLeft + 24f, y + 18f, 49f, 61f);
-            var name = Label(Bold, _content, member.Name, 22f, _ink, 857f, y + 32f, 300f);
-            Label(Medium, _content, "· " + ServiceStatusHud.RoleName(member.Role), 19f, _muted, 857f + UiKit.Width(name) + 10f, y + 32f, 300f);
-            Label(Serif, _content, $"“{Tr.Get(member.Description)}”", 21f, _ink, 857f, y + 60f, 600f);
-            Label(Medium, _content, ServiceStatusHud.WorkDone(member), 17.33f, _body, 857f, y + 86f, 620f);
+            var name = Label(Bold, _content, member.Name, 22f, _ink, CardLeft + 92f, y + 32f, 300f);
+            Label(Medium, _content, "· " + ServiceStatusHud.RoleName(member.Role), 19f, _muted, CardLeft + 92f + UiKit.Width(name) + 10f, y + 32f, 300f);
+            Label(Serif, _content, $"“{Tr.Get(member.Description)}”", 21f, _ink, CardLeft + 92f, y + 60f, 600f);
+            Label(Medium, _content, ServiceStatusHud.WorkDone(member), 17.33f, _body, CardLeft + 92f, y + 86f, 620f);
 
             var memberWage = Label(Bold, _content, Tr.Format("{wage} a day", ("wage", Money(member.DailyWage))), 21.33f, _ink, 1776f, y + 32f, 260f, HorizontalAlignmentOptions.Right);
             // The action is on the row itself: Y lets the chosen member go, in the morning.
@@ -968,9 +976,9 @@ namespace Game.Presentation.Hud
             var text = reachable ? _ink : _quiet;
             UiKit.StrokedBox(_content, "Candidate", reachable ? _card : Alpha(_card, 0.55f), chosen ? _gold : _cardEdge, chosen ? 4f : 2.67f, CardLeft, y, CardWidth, CandidateHeight, 15f);
             UiKit.StrokedEllipse(_content, "Avatar", reachable ? UiKit.AvatarColour(candidate.Name) : _rule, reachable ? _ink : _sand, 4f, CardLeft + 28f, y + 14f, 40f, 50f);
-            var name = Label(Bold, _content, candidate.Name, 22f, text, 857f, y + 32f, 300f);
-            Label(Medium, _content, "· " + ServiceStatusHud.RoleName(candidate.Role), 19f, reachable ? _muted : _quiet, 857f + UiKit.Width(name) + 10f, y + 32f, 300f);
-            Label(Serif, _content, $"“{Tr.Get(candidate.Description)}”", 21f, text, 857f, y + 62f, 600f);
+            var name = Label(Bold, _content, candidate.Name, 22f, text, CardLeft + 92f, y + 32f, 300f);
+            Label(Medium, _content, "· " + ServiceStatusHud.RoleName(candidate.Role), 19f, reachable ? _muted : _quiet, CardLeft + 92f + UiKit.Width(name) + 10f, y + 32f, 300f);
+            Label(Serif, _content, $"“{Tr.Get(candidate.Description)}”", 21f, text, CardLeft + 92f, y + 62f, 600f);
 
             var wage = Label(Bold, _content, Tr.Format("{wage} a day", ("wage", Money(candidate.DailyWage))), 21.33f, reachable ? _ink : _badText, 1776f, y + 32f, 260f, HorizontalAlignmentOptions.Right);
             // A hires the chosen candidate, in the morning; holding Y is the Start button's.
@@ -1000,43 +1008,44 @@ namespace Game.Presentation.Hud
         // Today's money in and out, line by line.
         private void DrawToday(Ledger ledger, List<LedgerLine> lines)
         {
-            UiKit.RoundBox(_content, "Today", _card, RightX, 262f, 507f, 301f, 18f);
-            Caps(_content, Tr.Format("DAY {day}", ("day", Summary.Day)), 790f, 300f);
+            UiKit.RoundBox(_content, "Today", _card, RightX, 262f, HalfWidth, 301f, 18f);
+            Caps(_content, Tr.Format("DAY {day}", ("day", Summary.Day)), RightX + 26f, 300f);
             // A day from before line-by-line books (2026-11-11): say so rather than look broken.
             if (Summary.HasDay && !Summary.HasLines)
-                Label(Medium, _content, Tr.Get("only the totals were kept"), 16.67f, _muted, 1244f, 300f, 300f, HorizontalAlignmentOptions.Right);
+                Label(Medium, _content, Tr.Get("only the totals were kept"), 16.67f, _muted, RightX + HalfWidth - 27f, 300f, 300f, HorizontalAlignmentOptions.Right);
             var pitch = lines.Count > 1 ? Mathf.Min(36f, (447f - 339f) / (lines.Count - 1)) : 36f;
             var y = 339f;
             foreach (var line in lines)
             {
                 var income = Ledger.IsIncome(line);
                 var amount = ledger.Of(line);
-                Label(Medium, _content, LineName(line), 21.33f, _ink, 790f, y, 300f);
-                Label(Bold, _content, Money(income ? amount : -amount, true, signed: true), 21.33f, income ? _goodText : _badText, 1244f, y, 200f, HorizontalAlignmentOptions.Right);
+                Label(Medium, _content, LineName(line), 21.33f, _ink, RightX + 26f, y, 300f);
+                Label(Bold, _content, Money(income ? amount : -amount, true, signed: true), 21.33f, income ? _goodText : _badText, RightX + HalfWidth - 27f, y, 200f, HorizontalAlignmentOptions.Right);
                 y += pitch;
             }
-            UiKit.RoundBox(_content, "Rule", Hex(0xd9c39a), 790f, 470f, 455f, 2f, 0f);
-            Label(Bold, _content, Tr.Get("Net"), 22.67f, _ink, 790f, 517f, 300f);
+            UiKit.RoundBox(_content, "Rule", Hex(0xd9c39a), RightX + 26f, 470f, HalfWidth - 52f, 2f, 0f);
+            Label(Bold, _content, Tr.Get("Net"), 22.67f, _ink, RightX + 26f, 517f, 300f);
             var net = ledger.Net;
-            Label(ExtraBold, _content, Money(net, true, signed: true), 32.67f, net < 0f ? _badText : _goodText, 1244f, 517f, 300f, HorizontalAlignmentOptions.Right, -0.5f);
+            Label(ExtraBold, _content, Money(net, true, signed: true), 32.67f, net < 0f ? _badText : _goodText, RightX + HalfWidth - 27f, 517f, 300f, HorizontalAlignmentOptions.Right, -0.5f);
         }
 
         // In and out as two stacked bars on one scale, each part a ledger line.
         private void DrawMoneyWent(Ledger ledger, List<LedgerLine> lines)
         {
             UiKit.RoundBox(_content, "Went", _card, RightX, 585f, RightWidth, 196f, 18f);
-            Caps(_content, "WHERE THE MONEY WENT", 790f, 625f);
+            Caps(_content, "WHERE THE MONEY WENT", RightX + 26f, 625f);
             Label(Medium, _content, Tr.Format("Day {day}", ("day", Summary.Day)), 19.5f, _muted, 1772f, 625f, 200f, HorizontalAlignmentOptions.Right);
 
             var income = lines.Where(Ledger.IsIncome).ToList();
             var spending = lines.Where(l => !Ledger.IsIncome(l)).ToList();
             var totalIn = income.Sum(l => ledger.Of(l));
             var totalOut = spending.Sum(l => ledger.Of(l));
-            var scale = 656f / Mathf.Max(1f, Mathf.Max(totalIn, totalOut));
+            // The bars run from after their title to before the total.
+            var scale = (RightEdge - 140f - (RightX + 100f)) / Mathf.Max(1f, Mathf.Max(totalIn, totalOut));
             MoneyBar(Tr.Get("In"), income, ledger, scale, 648f, 670f, Money(totalIn), _goodText);
             MoneyBar(Tr.Get("Out"), spending, ledger, scale, 692f, 714f, Money(totalOut), _badText);
 
-            var x = 790f;
+            var x = RightX + 26f;
             foreach (var line in lines)
             {
                 UiKit.RoundBox(_content, "Key", LineColour(line), x, 740f, 16f, 16f, 3f);
@@ -1049,8 +1058,8 @@ namespace Game.Presentation.Hud
 
         private void MoneyBar(string title, List<LedgerLine> parts, Ledger ledger, float scale, float top, float baseline, string total, Color totalColour)
         {
-            Label(Bold, _content, title, 20f, _ink, 790f, baseline, 80f);
-            var x = 864f;
+            Label(Bold, _content, title, 20f, _ink, RightX + 26f, baseline, 80f);
+            var x = RightX + 100f;
             foreach (var line in parts)
             {
                 var width = Mathf.Max(4f, ledger.Of(line) * scale);
@@ -1077,19 +1086,19 @@ namespace Game.Presentation.Hud
             UiKit.RoundBox(_content, "Trend", _card, RightX, 801f, RightWidth, 130f, 18f);
             if (trend)
             {
-                Caps(_content, "HOW IT'S GOING", 790f, 832f);
+                Caps(_content, "HOW IT'S GOING", RightX + 26f, 832f);
                 var biggest = Mathf.Max(1f, history.Max(d => Mathf.Abs(d.In - d.Out)));
                 for (var i = 0; i < history.Count; i++)
                 {
                     var day = history[i];
                     var net = day.In - day.Out;
                     var height = Mathf.Max(3f, 36f * Mathf.Abs(net) / biggest);
-                    var x = 790f + i * 44f;
+                    var x = RightX + 26f + i * 44f;
                     UiKit.RoundBox(_content, "Net", net >= 0f ? _good : _bad, x, net >= 0f ? 880f - height : 880f, 30f, height, 3f);
                     Label(Medium, _content, $"{day.Day}", 14f, _muted, x + 15f, 926f, 40f, HorizontalAlignmentOptions.Center);
                 }
             }
-            var teamX = trend ? 1340f : 790f;
+            var teamX = trend ? RightX + 576f : RightX + 26f;
             var ty = 838f;
             foreach (var line in team.Take(4))
             {
@@ -1192,9 +1201,12 @@ namespace Game.Presentation.Hud
 
             // The start card: what holding Y does. Nobody's here yet: A joins first.
             _startText.text = PlayerInput.all.Count == 0 ? Tr.Get("Press to join") : Tr.Format("Hold to start Day {day}", ("day", StartsDay));
+            // The narrower column (2026-11-12): long words shrink to fit beside the Y.
+            _startText.fontSize = 38f;
+            Fit(_startText, LeftWidth - 52f - 16f - 48f, 24f);
             // The ring and the words centred together on the button.
             var textWidth = UiKit.Width(_startText);
-            var left = (600f - (52f + 16f + textWidth)) / 2f;
+            var left = (LeftWidth - (52f + 16f + textWidth)) / 2f;
             _startRing.anchoredPosition = new Vector2(left, _startRing.anchoredPosition.y);
             _startText.rectTransform.anchoredPosition = new Vector2(left + 52f + 16f, _startText.rectTransform.anchoredPosition.y);
 
@@ -1236,13 +1248,13 @@ namespace Game.Presentation.Hud
             // The start button in the left column (the user's mock, 2026-11-11): one button in the
             // Xbox Y's yellow (Y, not A, since 2026-11-11), a white edge, the Y as a white ring and
             // "Hold to start day N" in ink, centred. It animates as a unit: a gentle pulse at rest, sinking while held.
-            _startA = UiKit.Rect(_layout, "StartButton", 120f, StartCardTop, 600f, StartCardHeight);
+            _startA = UiKit.Rect(_layout, "StartButton", LeftX, StartCardTop, LeftWidth, StartCardHeight);
             _startA.pivot = new Vector2(0.5f, 0.5f);
-            _startA.anchoredPosition += new Vector2(300f, -StartCardHeight / 2f);
-            var face = UiKit.StrokedBox(_startA, "Button", _buttonY, Color.white, 4f, 0f, 0f, 600f, StartCardHeight, StartCardHeight / 2f);
+            _startA.anchoredPosition += new Vector2(LeftWidth / 2f, -StartCardHeight / 2f);
+            var face = UiKit.StrokedBox(_startA, "Button", _buttonY, Color.white, 4f, 0f, 0f, LeftWidth, StartCardHeight, StartCardHeight / 2f);
             // A darker lower band gives it depth, like a key (flat, no gradient), clipped to the pill.
             face.gameObject.AddComponent<Mask>().showMaskGraphic = true;
-            UiKit.RoundBox(face.transform, "Shade", Color.Lerp(_buttonY, _ink, 0.12f), 0f, StartCardHeight * 0.6f, 600f, StartCardHeight * 0.4f, 0f);
+            UiKit.RoundBox(face.transform, "Shade", Color.Lerp(_buttonY, _ink, 0.12f), 0f, StartCardHeight * 0.6f, LeftWidth, StartCardHeight * 0.4f, 0f);
             _startRing = UiKit.Rect(_startA, "Ring", 0f, (StartCardHeight - 52f) / 2f, 52f, 52f);
             // The Y exactly as forkcast's other button glyphs (the footer's B), only bigger: the kit's
             // badge, its white ring scaled with it (the user's call, 2026-11-11).
@@ -1432,15 +1444,16 @@ namespace Game.Presentation.Hud
             UiKit.RoundBox(_layout, "FooterTop", _card, PanelX, FooterTop, PanelWidth, 30f, 0f);
 
             // The photo, clipped to its rounded corners, with its caption.
-            var frame = UiKit.RoundBox(_layout, "Photo", _card, 120f, 172f, 600f, 338f, 18f);
+            // Its height as before, its width the column's: the photo is cropped to its middle, not squashed (2026-11-12).
+            var frame = UiKit.RoundBox(_layout, "Photo", _card, LeftX, 172f, LeftWidth, 338f, 18f);
             frame.gameObject.AddComponent<Mask>().showMaskGraphic = true;
-            _photo = UiKit.Rect(frame.transform, "Image", 0f, 0f, 600f, 338f).gameObject.AddComponent<RawImage>();
+            _photo = UiKit.Rect(frame.transform, "Image", 0f, 0f, LeftWidth, 338f).gameObject.AddComponent<RawImage>();
             _photo.raycastTarget = false;
             // The close-time photo is wider than the frame: crop its sides.
-            var aspect = 600f / 338f / ((float)_photoSize.x / _photoSize.y);
+            var aspect = LeftWidth / 338f / ((float)_photoSize.x / _photoSize.y);
             _photo.uvRect = new UnityEngine.Rect((1f - aspect) / 2f, 0f, aspect, 1f);
-            UiKit.RoundBox(_layout, "Caption", Alpha(_ink, 0.85f), 438f, 466f, 270f, 32f, 8f);
-            _caption = UiKit.TextAt(_style.Medium, _layout, "CaptionText", Tr.Get("Your photo · captured at close"), 17.33f, _paper, 573f, 488f, 270f, HorizontalAlignmentOptions.Center);
+            UiKit.RoundBox(_layout, "Caption", Alpha(_ink, 0.85f), LeftX + LeftWidth - 12f - 270f, 466f, 270f, 32f, 8f);
+            _caption = UiKit.TextAt(_style.Medium, _layout, "CaptionText", Tr.Get("Your photo · captured at close"), 17.33f, _paper, LeftX + LeftWidth - 12f - 135f, 488f, 270f, HorizontalAlignmentOptions.Center);
 
             _header = UiKit.Rect(_layout, "HeaderState", 0f, 0f, 1920f, 1080f);
             _money = UiKit.Rect(_layout, "Money", 1804f - _moneyWidth, MoneyTop, _moneyWidth, MoneyHeight);
