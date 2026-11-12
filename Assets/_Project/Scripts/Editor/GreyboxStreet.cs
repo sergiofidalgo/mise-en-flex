@@ -540,7 +540,7 @@ namespace Game.Editor
             list.arraySize = cars.Length;
             for (var i = 0; i < cars.Length; i++)
                 list.GetArrayElementAtIndex(i).objectReferenceValue = cars[i];
-            so.FindProperty("_nearPavementZ").floatValue = Kerb + 0.9f;
+            so.FindProperty("_nearPavementZ").floatValue = Kerb + 1.5f; // well onto the pavement, clear of the kerb and its lamps
             so.FindProperty("_farPavementZ").floatValue = RoadSouth - 1.2f;
             // Thrown no further than two metres short of where the scene ends.
             so.FindProperty("_westEnd").floatValue = GroundsWest - SceneBeyondGrounds + 2f;

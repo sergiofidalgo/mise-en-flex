@@ -147,8 +147,9 @@ namespace Game.Gameplay.Street
             Struck?.Invoke(chef, car);
         }
 
-        // In the air they turn head over heels about their middle; on the ground they lie on their
-        // back, feet where they landed, and come upright again about their feet.
+        // In the air they turn head over heels about their middle; on the ground they lie flat on
+        // their front, feet where they landed and head on along the way they flew (away from the
+        // road they came out of), and come upright again about their feet.
         private void Pose(PlayerInteractor chef, Fall fall)
         {
             var knock = fall.Knock;
@@ -161,7 +162,7 @@ namespace Game.Gameplay.Street
                 chef.transform.SetPositionAndRotation(middle - turned * (Vector3.up * BodyMiddle), turned);
             }
             else
-                chef.transform.SetPositionAndRotation(position, along * Quaternion.Euler(-90f * knock.Lying, 0f, 0f));
+                chef.transform.SetPositionAndRotation(position, along * Quaternion.Euler(90f * knock.Lying, 0f, 0f));
         }
 
         // The food goes flying: off the plate, out of the pan, off the tray, out of their hands.
