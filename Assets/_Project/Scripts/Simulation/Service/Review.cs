@@ -71,6 +71,9 @@ namespace Game.Simulation.Service
         /// <summary>The facts the line was filled with.</summary>
         public ReviewFacts Facts { get; } = new ReviewFacts();
 
+        /// <summary>Posted from the delivery app, about food a courier took (decision 2026-11-12).</summary>
+        public bool Delivery { get; internal set; }
+
         public Customer Customer { get; }
         public float Stars { get; }
         public ReviewTopic Topic { get; }

@@ -98,5 +98,8 @@ namespace Game.Simulation.Service
         public PaymentSettings Payment { get; set; } = new PaymentSettings();
 
         public ReviewSettings Reviews { get; set; } = new ReviewSettings();
+
+        /// <summary>Delivery orders (decision 2026-11-12). They only come once a delivery counter gives them a place.</summary>
+        public DeliverySettings Delivery { get; set; } = new DeliverySettings();
     }
 }

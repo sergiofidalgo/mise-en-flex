@@ -306,6 +306,9 @@ namespace Game.Simulation.Saving
         public float ArrivedAt;
 
         public bool WalkedOut;
+
+        /// <summary>Posted from the delivery app (2026-11-12); false in older saves.</summary>
+        public bool Delivery;
         public float Paid;
         public float Tip;
 
