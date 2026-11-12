@@ -86,6 +86,7 @@ namespace Game.Tests.PlayMode
         {
             var frames = 0;
             var began = Time.time;
+            var captured = false;
             var until = Time.realtimeSinceStartup + seconds;
             while (!done() && Time.realtimeSinceStartup < until)
             {
@@ -103,8 +104,12 @@ namespace Game.Tests.PlayMode
                 }
                 InputSystem.QueueStateEvent(_pad, new GamepadState { leftStick = stick }.WithButton(GamepadButton.West));
                 frames++;
-                if (captureAs != null && frames == 600)
+                // Mid-job, by time so it's the same moment at any frame rate.
+                if (captureAs != null && !captured && Time.time - began >= 1.2f)
+                {
+                    captured = true;
                     Capture(captureAs);
+                }
                 yield return null;
             }
             InputSystem.QueueStateEvent(_pad, new GamepadState());
@@ -146,7 +151,7 @@ namespace Game.Tests.PlayMode
 
             StandAt(hob);
             yield return null;
-            yield return HoldXAndTrace(() => !hob.IsOnFire, 25f);
+            yield return HoldXAndTrace(() => !hob.IsOnFire, 25f, "extinguish");
 
             Assert.That(hob.IsOnFire, Is.False, "three sweeps put it out");
             var gone = Time.realtimeSinceStartup + 0.5f;
