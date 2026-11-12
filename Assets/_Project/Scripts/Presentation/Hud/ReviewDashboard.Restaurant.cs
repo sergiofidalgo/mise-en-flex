@@ -51,9 +51,11 @@ namespace Game.Presentation.Hud
         [Tooltip("Pitch of the dial's tick (the kitchen's clack).")]
         [SerializeField, Range(0.5f, 3f)] private float _dialTickPitch = 1.8f;
         [Tooltip("Seconds a wisp of steam takes to rise and fade.")]
-        [SerializeField, Min(0.3f)] private float _steamSeconds = 2.6f;
+        [SerializeField, Min(0.3f)] private float _steamSeconds = 3.4f;
         [Tooltip("Steam's colour at its thickest: a warm grey, so it shows on the cream panel as well as over the food.")]
-        [SerializeField] private Color _steamColour = new Color(0.62f, 0.57f, 0.52f, 0.62f);
+        [SerializeField] private Color _steamColour = new Color(1f, 0.98f, 0.94f, 0.72f);
+        [Tooltip("A faint shadow under each wisp, so the white steam still shows on the cream panel.")]
+        [SerializeField] private Color _steamShadow = new Color(0.45f, 0.38f, 0.32f, 0.09f);
         [Tooltip("A card for a dish still to unlock: darker than the menu's, so the two groups never look alike.")]
         [SerializeField] private Color _lockedCard = Hex(0xe2d0ad);
 
@@ -146,6 +148,8 @@ namespace Game.Presentation.Hud
             public float Size;     // its size at the start
             public float Phase;    // 0..1 along its life at time zero
             public bool Warming;   // fades in with the unlock moment
+            public Image Shadow;   // a faint shadow behind it, so it shows on cream
+            public float Drift;    // where across the plate it starts, −1..1
         }
 
         private void DrawCookbook()
@@ -310,7 +314,7 @@ namespace Game.Presentation.Hud
             }
             // While it warms up, its steam starts (the chosen card's and the big plate's alike).
             if (steam || warmingUp)
-                Steam(x + size / 2f, y + size * 0.5f, size * 0.6f, size * 0.24f, size > 120f ? 6 : 3, warmingUp);
+                Steam(x + size / 2f, y + size * 0.5f, size * 0.55f, size * 0.2f, size > 120f ? 7 : 4, warmingUp);
             // The big plate throws gold sparks as it comes on.
             if (warmingUp && size > 120f)
                 Sparks(x + size / 2f, y + size * 0.62f, 26);
@@ -733,14 +737,20 @@ namespace Game.Presentation.Hud
         {
             for (var i = 0; i < wisps; i++)
             {
+                var shadow = UiKit.Picture(_content, "SteamShadow", Puff, x, y, size, size, Color.clear);
+                shadow.rectTransform.pivot = new Vector2(0.5f, 0.5f);
                 var image = UiKit.Picture(_content, "Steam", Puff, x, y, size, size, Color.clear);
                 image.rectTransform.pivot = new Vector2(0.5f, 0.5f);
-                _steam.Add(new Wisp { Image = image, Base = new Vector2(x, y), Rise = rise, Size = size, Phase = (float)i / wisps, Warming = warming });
+                // Spread across the plate, in an order that doesn't march left to right.
+                var drift = Mathf.Repeat(i * 0.618f, 1f) * 2f - 1f;
+                _steam.Add(new Wisp { Image = image, Shadow = shadow, Base = new Vector2(x, y), Rise = rise, Size = size, Phase = (float)i / wisps, Warming = warming, Drift = drift });
             }
             AnimateSteam();
         }
 
-        // Each wisp rises, sways, swells and fades in and out over its life, then starts again.
+        // Gentle steam (the user's call, 2026-11-12: the grey puffs read as smoke): each wisp starts
+        // narrow somewhere over the plate, rises slowly, curls a little more as it climbs, widens,
+        // and fades in quickly and out slowly, a soft warm white over a faint shadow.
         private void AnimateSteam()
         {
             var now = Time.unscaledTime;
@@ -749,15 +759,29 @@ namespace Game.Presentation.Hud
                 if (wisp.Image == null)
                     continue;
                 var life = Mathf.Repeat(now / _steamSeconds + wisp.Phase, 1f);
-                var sway = Mathf.Sin(now * 1.7f + wisp.Phase * 9f) * wisp.Size * 0.35f * life;
-                var size = wisp.Size * Mathf.Lerp(0.7f, 1.9f, life);
-                var rect = wisp.Image.rectTransform;
-                rect.sizeDelta = new Vector2(size * 0.8f, size);
-                // Centred on its point (pivot in the middle); the frame's y runs down, so rising is up.
-                rect.anchoredPosition = new Vector2(wisp.Base.x + sway, -(wisp.Base.y - wisp.Rise * life));
-                var fade = Mathf.Sin(Mathf.PI * life);
+                // Rises easing out: quicker off the plate, slowing as it thins.
+                var up = 1f - (1f - life) * (1f - life);
+                var curl = Mathf.Sin(now * 1.1f + wisp.Phase * 7f + life * 4f) * wisp.Size * 0.22f * life;
+                var x = wisp.Base.x + wisp.Drift * wisp.Size * 0.6f + curl;
+                var y = wisp.Base.y - wisp.Rise * up;
+                var width = wisp.Size * Mathf.Lerp(0.35f, 0.9f, life);
+                var height = wisp.Size * Mathf.Lerp(0.8f, 1.6f, life);
+                // In over the first fifth, out over the rest.
+                var fade = life < 0.2f ? life / 0.2f : 1f - (life - 0.2f) / 0.8f;
+                fade *= fade;
                 var strength = wisp.Warming ? Mathf.Clamp01((Warmth(_warming) - 0.2f) / 0.6f) : 1f;
-                wisp.Image.color = new Color(_steamColour.r, _steamColour.g, _steamColour.b, _steamColour.a * fade * fade * strength);
+                var rect = wisp.Image.rectTransform;
+                rect.sizeDelta = new Vector2(width, height);
+                // Centred on its point (pivot in the middle); the frame's y runs down, so rising is up.
+                rect.anchoredPosition = new Vector2(x, -y);
+                wisp.Image.color = Alpha(_steamColour, _steamColour.a * fade * strength);
+                if (wisp.Shadow != null)
+                {
+                    var shadow = wisp.Shadow.rectTransform;
+                    shadow.sizeDelta = new Vector2(width * 1.15f, height * 1.1f);
+                    shadow.anchoredPosition = new Vector2(x + 2f, -y - 3f);
+                    wisp.Shadow.color = Alpha(_steamShadow, _steamShadow.a * fade * strength);
+                }
             }
         }
 
