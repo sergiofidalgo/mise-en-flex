@@ -267,7 +267,7 @@ namespace Game.Editor
                 // Solid: a chef walks round a parked car, not through it.
                 var body = parked.gameObject.AddComponent<BoxCollider>();
                 body.center = new Vector3(0f, 0.9f, 0f);
-                body.size = new Vector3(1.8f, 1.8f, 4.2f);
+                body.size = new Vector3(2.1f, 1.8f, 4.4f); // the cars are up to 2.1 m across their tyres, 4.25 m long
             }
 
             // The one trash container (the mockup's recycling area is too much, the user's note).

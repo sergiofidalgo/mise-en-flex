@@ -1999,92 +1999,196 @@ def add_profile_y(bm, profile, half_width, y_centre=0.0):
         bm.faces.new([near[i], far[i], far[j], near[j]])
 
 
-# The street's cars (user's note, 2026-11-09: "the cars could be a little more refined"): four
-# kinds in the same chunky toon style, along x with the front at +x like the old city car, origin
-# on the ground under the middle. Each is split by colour: Body (the paint), Glass, Trim (bumpers,
-# grille, arches, handles, window frames), Tyres, Hubs, Headlights, Taillights; the taxi has a Sign.
+# The street's cars (the user's notes, 2026-11-09: "the cars could be a little more refined", and
+# 2026-11-11, of the slab-and-wedge cars that followed: "awful"). Third pass: toy cars. Short, tall
+# and wide, with a body lofted through rounded sections from nose to tail (so the bonnet falls away,
+# the corners turn in and nothing is a flat slab), fat fenders bulging over big wheels, a cabin of
+# glass all the way round that leans in to a separate rounded roof, round headlights, wrapped
+# bumpers and number plates. Along x with the front at +x, origin on the ground under the middle.
+# Each is split by colour: Body (the paint), Glass, Trim (bumpers, grille, door lines, handles),
+# Tyres, Hubs (and anything else pale: plates), Headlights, Taillights; the taxi has a Sign.
 CAR_KINDS = {
-    # length, width, deck height, cabin profile (x, z) from the deck up, wheel x positions
-    "Sedan": (4.5, 1.84, 1.02, [(-1.55, 1.02), (0.95, 1.02), (0.3, 1.58), (-0.95, 1.58), (-1.4, 1.2)], (-1.45, 1.4)),
-    "Taxi": (4.6, 1.86, 1.02, [(-1.55, 1.02), (1.0, 1.02), (0.35, 1.6), (-0.95, 1.6), (-1.4, 1.2)], (-1.5, 1.45)),
-    "Hatch": (3.9, 1.78, 1.0, [(-1.85, 1.0), (0.75, 1.0), (0.15, 1.6), (-1.75, 1.6), (-1.88, 1.25)], (-1.25, 1.2)),
-    "Van": (4.9, 1.98, 1.0, [(-2.4, 1.0), (1.35, 1.0), (0.75, 2.1), (-2.4, 2.1)], (-1.6, 1.55)),
+    # shell: (x, half width, bottom, top, corner radius) from nose to tail.
+    # cabin: (z, rear x, front x, half width, corner radius) at the belt, the roof's edge, and its crown.
+    # wheels: the axles' x.
+    "Sedan": {
+        "shell": [(2.12, 0.72, 0.42, 0.76, 0.16), (2.0, 0.84, 0.32, 0.85, 0.2), (1.62, 0.94, 0.26, 0.93, 0.22),
+                  (0.95, 0.96, 0.25, 1.0, 0.22), (-0.95, 0.96, 0.25, 1.0, 0.22), (-1.6, 0.94, 0.26, 0.98, 0.22),
+                  (-2.0, 0.86, 0.32, 0.92, 0.2), (-2.12, 0.74, 0.46, 0.84, 0.16)],
+        "cabin": [(0.96, -1.3, 1.0, 0.87, 0.3), (1.47, -0.92, 0.42, 0.74, 0.26), (1.56, -0.74, 0.24, 0.58, 0.22)],
+        "wheels": (-1.3, 1.3),
+    },
+    "Hatch": {
+        "shell": [(1.82, 0.72, 0.42, 0.76, 0.16), (1.7, 0.84, 0.32, 0.86, 0.2), (1.35, 0.93, 0.26, 0.94, 0.22),
+                  (0.8, 0.95, 0.25, 1.0, 0.22), (-1.35, 0.95, 0.25, 1.0, 0.22), (-1.7, 0.9, 0.3, 0.99, 0.2),
+                  (-1.82, 0.78, 0.44, 0.92, 0.16)],
+        "cabin": [(0.96, -1.66, 0.85, 0.86, 0.3), (1.5, -1.5, 0.3, 0.74, 0.26), (1.59, -1.3, 0.12, 0.58, 0.22)],
+        "wheels": (-1.14, 1.14),
+    },
+    "Van": {
+        "shell": [(2.3, 0.8, 0.42, 0.9, 0.16), (2.18, 0.9, 0.32, 1.0, 0.2), (1.85, 1.0, 0.26, 1.08, 0.22),
+                  (1.3, 1.02, 0.25, 1.12, 0.22), (-1.9, 1.02, 0.25, 1.12, 0.22), (-2.22, 0.96, 0.3, 1.1, 0.2),
+                  (-2.3, 0.92, 0.44, 1.04, 0.16)],
+        "cabin": [(1.08, -2.24, 1.7, 0.95, 0.28), (1.98, -2.2, 1.12, 0.88, 0.26), (2.08, -2.05, 0.92, 0.72, 0.22)],
+        "wheels": (-1.45, 1.5),
+    },
 }
+CAR_KINDS["Taxi"] = CAR_KINDS["Sedan"]
+CAR_WHEEL_RADIUS = 0.41
+CAR_TYRE_WIDTH = 0.3
+
+
+def car_section(bm, x, half_width, bottom, top, radius, per_corner=5):
+    """A ring of verts round a rounded rectangle standing across the car (in y and z) at `x`."""
+    half_height = (top - bottom) / 2.0
+    radius = min(radius, half_width, half_height)
+    middle = bottom + half_height
+    ring = []
+    for k, (sy, sz) in enumerate(((1.0, 1.0), (-1.0, 1.0), (-1.0, -1.0), (1.0, -1.0))):
+        for i in range(per_corner + 1):
+            angle = math.radians(90.0 * k + 90.0 * i / per_corner)
+            ring.append(bm.verts.new((x, sy * (half_width - radius) + radius * math.cos(angle),
+                                      middle + sz * (half_height - radius) + radius * math.sin(angle))))
+    return ring
+
+
+def car_plan(bm, z, rear, front, half_width, radius, per_corner=5):
+    """A ring of verts round a rounded rectangle lying flat (in x and y) at height `z`."""
+    half_length = (front - rear) / 2.0
+    radius = min(radius, half_width, half_length)
+    middle = rear + half_length
+    ring = []
+    for k, (sx, sy) in enumerate(((1.0, 1.0), (-1.0, 1.0), (-1.0, -1.0), (1.0, -1.0))):
+        for i in range(per_corner + 1):
+            angle = math.radians(90.0 * k + 90.0 * i / per_corner)
+            ring.append(bm.verts.new((middle + sx * (half_length - radius) + radius * math.cos(angle),
+                                      sy * (half_width - radius) + radius * math.sin(angle), z)))
+    return ring
+
+
+def car_skin(bm, rings):
+    """Joins rings of equal length into a closed solid, capped at both ends."""
+    n = len(rings[0])
+    for a, b in zip(rings, rings[1:]):
+        for i in range(n):
+            j = (i + 1) % n
+            bm.faces.new([a[i], a[j], b[j], b[i]])
+    bm.faces.new(rings[0])
+    bm.faces.new(list(reversed(rings[-1])))
+
+
+def car_cabin_at(cabin, z):
+    """The cabin's plan (rear, front, half width, radius) at height `z`, between its keys."""
+    for (z0, *low), (z1, *high) in zip(cabin, cabin[1:]):
+        if z <= z1 or (z1, *high) == tuple(cabin[-1]):
+            t = max(0.0, min(1.0, (z - z0) / (z1 - z0)))
+            return [a + (b - a) * t for a, b in zip(low, high)]
+    return list(cabin[-1][1:])
+
+
+def add_car_cabin(bm, cabin, z_low, z_high, x_low=None, x_high=None, grow=0.0, steps=1):
+    """A slice of the cabin between two heights (and, optionally, two x): the glass, a pillar, the
+    roof. `grow` stands it that far proud of the cabin's own surface, so a pillar shows over glass."""
+    rings = []
+    for step in range(steps + 1):
+        z = z_low + (z_high - z_low) * step / steps
+        rear, front, half_width, radius = car_cabin_at(cabin, z)
+        # A slice keeps the cabin's surface where it isn't cut, standing `grow` proud of it.
+        rear = max(rear, x_low) if x_low is not None else rear - grow
+        front = min(front, x_high) if x_high is not None else front + grow
+        rings.append(car_plan(bm, z, rear, max(front, rear + 0.04), half_width + grow, radius + grow))
+    car_skin(bm, rings)
 
 
 def build_cars():
     objects = []
-    for kind, (length, width, deck, cabin, wheels) in CAR_KINDS.items():
-        half = length / 2.0
+    for kind, spec in CAR_KINDS.items():
+        shell, cabin, wheels = spec["shell"], spec["cabin"], spec["wheels"]
+        nose, tail = shell[0][0], shell[-1][0]
+        half_width = max(s[1] for s in shell)
+        belt, roof_edge, crown = cabin[0][0], cabin[1][0], cabin[2][0]
+        cabin_rear, cabin_front = cabin[0][1], cabin[0][2]
+        van = kind == "Van"
+
         body = bmesh.new()
-        # The lower body: a rounded slab from the sills to the shoulder line.
-        add_box(body, (length, width, deck - 0.32), (0.0, 0.0, 0.32 + (deck - 0.32) / 2.0), bevel=0.16)
-        # The cabin's pillars and roof: the cabin profile, a touch narrower, over the glass.
-        roof = [(x, z) for x, z in cabin]
-        add_profile_y(body, roof, width / 2.0 - 0.14)
+        car_skin(body, [car_section(body, *station) for station in shell])
+        # Fenders: a fat bulge over each wheel, which the tyre stands just proud of.
+        for x in wheels:
+            for side in (-1.0, 1.0):
+                add_ellipsoid(body, (x, side * (half_width - 0.07), 0.6), (0.64, 0.17, 0.43), rings=8, segments=16)
+        # The roof: from the glass's top edge, a touch wider so it overhangs, up to a flat crown.
+        roof = [car_plan(body, roof_edge - 0.02, *[v + g for v, g in zip(car_cabin_at(cabin, roof_edge), (-0.03, 0.05, 0.03, 0.03))]),
+                car_plan(body, roof_edge + 0.05, *[v + g for v, g in zip(car_cabin_at(cabin, roof_edge), (-0.02, 0.03, 0.02, 0.02))]),
+                car_plan(body, crown, *car_cabin_at(cabin, crown))]
+        car_skin(body, roof)
+        # A pillar over the glass behind the front doors; a van's whole back is panelled in.
+        pillar = (cabin_rear + cabin_front) / 2.0 + (0.5 if van else -0.05)
+        add_car_cabin(body, cabin, belt - 0.02, roof_edge, pillar - 0.07, pillar + 0.07, grow=0.015)
+        if van:
+            add_car_cabin(body, cabin, belt - 0.02, roof_edge, None, pillar - 0.07, grow=0.015)
         # Mirrors at the front of the doors.
-        front_pillar = max(x for x, z in cabin if z <= deck + 0.01)
         for side in (-1.0, 1.0):
-            add_box(body, (0.16, 0.18, 0.12), (front_pillar - 0.2, side * (width / 2.0 + 0.06), deck + 0.14), bevel=0.04)
+            add_box(body, (0.14, 0.2, 0.13), (cabin_front - 0.34, side * (half_width + 0.04), belt + 0.12), bevel=0.04)
         objects.append(finish(f"Car{kind}Body", body))
 
-        # The glass: the cabin profile shrunk inside its pillars and stood a little proud of the
-        # sides and screens, so it shows as windows framed by the paint.
+        # The glass: the cabin itself, all the way round, from the belt up to the roof's edge.
         glass = bmesh.new()
-        cx = sum(x for x, z in cabin) / len(cabin)
-        cz = sum(z for x, z in cabin) / len(cabin)
-        inset = [(cx + (x - cx) * 0.94, cz + (z - cz) * 0.86 + 0.03) for x, z in cabin]
-        add_profile_y(glass, inset, width / 2.0 - 0.1)
+        add_car_cabin(glass, cabin, belt - 0.02, roof_edge)
         objects.append(finish(f"Car{kind}Glass", glass))
 
         trim = bmesh.new()
-        # Bumpers, front and back, wrapping a little round the corners.
-        for x in (half - 0.02, -half + 0.02):
-            add_box(trim, (0.24, width + 0.04, 0.24), (x, 0.0, 0.46), bevel=0.08)
-        # The grille between the headlights, and a pillar between the side windows.
-        add_box(trim, (0.06, width * 0.42, 0.2), (half + 0.01, 0.0, deck - 0.24), bevel=0.02)
-        add_box(trim, (0.12, width - 0.2, (max(z for x, z in cabin) - deck) * 0.75), (cx + 0.05, 0.0, deck + (max(z for x, z in cabin) - deck) * 0.45), bevel=0.02)
-        # Wheel arches: dark rings on the body sides round each wheel.
-        for x in wheels:
-            for side in (-1.0, 1.0):
-                add_cylinder_y(trim, (x, side * (width / 2.0) - (0.02 if side > 0 else 0.0), 0.4), 0.48, 0.02, segments=20)
-        # Door handles and a sill line.
+        # Bumpers wrapped round the nose and the tail, a grille between the headlights.
+        for x, station in ((nose - 0.1, shell[1]), (tail + 0.1, shell[-2])):
+            add_box(trim, (0.3, station[1] * 2.0 + 0.1, 0.2), (x, 0.0, 0.42), bevel=0.09)
+        add_box(trim, (0.08, 0.62, 0.16), (nose - 0.02, 0.0, 0.62), bevel=0.03)
+        # Door lines and handles down each side, a sill under the doors.
+        doors = (cabin_front - 0.18, pillar) if van else (cabin_front - 0.18, pillar, cabin_rear + 0.42)
         for side in (-1.0, 1.0):
-            for x in (cx + 0.55, cx - 0.55) if kind != "Van" else (cx + 0.9,):
-                add_box(trim, (0.2, 0.04, 0.05), (x, side * (width / 2.0 + 0.01), deck - 0.12))
-            add_box(trim, (length - 1.2, 0.04, 0.06), (0.0, side * (width / 2.0 + 0.005), 0.36))
+            y = side * (half_width + 0.004)
+            for x in doors:
+                add_box(trim, (0.025, 0.02, belt - 0.5), (x, y, 0.3 + (belt - 0.3) / 2.0))
+            for x in doors[1:] if not van else (pillar,):
+                add_box(trim, (0.2, 0.05, 0.05), (x + 0.2, y, belt - 0.14))
+            add_box(trim, (wheels[1] - wheels[0] - 1.3, 0.05, 0.07), ((wheels[0] + wheels[1]) / 2.0, side * (half_width - 0.01), 0.3))
         if kind == "Taxi":
             for side in (-1.0, 1.0):  # the checker band along the doors: two rows of squares, alternating
-                for k in range(22):
+                for k in range(14):
                     for row in (0, 1):
                         if (k + row) % 2 == 0:
-                            add_box(trim, (0.1, 0.02, 0.1), (-1.05 + k * 0.1, side * (width / 2.0 + 0.008), deck - 0.34 + row * 0.1))
+                            add_box(trim, (0.1, 0.02, 0.1), (-0.65 + k * 0.1, side * (half_width + 0.008), 0.66 + row * 0.1))
         objects.append(finish(f"Car{kind}Trim", trim))
 
+        # Wheels: fat tyres standing a little out of the fenders, a domed hub cap in each.
         tyres = bmesh.new()
         hubs = bmesh.new()
         for x in wheels:
             for side in (-1.0, 1.0):
-                start = side * (width / 2.0) - (0.26 if side > 0 else 0.0) + (0.02 * side)
-                add_cylinder_y(tyres, (x, start, 0.38), 0.38, 0.24, segments=20)
-                hub_start = start - 0.01 if side < 0 else start + 0.01
-                add_cylinder_y(hubs, (x, hub_start, 0.38), 0.21, 0.26, segments=14)
+                outer = side * (half_width + 0.11)
+                start = outer - CAR_TYRE_WIDTH if side > 0 else outer
+                add_cylinder_y(tyres, (x, start, CAR_WHEEL_RADIUS), CAR_WHEEL_RADIUS, CAR_TYRE_WIDTH, segments=24)
+                add_ellipsoid(hubs, (x, outer - side * 0.02, CAR_WHEEL_RADIUS), (0.25, 0.06, 0.25), rings=6, segments=16)
+        # Number plates, front and back.
+        add_box(hubs, (0.04, 0.46, 0.12), (nose + 0.05, 0.0, 0.43))
+        add_box(hubs, (0.04, 0.46, 0.12), (tail - 0.01, 0.0, 0.66))
         objects.append(finish(f"Car{kind}Tyres", tyres))
         objects.append(finish(f"Car{kind}Hubs", hubs))
 
+        # Round headlights set into the nose's corners; tail lamps across the back's.
         lights = bmesh.new()
-        for y in (-1.0, 1.0):
-            add_ellipsoid(lights, (half - 0.02, y * width * 0.33, deck - 0.2), (0.06, 0.17, 0.11))
+        for side in (-1.0, 1.0):
+            add_ellipsoid(lights, (nose - 0.03, side * (shell[0][1] - 0.2), shell[0][3] - 0.13), (0.08, 0.17, 0.13), rings=8, segments=16)
         objects.append(finish(f"Car{kind}Headlights", lights))
-        tail = bmesh.new()
-        for y in (-1.0, 1.0):
-            add_box(tail, (0.06, 0.34, 0.16), (-half - 0.01, y * width * 0.34, deck - 0.2), bevel=0.02)
-        objects.append(finish(f"Car{kind}Taillights", tail))
+        tail_lights = bmesh.new()
+        for side in (-1.0, 1.0):
+            if van:  # tall lamps up the back corners
+                add_box(tail_lights, (0.1, 0.14, 0.4), (tail + 0.03, side * (shell[-1][1] - 0.1), 0.8), bevel=0.03)
+            else:
+                add_box(tail_lights, (0.1, 0.36, 0.14), (tail + 0.03, side * (shell[-1][1] - 0.2), shell[-1][3] - 0.12), bevel=0.04)
+        objects.append(finish(f"Car{kind}Taillights", tail_lights))
 
         if kind == "Taxi":
             sign = bmesh.new()
-            top = max(z for x, z in cabin)
-            add_box(sign, (0.42, 0.9, 0.22), (cx, 0.0, top + 0.11), bevel=0.05)
+            add_box(sign, (0.4, 0.86, 0.2), ((cabin[2][1] + cabin[2][2]) / 2.0, 0.0, crown + 0.09), bevel=0.06)
             objects.append(finish("CarTaxiSign", sign))
     return objects
 
