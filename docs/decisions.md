@@ -4,6 +4,19 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-12 — Prices in tenths, shown on a dial of whole numbers
+
+**User's calls:**
+- **Prices move in steps of 10 cents** (`CookbookConfig._priceStep` 0.1), so $24.30 can be set. This replaces the 50 cents of the night before. Prices are kept rounded to the cent, and a 50-cent price from before stays as it was.
+- **The dial only shows whole numbers;** a needle shows the tenths. Each D-pad step moves the drum a tenth of the gap between two numbers, so $24.30 has the needle three tenths of the way from 24 to 25. The exact price is written beside the heading: "PRICE $24.30".
+  - Crossing a whole number ticks fully, like a detent; a step between numbers ticks lighter and higher.
+  - Held, the steps speed up to one every 0.03 s (`_priceRepeatFastest`), about $3 a second.
+- **The guests and profit chips fit their words,** side by side from the left. Once the price has moved off the suggestion, X (the small X ★ badge) appears at the row's far right.
+
+**Fixed along the way:** the dial rolled the wrong way. A higher price slid the numbers right, where the higher ones should come in from the right. That may be part of why it didn't feel right.
+
+---
+
 ## 2026-11-11 — Prices in steps of 50 cents; a quieter, plainer price dial; the footer flush
 
 **User's calls:**

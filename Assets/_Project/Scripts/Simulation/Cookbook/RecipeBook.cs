@@ -96,8 +96,9 @@ namespace Game.Simulation.Cookbook
         // What every price is a multiple of: 50 cents (2026-11-11).
         private float Step => Pricing.PriceStep > 0f ? Pricing.PriceStep : 1f;
 
-        // A price on the step, so floating-point drift can't leave $25.4999.
-        private float OnStep(float price) => Step * (float)Math.Round(price / Step, MidpointRounding.AwayFromZero);
+        // A price on the step, rounded to the cent, so floating-point drift can't leave $25.4999.
+        private float OnStep(float price) =>
+            (float)Math.Round(Step * Math.Round(price / Step, MidpointRounding.AwayFromZero), 2, MidpointRounding.AwayFromZero);
 
         /// <summary>Sets a price, on the step and kept between the lowest and highest allowed.</summary>
         public void SetPrice(string id, float price)
@@ -112,7 +113,7 @@ namespace Game.Simulation.Cookbook
             Changed?.Invoke();
         }
 
-        /// <summary>Moves a price by <paramref name="steps"/> of the price step (50 cents since 2026-11-11; 1 before).</summary>
+        /// <summary>Moves a price by <paramref name="steps"/> of the price step (10 cents since 2026-11-11; 1 before).</summary>
         public void Nudge(string id, int steps) => SetPrice(id, PriceOf(id) + steps * Step);
 
         /// <summary>Price over suggested price, for the cookbook page and the formulas.</summary>

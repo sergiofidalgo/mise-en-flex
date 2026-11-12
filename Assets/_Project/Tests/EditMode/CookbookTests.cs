@@ -151,30 +151,32 @@ namespace Game.Tests.EditMode
         // ---- Prices ----
 
         [Test]
-        public void PricesStartAtTheSuggestionAndMoveInStepsOfFiftyCents()
+        public void PricesStartAtTheSuggestionAndMoveInStepsOfTenCents()
         {
-            // The user's call, 2026-11-11: $25.50 can be set (steps were 1 before).
+            // The user's calls, 2026-11-11: $24.30 can be set (steps were 1, then 50 cents).
             var book = Book();
             Assert.That(book.PriceOf("steak"), Is.EqualTo(20f));
             book.Nudge("steak", 1);
-            Assert.That(book.PriceOf("steak"), Is.EqualTo(20.5f));
-            book.Nudge("steak", 1);
-            Assert.That(book.PriceOf("steak"), Is.EqualTo(21f));
+            Assert.That(book.PriceOf("steak"), Is.EqualTo(20.1f));
+            book.Nudge("steak", 2);
+            Assert.That(book.PriceOf("steak"), Is.EqualTo(20.3f));
             book.Nudge("steak", -5);
-            Assert.That(book.PriceOf("steak"), Is.EqualTo(18.5f));
+            Assert.That(book.PriceOf("steak"), Is.EqualTo(19.8f));
         }
 
         [Test]
         public void APriceIsAlwaysOnTheStep()
         {
             var book = Book();
-            book.SetPrice("steak", 21.3f);
-            Assert.That(book.PriceOf("steak"), Is.EqualTo(21.5f), "set prices land on 50 cents");
-            book.Load(new[] { "steak" }, new[] { new PriceRecord { Recipe = "steak", Price = 19.74f } });
-            Assert.That(book.PriceOf("steak"), Is.EqualTo(19.5f), "and so do loaded ones");
-            for (var i = 0; i < 40; i++)
+            book.SetPrice("steak", 21.34f);
+            Assert.That(book.PriceOf("steak"), Is.EqualTo(21.3f), "set prices land on 10 cents");
+            book.Load(new[] { "steak" }, new[] { new PriceRecord { Recipe = "steak", Price = 19.76f } });
+            Assert.That(book.PriceOf("steak"), Is.EqualTo(19.8f), "and so do loaded ones");
+            book.Load(new[] { "steak" }, new[] { new PriceRecord { Recipe = "steak", Price = 24.5f } });
+            Assert.That(book.PriceOf("steak"), Is.EqualTo(24.5f), "a 50-cent price from before stays as it was");
+            for (var i = 0; i < 137; i++)
                 book.Nudge("steak", 1);
-            Assert.That(book.PriceOf("steak") * 2f % 1f, Is.EqualTo(0f).Within(1e-4f), "no drift after many steps");
+            Assert.That(book.PriceOf("steak"), Is.EqualTo(38.2f), "no drift after many steps");
         }
 
         [Test]

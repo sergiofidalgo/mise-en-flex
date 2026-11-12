@@ -14,9 +14,9 @@ namespace Game.Simulation.Cookbook
 
         /// <summary>
         /// What one step of the price dial moves a price by, and what every price is a multiple of
-        /// (the user's call, 2026-11-11: 50 cents, so $25.50 can be set; it was 1).
+        /// (the user's calls, 2026-11-11: 10 cents, so $24.30 can be set; it was 1, then 50 cents).
         /// </summary>
-        public float PriceStep { get; set; } = 0.5f;
+        public float PriceStep { get; set; } = 0.1f;
 
         /// <summary>Highest price, as a multiple of the suggested price.</summary>
         public float MaxPriceFactor { get; set; } = 5f;

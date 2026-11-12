@@ -187,8 +187,8 @@ namespace Game.Data
         [Header("Prices (decision 2026-11-10)")]
         [Tooltip("Lowest price a dish can be set to.")]
         [SerializeField, Min(1)] private int _minPrice = 1;
-        [Tooltip("What one step of the price dial moves a price by (the user's call, 2026-11-11: 50 cents).")]
-        [SerializeField, Min(0.01f)] private float _priceStep = 0.5f;
+        [Tooltip("What one step of the price dial moves a price by (the user's call, 2026-11-11: 10 cents; the dial shows whole numbers and its needle the tenths).")]
+        [SerializeField, Min(0.01f)] private float _priceStep = 0.1f;
         [Tooltip("Highest price, as a multiple of the suggested price.")]
         [SerializeField, Min(1f)] private float _maxPriceFactor = 5f;
         [Tooltip("Arrivals scale by (price ÷ suggested)^-this. 1.5: 20% over brings ~24% fewer guests.")]

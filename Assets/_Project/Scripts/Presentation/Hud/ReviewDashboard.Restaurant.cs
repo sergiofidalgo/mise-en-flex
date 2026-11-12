@@ -45,6 +45,8 @@ namespace Game.Presentation.Hud
         [SerializeField, Min(0.02f)] private float _priceRepeatSlow = 0.16f;
         [Tooltip("Seconds of holding before the price steps at its fastest.")]
         [SerializeField, Min(0.1f)] private float _priceAccelerateSeconds = 1.6f;
+        [Tooltip("Seconds between price steps at their fastest, after the D-pad has been held a while. Steps are 10 cents, so held long it sweeps about 3 a second.")]
+        [SerializeField, Min(0.01f)] private float _priceRepeatFastest = 0.03f;
         [Tooltip("Pitch of the dial's tick (the kitchen's clack).")]
         [SerializeField, Range(0.5f, 3f)] private float _dialTickPitch = 1.8f;
         [Tooltip("Seconds a wisp of steam takes to rise and fade.")]
@@ -55,7 +57,7 @@ namespace Game.Presentation.Hud
         [SerializeField] private Color _lockedCard = Hex(0xe2d0ad);
 
         // The price dial: its numbers, where its middle is, and its spring (offset in steps, and speed).
-        private readonly List<(TextMeshProUGUI Label, int Step)> _dial = new List<(TextMeshProUGUI, int)>();
+        private readonly List<(TextMeshProUGUI Label, float Step)> _dial = new List<(TextMeshProUGUI, float)>();
         private float _dialCentreX, _dialBaseline;
         private float _dialOffset, _dialVelocity, _dialKick;
         private string _dialRecipe;
@@ -436,23 +438,19 @@ namespace Game.Presentation.Hud
         // from the panel's bottom as the panel's sides are (the user's note, 2026-11-11).
         private const float PriceTop = 488f;
 
-        // The price: its heading with the suggestion (and X back to it), the dial, then what the price
-        // does as one row of icon chips: guests, stars, and what each serving earns.
+        // The price (the user's calls, 2026-11-11): the heading with the exact price; a dial of whole
+        // numbers whose needle moves in steps of 10 cents, so a price can sit between two numbers
+        // ($24.30 is three tenths of the way from 24 to 25); then what the price does, as chips that
+        // fit their words, with X back to the suggestion at the row's far right once it's moved.
         private void DrawPrice(RecipeBook book, Recipe recipe, float x, float inner, float top)
         {
             var price = book.PriceOf(recipe.Id);
-            var ratio = book.RatioOf(recipe);
-            // Each step of the dial is one price step: 50 cents (2026-11-11).
-            var stepSize = book.Pricing.PriceStep > 0f ? book.Pricing.PriceStep : 1f;
             var y0 = top + PriceTop;
-            // The heading carries the currency, so the dial's numbers stay plain (2026-11-11).
-            Caps(_content, Tr.Get("PRICE") + " · " + Locale.CurrencySymbol, x, y0 + 22f);
-            // Off the suggestion, a small quiet badge: X and the suggestion's star (it's the star on
-            // the ruler). No words: the user found the "Suggested" button and text too loud.
-            if (Mathf.Abs(price - recipe.SuggestedPrice) > 0.001f)
-                SuggestionBadge(x + inner, y0 + 2f);
+            var heading = Caps(_content, Tr.Get("PRICE"), x, y0 + 22f);
+            Label(ExtraBold, _content, PriceText(price), 22f, _ink, x + UiKit.Width(heading) + 12f, y0 + 24f, 200f, tracking: -0.3f);
 
-            // A new dish starts still; a new price on the same dish springs from where the old one stood.
+            // A new dish starts still; a new price on the same dish springs from where the old one
+            // stood. The dial's unit is a whole number, so a 10-cent step moves it a tenth of a gap.
             if (_dialRecipe != recipe.Id)
             {
                 _dialRecipe = recipe.Id;
@@ -460,75 +458,86 @@ namespace Game.Presentation.Hud
             }
             else if (!float.IsNaN(_dialPrice) && Mathf.Abs(price - _dialPrice) > 0.001f)
             {
-                _dialOffset = Mathf.Clamp(_dialOffset + (price - _dialPrice) / stepSize, -2.5f, 2.5f);
+                _dialOffset = Mathf.Clamp(_dialOffset + (price - _dialPrice), -2.5f, 2.5f);
                 _dialKick = 1f;
-                var landedOnSuggestion = Mathf.Abs(price - recipe.SuggestedPrice) < 0.001f;
-                PlaySound(Audio != null ? Audio.Sounds.Clack : null, _dialTickPitch + (price > _dialPrice ? 0.08f : -0.08f));
+                // Crossing a whole number is a detent: a full tick. A step between them is a lighter, higher one.
+                var crossed = Mathf.FloorToInt(price + 0.001f) != Mathf.FloorToInt(_dialPrice + 0.001f);
+                PlaySound(Audio != null ? Audio.Sounds.Clack : null, crossed ? _dialTickPitch : _dialTickPitch * 1.45f);
                 // Landing on the suggestion clicks into place: a chime and a gold flash.
-                if (landedOnSuggestion)
+                if (Mathf.Abs(price - recipe.SuggestedPrice) < 0.001f)
                 {
                     _dialSnap = 1f;
                     PlaySound(Audio != null ? Audio.Sounds.Chime : null, 1.4f);
                 }
             }
             _dialPrice = price;
-            _dialSuggested = (recipe.SuggestedPrice - price) / stepSize;
+            _dialSuggested = recipe.SuggestedPrice - price;
 
             _dialCentreX = x + inner / 2f;
             _dialBaseline = y0 + 80f;
-            // The window the numbers roll in: a well with a notch over the middle, a ruler of ticks
-            // along its foot that slides with the numbers, and the suggestion marked on the ruler.
+            // The window the numbers roll in: a well with the needle over the middle, a ruler of ticks
+            // along its foot (whole numbers and halves) that slides with them, and the suggestion's star.
             _dialWell = UiKit.RoundBox(_content, "DialWell", Alpha(_cardLight, 0.9f), x, y0 + 40f, inner, 64f, 22f);
             _dialSnapGlow = UiKit.RoundBox(_content, "DialSnap", Alpha(_gold, 0f), x, y0 + 40f, inner, 64f, 22f);
-            UiKit.RoundBox(_content, "DialNotch", _gold, _dialCentreX - 3f, y0 + 40f, 6f, 12f, 3f);
+            var whole = Mathf.FloorToInt(price + 0.001f);
             _ticks.Clear();
-            for (var half = -8; half <= 8; half++)
+            for (var n = whole - 3; n <= whole + 4; n++)
             {
-                var major = half % 2 == 0;
-                var tick = UiKit.RoundBox(_content, "Tick", _sand, 0f, y0 + (major ? 89f : 93f), major ? 3f : 2f, major ? 12f : 8f, 1f);
-                tick.rectTransform.pivot = new Vector2(0.5f, 1f);
-                _ticks.Add((tick, half * 0.5f));
+                for (var half = 0; half < 2; half++)
+                {
+                    var major = half == 0;
+                    var tick = UiKit.RoundBox(_content, "Tick", _sand, 0f, y0 + (major ? 89f : 93f), major ? 3f : 2f, major ? 12f : 8f, 1f);
+                    tick.rectTransform.pivot = new Vector2(0.5f, 1f);
+                    _ticks.Add((tick, n + half * 0.5f - price));
+                }
             }
             _suggestionMark = UiKit.Picture(_content, "SuggestedMark", StarSprite, 0f, y0 + 86f, 16f, 16f, _gold);
             _suggestionMark.rectTransform.pivot = new Vector2(0.5f, 0.5f);
-            // The drum's numbers are plain ("24.50", "25"); the currency is one fixed sign beside
-            // the middle, so no number changes its text as it rolls.
-            for (var step = -3; step <= 3; step++)
+            // Only whole numbers on the drum, so it stays calm; the needle shows the tenths.
+            for (var n = whole - 3; n <= whole + 4; n++)
             {
-                var value = price + step * stepSize;
-                if (value < book.Pricing.MinPrice - 0.001f)
+                if (n < book.Pricing.MinPrice - 0.001f)
                     continue;
-                var label = Label(ExtraBold, _content, DialNumber(value), DialSize, _ink, _dialCentreX, _dialBaseline, 220f, HorizontalAlignmentOptions.Center, -1.2f);
+                var label = Label(ExtraBold, _content, DialNumber(n), DialSize, _ink, _dialCentreX, _dialBaseline, 220f, HorizontalAlignmentOptions.Center, -1.2f);
                 // Scaled about its middle; TextAt's box is centred on the baseline's height.
                 label.rectTransform.pivot = new Vector2(0.5f, 0.5f);
-                _dial.Add((label, step));
+                _dial.Add((label, n - price));
             }
-            // No arrows: with five numbers showing, the outer ones run to the well's ends (2026-11-11).
+            // The needle, over everything: a gold line down the middle with a cap on top.
+            UiKit.RoundBox(_content, "DialNeedle", Alpha(_gold, 0.9f), _dialCentreX - 1.5f, y0 + 44f, 3f, 56f, 1.5f);
+            UiKit.RoundBox(_content, "DialNotch", _gold, _dialCentreX - 5f, y0 + 38f, 10f, 10f, 5f);
             PlaceDial();
 
-            // What this price does, as one row (the user's calls, 2026-11-11): guests, and the profit
-            // on each serving. No change in guests reads 0%.
+            // What this price does (the user's calls, 2026-11-11): guests (0% when unchanged) and the
+            // profit on each serving, as chips that fit their words, side by side.
             var demand = book.BuildMenu().Demand;
             var change = Mathf.RoundToInt((demand - 1f) * 100f);
             var earns = price - recipe.IngredientCost;
             const float gap = 10f, chipHeight = 44f;
-            var chipWidth = (inner - gap) / 2f;
             var chipTop = y0 + 112f;
             _effects.Clear();
-            Effect(x, chipTop, chipWidth, chipHeight, GuestSprite, _body,
+            var cx = Effect(x, chipTop, chipHeight, GuestSprite, _body,
                 change > 0 ? $"+{change}%" : change < 0 ? $"−{-change}%" : "0%", Tr.Get("guests"),
                 change > 0 ? _goodText : change < 0 ? _badText : _ink);
-            Effect(x + chipWidth + gap, chipTop, chipWidth, chipHeight, null, _gold,
+            Effect(cx + gap, chipTop, chipHeight, null, _gold,
                 Money(earns), Tr.Get("Profit"), earns > 0f ? _goodText : _badText);
+            // Off the suggestion, X takes it back: a small badge (X and the suggestion's star) at the far right.
+            if (Mathf.Abs(price - recipe.SuggestedPrice) > 0.001f)
+                SuggestionBadge(x + inner, chipTop + 3f);
         }
 
-        // One consequence of the price: an icon, the value big, a word small. It punches as the price moves.
-        private void Effect(float x, float y, float width, float height, Sprite icon, Color iconColour, string value, string word, Color valueColour)
+        // One consequence of the price, as wide as its words: an icon, the value big, a word small.
+        // It punches as the price moves. Returns its right edge.
+        private float Effect(float x, float y, float height, Sprite icon, Color iconColour, string value, string word, Color valueColour)
         {
-            var group = UiKit.Rect(_content, "Effect", x, y, width, height);
-            group.pivot = new Vector2(0.5f, 0.5f);
-            group.anchoredPosition += new Vector2(width / 2f, -height / 2f);
-            UiKit.StrokedBox(group, "EffectBack", _cardLight, _cardEdge, 2f, 0f, 0f, width, height, height / 2f);
+            var group = UiKit.Rect(_content, "Effect", x, y, 10f, height);
+            var label = Label(ExtraBold, group, value, 22f, valueColour, 44f, height / 2f + 8f, 200f, tracking: -0.3f);
+            var valueWidth = UiKit.Width(label);
+            var caption = Label(SemiBold, group, word, 13.33f, _muted, 44f + valueWidth + 6f, height / 2f + 7f, 120f);
+            var width = 44f + valueWidth + 6f + UiKit.Width(caption) + 16f;
+            var back = UiKit.StrokedBox(group, "EffectBack", _cardLight, _cardEdge, 2f, 0f, 0f, width, height, height / 2f);
+            back.transform.parent.GetChild(back.transform.GetSiblingIndex() - 1).SetAsFirstSibling();
+            back.transform.SetSiblingIndex(1);
             if (icon != null)
             {
                 UiKit.Picture(group, "EffectIcon", icon, 12f, (height - 24f) / 2f, 24f, 24f, iconColour);
@@ -539,10 +548,14 @@ namespace Game.Presentation.Hud
                 UiKit.StrokedCircle(group, "Coin", Color.Lerp(_style.MoneyEdge, Color.white, 0.25f), Color.Lerp(_style.MoneyEdge, Color.black, 0.3f), 2.5f, 12f, (height - 24f) / 2f, 24f);
                 UiKit.Ellipse(group, "CoinFace", Color.Lerp(_style.MoneyEdge, Color.black, 0.15f), 18f, (height - 24f) / 2f + 6f, 12f, 12f);
             }
-            var label = Label(ExtraBold, group, value, 22f, valueColour, 44f, height / 2f + 8f, width - 50f, tracking: -0.3f);
-            Fit(label, width - 50f - 50f, 15f);
-            Label(SemiBold, group, word, 13.33f, _muted, 44f + UiKit.Width(label) + 6f, height / 2f + 7f, 80f);
+            label.transform.SetAsLastSibling();
+            caption.transform.SetAsLastSibling();
+            // Punches about its middle.
+            group.sizeDelta = new Vector2(width, height);
+            group.pivot = new Vector2(0.5f, 0.5f);
+            group.anchoredPosition += new Vector2(width / 2f, -height / 2f);
             _effects.Add(group);
+            return x + width;
         }
 
         private void DrawUnlock(Recipe recipe, float x, float inner, float top)
@@ -572,7 +585,9 @@ namespace Game.Presentation.Hud
             {
                 if (label == null)
                     continue;
-                var at = step - _dialOffset;
+                // A higher price brings the higher numbers in from the right (the offset is how far
+                // it still has to roll, in whole numbers).
+                var at = step + _dialOffset;
                 var distance = Mathf.Abs(at);
                 // Five numbers read (the user's call, 2026-11-11): the middle, then two either side,
                 // smaller and lighter; the third ones out only fade in and out at the edges.
@@ -580,7 +595,7 @@ namespace Game.Presentation.Hud
                 // 2026-11-11). The middle one punches up as it lands.
                 var scale = 1f + _dialPunch * _dialKick * Mathf.Clamp01(1f - distance);
                 var alpha = (distance <= 1f ? Mathf.Lerp(1f, 0.42f, distance) : Mathf.Lerp(0.42f, 0.2f, Mathf.Clamp01(distance - 1f)))
-                    * Mathf.Clamp01((2.75f - distance) * 2f);
+                    * Mathf.Clamp01((2.5f - distance) * 2.5f);
                 // Every number's middle on one line: about a third of its size above the baseline,
                 // scaled about the box's middle, which sits on the baseline.
                 var middle = DialSize * 0.35f;
@@ -594,16 +609,16 @@ namespace Game.Presentation.Hud
             {
                 if (tick == null)
                     continue;
-                var position = at - _dialOffset;
+                var position = at + _dialOffset;
                 var x = DialX(position);
                 tick.rectTransform.anchoredPosition = new Vector2(x, tick.rectTransform.anchoredPosition.y);
-                tick.color = Alpha(_sand, Mathf.Clamp01((2.75f - Mathf.Abs(position)) * 2f) * 0.9f);
+                tick.color = Alpha(_sand, Mathf.Clamp01((2.5f - Mathf.Abs(position)) * 2.5f) * 0.9f);
             }
             if (_suggestionMark != null)
             {
-                var position = _dialSuggested - _dialOffset;
+                var position = _dialSuggested + _dialOffset;
                 _suggestionMark.rectTransform.anchoredPosition = new Vector2(DialX(position), _suggestionMark.rectTransform.anchoredPosition.y);
-                _suggestionMark.color = Alpha(_gold, Mathf.Clamp01((2.75f - Mathf.Abs(position)) * 2f));
+                _suggestionMark.color = Alpha(_gold, Mathf.Clamp01((2.5f - Mathf.Abs(position)) * 2.5f));
                 var s = 1f + 0.6f * _dialSnap;
                 _suggestionMark.rectTransform.localScale = new Vector3(s, s, 1f);
             }
@@ -652,7 +667,8 @@ namespace Game.Presentation.Hud
         // The price couldn't move that way (at its lowest or highest): the dial bumps and springs back.
         private void DialBump(int direction)
         {
-            _dialVelocity -= direction * 9f;
+            // A push the way it can't go: the drum shifts that way a little and springs back.
+            _dialVelocity -= direction * 4f;
             PlaySound(Audio != null ? Audio.Sounds.Clack : null, _dialTickPitch * 0.6f);
         }
 
@@ -676,7 +692,7 @@ namespace Game.Presentation.Hud
 
         /// <summary>The seconds to the next price step while the D-pad is held: slow at first, quicker the longer it's held.</summary>
         private float PriceRepeat(float now) =>
-            Mathf.Lerp(_priceRepeatSlow, _priceRepeatInterval, Mathf.Clamp01((now - _priceHeldSince) / _priceAccelerateSeconds));
+            Mathf.Lerp(_priceRepeatSlow, _priceRepeatFastest, Mathf.Clamp01((now - _priceHeldSince) / _priceAccelerateSeconds));
 
         // ---- Steam ----
 
