@@ -4,6 +4,14 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-12 — Review cards: the guest's type on the facts line
+
+**User's call:** the guest's type (Regular, Tourist, Food critic…) moves from under their name onto the facts line, so the card is shorter.
+
+**Decision:** the facts line now reads, for example, "[Regular] Walked out · steak, medium · −$12" or "[Food critic] 4.5 ★ · …". The type's chip keeps its colours (gold for critics). The guest's column is just the portrait and the name, so a one-line review's card is about 156 px tall (it was about 192), and three reviews show where two did.
+
+---
+
 ## 2026-11-12 — forkcast on three equal columns
 
 **User's call:** after the left column went to 440 px, the panel felt out of proportion. Every column should be the same width.
