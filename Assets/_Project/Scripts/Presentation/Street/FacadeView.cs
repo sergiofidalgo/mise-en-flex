@@ -7,7 +7,7 @@ namespace Game.Presentation.Street
     /// <summary>
     /// The restaurant's front, above the cut walls (the user's request, 2026-11-12: "show some
     /// parts of the restaurant façade as players go out"): pilasters, a fascia with the name on it
-    /// and an awning. Indoors the walls stay cut low, so the kitchen and the dining room are never
+    /// and a striped valance. Indoors the walls stay cut low, so the kitchen and the dining room are never
     /// hidden; once every chef is outside, the front rises out of the wall's top, and it sinks back
     /// as soon as one steps in. Cosmetic only.
     /// </summary>

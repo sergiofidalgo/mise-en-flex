@@ -411,10 +411,10 @@ namespace Game.Editor
         }
 
         // The restaurant's front above its cut walls (FacadeView): a pilaster at each corner, a
-        // fascia across the whole front with the name on it, and a striped awning under that. It
+        // fascia across the whole front with the name on it, and a striped valance under that. It
         // stands on the front wall's top and rises only while every chef is outside, so indoors
         // nothing ever hides the rooms. Nothing in it depends on where the door is, which players
-        // can move: the awning simply runs over it.
+        // can move: the valance simply runs over it.
         private const float WallTop = 1f;
         private const float FacadeHeight = 2.05f;
         private static readonly Color Brand = new Color(0.5f, 0.22f, 0.15f); // the sign's own red-brown
@@ -457,18 +457,15 @@ namespace Game.Editor
             label.fontSizeMax = 5f;
             label.rectTransform.sizeDelta = new Vector2(Mathf.Min(width - 1.2f, 6.5f), fasciaHeight - 0.14f);
 
-            // The awning under the fascia: the city's striped modules, a metre each, side by side.
-            if (PilotArt.FindMesh("SM_City", "CityAwningA") != null)
-            {
-                var stripe = Kit.Toon("StreetFacadeAwning", Brand * 1.25f);
-                var count = Mathf.FloorToInt(width - 0.6f);
-                for (var k = 0; k < count; k++)
-                {
-                    var at = new Vector3((k - (count - 1) / 2f) * 1f, fasciaY - fasciaHeight / 2f - 0.02f, -0.1f);
-                    Kit.Part(rise, "SM_City", "CityAwningA", stripe, at);
-                    Kit.Part(rise, "SM_City", "CityAwningB", cream, at);
-                }
-            }
+            // A striped valance hanging flat under the fascia. Not an awning: one that reached out over
+            // the pavement hid the doorstep from the camera, and with it a chef just set down there
+            // and the queue beside the door (seen in the first stills, 2026-11-12).
+            var stripe = Kit.Toon("StreetFacadeAwning", Brand * 1.25f);
+            const float band = 0.5f;
+            var count = Mathf.Max(1, Mathf.FloorToInt((width - 0.6f) / band));
+            for (var k = 0; k < count; k++)
+                Box(rise, "Valance", k % 2 == 0 ? stripe : cream,
+                    new Vector3((k - (count - 1) / 2f) * band, fasciaY - fasciaHeight / 2f - 0.2f, -0.07f), new Vector3(band, 0.34f, 0.05f));
             foreach (var part in facade.GetComponentsInChildren<Transform>())
                 part.gameObject.isStatic = false; // it rises and sinks
 

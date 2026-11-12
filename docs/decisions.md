@@ -4,6 +4,29 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-12 — The road is open: cars hit chefs, and a bodyguard fetches the ones who walk off
+
+**The user's ideas:** "simulate cars' hit and runs against players in a funny way if they happen to be in the wrong place at the wrong time", and "let the player leave the scene but also send them back again with a funny message". Proposed in detail and agreed ("Yes, as proposed").
+
+- **No invisible walls along the kerb or at the pavement's ends.** Chefs can step into the road, cross to the park's pavement, and walk off either end of the street or away through the park. The plaza and the lot still end at the neighbours' walls and the back fence.
+- **Hit and run** (`HitAndRun`, `Knockdown`, `RoadVehicle`): a moving car that reaches a chef throws them 4 m along its way in an arc 2.4 m high, turning head over heels twice, onto whichever pavement is nearer, never past the scene's ends. They lie dazed 1.5 s with stars circling, get up in 0.35 s, and are the player's again: about 2.75 s lost. The car doesn't slow. Nobody is hurt; there's no health.
+- **What it costs:** the seconds, and **the food they carried** (off the plate, out of the pan, off the tray, out of their hands). **A plate, pan or tray stays in their hands, emptied.** This is narrower than proposed ("a plate smashes"): kitchenware can't be replaced mid-service, and a kitchen left without its pan can't cook. The user's to widen.
+- **Fair warning:** a car sounds its horn at a chef ahead of it in its lane, a second's drive away, so a hit is the player's own doing (the user's rule: learn by playing).
+- **Leaving** (`SceneLeave`, `Escort`): 3.5 m past the grounds along the street, or 5.5 m past the far kerb into the park, a chef has left. They stand there 1.2 s; one of the boss's bodyguards jogs in from 4 m further out at 6 m/s, tucks them under an arm, carries them to the doorstep, sets them down facing the door, and jogs back. What they carried comes back with them. A line pops up over their head for 3 s, one of five, never the same twice running: "The boss says the kitchen is that way." / "Shift's not over, chef." / "Nice try." / "Lost? The stove's inside." / "No breaks until the till closes."
+- **Co-op:** each chef is thrown or fetched on their own; the others play on. A chef already in the air or under an arm isn't taken by the other.
+- **How a chef is taken and given back** (`ChefHold`): their movement and body are switched off and they're marked busy; whoever holds them moves them by hand; nothing pushes them meanwhile (`PlayerMovement.Shove`). Released, they're stood on the floor by `Teleport`.
+- **The camera's grounds** take in the road and the far pavement.
+
+**Placeholders:** the horn, the thud and the bell are made from sine waves and noise in `StreetMishapsView`; the stars are three spheres. The five lines aren't in the language tables yet, so they read in English in every language.
+
+**Verified:** EditMode `StreetMishapsTests` (what counts as reached and as borne down on; where they land; the arc; the scene's edges; the bodyguard's trip). PlayMode `StreetMishapsPlayTests`, in the real scene with a controller chef: stood ahead of a car, they're hit, lose their steak, fly, land on a pavement and stand; stood off the west end, they're noticed and set down on the doorstep still holding their steak.
+
+**To judge in play (none of it can be judged from stills):** whether it's funny; the arc's height and length; whether 2.75 s is the right price; whether the horn is fair warning at the cars' speeds; how the camera behaves as a chef nears the end of the street and while they're carried back; how the tucked chef sits against the bodyguard; whether guests or passers-by should react.
+
+**Not done:** guests and passers-by aren't hit and don't react; no review line or reputation cost for lying in the road; staff never go near the road.
+
+---
+
 ## 2026-11-12 — The light of the day follows the opening times
 
 **The user's request:** "players can decide the restaurant opening times now... I wish that their choice would also impact the scene, so they can play during the day, night, or both; if they would play a full day we should also figure light transitions from day to night."

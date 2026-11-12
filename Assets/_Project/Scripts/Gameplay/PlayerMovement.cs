@@ -87,6 +87,10 @@ namespace Game.Gameplay
 
         public System.Numerics.Vector2 Shove(System.Numerics.Vector2 shift)
         {
+            // Out of the player's hands for the moment (thrown by a car, carried back by a
+            // bodyguard: ChefHold): whoever holds them moves them, and nobody pushes them about.
+            if (!_controller.enabled)
+                return System.Numerics.Vector2.Zero;
             var before = transform.position;
             _controller.Move(new Vector3(shift.X, 0f, shift.Y));
             var moved = transform.position - before;

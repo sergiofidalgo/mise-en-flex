@@ -100,6 +100,8 @@ namespace Game.Editor
             CustomerStreet(street);
             Life(street, root);
 
+            Mishaps(street, root);
+
             // The light of the day follows the service's clock (DaylightView): white by day, blue
             // by night outdoors, the restaurant's own light inside its walls.
             var daylight = new SerializedObject(street.gameObject.AddComponent<Game.Presentation.Street.DaylightView>());
@@ -114,7 +116,8 @@ namespace Game.Editor
             if (camera != null && camera.TryGetComponent(out FramingCamera framing))
             {
                 var so = new SerializedObject(framing);
-                so.FindProperty("_groundsMin").vector2Value = new Vector2(GroundsWest, Kerb);
+                // The road and the far pavement are the chefs' too now, so the camera's grounds take them in.
+                so.FindProperty("_groundsMin").vector2Value = new Vector2(GroundsWest, RoadSouth - 2.4f);
                 so.FindProperty("_groundsMax").vector2Value = new Vector2(GroundsEast, GroundsNorth);
                 so.ApplyModifiedPropertiesWithoutUndo();
             }
@@ -157,6 +160,7 @@ namespace Game.Editor
             {
                 var (z, dir) = lanes[k % 2];
                 var car = Car(street, CarPaints[k % CarPaints.Length]);
+                car.gameObject.AddComponent<Game.Gameplay.Street.RoadVehicle>(); // what chefs are checked against (HitAndRun)
                 car.gameObject.AddComponent<LaneMover>().Set(new Vector3(-dir * StreetEnd, 0f, z), new Vector3(dir * StreetEnd, 0f, z), 5.5f + k * 0.8f, false, 0f, k / 5f + 0.07f * (k % 2));
             }
         }
@@ -522,14 +526,56 @@ namespace Game.Editor
             }
         }
 
+        // Cars that hit chefs in the road, and a bodyguard who carries back the ones who walk off
+        // (the user's ideas, 2026-11-12: HitAndRun, SceneLeave), with what they look and sound like.
+        private const float SceneBeyondGrounds = 3.5f;
+
+        private static void Mishaps(Transform street, KitchenCompositionRoot root)
+        {
+            var hits = street.gameObject.AddComponent<Game.Gameplay.Street.HitAndRun>();
+            var so = new SerializedObject(hits);
+            so.FindProperty("_root").objectReferenceValue = root;
+            var cars = street.GetComponentsInChildren<Game.Gameplay.Street.RoadVehicle>();
+            var list = so.FindProperty("_vehicles");
+            list.arraySize = cars.Length;
+            for (var i = 0; i < cars.Length; i++)
+                list.GetArrayElementAtIndex(i).objectReferenceValue = cars[i];
+            so.FindProperty("_nearPavementZ").floatValue = Kerb + 0.9f;
+            so.FindProperty("_farPavementZ").floatValue = RoadSouth - 1.2f;
+            // Thrown no further than two metres short of where the scene ends.
+            so.FindProperty("_westEnd").floatValue = GroundsWest - SceneBeyondGrounds + 2f;
+            so.FindProperty("_eastEnd").floatValue = GroundsEast + SceneBeyondGrounds - 2f;
+            so.ApplyModifiedPropertiesWithoutUndo();
+
+            var leaving = street.gameObject.AddComponent<Game.Gameplay.Street.SceneLeave>();
+            so = new SerializedObject(leaving);
+            so.FindProperty("_director").objectReferenceValue = Object.FindFirstObjectByType<Game.Gameplay.Customers.CustomerDirector>();
+            so.FindProperty("_guardPrefab").objectReferenceValue = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/_Project/Prefabs/PF_Bodyguard.prefab");
+            so.FindProperty("_west").floatValue = GroundsWest - SceneBeyondGrounds;
+            so.FindProperty("_east").floatValue = GroundsEast + SceneBeyondGrounds;
+            so.FindProperty("_south").floatValue = RoadSouth - 5.5f; // past the hedge, among the park's trees
+            so.ApplyModifiedPropertiesWithoutUndo();
+
+            var view = street.gameObject.AddComponent<Game.Presentation.Street.StreetMishapsView>();
+            so = new SerializedObject(view);
+            so.FindProperty("_hits").objectReferenceValue = hits;
+            so.FindProperty("_leaving").objectReferenceValue = leaving;
+            so.FindProperty("_star").objectReferenceValue = Kit.Glow("StreetStar", new Color(1f, 0.86f, 0.25f));
+            so.FindProperty("_font").objectReferenceValue = MenuArt.Font("Inter-Bold");
+            so.ApplyModifiedPropertiesWithoutUndo();
+        }
+
         // Invisible edges to where chefs can walk: the kerb, the plaza's and the lot's far sides, the back fence.
         private static void Bounds(Transform street)
         {
             var edges = new GameObject("StreetBounds").transform;
             edges.SetParent(street, false);
-            Edge(edges, "Kerb", new Vector3((GroundsWest + GroundsEast) / 2f, 1f, Kerb - 0.2f), new Vector3(GroundsEast - GroundsWest + 2f, 2f, 0.4f));
-            Edge(edges, "West", new Vector3(GroundsWest - 0.2f, 1f, (Kerb + GroundsNorth) / 2f), new Vector3(0.4f, 2f, GroundsNorth - Kerb + 2f));
-            Edge(edges, "East", new Vector3(GroundsEast + 0.2f, 1f, (Kerb + GroundsNorth) / 2f), new Vector3(0.4f, 2f, GroundsNorth - Kerb + 2f));
+            // No edge along the kerb or across the pavement's ends (2026-11-12): chefs can step into
+            // the road, where cars don't stop for them (HitAndRun), and walk off either end of the
+            // street, from where they're carried back (SceneLeave). The plaza's and the lot's far
+            // sides are the neighbours' walls.
+            Edge(edges, "West", new Vector3(GroundsWest - 0.2f, 1f, (BuildingSouth + GroundsNorth) / 2f), new Vector3(0.4f, 2f, GroundsNorth - BuildingSouth));
+            Edge(edges, "East", new Vector3(GroundsEast + 0.2f, 1f, (BuildingSouth + GroundsNorth) / 2f), new Vector3(0.4f, 2f, GroundsNorth - BuildingSouth));
             Edge(edges, "North", new Vector3((GroundsWest + GroundsEast) / 2f, 1f, GroundsNorth + 0.2f), new Vector3(GroundsEast - GroundsWest + 2f, 2f, 0.4f));
 
             static void Edge(Transform parent, string name, Vector3 centre, Vector3 size)
