@@ -112,6 +112,12 @@ namespace Game.Simulation.Service
         /// </summary>
         public float Patience { get; internal set; } = 1f;
 
+        /// <summary>
+        /// They ordered through the delivery app (decision 2026-11-12): never in the room, their food
+        /// went with a courier and their review says so.
+        /// </summary>
+        public bool OrderedDelivery { get; internal set; }
+
         /// <summary>Patience left when their food arrived, or null if not served. Feeds tips in milestone 4.</summary>
         public float? PatienceWhenServed { get; internal set; }
     }

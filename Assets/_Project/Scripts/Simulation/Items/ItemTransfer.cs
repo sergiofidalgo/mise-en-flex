@@ -22,7 +22,7 @@ namespace Game.Simulation.Items
     /// <item>Two containers: contents move between them (plating from a pan, back into a pan).</item>
     /// <item>A held container's contents go into the station if it takes them (scraping into the bin).</item>
     /// <item>A held tray picks up a plate from a plate source (the stack, the sink, the pass).</item>
-    /// <item>Food held at the clean plate stack goes onto a fresh plate, and the chef holds the plate (decision 2026-11-08).</item>
+    /// <item>Food held at the clean plate stack (or the pile of delivery boxes) goes onto a fresh one, and the chef holds it (decision 2026-11-08).</item>
     /// </list>
     /// </summary>
     public static class ItemTransfer
@@ -92,7 +92,7 @@ namespace Game.Simulation.Items
                 return InteractionOutcome.PickedUp;
             }
 
-            if (target is PlateStack stack && CanPlate(stack, held))
+            if (target is IFreshPlateSource stack && CanPlate(stack, held))
             {
                 var plate = (Plate)stack.Take();
                 plate.Put(hands.Take());
@@ -107,7 +107,7 @@ namespace Game.Simulation.Items
         /// True if food held at the clean plate stack would go onto a fresh plate from it: there's a
         /// plate, and it takes the food (not a pan, plate or container, which hold their own).
         /// </summary>
-        public static bool CanPlate(PlateStack stack, Item held)
+        public static bool CanPlate(IFreshPlateSource stack, Item held)
         {
             if (stack == null || !stack.CanTake || held == null || held is IItemCollection)
                 return false;

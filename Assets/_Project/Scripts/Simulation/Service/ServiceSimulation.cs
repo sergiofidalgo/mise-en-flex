@@ -56,9 +56,24 @@ namespace Game.Simulation.Service
             // Its own dice, so adding looks changed nobody's order, party or review.
             _lookRandom = new Random(unchecked(settings.Seed * 31 + 53));
             _nextArrivalIn = NextGap(0f);
+
+            Deliveries = new DeliveryService(settings, () => _nextId++);
+            Deliveries.Collected += order => Money += order.Payment;
+            Deliveries.Refunded += order => Money -= order.Refund;
+            Deliveries.Reviewed += review =>
+            {
+                _reviews.Add(review);
+                Reviewed?.Invoke(review);
+            };
         }
 
         public ServiceSettings Settings { get; }
+
+        /// <summary>
+        /// Delivery orders, their couriers and their late reviews (decision 2026-11-12). Their money
+        /// is part of <see cref="Money"/> and their reviews join <see cref="Reviews"/>.
+        /// </summary>
+        public DeliveryService Deliveries { get; }
 
         /// <summary>In-game seconds since the service started.</summary>
         public float Elapsed { get; private set; }
@@ -71,7 +86,7 @@ namespace Game.Simulation.Service
             get
             {
                 if (IsClosed)
-                    return EveryoneHasGone() ? ServicePhase.Finished : ServicePhase.Closed;
+                    return EveryoneHasGone() && Deliveries.IsSettled ? ServicePhase.Finished : ServicePhase.Closed;
                 return Elapsed >= LastOrdersAt ? ServicePhase.LastOrders : ServicePhase.Open;
             }
         }
@@ -230,6 +245,8 @@ namespace Game.Simulation.Service
             }
             _nextArrivalIn -= remaining;
             Elapsed += remaining;
+
+            Deliveries.Tick(seconds, Elapsed, Elapsed < LastOrdersAt, PatienceMultiplier, IsClosed);
         }
 
         /// <summary>

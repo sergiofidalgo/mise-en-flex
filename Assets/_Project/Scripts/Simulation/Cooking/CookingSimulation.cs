@@ -153,43 +153,7 @@ namespace Game.Simulation.Cooking
             }
 
             foreach (var ingredient in _ingredients)
-            {
-                var p = ingredient.Properties;
-                var t = ingredient.Temperatures;
-                var q = ingredient.PendingHeat;
-
-                // Conduction between each surface layer and the core.
-                foreach (var surface in SurfaceIndices)
-                {
-                    var flow = p.SurfaceCoreConductance * (t[surface] - t[Ingredient.Core]);
-                    q[surface] -= flow;
-                    q[Ingredient.Core] += flow;
-
-                    if (t[surface] > BoilingPoint)
-                        q[surface] -= p.EvaporationConductance * (t[surface] - BoilingPoint);
-                }
-
-                // The down surface touches the pan if there is one; every other surface is in air.
-                var pan = ingredient.Pan;
-                foreach (var surface in SurfaceIndices)
-                {
-                    if (pan != null && surface == ingredient.DownSurfaceIndex)
-                    {
-                        var flow = p.PanContactConductance * (pan.Temperature - t[surface]);
-                        q[surface] += flow;
-                        pan.PendingHeat -= flow;
-
-                        // Browning follows the pan's heat, not the wet surface's (which sits near 100 °C).
-                        Brown(ingredient, surface, pan.Temperature, dt);
-                    }
-                    else
-                    {
-                        var air = ingredient.EnvironmentTemperature ?? AmbientTemperature;
-                        q[surface] += p.AirConductance * (air - t[surface]);
-                        Brown(ingredient, surface, t[surface], dt);
-                    }
-                }
-            }
+                Exchange(ingredient, dt);
 
             foreach (var pan in _pans)
             {
@@ -198,13 +162,75 @@ namespace Game.Simulation.Cooking
             }
 
             foreach (var ingredient in _ingredients)
-            {
-                ingredient.ApplyPendingHeat(dt);
-                ingredient.LoseFreshness(FreshnessLoss(ingredient, dt));
-                ingredient.SecondsOutOfPan = ingredient.Pan == null ? ingredient.SecondsOutOfPan + dt : 0f;
-            }
+                Settle(ingredient, dt);
 
             ElapsedSeconds += dt;
+        }
+
+        /// <summary>
+        /// Carries one ingredient on its own through <paramref name="seconds"/> out of the kitchen
+        /// (a delivery's ride): out of any pan, it cools in the air around it and ages, by the same
+        /// rules as a step of the kitchen, while nothing else moves.
+        /// </summary>
+        public void CarryAway(Ingredient ingredient, float seconds)
+        {
+            if (ingredient.Pan != null)
+                throw new InvalidOperationException("Only food out of its pan can be carried away.");
+            while (seconds > 0f)
+            {
+                var step = Math.Min(seconds, MaxStepSeconds);
+                Exchange(ingredient, step);
+                Settle(ingredient, step);
+                seconds -= step;
+            }
+        }
+
+        // Heat moving within one ingredient, and between it and its pan or the air, over a step.
+        private void Exchange(Ingredient ingredient, float dt)
+        {
+            var p = ingredient.Properties;
+            var t = ingredient.Temperatures;
+            var q = ingredient.PendingHeat;
+
+            // Conduction between each surface layer and the core.
+            foreach (var surface in SurfaceIndices)
+            {
+                var flow = p.SurfaceCoreConductance * (t[surface] - t[Ingredient.Core]);
+                q[surface] -= flow;
+                q[Ingredient.Core] += flow;
+
+                if (t[surface] > BoilingPoint)
+                    q[surface] -= p.EvaporationConductance * (t[surface] - BoilingPoint);
+            }
+
+            // The down surface touches the pan if there is one; every other surface is in air.
+            var pan = ingredient.Pan;
+            foreach (var surface in SurfaceIndices)
+            {
+                if (pan != null && surface == ingredient.DownSurfaceIndex)
+                {
+                    var flow = p.PanContactConductance * (pan.Temperature - t[surface]);
+                    q[surface] += flow;
+                    pan.PendingHeat -= flow;
+
+                    // Browning follows the pan's heat, not the wet surface's (which sits near 100 °C).
+                    Brown(ingredient, surface, pan.Temperature, dt);
+                }
+                else
+                {
+                    var air = ingredient.EnvironmentTemperature ?? AmbientTemperature;
+                    q[surface] += p.AirConductance * (air - t[surface]);
+                    Brown(ingredient, surface, t[surface], dt);
+                }
+            }
+        }
+
+        // The step's heat becomes temperature, and the ingredient ages.
+        private void Settle(Ingredient ingredient, float dt)
+        {
+            ingredient.ApplyPendingHeat(dt);
+            ingredient.LoseFreshness(FreshnessLoss(ingredient, dt));
+            ingredient.SecondsOutOfPan = ingredient.Pan == null ? ingredient.SecondsOutOfPan + dt : 0f;
         }
 
         private static readonly int[] SurfaceIndices = { Ingredient.SurfaceA, Ingredient.SurfaceB };

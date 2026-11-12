@@ -120,7 +120,9 @@ namespace Game.Simulation.Saving
                         pan.Temperature = record.Temperature;
                     return pan;
                 case ItemKind.Plate:
-                    return factory.Plate();
+                    // A delivery box is saved as the plate it is; its type says which it was.
+                    var plate = factory.Plate();
+                    return record.TypeId == Plate.BoxTypeId ? Plate.NewBox(plate.Capacity) : plate;
                 case ItemKind.Knife:
                     return new Knife();
                 case ItemKind.Tray:

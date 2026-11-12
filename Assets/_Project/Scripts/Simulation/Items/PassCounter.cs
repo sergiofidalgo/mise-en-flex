@@ -31,7 +31,7 @@ namespace Game.Simulation.Items
 
         public bool CanTake => Current != null && !_beingEaten;
 
-        public bool CanAccept(Item item) => Current == null && item is Plate plate && !plate.IsDirty && plate.Items.Count > 0;
+        public bool CanAccept(Item item) => Current == null && item is Plate plate && !plate.IsBox && !plate.IsDirty && plate.Items.Count > 0;
 
         public Item Take()
         {
