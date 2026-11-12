@@ -270,6 +270,28 @@ Implements the movement and cleaning calls of the playtest round (entry below, "
 
 ---
 
+## 2026-11-12 — Review cards: the guest's type on the facts line
+
+**User's call:** the guest's type (Regular, Tourist, Food critic…) moves from under their name onto the facts line, so the card is shorter.
+
+**Decision:** the facts line now reads, for example, "[Regular] Walked out · steak, medium · −$12" or "[Food critic] 4.5 ★ · …". The type's chip keeps its colours (gold for critics). The guest's column is just the portrait and the name, so a one-line review's card is about 156 px tall (it was about 192), and three reviews show where two did.
+
+---
+
+## 2026-11-12 — forkcast on three equal columns
+
+**User's call:** after the left column went to 440 px, the panel felt out of proportion. Every column should be the same width.
+
+**Decision:** the panel's 1,680 px of content is three columns of about 539 px with 32 px gaps (`ColumnWidth`, `ColumnGap`).
+- **The left column** is one of them; its photo keeps its height, cropped to its middle.
+- **The Restaurant tab** puts its list and its detail in the other two.
+- **The Overview's boss card** is one column wide, and the night's three numbers share the other.
+- **Books and Staff** span both right columns.
+
+This replaces the 440 px column from earlier the same day.
+
+---
+
 ## 2026-11-12 — forkcast's left column narrows to 440 px
 
 **User's call:** the left column took too much of the panel (600 of 1,760 px) and left too little for the tabs. We chose one narrower layout for every tab, not a column that shrinks on some tabs, so nothing jumps when switching tabs with LB/RB.
@@ -291,6 +313,9 @@ Implements the movement and cleaning calls of the playtest round (entry below, "
 - **The dial only shows whole numbers;** a needle shows the tenths. Each D-pad step moves the drum a tenth of the gap between two numbers, so $24.30 has the needle three tenths of the way from 24 to 25. The exact price is written beside the heading: "PRICE $24.30".
   - Crossing a whole number ticks fully, like a detent; a step between numbers ticks lighter and higher.
   - Held, the steps speed up to one every 0.03 s (`_priceRepeatFastest`), about $3 a second.
+- **Gentler steam** (2026-11-12: the grey puffs read as smoke from burning). Thin wisps of warm white (`_steamColour`) over a faint shadow (`_steamShadow`), so they show on cream. They start narrow across the plate, rise slowly (3.4 s) with a growing curl and widen, fading in quickly and out slowly.
+- **"Kitchen costs $6" is red** (2026-11-12): it's money going out.
+- **The whole number the price is on is black** (2026-11-12): from 24.0 to 24.9, "24" shows at full strength, wherever the needle sits; the others fade with distance.
 - **The guests and profit chips fit their words,** side by side from the left. Once the price has moved off the suggestion, X (the small X ★ badge) appears at the row's far right.
 
 - **Profit shows its cents** ("$18.30"), so it moves with every 10-cent step; the guests % updates with each step too.
