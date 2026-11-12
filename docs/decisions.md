@@ -161,6 +161,108 @@ Implements the movement and cleaning calls of the playtest round (entry below, "
 
 ---
 
+## 2026-11-12 — forkcast's left column narrows to 440 px
+
+**User's call:** the left column took too much of the panel (600 of 1,760 px) and left too little for the tabs. We chose one narrower layout for every tab, not a column that shrinks on some tabs, so nothing jumps when switching tabs with LB/RB.
+
+**Decision:**
+- **The left column is 440 px** (`LeftX`, `LeftWidth`). The photo keeps its height (338 px) and is cropped to the middle of the shot, not squashed. The name shrinks to fit. The four fact tiles are about 214 px each, with captions that shrink rather than cut off. The Start button spans the column, and its words shrink if a long one doesn't fit beside the Y.
+- **The right side starts 44 px after it and is about 1,200 px wide** (it was 1,036). Every tab's positions now follow `RightX`, `RightWidth` and `HalfWidth` instead of fixed pixels:
+  - Overview: the boss card is 700 wide.
+  - Restaurant: the list is 520 wide, and the dish's detail takes the rest.
+  - Books: the top two cards share the width.
+  - Staff rows are wider.
+
+---
+
+## 2026-11-12 — Prices in tenths, shown on a dial of whole numbers
+
+**User's calls:**
+- **Prices move in steps of 10 cents** (`CookbookConfig._priceStep` 0.1), so $24.30 can be set. This replaces the 50 cents of the night before. Prices are kept rounded to the cent, and a 50-cent price from before stays as it was.
+- **The dial only shows whole numbers;** a needle shows the tenths. Each D-pad step moves the drum a tenth of the gap between two numbers, so $24.30 has the needle three tenths of the way from 24 to 25. The exact price is written beside the heading: "PRICE $24.30".
+  - Crossing a whole number ticks fully, like a detent; a step between numbers ticks lighter and higher.
+  - Held, the steps speed up to one every 0.03 s (`_priceRepeatFastest`), about $3 a second.
+- **The guests and profit chips fit their words,** side by side from the left. Once the price has moved off the suggestion, X (the small X ★ badge) appears at the row's far right.
+
+- **Profit shows its cents** ("$18.30"), so it moves with every 10-cent step; the guests % updates with each step too.
+- **"Closed" is red** on the Overview's "Closed · Opens" card.
+- **Tried and dropped:** keeping the price fixed in the dial's middle with a needle moving along a ruler round the suggestion. The user preferred the rolling whole numbers with the needle in the middle.
+
+**Fixed along the way:** the dial rolled the wrong way. A higher price slid the numbers right, where the higher ones should come in from the right. That may be part of why it didn't feel right.
+
+---
+
+## 2026-11-11 — Prices in steps of 50 cents; a quieter, plainer price dial; the footer flush
+
+**User's calls:**
+- **Prices move in steps of 50 cents,** so $25.50 can be set. This replaces "steps of 1" (2026-11-08). Every price is a multiple of `CookbookConfig._priceStep` (0.5): set, nudged, loaded, and the side's share of a dish. A save with whole prices reads the same (`PriceRecord.Price` and `DishNight.Price` are now decimals). Cards and the books show cents only when there are any ("$24.50", "$25").
+- **The dial:**
+  - It shows five numbers.
+  - They're written without trailing zeros ("24.5", "25"; "24,5" in Spanish).
+  - All are the same size; only their opacity falls away from the middle.
+  - They're evenly spaced. The currency moved to the heading ("PRICE · $"), so no number changes its text as it rolls. The ‹ › arrows are gone.
+- **Price consequences:** two chips, guests ("0%" when unchanged) and "Profit". The stars chip is gone.
+- **The suggestion is quiet:** no "suggested $20 +23%" text. Off the suggestion, a small badge (X and a gold star) sits on the heading's right, and the suggested price is the gold star on the dial's ruler.
+- **forkcast's footer is flush with the panel:** the start bar begins at the footer's top. There was a 10 px band between them.
+- **Layout touches (later the same evening):**
+  - "Kitchen costs $6" replaces "about $6 a serving".
+  - The chips under the dial sit as far from the panel's bottom as its sides are.
+  - The day strip's end labels line up with its ends.
+  - The dish's plate is drawn at 300 px, pushed into the panel's top-right corner. Its steam may rise past the card.
+
+---
+
+## 2026-11-11 — The price's consequences as one row of icons; room for six steps
+
+**User's note:** the dial still wasn't exciting, and the text under the price was too much. Show the consequences with icons and values in one row, and leave room for recipes of up to six steps.
+
+**Decision:**
+- **One row of three chips under the dial,** each an icon, a value and a word:
+  - guests (a person, "−13% guests"; "=" when unchanged);
+  - stars (a star, "−0.5 stars");
+  - earnings (the money chip's coin, "$18 each").
+  Green helps, red hurts. The chips punch with every step of the dial. The sentences ("Guests: about 13% fewer", …) are gone.
+- **The suggestion moved to the PRICE heading:** "PRICE · suggested $20 +20%", with X Suggested on the right.
+- **The dial has a ruler:** ticks every half step along its foot, sliding with the numbers. The suggested price is a gold star on the ruler. Landing on it clicks into place: the middle number turns gold, the well flashes, the star swells, and the kitchen's chime plays.
+- **Six steps fit:** the price area starts lower (`PriceTop`), and steps are 34 px apart, closing to 30 px for six.
+
+---
+
+## 2026-11-11 — The Restaurant tab: owned and unowned dishes apart, how to cook, a springier dial, a bigger unlock
+
+**User's notes:** the money dial didn't feel good; the unlock animation should be bigger; dishes you own and those you don't should look much more different, and both should explain how they're cooked.
+
+**Decision:**
+- **Two groups:** the list is "On your menu · n", then "To unlock · n" (`RecipeBook.OnMenuFirst`).
+  - **A dish on the menu:** a bright card, its plate in colour (steaming when chosen), a green dot with "On the menu", and its price big on the right.
+  - **A dish to unlock:** a darker card (`_lockedCard`), its plate cold behind a padlock, its complexity, and its unlock price on a dark tag with a padlock (red when there isn't enough money).
+  - **The detail panel opens with a status pill:** green "On your menu", or dark "Not on your menu yet" with a padlock. Its plate is padlocked too.
+  - When a dish is unlocked, the choice follows it into the menu group.
+- **How to cook:** every recipe has three to five steps in `CookbookConfig` (`_steps`: a station and a short line, translated). They're shown as numbered rows with the station on a chip, gold numbers when the dish is yours and quiet ones when it isn't. The four starting dishes:
+  - **Steak:** fridge, sear and flip, rest, plate.
+  - **With rings:** cut rings, fry them, sear the steak, rest and plate.
+  - **With sautéed onions:** dice, sauté, sear, rest and plate.
+  - **Sautéed onions:** fridge, dice, sauté, plate.
+  The "Needs" pills are gone, since the steps name the stations.
+- **The dial:**
+  - Every number shows the currency, so nothing changes text as it rolls. Before, the middle number gained and lost its $ as it moved.
+  - It moves on a slightly bouncy spring (`_dialStiffness` 420, `_dialDamping` 0.62), so each step lands with a small overshoot, like a detent. The new middle number punches up as it lands.
+  - Each step ticks: the kitchen's clack, pitched up, a little higher going up.
+  - Held, it starts at a step every 0.16 s and speeds up to one every 0.07 s over 1.6 s. Before, it jumped straight to 14 a second.
+  - At its lowest or highest, a fresh press bumps the dial and makes a low clack.
+- **A bigger unlock moment (1.9 s):**
+  - The plate leaps to 1.45× with a wobble and springs back as its colour returns.
+  - A glow and two rings burst from behind it, and 26 sparks fly, kept within the panel.
+  - A "New on the menu!" stamp slams down across the plate.
+  - The status pill reads "New on the menu", the card flashes and pops.
+  - A sizzle and the till play.
+
+**Not verified by playing:** how the dial and the moment feel in motion, and whether the clack works as a dial tick or wants its own sound.
+
+**Flagged for review:** the cooking steps are written from the game's mechanics as recorded here (rings take 2 cuts, diced onion 5, steak rests out of the pan). If the actual flow differs (for instance, if rings aren't fried in a pan), the lines in `CookbookConfig` are the place to change them.
+
+---
+
 ## 2026-11-11 — The Restaurant tab shows plates, chips and a price dial
 
 **User's call, after seeing the first render:** the menu should be more exciting and more visual, with pictures of steaming plates rather than just text, ingredients as chips, the price as a dial with its neighbouring numbers, and a schedule selector that isn't just text. The "Suggested" chip covered the price change.

@@ -49,6 +49,52 @@ namespace Game.Tests.EditMode
         private static RecipeBook Book(PricingSettings pricing = null) =>
             new RecipeBook(new[] { Steak(), SteakOnions(), Onions() }, pricing ?? new PricingSettings());
 
+        // ---- The Restaurant tab's order and steps (2026-11-11) ----
+
+        [Test]
+        public void DishesOnTheMenuAreListedBeforeThoseStillToUnlock()
+        {
+            var book = Book();
+            Assert.That(book.OnMenuFirst().Select(r => r.Id), Is.EqualTo(new[] { "steak", "steak-onions", "onions" }));
+            book.TryUnlock("onions", amount => true);
+            Assert.That(book.OnMenuFirst().Select(r => r.Id), Is.EqualTo(new[] { "steak", "onions", "steak-onions" }),
+                "an unlocked dish joins the menu group, each group in the cookbook's order");
+        }
+
+        [Test]
+        public void EveryShippedRecipeExplainsHowItsCooked()
+        {
+            var config = AssetDatabase.LoadAssetAtPath<CookbookConfig>(ConfigPath);
+            Assume.That(config, Is.Not.Null);
+            foreach (var recipe in config.ToRecipes(null))
+            {
+                Assert.That(recipe.Steps.Count, Is.InRange(3, 5), $"{recipe.Id}: three to five steps fit the tab");
+                foreach (var step in recipe.Steps)
+                {
+                    Assert.That(step.Station, Is.Not.Empty, recipe.Id);
+                    Assert.That(step.Text.Length, Is.InRange(4, 40), $"{recipe.Id}: \"{step.Text}\" is short enough for one line");
+                }
+            }
+        }
+
+        [Test]
+        public void TheConfigsDefaultsMatchTheShippedSteps()
+        {
+            var asset = AssetDatabase.LoadAssetAtPath<CookbookConfig>(ConfigPath);
+            Assume.That(asset, Is.Not.Null);
+            var fresh = ScriptableObject.CreateInstance<CookbookConfig>();
+            try
+            {
+                var shipped = asset.ToRecipes(null).ToDictionary(r => r.Id, r => r.Steps.Select(s => s.Station + "|" + s.Text).ToArray());
+                foreach (var recipe in fresh.ToRecipes(null))
+                    Assert.That(shipped[recipe.Id], Is.EqualTo(recipe.Steps.Select(s => s.Station + "|" + s.Text).ToArray()), recipe.Id);
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(fresh);
+            }
+        }
+
         // ---- Unlocking ----
 
         [Test]
@@ -105,15 +151,32 @@ namespace Game.Tests.EditMode
         // ---- Prices ----
 
         [Test]
-        public void PricesStartAtTheSuggestionAndMoveInStepsOfOne()
+        public void PricesStartAtTheSuggestionAndMoveInStepsOfTenCents()
+        {
+            // The user's calls, 2026-11-11: $24.30 can be set (steps were 1, then 50 cents).
+            var book = Book();
+            Assert.That(book.PriceOf("steak"), Is.EqualTo(20f));
+            book.Nudge("steak", 1);
+            Assert.That(book.PriceOf("steak"), Is.EqualTo(20.1f));
+            book.Nudge("steak", 2);
+            Assert.That(book.PriceOf("steak"), Is.EqualTo(20.3f));
+            book.Nudge("steak", -5);
+            Assert.That(book.PriceOf("steak"), Is.EqualTo(19.8f));
+        }
+
+        [Test]
+        public void APriceIsAlwaysOnTheStep()
         {
             var book = Book();
-            Assert.That(book.PriceOf("steak"), Is.EqualTo(20));
-            book.Nudge("steak", 1);
-            book.Nudge("steak", 1);
-            Assert.That(book.PriceOf("steak"), Is.EqualTo(22));
-            book.Nudge("steak", -5);
-            Assert.That(book.PriceOf("steak"), Is.EqualTo(17));
+            book.SetPrice("steak", 21.34f);
+            Assert.That(book.PriceOf("steak"), Is.EqualTo(21.3f), "set prices land on 10 cents");
+            book.Load(new[] { "steak" }, new[] { new PriceRecord { Recipe = "steak", Price = 19.76f } });
+            Assert.That(book.PriceOf("steak"), Is.EqualTo(19.8f), "and so do loaded ones");
+            book.Load(new[] { "steak" }, new[] { new PriceRecord { Recipe = "steak", Price = 24.5f } });
+            Assert.That(book.PriceOf("steak"), Is.EqualTo(24.5f), "a 50-cent price from before stays as it was");
+            for (var i = 0; i < 137; i++)
+                book.Nudge("steak", 1);
+            Assert.That(book.PriceOf("steak"), Is.EqualTo(38.2f), "no drift after many steps");
         }
 
         [Test]

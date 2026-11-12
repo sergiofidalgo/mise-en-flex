@@ -18,7 +18,8 @@ namespace Game.Simulation.Cookbook
     public sealed class PriceRecord
     {
         public string Recipe = "";
-        public int Price;
+        // Whole money before 2026-11-11; a file with whole prices reads the same.
+        public float Price;
     }
 
     /// <summary>
@@ -30,7 +31,7 @@ namespace Game.Simulation.Cookbook
     {
         private readonly List<Recipe> _recipes;
         private readonly HashSet<string> _unlocked = new HashSet<string>();
-        private readonly Dictionary<string, int> _prices = new Dictionary<string, int>();
+        private readonly Dictionary<string, float> _prices = new Dictionary<string, float>();
 
         /// <param name="recipes">Every recipe the cookbook offers here, in the order it lists them.</param>
         public RecipeBook(IEnumerable<Recipe> recipes, PricingSettings pricing)
@@ -44,6 +45,13 @@ namespace Game.Simulation.Cookbook
         public PricingSettings Pricing { get; }
 
         public IReadOnlyList<Recipe> Recipes => _recipes;
+
+        /// <summary>
+        /// The recipes as the Restaurant tab lists them (2026-11-11): those on the menu first, then
+        /// those still to unlock, each group in the cookbook's order.
+        /// </summary>
+        public IReadOnlyList<Recipe> OnMenuFirst() =>
+            _recipes.Where(r => IsUnlocked(r.Id)).Concat(_recipes.Where(r => !IsUnlocked(r.Id))).ToList();
 
         /// <summary>The menu: unlocked recipes, in the cookbook's order.</summary>
         public IEnumerable<Recipe> Menu => _recipes.Where(r => _unlocked.Contains(r.Id));
@@ -75,31 +83,38 @@ namespace Game.Simulation.Cookbook
         }
 
         /// <summary>The price set for a dish, or its suggested price until one is.</summary>
-        public int PriceOf(string id)
+        public float PriceOf(string id)
         {
             if (_prices.TryGetValue(id, out var price))
                 return price;
             return Find(id)?.SuggestedPrice ?? 0;
         }
 
-        public int MaxPriceOf(Recipe recipe) =>
-            Math.Max(Pricing.MinPrice, (int)Math.Ceiling(recipe.SuggestedPrice * Pricing.MaxPriceFactor));
+        public float MaxPriceOf(Recipe recipe) =>
+            Math.Max(Pricing.MinPrice, Step * (float)Math.Ceiling(recipe.SuggestedPrice * Pricing.MaxPriceFactor / Step));
 
-        /// <summary>Sets a price in whole money, kept between the lowest and highest allowed.</summary>
-        public void SetPrice(string id, int price)
+        // What every price is a multiple of: 50 cents (2026-11-11).
+        private float Step => Pricing.PriceStep > 0f ? Pricing.PriceStep : 1f;
+
+        // A price on the step, rounded to the cent, so floating-point drift can't leave $25.4999.
+        private float OnStep(float price) =>
+            (float)Math.Round(Step * Math.Round(price / Step, MidpointRounding.AwayFromZero), 2, MidpointRounding.AwayFromZero);
+
+        /// <summary>Sets a price, on the step and kept between the lowest and highest allowed.</summary>
+        public void SetPrice(string id, float price)
         {
             var recipe = Find(id);
             if (recipe == null)
                 return;
-            price = Math.Clamp(price, Pricing.MinPrice, MaxPriceOf(recipe));
-            if (PriceOf(id) == price)
+            price = Math.Clamp(OnStep(price), Pricing.MinPrice, MaxPriceOf(recipe));
+            if (Math.Abs(PriceOf(id) - price) < 0.001f)
                 return;
             _prices[id] = price;
             Changed?.Invoke();
         }
 
-        /// <summary>Moves a price by <paramref name="steps"/> of 1 (decision 2026-11-08: steps of 1).</summary>
-        public void Nudge(string id, int steps) => SetPrice(id, PriceOf(id) + steps);
+        /// <summary>Moves a price by <paramref name="steps"/> of the price step (10 cents since 2026-11-11; 1 before).</summary>
+        public void Nudge(string id, int steps) => SetPrice(id, PriceOf(id) + steps * Step);
 
         /// <summary>Price over suggested price, for the cookbook page and the formulas.</summary>
         public float RatioOf(Recipe recipe) => PriceResponse.Ratio(PriceOf(recipe.Id), recipe.SuggestedPrice);
@@ -120,7 +135,7 @@ namespace Game.Simulation.Cookbook
                 var ratio = RatioOf(recipe);
                 // The side keeps its share of the price, so a missing side costs what it would have.
                 var sidePrice = recipe.SideTypeId != null && recipe.SuggestedPrice > 0
-                    ? (float)Math.Round(price * (float)recipe.SuggestedSidePrice / recipe.SuggestedPrice, MidpointRounding.AwayFromZero)
+                    ? OnStep(price * (float)recipe.SuggestedSidePrice / recipe.SuggestedPrice)
                     : 0f;
                 dishes.Add(new MenuDish
                 {
@@ -168,7 +183,7 @@ namespace Game.Simulation.Cookbook
             {
                 var recipe = record != null ? Find(record.Recipe) : null;
                 if (recipe != null)
-                    _prices[recipe.Id] = Math.Clamp(record.Price, Pricing.MinPrice, MaxPriceOf(recipe));
+                    _prices[recipe.Id] = Math.Clamp(OnStep(record.Price), Pricing.MinPrice, MaxPriceOf(recipe));
             }
         }
     }

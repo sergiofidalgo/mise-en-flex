@@ -58,5 +58,24 @@ namespace Game.Simulation.Cookbook
 
         /// <summary>The value it brings per serving at the suggested price: price less ingredients.</summary>
         public float Value => SuggestedPrice - IngredientCost;
+
+        /// <summary>How it's cooked, step by step, as the Restaurant tab explains it (2026-11-11).</summary>
+        public IReadOnlyList<CookStep> Steps { get; set; } = Array.Empty<CookStep>();
+    }
+
+    /// <summary>One step of cooking a dish: where it happens (a station, as players read it) and what to do.</summary>
+    public sealed class CookStep
+    {
+        public CookStep(string station, string text)
+        {
+            Station = station ?? "";
+            Text = text ?? "";
+        }
+
+        /// <summary>"Fridge", "Board", "Hob", "Counter", "Pass": translated where shown.</summary>
+        public string Station { get; }
+
+        /// <summary>What to do there, in English (translated where shown).</summary>
+        public string Text { get; }
     }
 }
