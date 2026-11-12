@@ -4,6 +4,20 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-12 — forkcast on three equal columns
+
+**User's call:** after the left column went to 440 px, the panel felt out of proportion. Every column should be the same width.
+
+**Decision:** the panel's 1,680 px of content is three columns of about 539 px with 32 px gaps (`ColumnWidth`, `ColumnGap`).
+- **The left column** is one of them; its photo keeps its height, cropped to its middle.
+- **The Restaurant tab** puts its list and its detail in the other two.
+- **The Overview's boss card** is one column wide, and the night's three numbers share the other.
+- **Books and Staff** span both right columns.
+
+This replaces the 440 px column from earlier the same day.
+
+---
+
 ## 2026-11-12 — forkcast's left column narrows to 440 px
 
 **User's call:** the left column took too much of the panel (600 of 1,760 px) and left too little for the tabs. We chose one narrower layout for every tab, not a column that shrinks on some tabs, so nothing jumps when switching tabs with LB/RB.
@@ -25,6 +39,7 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 - **The dial only shows whole numbers;** a needle shows the tenths. Each D-pad step moves the drum a tenth of the gap between two numbers, so $24.30 has the needle three tenths of the way from 24 to 25. The exact price is written beside the heading: "PRICE $24.30".
   - Crossing a whole number ticks fully, like a detent; a step between numbers ticks lighter and higher.
   - Held, the steps speed up to one every 0.03 s (`_priceRepeatFastest`), about $3 a second.
+- **The whole number the price is on is black** (2026-11-12): from 24.0 to 24.9, "24" shows at full strength, wherever the needle sits; the others fade with distance.
 - **The guests and profit chips fit their words,** side by side from the left. Once the price has moved off the suggestion, X (the small X ★ badge) appears at the row's far right.
 
 - **Profit shows its cents** ("$18.30"), so it moves with every 10-cent step; the guests % updates with each step too.

@@ -61,10 +61,11 @@ namespace Game.Presentation.Hud
 
         private const float PanelX = 80f, PanelY = 56f, PanelWidth = 1760f, PanelHeight = 968f, PanelRadius = 26f;
         private const float HeaderBottom = 140f, FooterTop = 952f;
-        // The left column is 440 wide (the user's call, 2026-11-12: it was 600, leaving too little
-        // room for the tabs); the right side starts 44 after it and runs to the same edge.
-        private const float LeftX = 120f, LeftWidth = 440f;
-        private const float RightX = LeftX + LeftWidth + 44f, RightEdge = 1800f, RightWidth = RightEdge - RightX;
+        // Three equal columns across the panel (the user's calls, 2026-11-12): the left one, and two on
+        // the right that the Restaurant tab uses as its list and its detail; other tabs span both.
+        private const float ColumnGap = 32f, ColumnWidth = (1800f - 120f - 2f * ColumnGap) / 3f;
+        private const float LeftX = 120f, LeftWidth = ColumnWidth;
+        private const float RightX = LeftX + LeftWidth + ColumnGap, RightEdge = 1800f, RightWidth = RightEdge - RightX;
         private const float CardLeft = RightX + 1f, CardWidth = RightWidth - 2f;
         // Two cards side by side on the right (the Books tab's top row).
         private const float HalfWidth = (RightWidth - 22f) / 2f;
@@ -382,7 +383,8 @@ namespace Game.Presentation.Hud
 
         // ---- Overview: the boss first, the night's numbers, then every review ----
 
-        private const float BossWidth = 700f, TopRowHeight = 150f, FilterTop = 440f;
+        // The boss card is one column wide, on the grid (2026-11-12); the night's three numbers share the other.
+        private const float BossWidth = ColumnWidth, TopRowHeight = 150f, FilterTop = 440f;
 
         private void DrawOverview()
         {
@@ -602,7 +604,8 @@ namespace Game.Presentation.Hud
         private static float ContentWidth => CardWidth - CardPad - GuestColumn - GuestGap - CardPad;
 
         // The guest's column: portrait, gap, name, gap, type chip.
-        private const float GuestHeight = Portrait + 10f + 24f + 8f + 28f;
+        // Portrait and name only: the guest's type moved onto the facts line (the user's call, 2026-11-12).
+        private const float GuestHeight = Portrait + 10f + 24f;
 
         private TextMeshProUGUI _measure;
 
@@ -701,10 +704,6 @@ namespace Game.Presentation.Hud
             UiKit.GuestPortrait(parent, _style.CustomerPortrait(review.Look, review.Guest), review.Guest,
                 columnCentre - Portrait / 2f, top, Portrait, critic ? _gold : _ink);
             Label(Bold, parent, Game.Data.GuestNames.Display(review), 19f, _ink, columnCentre, top + Portrait + 10f + 20f, GuestColumn + 16f, HorizontalAlignmentOptions.Center);
-            var chip = Label(critic ? Bold : SemiBold, parent, type.Name, 15f, type.Text, columnCentre, top + Portrait + 10f + 24f + 8f + 19f, GuestColumn + 16f, HorizontalAlignmentOptions.Center);
-            var chipWidth = Mathf.Min(GuestColumn + 16f, UiKit.Width(chip) + 22f);
-            var chipBox = UiKit.RoundBox(parent, "Type", type.Back, columnCentre - chipWidth / 2f, top + Portrait + 10f + 24f + 8f, chipWidth, 26f, 13f);
-            chipBox.transform.SetSiblingIndex(chip.transform.GetSiblingIndex());
 
             // What they said, in their bubble. Written in the player's language (decision 2026-11-09).
             var fit = QuoteFit(review);
@@ -729,15 +728,22 @@ namespace Game.Presentation.Hud
                 below += replyHeight;
             }
 
-            // The facts, under the conversation: the rating, what they had and what it paid.
+            // The facts, under the conversation: what kind of guest, the rating, what they had and
+            // what it paid, all on one line (the type was under the name until 2026-11-12).
             var baseline = below + 32f;
+            var chip = Label(critic ? Bold : SemiBold, parent, type.Name, 15f, type.Text, 0f, baseline - 2f, 200f);
+            var chipWidth = UiKit.Width(chip) + 22f;
+            var chipBox = UiKit.RoundBox(parent, "Type", type.Back, ContentX + 4f, baseline - 21f, chipWidth, 26f, 13f);
+            chipBox.transform.SetSiblingIndex(chip.transform.GetSiblingIndex());
+            chip.rectTransform.anchoredPosition = new Vector2(ContentX + 4f + 11f, chip.rectTransform.anchoredPosition.y);
+            var factsX = ContentX + 4f + chipWidth + 12f;
             float x;
             if (walkedOut)
-                x = ContentX + 4f + UiKit.Width(Label(Bold, parent, Tr.Get("Walked out"), 20f, _badText, ContentX + 4f, baseline, 300f));
+                x = factsX + UiKit.Width(Label(Bold, parent, Tr.Get("Walked out"), 20f, _badText, factsX, baseline, 300f));
             else
             {
-                var score = Label(ExtraBold, parent, $"{review.RatedStars:0.0}", 21f, _ink, ContentX + 4f, baseline, 60f);
-                x = Stars(parent, ContentX + 4f + UiKit.Width(score) + 8f, baseline - 19f, 21f, 25f, review.RatedStars);
+                var score = Label(ExtraBold, parent, $"{review.RatedStars:0.0}", 21f, _ink, factsX, baseline, 60f);
+                x = Stars(parent, factsX + UiKit.Width(score) + 8f, baseline - 19f, 21f, 25f, review.RatedStars);
             }
             var facts = string.IsNullOrEmpty(review.Order) ? "" : $" · {Game.Data.ReviewText.Order(review.Order)}";
             facts += walkedOut ? $" · {Money(-review.Penalty)}"

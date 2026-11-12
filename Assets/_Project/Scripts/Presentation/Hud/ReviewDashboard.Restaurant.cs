@@ -28,7 +28,7 @@ namespace Game.Presentation.Hud
     public sealed partial class ReviewDashboard
     {
         // Wider since the left column narrowed (2026-11-12): the list, then the dish's detail to the edge.
-        private const float RecipeListWidth = 520f, RecipeRow = 92f, DetailX = RightX + RecipeListWidth + 22f;
+        private const float RecipeListWidth = ColumnWidth, RecipeRow = 92f, DetailX = RightX + ColumnWidth + ColumnGap;
         private const float OpeningTop = 262f, OpeningHeight = 214f;
         private const float DetailTop = 262f, DetailBottom = 932f;
         private const float GroupHeader = 32f;
@@ -598,6 +598,11 @@ namespace Game.Presentation.Hud
                 var scale = 1f + _dialPunch * _dialKick * Mathf.Clamp01(1f - distance);
                 var alpha = (distance <= 1f ? Mathf.Lerp(1f, 0.42f, distance) : Mathf.Lerp(0.42f, 0.2f, Mathf.Clamp01(distance - 1f)))
                     * Mathf.Clamp01((2.5f - distance) * 2.5f);
+                // The whole number the price is on (24 for 24.0 to 24.9) shows at full strength, wherever
+                // the needle sits between it and the next (the user's call, 2026-11-12). It follows the
+                // needle as it rolls: the price under the needle is the price less what's still to roll.
+                if (!float.IsNaN(_dialPrice) && Mathf.Abs(step + _dialPrice - Mathf.Floor(_dialPrice - _dialOffset + 0.001f)) < 0.01f)
+                    alpha = 1f;
                 // Every number's middle on one line: about a third of its size above the baseline,
                 // scaled about the box's middle, which sits on the baseline.
                 var middle = DialSize * 0.35f;
