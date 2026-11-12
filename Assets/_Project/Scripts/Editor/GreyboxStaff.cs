@@ -32,6 +32,7 @@ namespace Game.Editor
             var pushes = new SerializedObject(zone.AddComponent<PushResolver>());
             pushes.FindProperty("_director").objectReferenceValue = zone.GetComponent<StaffDirector>();
             pushes.FindProperty("_customers").objectReferenceValue = Object.FindFirstObjectByType<CustomerDirector>();
+            pushes.FindProperty("_couriers").objectReferenceValue = Object.FindFirstObjectByType<CourierDirector>();
             pushes.ApplyModifiedPropertiesWithoutUndo();
 
             var editor = new SerializedObject(zone.AddComponent<LayoutEditor>());

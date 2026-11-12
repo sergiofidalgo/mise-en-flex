@@ -44,6 +44,16 @@ namespace Game.Editor
         private const string ShelfFurniture = "shelf";
         private const string TableFurniture = "table";
         private const string BarFurniture = "bar";
+        // Delivery (decision 2026-11-12): the counter puts the restaurant on the app; the boxes are free.
+        private const string DeliveryFurniture = "delivery counter";
+        private const string BoxPileFurniture = "box pile";
+        private const float DeliveryPrice = 140f;
+        private const float BoxPilePrice = 0f;
+        private const float DeliveryCounterWidth = 1.6f;
+        private const float DeliveryCounterDepth = 0.7f;
+        private const int DeliveryPlaces = 2;
+        private static readonly Color DeliveryColor = new Color(0.9f, 0.88f, 0.82f);
+        private static readonly Color DeliveryLime = new Color(0.55f, 0.86f, 0.22f);
         private const float CounterPrice = 30f;
         private const float HobPrice = 80f;
         private const float InductionPrice = 150f;
@@ -319,6 +329,7 @@ namespace Game.Editor
                 assets.Catalog = GreyboxIngredients.BuildCatalog(
                     (GreyboxKitchenware.PanTypeId, GreyboxKitchenware.BuildPan()),
                     (Game.Simulation.Items.Plate.PlateTypeId, GreyboxKitchenware.BuildPlate()),
+                    (Game.Simulation.Items.Plate.BoxTypeId, GreyboxKitchenware.BuildBox()),
                     (Game.Simulation.Items.Knife.KnifeTypeId, GreyboxKitchenware.BuildKnife()),
                     (Game.Simulation.Items.Tray.TrayTypeId, GreyboxKitchenware.BuildTray()),
                     (Game.Simulation.Items.FoodContainer.ContainerTypeId, GreyboxKitchenware.BuildContainer()));
@@ -1215,6 +1226,8 @@ namespace Game.Editor
             var shelf = SaveFurniture(BuildStorageForSale("PF_Shelf", StorageUnits[1]));
             var table = SaveFurniture(BuildTable());
             var bar = SaveFurniture(BuildBarTable("PF_BarTable", Vector3.zero, null));
+            var delivery = SaveFurniture(BuildDeliveryCounter("PF_DeliveryCounter"));
+            var boxPile = SaveFurniture(BuildBoxPile("PF_BoxPile"));
 
             var catalog = GreyboxAssets.EnsureAsset<FurnitureCatalog>(FurnitureCatalogPath);
             var so = new SerializedObject(catalog);
@@ -1234,10 +1247,72 @@ namespace Game.Editor
             SetFurniture(entries, FridgeFurniture, "Fridge", FridgePrice, keepOne: true, fridge);
             SetFurniture(entries, TableFurniture, "Table", TablePrice, keepOne: false, table);
             SetFurniture(entries, BarFurniture, "Bar table", BarPrice, keepOne: false, bar);
+            SetFurniture(entries, DeliveryFurniture, "Delivery counter", DeliveryPrice, keepOne: false, delivery);
+            SetFurniture(entries, BoxPileFurniture, "Delivery boxes", BoxPilePrice, keepOne: false, boxPile);
             so.ApplyModifiedPropertiesWithoutUndo();
             ShopDescriptions.Write(catalog);
             AssetDatabase.SaveAssets();
             return catalog;
+        }
+
+        // The delivery counter (decision 2026-11-12): a wide, shallow counter with a place per open
+        // order and the order tablet standing between them, in the couriers' lime. Placeholder
+        // shapes until the art pass.
+        private static DeliveryCounterStation BuildDeliveryCounter(string name)
+        {
+            var counter = CreateStation<DeliveryCounterStation>(
+                name, Vector3.zero, DeliveryCounterWidth, CounterHeight, GreyboxAssets.EnsureMaterial("DeliveryCounter", DeliveryColor), null, DeliveryFurniture, DeliveryCounterDepth);
+            var lime = GreyboxAssets.EnsureMaterial("DeliveryLime", DeliveryLime);
+            var so = new SerializedObject(counter);
+            var places = so.FindProperty("_places");
+            places.arraySize = DeliveryPlaces;
+            for (var i = 0; i < DeliveryPlaces; i++)
+            {
+                // Either side of the tablet, each on a lime mat so the place reads when it's empty.
+                var x = (i - (DeliveryPlaces - 1) / 2f) * (DeliveryCounterWidth * 0.56f);
+                var place = new GameObject($"Place_{i + 1}").transform;
+                place.SetParent(counter.transform, false);
+                place.localPosition = new Vector3(x, CounterHeight + 0.012f, 0f);
+                var mat = GreyboxAssets.CreatePrimitive(PrimitiveType.Cube, $"Mat_{i + 1}", counter.transform, lime, keepCollider: false);
+                mat.transform.localScale = new Vector3(0.5f, 0.012f, 0.5f);
+                mat.transform.localPosition = new Vector3(x, CounterHeight + 0.006f, 0f);
+                places.GetArrayElementAtIndex(i).objectReferenceValue = place;
+            }
+
+            var tablet = new GameObject("Tablet").transform;
+            tablet.SetParent(counter.transform, false);
+            tablet.localPosition = new Vector3(0f, CounterHeight, 0f);
+            var stand = GreyboxAssets.CreatePrimitive(PrimitiveType.Cube, "Stand", tablet, GreyboxAssets.EnsureMaterial("DeliveryTabletStand", new Color(0.16f, 0.17f, 0.2f)), keepCollider: false);
+            stand.transform.localScale = new Vector3(0.06f, 0.16f, 0.06f);
+            stand.transform.localPosition = new Vector3(0f, 0.08f, 0f);
+            var screen = GreyboxAssets.CreatePrimitive(PrimitiveType.Cube, "Screen", tablet, GreyboxAssets.EnsureMaterial("DeliveryTabletScreen", new Color(0.1f, 0.12f, 0.1f)), keepCollider: false);
+            screen.transform.localScale = new Vector3(0.2f, 0.28f, 0.02f);
+            screen.transform.localPosition = new Vector3(0f, 0.27f, 0f);
+            so.FindProperty("_tablet").objectReferenceValue = tablet;
+            so.ApplyModifiedPropertiesWithoutUndo();
+
+            var view = new SerializedObject(counter.gameObject.AddComponent<DeliveryTabletView>());
+            view.FindProperty("_counter").objectReferenceValue = counter;
+            view.FindProperty("_tablet").objectReferenceValue = tablet;
+            view.FindProperty("_screen").objectReferenceValue = screen.GetComponent<Renderer>();
+            view.ApplyModifiedPropertiesWithoutUndo();
+            return counter;
+        }
+
+        // The pile of delivery boxes: a counter with a stack of flat cartons on it.
+        private static BoxPileStation BuildBoxPile(string name)
+        {
+            var pile = DressCabinet(CreateStation<BoxPileStation>(
+                name, Vector3.zero, CounterSize, CounterHeight, GreyboxAssets.EnsureMaterial("DeliveryCounter", DeliveryColor), null, BoxPileFurniture));
+            var kraft = GreyboxAssets.EnsureMaterial("DeliveryBox", GreyboxKitchenware.BoxColor);
+            for (var i = 0; i < 6; i++)
+            {
+                var box = GreyboxAssets.CreatePrimitive(PrimitiveType.Cube, $"FlatBox_{i + 1}", pile.transform, kraft, keepCollider: false);
+                box.transform.localScale = new Vector3(0.5f, 0.035f, 0.5f);
+                box.transform.localPosition = new Vector3(0f, CounterHeight + 0.0175f + i * 0.037f, 0f);
+                box.transform.localRotation = Quaternion.Euler(0f, (i * 37) % 13 - 6f, 0f); // a pile, not a block
+            }
+            return pile;
         }
 
         // A regular table: a chair's place on each side, with a plate towards it. They start hidden;

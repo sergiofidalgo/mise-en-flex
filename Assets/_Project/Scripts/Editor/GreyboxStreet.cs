@@ -98,6 +98,7 @@ namespace Game.Editor
             Bounds(street);
             Doorway();
             CustomerStreet(street);
+            CourierRoad(street);
             Life(street, root);
 
             // The light of the day follows the service's clock (DaylightView): white by day, blue
@@ -568,6 +569,30 @@ namespace Game.Editor
             list.arraySize = ends.Length;
             for (var i = 0; i < ends.Length; i++)
                 list.GetArrayElementAtIndex(i).objectReferenceValue = ends[i];
+            so.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        // The lane couriers ride (decision 2026-11-12): on the road just off the kerb, from off screen
+        // at one end to off screen at the other, parking opposite the door.
+        private const float CourierLaneFromKerb = 0.9f;
+        private const float CourierEndsBeyondGrounds = 12f;
+
+        private static void CourierRoad(Transform street)
+        {
+            var director = Object.FindFirstObjectByType<Game.Gameplay.Customers.CourierDirector>();
+            if (director == null)
+                return;
+            var xs = new[] { GroundsWest - CourierEndsBeyondGrounds, GroundsEast + CourierEndsBeyondGrounds };
+            var so = new SerializedObject(director);
+            var list = so.FindProperty("_roadEnds");
+            list.arraySize = xs.Length;
+            for (var i = 0; i < xs.Length; i++)
+            {
+                var end = new GameObject(i == 0 ? "CourierRoad_West" : "CourierRoad_East").transform;
+                end.SetParent(street, false);
+                end.localPosition = new Vector3(xs[i], 0.02f, Kerb - CourierLaneFromKerb);
+                list.GetArrayElementAtIndex(i).objectReferenceValue = end;
+            }
             so.ApplyModifiedPropertiesWithoutUndo();
         }
 

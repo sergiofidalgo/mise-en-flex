@@ -442,7 +442,7 @@ namespace Game.Editor
             Couriers(entrance);
         }
 
-        private static readonly Color CourierLime = new Color(0.55f, 0.86f, 0.22f);
+        internal static readonly Color CourierLime = new Color(0.55f, 0.86f, 0.22f);
 
         // Delivery couriers (the user's notes, 2026-11-10: a detail he liked; in view beside the menu;
         // two scooters, a little apart; the couriers, or at least their bags, plain to see). They wear
@@ -507,7 +507,7 @@ namespace Game.Editor
         };
 
         // A courier: the uniform and the bag, on anyone.
-        private static CharacterArt.Rig Courier(Transform parent, Vector3 at, float facing, Material patch, bool bag = true)
+        internal static CharacterArt.Rig Courier(Transform parent, Vector3 at, float facing, Material patch, bool bag = true)
         {
             var person = new GameObject("Courier").transform;
             person.SetParent(parent, false);
@@ -536,7 +536,7 @@ namespace Game.Editor
         }
 
         // Sits a standing figure on a seat `seatHeight` up from where it stands: legs out in front, no walk.
-        private static void Sit(CharacterArt.Rig rig, float seatHeight)
+        internal static void Sit(CharacterArt.Rig rig, float seatHeight)
         {
             if (rig.Gait != null)
                 Object.DestroyImmediate(rig.Gait);

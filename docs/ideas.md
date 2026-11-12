@@ -15,7 +15,7 @@ The first pass is built (decision 2026-11-11, "The street comes alive"): passers
 - **A real evening.** Only lamps and windows change at dusk; the daylight doesn't. Dimming and cooling the sun through a dinner service is a look change to judge in play (the art bible asks for a cooler exterior and service at dusk).
 - **Market life.** Vendors behind their counters, shoppers browsing and queueing at the stalls, a van unloading in Prep, stalls packing away at Close.
 - **More kinds of walker.** A dog walker, a jogger, a pram, a pair talking; someone sitting on the bench.
-- **More on the road.** A bus and its stop, cyclists, cars that pull into the parking lot and leave. No delivery scooters: those are a mechanic for later (the user, 2026-11-11).
+- **More on the road.** A bus and its stop, cyclists, cars that pull into the parking lot and leave. Delivery scooters are a mechanic now (decision 2026-11-12, "Delivery"), so none ride past as decoration.
 - **A tram street for another restaurant** (the user, 2026-11-12: "leave the tram for another restaurant"). Rails set in cobbles where the road is, a tram gliding past every minute or so with its bell, no cars. It gives that street its own identity and makes the kerb a limit nobody questions.
 - **More to look at:** a clock tower on the skyline whose hands show the service clock, string lights and bunting across the street lit at dusk, a café terrace next door (the kit has the tables), a fountain in the plaza, a busker with a few listeners, silhouettes at the neighbours' windows, a flock wheeling overhead.
 - **A gull or a cat at the bin** when it's full, and pigeons that scatter from the wheelie bin as it rolls, not only from chefs.

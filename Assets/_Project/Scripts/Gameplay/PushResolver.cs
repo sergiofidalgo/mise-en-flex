@@ -35,6 +35,8 @@ namespace Game.Gameplay
 
         [SerializeField] private StaffDirector _director;
         [SerializeField] private CustomerDirector _customers;
+        [Tooltip("Delivery couriers on foot; none in a scene without them.")]
+        [SerializeField] private CourierDirector _couriers;
 
         [Tooltip("How heavy an idle body is to push: 0 goes along at the pusher's full pace, 0.8 at a fifth of it, 1 not at all.")]
         [SerializeField, Range(0f, 1f)] private float _resistance = 0.8f;
@@ -51,6 +53,8 @@ namespace Game.Gameplay
             }
             _bodies.AddRange(_director.Agents);
             _bodies.AddRange(_customers.Agents.Values);
+            if (_couriers != null)
+                _bodies.AddRange(_couriers.Agents);
 
             for (var pass = 0; pass < Passes; pass++)
             {

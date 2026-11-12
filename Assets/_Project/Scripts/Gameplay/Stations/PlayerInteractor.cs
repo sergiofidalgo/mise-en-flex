@@ -269,6 +269,8 @@ namespace Game.Gameplay.Stations
                 return Tr.Get(item.TypeId);
             if (plate.IsDirty)
                 return Tr.Get("dirty plate");
+            if (plate.IsBox)
+                return plate.Items.Count == 0 ? Tr.Get("empty box") : Tr.Format("box: {what}", ("what", Tr.Get(plate.Items[0].TypeId)));
             return plate.Items.Count == 0 ? Tr.Get("empty plate") : Tr.Format("plate: {what}", ("what", Tr.Get(plate.Items[0].TypeId)));
         }
 

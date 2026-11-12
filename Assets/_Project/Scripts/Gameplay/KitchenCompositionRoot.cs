@@ -533,6 +533,15 @@ namespace Game.Gameplay
                 tables.Add(table.SeatCount);
             }
             Services.Service.OpenSeats(tables);
+
+            // And the delivery app takes as many orders at once as the delivery counters have places
+            // (decision 2026-11-12): none, and no orders come.
+            if (Services.Service.Deliveries.Orders.Count > 0)
+                return;
+            var places = 0;
+            foreach (var counter in Services.Stations.All.OfType<DeliveryCounterStation>())
+                places = counter.AssignSlots(places);
+            Services.Service.Deliveries.OpenSlots(places);
         }
 
         private void BindPlayer(PlayerInput player)

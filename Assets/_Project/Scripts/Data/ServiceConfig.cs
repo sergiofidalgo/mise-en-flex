@@ -209,6 +209,24 @@ namespace Game.Data
         [Tooltip("Money lost when a customer walks out, as a fraction of their order's menu price.")]
         [SerializeField, Min(0f)] private float _walkOutPenaltyFraction = 0.5f;
 
+        [Header("Delivery (decision 2026-11-12)")]
+        [Tooltip("Average in-game minutes between delivery orders outside the rush, while a delivery counter has a free place. 0: no delivery orders.")]
+        [SerializeField, Min(0f)] private float _deliveryIntervalMinutes = 50f;
+        [Tooltip("± fraction of random variation in each gap between delivery orders.")]
+        [SerializeField, Range(0f, 0.9f)] private float _deliveryJitter = 0.35f;
+        [Tooltip("In-game minutes from an order coming in to its courier pulling up: the time there is to cook and box it.")]
+        [SerializeField, Min(0f)] private float _courierLeadMinutes = 45f;
+        [Tooltip("In-game minutes a courier waits at the counter for food that isn't there (realism dial 1).")]
+        [SerializeField, Min(0.5f)] private float _courierPatienceMinutes = 20f;
+        [Tooltip("In-game minutes from pick-up until the customer has it and their review comes in.")]
+        [SerializeField, Min(0f)] private float _rideMinutes = 20f;
+        [Tooltip("Cooking minutes the food cools on the ride as if it sat out on a plate. A box only lets through its share, below.")]
+        [SerializeField, Min(0f)] private float _rideCoolingMinutes = 18f;
+        [Tooltip("The share of the ride's cooling that reaches food in a delivery box (1 = a box is no better than a plate).")]
+        [SerializeField, Range(0f, 1f)] private float _boxCoolingFactor = 0.35f;
+        [Tooltip("The app's share of a delivery order's price. The courier pays the rest; nobody tips.")]
+        [SerializeField, Range(0f, 0.9f)] private float _deliveryCommission = 0.25f;
+
         [Header("Reviews")]
         [Tooltip("A part of the dish scoring below this is worth complaining about.")]
         [SerializeField, Range(0f, 1f)] private float _lowPartScore = 0.5f;
@@ -319,6 +337,18 @@ namespace Game.Data
             QueuePatienceRate = _queuePatienceRate,
             Seed = unchecked(_seed + day - 1),
             CustomerLooks = _customerLooks,
+            Delivery = new DeliverySettings
+            {
+                OrderIntervalSeconds = _deliveryIntervalMinutes * 60f,
+                OrderJitter = _deliveryJitter,
+                CourierLeadSeconds = _courierLeadMinutes * 60f,
+                CourierPatienceSeconds = _courierPatienceMinutes * 60f,
+                RideSeconds = _rideMinutes * 60f,
+                RideCoolingSeconds = _rideCoolingMinutes * 60f,
+                BoxCoolingFactor = _boxCoolingFactor,
+                Commission = _deliveryCommission,
+                CancelledStars = _walkOutStars,
+            },
             Menu = BuildMenu(),
             Payment = new PaymentSettings
             {

@@ -15,6 +15,12 @@ namespace Game.Presentation.Hud
     /// as the bubble itself: it warms towards the patience colour as they lose it and wobbles when
     /// it's nearly gone. Guests queueing outside get a "…" bubble that does the same. Bubbles at a
     /// busy table step up over each other rather than overlap, and always stay on screen.
+    ///
+    /// A delivery order has the same bubble with the app's badge in front (decision 2026-11-12):
+    /// first over its place on the delivery counter, the ring round the badge running down until the
+    /// courier pulls up, then over the courier's head as they walk in and wait, warming and
+    /// wobbling as their patience goes. Nobody's there to carry an edge marker for it, so off screen
+    /// the bubble itself waits at the screen's edge.
     /// </summary>
     public sealed class OrderTicketHud : MonoBehaviour
     {
@@ -44,8 +50,22 @@ namespace Game.Presentation.Hud
         [SerializeField] private Color _paper = new Color(0.99f, 0.96f, 0.89f);
         [SerializeField] private Color _ink = new Color(0.227f, 0.141f, 0.078f);
 
-        private readonly Dictionary<Customer, Bubble> _bubbles = new Dictionary<Customer, Bubble>();
-        private readonly List<Customer> _stale = new List<Customer>();
+        [Header("Delivery orders (decision 2026-11-12)")]
+        [SerializeField] private Game.Gameplay.KitchenCompositionRoot _root;
+        [SerializeField] private CourierDirector _couriers;
+        [Tooltip("Metres above a delivery counter's place where its order's bubble points.")]
+        [SerializeField, Min(0f)] private float _overCounter = 0.55f;
+        [Tooltip("The delivery app's colour: the couriers' lime, which is no player's.")]
+        [SerializeField] private Color _app = new Color(0.55f, 0.86f, 0.22f);
+        [SerializeField] private Color _appMark = Color.white;
+        [Tooltip("Real seconds a new delivery bubble takes to pop up, and how far past its size it swells on the way.")]
+        [SerializeField, Min(0.01f)] private float _popSeconds = 0.35f;
+        [SerializeField, Min(0f)] private float _popOvershoot = 0.25f;
+
+        private const float Badge = 40f;
+
+        private readonly Dictionary<object, Bubble> _bubbles = new Dictionary<object, Bubble>();
+        private readonly List<object> _stale = new List<object>();
         private readonly List<Bubble> _shown = new List<Bubble>();
         private readonly List<Rect> _placed = new List<Rect>();
 
@@ -62,7 +82,7 @@ namespace Game.Presentation.Hud
             foreach (var pair in _director.Agents)
             {
                 var customer = pair.Key;
-                var bubble = BubbleFor(customer);
+                var bubble = BubbleFor(customer, customer.Id);
                 string content = null;
                 if (customer.State == CustomerState.Waiting && customer.Order != null)
                     content = KeyFor(customer.Order);
@@ -80,29 +100,91 @@ namespace Game.Presentation.Hud
                     continue;
                 }
                 if (bubble.Content != content)
-                    Draw(bubble, customer.Order, content);
+                    Draw(bubble, customer.Order, content, delivery: false);
                 RectTransformUtility.ScreenPointToLocalPointInRectangle(_canvas, screen, null, out bubble.Anchor);
                 bubble.Patience = customer.Patience;
                 bubble.Target = 1f;
                 _shown.Add(bubble);
             }
 
+            ShowDeliveries(camera);
             Arrange();
             foreach (var bubble in _bubbles.Values)
                 Animate(bubble);
 
-            // Customers who have left the scene take their bubble with them.
+            // Customers who have left the scene take their bubble with them; a delivery order's goes
+            // with the courier who took it (or gave up).
             _stale.Clear();
-            foreach (var customer in _bubbles.Keys)
+            foreach (var key in _bubbles.Keys)
             {
-                if (!_director.Agents.ContainsKey(customer))
-                    _stale.Add(customer);
+                if (key is Customer customer ? !_director.Agents.ContainsKey(customer) : !(key is DeliveryOrder order && order.HoldsSlot))
+                    _stale.Add(key);
             }
-            foreach (var customer in _stale)
+            foreach (var key in _stale)
             {
-                Destroy(_bubbles[customer].Root.gameObject);
-                _bubbles.Remove(customer);
+                Destroy(_bubbles[key].Root.gameObject);
+                _bubbles.Remove(key);
             }
+        }
+
+        // Each open delivery order: over its place on the counter until its courier is on foot, then
+        // over the courier.
+        private void ShowDeliveries(Camera camera)
+        {
+            var services = _root != null ? _root.Services : null;
+            if (services == null)
+                return;
+            foreach (var order in services.Service.Deliveries.Orders)
+            {
+                if (!order.HoldsSlot)
+                    continue;
+                var bubble = BubbleFor(order, order.Id);
+                Vector3 world;
+                if (_couriers != null && _couriers.TryGetCourier(order, out var courier))
+                {
+                    world = courier.transform.position + Vector3.up * _height;
+                }
+                else
+                {
+                    var place = PlaceOf(services, order.Slot);
+                    if (place == null)
+                    {
+                        bubble.Target = 0f;
+                        continue;
+                    }
+                    world = place.position + Vector3.up * _overCounter;
+                }
+
+                var screen = camera.WorldToScreenPoint(world);
+                if (screen.z <= 0f)
+                {
+                    bubble.Target = 0f;
+                    continue;
+                }
+                var content = "delivery|" + KeyFor(order.Order);
+                if (bubble.Content != content)
+                {
+                    Draw(bubble, order.Order, content, delivery: true);
+                    bubble.Born = Time.unscaledTime;
+                }
+                RectTransformUtility.ScreenPointToLocalPointInRectangle(_canvas, screen, null, out bubble.Anchor);
+                // The ring is the time left to cook; the warming and the wobble are the courier's patience.
+                bubble.Patience = order.State == DeliveryState.CourierWaiting ? order.Patience : 1f;
+                if (bubble.Ring != null)
+                    bubble.Ring.fillAmount = order.CountdownLeft;
+                bubble.Target = 1f;
+                _shown.Add(bubble);
+            }
+        }
+
+        private static Transform PlaceOf(Game.Gameplay.KitchenServices services, int slot)
+        {
+            foreach (var station in services.Stations.All)
+            {
+                if (station is Game.Gameplay.Stations.DeliveryCounterStation counter && counter.AnchorOfSlot(slot) is Transform place)
+                    return place;
+            }
+            return null;
         }
 
         // Nearest the camera first (lowest on screen), each bubble at its guest unless that overlaps
@@ -194,13 +276,22 @@ namespace Game.Presentation.Hud
             var shake = _wobbleFrom > 0f ? Mathf.Clamp01((_wobbleFrom - patience) / _wobbleFrom) : 0f;
             var angle = shake * _wobbleAngle * Mathf.Sin((Time.unscaledTime + bubble.Phase) * _wobbleRate * 2f * Mathf.PI);
             bubble.Body.localRotation = Quaternion.Euler(0f, 0f, angle);
+
+            // A new delivery order pops up from its tablet: out past its size and back, once.
+            if (bubble.Born >= 0f)
+            {
+                var t = Mathf.Clamp01((Time.unscaledTime - bubble.Born) / _popSeconds);
+                bubble.Body.localScale = Vector3.one * (t + _popOvershoot * Mathf.Sin(t * Mathf.PI));
+                if (t >= 1f)
+                    bubble.Born = -1f;
+            }
         }
 
-        private Bubble BubbleFor(Customer customer)
+        private Bubble BubbleFor(object owner, int id)
         {
-            if (_bubbles.TryGetValue(customer, out var bubble))
+            if (_bubbles.TryGetValue(owner, out var bubble))
                 return bubble;
-            var root = new GameObject($"Bubble_{customer.Id}", typeof(RectTransform)).GetComponent<RectTransform>();
+            var root = new GameObject($"Bubble_{id}", typeof(RectTransform)).GetComponent<RectTransform>();
             root.SetParent(_canvas, false);
             root.anchorMin = root.anchorMax = new Vector2(0.5f, 0.5f);
             root.pivot = new Vector2(0.5f, 0f);
@@ -213,16 +304,18 @@ namespace Game.Presentation.Hud
             body.anchorMin = body.anchorMax = new Vector2(0.5f, 0f);
             body.pivot = new Vector2(0.5f, 0f);
             body.anchoredPosition = Vector2.zero;
-            bubble = new Bubble { Root = root, Body = body, Group = group, Phase = (customer.Id % 7) * 0.13f };
-            _bubbles[customer] = bubble;
+            bubble = new Bubble { Root = root, Body = body, Group = group, Phase = (id % 7) * 0.13f };
+            _bubbles[owner] = bubble;
             return bubble;
         }
 
         // The bubble's parts, left to right: [dish] Doneness [+ side], or "…" for someone queueing.
-        private void Draw(Bubble bubble, Order order, string content)
+        // A delivery order has the app's badge in front, with the ring that runs down round it.
+        private void Draw(Bubble bubble, Order order, string content, bool delivery)
         {
             UiKit.Clear(bubble.Body);
             bubble.Fills.Clear();
+            bubble.Ring = null;
             bubble.Content = content;
 
             var parts = new List<(Sprite Icon, string Text, Color Colour)>();
@@ -246,7 +339,8 @@ namespace Game.Presentation.Hud
 
             // The outline and tail under the paper, then the contents on top.
             var widths = new float[parts.Count];
-            var width = Pad;
+            var lead = delivery ? Badge + Gap : 0f;
+            var width = Pad + lead;
             var font = _style != null ? _style.Bold : null;
             for (var i = 0; i < parts.Count; i++)
             {
@@ -266,7 +360,10 @@ namespace Game.Presentation.Hud
             bubble.Fills.Add(UiKit.RoundBox(bubble.Body, "Paper", _paper, Stroke, Stroke, width - 2f * Stroke, Height - 2f * Stroke, Radius - Stroke));
             bubble.Fills.Add(Tilted(UiKit.RoundBox(bubble.Body, "Tail", _paper, tailX, tailY, tailSide, tailSide, 1f)));
 
-            var x = Pad;
+            if (delivery)
+                DrawBadge(bubble);
+
+            var x = Pad + lead;
             for (var i = 0; i < parts.Count; i++)
             {
                 if (parts[i].Icon != null)
@@ -274,6 +371,31 @@ namespace Game.Presentation.Hud
                 else
                     UiKit.TextAt(font, bubble.Body, "Word", parts[i].Text, TextSize, parts[i].Colour, x, Height / 2f + TextSize * 0.36f, widths[i] + 4f);
                 x += widths[i] + Gap;
+            }
+        }
+
+        // The app's mark: a lime disc with the couriers' white chevron, inside a ring that empties as
+        // the courier gets nearer. Placeholder until the app has a logo.
+        private void DrawBadge(Bubble bubble)
+        {
+            var top = (Height - Badge) / 2f;
+            UiKit.Ellipse(bubble.Body, "RingTrack", new Color(_ink.r, _ink.g, _ink.b, 0.18f), Pad, top, Badge, Badge);
+            var ring = UiKit.Ellipse(bubble.Body, "Ring", _ink, Pad, top, Badge, Badge);
+            ring.type = Image.Type.Filled;
+            ring.fillMethod = Image.FillMethod.Radial360;
+            ring.fillOrigin = (int)Image.Origin360.Top;
+            ring.fillClockwise = false;
+            bubble.Ring = ring;
+            const float inset = 5f;
+            UiKit.Ellipse(bubble.Body, "App", _app, Pad + inset, top + inset, Badge - 2f * inset, Badge - 2f * inset);
+            // The chevron: two short bars leaning together.
+            var centre = new Vector2(Pad + Badge / 2f, top + Badge / 2f);
+            foreach (var side in new[] { -1f, 1f })
+            {
+                var bar = UiKit.RoundBox(bubble.Body, "Chevron", _appMark, 0f, 0f, 13f, 5f, 2.5f).rectTransform;
+                bar.pivot = new Vector2(0.5f, 0.5f);
+                bar.anchoredPosition = new Vector2(centre.x + side * 4.2f, -centre.y);
+                bar.localRotation = Quaternion.Euler(0f, 0f, side * -42f);
             }
         }
 
@@ -319,6 +441,8 @@ namespace Game.Presentation.Hud
             public float Patience = 1f;
             public float Target;
             public float Phase;
+            public Image Ring;
+            public float Born = -1f;
         }
     }
 }
