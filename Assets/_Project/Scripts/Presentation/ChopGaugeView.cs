@@ -211,12 +211,12 @@ namespace Game.Presentation
             kit.Mark.gameObject.SetActive(markT < 1f);
             kit.Button.gameObject.SetActive(markT >= 1f);
             kit.Button.localPosition = buttonAt;
-            kit.Button.localScale = Vector3.one * 0.15f;
+            kit.Button.localScale = Vector3.one * 0.23f;
             if (markT < 1f)
             {
                 TimingGaugeKit.SetMark(kit.Mark, press);
                 kit.Mark.localPosition = buttonAt;
-                kit.Mark.localScale = Vector3.one * (0.17f * (1f + 0.4f * Mathf.Pow(1f - markT, 3f)));
+                kit.Mark.localScale = Vector3.one * (0.25f * (1f + 0.4f * Mathf.Pow(1f - markT, 3f)));
             }
 
             // A pip per cut needed, in an arc inside the fan (clear of the chef by the hub), each

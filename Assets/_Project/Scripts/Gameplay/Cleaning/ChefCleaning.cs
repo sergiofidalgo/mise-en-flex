@@ -16,7 +16,7 @@ namespace Game.Gameplay.Cleaning
         /// <summary>Tables and counters: spin the stick round.</summary>
         Cloth,
 
-        /// <summary>The floor: spin the stick round, slower and heavier.</summary>
+        /// <summary>The floor: wag the stick from side to side (the user's call, 2026-11-12).</summary>
         Mop,
 
         /// <summary>A pan fire: wag the stick from side to side.</summary>
@@ -26,7 +26,7 @@ namespace Game.Gameplay.Cleaning
     /// <summary>
     /// A chef cleaning or putting out a fire (decision 2026-11-10): with empty hands, hold X by dirt
     /// or a burning hob and the chef pulls out a cloth, a mop or the extinguisher, stays put, and the
-    /// stick spins (cloth, mop) or sweeps side to side (extinguisher) to clean (decision 2026-11-11).
+    /// stick spins (cloth) or sweeps side to side (mop, extinguisher) to clean (decisions 2026-11-11, 2026-11-12).
     /// Letting go of X, or B, stops; what was wiped stays wiped. While X is still held the chef stays
     /// planted (PlayerInteractor.IsPlanted): the stick turns them on the spot and the next job in
     /// reach starts by itself, as at the sink. The extinguisher is always to hand, with nothing to buy.
@@ -133,6 +133,9 @@ namespace Game.Gameplay.Cleaning
 
         /// <summary>What X would start here, for the prompt.</summary>
         public CleaningTool Available(Interactable target) => Find(target, out _, out _);
+
+        /// <summary>What X would clean here, and where: the spot of dirt or the burning hob (for the hint).</summary>
+        public CleaningTool WouldClean(Interactable target, out DirtSpot spot, out HobStation fire) => Find(target, out spot, out fire);
 
         /// <summary>Starts cleaning or putting out a fire, if there's any to do.</summary>
         public bool TryStart(Interactable target)
@@ -283,7 +286,7 @@ namespace Game.Gameplay.Cleaning
 
         public static TraceShape ShapeOf(CleaningTool tool) => tool switch
         {
-            CleaningTool.Mop => TraceShape.WideCircle,
+            CleaningTool.Mop => TraceShape.MopSweep,
             CleaningTool.Extinguisher => TraceShape.Sweep,
             _ => TraceShape.Circle,
         };

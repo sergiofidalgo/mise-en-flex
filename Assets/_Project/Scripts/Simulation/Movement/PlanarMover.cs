@@ -41,13 +41,14 @@ namespace Game.Simulation.Movement
         /// Planted (holding X to clean, decision 2026-11-11): the stick turns the character on the
         /// spot and never walks them; any speed left dies away as when the stick is let go.
         /// </param>
-        public void Tick(float deltaTime, Vector2 stick, bool turnOnly = false)
+        /// <param name="speedScale">Share of full speed allowed (floor dirt slows a chef, decision 2026-11-11).</param>
+        public void Tick(float deltaTime, Vector2 stick, bool turnOnly = false, float speedScale = 1f)
         {
             if (stick.LengthSquared() > 1f)
                 stick = Vector2.Normalize(stick);
 
             var hasIntent = stick.LengthSquared() > IntentThreshold * IntentThreshold;
-            var target = turnOnly ? Vector2.Zero : stick * Settings.MaxSpeed;
+            var target = turnOnly ? Vector2.Zero : stick * (Settings.MaxSpeed * Math.Clamp(speedScale, 0f, 1f));
 
             // Constant-rate approach: rate = MaxSpeed / time, so going from 0 to full speed
             // takes exactly AccelerationTime regardless of frame rate. Analog stick input

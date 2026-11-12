@@ -97,6 +97,9 @@ namespace Game.Gameplay.Stations
         /// <summary>True while X (Use) is held down.</summary>
         public bool IsUseHeld => _use != null && _use.IsPressed();
 
+        /// <summary>The kitchen's services, or null outside a kitchen (the office).</summary>
+        public KitchenServices Services => _services;
+
         // Set when an X press goes to cleaning (washing, wiping, mopping, a fire) rather than a
         // station's own action; cleared when X is let go or B backs out.
         private bool _holdingToClean;
@@ -106,7 +109,10 @@ namespace Game.Gameplay.Stations
         /// stick works it; between jobs it turns the chef on the spot, and whatever cleaning comes
         /// into reach starts by itself. Letting go of X frees them to walk.
         /// </summary>
-        public bool IsPlanted => _holdingToClean && IsUseHeld && CanAct && (IsBusy || _hands.IsEmpty);
+        public bool IsPlanted => (_holdingToClean && IsUseHeld && CanAct && (IsBusy || _hands.IsEmpty))
+            // Outside a kitchen (the office), X has nothing to clean: holding it still plants the chef
+            // and the stick turns them on the spot, the same control everywhere (the user's call).
+            || (_services == null && IsUseHeld && !IsBusy && !IsManaging);
 
         /// <summary>The stick right now, for a station that has taken over the chef.</summary>
         public Vector2 MoveInput => _playerInput.actions[MoveActionName].ReadValue<Vector2>();

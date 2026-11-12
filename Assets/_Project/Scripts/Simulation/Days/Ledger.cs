@@ -142,8 +142,8 @@ namespace Game.Simulation.Days
         /// <summary>The stars given for it, summed, and by how many guests: their average is the dish's stars.</summary>
         public float StarSum;
         public int Rated;
-        /// <summary>The price it sold at that night.</summary>
-        public int Price;
+        /// <summary>The price it sold at that night (in steps of 50 cents since 2026-11-11; a whole number in older files reads the same).</summary>
+        public float Price;
 
         public float? Stars => Rated > 0 ? StarSum / Rated : (float?)null;
     }

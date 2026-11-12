@@ -136,7 +136,7 @@ namespace Game.Gameplay
 
             // The kitchen camera is fixed and faces world +Z (yaw 0), so stick up maps
             // straight to forward. If the camera ever rotates, rotate the stick by its yaw here.
-            _mover.Tick(deltaTime, new System.Numerics.Vector2(stick.x, stick.y), planted);
+            _mover.Tick(deltaTime, new System.Numerics.Vector2(stick.x, stick.y), planted, SpeedHere());
 
             // Stopped near a station roughly in front: settle round to face it (decision 2026-11-11).
             if (!taken && _interactor != null && _interactor.Target != null)
@@ -158,6 +158,18 @@ namespace Game.Gameplay
                 ? Quaternion.RotateTowards(transform.rotation, Quaternion.Euler(0f, FacingOverride.Value, 0f), OverrideTurnSpeed * deltaTime)
                 : Quaternion.Euler(0f, _mover.FacingDegrees, 0f);
             _writtenRotation = transform.rotation;
+        }
+
+        /// <summary>True while the chef stands in floor dirt, which slows them (decision 2026-11-11).</summary>
+        public bool InFloorDirt { get; private set; }
+
+        // A greasy floor slows a chef down: standing in a floor stain caps their speed.
+        private float SpeedHere()
+        {
+            var services = _interactor != null ? _interactor.Services : null;
+            var here = transform.position;
+            InFloorDirt = services != null && services.Dirt.NearestOnFloor(here.x, here.z, _tuning.FloorDirtReach) != null;
+            return InFloorDirt ? _tuning.FloorDirtSpeed : 1f;
         }
 
         // Back to the nearest free floor above where they fell, or to where they joined.

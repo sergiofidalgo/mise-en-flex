@@ -73,7 +73,7 @@ namespace Game.Simulation.Realism
                 Buffer = trace.Buffer,
                 SweepEdge = Math.Min(0.95f, trace.SweepEdge / ease),
                 CircleSpeed = trace.CircleSpeed * ease,
-                WideCircleSpeed = trace.WideCircleSpeed * ease,
+                MopSpeed = trace.MopSpeed * ease,
                 SweepSpeed = trace.SweepSpeed * ease,
             };
         }

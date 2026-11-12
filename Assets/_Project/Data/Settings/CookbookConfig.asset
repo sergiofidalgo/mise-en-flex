@@ -34,6 +34,15 @@ MonoBehaviour:
     _ingredients:
     - Steak
     _popularity: 1
+    _steps:
+    - _station: Fridge
+      _text: Take a steak
+    - _station: Hob
+      _text: "Sear it in a hot pan, flipping it"
+    - _station: Counter
+      _text: Let it rest a moment
+    - _station: Pass
+      _text: Plate it and send it out
   - _id: steak-rings
     _name: Steak with onion rings
     _main: Steak
@@ -57,6 +66,15 @@ MonoBehaviour:
     - Steak
     - Onion
     _popularity: 1
+    _steps:
+    - _station: Board
+      _text: Cut an onion into rings
+    - _station: Hob
+      _text: Fry the rings golden
+    - _station: Hob
+      _text: Sear the steak to order
+    - _station: Pass
+      _text: "Rest the steak, plate both"
   - _id: steak-onions
     _name: "Steak with saut\xE9ed onions"
     _main: Steak
@@ -80,6 +98,15 @@ MonoBehaviour:
     - Steak
     - Onion
     _popularity: 1
+    _steps:
+    - _station: Board
+      _text: Dice an onion
+    - _station: Hob
+      _text: "Saut\xE9 it soft and golden"
+    - _station: Hob
+      _text: Sear the steak to order
+    - _station: Pass
+      _text: "Rest the steak, plate both"
   - _id: onions
     _name: "Saut\xE9ed onions"
     _main: DicedOnion
@@ -100,6 +127,15 @@ MonoBehaviour:
     _ingredients:
     - Onion
     _popularity: 0.5
+    _steps:
+    - _station: Fridge
+      _text: Take an onion
+    - _station: Board
+      _text: Dice it
+    - _station: Hob
+      _text: "Saut\xE9 it as ordered"
+    - _station: Pass
+      _text: Plate it and send it out
   _minPrice: 1
   _maxPriceFactor: 5
   _demandElasticity: 1.5

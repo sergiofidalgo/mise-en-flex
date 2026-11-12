@@ -198,5 +198,14 @@ namespace Game.Tests.EditMode
             Assert.That(movement.AssistRange, Is.GreaterThan(0f));
             Assert.That(movement.AssistHalfAngleDegrees, Is.GreaterThan(0f).And.LessThan(90f));
         }
+
+        [Test]
+        public void FloorDirtCapsTheChefsSpeed()
+        {
+            var mover = new PlanarMover(Assisted);
+            for (var t = 0f; t < 0.3f; t += Step)
+                mover.Tick(Step, new Vector2(0f, 1f), speedScale: 0.55f);
+            Assert.That(mover.Velocity.Length(), Is.EqualTo(5f * 0.55f).Within(Tolerance));
+        }
     }
 }

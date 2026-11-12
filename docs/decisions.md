@@ -58,6 +58,14 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 **Budget:** the exterior is well over the art bible's 60,000 triangles now (seven cars at about 5,500, four houses at about 4,300, some forty trees). No frame rate has been measured.
 
 **Not done:** the other streets (Riverside) get the same pieces in the same colours; the stalls are untouched.
+---
+
+## 2026-11-12 — The mop sweeps like the extinguisher; sweeping tools fill an arc from both ends
+
+**User's call:** the extinguisher's quick side-to-side was liked; mopping should work the same way, with fire shown in red-orange and mopping in blue. Washing and wiping keep circling the stick round a ring.
+
+- **The mop sweeps** (`TraceShape.MopSweep`): the stick wagged from one side to the other, as for a fire, at up to 0.8 sweeps a second (the extinguisher 0.9). The mop's spin is gone.
+- **An arc for sweeping tools** (`CleaningView`): the mop and the extinguisher show an arch of 14 segments across the top of the spot (100° either side of screen up) instead of a full ring. It fills from both ends towards the middle as the sweeps go left and right. Mop: grime brown to water blue. Fire: charcoal to red-orange, and its finishing flash is red-orange (was foam white). The stick cue wags for both; the cloth's ring and cue still circle.
 
 ---
 
@@ -104,6 +112,34 @@ The user's notes after playing the sixth pass:
   - *The lift* (`OpeningPath.LiftClimb`): beside the camera up to 14 m under the top; from half-way through the climb's time it covers those last floors on its own, quickly at first and slowing, and comes up into the floor's elevator at the moment the camera reaches the wide shot. Before, it arrived about three quarters of the way through and the camera spent three more seconds settling. **Cost:** for the last four seconds the cab is not beside the camera; it is inside the tower under the cornice, out of sight, until it comes up through the floor.
 - **The helicopter flies low over the floor itself** as the camera lands: east to west over the middle of the floor, 5 m up, crossing the middle of the wide shot at about the moment of landing and gone a second or two after. Up in the sky it was in view for under a second at the cornice and the user never saw it. It passes over the play area while players get control; say if that's too much.
 - **The lamps' flat bands are on for the street and the tower, in play** (3 bands), so the finish can be judged there: the user couldn't find it, because it was only in captured stills. Between half and four fifths of the way through the climb they fade back to the smooth falloff (`_GameLampBandMix`, `OpeningSequence` "Lamps"), so the boss's floor keeps the smooth lamps the user chose on 2026-11-09: tried on the floor itself, three bands left dark blotches on its carpets. On trial: Lamp Bands on the scene's LampLighting object, 0 for smooth everywhere. To be confirmed or put back by the user.
+
+---
+
+## 2026-11-12 — LT RT keys that step aside, the ingredient wheel in the scene, translucent runny stains
+
+**User's calls, from play and screenshots:** LT RT shouldn't persist while browsing storage or cooking, and should be smaller and tied to the appliance. The ingredient wheel should match the other contextual interactions. Stains should be more realistic: less flat, a little translucent.
+
+- **LT RT** (`ApplianceHints`): drawn as small toon keys, the family of the gauges' X: a dark key with an Ink outline and white letters, 32 px at 1080p however far the camera is. On a gas hob they sit by the heat knob; elsewhere at the appliance's far edge. They hide while the slot menu is open, while a trigger is pulled, and while a hob's food shows its crust strip. The appliance hints have no X any more: flipping's X is on the strip, cleaning's on the mess. They still fade once learnt.
+- **The ingredient wheel** (`SlotWheelView`), for storage, stalls and the tray menu, replacing the flat card: four tiles over the station, laid out like the face buttons (A below, B right, X left, Y above). The user chose square tiles with rounded corners, close together, over circles. Each tile has the ingredient's picture, a ×N count in its corner (made bigger at the user's request) and its button in Xbox colours on its outer edge. Empty slots are dimmed, the player's colour ring sits at the hub, and a tile pops when something is taken. It faces the camera, is sized in pixels (190 px across) and stays on screen. A round count badge was tried and the user preferred the corner count.
+- **Stains** (`CleaningView`): a smooth, wobbly outline with one or two runs, a shallow dome with smooth normals, and small splatter drops round it. They're a little translucent through a new blended toon shader (`Game/ToonStain`, `MAT_FX_Stain`): the body at 72% opacity, the rim lighter, the sheen and highlight stronger, foam nearly opaque.
+- **Verified:** EditMode passes. PlayMode: the HUD, gauge and wheel tests pass (`KitchenHudPlayTests` were updated to these rules). The rest of the full run passed apart from the 2 Casa Lucía tests, which need that scene built. Captures via `ContextHintsCapture`. **Not yet played by hand.**
+- **Known:** the scene shows faintly through the wheel's tiles (the on-top toon shader); readable, left for the art pass.
+
+---
+
+## 2026-11-11 — The cleaning X on the mess, greasier stains, floor dirt slows chefs, hold X turns in the office
+
+**User's calls, from play:** the X hint was too big, and on a stain nothing showed, so the user didn't know what to do. Stains should look greasier and more varied. Stepping in floor dirt should noticeably slow a chef. Dirt only affects guests through reviews (no visible reaction). Holding X and the stick should turn the chef on the spot in the office too.
+
+- **The cleaning X on the mess itself** (`CleanHintView`): when a chef with empty hands could start cleaning, the ring that holding X fills appears on the dirt, the sink with a dirty plate, or the fire. It's empty, dashed and gently pulsing, with the X at its top, the point where the stick's circle starts. Dirt rings are grime brown (they read on cream counters and the grey floor) with the spot's own stain shape inside, drawn over whatever is in front, so a spill hidden behind a counter still reads (checked with a spill behind the island). The appliance hints no longer show an X for cleaning. The hint fades once a player has cleaned a few times, like the appliance hints.
+- **One X size, 32 px at 1080p** (the user's pick after 22 and 28): the cleaning hint, the crust strip and the cutting dial.
+- **Greasier stains** (`CleaningView`): a darker soaked rim, a lighter sheen pool and a bright highlight facing the light, and 2–4 glossy droplets. Every spot has its own random shape; the hint's stain is the same shape.
+- **Floor dirt slows chefs**: standing within 0.4 m of a floor stain caps walking at 55% (`TuningConfig`: floor dirt speed and reach). Guests are unchanged: dirt lowers the dish score and can be what the review is about.
+- **Hold X turns in the office too**: outside a kitchen, holding X plants the chef and the stick turns them on the spot.
+- **Verified:** EditMode passes. PlayMode: the new hint, slowdown and office-turn tests pass (the office test skips where the office hasn't been built), and the cleaning, gauge and board tests pass. Captures via `ContextHintsCapture`. **Not yet played by hand.**
+- **Still to do from the same request:** the LT/RT hints (hidden while browsing or cooking, smaller and attached to the knob or the lid) and the in-scene ingredient wheel.
+
+---
 
 ## 2026-11-11 — The opening, sixth pass: a lift that stays in frame, taller floors, the helicopter, couriers riding
 
@@ -178,6 +214,108 @@ Implements the movement and cleaning calls of the playtest round (entry below, "
 - **To watch when playing:** whether 600°/s with the 35% light push feels responsive enough when walking normally; whether the assist ever turns a chef somewhere they didn't want; a chef still spinning the stick after a job ends, with nothing else in reach, turns round on the spot. If that feels wrong, a short pause before the stick turns them is easy to add. When the next patch starts at once, the finishing flash is cut short.
 
 **Design doc:** §15.8 / the dirt paragraph still says cleaning is "different from the sink's balancing game". Washing and cleaning are now one family of hold X and circle the stick.
+
+---
+
+## 2026-11-12 — forkcast's left column narrows to 440 px
+
+**User's call:** the left column took too much of the panel (600 of 1,760 px) and left too little for the tabs. We chose one narrower layout for every tab, not a column that shrinks on some tabs, so nothing jumps when switching tabs with LB/RB.
+
+**Decision:**
+- **The left column is 440 px** (`LeftX`, `LeftWidth`). The photo keeps its height (338 px) and is cropped to the middle of the shot, not squashed. The name shrinks to fit. The four fact tiles are about 214 px each, with captions that shrink rather than cut off. The Start button spans the column, and its words shrink if a long one doesn't fit beside the Y.
+- **The right side starts 44 px after it and is about 1,200 px wide** (it was 1,036). Every tab's positions now follow `RightX`, `RightWidth` and `HalfWidth` instead of fixed pixels:
+  - Overview: the boss card is 700 wide.
+  - Restaurant: the list is 520 wide, and the dish's detail takes the rest.
+  - Books: the top two cards share the width.
+  - Staff rows are wider.
+
+---
+
+## 2026-11-12 — Prices in tenths, shown on a dial of whole numbers
+
+**User's calls:**
+- **Prices move in steps of 10 cents** (`CookbookConfig._priceStep` 0.1), so $24.30 can be set. This replaces the 50 cents of the night before. Prices are kept rounded to the cent, and a 50-cent price from before stays as it was.
+- **The dial only shows whole numbers;** a needle shows the tenths. Each D-pad step moves the drum a tenth of the gap between two numbers, so $24.30 has the needle three tenths of the way from 24 to 25. The exact price is written beside the heading: "PRICE $24.30".
+  - Crossing a whole number ticks fully, like a detent; a step between numbers ticks lighter and higher.
+  - Held, the steps speed up to one every 0.03 s (`_priceRepeatFastest`), about $3 a second.
+- **The guests and profit chips fit their words,** side by side from the left. Once the price has moved off the suggestion, X (the small X ★ badge) appears at the row's far right.
+
+- **Profit shows its cents** ("$18.30"), so it moves with every 10-cent step; the guests % updates with each step too.
+- **"Closed" is red** on the Overview's "Closed · Opens" card.
+- **Tried and dropped:** keeping the price fixed in the dial's middle with a needle moving along a ruler round the suggestion. The user preferred the rolling whole numbers with the needle in the middle.
+
+**Fixed along the way:** the dial rolled the wrong way. A higher price slid the numbers right, where the higher ones should come in from the right. That may be part of why it didn't feel right.
+
+---
+
+## 2026-11-11 — Prices in steps of 50 cents; a quieter, plainer price dial; the footer flush
+
+**User's calls:**
+- **Prices move in steps of 50 cents,** so $25.50 can be set. This replaces "steps of 1" (2026-11-08). Every price is a multiple of `CookbookConfig._priceStep` (0.5): set, nudged, loaded, and the side's share of a dish. A save with whole prices reads the same (`PriceRecord.Price` and `DishNight.Price` are now decimals). Cards and the books show cents only when there are any ("$24.50", "$25").
+- **The dial:**
+  - It shows five numbers.
+  - They're written without trailing zeros ("24.5", "25"; "24,5" in Spanish).
+  - All are the same size; only their opacity falls away from the middle.
+  - They're evenly spaced. The currency moved to the heading ("PRICE · $"), so no number changes its text as it rolls. The ‹ › arrows are gone.
+- **Price consequences:** two chips, guests ("0%" when unchanged) and "Profit". The stars chip is gone.
+- **The suggestion is quiet:** no "suggested $20 +23%" text. Off the suggestion, a small badge (X and a gold star) sits on the heading's right, and the suggested price is the gold star on the dial's ruler.
+- **forkcast's footer is flush with the panel:** the start bar begins at the footer's top. There was a 10 px band between them.
+- **Layout touches (later the same evening):**
+  - "Kitchen costs $6" replaces "about $6 a serving".
+  - The chips under the dial sit as far from the panel's bottom as its sides are.
+  - The day strip's end labels line up with its ends.
+  - The dish's plate is drawn at 300 px, pushed into the panel's top-right corner. Its steam may rise past the card.
+
+---
+
+## 2026-11-11 — The price's consequences as one row of icons; room for six steps
+
+**User's note:** the dial still wasn't exciting, and the text under the price was too much. Show the consequences with icons and values in one row, and leave room for recipes of up to six steps.
+
+**Decision:**
+- **One row of three chips under the dial,** each an icon, a value and a word:
+  - guests (a person, "−13% guests"; "=" when unchanged);
+  - stars (a star, "−0.5 stars");
+  - earnings (the money chip's coin, "$18 each").
+  Green helps, red hurts. The chips punch with every step of the dial. The sentences ("Guests: about 13% fewer", …) are gone.
+- **The suggestion moved to the PRICE heading:** "PRICE · suggested $20 +20%", with X Suggested on the right.
+- **The dial has a ruler:** ticks every half step along its foot, sliding with the numbers. The suggested price is a gold star on the ruler. Landing on it clicks into place: the middle number turns gold, the well flashes, the star swells, and the kitchen's chime plays.
+- **Six steps fit:** the price area starts lower (`PriceTop`), and steps are 34 px apart, closing to 30 px for six.
+
+---
+
+## 2026-11-11 — The Restaurant tab: owned and unowned dishes apart, how to cook, a springier dial, a bigger unlock
+
+**User's notes:** the money dial didn't feel good; the unlock animation should be bigger; dishes you own and those you don't should look much more different, and both should explain how they're cooked.
+
+**Decision:**
+- **Two groups:** the list is "On your menu · n", then "To unlock · n" (`RecipeBook.OnMenuFirst`).
+  - **A dish on the menu:** a bright card, its plate in colour (steaming when chosen), a green dot with "On the menu", and its price big on the right.
+  - **A dish to unlock:** a darker card (`_lockedCard`), its plate cold behind a padlock, its complexity, and its unlock price on a dark tag with a padlock (red when there isn't enough money).
+  - **The detail panel opens with a status pill:** green "On your menu", or dark "Not on your menu yet" with a padlock. Its plate is padlocked too.
+  - When a dish is unlocked, the choice follows it into the menu group.
+- **How to cook:** every recipe has three to five steps in `CookbookConfig` (`_steps`: a station and a short line, translated). They're shown as numbered rows with the station on a chip, gold numbers when the dish is yours and quiet ones when it isn't. The four starting dishes:
+  - **Steak:** fridge, sear and flip, rest, plate.
+  - **With rings:** cut rings, fry them, sear the steak, rest and plate.
+  - **With sautéed onions:** dice, sauté, sear, rest and plate.
+  - **Sautéed onions:** fridge, dice, sauté, plate.
+  The "Needs" pills are gone, since the steps name the stations.
+- **The dial:**
+  - Every number shows the currency, so nothing changes text as it rolls. Before, the middle number gained and lost its $ as it moved.
+  - It moves on a slightly bouncy spring (`_dialStiffness` 420, `_dialDamping` 0.62), so each step lands with a small overshoot, like a detent. The new middle number punches up as it lands.
+  - Each step ticks: the kitchen's clack, pitched up, a little higher going up.
+  - Held, it starts at a step every 0.16 s and speeds up to one every 0.07 s over 1.6 s. Before, it jumped straight to 14 a second.
+  - At its lowest or highest, a fresh press bumps the dial and makes a low clack.
+- **A bigger unlock moment (1.9 s):**
+  - The plate leaps to 1.45× with a wobble and springs back as its colour returns.
+  - A glow and two rings burst from behind it, and 26 sparks fly, kept within the panel.
+  - A "New on the menu!" stamp slams down across the plate.
+  - The status pill reads "New on the menu", the card flashes and pops.
+  - A sizzle and the till play.
+
+**Not verified by playing:** how the dial and the moment feel in motion, and whether the clack works as a dial tick or wants its own sound.
+
+**Flagged for review:** the cooking steps are written from the game's mechanics as recorded here (rings take 2 cuts, diced onion 5, steak rests out of the pan). If the actual flow differs (for instance, if rings aren't fried in a pan), the lines in `CookbookConfig` are the place to change them.
 
 ---
 
@@ -3857,7 +3995,7 @@ It hides (fading over the HUD's 0.12 s) behind the Review dashboard, the pause m
 
 **User's calls, building on "The wheelie bin moves…" above:**
 - **The bin's smell reaches 4 m from the customer door** and costs up to **1 star** with the bin right at the door, fading in a straight line to nothing at 4 m (`Surroundings.BinSmell`). Reviews mention it when it costs at least half a star (bin within about 2 m). Today's layouts keep the bin about 5.5 m from the door, so they're untouched. Distance is from the door to the bin's nearest side, read each time a guest is served, so a moved door or bin counts at once.
-- **The bin has flies over it** (`BinFlies`, added by the street builder), so players can tell why guests by the door grumble.
+- **The bin has flies over it** (`BinFlies`, added by the street builder), so players can tell why guests by the door grumble. **Calmed the same day (user's call):** the outside bin's flies should feel ambient, not alarming. There are now 3 instead of 6, smaller (3 cm), slower (0.3–0.7 loops a second), in tighter loops (0.12–0.35 m) with less bob and wander, 1.5 m up. The kitchen bin's swarm (`BinFillView`) stays urgent.
 - **A great night is tonight's average stars ≥ 4.5, this guest's own dish included, and this guest not kept waiting** (patience at serving above the slow-service mark). Stars are counted before the bin and the open kitchen, so a show doesn't feed itself and a complaint doesn't spiral.
 - **An open kitchen moves a guest's score up to ±1 star:** half a star per appliance in the dining room or table in the kitchen, capped at one. On a great night it's a bonus and praise-worthy guests write chef's-table reviews (`ChefsTable`); otherwise it's a penalty and guests complain about mess and noise (`OpenKitchenMess`).
 - **An open kitchen always makes more mess:** every 3 guests served, each out-of-place piece leaves a wipe of floor dirt beside it (grease by an appliance, footprints by a table), scaled by the hygiene dial.
