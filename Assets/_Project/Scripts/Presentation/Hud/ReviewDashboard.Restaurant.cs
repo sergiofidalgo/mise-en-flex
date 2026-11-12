@@ -520,7 +520,8 @@ namespace Game.Presentation.Hud
                 change > 0 ? $"+{change}%" : change < 0 ? $"−{-change}%" : "0%", Tr.Get("guests"),
                 change > 0 ? _goodText : change < 0 ? _badText : _ink);
             Effect(cx + gap, chipTop, chipHeight, null, _gold,
-                Money(earns), Tr.Get("Profit"), earns > 0f ? _goodText : _badText);
+                // With its cents, so it moves with every 10-cent step of the price (2026-11-12).
+                PriceText(earns), Tr.Get("Profit"), earns > 0f ? _goodText : _badText);
             // Off the suggestion, X takes it back: a small badge (X and the suggestion's star) at the far right.
             if (Mathf.Abs(price - recipe.SuggestedPrice) > 0.001f)
                 SuggestionBadge(x + inner, chipTop + 3f);

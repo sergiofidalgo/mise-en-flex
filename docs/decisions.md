@@ -13,6 +13,10 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
   - Held, the steps speed up to one every 0.03 s (`_priceRepeatFastest`), about $3 a second.
 - **The guests and profit chips fit their words,** side by side from the left. Once the price has moved off the suggestion, X (the small X ★ badge) appears at the row's far right.
 
+- **Profit shows its cents** ("$18.30"), so it moves with every 10-cent step; the guests % updates with each step too.
+- **"Closed" is red** on the Overview's "Closed · Opens" card.
+- **Tried and dropped:** keeping the price fixed in the dial's middle with a needle moving along a ruler round the suggestion. The user preferred the rolling whole numbers with the needle in the middle.
+
 **Fixed along the way:** the dial rolled the wrong way. A higher price slid the numbers right, where the higher ones should come in from the right. That may be part of why it didn't feel right.
 
 ---

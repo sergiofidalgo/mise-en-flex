@@ -319,7 +319,9 @@ namespace Game.Presentation.Hud
         // Never open while forkcast shows: next is tonight in a morning, tomorrow after a service.
         private (string Value, string Label, bool Alarm) NextOpening()
         {
-            return ($"{NextOpensAt()} {Weekday(StartsDay)}", Tr.Get("Closed · Opens"), false);
+            // "Closed" in red (the user's call, 2026-11-12): the restaurant isn't taking guests now.
+            var closed = $"<color=#{ColorUtility.ToHtmlStringRGB(_badText)}>{Tr.Get("Closed")}</color>";
+            return ($"{NextOpensAt()} {Weekday(StartsDay)}", $"{closed} · {Tr.Get("Opens")}", false);
         }
 
         // Everything that came in that night: meals and tips (the user's call: money in, not profit).
