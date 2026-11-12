@@ -69,6 +69,15 @@ namespace Game.Tests.PlayMode
         }
 
         // Stands the chef where someone would, in front of the station, facing it.
+        // Whether someone standing at a station has open floor behind them, a metre deep.
+        private bool HasRoomBehind(Interactable station)
+        {
+            var front = Services.Messes.InFront(station);
+            var away = front - station.transform.position;
+            away.y = 0f;
+            return !Physics.SphereCast(front + Vector3.up * 0.6f, 0.3f, away.normalized, out _, 1f);
+        }
+
         private void StandAt(Interactable station)
         {
             var front = Services.Messes.InFront(station);
@@ -272,7 +281,10 @@ namespace Game.Tests.PlayMode
         public IEnumerator HoldingXWithNothingToCleanPlantsTheChefAndTheStickTurnsThem()
         {
             yield return OpenKitchenInPrep();
-            var counter = Services.Stations.All.OfType<CounterStation>().First(c => c.IsClear);
+            // A clear counter with a metre of open floor behind whoever stands at it, since the chef
+            // walks off that way at the end. Stations register in no fixed order, and the islands
+            // face the kitchen's dividing wall: stood at one of those there's nowhere to walk to.
+            var counter = Services.Stations.All.OfType<CounterStation>().First(c => c.IsClear && HasRoomBehind(c));
             StandAt(counter);
             yield return null;
             Assume.That(Services.Dirt.On(counter), Is.Empty);

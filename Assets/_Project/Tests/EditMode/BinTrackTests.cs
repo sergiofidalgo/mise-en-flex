@@ -22,6 +22,27 @@ namespace Game.Tests.EditMode
             p.X > Min.X + slack && p.X < Max.X - slack && p.Y > Min.Y + slack && p.Y < Max.Y - slack;
 
         [Test]
+        public void ItStopsShortOfWhatStandsAtTheEastWallsNorthEnd()
+        {
+            // The air conditioning's outdoor unit has the last 1.35 m of the east wall (2026-11-12).
+            const float kept = 1.35f;
+            var whole = Track();
+            var track = new BinTrack(Min, Max, Gap, Size, Radius, kept);
+            Assert.That(track.Length, Is.EqualTo(whole.Length - kept).Within(1e-4f));
+            for (var s = 0f; s <= track.Length; s += 0.01f)
+            {
+                var footprint = track.FootprintAt(s);
+                foreach (var corner in footprint.Corners(0f))
+                    Assert.IsFalse(corner.X > Max.X && corner.Y > Max.Y - kept + 1e-3f, $"the bin is in the unit's place at {s:0.00} m");
+            }
+            // The west wall is as long as ever, and the east wall's stretch ends short of the unit.
+            Assert.That(track.At(0f).Position, Is.EqualTo(whole.At(0f).Position));
+            Assert.That(track.At(track.Length).Position.Y, Is.EqualTo(Max.Y - Size.X / 2f - kept).Within(1e-3f));
+            Assert.That(track.IsAgainstAWall(track.Length), Is.True);
+            Assert.That(track.Snap(new Vector2(Max.X + 1f, Max.Y)), Is.EqualTo(track.Length).Within(1e-3f), "a bin dropped by the unit goes to the nearest free spot");
+        }
+
+        [Test]
         public void ItNeverReachesIntoTheBuildingAllTheWayRound()
         {
             var track = Track();

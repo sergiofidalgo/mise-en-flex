@@ -43,6 +43,27 @@ float _GameLampBands;
 // street and the tower are flat-banded and the boss's floor keeps its smooth lamps.
 float _GameLampBandMix;
 
+// The time of day (decision 2026-11-12: the opening times players choose show in the scene). A
+// kitchen scene sets these globals (DaylightView); unset, _GameDaylightOn is 0 and nothing changes,
+// so the office and the menu are as they were. The sun and the sky light are multiplied by
+// _GameDaylight outdoors and by _GameIndoorLight inside the building's box on the ground
+// (_GameIndoorBox: min x, min z, max x, max z), blending across its walls. Lamps are not: at
+// night the street's and the restaurant's own lights are what's left.
+float _GameDaylightOn;
+float3 _GameDaylight;
+float3 _GameIndoorLight;
+float4 _GameIndoorBox;
+
+half3 Daylight(float3 positionWS)
+{
+    if (_GameDaylightOn < 0.5)
+        return half3(1.0, 1.0, 1.0);
+    // How far inside the box the point is, in metres (negative outside), eased over a wall's thickness.
+    float2 inside = min(positionWS.xz - _GameIndoorBox.xy, _GameIndoorBox.zw - positionWS.xz);
+    float indoors = saturate(min(inside.x, inside.y) / 0.3 + 0.5);
+    return lerp(_GameDaylight, _GameIndoorLight, indoors);
+}
+
 half3 LocalLights(half3 albedo, float3 positionWS, float3 normalWS, float4 positionCS)
 {
 #if defined(_ADDITIONAL_LIGHTS) || USE_CLUSTER_LIGHT_LOOP
@@ -111,7 +132,8 @@ half3 ToonShade(half3 albedo, float3 positionWS, float3 normalWS, float4 positio
     float lit = smoothstep(RampLitEdge - RampSoftness, RampLitEdge + RampSoftness, value);
     float3 toCamera = GetWorldSpaceNormalizeViewDir(positionWS);
     float rim = pow(saturate(1.0 - dot(normalWS, toCamera)), 4.0) * _RimStrength * lit;
-    return color + rim + LocalLights(albedo, positionWS, normalWS, positionCS);
+    // Everything the sun and sky gave takes the hour's colour; the lamps, added after, don't.
+    return (color + rim) * Daylight(positionWS) + LocalLights(albedo, positionWS, normalWS, positionCS);
 }
 
 half3 ToonShade(half3 albedo, float3 positionWS, float3 normalWS, float4 positionCS)

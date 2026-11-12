@@ -1,5 +1,4 @@
 using Game.Gameplay;
-using Game.Simulation.Days;
 using Game.Simulation.Street;
 using UnityEngine;
 
@@ -88,17 +87,6 @@ namespace Game.Presentation.Street
             return _dark ? warmed : 1f - warmed;
         }
 
-        private bool Dark()
-        {
-            var services = _root != null ? _root.Services : null;
-            if (services == null || services.Service == null)
-                return false;
-            var clock = services.Service.Settings.Clock;
-            // Before the doors open it's the opening hour; from then on, the service's own clock,
-            // which stays where it stopped through closing and the review.
-            var phase = services.Days.Phase;
-            var elapsed = phase == DayPhase.Plan || phase == DayPhase.Prep ? 0f : services.Service.Elapsed;
-            return StreetHours.Dark(clock.HourAt(elapsed), _duskHour, _dawnHour);
-        }
+        private bool Dark() => StreetHours.Dark(DaylightView.ClockHour(_root != null ? _root.Services : null), _duskHour, _dawnHour);
     }
 }

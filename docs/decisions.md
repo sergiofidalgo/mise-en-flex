@@ -4,6 +4,63 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-12 — The light of the day follows the opening times
+
+**The user's request:** "players can decide the restaurant opening times now... I wish that their choice would also impact the scene, so they can play during the day, night, or both; if they would play a full day we should also figure light transitions from day to night."
+
+- **The light goes by the service's clock** (`Daylight`, `DaylightView`). Lunch (12:00–16:00) plays in daylight. Dinner (18:00–24:00) opens in the gold of early evening and is in full night by 20:45. All day (12:00–24:00) goes through all of it. The turns: day until 16:30, golden by 18:15, a mauve dusk by 19:30, deep blue night by 20:45; dawn between 5:30 and 8:30 is there for a clock that ever needs it. Before the doors open it's the opening hour; after they close, the hour they closed at, through Close and Review. A new day's morning eases in over about 1.5 s.
+- **Outdoors and indoors are lit differently, on purpose.** Outdoors the sun and sky take the hour's colour, so the night street is dark blue and its lamps, windows and shopfronts are what light it. Inside the building's walls the restaurant has its own light: it warms slightly as night falls and never drops below nine tenths of daylight. Reason: the kitchen must read the same at any hour; cooking by a blue gloom would punish players for choosing dinner.
+- **How:** two colours and the building's box on the ground, set as shader globals; `ToonCommon.hlsl` multiplies what the sun and sky gave by one or the other, blending across the walls' thickness, and leaves lamps alone. Unset (the office, the menu), nothing changes. The sun's shadows soften to half strength at night. The sun doesn't move.
+- **The street's lamps and windows** go by the same hour (on from 19:00, as before).
+- **To judge the look without playing a whole service:** `DaylightView` on the Street object has "Fix Hour" and an hour slider.
+
+**Verified:** EditMode tests on the curve (white at lunch, blue at dinner, only ever darker through an all-day service and never a jump; indoors always above 0.9). Stills at 13:00, 18:15, 19:30 and 22:00 by `StreetLifeCapture`.
+
+**To judge in play:** how dark the night street is for a chef walking to the stalls; the seam where the two lights meet at the doorway and along the cut walls; whether indoors should dim more for mood; whether the sun should also sink, for long evening shadows (not done: it would change how every counter and chef is shaded).
+
+**Design doc:** §opening times (if there is one by now) should say the slot sets the light as well as the guests.
+
+---
+
+## 2026-11-12 — The street's art pass: real surfaces, modelled houses and props, and a façade that rises when the chefs are outside
+
+**The user's notes:** not convinced by "the chimney, trees, the restaurant menu, branding or surface textures across the scene"; "the houses behind the restaurant don't feel great"; and "it'd be cool to show some parts of the restaurant façade as players go out".
+
+- **Surfaces** (`Surfaces`, the room shader's world-space patterns; no new shader): the pavement is small bricks in rows, each a shade of its own; the plaza 0.6 m slabs; the far pavement 0.8 m slabs; the road and the parking lot mottled asphalt with grit; the grass patched lighter and darker.
+- **New models** (`SM_Outside`, `build_outside` in the Blender script, put together by `Outside`):
+  - **Houses** in two kinds, turn about: a cottage with its ridge along the street, and a taller one gable-on with an attic window. Brick walls in four colours, slate or tile roofs, shutters, panelled doors under little roofs, chimneys with pots. Their panes are what lights at dusk, two houses in three.
+  - **Trees:** a broad tree and a poplar, leaves in two tones, the crown stirring. Behind the restaurant and in the park.
+  - **No chimney; an air conditioning unit instead.** The extractor went through a two-metre steel flue ("doesn't really fit in the scene") and a squat copper cowl before the user dropped it: "remove the chimney, instead let's have some sort of AC outdoor unit sitting by the floor", with a reference photo, "on the right side of the restaurant". A cream box on two feet with a fan behind a round grille, louvres down one end and two pipes to the wall, on the ground against the east wall's north end, facing the parking lot. Its fan idles and turns faster the harder the kitchen cooks (`OutdoorUnitView`, `StreetHours.Extraction`). The steam, and the dark smoke of a pan on fire, went with the chimney.
+  - **The menu:** chalked on an A-board (the lit stand is gone).
+  - **The sign:** a cream board in a copper rim between two dark posts, a cloche on top as every restaurant's emblem.
+- **The façade** (`FacadeView`): a pilaster at each front corner, a fascia right across with the restaurant's name on it, and a striped awning under that, all in the sign's red-brown and cream. It stands on the front wall's top and **rises only when every chef has been outside for 0.35 s**, in 0.4 s, and sinks as soon as one steps in. Reason: indoors nothing may hide the kitchen or the dining room, which is why the walls are cut low; outside, the building should look like a restaurant. With one chef in and one out it stays down. Nothing in it depends on where the door is, since players can move it; the awning runs over it.
+
+
+**The user's later notes the same day, and what they changed:**
+
+- **"Buildings could also use some texture."** The neighbours' walls are brick, or larger stone blocks for the cool colours, in the colour the city gave each (`OfficeBuilder.StreetBuilding`). Materials of the street's own, so the night city's flat walls are untouched.
+- **"The parking lot is not technically accessible by cars... the banner goes on the left, connect the parking lot with the road, and put a pedestrian walk in between blocks."** The sign stands on the plaza's side now (1.9 m west of the building's corner, mirrored, so the bin still clears it). A driveway of asphalt crosses the pavement from a dropped kerb into the lot, between the restaurant and the next block, with a zebra crossing where the pavement carries on over it. The bay by the driveway stays empty; the two parked cars are in the bays beyond. No lamp or hydrant stands in the driveway's mouth. **"Pedestrian walk" was read as that zebra crossing; to be confirmed.** Chefs still can't step onto the road there: the kerb's invisible edge is unchanged.
+- **"The menu should go right next to the main door... if the door moves, the menu should be like attached to it."** `DoorMenuView`: the A-board stands 1.2 m along the wall from the door's middle and 0.45 m out, on the side the queue doesn't use (`CustomerDirector.QueueSide`), and follows the door wherever players move it, turning with its wall. Passers-by still stop to read it, at a spot that moves with it, but only while it's on the street front: nobody walks round to a door on a side wall.
+- **"The houses look nice, but the scenery around them doesn't feel great."** The houses moved 1.5 m back to make room: a cobbled lane behind the restaurant's fence; a front garden for each house behind a low hedge, with a path to its door and flowers under its ground-floor windows; a tree in the gardens between each pair of houses; hedges between the plots; and behind the houses a tall hedge the whole length with a line of large trees over it, where there was bare lawn and then nothing.
+
+- **"The trash bin shall go on the left side of the restaurant, aligned with the green stall."** The wheelie bin starts against the west wall, level with the stall at the back of the plaza. It still rolls round the west, front and east walls, but **its track now stops 1.35 m short of the east wall's north end** (`BinTrack`'s `eastEndKept`), where the outdoor unit stands, so it can never be parked on it.
+- **"The fire hydrant more noticeable, and the banner closer to the restaurant."** The hydrant is half as big again, on a pale pad (a yellow kerb beside it was tried and taken out: "remove the yellow lines"). The sign straddles the building's plaza-side front corner: one post in front of the wall, one by the plaza, 1.7 m out, beyond the queue and a bin against the wall, and just outside the bin's sweep round the corner.
+- **Graffiti: "only by the parking, older and grimier."** Four old tags low on the wall by the parking lot, under the sunset mural: bleached towards the wall's grey, flaked off in patches, streaked with soot (`StreetArt.OldTags`). The city's own tags on the neighbours' shutters and fronts are cleared here. The two murals stay; **whether they count as graffiti to go is the user's to say.**
+- **Steam from the road**, as in the user's reference of New York: two manholes with steam rising, one in the near lane off the plaza and one in the far lane beyond the driveway (`OfficeBuilder.StreetManhole`, the city's own).
+- **The ground is laid in pieces up to 6 m across** and the street lamps are eight times as strong, both for the night: only four lamps can light any one object in this pipeline, and a lamp tuned as daytime dressing gave almost nothing three metres below it.
+
+**Verified:** stills by `StreetLifeCapture` (which puts the façade up by hand: no chef plays in a batch run). Both suites pass.
+
+**A test that turned out to depend on luck:** `CleaningPlayTests.HoldingXWithNothingToCleanPlantsTheChefAndTheStickTurnsThem` began failing in most full-suite runs once the street's scenes were rebuilt, while passing when run by itself. Logged inside the suite, the cause was the test, not the street: it stood the chef at "the first clear counter", stations register in no fixed order, and when an island came first the chef had the kitchen's dividing wall 4 cm behind them and nowhere to walk the 0.2 m it asks for. With the wall counter there's open floor and it passes. The test now picks a clear counter with a metre of open floor behind whoever stands at it (`HasRoomBehind`); what it asserts is unchanged. This is the controls-and-cleaning work's test, changed here because this work exposed it.
+
+**To judge in play:** the façade's rise and fall as chefs cross the doorway, and whether its awning hides the queue along the front wall from the game camera; the brick paving and asphalt grit at the kitchen camera's distance (they may be too busy); whether the sign hides a chef buying at the nearest stall; the menu board when the door is on a side wall, where the wheelie bin's track passes.
+
+**Budget:** the exterior is well over the art bible's 60,000 triangles now (seven cars at about 5,500, four houses at about 4,300, some forty trees). No frame rate has been measured.
+
+**Not done:** the other streets (Riverside) get the same pieces in the same colours; the stalls are untouched.
+
+---
+
 ## 2026-11-11 — The street comes alive: passers-by, a menu board, pigeons, lamps at dusk, the extractor
 
 **The user's request:** more detail outside the kitchen, "just like we do in the city, birds, people roaming around", and no delivery scooters yet (a mechanic for later). Asked which ideas to build first, the user left the choice to me; this is the first pass I proposed. The rest is in `ideas.md` ("Street life, next touches").

@@ -1,7 +1,6 @@
 using System;
 using System.Collections;
 using System.IO;
-using System.Reflection;
 using Game.Gameplay;
 using Game.Presentation;
 using Game.Presentation.Street;
@@ -38,7 +37,6 @@ namespace Game.Tests.PlayMode
             // The hobs on, so the extractor has something to show.
             foreach (var hob in root.Services.Cooking.Hobs)
                 hob.Dial = 1f;
-            var lamps = Object.FindFirstObjectByType<StreetLampsView>();
             var folder = Folder();
 
             // A second camera over the road, looking back at the restaurant: the whole street at once.
@@ -52,33 +50,66 @@ namespace Game.Tests.PlayMode
             wide.transform.SetPositionAndRotation(new Vector3(-2f, 17f, -27f), Quaternion.Euler(42f, 0f, 0f));
             wide.fieldOfView = 50f;
 
-            SetHours(lamps, 25f); // never dark
+            // No chef is playing here, so the façade (which rises once they're all outside) is put up by hand.
+            var facade = Object.FindFirstObjectByType<FacadeView>();
+            if (facade != null)
+            {
+                facade.enabled = false;
+                var rise = facade.transform.Find("Rise");
+                rise.gameObject.SetActive(true);
+                rise.localScale = Vector3.one;
+            }
+
+            // Lunch time, then on through the day: golden hour, dusk, night.
+            DaylightView.Preview = 13f;
             yield return new WaitForSeconds(9f);
             Shoot(Camera.main, Path.Combine(folder, "street_life_game_day.png"));
             Shoot(wide, Path.Combine(folder, "street_life_wide_day.png"));
-
-            SetHours(lamps, 0f); // always dark: the lamps come on over a few seconds
-            yield return new WaitForSeconds(9f);
-            Shoot(Camera.main, Path.Combine(folder, "street_life_game_dusk.png"));
-            Shoot(wide, Path.Combine(folder, "street_life_wide_dusk.png"));
+            foreach (var (hour, name) in new[] { (18.25f, "golden"), (19.5f, "dusk"), (22f, "night") })
+            {
+                DaylightView.Preview = hour;
+                yield return new WaitForSeconds(hour > 19f ? 9f : 7f); // the light eases over; the lamps come on one by one
+                Shoot(wide, Path.Combine(folder, $"street_life_wide_{name}.png"));
+            }
+            Shoot(Camera.main, Path.Combine(folder, "street_life_game_night.png"));
+            wide.transform.SetPositionAndRotation(new Vector3(1f, 7.5f, -21f), Quaternion.Euler(24f, 0f, 0f));
+            yield return null;
+            Shoot(wide, Path.Combine(folder, "street_life_front_night.png"));
+            DaylightView.Preview = 13f;
+            yield return new WaitForSeconds(7f);
 
             // Closer on the pavement by the sign, where the menu board stands.
             wide.transform.SetPositionAndRotation(new Vector3(3f, 7f, -17f), Quaternion.Euler(35f, 10f, 0f));
             yield return new WaitForSeconds(6f);
             Shoot(wide, Path.Combine(folder, "street_life_board.png"));
 
+            // The restaurant's front and the houses behind it, from across the road.
+            wide.transform.SetPositionAndRotation(new Vector3(1f, 7.5f, -21f), Quaternion.Euler(24f, 0f, 0f));
+            yield return null;
+            Shoot(wide, Path.Combine(folder, "street_life_front.png"));
+
+            // The houses behind, with their lane and gardens, seen over the kitchen.
+            wide.transform.SetPositionAndRotation(new Vector3(-2f, 8f, -7f), Quaternion.Euler(27f, 0f, 0f));
+            yield return null;
+            Shoot(wide, Path.Combine(folder, "street_life_houses.png"));
+            // The air conditioning's outdoor unit by the east wall, from the parking lot; and the bin by the west wall.
+            wide.transform.SetPositionAndRotation(new Vector3(8.5f, 3f, -1.5f), Quaternion.Euler(27f, -55f, 0f));
+            yield return null;
+            Shoot(wide, Path.Combine(folder, "street_life_unit.png"));
+            wide.transform.SetPositionAndRotation(new Vector3(-10f, 6f, -6.5f), Quaternion.Euler(38f, 42f, 0f));
+            yield return null;
+            Shoot(wide, Path.Combine(folder, "street_life_bin.png"));
+
+            // The driveway into the parking lot, its dropped kerb and the crossing over it.
+            wide.transform.SetPositionAndRotation(new Vector3(8f, 10f, -20f), Quaternion.Euler(42f, -4f, 0f));
+            yield return null;
+            Shoot(wide, Path.Combine(folder, "street_life_driveway.png"));
+
             // And on the plaza: the bench, the planters, the pigeons between the stalls.
             wide.transform.SetPositionAndRotation(new Vector3(-9f, 8f, -12f), Quaternion.Euler(40f, 0f, 0f));
             yield return null;
             Shoot(wide, Path.Combine(folder, "street_life_plaza.png"));
-        }
-
-        private static void SetHours(StreetLampsView lamps, float dusk)
-        {
-            if (lamps == null)
-                return;
-            typeof(StreetLampsView).GetField("_duskHour", BindingFlags.NonPublic | BindingFlags.Instance).SetValue(lamps, dusk);
-            typeof(StreetLampsView).GetField("_dawnHour", BindingFlags.NonPublic | BindingFlags.Instance).SetValue(lamps, 0f);
+            DaylightView.Preview = null;
         }
 
         private static void Shoot(Camera camera, string path)

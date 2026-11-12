@@ -110,20 +110,31 @@ namespace Game.Presentation.Street
             _settings.AvoidDistance = _avoidDistance;
             _settings.SideStep = _sideStep;
             _settings.SideStepSpeed = _sideStepSpeed;
-            _settings.HasBoard = _board != null && _boardSpot != null;
-            if (_settings.HasBoard)
-            {
-                _settings.Board = new SimVector2(_board.position.x, _board.position.z);
-                _settings.BoardSpot = new SimVector2(_boardSpot.position.x, _boardSpot.position.z);
-            }
+            FindBoard();
             _settings.BoardLane = _boardLane;
             _settings.ReadChance = _readChance;
             _settings.ReadMin = _readMin;
             _settings.ReadMax = Mathf.Max(_readMin, _readMax);
         }
 
+        // Where the board and its reader's spot are now: the board follows the street door, which
+        // players can move. Nobody stops for one that isn't on this pavement (a door on a side wall).
+        private void FindBoard()
+        {
+            _settings.HasBoard = false;
+            if (_board == null || _boardSpot == null)
+                return;
+            var spot = _boardSpot.position;
+            if (spot.z < _minZ - 0.1f || spot.z > _maxZ + 0.6f || spot.x < _west || spot.x > _east)
+                return;
+            _settings.HasBoard = true;
+            _settings.Board = new SimVector2(_board.position.x, _board.position.z);
+            _settings.BoardSpot = new SimVector2(spot.x, spot.z);
+        }
+
         private void Update()
         {
+            FindBoard();
             if (Time.time >= _nextLook)
             {
                 _nextLook = Time.time + PeopleEvery;

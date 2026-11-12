@@ -201,6 +201,39 @@ namespace Game.Tests.EditMode
         }
 
         [Test]
+        public void TheLightIsWhiteByDayBlueByNightAndTurnsBetween()
+        {
+            Assert.That(Daylight.At(13f), Is.EqualTo(Daylight.Day), "lunch");
+            Assert.That(Daylight.At(22f), Is.EqualTo(Daylight.Night), "dinner");
+            Assert.That(Daylight.At(25f), Is.EqualTo(Daylight.Night), "past midnight, on a clock past 24");
+            Assert.That(Daylight.At(18.25f), Is.EqualTo(Daylight.Golden));
+            // Through an all-day service it only ever gets darker, and never jumps.
+            var before = Daylight.At(12f);
+            for (var hour = 12f; hour <= 24f; hour += 0.05f)
+            {
+                var now = Daylight.At(hour);
+                Assert.That(now.X + now.Y + now.Z, Is.LessThanOrEqualTo(before.X + before.Y + before.Z + 1e-4f), $"darker by {hour:0.00}");
+                Assert.That(Vector3.Distance(now, before), Is.LessThan(0.03f), $"no jump at {hour:0.00}");
+                before = now;
+            }
+            // Night is blue: more blue in it than red.
+            Assert.That(Daylight.Night.Z, Is.GreaterThan(Daylight.Night.X));
+        }
+
+        [Test]
+        public void IndoorsItNeverGoesDark()
+        {
+            Assert.That(Daylight.Nightfall(13f), Is.EqualTo(0f));
+            Assert.That(Daylight.Nightfall(22f), Is.EqualTo(1f).Within(1e-5f));
+            Assert.That(Daylight.Indoors(13f), Is.EqualTo(Daylight.Day));
+            for (var hour = 0f; hour <= 24f; hour += 0.25f)
+            {
+                var light = Daylight.Indoors(hour);
+                Assert.That((light.X + light.Y + light.Z) / 3f, Is.GreaterThan(0.9f), $"the kitchen reads the same at {hour:0.00}");
+            }
+        }
+
+        [Test]
         public void TheExtractorWorksHarderTheMoreIsCooking()
         {
             var off = new List<(float, bool)> { (0f, false), (0f, false) };

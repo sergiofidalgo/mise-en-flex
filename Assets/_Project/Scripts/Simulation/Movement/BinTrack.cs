@@ -25,6 +25,7 @@ namespace Game.Simulation.Movement
         private readonly float _half;     // half the bin's length, along the wall
         private readonly float _radius;
         private readonly float _inset;    // the corner circles' centres, in from each wall
+        private readonly float _eastEndKept; // the north end of the east wall that's left alone
         private readonly float[] _ends;   // where each of the five pieces of track ends
 
         /// <param name="buildingMin">The building's outer south-west corner (x, z).</param>
@@ -34,7 +35,9 @@ namespace Game.Simulation.Movement
         /// <param name="cornerRadius">The radius its middle turns round a corner on, at least
         /// <c>wallGap + size.Y / 2</c>. Too big and the building's corner pokes into the bin as it
         /// turns; BinTrackTests checks the value the game uses.</param>
-        public BinTrack(Vector2 buildingMin, Vector2 buildingMax, float wallGap, Vector2 size, float cornerRadius)
+        /// <param name="eastEndKept">Metres of the east wall's north end the bin never rolls onto:
+        /// something else stands there (the air conditioning's outdoor unit).</param>
+        public BinTrack(Vector2 buildingMin, Vector2 buildingMax, float wallGap, Vector2 size, float cornerRadius, float eastEndKept = 0f)
         {
             _min = buildingMin;
             _max = buildingMax;
@@ -52,7 +55,8 @@ namespace Game.Simulation.Movement
             _ends[1] = _ends[0] + arc;
             _ends[2] = _ends[1] + south;
             _ends[3] = _ends[2] + arc;
-            _ends[4] = _ends[3] + west;
+            _eastEndKept = Math.Min(west, Math.Max(0f, eastEndKept));
+            _ends[4] = _ends[3] + west - _eastEndKept;
         }
 
         /// <summary>Half the bin's length (x, along the wall) and depth (y), for its footprint.</summary>
@@ -182,8 +186,10 @@ namespace Game.Simulation.Movement
                 var from = _ends[1] + (_min.X + _half - (_min.X + _inset));
                 yield return (from, from + frontRoom);
             }
-            if (sideRoom >= 0f)
-                yield return (_ends[4] - sideRoom, _ends[4]);
+            // The east wall's stretch starts where it always did and ends short of what's kept.
+            var eastRoom = sideRoom - _eastEndKept;
+            if (eastRoom >= 0f)
+                yield return (_ends[4] - eastRoom, _ends[4]);
         }
 
         private (Vector2, float) OnArc(Vector2 centre, float angle)

@@ -3347,6 +3347,210 @@ def build_board():
     return [finish("BoardBody", bm)]
 
 
+def tilt_x(bm, start, degrees, pivot):
+    """Leans every vert made since `start` about a line along x through `pivot` (y, z)."""
+    bm.verts.ensure_lookup_table()
+    turn = Matrix.Translation((0.0, pivot[0], pivot[1])) @ Matrix.Rotation(math.radians(degrees), 4, 'X') @ Matrix.Translation((0.0, -pivot[0], -pivot[1]))
+    bmesh.ops.transform(bm, matrix=turn, verts=bm.verts[start:])
+
+
+# Where the outdoor unit's fan turns: its axle's place in the unit, in Blender's (x, y, z). The
+# game stands the fan there (Unity x = -x, y = z, z = -y).
+OUT_UNIT_FAN = (-0.14, 0.13, 0.42)
+
+
+def build_outside():
+    """What stands round a restaurant, outside (the user's notes, 2026-11-12: the chimney, the
+    trees, the menu, the branding and the houses behind didn't convince). Houses with pitched
+    roofs, shutters and chimneys, in two kinds; a broad tree and a poplar, their leaves in two
+    tones; the air conditioning's outdoor unit, a cream box with a fan behind a round grille; a menu on an A-board; and
+    the restaurant's sign, a framed board between two posts under a cloche. Each stands on the
+    ground at its own origin, its front to +y (the camera), split by colour."""
+    objects = []
+
+    # ---- Houses ----------------------------------------------------------------------------------
+    # A: a cottage, its ridge along the street, so the roof slopes down towards the camera.
+    # B: a taller house, gable to the street, with an attic window.
+    for tag, width, depth, wall, ridge, gable_front in (("A", 5.6, 4.6, 3.0, 4.75, False), ("B", 4.8, 4.6, 4.7, 6.45, True)):
+        hw, hd = width / 2.0, depth / 2.0
+        walls = bmesh.new()
+        add_box(walls, (width, depth, wall), (0.0, 0.0, wall / 2.0), bevel=0.05)
+        roof = bmesh.new()
+        if gable_front:
+            add_profile_y(walls, [(-hw + 0.04, wall - 0.02), (hw - 0.04, wall - 0.02), (0.0, ridge - 0.32)], hd - 0.04)
+            add_profile_y(roof, [(-hw - 0.32, wall - 0.12), (hw + 0.32, wall - 0.12), (hw + 0.32, wall + 0.04), (0.0, ridge), (-hw - 0.32, wall + 0.04)], hd + 0.3)
+        else:
+            add_extrude_yz(walls, [(-hd + 0.04, wall - 0.02), (hd - 0.04, wall - 0.02), (0.0, ridge - 0.32)], -hw + 0.04, hw - 0.04)
+            add_extrude_yz(roof, [(-hd - 0.32, wall - 0.12), (hd + 0.32, wall - 0.12), (hd + 0.32, wall + 0.04), (0.0, ridge), (-hd - 0.32, wall + 0.04)], -hw - 0.3, hw + 0.3)
+        # A little roof over the door.
+        door_x = -1.15 if gable_front else 0.0
+        add_box(roof, (1.5, 0.7, 0.1), (door_x, hd + 0.3, 2.36), bevel=0.03)
+        objects.append(finish(f"OutHouse{tag}Walls", walls))
+        objects.append(finish(f"OutHouse{tag}Roof", roof))
+
+        trim = bmesh.new()
+        glass = bmesh.new()
+        shutters = bmesh.new()
+        front = hd + 0.01
+        windows = [(1.2, 1.6), (-1.2, 3.55), (1.2, 3.55)] if gable_front else [(-1.75, 1.7), (1.75, 1.7)]
+        for x, z in windows:
+            add_box(trim, (1.02, 0.1, 1.22), (x, front, z), bevel=0.02)
+            add_box(trim, (1.2, 0.2, 0.08), (x, front + 0.04, z - 0.65), bevel=0.02)  # the sill
+            add_box(glass, (0.86, 0.06, 1.06), (x, front + 0.04, z))
+            add_box(trim, (0.05, 0.05, 1.06), (x, front + 0.07, z))  # glazing bars
+            add_box(trim, (0.86, 0.05, 0.05), (x, front + 0.07, z + 0.1))
+            for side in (-1.0, 1.0):
+                add_box(shutters, (0.3, 0.06, 1.2), (x + side * 0.68, front + 0.02, z), bevel=0.015)
+                for k in range(5):  # louvres
+                    add_box(shutters, (0.22, 0.02, 0.03), (x + side * 0.68, front + 0.055, z - 0.44 + k * 0.22))
+        if gable_front:  # the attic's little window
+            add_box(trim, (0.66, 0.1, 0.66), (0.0, front, wall + 0.75), bevel=0.02)
+            add_box(glass, (0.52, 0.06, 0.52), (0.0, front + 0.04, wall + 0.75))
+        # The door's frame and step, and the posts of its little roof.
+        add_box(trim, (1.08, 0.1, 2.16), (door_x, front, 1.08), bevel=0.02)
+        add_box(trim, (1.5, 0.6, 0.16), (door_x, front + 0.3, 0.08), bevel=0.03)
+        for side in (-1.0, 1.0):
+            add_box(trim, (0.07, 0.07, 2.3), (door_x + side * 0.68, front + 0.55, 1.15))
+        # Boards along the eaves and a band at the foot of the walls.
+        add_box(trim, (width + 0.06, depth + 0.06, 0.3), (0.0, 0.0, 0.15), bevel=0.03)
+        objects.append(finish(f"OutHouse{tag}Trim", trim))
+        objects.append(finish(f"OutHouse{tag}Glass", glass))
+        objects.append(finish(f"OutHouse{tag}Shutters", shutters))
+
+        door = bmesh.new()
+        add_box(door, (0.9, 0.06, 2.0), (door_x, front + 0.04, 1.02), bevel=0.015)
+        for z in (0.6, 1.45):  # panels
+            add_box(door, (0.62, 0.03, 0.6), (door_x, front + 0.075, z), bevel=0.02)
+        objects.append(finish(f"OutHouse{tag}Door", door))
+
+        chimney = bmesh.new()
+        cx, cy = (hw - 0.9, -0.5) if not gable_front else (-hw + 0.75, -0.9)
+        add_box(chimney, (0.56, 0.56, ridge - wall + 0.5), (cx, cy, wall + (ridge - wall + 0.5) / 2.0), bevel=0.03)
+        add_box(chimney, (0.7, 0.7, 0.12), (cx, cy, ridge + 0.5), bevel=0.03)
+        add_lathe(chimney, [(0.0, ridge + 0.56), (0.13, ridge + 0.56), (0.11, ridge + 0.9), (0.0, ridge + 0.9)], segments=10, centre=(cx, cy, 0.0))
+        objects.append(finish(f"OutHouse{tag}Chimney", chimney))
+
+    # ---- Trees -----------------------------------------------------------------------------------
+    trunk = bmesh.new()
+    add_lathe(trunk, [(0.0, 0.0), (0.3, 0.0), (0.19, 0.45), (0.15, 1.6), (0.12, 2.5), (0.0, 2.5)], segments=10)
+    add_cone(trunk, (0.0, 0.0, 1.7), (-0.75, 0.15, 2.7), 0.09, segments=8)
+    add_cone(trunk, (0.0, 0.0, 1.9), (0.7, -0.1, 2.8), 0.08, segments=8)
+    objects.append(finish("OutTreeTrunk", trunk))
+    leaves = bmesh.new()
+    for centre, radii in (((0.0, 0.0, 3.25), (1.3, 1.25, 1.05)), ((-0.85, 0.2, 2.85), (0.85, 0.8, 0.7)), ((0.9, -0.1, 2.95), (0.9, 0.85, 0.72)),
+                          ((0.1, 0.75, 2.75), (0.75, 0.7, 0.62)), ((-0.1, -0.7, 3.0), (0.8, 0.75, 0.66))):
+        add_ellipsoid(leaves, centre, radii, rings=7, segments=12)
+    objects.append(finish("OutTreeLeaves", leaves))
+    light = bmesh.new()  # the sunlit tops, standing just proud
+    for centre, radii in (((0.15, 0.15, 3.8), (0.92, 0.9, 0.6)), ((-0.75, 0.3, 3.32), (0.55, 0.52, 0.4)), ((0.85, 0.05, 3.42), (0.5, 0.5, 0.38))):
+        add_ellipsoid(light, centre, radii, rings=7, segments=12)
+    objects.append(finish("OutTreeLeavesLight", light))
+
+    trunk = bmesh.new()
+    add_lathe(trunk, [(0.0, 0.0), (0.22, 0.0), (0.14, 0.35), (0.11, 1.3), (0.0, 1.3)], segments=10)
+    objects.append(finish("OutPoplarTrunk", trunk))
+    leaves = bmesh.new()
+    add_lathe(leaves, [(0.0, 0.85), (0.5, 1.1), (0.78, 2.1), (0.74, 3.6), (0.5, 4.9), (0.2, 5.6), (0.0, 5.8)], segments=12)
+    objects.append(finish("OutPoplarLeaves", leaves))
+    light = bmesh.new()
+    add_lathe(light, [(0.0, 2.6), (0.42, 2.9), (0.5, 3.8), (0.36, 4.9), (0.16, 5.65), (0.0, 5.86)], segments=12, centre=(0.2, 0.22, 0.0))
+    objects.append(finish("OutPoplarLeavesLight", light))
+
+    # ---- The air conditioning's outdoor unit ------------------------------------------------------
+    # Sits on the ground against the restaurant's side wall (the user's reference photo,
+    # 2026-11-12, in place of an extractor that never fitted): a cream box on two feet, a round
+    # grille over its fan on the front, louvres down one end, a lip round the top, two pipes back
+    # to the wall. 0.95 m wide, 0.36 m deep, 0.76 m tall, front to +y. The fan is its own mesh,
+    # centred on its axle, so the game can stand it behind the grille and spin it.
+    body = bmesh.new()
+    add_box(body, (0.95, 0.36, 0.66), (0.0, 0.0, 0.41), bevel=0.035)
+    add_box(body, (0.99, 0.4, 0.035), (0.0, 0.0, 0.745), bevel=0.012)
+    for k in range(3):  # pressed lines on the panel beside the fan
+        add_box(body, (0.2, 0.012, 0.012), (0.33, 0.181, 0.3 + k * 0.1))
+    objects.append(finish("OutUnitBody", body))
+    fx, fz = OUT_UNIT_FAN[0], OUT_UNIT_FAN[2]
+    turn_y = Matrix.Rotation(math.radians(-90.0), 4, 'X')  # a lathe's z becomes +y
+    grille = bmesh.new()
+    for radius in (0.28, 0.2, 0.12):
+        add_lathe(grille, [(radius - 0.012, 0.0), (radius + 0.012, 0.0), (radius + 0.012, 0.022), (radius - 0.012, 0.022), (radius - 0.012, 0.0)],
+                  segments=24, centre=(fx, 0.18, fz), axis_matrix=turn_y)
+    add_box(grille, (0.56, 0.02, 0.022), (fx, 0.19, fz))
+    add_box(grille, (0.022, 0.02, 0.56), (fx, 0.19, fz))
+    add_cylinder_y(grille, (fx, 0.18, fz), 0.045, 0.024, segments=12)
+    objects.append(finish("OutUnitGrille", grille))
+    dark = bmesh.new()
+    add_cylinder_y(dark, (fx, 0.15, fz), 0.285, 0.032, segments=24)  # the well the fan turns in
+    for k in range(8):  # louvres down the end
+        add_box(dark, (0.02, 0.26, 0.03), (-0.478, 0.0, 0.2 + k * 0.062))
+    objects.append(finish("OutUnitDark", dark))
+    feet = bmesh.new()
+    for x in (-0.33, 0.33):
+        add_box(feet, (0.07, 0.44, 0.08), (x, 0.0, 0.04), bevel=0.015)
+    for z in (0.3, 0.38):  # the pipes back to the wall
+        add_pipe(feet, [(0.475, -0.06, z), (0.56, -0.06, z), (0.56, -0.2, z)], 0.018, segments=8)
+    objects.append(finish("OutUnitFeet", feet))
+    fan = bmesh.new()
+    for k in range(3):
+        start = len(fan.verts)
+        add_box(fan, (0.22, 0.012, 0.09), (0.135, 0.0, 0.0), bevel=0.004)
+        fan.verts.ensure_lookup_table()
+        # Each blade pitched a little, then turned to its place round the hub.
+        bmesh.ops.transform(fan, matrix=Matrix.Rotation(math.radians(120.0 * k), 4, 'Y') @ Matrix.Rotation(math.radians(22.0), 4, 'X'), verts=fan.verts[start:])
+    add_cylinder_y(fan, (0.0, -0.02, 0.0), 0.055, 0.04, segments=12)
+    objects.append(finish("OutUnitFan", fan))
+
+    # ---- The menu, on an A-board -----------------------------------------------------------------
+    frame = bmesh.new()
+    slate = bmesh.new()
+    chalk = bmesh.new()
+    for side, lean in ((1.0, 12.0), (-1.0, -12.0)):
+        starts = [len(m.verts) for m in (frame, slate, chalk)]
+        for x in (-0.3, 0.3):
+            add_box(frame, (0.06, 0.05, 1.02), (x, 0.0, 0.51), bevel=0.012)
+        for z in (0.2, 0.98):
+            add_box(frame, (0.66, 0.05, 0.06), (0.0, 0.0, z), bevel=0.012)
+        add_box(slate, (0.56, 0.02, 0.74), (0.0, 0.0, 0.59))
+        if side > 0:  # the menu itself, on the leaf that faces the street
+            add_box(chalk, (0.3, 0.008, 0.055), (0.0, 0.012, 0.88))
+            add_box(chalk, (0.4, 0.008, 0.012), (0.0, 0.012, 0.82))
+            for k in range(4):
+                z = 0.72 - k * 0.1
+                add_box(chalk, (0.26 - (k % 2) * 0.05, 0.008, 0.028), (-0.1 - (k % 2) * 0.025, 0.012, z))
+                add_box(chalk, (0.07, 0.008, 0.028), (0.2, 0.012, z))
+            add_ellipsoid(chalk, (-0.02, 0.012, 0.32), (0.12, 0.005, 0.07), rings=4, segments=14)  # today's steak, drawn
+            add_box(chalk, (0.012, 0.008, 0.16), (0.17, 0.012, 0.32))
+        for mesh, start in zip((frame, slate, chalk), starts):
+            tilt_x(mesh, start, lean, (0.0, 1.0))
+    add_box(frame, (0.5, 0.03, 0.03), (0.0, 0.0, 0.42))  # the stay between the leaves
+    objects.append(finish("OutMenuFrame", frame))
+    objects.append(finish("OutMenuSlate", slate))
+    objects.append(finish("OutMenuChalk", chalk))
+
+    # ---- The restaurant's sign -------------------------------------------------------------------
+    # The board's face is 1.9 m by 1.05 m with its middle 3.6 m up: the game letters the name on it.
+    posts = bmesh.new()
+    for x in (-1.03, 1.03):
+        add_box(posts, (0.13, 0.13, 4.3), (x, 0.0, 2.15), bevel=0.025)
+        add_box(posts, (0.26, 0.26, 0.3), (x, 0.0, 0.15), bevel=0.04)
+        add_lathe(posts, [(0.0, 4.28), (0.11, 4.3), (0.08, 4.42), (0.0, 4.5)], segments=8, centre=(x, 0.0, 0.0))
+    add_box(posts, (2.06, 0.08, 0.08), (0.0, 0.0, 2.9), bevel=0.02)
+    objects.append(finish("OutSignPosts", posts))
+    board = bmesh.new()
+    add_box(board, (1.9, 0.1, 1.05), (0.0, 0.0, 3.6), bevel=0.03)
+    objects.append(finish("OutSignBoard", board))
+    rim = bmesh.new()
+    for z in (3.06, 4.14):
+        add_box(rim, (1.98, 0.15, 0.07), (0.0, 0.0, z), bevel=0.02)
+    for x in (-0.96, 0.96):
+        add_box(rim, (0.07, 0.15, 1.12), (x, 0.0, 3.6), bevel=0.02)
+    # A cloche over the board: every restaurant's emblem, whatever its name.
+    add_ellipsoid(rim, (0.0, 0.0, 4.2), (0.44, 0.045, 0.38), rings=8, segments=16)  # thinner than the board: only its top half shows
+    add_ellipsoid(rim, (0.0, 0.0, 4.61), (0.07, 0.06, 0.06), rings=6, segments=10)
+    add_box(rim, (1.1, 0.16, 0.06), (0.0, 0.0, 4.2), bevel=0.02)
+    objects.append(finish("OutSignRim", rim))
+    return objects
+
+
 def export_fbx(objects, filename):
     bpy.ops.object.select_all(action='DESELECT')
     for obj in objects:
@@ -3430,6 +3634,7 @@ def main():
         "SM_TrayRack.fbx": build_tray_rack(),
         "SM_City.fbx": build_city(),
         "SM_Cars.fbx": build_cars(),
+        "SM_Outside.fbx": build_outside(),
         "SM_StreetKit.fbx": build_street_kit(),
         "SM_WheelieBin.fbx": build_wheelie_bin(),
         "SM_FloorKit.fbx": build_floor_kit(),
