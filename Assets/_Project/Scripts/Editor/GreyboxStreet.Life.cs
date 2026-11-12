@@ -46,8 +46,8 @@ namespace Game.Editor
             if (Kit.Available)
             {
                 var middle = (Kerb + RoadSouth) / 2f;
-                OfficeBuilder.StreetManhole(street, new Vector3(BuildingWest - 2.5f, 0f, middle + 1.5f));
-                OfficeBuilder.StreetManhole(street, new Vector3(BuildingEast + 7.5f, 0f, middle - 1.7f));
+                OfficeBuilder.StreetManhole(street, new Vector3(BuildingWest - 2.5f, 0f, middle + 1f));
+                OfficeBuilder.StreetManhole(street, new Vector3(BuildingEast + 7.5f, 0f, middle - 2f));
             }
             LampsAndWindows(life, root);
             Furniture(life);

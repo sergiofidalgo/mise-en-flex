@@ -17,6 +17,9 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 - **How a chef is taken and given back** (`ChefHold`): their movement and body are switched off and they're marked busy; whoever holds them moves them by hand; nothing pushes them meanwhile (`PlayerMovement.Shove`). Released, they're stood on the floor by `Teleport`.
 - **The camera's grounds** take in the road and the far pavement.
 
+- **Sharing the road with the couriers** (merged with the delivery work, 2026-11-13): couriers ride and park their scooters 0.9 m off the restaurant's kerb, so both car lanes sit 0.6 m further towards the park and a car's side passes 1.3 m from that kerb. Cars don't hit couriers, and scooters don't hit chefs.
+- **A shop test fixed on the way:**  took the cheapest furniture and expected it to be unaffordable; the delivery boxes are free, so it failed on main. It now takes the cheapest furniture that costs anything; what it asserts is unchanged.
+
 **Placeholders:** the horn, the thud and the bell are made from sine waves and noise in `StreetMishapsView`; the stars are three spheres. The five lines aren't in the language tables yet, so they read in English in every language.
 
 **Verified:** EditMode `StreetMishapsTests` (what counts as reached and as borne down on; where they land; the arc; the scene's edges; the bodyguard's trip). PlayMode `StreetMishapsPlayTests`, in the real scene with a controller chef: stood ahead of a car, they're hit, lose their steak, fly, land on a pavement and stand; stood off the west end, they're noticed and set down on the doorstep still holding their steak.

@@ -155,8 +155,10 @@ namespace Game.Editor
             for (var x = -StreetEnd + 2f; x < StreetEnd - 2f; x += 3f)
                 Box(street, "LaneDash", line, new Vector3(x, 0.006f, middle), new Vector3(1.4f, 0.004f, 0.15f));
 
-            // Keep right: the lane by the restaurant's kerb drives west, the far one east.
-            var lanes = new[] { (middle + 1.6f, -1f), (middle - 1.6f, 1f) };
+            // Keep right: the lane by the restaurant's kerb drives west, the far one east. Both sit a
+            // little towards the park, leaving a strip along this kerb for the couriers' scooters, which
+            // ride and park 0.9 m off it (CourierRoad): a car's side is 1.3 m from the kerb.
+            var lanes = new[] { (middle + 1f, -1f), (middle - 2f, 1f) };
             for (var k = 0; k < 5; k++)
             {
                 var (z, dir) = lanes[k % 2];

@@ -101,8 +101,9 @@ namespace Game.Tests.PlayMode
         {
             yield return OpenKitchenWithCursor();
             var expensive = _editor.Shop.OrderByDescending(e => e.Price).First();
-            // Furniture, not kitchenware, which isn't carried.
-            var cheap = _editor.Shop.Where(e => !e.IsItem).OrderBy(e => e.Price).First();
+            // Furniture, not kitchenware, which isn't carried; and something that costs money, which
+            // the delivery boxes don't (free since 2026-11-12): nothing free can be unaffordable.
+            var cheap = _editor.Shop.Where(e => !e.IsItem && e.Price > 0f).OrderBy(e => e.Price).First();
             Days.TrySpend(Days.Balance);
 
             Assert.That(_editor.Buy(_cursor, expensive), Is.False);
