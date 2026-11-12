@@ -57,6 +57,13 @@ namespace Game.Presentation.Hud
                     continue;
                 }
 
+                // The open menu is drawn in the scene now, as a wheel over the station (decision 2026-11-11).
+                if (SlotWheelView.Present)
+                {
+                    card.Hide();
+                    continue;
+                }
+
                 // Only an open menu: a choice to make, not a hint (the hints are on the appliances).
                 _lines.Clear();
                 var prompt = interactor.Target as IStationPrompt;

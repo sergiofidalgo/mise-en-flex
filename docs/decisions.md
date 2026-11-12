@@ -57,6 +57,34 @@ The user's notes after playing the sixth pass:
 - **The helicopter flies low over the floor itself** as the camera lands: east to west over the middle of the floor, 5 m up, crossing the middle of the wide shot at about the moment of landing and gone a second or two after. Up in the sky it was in view for under a second at the cornice and the user never saw it. It passes over the play area while players get control; say if that's too much.
 - **The lamps' flat bands are on for the street and the tower, in play** (3 bands), so the finish can be judged there: the user couldn't find it, because it was only in captured stills. Between half and four fifths of the way through the climb they fade back to the smooth falloff (`_GameLampBandMix`, `OpeningSequence` "Lamps"), so the boss's floor keeps the smooth lamps the user chose on 2026-11-09: tried on the floor itself, three bands left dark blotches on its carpets. On trial: Lamp Bands on the scene's LampLighting object, 0 for smooth everywhere. To be confirmed or put back by the user.
 
+---
+
+## 2026-11-12 — LT RT keys that step aside, the ingredient wheel in the scene, translucent runny stains
+
+**User's calls, from play and screenshots:** LT RT shouldn't persist while browsing storage or cooking, and should be smaller and tied to the appliance. The ingredient wheel should match the other contextual interactions. Stains should be more realistic: less flat, a little translucent.
+
+- **LT RT** (`ApplianceHints`): drawn as small toon keys, the family of the gauges' X: a dark key with an Ink outline and white letters, 32 px at 1080p however far the camera is. On a gas hob they sit by the heat knob; elsewhere at the appliance's far edge. They hide while the slot menu is open, while a trigger is pulled, and while a hob's food shows its crust strip. The appliance hints have no X any more: flipping's X is on the strip, cleaning's on the mess. They still fade once learnt.
+- **The ingredient wheel** (`SlotWheelView`), for storage, stalls and the tray menu, replacing the flat card: four tiles over the station, laid out like the face buttons (A below, B right, X left, Y above). The user chose square tiles with rounded corners, close together, over circles. Each tile has the ingredient's picture, a ×N count in its corner (made bigger at the user's request) and its button in Xbox colours on its outer edge. Empty slots are dimmed, the player's colour ring sits at the hub, and a tile pops when something is taken. It faces the camera, is sized in pixels (190 px across) and stays on screen. A round count badge was tried and the user preferred the corner count.
+- **Stains** (`CleaningView`): a smooth, wobbly outline with one or two runs, a shallow dome with smooth normals, and small splatter drops round it. They're a little translucent through a new blended toon shader (`Game/ToonStain`, `MAT_FX_Stain`): the body at 72% opacity, the rim lighter, the sheen and highlight stronger, foam nearly opaque.
+- **Verified:** EditMode passes. PlayMode: the HUD, gauge and wheel tests pass (`KitchenHudPlayTests` were updated to these rules). The rest of the full run passed apart from the 2 Casa Lucía tests, which need that scene built. Captures via `ContextHintsCapture`. **Not yet played by hand.**
+- **Known:** the scene shows faintly through the wheel's tiles (the on-top toon shader); readable, left for the art pass.
+
+---
+
+## 2026-11-11 — The cleaning X on the mess, greasier stains, floor dirt slows chefs, hold X turns in the office
+
+**User's calls, from play:** the X hint was too big, and on a stain nothing showed, so the user didn't know what to do. Stains should look greasier and more varied. Stepping in floor dirt should noticeably slow a chef. Dirt only affects guests through reviews (no visible reaction). Holding X and the stick should turn the chef on the spot in the office too.
+
+- **The cleaning X on the mess itself** (`CleanHintView`): when a chef with empty hands could start cleaning, the ring that holding X fills appears on the dirt, the sink with a dirty plate, or the fire. It's empty, dashed and gently pulsing, with the X at its top, the point where the stick's circle starts. Dirt rings are grime brown (they read on cream counters and the grey floor) with the spot's own stain shape inside, drawn over whatever is in front, so a spill hidden behind a counter still reads (checked with a spill behind the island). The appliance hints no longer show an X for cleaning. The hint fades once a player has cleaned a few times, like the appliance hints.
+- **One X size, 32 px at 1080p** (the user's pick after 22 and 28): the cleaning hint, the crust strip and the cutting dial.
+- **Greasier stains** (`CleaningView`): a darker soaked rim, a lighter sheen pool and a bright highlight facing the light, and 2–4 glossy droplets. Every spot has its own random shape; the hint's stain is the same shape.
+- **Floor dirt slows chefs**: standing within 0.4 m of a floor stain caps walking at 55% (`TuningConfig`: floor dirt speed and reach). Guests are unchanged: dirt lowers the dish score and can be what the review is about.
+- **Hold X turns in the office too**: outside a kitchen, holding X plants the chef and the stick turns them on the spot.
+- **Verified:** EditMode passes. PlayMode: the new hint, slowdown and office-turn tests pass (the office test skips where the office hasn't been built), and the cleaning, gauge and board tests pass. Captures via `ContextHintsCapture`. **Not yet played by hand.**
+- **Still to do from the same request:** the LT/RT hints (hidden while browsing or cooking, smaller and attached to the knob or the lid) and the in-scene ingredient wheel.
+
+---
+
 ## 2026-11-11 — The opening, sixth pass: a lift that stays in frame, taller floors, the helicopter, couriers riding
 
 The user's notes after playing the fifth pass ("overall feels good, with some notes"):

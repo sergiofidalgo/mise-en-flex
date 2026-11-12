@@ -339,6 +339,43 @@ namespace Game.Tests.PlayMode
             yield return null;
         }
 
+        // Walks the chef right for a moment, from a point, and says how far they got.
+        private IEnumerator WalkFrom(Vector3 start, float seconds, System.Action<float> distance)
+        {
+            _chef.GetComponent<PlayerMovement>().Teleport(new System.Numerics.Vector2(start.x, start.z));
+            yield return null;
+            var from = _chef.transform.position;
+            var until = Time.time + seconds;
+            while (Time.time < until)
+            {
+                InputSystem.QueueStateEvent(_pad, new GamepadState { leftStick = new Vector2(1f, 0f) });
+                yield return null;
+            }
+            InputSystem.QueueStateEvent(_pad, new GamepadState());
+            yield return null;
+            var moved = _chef.transform.position - from;
+            moved.y = 0f;
+            distance(moved.magnitude);
+        }
+
+        [UnityTest]
+        public IEnumerator WalkingThroughFloorDirtSlowsTheChef()
+        {
+            yield return OpenKitchenInPrep();
+            // The same stretch of open floor twice: clean, then smeared with spills the whole way.
+            var start = new Vector3(-2f, 0f, -2.4f);
+            var cleanDistance = 0f;
+            yield return WalkFrom(start, 0.4f, d => cleanDistance = d);
+            for (var x = 0f; x <= 2.0f; x += 0.45f)
+                Services.Mess.PlateBroken(start.x + x, start.z);
+            var dirtyDistance = 0f;
+            yield return WalkFrom(start, 0.4f, d => dirtyDistance = d);
+            Debug.Log($"[FloorDirt] clean {cleanDistance:0.00} m, dirty {dirtyDistance:0.00} m");
+            // Noticeably slower: the start and stop frames blur the exact share, so a clear margin.
+            Assert.That(dirtyDistance, Is.LessThan(cleanDistance * 0.8f), $"clean {cleanDistance:0.00} m, dirty {dirtyDistance:0.00} m");
+            Assert.That(dirtyDistance, Is.GreaterThan(0.05f), "slowed, not stopped");
+        }
+
         // What the camera sees, when CLEANING_CAPTURE names a folder.
         private static void Capture(string name)
         {

@@ -166,6 +166,10 @@ namespace Game.Data
         [SerializeField, Min(0.05f)] private float _extinguisherSpeed = 0.9f;
         [Tooltip("Metres from the chef that floor dirt can be mopped.")]
         [SerializeField, Min(0f)] private float _mopReach = 1.1f;
+        [Tooltip("Share of walking speed while standing in floor dirt: a greasy floor slows the kitchen down (the user's call, 2026-11-11).")]
+        [SerializeField, Range(0.1f, 1f)] private float _floorDirtSpeed = 0.55f;
+        [Tooltip("Metres from a floor stain's centre at which a chef counts as standing in it.")]
+        [SerializeField, Min(0f)] private float _floorDirtReach = 0.4f;
 
         [Header("Gas fires")]
         [Tooltip("Real seconds a pan stays on a lit flame with its food burnt before it catches (the alarm is the warning).")]
@@ -216,6 +220,12 @@ namespace Game.Data
 
         /// <summary>Metres from the chef that floor dirt can be mopped.</summary>
         public float MopReach => _mopReach;
+
+        /// <summary>Share of walking speed while standing in floor dirt.</summary>
+        public float FloorDirtSpeed => _floorDirtSpeed;
+
+        /// <summary>Metres from a floor stain's centre at which a chef counts as standing in it.</summary>
+        public float FloorDirtReach => _floorDirtReach;
 
         [Header("Flip gauge")]
         [Tooltip("Browning of the side facing down where the gauge's green band starts (around 1 is a good crust).")]

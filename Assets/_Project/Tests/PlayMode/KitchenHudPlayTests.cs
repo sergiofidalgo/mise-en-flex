@@ -92,13 +92,6 @@ namespace Game.Tests.PlayMode
         private static int CardsShowing() => Object.FindObjectsByType<PromptCard>(FindObjectsSortMode.None)
             .Count(card => card.gameObject.activeInHierarchy && (!card.TryGetComponent(out CanvasGroup group) || group.alpha > 0.01f));
 
-        private HobStation GasHobWithSteak()
-        {
-            var hob = Services.Stations.All.OfType<HobStation>().First(h => h.Kind == HeatKind.Gas);
-            hob.Hob.Pan.Put(Services.Cooking.AddIngredient(Services.Catalog.Find("Steak").ToProperties()));
-            return hob;
-        }
-
         [Test]
         public void TheDebugPanelsAreOffUntilADeveloperTurnsThemOn()
         {
@@ -116,7 +109,8 @@ namespace Game.Tests.PlayMode
         public IEnumerator NoControlCardOverAHobOnlyItsButtonPictures()
         {
             yield return OpenKitchenInService();
-            var hob = GasHobWithSteak();
+            // An empty pan: LT RT for the heat, by the knob.
+            var hob = Services.Stations.All.OfType<HobStation>().First(h => h.Kind == HeatKind.Gas);
             yield return StandAt(hob);
             yield return Settle();
 
@@ -124,14 +118,20 @@ namespace Game.Tests.PlayMode
             var hints = Object.FindFirstObjectByType<ApplianceHints>();
             Assert.That(hints, Is.Not.Null, "the kitchen has the appliance hints");
             Assert.That(hints.IsShowing(hob, triggers: true), Is.True, "LT RT for the heat");
-            Assert.That(hints.IsShowing(hob, triggers: false), Is.True, "X to flip the steak");
+
+            // A steak searing: the crust strip is the interface (its own X), so no hints on the hob
+            // (decision 2026-11-11: LT RT don't persist while cooking; every X is where it acts).
+            hob.Hob.Pan.Put(Services.Cooking.AddIngredient(Services.Catalog.Find("Steak").ToProperties()));
+            yield return Settle();
+            Assert.That(hints.IsShowing(hob, triggers: true), Is.False, "no LT RT over the crust strip");
+            Assert.That(hints.IsShowing(hob, triggers: false), Is.False, "the flip X is on the strip, not the hob");
         }
 
         [UnityTest]
         public IEnumerator AHintStopsShowingOnceThePlayerHasUsedItEnough()
         {
             yield return OpenKitchenInService();
-            var hob = GasHobWithSteak();
+            var hob = Services.Stations.All.OfType<HobStation>().First(h => h.Kind == HeatKind.Gas);
             yield return StandAt(hob);
             var hints = Object.FindFirstObjectByType<ApplianceHints>();
 
@@ -147,11 +147,15 @@ namespace Game.Tests.PlayMode
             yield return Settle();
 
             Assert.That(hints.IsShowing(hob, triggers: true), Is.False, "the heat hint has faded");
-            Assert.That(hints.IsShowing(hob, triggers: false), Is.True, "flipping isn't learnt yet");
+            // Browsing is learnt on its own: the fridge still shows LT RT.
+            var fridge = Services.Stations.All.OfType<StorageStation>().First();
+            yield return StandAt(fridge);
+            yield return Settle();
+            Assert.That(hints.IsShowing(fridge, triggers: true), Is.True, "browsing isn't learnt yet");
         }
 
         [UnityTest]
-        public IEnumerator HoldingRTAtAFridgeStillOpensItsMenuCard()
+        public IEnumerator HoldingRTAtAFridgeOpensItsWheel()
         {
             yield return OpenKitchenInService();
             var fridge = Services.Stations.All.OfType<StorageStation>().First();
@@ -163,7 +167,13 @@ namespace Game.Tests.PlayMode
             InputSystem.QueueStateEvent(_pad, new GamepadState { rightTrigger = 1f });
             yield return Settle();
             Assert.That(_chef.IsSlotMenuOpen, Is.True);
-            Assert.That(CardsShowing(), Is.EqualTo(1), "the slot menu is a choice, so its card shows");
+            // The slot menu is a choice: it shows as the wheel over the fridge (decision 2026-11-11),
+            // the flat card stays away, and so does the LT RT hint.
+            var wheel = Object.FindFirstObjectByType<Game.Presentation.SlotWheelView>();
+            Assert.That(wheel, Is.Not.Null, "the kitchen has the in-scene wheel");
+            Assert.That(wheel.Showing, Is.EqualTo(1), "the wheel shows");
+            Assert.That(CardsShowing(), Is.Zero, "no flat card");
+            Assert.That(Object.FindFirstObjectByType<ApplianceHints>().IsShowing(fridge, triggers: true), Is.False, "no LT RT while browsing");
             InputSystem.QueueStateEvent(_pad, new GamepadState());
             yield return null;
         }
