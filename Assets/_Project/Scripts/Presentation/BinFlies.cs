@@ -12,25 +12,43 @@ namespace Game.Presentation
     {
         [Tooltip("The flies' look; a plain dark material if empty.")]
         [SerializeField] private Material _material;
-        [SerializeField, Range(0, 16)] private int _count = 6;
+        [SerializeField, Range(0, 16)] private int _count = 3;
         [Tooltip("Metres above the bin's base that the flies circle around (the lid is at about 1.35).")]
-        [SerializeField, Min(0f)] private float _height = 1.6f;
+        [SerializeField, Min(0f)] private float _height = 1.5f;
         [Tooltip("Smallest and largest loop, metres from the middle. Keep under half the bin's depth (0.6) so no fly enters the wall.")]
-        [SerializeField] private Vector2 _radius = new Vector2(0.15f, 0.45f);
+        [SerializeField] private Vector2 _radius = new Vector2(0.12f, 0.35f);
         [Tooltip("How far each fly bobs up and down, metres.")]
-        [SerializeField, Min(0f)] private float _bob = 0.18f;
+        [SerializeField, Min(0f)] private float _bob = 0.08f;
         [Tooltip("Loops a second, slowest and fastest.")]
-        [SerializeField] private Vector2 _loopsPerSecond = new Vector2(0.6f, 1.4f);
+        [SerializeField] private Vector2 _loopsPerSecond = new Vector2(0.3f, 0.7f);
         [Tooltip("How far noise pulls a fly off its loop, metres.")]
-        [SerializeField, Min(0f)] private float _wander = 0.12f;
+        [SerializeField, Min(0f)] private float _wander = 0.06f;
         [Tooltip("A fly's size, metres. Big enough to read from the overhead camera.")]
-        [SerializeField, Min(0.005f)] private float _size = 0.045f;
+        [SerializeField, Min(0.005f)] private float _size = 0.03f;
 
         private Transform[] _flies = new Transform[0];
         private float[] _seeds = new float[0];
 
-        private void Start()
+        private void Start() => Build();
+
+        private void Update() => Place(Time.time);
+
+        /// <summary>
+        /// Puts the flies where they'd be at <paramref name="time"/>, making them first if needed:
+        /// for captures in edit mode, where Start and Update don't run.
+        /// </summary>
+        public void Pose(float time)
         {
+            if (_flies.Length != _count)
+                Build();
+            Place(time);
+        }
+
+        private void Build()
+        {
+            foreach (var old in _flies)
+                if (old != null)
+                    DestroyImmediate(old.gameObject);
             var material = _material != null ? _material : DefaultMaterial();
             _flies = new Transform[_count];
             _seeds = new float[_count];
@@ -38,7 +56,7 @@ namespace Game.Presentation
             {
                 var fly = GameObject.CreatePrimitive(PrimitiveType.Sphere);
                 fly.name = "Fly";
-                Destroy(fly.GetComponent<Collider>()); // nothing bumps into a fly
+                DestroyImmediate(fly.GetComponent<Collider>()); // nothing bumps into a fly
                 var view = fly.GetComponent<Renderer>();
                 view.sharedMaterial = material;
                 view.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
@@ -50,9 +68,8 @@ namespace Game.Presentation
             }
         }
 
-        private void Update()
+        private void Place(float time)
         {
-            var time = Time.time;
             for (var i = 0; i < _flies.Length; i++)
             {
                 var seed = _seeds[i];
