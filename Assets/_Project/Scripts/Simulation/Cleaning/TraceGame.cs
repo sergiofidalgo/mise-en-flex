@@ -9,8 +9,8 @@ namespace Game.Simulation.Cleaning
         /// <summary>The cloth, on tables and counters: spin the stick round, quickly.</summary>
         Circle,
 
-        /// <summary>The mop, on the floor: spin the stick round too, slower and heavier.</summary>
-        WideCircle,
+        /// <summary>The mop, on the floor: wag the stick from side to side (the user's call, 2026-11-12), a little slower than the extinguisher.</summary>
+        MopSweep,
 
         /// <summary>The extinguisher: wag the stick from side to side across the flames.</summary>
         Sweep,
@@ -49,15 +49,15 @@ namespace Game.Simulation.Cleaning
         /// <summary>
         /// Fastest loops a second that count, per tool: spinning (or sweeping) faster than this
         /// cleans no faster, so slamming the stick isn't rewarded. A loop is a full turn, or a sweep
-        /// there and back. The cloth is quickest, the mop slowest.
+        /// there and back. The cloth is quickest, the mop a little slower than the extinguisher.
         /// </summary>
         public float CircleSpeed { get; set; } = 1.1f;
-        public float WideCircleSpeed { get; set; } = 0.7f;
+        public float MopSpeed { get; set; } = 0.8f;
         public float SweepSpeed { get; set; } = 0.9f;
 
         public float SpeedFor(TraceShape shape) => shape switch
         {
-            TraceShape.WideCircle => WideCircleSpeed,
+            TraceShape.MopSweep => MopSpeed,
             TraceShape.Sweep => SweepSpeed,
             _ => CircleSpeed,
         };
@@ -68,7 +68,7 @@ namespace Game.Simulation.Cleaning
     /// 2026-11-11). It's about moving, where the sink is about holding still, but with the sink's
     /// forgiveness (the user's call, after the traced path proved near impossible at times): no
     /// path to stay on. The cloth and the mop clean while the stick is spun round, either way;
-    /// the extinguisher while it's wagged from side to side. Faster cleans faster, up to the tool's
+    /// the mop and the extinguisher while it's wagged from side to side. Faster cleans faster, up to the tool's
     /// speed. Each loop wipes one layer.
     ///
     /// Only new progress counts: turning the stick a little back and forth, or jiggling it in the
@@ -133,7 +133,7 @@ namespace Game.Simulation.Cleaning
             if (seconds <= 0f)
                 return 0f;
 
-            var moved = Shape == TraceShape.Sweep ? Sweep(stick, seconds) : Spin(stick, seconds);
+            var moved = Shape == TraceShape.Circle ? Spin(stick, seconds) : Sweep(stick, seconds);
             // Counted at up to the tool's speed: motion faster than that waits in a small buffer
             // (so a sweep's quick middle isn't lost) and what overflows it cleans no faster.
             _pending = Math.Min(_pending + moved, Math.Max(_settings.Buffer, 0.0));
@@ -235,15 +235,15 @@ namespace Game.Simulation.Cleaning
 
         /// <summary>
         /// The motion as a path in stick units, for hints and tests: up on the stick is +Y. A
-        /// circle for the cloth, a wider one for the mop, side to side for the extinguisher.
+        /// circle for the cloth, side to side for the mop and the extinguisher.
         /// </summary>
         public static Vector2 PointAt(TraceShape shape, float along)
         {
             var angle = along * Math.PI * 2.0;
             switch (shape)
             {
-                case TraceShape.WideCircle:
-                    return new Vector2((float)(0.82 * Math.Cos(angle)), (float)(0.82 * Math.Sin(angle)));
+                case TraceShape.MopSweep:
+                    return new Vector2((float)(0.82 * Math.Sin(angle)), (float)(0.08 * Math.Cos(angle)));
                 case TraceShape.Sweep:
                     return new Vector2((float)(0.8 * Math.Sin(angle)), (float)(0.1 * Math.Cos(angle)));
                 default:

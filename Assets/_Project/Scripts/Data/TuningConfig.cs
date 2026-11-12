@@ -160,8 +160,8 @@ namespace Game.Data
         [SerializeField, Range(0.1f, 1f)] private float _sweepEdge = 0.55f;
         [Tooltip("Fastest turns a second that count with the cloth.")]
         [SerializeField, Min(0.05f)] private float _clothSpeed = 1.1f;
-        [Tooltip("Fastest turns a second that count with the mop.")]
-        [SerializeField, Min(0.05f)] private float _mopSpeed = 0.7f;
+        [Tooltip("Fastest sweeps (there and back) a second that count with the mop.")]
+        [SerializeField, Min(0.05f)] private float _mopSpeed = 0.8f;
         [Tooltip("Fastest sweeps (there and back) a second that count with the extinguisher.")]
         [SerializeField, Min(0.05f)] private float _extinguisherSpeed = 0.9f;
         [Tooltip("Metres from the chef that floor dirt can be mopped.")]
@@ -208,7 +208,7 @@ namespace Game.Data
             TurnBack = _spinTurnBack,
             SweepEdge = _sweepEdge,
             CircleSpeed = _clothSpeed,
-            WideCircleSpeed = _mopSpeed,
+            MopSpeed = _mopSpeed,
             SweepSpeed = _extinguisherSpeed,
         };
 

@@ -67,9 +67,13 @@ namespace Game.Presentation
         [Tooltip("Still dirty, and clean: segments blend between them as the spot is wiped.")]
         [SerializeField] private Color _grime = new Color(0.36f, 0.23f, 0.12f);
         [SerializeField] private Color _clean = new Color(0.33f, 0.66f, 0.92f);
-        [Tooltip("For a fire: still burning, and put out.")]
-        [SerializeField] private Color _flame = new Color(0.95f, 0.42f, 0.12f);
+        [Tooltip("For a fire's arc: still to do, and done (red-orange, the user's call: fire's colours).")]
+        [SerializeField] private Color _charcoal = new Color(0.2f, 0.17f, 0.16f);
+        [SerializeField] private Color _flame = new Color(0.97f, 0.4f, 0.13f);
         [SerializeField] private Color _foam = new Color(0.94f, 0.96f, 0.98f);
+        [Tooltip("The sweeping tools' arc (mop, extinguisher): degrees either side of screen up, and its segments.")]
+        [SerializeField, Range(30f, 170f)] private float _arcHalfAngle = 100f;
+        [SerializeField, Range(2, 30)] private int _arcSegments = 14;
         [Tooltip("Ring size swing while the stick is cleaning (share of its size).")]
         [SerializeField, Range(0f, 0.3f)] private float _pulse = 0.04f;
         [Tooltip("Seconds to pop in when cleaning starts, with a little overshoot, as the sink's ring does.")]
@@ -106,6 +110,7 @@ namespace Game.Presentation
             public Transform Root;
             public Renderer[] Segments;
             public float BuiltRadius;
+            public bool BuiltArc;
             public Transform Tool;
             public Renderer ToolHead;
             public Transform Handle;
@@ -340,8 +345,11 @@ namespace Game.Presentation
             var index = tool == CleaningTool.Mop ? 1 : tool == CleaningTool.Extinguisher ? 2 : 0;
             var radius = _trackRadius[index];
             var fire = tool == CleaningTool.Extinguisher;
-            if (kit.Segments == null || !Mathf.Approximately(kit.BuiltRadius, radius))
-                BuildRing(kit, radius);
+            // Sweeping tools (mop, extinguisher) show an arc that fills from both ends inwards;
+            // the cloth a full ring that fills round (the user's call, 2026-11-12).
+            var arc = tool != CleaningTool.Cloth;
+            if (kit.Segments == null || !Mathf.Approximately(kit.BuiltRadius, radius) || kit.BuiltArc != arc)
+                BuildRing(kit, radius, arc);
 
             // Laid flat and turned to the camera: stick up is screen up, wherever the chef stands.
             var (_, forward) = ScreenAxes();
@@ -351,13 +359,17 @@ namespace Game.Presentation
             kit.Root.SetPositionAndRotation(centre, Quaternion.LookRotation(forward, Vector3.up));
             kit.Root.localScale = Vector3.one * (pulse * Mathf.Max(0.001f, EaseOutBack(kit.Fade)));
 
-            // The ring fills clockwise from the top: each segment turns from grime to water (flame
-            // to foam) as the job's progress passes through it.
             var progress = Mathf.Clamp01(chef.Progress);
-            for (var i = 0; i < kit.Segments.Length; i++)
+            var count = kit.Segments.Length;
+            for (var i = 0; i < count; i++)
             {
-                var clean = Mathf.Clamp01(progress * kit.Segments.Length - i);
-                SetColor(kit.Segments[i], fire ? Color.Lerp(_flame, _foam, clean) : Color.Lerp(_grime, _clean, clean));
+                // The ring fills clockwise from the top; the arc from both its ends towards the
+                // middle, as the sweeps go left and right. Each segment blends as progress passes it.
+                var clean = arc
+                    ? Mathf.Clamp01(progress * count * 0.5f - Mathf.Min(i, count - 1 - i))
+                    : Mathf.Clamp01(progress * count - i);
+                var colour = fire ? Color.Lerp(_charcoal, _flame, clean) : Color.Lerp(_grime, _clean, clean);
+                SetColor(kit.Segments[i], colour);
             }
 
             // The tool's head follows the stick, in the ring's frame.
@@ -377,7 +389,7 @@ namespace Game.Presentation
             var want = kit.Started ? kit.Idle > _stalledDelay : kit.Idle > _openingDelay;
             kit.Hint = Mathf.MoveTowards(kit.Hint, want ? 1f : 0f, Time.deltaTime / 0.15f);
             kit.Centre = centre;
-            kit.Motion = fire ? StickMotion.Wag : StickMotion.Spin;
+            kit.Motion = arc ? StickMotion.Wag : StickMotion.Spin;
             if (kit.Hint > 0f)
                 _hinting.Add(kit);
         }
@@ -391,7 +403,7 @@ namespace Game.Presentation
             var (_, forward) = ScreenAxes();
             kit.Root.SetPositionAndRotation(kit.PopCentre, Quaternion.LookRotation(forward, Vector3.up));
             kit.Root.localScale = Vector3.one * (1f + _pop * t * t);
-            var full = kit.PopFire ? _foam : _clean;
+            var full = kit.PopFire ? _flame : _clean;
             foreach (var segment in kit.Segments)
                 SetColor(segment, Color.Lerp(full, Color.white, t));
         }
@@ -404,8 +416,9 @@ namespace Game.Presentation
             return 1f + (c + 1f) * u * u * u + c * u * u;
         }
 
-        // The ring's segments round the middle: chunky toon blocks, drawn over the chef.
-        private void BuildRing(Kit kit, float radius)
+        // The ring's segments round the middle (or the arc's, across the top for a sweep): chunky
+        // toon blocks, drawn over the chef. Angles run clockwise from screen up.
+        private void BuildRing(Kit kit, float radius, bool arc)
         {
             if (kit.Segments != null)
             {
@@ -420,14 +433,18 @@ namespace Game.Presentation
             }
             var width = radius * _ringShape.x;
             var height = radius * _ringShape.y;
-            var step = Mathf.PI * 2f / RingSegments;
-            kit.Segments = new Renderer[RingSegments];
-            for (var i = 0; i < RingSegments; i++)
+            var count = arc ? Mathf.Max(2, _arcSegments) : RingSegments;
+            var from = arc ? -_arcHalfAngle * Mathf.Deg2Rad : 0f;
+            var span = arc ? 2f * _arcHalfAngle * Mathf.Deg2Rad : Mathf.PI * 2f;
+            var step = span / count;
+            kit.Segments = new Renderer[count];
+            for (var i = 0; i < count; i++)
             {
                 var mesh = StationKitMeshes.RingSector(radius - width / 2f, radius + width / 2f,
-                    (i + SegmentGap * 0.5f) * step, (i + 1 - SegmentGap * 0.5f) * step, height, height * 0.35f);
+                    from + (i + SegmentGap * 0.5f) * step, from + (i + 1 - SegmentGap * 0.5f) * step, height, height * 0.35f);
                 kit.Segments[i] = Piece(kit.Root, mesh, _onTop, _grime, 0);
             }
+            kit.BuiltArc = arc;
             kit.BuiltRadius = radius;
         }
 

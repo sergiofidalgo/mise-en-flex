@@ -235,7 +235,6 @@ namespace Game.Tests.EditMode
         }
 
         [TestCase(TraceShape.Circle)]
-        [TestCase(TraceShape.WideCircle)]
         public void SpinningQuicklyWipesAtTheToolsSpeed(TraceShape shape)
         {
             var game = new TraceGame(shape, _settings);
@@ -295,14 +294,14 @@ namespace Game.Tests.EditMode
         public void SlammingTheStickAboutWipesFarLessThanSpinning()
         {
             var random = new Random(3);
-            var game = new TraceGame(TraceShape.WideCircle, _settings);
+            var game = new TraceGame(TraceShape.Circle, _settings);
             var wiped = 0f;
             for (var t = 0f; t < 5f; t += Frame)
             {
                 var angle = random.NextDouble() * Math.PI * 2;
                 wiped += game.Tick(Frame, new Vector2((float)Math.Cos(angle), (float)Math.Sin(angle)));
             }
-            var spun = Spin(new TraceGame(TraceShape.WideCircle, _settings), 5f, 1f);
+            var spun = Spin(new TraceGame(TraceShape.Circle, _settings), 5f, 1f);
             Assert.That(wiped, Is.LessThan(spun * 0.5f));
         }
 
@@ -312,6 +311,15 @@ namespace Game.Tests.EditMode
             var game = new TraceGame(TraceShape.Sweep, _settings);
             var wiped = Wag(game, 4f, sweepsPerSecond: 0.6f);
             Assert.That(wiped, Is.EqualTo(0.6f * 4f).Within(0.35f), "a loop per sweep there and back");
+        }
+
+        [Test]
+        public void TheMopSweepsSideToSideToo()
+        {
+            // The user's call (2026-11-12): the mop is swept like the extinguisher, a little slower.
+            var mop = Wag(new TraceGame(TraceShape.MopSweep, _settings), 4f, sweepsPerSecond: 0.6f);
+            Assert.That(mop, Is.EqualTo(0.6f * 4f).Within(0.35f));
+            Assert.That(_settings.MopSpeed, Is.LessThan(_settings.SweepSpeed));
         }
 
         [Test]
@@ -330,7 +338,7 @@ namespace Game.Tests.EditMode
         }
 
         [TestCase(TraceShape.Circle)]
-        [TestCase(TraceShape.WideCircle)]
+        [TestCase(TraceShape.MopSweep)]
         [TestCase(TraceShape.Sweep)]
         public void EveryMotionFitsInsideTheStick(TraceShape shape)
         {
@@ -339,7 +347,7 @@ namespace Game.Tests.EditMode
         }
 
         [TestCase(TraceShape.Circle)]
-        [TestCase(TraceShape.WideCircle)]
+        [TestCase(TraceShape.MopSweep)]
         [TestCase(TraceShape.Sweep)]
         public void FollowingTheHintsPathCleans(TraceShape shape)
         {

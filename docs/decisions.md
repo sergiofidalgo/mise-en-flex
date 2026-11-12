@@ -4,6 +4,15 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-12 — The mop sweeps like the extinguisher; sweeping tools fill an arc from both ends
+
+**User's call:** the extinguisher's quick side-to-side was liked; mopping should work the same way, with fire shown in red-orange and mopping in blue. Washing and wiping keep circling the stick round a ring.
+
+- **The mop sweeps** (`TraceShape.MopSweep`): the stick wagged from one side to the other, as for a fire, at up to 0.8 sweeps a second (the extinguisher 0.9). The mop's spin is gone.
+- **An arc for sweeping tools** (`CleaningView`): the mop and the extinguisher show an arch of 14 segments across the top of the spot (100° either side of screen up) instead of a full ring. It fills from both ends towards the middle as the sweeps go left and right. Mop: grime brown to water blue. Fire: charcoal to red-orange, and its finishing flash is red-orange (was foam white). The stick cue wags for both; the cloth's ring and cue still circle.
+
+---
+
 ## 2026-11-11 — The street comes alive: passers-by, a menu board, pigeons, lamps at dusk, the extractor
 
 **The user's request:** more detail outside the kitchen, "just like we do in the city, birds, people roaming around", and no delivery scooters yet (a mechanic for later). Asked which ideas to build first, the user left the choice to me; this is the first pass I proposed. The rest is in `ideas.md` ("Street life, next touches").
