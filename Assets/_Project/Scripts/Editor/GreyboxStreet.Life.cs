@@ -219,13 +219,22 @@ namespace Game.Editor
             var bulbOff = Kit.Toon("StreetBulbOff", new Color(0.82f, 0.82f, 0.78f));
             var lights = new List<Light>();
             var bulbs = new List<Renderer>();
-            for (var x = GroundsWest + 2f; x <= GroundsEast + 6f; x += 7f)
+            // Three a side, well apart (the user's note, 2026-11-12), the far side's standing between
+            // the near side's: by the plaza's far end, in front of the restaurant, and beyond the
+            // driveway on the kerb by the restaurant; six metres on from each on the park's kerb. Every
+            // lamp's arm reaches north: over the pavement on this side, over the road on the other.
+            var middle = (BuildingWest + BuildingEast) / 2f;
+            var spots = new List<Vector3>();
+            foreach (var x in new[] { GroundsWest + 1.5f, middle - 1f, DriveEast + 2.5f })
             {
-                if (x > DriveWest - 0.5f && x < DriveEast + 0.5f)
-                    continue; // none in the driveway's mouth
+                spots.Add(new Vector3(x, 0f, Kerb - 0.02f));
+                spots.Add(new Vector3(x + 6f, 0f, RoadSouth - 0.12f));
+            }
+            foreach (var spot in spots)
+            {
                 var lamp = new GameObject("StreetLamp").transform;
                 lamp.SetParent(life, false);
-                lamp.localPosition = new Vector3(x, 0f, Kerb - 0.02f);
+                lamp.localPosition = spot;
                 Box(lamp, "Post", iron, new Vector3(0f, 1.7f, 0f), new Vector3(0.1f, 3.4f, 0.1f));
                 Box(lamp, "Foot", iron, new Vector3(0f, 0.12f, 0f), new Vector3(0.2f, 0.24f, 0.2f));
                 Box(lamp, "Arm", iron, new Vector3(0f, 3.37f, 0.35f), new Vector3(0.06f, 0.06f, 0.8f));
