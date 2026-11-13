@@ -116,15 +116,26 @@ namespace Game.Gameplay
                 if (player == null || session.StartedFrame == Time.frameCount)
                     continue;
                 var naming = session.Naming;
+                // The key's work happens first: Pressed?.Invoke(player, naming.Delete()) would skip
+                // the delete itself whenever nobody listens to Pressed.
                 if (WasPressed(player, Button.X))
-                    Pressed?.Invoke(player, naming.Delete());
+                {
+                    var deleted = naming.Delete();
+                    Pressed?.Invoke(player, deleted);
+                }
                 var step = Push(session);
                 if (step != Vector2Int.zero)
                     naming.Move(step.x, -step.y);
                 if (WasPressed(player, Button.A))
-                    Pressed?.Invoke(player, naming.Press());
+                {
+                    var typed = naming.Press();
+                    Pressed?.Invoke(player, typed);
+                }
                 else if (WasPressed(player, Button.Start))
-                    Pressed?.Invoke(player, naming.Finish());
+                {
+                    var finished = naming.Finish();
+                    Pressed?.Invoke(player, finished);
+                }
                 if (naming.Done)
                     _done.Add(session);
             }

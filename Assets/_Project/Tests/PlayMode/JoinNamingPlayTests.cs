@@ -80,11 +80,14 @@ namespace Game.Tests.PlayMode
             Assert.That(naming.For(player.playerIndex).Picker.Selected.Kind, Is.EqualTo(Game.Simulation.Campaign.NameKeyKind.Keep), "the cursor starts on last time's name");
 
             // A on the top key keeps last time's name.
+            // Held as long as a real press (about a tenth of a second): a single frame can slip
+            // between input updates in batch mode, which made this flaky.
             Press(_pad.buttonSouth);
-            yield return null;
+            yield return new WaitForSecondsRealtime(0.1f);
             Release(_pad.buttonSouth);
             yield return null;
-            Assert.That(naming.IsNaming(player), Is.False);
+            yield return null;
+            Assert.That(naming.IsNaming(player), Is.False, "A on last time's name finishes");
             Assert.That(hands.IsBusy, Is.False, "free to cook");
             Assert.That(arrived, Is.EqualTo(1));
             Assert.That(ChefProfileFile.Current.Name(player.playerIndex), Is.EqualTo("Rosa"));
@@ -109,7 +112,7 @@ namespace Game.Tests.PlayMode
 
             _pad = InputSystem.AddDevice<Gamepad>("WaitingPad");
             Press(_pad.buttonSouth);
-            yield return null;
+            yield return new WaitForSecondsRealtime(0.1f);
             Release(_pad.buttonSouth);
             yield return null;
             Assert.That(refused, Is.GreaterThan(0), "they're told to wait");
