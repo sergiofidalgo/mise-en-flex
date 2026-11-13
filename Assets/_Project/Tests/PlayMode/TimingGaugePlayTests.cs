@@ -260,6 +260,53 @@ namespace Game.Tests.PlayMode
             Assert.That(wheel.Showing, Is.Zero, "let go of RT: the wheel goes");
         }
 
+        [UnityTest]
+        public IEnumerator TwoPlayersAtNeighbouringUnitsGetWheelsThatDontOverlap()
+        {
+            yield return OpenKitchenInPrep();
+            var wheel = Object.FindFirstObjectByType<SlotWheelView>();
+            Assume.That(wheel, Is.Not.Null, "run Tools/Game/Apply Timing Gauges (or rebuild the kitchen) first");
+            var units = Services.Stations.All.OfType<StorageStation>().ToList();
+            Assume.That(units.Count, Is.GreaterThanOrEqualTo(2));
+            var first = units[0];
+            var second = units.Skip(1).OrderBy(u => (u.transform.position - first.transform.position).sqrMagnitude).First();
+            StandAt(first);
+
+            var pad2 = InputSystem.AddDevice<Gamepad>("WheelTestPad2");
+            try
+            {
+                var player2 = Object.FindFirstObjectByType<PlayerInputManager>().JoinPlayer(controlScheme: "Gamepad", pairWithDevices: pad2);
+                yield return null;
+                yield return null;
+                var chef2 = player2.GetComponent<PlayerInteractor>();
+                var front = Services.Messes.InFront(second);
+                chef2.GetComponent<PlayerMovement>().Teleport(new System.Numerics.Vector2(front.x, front.z));
+                var toward = second.transform.position - chef2.transform.position;
+                toward.y = 0f;
+                chef2.transform.rotation = Quaternion.LookRotation(toward, Vector3.up);
+
+                var until = Time.realtimeSinceStartup + 1f;
+                while (Time.realtimeSinceStartup < until)
+                {
+                    InputSystem.QueueStateEvent(_pad, new GamepadState { rightTrigger = 1f });
+                    InputSystem.QueueStateEvent(pad2, new GamepadState { rightTrigger = 1f });
+                    yield return null;
+                }
+                Assert.That(wheel.Showing, Is.EqualTo(2), "both wheels open");
+                var camera = Camera.main;
+                var a = camera.WorldToScreenPoint(wheel.WheelCentre(_chef.GetComponent<PlayerInput>()).Value);
+                var b = camera.WorldToScreenPoint(wheel.WheelCentre(player2).Value);
+                // About 150 px across at 1080p, with 20 px between: centres at least ~165 px apart
+                // horizontally, scaled to this screen's height.
+                var apart = Mathf.Abs(a.x - b.x) * 1080f / Screen.height;
+                Assert.That(apart, Is.GreaterThan(160f), $"the wheels sit side by side, {apart:0} px apart at 1080p");
+            }
+            finally
+            {
+                InputSystem.RemoveDevice(pad2);
+            }
+        }
+
         // What the camera sees, when TIMING_CAPTURE names a folder.
         private static void Capture(string name)
         {

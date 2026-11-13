@@ -102,6 +102,47 @@ namespace Game.Tests.PlayMode
                 yield return null;
             }
             Capture("storage_browsing");
+
+            // A second chef browsing the neighbouring unit at the same time: two wheels side by side.
+            var units = Services.Stations.All.OfType<StorageStation>().ToList();
+            var neighbour = units.Where(u => u != fridge).OrderBy(u => (u.transform.position - fridge.transform.position).sqrMagnitude).FirstOrDefault();
+            if (neighbour != null)
+            {
+                var pad2 = InputSystem.AddDevice<Gamepad>("CapturePad2");
+                var second = Object.FindFirstObjectByType<PlayerInputManager>().JoinPlayer(controlScheme: "Gamepad", pairWithDevices: pad2);
+                yield return null;
+                yield return null;
+                var chef2 = second.GetComponent<PlayerInteractor>();
+                var front2 = Services.Messes.InFront(neighbour);
+                chef2.GetComponent<PlayerMovement>().Teleport(new System.Numerics.Vector2(front2.x, front2.z));
+                var toward2 = neighbour.transform.position - chef2.transform.position;
+                toward2.y = 0f;
+                chef2.transform.rotation = Quaternion.LookRotation(toward2, Vector3.up);
+                // Four ingredients in each unit, every slot in use: the widest the wheels get.
+                foreach (var unit in new[] { fridge, neighbour })
+                    foreach (var id in new[] { "Steak", "Tomato", "Onion", "OnionRings" })
+                        unit.Unit.Stock(id, () => Services.Cooking.AddIngredient(Services.Catalog.Find(id).ToProperties()), 3);
+
+                // The same pair at a few gaps between the wheels, for comparison.
+                var wheelView = Object.FindFirstObjectByType<Game.Presentation.SlotWheelView>();
+                var apart = typeof(Game.Presentation.SlotWheelView).GetField("_apartPixels", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                foreach (var gap in new[] { 20f, 48f, 72f })
+                {
+                    if (wheelView != null && apart != null)
+                        apart.SetValue(wheelView, gap);
+                    var both = Time.realtimeSinceStartup + 0.8f;
+                    while (Time.realtimeSinceStartup < both)
+                    {
+                        InputSystem.QueueStateEvent(_pad, new GamepadState { rightTrigger = 1f });
+                        InputSystem.QueueStateEvent(pad2, new GamepadState { rightTrigger = 1f });
+                        yield return null;
+                    }
+                    Capture($"storage_two_players_{gap:0}px");
+                }
+                InputSystem.QueueStateEvent(pad2, new GamepadState());
+                yield return null;
+                InputSystem.RemoveDevice(pad2);
+            }
             InputSystem.QueueStateEvent(_pad, new GamepadState());
             yield return null;
 
