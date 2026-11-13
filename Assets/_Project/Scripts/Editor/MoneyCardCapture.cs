@@ -49,6 +49,11 @@ namespace Game.Editor
             File.Delete(barFile);
             Over(office, background, Path.Combine(folder, "office_money_card.png"));
 
+            // The office bar as a second player names themselves under their card (2026-11-13).
+            var naming = new Game.Simulation.Characters.ChefNaming("Rosa", Game.Data.GuestNames.All["en"], null, 3);
+            naming.Move(0, 1);
+            TailorCapture.Capture(folder, barOnly: true, naming);
+
             // The kitchen: a payment rolling in, money going out, and owed to the boss.
             EditorSceneManager.OpenScene(KitchenScene, OpenSceneMode.Single);
             var kitchen = Find();
