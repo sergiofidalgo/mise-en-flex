@@ -95,7 +95,6 @@ namespace Game.Presentation.Menu
         private const float CardX = 825f, CardY = 225f, CardWidth = 310f, CardHeight = 666f, CardPitch = 332f;
         private const float PhotoBottom = 478f;
         private const float FooterY = 1016f, FooterRight = 1824f;
-        private const float BarRoom = 76f;
 
         private const float TitleSize = 36.67f, RowSize = 34.33f, SubSize = 20f;
         private const float Stroke = 5.33f, ThinStroke = 2.67f;
@@ -717,9 +716,7 @@ namespace Game.Presentation.Menu
             // The mockup's 1920×1080 frame, centred; on a taller screen the extra space falls around it.
             var root = UiKit.Rect(_canvas, "Layout", 0f, 0f, 1920f, 1080f);
             root.anchorMin = root.anchorMax = root.pivot = new Vector2(0.5f, 0.5f);
-            // Down a little, so the player bar fits above the sign's rod (2026-11-13: players join
-            // in the menu, the bar top right); the list and forkcast still end above the hint bar.
-            root.anchoredPosition = new Vector2(0f, -BarRoom);
+            root.anchoredPosition = Vector2.zero;
             root.SetSiblingIndex(0);
 
             // The list panel, and the sign hanging over it.

@@ -34,15 +34,6 @@ namespace Game.Presentation.Office
         [Tooltip("How far down the shaft the empty cab goes before it switches off (m): out of the floor's view.")]
         [SerializeField, Min(1f)] private float _hideBelow = 12f;
 
-        [Tooltip("Where players 2–4 stand in the cab, from player 1's place (cab space, m): beside and behind them, all in the east half the camera sees past the menu.")]
-        [SerializeField] private Vector3[] _companions =
-        {
-            new Vector3(-0.7f, 0f, 0.15f),
-            new Vector3(0.05f, 0f, 0.75f),
-            new Vector3(-0.75f, 0f, 0.85f),
-        };
-
-        private readonly System.Collections.Generic.List<GameObject> _riders = new System.Collections.Generic.List<GameObject>();
         private bool _returning;
         private bool _tracking;
         private float _offset;
@@ -57,30 +48,6 @@ namespace Game.Presentation.Office
         public float HeightAt(float cameraHeight, float progress) =>
             OpeningPath.LiftClimb(cameraHeight, progress, _lead, _bottom, _top, _settle, _approach, _approachFrom);
         public Transform Cab => _cab;
-
-        /// <summary>Player 1's chef in the cab.</summary>
-        public Transform Rider => _rider != null ? _rider.transform : null;
-
-        /// <summary>
-        /// Someone joined in the menu (the user's call, 2026-11-13): their chef appears in the cab
-        /// beside player 1's, in their look and colour, with a little pop, and rides up with them.
-        /// Returns the chef, or null if there's no room or no chef to copy.
-        /// </summary>
-        public Transform AddRider(int slot)
-        {
-            if (_rider == null || slot < 1 || slot - 1 >= _companions.Length)
-                return null;
-            var place = _rider.transform;
-            var copy = Instantiate(_rider, place.parent);
-            copy.name = $"OpeningChef{slot + 1}";
-            copy.transform.SetLocalPositionAndRotation(place.localPosition + _companions[slot - 1], place.localRotation);
-            copy.SetActive(true);
-            var chef = copy.GetComponent<OpeningChef>();
-            if (chef != null)
-                chef.Arrive(slot);
-            _riders.Add(copy);
-            return copy.transform;
-        }
 
         private void Awake() => Place(_bottom);
 
@@ -109,9 +76,6 @@ namespace Game.Presentation.Office
         {
             if (_rider != null)
                 _rider.SetActive(false);
-            foreach (var rider in _riders)
-                if (rider != null)
-                    rider.SetActive(false);
             _tracking = false;
             _returning = true;
         }
