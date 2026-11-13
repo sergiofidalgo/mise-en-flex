@@ -60,7 +60,10 @@ namespace Game.Tests.PlayMode
         {
             yield return SceneManager.LoadSceneAsync(SceneName);
             yield return null;
-            ChefProfileFile.Current.SetName(0, "Rosa"); // last time's name: one press keeps it
+            // Last time's name, one press keeps it: in every slot, as players carried over from
+            // earlier tests can hold the first ones.
+            for (var slot = 0; slot < 4; slot++)
+                ChefProfileFile.Current.SetName(slot, "Rosa");
             var naming = Object.FindFirstObjectByType<JoinNaming>();
             Assert.That(naming, Is.Not.Null, "the kitchen has naming on join");
             var arrived = 0;
@@ -74,6 +77,7 @@ namespace Game.Tests.PlayMode
             Assert.That(naming.IsNaming(player), Is.True);
             Assert.That(hands.IsBusy, Is.True, "held still while naming");
             Assert.That(naming.For(player.playerIndex).Picker.Text, Is.Empty);
+            Assert.That(naming.For(player.playerIndex).Picker.Selected.Kind, Is.EqualTo(Game.Simulation.Campaign.NameKeyKind.Keep), "the cursor starts on last time's name");
 
             // A on the top key keeps last time's name.
             Press(_pad.buttonSouth);
