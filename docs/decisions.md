@@ -12,7 +12,7 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 - **The reply button is X,** not Y.
 - **A dish still to unlock** shows its price with "You have $48" beside it, and under them the hold-to-buy bar, edge to edge across the panel. The "suggested · earns about" line is gone. Without the money, a press turns the bar's words to "not enough money".
 - **The money is the game's own money card** (later the same day), not a chip drawn by forkcast. The kitchen no longer hides the card while forkcast is up; the dashboard lifts its canvas over itself (sorting 25, back to 15 when it closes). It shows exactly as it does everywhere else, in its own corner, overflowing the header. With the top-left card from the name-plates work (`claude/menu-join`), it sits top left.
-- **The header is 24 px shorter:** the panel's top edge is lower and everything below stays where it was.
+- **The header is 12 px shorter** (72 px): the panel's top edge is lower and everything below stays where it was. A 24 px cut was tried first and was too tight.
 
 ---
 

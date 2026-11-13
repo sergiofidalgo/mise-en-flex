@@ -59,8 +59,9 @@ namespace Game.Presentation.Hud
 
         // ---- Layout, in the mockups' 1920×1080 frame ----
 
-        // The panel's top is 24 lower than it was, so its header is shorter (2026-11-13); its bottom stays.
-        private const float PanelX = 80f, PanelY = 80f, PanelWidth = 1760f, PanelHeight = 944f, PanelRadius = 26f;
+        // The panel's top is 12 lower than it was, so its header is shorter: 72 tall, between the
+        // first 84 and a too-tight 60 (2026-11-13); its bottom stays.
+        private const float PanelX = 80f, PanelY = 68f, PanelWidth = 1760f, PanelHeight = 956f, PanelRadius = 26f;
         private const float HeaderBottom = 140f, FooterTop = 952f;
         // Three equal columns across the panel (the user's calls, 2026-11-12): the left one, and two on
         // the right that the Restaurant tab uses as its list and its detail; other tabs span both.
@@ -171,7 +172,7 @@ namespace Game.Presentation.Hud
         // the players go up to the office. Returns its left edge.
         private float OfficeChip(float right)
         {
-            const float height = 46f, top = 87f;
+            const float height = 46f, top = 81f;
             var label = Label(SemiBold, _header, Tr.Get("Go to the boss's office"), 18.67f, _paper, 0f, top + 30f, 400f);
             var width = 12f + 30f + 10f + UiKit.Width(label) + 18f;
             var x = right - width;
@@ -202,9 +203,9 @@ namespace Game.Presentation.Hud
         // A pill whose right edge is at right; returns its left edge.
         private float HeaderPill(string text, Color back, float right)
         {
-            var label = Label(SemiBold, _header, text, 18.67f, _paper, 0f, 117f, 300f);
+            var label = Label(SemiBold, _header, text, 18.67f, _paper, 0f, 111f, 300f);
             var width = UiKit.Width(label) + 32f;
-            var box = UiKit.RoundBox(_header, text + "Pill", back, right - width, 90.5f, width, 39f, 19.5f);
+            var box = UiKit.RoundBox(_header, text + "Pill", back, right - width, 84.5f, width, 39f, 19.5f);
             box.transform.SetSiblingIndex(label.transform.GetSiblingIndex());
             label.rectTransform.anchoredPosition = new Vector2(right - width + 16f, label.rectTransform.anchoredPosition.y);
             return right - width;
