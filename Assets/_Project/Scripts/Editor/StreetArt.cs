@@ -36,6 +36,42 @@ namespace Game.Editor
             return tags;
         }
 
+        /// <summary>
+        /// Old tags (the user's note, 2026-11-12: the graffiti by the parking lot "should look older
+        /// and grimier"): the same bubble letters years on, bleached towards the wall's own grey,
+        /// flaked away in patches, with soot run down them from above.
+        /// </summary>
+        public static Material[] OldTags()
+        {
+            var tags = new Material[4];
+            for (var i = 0; i < tags.Length; i++)
+            {
+                var seed = 57 + i * 23;
+                var fill = Paint[(i * 2 + 1) % Paint.Length];
+                var outline = i % 2 == 0 ? Ink : new Color(0.85f, 0.84f, 0.8f);
+                var letters = 3 + i % 3;
+                tags[i] = Ensure($"OldTag{i}", 160, 64, (x, y) => Aged(Tag(x, y, seed, letters, fill, outline), x, y, seed), cutout: true);
+            }
+            return tags;
+        }
+
+        private static Color Aged(Color paint, float x, float y, int seed)
+        {
+            if (paint.a < 0.5f)
+                return Color.clear;
+            // Flaked off where the wall's surface has gone: broad patches, and a peppering of small ones.
+            if (Mathf.PerlinNoise(x * 11f + seed, y * 7f) < 0.33f || Mathf.PerlinNoise(x * 60f, y * 26f + seed) < 0.22f)
+                return Color.clear;
+            // Bleached towards the wall, unevenly.
+            var wall = new Color(0.45f, 0.46f, 0.42f);
+            var aged = Color.Lerp(paint, wall, 0.5f + 0.25f * Mathf.PerlinNoise(x * 4f, y * 4f + seed));
+            // Soot in streaks, heaviest at the top where the rain brings it down from.
+            var streak = Mathf.PerlinNoise(x * 34f + seed, 0.3f);
+            aged *= 1f - 0.45f * Mathf.SmoothStep(0.45f, 0.8f, streak) * Mathf.Clamp01(0.3f + y);
+            aged.a = 1f;
+            return aged;
+        }
+
         /// <summary>Murals for side walls: a cowboy hat (the boss's neighbourhood), a sunset, a steak.</summary>
         public static Material[] Murals()
         {

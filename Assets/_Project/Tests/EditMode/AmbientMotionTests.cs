@@ -186,5 +186,39 @@ namespace Game.Tests.EditMode
             for (var t = 0f; t < 100f; t += 1.3f)
                 Assert.That(AmbientMotion.PopKind(t, 4f, 1f, 3), Is.InRange(0, 2));
         }
+
+        [Test]
+        public void ARiderBrakesToTheirStopWaitsAndPullsAway()
+        {
+            // 100 m at 5 m/s, stopping 40 m along for 4 s, away 6 s: 8 s in, 4 s waiting, 12 s out, 6 s away.
+            Assert.That(AmbientMotion.Route(0f, 100f, 5f, 40f, 4f, 6f, 0f), Is.EqualTo(0f).Within(1e-4f));
+            Assert.That(AmbientMotion.Route(4f, 100f, 5f, 40f, 4f, 6f, 0f), Is.EqualTo(30f).Within(1e-3f), "fast at first, braking later");
+            Assert.That(AmbientMotion.Route(8f, 100f, 5f, 40f, 4f, 6f, 0f), Is.EqualTo(40f).Within(1e-3f));
+            Assert.That(AmbientMotion.Route(11f, 100f, 5f, 40f, 4f, 6f, 0f), Is.EqualTo(40f).Within(1e-3f), "waiting");
+            Assert.That(AmbientMotion.Route(18f, 100f, 5f, 40f, 4f, 6f, 0f), Is.EqualTo(55f).Within(1e-3f), "pulling away slowly");
+            Assert.That(AmbientMotion.Route(23.95f, 100f, 5f, 40f, 4f, 6f, 0f), Is.GreaterThan(99f));
+            Assert.That(AmbientMotion.Route(26f, 100f, 5f, 40f, 4f, 6f, 0f), Is.LessThan(0f), "away");
+            Assert.That(AmbientMotion.Route(30f, 100f, 5f, 40f, 4f, 6f, 0f), Is.EqualTo(0f).Within(1e-3f), "and round again");
+        }
+
+        [Test]
+        public void ARiderNeverGoesBackwardsAlongTheirRoute()
+        {
+            var last = 0f;
+            for (var time = 0f; time < 24f; time += 0.05f)
+            {
+                var now = AmbientMotion.Route(time, 100f, 5f, 40f, 4f, 6f, 0f);
+                Assert.That(now, Is.GreaterThanOrEqualTo(last - 1e-4f), $"at {time}");
+                last = now;
+            }
+        }
+
+        [Test]
+        public void ARiderWithNoStopRidesStraightThrough()
+        {
+            Assert.That(AmbientMotion.Route(5f, 100f, 5f, -1f, 0f, 10f, 0f), Is.EqualTo(25f).Within(1e-4f));
+            Assert.That(AmbientMotion.Route(25f, 100f, 5f, -1f, 0f, 10f, 0f), Is.LessThan(0f), "away");
+            Assert.That(AmbientMotion.Route(35f, 100f, 5f, -1f, 0f, 10f, 0f), Is.EqualTo(25f).Within(1e-3f));
+        }
     }
 }

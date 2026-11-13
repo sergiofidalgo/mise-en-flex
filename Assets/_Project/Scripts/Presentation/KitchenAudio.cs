@@ -151,13 +151,28 @@ namespace Game.Presentation
             {
                 old.Arrived -= HandleCustomerArrived;
                 old.Paid -= HandleCustomerPaid;
+                old.Deliveries.Ordered -= HandleDeliveryOrdered;
+                old.Deliveries.CourierDue -= HandleCourierDue;
             }
             if (next != null)
             {
                 next.Arrived += HandleCustomerArrived;
                 next.Paid += HandleCustomerPaid;
+                next.Deliveries.Ordered += HandleDeliveryOrdered;
+                next.Deliveries.CourierDue += HandleCourierDue;
             }
         }
+
+        // The tablet pings from the counter whose place the order claimed (decision 2026-11-12).
+        private void HandleDeliveryOrdered(DeliveryOrder order)
+        {
+            var counter = _services.Stations.All.OfType<DeliveryCounterStation>().FirstOrDefault(c => c.AnchorOfSlot(order.Slot) != null);
+            Play(_sounds.DeliveryPing, counter != null ? counter.Tablet.position : transform.position);
+        }
+
+        // The scooter's horn from the street, as it comes into view.
+        private void HandleCourierDue(DeliveryOrder order) =>
+            Play(_sounds.CourierHorn, _streetDoor != null ? _streetDoor.transform.position : transform.position);
 
         private void HandleCustomerArrived(Customer customer) =>
             Play(_sounds.Chime, _streetDoor != null ? _streetDoor.transform.position : transform.position);

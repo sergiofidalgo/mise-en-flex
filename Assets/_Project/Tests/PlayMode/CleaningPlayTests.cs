@@ -69,6 +69,15 @@ namespace Game.Tests.PlayMode
         }
 
         // Stands the chef where someone would, in front of the station, facing it.
+        // Whether someone standing at a station has open floor behind them, a metre deep.
+        private bool HasRoomBehind(Interactable station)
+        {
+            var front = Services.Messes.InFront(station);
+            var away = front - station.transform.position;
+            away.y = 0f;
+            return !Physics.SphereCast(front + Vector3.up * 0.6f, 0.3f, away.normalized, out _, 1f);
+        }
+
         private void StandAt(Interactable station)
         {
             var front = Services.Messes.InFront(station);
@@ -86,6 +95,7 @@ namespace Game.Tests.PlayMode
         {
             var frames = 0;
             var began = Time.time;
+            var captured = false;
             var until = Time.realtimeSinceStartup + seconds;
             while (!done() && Time.realtimeSinceStartup < until)
             {
@@ -103,8 +113,12 @@ namespace Game.Tests.PlayMode
                 }
                 InputSystem.QueueStateEvent(_pad, new GamepadState { leftStick = stick }.WithButton(GamepadButton.West));
                 frames++;
-                if (captureAs != null && frames == 600)
+                // Mid-job, by time so it's the same moment at any frame rate.
+                if (captureAs != null && !captured && Time.time - began >= 1.2f)
+                {
+                    captured = true;
                     Capture(captureAs);
+                }
                 yield return null;
             }
             InputSystem.QueueStateEvent(_pad, new GamepadState());
@@ -146,7 +160,7 @@ namespace Game.Tests.PlayMode
 
             StandAt(hob);
             yield return null;
-            yield return HoldXAndTrace(() => !hob.IsOnFire, 25f);
+            yield return HoldXAndTrace(() => !hob.IsOnFire, 25f, "extinguish");
 
             Assert.That(hob.IsOnFire, Is.False, "three sweeps put it out");
             var gone = Time.realtimeSinceStartup + 0.5f;
@@ -198,7 +212,13 @@ namespace Game.Tests.PlayMode
 
             yield return HoldXAndTrace(() => !Services.Dirt.Spots.Contains(spill), 20f);
             Assert.That(Services.Dirt.Spots, Has.No.Member(spill), "mopped clean");
-            Assert.That(Object.FindFirstObjectByType<Game.Presentation.CleaningView>().GetComponentsInChildren<Renderer>().Length, Is.Zero, "the mop goes away with the spill");
+            var view = Object.FindFirstObjectByType<Game.Presentation.CleaningView>();
+            Assert.That(view.GetComponentsInChildren<Renderer>().Any(r => r.transform.parent != null && r.transform.parent.name.StartsWith("Tool_")), Is.False, "the mop goes away with the spill");
+            // The ring flashes as the spill comes clean, as a plate does at the sink, then goes.
+            var flashed = Time.realtimeSinceStartup + 0.6f;
+            while (Time.realtimeSinceStartup < flashed)
+                yield return null;
+            Assert.That(view.GetComponentsInChildren<Renderer>().Length, Is.Zero, "the ring goes after its flash");
         }
 
         [UnityTest]
@@ -216,6 +236,156 @@ namespace Game.Tests.PlayMode
             yield return null;
             yield return HoldXAndTrace(() => !Services.Dirt.Spots.Contains(spot), 20f, "cloth");
             Assert.That(Services.Dirt.On(table), Is.Empty, "wiped clean");
+        }
+
+        // Holds X and circles the left stick, `loops` a second, for some seconds or until done().
+        private IEnumerator HoldXAndCircle(Func<bool> done, float seconds, float loops = 1.2f)
+        {
+            var began = Time.time;
+            var until = Time.realtimeSinceStartup + seconds;
+            while (!done() && Time.realtimeSinceStartup < until)
+            {
+                var angle = (Time.time - began) * loops * Mathf.PI * 2f;
+                var stick = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * 0.85f;
+                InputSystem.QueueStateEvent(_pad, new GamepadState { leftStick = stick }.WithButton(GamepadButton.West));
+                yield return null;
+            }
+            InputSystem.QueueStateEvent(_pad, new GamepadState());
+            yield return null;
+        }
+
+        [UnityTest]
+        public IEnumerator HoldingXAtTheSinkAndCirclingTheStickWashesAPlate()
+        {
+            yield return OpenKitchenInPrep();
+            var sink = Services.Stations.All.OfType<SinkStation>().First();
+            var plate = new Game.Simulation.Items.Plate(3);
+            plate.MarkDirty();
+            sink.Sink.Put(plate);
+            StandAt(sink);
+            yield return null;
+            yield return null;
+            Assume.That(_chef.Target, Is.EqualTo(sink));
+            var start = _chef.transform.position;
+
+            // A moment of circling, then let go: partly washed, and the chef is free again.
+            yield return HoldXAndCircle(() => false, 1f);
+            Assert.That(sink.Sink.WashProgress, Is.GreaterThan(0.1f), "circling washes");
+            Assert.That(sink.Game, Is.Null, "letting go of X stops washing");
+            Assert.That(_chef.IsBusy, Is.False);
+
+            yield return HoldXAndCircle(() => _chef.Hands.Current == plate, 10f);
+            Assert.That(_chef.Hands.Current, Is.SameAs(plate), "the clean plate comes out into the chef's hands");
+            Assert.That(plate.IsDirty, Is.False);
+            var moved = _chef.transform.position - start;
+            moved.y = 0f;
+            Assert.That(moved.magnitude, Is.LessThan(0.05f), "the chef stays planted while washing");
+        }
+
+        [UnityTest]
+        public IEnumerator HoldingXWithNothingToCleanPlantsTheChefAndTheStickTurnsThem()
+        {
+            yield return OpenKitchenInPrep();
+            // A clear counter with a metre of open floor behind whoever stands at it, since the chef
+            // walks off that way at the end. Stations register in no fixed order, and the islands
+            // face the kitchen's dividing wall: stood at one of those there's nowhere to walk to.
+            var counter = Services.Stations.All.OfType<CounterStation>().First(c => c.IsClear && HasRoomBehind(c));
+            StandAt(counter);
+            yield return null;
+            Assume.That(Services.Dirt.On(counter), Is.Empty);
+            var start = _chef.transform.position;
+            // X held, the stick pushed away from the counter: the chef turns round where they stand.
+            var back = _chef.transform.eulerAngles.y + 180f;
+            var away = new Vector2(Mathf.Sin(back * Mathf.Deg2Rad), Mathf.Cos(back * Mathf.Deg2Rad));
+            // Game time, not frames: batch-mode frames can be very short.
+            var turned = Time.time + 0.6f;
+            while (Time.time < turned)
+            {
+                InputSystem.QueueStateEvent(_pad, new GamepadState { leftStick = away }.WithButton(GamepadButton.West));
+                yield return null;
+            }
+            var moved = _chef.transform.position - start;
+            moved.y = 0f;
+            Assert.That(_chef.IsPlanted, Is.True);
+            Assert.That(moved.magnitude, Is.LessThan(0.05f), "planted");
+            Assert.That(Mathf.Abs(Mathf.DeltaAngle(_chef.transform.eulerAngles.y, back)), Is.LessThan(10f), "turned round towards the stick");
+
+            // Let go of X: the stick walks again.
+            var walked = Time.time + 0.3f;
+            while (Time.time < walked)
+            {
+                InputSystem.QueueStateEvent(_pad, new GamepadState { leftStick = away });
+                yield return null;
+            }
+            InputSystem.QueueStateEvent(_pad, new GamepadState());
+            yield return null;
+            moved = _chef.transform.position - start;
+            moved.y = 0f;
+            Assert.That(_chef.IsPlanted, Is.False);
+            Assert.That(moved.magnitude, Is.GreaterThan(0.2f), "free to walk");
+        }
+
+        [UnityTest]
+        public IEnumerator HoldingXTurningOntoDirtStartsWipingIt()
+        {
+            yield return OpenKitchenInPrep();
+            var table = Services.Stations.All.OfType<TableStation>().First();
+            var plate = table.ItemAnchor != null ? table.ItemAnchor.position : table.transform.position;
+            Services.Messes.DinerFinished(table, plate);
+            StandAt(table);
+            // Facing away from the table, X held: nothing to clean, so the chef is planted.
+            var away = _chef.transform.eulerAngles.y + 180f;
+            _chef.transform.rotation = Quaternion.Euler(0f, away, 0f);
+            yield return null;
+            var toward = table.transform.position - _chef.transform.position;
+            var stick = new Vector2(toward.x, toward.z).normalized;
+            var until = Time.realtimeSinceStartup + 3f;
+            while ((_chef.Cleaning == null || !_chef.Cleaning.IsCleaning) && Time.realtimeSinceStartup < until)
+            {
+                InputSystem.QueueStateEvent(_pad, new GamepadState { leftStick = stick * 0.9f }.WithButton(GamepadButton.West));
+                yield return null;
+            }
+            Assert.That(_chef.Cleaning.IsCleaning, Is.True, "turning onto the dirt with X held brings out the cloth");
+            Assert.That(_chef.Cleaning.Tool, Is.EqualTo(CleaningTool.Cloth));
+            InputSystem.QueueStateEvent(_pad, new GamepadState());
+            yield return null;
+        }
+
+        // Walks the chef right for a moment, from a point, and says how far they got.
+        private IEnumerator WalkFrom(Vector3 start, float seconds, System.Action<float> distance)
+        {
+            _chef.GetComponent<PlayerMovement>().Teleport(new System.Numerics.Vector2(start.x, start.z));
+            yield return null;
+            var from = _chef.transform.position;
+            var until = Time.time + seconds;
+            while (Time.time < until)
+            {
+                InputSystem.QueueStateEvent(_pad, new GamepadState { leftStick = new Vector2(1f, 0f) });
+                yield return null;
+            }
+            InputSystem.QueueStateEvent(_pad, new GamepadState());
+            yield return null;
+            var moved = _chef.transform.position - from;
+            moved.y = 0f;
+            distance(moved.magnitude);
+        }
+
+        [UnityTest]
+        public IEnumerator WalkingThroughFloorDirtSlowsTheChef()
+        {
+            yield return OpenKitchenInPrep();
+            // The same stretch of open floor twice: clean, then smeared with spills the whole way.
+            var start = new Vector3(-2f, 0f, -2.4f);
+            var cleanDistance = 0f;
+            yield return WalkFrom(start, 0.4f, d => cleanDistance = d);
+            for (var x = 0f; x <= 2.0f; x += 0.45f)
+                Services.Mess.PlateBroken(start.x + x, start.z);
+            var dirtyDistance = 0f;
+            yield return WalkFrom(start, 0.4f, d => dirtyDistance = d);
+            Debug.Log($"[FloorDirt] clean {cleanDistance:0.00} m, dirty {dirtyDistance:0.00} m");
+            // Noticeably slower: the start and stop frames blur the exact share, so a clear margin.
+            Assert.That(dirtyDistance, Is.LessThan(cleanDistance * 0.8f), $"clean {cleanDistance:0.00} m, dirty {dirtyDistance:0.00} m");
+            Assert.That(dirtyDistance, Is.GreaterThan(0.05f), "slowed, not stopped");
         }
 
         // What the camera sees, when CLEANING_CAPTURE names a folder.

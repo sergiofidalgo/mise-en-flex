@@ -93,6 +93,9 @@ namespace Game.Gameplay
         /// <summary>Whether the forkcast dashboard is up: Review, and Plan until a player puts it away (2026-11-10).</summary>
         public ForkcastScreen Forkcast { get; }
 
+        /// <summary>The 4-3-2-1 before the doors open (decision 2026-11-11). Runs at the start of each Service.</summary>
+        public ServiceCountdown Countdown { get; } = new ServiceCountdown();
+
         /// <summary>
         /// How far the boss has gone over missed collections (§15.3), loaded with the campaign and
         /// saved with it as Review starts.

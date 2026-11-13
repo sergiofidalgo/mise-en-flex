@@ -34,6 +34,35 @@ half3 ToonRamp(float value)
 // shapes naturally, a smooth falloff rather than toon bands (the user's call, 2026-11-09), and
 // wrap a little round the sides facing away, as a room's bounce light would.
 float _GameLocalLights;
+// A trial (2026-11-11, the user's note: the city and the tower look "too 3D" beside the kitchen):
+// above 0, the lamps' light falls in that many flat steps instead of a smooth falloff, as the
+// sun's does in the three-band ramp. A global the scene sets (LampLighting); unset, it is 0 and
+// nothing changes.
+float _GameLampBands;
+// How much of the stepped light shows, 0–1: the opening fades it out as the camera lands, so the
+// street and the tower are flat-banded and the boss's floor keeps its smooth lamps.
+float _GameLampBandMix;
+
+// The time of day (decision 2026-11-12: the opening times players choose show in the scene). A
+// kitchen scene sets these globals (DaylightView); unset, _GameDaylightOn is 0 and nothing changes,
+// so the office and the menu are as they were. The sun and the sky light are multiplied by
+// _GameDaylight outdoors and by _GameIndoorLight inside the building's box on the ground
+// (_GameIndoorBox: min x, min z, max x, max z), blending across its walls. Lamps are not: at
+// night the street's and the restaurant's own lights are what's left.
+float _GameDaylightOn;
+float3 _GameDaylight;
+float3 _GameIndoorLight;
+float4 _GameIndoorBox;
+
+half3 Daylight(float3 positionWS)
+{
+    if (_GameDaylightOn < 0.5)
+        return half3(1.0, 1.0, 1.0);
+    // How far inside the box the point is, in metres (negative outside), eased over a wall's thickness.
+    float2 inside = min(positionWS.xz - _GameIndoorBox.xy, _GameIndoorBox.zw - positionWS.xz);
+    float indoors = saturate(min(inside.x, inside.y) / 0.3 + 0.5);
+    return lerp(_GameDaylight, _GameIndoorLight, indoors);
+}
 
 half3 LocalLights(half3 albedo, float3 positionWS, float3 normalWS, float4 positionCS)
 {
@@ -50,7 +79,20 @@ half3 LocalLights(half3 albedo, float3 positionWS, float3 normalWS, float4 posit
         half wrap = saturate(dot(normalWS, light.direction) * 0.7 + 0.3);
         sum += light.color * (light.distanceAttenuation * wrap);
     LIGHT_LOOP_END
-    return albedo * sum * _GameLocalLights;
+    sum *= _GameLocalLights;
+    if (_GameLampBands > 0.5)
+    {
+        // Step the brightness, keep the colour. Steps are taken on b / (1 + b), which squeezes
+        // any brightness into 0–1, so a lamp's bright core gets as many steps as its dim edge
+        // instead of all of them crowding round the bulb. Each step's edge is a fixed sliver of a
+        // step wide (no screen derivatives: this sits behind a branch).
+        half brightness = max(dot(sum, half3(0.299, 0.587, 0.114)), 1e-4);
+        half squeezed = brightness / (1.0 + brightness) * _GameLampBands;
+        half stepped = (floor(squeezed) + smoothstep(0.44, 0.56, frac(squeezed))) / _GameLampBands;
+        stepped = min(stepped, 0.88);
+        sum = lerp(sum, sum * (stepped / (1.0 - stepped) / brightness), saturate(_GameLampBandMix));
+    }
+    return albedo * sum;
 #else
     return half3(0, 0, 0);
 #endif
@@ -90,7 +132,8 @@ half3 ToonShade(half3 albedo, float3 positionWS, float3 normalWS, float4 positio
     float lit = smoothstep(RampLitEdge - RampSoftness, RampLitEdge + RampSoftness, value);
     float3 toCamera = GetWorldSpaceNormalizeViewDir(positionWS);
     float rim = pow(saturate(1.0 - dot(normalWS, toCamera)), 4.0) * _RimStrength * lit;
-    return color + rim + LocalLights(albedo, positionWS, normalWS, positionCS);
+    // Everything the sun and sky gave takes the hour's colour; the lamps, added after, don't.
+    return (color + rim) * Daylight(positionWS) + LocalLights(albedo, positionWS, normalWS, positionCS);
 }
 
 half3 ToonShade(half3 albedo, float3 positionWS, float3 normalWS, float4 positionCS)

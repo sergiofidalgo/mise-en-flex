@@ -442,7 +442,7 @@ namespace Game.Editor
             Couriers(entrance);
         }
 
-        private static readonly Color CourierLime = new Color(0.55f, 0.86f, 0.22f);
+        internal static readonly Color CourierLime = new Color(0.55f, 0.86f, 0.22f);
 
         // Delivery couriers (the user's notes, 2026-11-10: a detail he liked; in view beside the menu;
         // two scooters, a little apart; the couriers, or at least their bags, plain to see). They wear
@@ -453,7 +453,10 @@ namespace Game.Editor
         {
             var patch = SignArt.CourierPatch(new Color(0.16f, 0.42f, 0.14f));
             var first = Kit.Scooter(entrance, new Vector3(3.2f, 0.02f, NorthKerb - 0.85f), 72f, new Color(0.93f, 0.93f, 0.9f), CourierLime, withBox: false);
-            Kit.Scooter(entrance, new Vector3(5.2f, 0.02f, NorthKerb - 0.6f), 104f, new Color(0.22f, 0.24f, 0.28f), CourierLime, patch: patch);
+            var second = Kit.Scooter(entrance, new Vector3(5.2f, 0.02f, NorthKerb - 0.6f), 104f, new Color(0.22f, 0.24f, 0.28f), CourierLime, patch: patch);
+            MakeDynamic(first.gameObject);
+            MakeDynamic(second.gameObject);
+            var grip = new[] { new Vector3(-58f, 0f, -10f), new Vector3(-58f, 0f, 10f) };
 
             // On the first scooter's seat (0.38 behind its middle, 0.745 up), scrolling.
             var seated = Courier(first, new Vector3(0f, 0f, -0.36f), 0f, patch);
@@ -465,19 +468,46 @@ namespace Game.Editor
                 Point(phone, "ScreenGlow", new Vector3(0f, 0f, -0.2f), new Color(0.75f, 0.85f, 1f), 1.4f, 1.2f);
                 Wobble(seated.RightShoulder.gameObject, Oscillate.Shape.Pulse, Vector3.zero, new Vector3(-5f, 0f, 0f), 1.4f, 0.3f);
                 MakeDynamic(seated.RightShoulder.gameObject);
+                // Soon after the camera stops, their order's up: the phone goes away and they ride
+                // off east (the user's note, 2026-11-11), out through the gap in the barriers.
+                first.gameObject.AddComponent<CourierDeparture>().Set(2.2f, null, Vector3.zero, null, new[] { phone.gameObject },
+                    new[] { seated.RightShoulder, seated.LeftShoulder }, grip, WayOut(first.localPosition, 6.8f));
             }
             // Waiting between the scooters, looking at the restaurant: their bag faces the street.
             var waiting = Courier(entrance, new Vector3(4.2f, 0.15f, NorthKerb + 0.9f), 8f, patch);
             if (waiting != null)
+            {
                 Breathe(waiting.Figure.gameObject);
+                // A few seconds after the first, this one walks to the other scooter, gets on and
+                // follows: the standing figure is swapped for one sitting on it (no bag on that
+                // one: the scooter carries the box).
+                var mounted = Courier(second, new Vector3(0f, 0f, -0.36f), 0f, patch, bag: false);
+                if (mounted != null)
+                {
+                    Sit(mounted, 0.745f);
+                    mounted.RightShoulder.localRotation = Quaternion.Euler(grip[0]);
+                    mounted.LeftShoulder.localRotation = Quaternion.Euler(grip[1]);
+                    var rider = mounted.Figure.parent.gameObject;
+                    rider.SetActive(false);
+                    second.gameObject.AddComponent<CourierDeparture>().Set(5.5f, waiting.Figure.parent, new Vector3(4.75f, 0.15f, NorthKerb + 0.25f), rider,
+                        System.Array.Empty<GameObject>(), System.Array.Empty<Transform>(), System.Array.Empty<Vector3>(), WayOut(second.localPosition, 8.6f));
+                }
+            }
             // To and fro with the orders.
             var runner = Courier(entrance, new Vector3(5.6f, 0.15f, NorthKerb + 0.6f), 0f, patch);
             if (runner != null)
                 Walk(runner.Figure.parent, new Vector3(5.65f, 0.15f, NorthKerb + 0.5f), new Vector3(5.6f, 0.15f, TowerFace - 2.3f), 1.25f, 2.2f, 0.2f);
         }
 
+        // A parked scooter's way out: off the kerb onto the couriers' lane, east through the gap in
+        // the barriers and away.
+        private static Vector3[] WayOut(Vector3 from, float joinsLaneAt) => new[]
+        {
+            from, new Vector3(joinsLaneAt, from.y, CourierLane), new Vector3(46f, from.y, CourierLane),
+        };
+
         // A courier: the uniform and the bag, on anyone.
-        private static CharacterArt.Rig Courier(Transform parent, Vector3 at, float facing, Material patch)
+        internal static CharacterArt.Rig Courier(Transform parent, Vector3 at, float facing, Material patch, bool bag = true)
         {
             var person = new GameObject("Courier").transform;
             person.SetParent(parent, false);
@@ -499,13 +529,14 @@ namespace Game.Editor
                 Object.DestroyImmediate(person.gameObject);
                 return null;
             }
-            Kit.DeliveryBag(rig.Waist, new Vector3(0f, -0.02f, -0.37f), 180f, CourierLime, 1.3f, patch);
+            if (bag)
+                Kit.DeliveryBag(rig.Waist, new Vector3(0f, -0.02f, -0.37f), 180f, CourierLime, 1.3f, patch);
             MakeDynamic(person.gameObject);
             return rig;
         }
 
         // Sits a standing figure on a seat `seatHeight` up from where it stands: legs out in front, no walk.
-        private static void Sit(CharacterArt.Rig rig, float seatHeight)
+        internal static void Sit(CharacterArt.Rig rig, float seatHeight)
         {
             if (rig.Gait != null)
                 Object.DestroyImmediate(rig.Gait);
@@ -552,7 +583,7 @@ namespace Game.Editor
             // A portrait: one posing with the restaurant behind, a friend taking it.
             var portrait = new GameObject("Portrait").transform;
             portrait.SetParent(market, false);
-            portrait.localPosition = new Vector3(8.6f, 0.02f, -22.2f);
+            portrait.localPosition = new Vector3(8.6f, 0.02f, -25.4f); // south of the couriers' lanes
             Poser(portrait, "Sitter", Vector3.zero, 180f, phone: false);
             Photographer(portrait, new Vector3(0.2f, 0f, -2.2f), 0f, phone: true);
 
@@ -562,7 +593,8 @@ namespace Game.Editor
                 var east = w % 2 == 0;
                 var from = east ? 10f + (float)_random.NextDouble() * 4f : -21f + (float)_random.NextDouble() * 6f;
                 var length = 7f + (float)_random.NextDouble() * 5f;
-                var z = w < 9 ? -25.6f + (float)_random.NextDouble() * 1.6f : NorthKerb - 0.6f - (float)_random.NextDouble() * 0.5f;
+                // South of the couriers' lanes and of the people crossing the whole street.
+                var z = w < 9 ? -27f + (float)_random.NextDouble() * 1.2f : NorthKerb - 0.6f - (float)_random.NextDouble() * 0.5f;
                 if (w >= 9)
                 {
                     from = -9f;
@@ -573,6 +605,66 @@ namespace Game.Editor
                     0.9f + (float)_random.NextDouble() * 0.4f, true, 1f + (float)_random.NextDouble() * 3f, (float)_random.NextDouble());
                 MakeDynamic(walker.gameObject);
             }
+            StreetTraffic(market);
+        }
+
+        // Where things ride and walk the length of the closed street (z). The couriers' lanes run
+        // through the gap in the barriers at either end; the far one is 7 m from the camera's stop,
+        // so nothing passes close to the lens (the user's note, 2026-11-10).
+        private const float CourierLane = -22.7f;
+        private const float CourierLaneSouth = -23.1f; // no nearer: at −23.9 a rider filled the bottom of the frame at the stop
+        private const float CrossingLane = -24.9f;
+
+        // Movement from edge to edge (the user's note, 2026-11-11: the approach felt a bit static;
+        // "delivery motorbikes approaching or leaving, or just people around the scene from edge to
+        // edge"). Two couriers on scooters work the street: one comes in from the east, pulls up at
+        // the kerb by the restaurant, waits for the order and rides off west; the other rides
+        // straight through from the west, on its way somewhere else. And people cross the whole
+        // street on foot, both ways, some in a hurry. All of them start beyond the barriers, out of
+        // the camera's view, and come round again.
+        private static void StreetTraffic(Transform market)
+        {
+            var patch = SignArt.CourierPatch(new Color(0.16f, 0.42f, 0.14f));
+            const float beyond = 44f;
+            // From the east: along the lane, in to the kerb east of the parked scooters, out again, away west.
+            Rider(market, "CourierFromEast", new Color(0.86f, 0.3f, 0.22f), patch, 6.5f, 3, 5f, 7f, 0.07f,
+                new Vector3(beyond, 0.02f, CourierLane), new Vector3(15f, 0.02f, CourierLane), new Vector3(12.4f, 0.02f, NorthKerb - 1.5f),
+                new Vector3(10.6f, 0.02f, NorthKerb - 1.1f), new Vector3(6.5f, 0.02f, CourierLane), new Vector3(-beyond, 0.02f, CourierLane));
+            // From the west, on the lane nearer the camera: an order for somewhere else, straight through.
+            Rider(market, "CourierFromWest", new Color(0.22f, 0.42f, 0.62f), patch, 7f, -1, 0f, 8f, 0.45f,
+                new Vector3(-beyond, 0.02f, CourierLane), new Vector3(-24.5f, 0.02f, CourierLane), new Vector3(-20f, 0.02f, CourierLaneSouth),
+                new Vector3(20f, 0.02f, CourierLaneSouth), new Vector3(24.5f, 0.02f, CourierLane), new Vector3(beyond, 0.02f, CourierLane));
+
+            // On foot, the length of the street: one lane each way, a pace of their own each.
+            for (var w = 0; w < 8; w++)
+            {
+                var east = w % 2 == 0;
+                var z = CrossingLane - (east ? 0f : 0.55f);
+                var hurry = w % 4 == 3;
+                var walker = Passerby(market, "Crosser", new Vector3(0f, 0.02f, z), 90f);
+                walker.gameObject.AddComponent<LaneMover>().Set(new Vector3(east ? -34f : 34f, 0.02f, z), new Vector3(east ? 34f : -34f, 0.02f, z),
+                    hurry ? 2.3f + (float)_random.NextDouble() * 0.4f : 1.2f + (float)_random.NextDouble() * 0.5f, false, 0f, (w / 2 + (float)_random.NextDouble() * 0.6f) / 4f);
+                MakeDynamic(walker.gameObject);
+            }
+        }
+
+        // A courier riding a scooter round a route (RouteMover), in the couriers' uniform, the bag on their back.
+        private static void Rider(Transform parent, string name, Color paint, Material patch, float speed, int stopAt, float stopSeconds, float awaySeconds, float phase, params Vector3[] route)
+        {
+            var mover = new GameObject(name).transform;
+            mover.SetParent(parent, false);
+            mover.localPosition = route[0];
+            var scooter = Kit.Scooter(mover, Vector3.zero, 0f, paint, CourierLime, withBox: false); // the rider wears the bag
+            var rider = Courier(scooter, new Vector3(0f, 0f, -0.36f), 0f, patch);
+            if (rider != null)
+            {
+                Sit(rider, 0.745f);
+                // Both hands out to the bars.
+                rider.RightShoulder.localRotation = Quaternion.Euler(-58f, 0f, -10f);
+                rider.LeftShoulder.localRotation = Quaternion.Euler(-58f, 0f, 10f);
+            }
+            MakeDynamic(mover.gameObject);
+            mover.gameObject.AddComponent<RouteMover>().Set(route, speed, stopAt, stopSeconds, awaySeconds, phase, scooter.gameObject);
         }
 
         // A restaurant in the corner building beside the avenue's mouth, its front on the avenue:

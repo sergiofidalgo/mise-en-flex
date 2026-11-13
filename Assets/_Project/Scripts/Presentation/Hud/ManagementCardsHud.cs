@@ -15,7 +15,7 @@ using UnityEngine.UI;
 namespace Game.Presentation.Hud
 {
     /// <summary>
-    /// The kitchen's player cards, top left (the user's design, 2026-11-11): in Prep, one compact
+    /// The kitchen's player cards, top right since 2026-11-13 (the money is top left) (the user's design, 2026-11-11): in Prep, one compact
     /// card per joined player, as in the office (a still of their chef's face and their number; no
     /// open seats here). A player who opens the shop in management mode (D-pad down) has their card grow
     /// into the shop card, so four can shop at once; cards dock in a row in player-slot order and
@@ -36,9 +36,11 @@ namespace Game.Presentation.Hud
     {
         private const float Width = 360f;
         private const float Height = 500f;
-        private const float CompactWidth = 210f; // the office's
-        private const float CompactHeight = 108f;
-        private const float NumberSize = 46f;
+        // Name plates as wide as the shop card (2026-11-13): each player's place in the row is the
+        // same whatever they're doing, as in the office.
+        private const float CompactWidth = Width;
+        private const float NumberSize = 44f;
+        private const float NamedSize = 36f;
         private const float Margin = 24f;
         private const float CardGap = 12f;
         private const float ShoulderWidth = 50f;
@@ -63,6 +65,8 @@ namespace Game.Presentation.Hud
         [SerializeField] private CoopSettings _coop;
         [SerializeField] private LayoutEditor _editor;
         [SerializeField] private KitchenCompositionRoot _root;
+        [Tooltip("New players naming themselves: their card shows in any phase, the keyboard under it (2026-11-13).")]
+        [SerializeField] private JoinNaming _naming;
         [SerializeField] private Color _blocked = new Color(0.95f, 0.30f, 0.26f);
 
         private readonly Dictionary<int, Card> _cards = new Dictionary<int, Card>();
@@ -70,6 +74,7 @@ namespace Game.Presentation.Hud
         private readonly List<(int Player, Transform Chef, View Shop)> _row = new List<(int, Transform, View)>();
         private readonly HashSet<int> _rearranging = new HashSet<int>();
         private Canvas _canvas;
+        private IReadOnlyDictionary<int, Game.Simulation.Characters.ChefNaming> _previewNaming; // for stills
 
         /// <summary>What a shop card shows: the page, the choice, and how the last press went.</summary>
         public sealed class View
@@ -126,6 +131,10 @@ namespace Game.Presentation.Hud
             public RectTransform Tab;       // rearranging: Y drops the shop open
             public RectTransform Chevron;
             public ChefStill Still;
+            public TextMeshProUGUI Tag;      // "P1", small, over the name
+            public TextMeshProUGUI Name;     // their name, or "P1" big until they have one
+            public RectTransform Keyboard;   // naming as they join, under the card
+            public int KeyboardDrawn = -1;
             public Transform Seen;      // the chef last frame, to notice a join
             public float SettleAt = -1f;
         }
@@ -189,7 +198,7 @@ namespace Game.Presentation.Hud
                 // The shop whenever it's open; the compact card only in Prep.
                 if (cursor != null)
                     _row.Add((player.playerIndex, player.transform, ViewOf(cursor)));
-                else if (prep)
+                else if (prep || (_naming != null && _naming.IsNaming(player)))
                 {
                     _row.Add((player.playerIndex, player.transform, null));
                     if (player.TryGetComponent(out PlayerInteractor hands) && hands.IsManaging)
@@ -217,9 +226,13 @@ namespace Game.Presentation.Hud
             foreach (var card in _cards.Values)
                 card.Root.gameObject.SetActive(false);
             foreach (var compact in _compacts.Values)
+            {
                 compact.Root.gameObject.SetActive(false);
+                compact.Keyboard.gameObject.SetActive(false);
+            }
 
-            var x = Margin;
+            // Docked to the top-right corner, as the office's bar (2026-11-13): the money is top left.
+            var x = CanvasWidth() - Margin - _row.Count * Width - Mathf.Max(0, _row.Count - 1) * CardGap;
             foreach (var (player, chef, shop) in _row)
             {
                 if (shop != null)
@@ -230,8 +243,8 @@ namespace Game.Presentation.Hud
                     Fill(card, shop);
                     Animate(card, dt);
                     // The pivot is the top middle, so it grows from the top.
-                    var left = Mathf.Min(x, CanvasWidth() - Margin - Width);
-                    card.Root.anchoredPosition = new Vector2(left + Width / 2f, -Margin);
+                    var left = Mathf.Clamp(x, Margin, CanvasWidth() - Margin - Width);
+                    card.Root.anchoredPosition = new Vector2(left + Width / 2f, -Margin - Breakout);
                     x += Width + CardGap;
                 }
                 else
@@ -241,8 +254,9 @@ namespace Game.Presentation.Hud
                     compact.Root.gameObject.SetActive(true);
                     Photograph(player, compact, chef, live);
                     ShowTab(compact, _rearranging.Contains(player));
-                    var left = Mathf.Min(x, CanvasWidth() - Margin - CompactWidth);
+                    var left = Mathf.Clamp(x, Margin, CanvasWidth() - Margin - CompactWidth);
                     compact.Root.anchoredPosition = new Vector2(left, -Margin);
+                    ShowName(player, compact, left);
                     x += CompactWidth + CardGap;
                 }
             }
@@ -257,9 +271,12 @@ namespace Game.Presentation.Hud
         /// Draws the row at once outside Play mode, for a still: each player's chef (photographed
         /// for their compact card), and the shop for whoever has one.
         /// </summary>
-        public Canvas Preview(IReadOnlyList<(int Player, Transform Chef, View Shop)> row, IEnumerable<int> rearranging = null)
+        public Canvas Preview(IReadOnlyList<(int Player, Transform Chef, View Shop)> row, IEnumerable<int> rearranging = null, IReadOnlyDictionary<int, Game.Simulation.Characters.ChefNaming> naming = null)
         {
             Awake();
+            _previewNaming = naming;
+            foreach (var compact in _compacts.Values)
+                compact.KeyboardDrawn = -1;
             _row.Clear();
             _row.AddRange(row);
             _rearranging.Clear();
@@ -297,18 +314,60 @@ namespace Game.Presentation.Hud
             compact.Root = UiKit.Rect(_canvas.transform, $"Player{index + 1}", 0f, 0f, CompactWidth, CompactHeight);
             // Built first, so the card covers the tab's top: it hangs out from under the card.
             BuildTab(compact, colour);
-            UiKit.StrokedBox(compact.Root, "Back", _style.CardBackground, colour, 4f, 0f, 0f, CompactWidth, CompactHeight, 18f);
-            var square = CompactHeight - 24f;
-            var frame = UiKit.RoundBox(compact.Root, "PortraitFrame", new Color(0f, 0f, 0f, 0.25f), 12f, 12f, square, square, 16f);
-            frame.gameObject.AddComponent<Mask>().showMaskGraphic = true;
-            var picture = UiKit.Rect(frame.transform, "Portrait", 0f, 0f, square, square).gameObject.AddComponent<RawImage>();
+            // A name plate, as the office's: the face in a medallion over its left end.
+            var top = Breakout;
+            NamePlate.Draw(_style, compact.Root, colour, 0f, top, CompactWidth, PlateHeight);
+            var face = _style.PlateFace;
+            var outer = face + 2f * (_style.PlateRing + _style.PlateStroke);
+            var cx = 14f + outer / 2f;
+            var medallion = NamePlate.Medallion(_style, compact.Root, colour, cx, outer / 2f, face);
+            var picture = UiKit.Rect(medallion, "Portrait", 0f, 0f, face, face).gameObject.AddComponent<RawImage>();
             picture.texture = compact.Still.Texture;
             picture.raycastTarget = false;
-            // The number bigger, centred in the column right of the face, as the office's.
-            var column = 12f + square;
-            UiKit.TextAt(_style.DisplayFont, compact.Root, "Number", $"P{index + 1}", NumberSize, colour, (column + CompactWidth) / 2f, CompactHeight / 2f + NumberSize * 0.36f, CompactWidth - column - 8f, HorizontalAlignmentOptions.Center);
+            var column = cx + outer / 2f + 16f;
+            compact.Tag = UiKit.TextAt(_style.Bold, compact.Root, "Tag", $"P{index + 1}", 20f, colour, column, top + 25f, 60f);
+            compact.Name = UiKit.TextAt(_style.DisplayFont, compact.Root, "Name", $"P{index + 1}", NumberSize, colour, column, top + PlateHeight / 2f + NumberSize * 0.36f, CompactWidth - column - 16f);
+            compact.Name.enableAutoSizing = true;
+            compact.Name.fontSizeMin = 24f;
+            compact.Name.fontSizeMax = NumberSize;
+            compact.Keyboard = UiKit.Rect(_canvas.transform, $"Player{index + 1}Keyboard", 0f, 0f, CompactWidth, 10f);
+            compact.Keyboard.gameObject.SetActive(false);
             return compact;
         }
+
+        // The name on the card (what's typed so far while naming), and the keyboard under it.
+        private void ShowName(int index, Compact compact, float left)
+        {
+            var naming = _previewNaming != null
+                ? (_previewNaming.TryGetValue(index, out var staged) ? staged : null)
+                : _naming != null ? _naming.For(index) : null;
+            var name = naming != null ? naming.Picker.Text : Game.Gameplay.Saving.ChefProfileFile.Current.Name(index);
+            var named = !string.IsNullOrEmpty(name);
+            var top = Breakout;
+            compact.Tag.gameObject.SetActive(named);
+            compact.Name.text = named ? name : $"P{index + 1}";
+            // A little smaller under its tag, so the two lines sit clear of each other and the band.
+            compact.Name.fontSizeMax = named ? NamedSize : NumberSize;
+            var baseline = named ? top + PlateHeight - 16f : top + PlateHeight / 2f + NumberSize * 0.36f;
+            compact.Name.rectTransform.anchoredPosition = new Vector2(compact.Name.rectTransform.anchoredPosition.x, -(baseline - NumberSize));
+
+            compact.Keyboard.gameObject.SetActive(naming != null);
+            if (naming == null)
+            {
+                compact.KeyboardDrawn = -1;
+                return;
+            }
+            if (naming.Version != compact.KeyboardDrawn)
+            {
+                compact.KeyboardDrawn = naming.Version;
+                NameKeyboard.Draw(_style, compact.Keyboard, naming, PlayerColour(index), CompactWidth);
+            }
+            compact.Keyboard.anchoredPosition = new Vector2(left, -(Margin + CompactHeight + CardGap));
+        }
+
+        private float PlateHeight => _style.PlateHeight;
+        private float Breakout => _style.PlateBreakout;
+        private float CompactHeight => Breakout + PlateHeight;
 
         // While its player rearranges the kitchen (the user's call, 2026-11-11), a tab hangs under the
         // card: the D-pad with its down arm lit, a little grid standing for the shop, "Shop" and a

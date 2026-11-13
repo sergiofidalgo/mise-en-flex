@@ -65,6 +65,8 @@ namespace Game.Editor
             SetClips(so, "_clack", "SFX_Clack_");
             SetClips(so, "_till", "SFX_Till_");
             SetClips(so, "_chime", "SFX_Chime_");
+            SetClips(so, "_deliveryPing", "SFX_DeliveryPing_");
+            SetClips(so, "_courierHorn", "SFX_CourierHorn_");
 
             MakeSeamless(SizzleLoopName);
             so.FindProperty("_sizzleLoop").objectReferenceValue = AssetDatabase.LoadAssetAtPath<AudioClip>($"{ClipFolder}/{SizzleLoopName}.wav");

@@ -49,6 +49,11 @@ namespace Game.Editor
             File.Delete(barFile);
             Over(office, background, Path.Combine(folder, "office_money_card.png"));
 
+            // The office bar as a second player names themselves under their card (2026-11-13).
+            var naming = new Game.Simulation.Characters.ChefNaming("Rosa");
+            naming.Move(0, 1);
+            TailorCapture.Capture(folder, barOnly: true, naming);
+
             // The kitchen: a payment rolling in, money going out, and owed to the boss.
             EditorSceneManager.OpenScene(KitchenScene, OpenSceneMode.Single);
             var kitchen = Find();
@@ -109,7 +114,7 @@ namespace Game.Editor
             session.SaveOver(background, file);
         }
 
-        private static Color32[] Pixels(string file)
+        internal static Color32[] Pixels(string file)
         {
             var image = new Texture2D(2, 2, TextureFormat.RGBA32, false);
             image.LoadImage(File.ReadAllBytes(file));

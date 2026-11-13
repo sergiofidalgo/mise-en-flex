@@ -24,6 +24,9 @@ namespace Game.Gameplay.Stations
         [Tooltip("The radius its middle rounds a corner on, in metres. Bigger and the building's corner pokes into it.")]
         [SerializeField, Min(0.1f)] private float _cornerRadius = 1f;
 
+        [Tooltip("Metres of the east wall's north end it never rolls onto: the air conditioning's outdoor unit stands there.")]
+        [SerializeField, Min(0f)] private float _eastEndKept;
+
         [Header("Rolling")]
         [Tooltip("How far behind the cursor it rolls: it gets there in about twice this, in seconds.")]
         [SerializeField, Min(0.01f)] private float _rollLag = 0.3f;
@@ -117,7 +120,7 @@ namespace Game.Gameplay.Stations
         }
 
         private BinTrack MakeTrack() => new BinTrack(new SimVector2(_buildingMin.x, _buildingMin.y), new SimVector2(_buildingMax.x, _buildingMax.y),
-            _wallGap, new SimVector2(_size.x, _size.y), _cornerRadius);
+            _wallGap, new SimVector2(_size.x, _size.y), _cornerRadius, _eastEndKept);
 
         private static SimVector2 Floor(Vector3 position) => new SimVector2(position.x, position.z);
     }

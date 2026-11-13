@@ -64,7 +64,8 @@ namespace Game.Simulation.Prep
         /// <param name="sweetSpot">Centre of the sweet spot, degrees along the sweep from the right end.</param>
         /// <param name="goodHalfWidth">Degrees either side of the centre that count as Good.</param>
         /// <param name="okHalfWidth">Degrees either side that count as Early/Late; beyond is a Miss.</param>
-        public ChopDial(float secondsPerSweep, float sweepDegrees, float sweetSpot, float goodHalfWidth, float okHalfWidth, ChopPacing? pacing = null)
+        /// <param name="sweetSpotStep">Degrees the sweet spot steps after each Good cut (0 = it stays put).</param>
+        public ChopDial(float secondsPerSweep, float sweepDegrees, float sweetSpot, float goodHalfWidth, float okHalfWidth, ChopPacing? pacing = null, float sweetSpotStep = 0f)
         {
             SweepDegrees = Math.Max(10f, sweepDegrees);
             _baseSpeed = SweepDegrees / Math.Max(0.05f, secondsPerSweep);
@@ -73,10 +74,25 @@ namespace Game.Simulation.Prep
             SweetSpot = Math.Clamp(sweetSpot, 0f, SweepDegrees);
             GoodHalfWidth = goodHalfWidth;
             OkHalfWidth = Math.Max(goodHalfWidth, okHalfWidth);
+            SweetSpotStep = Math.Max(0f, sweetSpotStep);
+            // Work towards whichever end has more room first.
+            _stepDirection = SweetSpot <= SweepDegrees * 0.5f ? 1 : -1;
         }
 
+        private int _stepDirection;
+
         public float SweepDegrees { get; }
-        public float SweetSpot { get; }
+
+        /// <summary>
+        /// Centre of the sweet spot, degrees from the right end. It steps along by
+        /// <see cref="SweetSpotStep"/> after each Good cut (decision 2026-11-11), so a streak keeps
+        /// moving the beat: predictable, but never a fixed rhythm. A miss or an early/late cut leaves
+        /// it where it is, so there's a moment to recover. It bounces back off the ends, keeping the
+        /// whole Early/Late band on the arc.
+        /// </summary>
+        public float SweetSpot { get; private set; }
+
+        public float SweetSpotStep { get; }
         public float GoodHalfWidth { get; }
         public float OkHalfWidth { get; }
 
@@ -183,7 +199,25 @@ namespace Game.Simulation.Prep
                 _ => _pacing.AfterOk,
             };
             _speed = Math.Clamp(_speed * factor, _baseSpeed * _pacing.MinMultiplier, _baseSpeed * _pacing.MaxMultiplier);
+            if (grade == ChopGrade.Good)
+                StepSweetSpot();
             return grade;
+        }
+
+        // One step on along the arc, turning back at an end so the whole Early/Late band stays on it.
+        private void StepSweetSpot()
+        {
+            if (SweetSpotStep <= 0f)
+                return;
+            var low = Math.Min(OkHalfWidth, SweepDegrees * 0.5f);
+            var high = Math.Max(low, SweepDegrees - OkHalfWidth);
+            var next = SweetSpot + _stepDirection * SweetSpotStep;
+            if (next > high || next < low)
+            {
+                _stepDirection = -_stepDirection;
+                next = SweetSpot + _stepDirection * SweetSpotStep;
+            }
+            SweetSpot = Math.Clamp(next, low, high);
         }
     }
 }

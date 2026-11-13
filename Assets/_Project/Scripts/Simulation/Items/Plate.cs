@@ -14,11 +14,28 @@ namespace Game.Simulation.Items
 
         private readonly List<Item> _items = new List<Item>();
 
+        /// <summary>The type of a delivery box, so it's shown as one.</summary>
+        public const string BoxTypeId = "DeliveryBox";
+
         public Plate(int capacity)
-            : base(PlateTypeId)
+            : this(capacity, false)
+        {
+        }
+
+        private Plate(int capacity, bool isBox)
+            : base(isBox ? BoxTypeId : PlateTypeId)
         {
             Capacity = capacity;
+            IsBox = isBox;
         }
+
+        /// <summary>
+        /// A delivery box (decision 2026-11-12): filled and carried as a plate is, but it leaves with
+        /// the courier and never comes back to wash. Nobody eats from one at a table.
+        /// </summary>
+        public static Plate NewBox(int capacity) => new Plate(capacity, true);
+
+        public bool IsBox { get; }
 
         public int Capacity { get; }
 

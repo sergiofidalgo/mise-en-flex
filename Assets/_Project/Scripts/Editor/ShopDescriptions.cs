@@ -30,6 +30,8 @@ namespace Game.Editor
             ["fridge"] = "Cold storage: meat and fish stay fresh longer.",
             ["table"] = "Seats up to four. Each extra chair costs a little more.",
             ["bar"] = "A narrow table and stool for guests eating alone.",
+            ["delivery counter"] = "Takes two app orders at a time. A courier collects each.",
+            ["box pile"] = "Free boxes for delivery orders. A plate sent out is gone.",
         };
 
         public static string For(string id) => id != null && ById.TryGetValue(id, out var text) ? text : "";

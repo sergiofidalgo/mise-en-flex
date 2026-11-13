@@ -97,34 +97,45 @@ namespace Game.Tests.EditMode
         }
 
         [Test]
-        public void BrowsingOnlyPreviewsAndAWearsIt()
+        public void AnOpenItemIsWornAndSavesAsSoonAsItsShown()
         {
+            // No A to wear (the user's call, 2026-11-11 playtest): browsing to an open item wears it.
             var session = new TailorSession(new ChefLook(), NothingEarned);
-            var before = session.Worn.Hat;
-            session.StepItem(1);
-            Assert.That(session.Preview.Hat, Is.EqualTo("cap"));
-            Assert.That(session.Worn.Hat, Is.EqualTo(before), "browsing alone wears nothing");
-            Assert.That(session.Wear(), Is.EqualTo(TailorSession.WearResult.Worn), "the cap is open");
+            Assert.That(session.StepItem(1), Is.True, "the cap is open, so it's worn and saved");
             Assert.That(session.Worn.Hat, Is.EqualTo("cap"));
-            Assert.That(session.Wear(), Is.EqualTo(TailorSession.WearResult.AlreadyWorn));
+            Assert.That(session.Preview.Hat, Is.EqualTo("cap"));
         }
 
         [Test]
-        public void LeavingDropsWhatWasOnlyBrowsed()
+        public void EverySectionSavesAsYouBrowse()
         {
             var session = new TailorSession(new ChefLook(), NothingEarned);
-            var before = session.Worn.Hat;
+            foreach (var module in Wardrobe.Modules)
+            {
+                while (session.Module != module)
+                    session.StepModule(1);
+                var before = session.Worn.Get(module);
+                Assert.That(session.StepItem(1), Is.True, $"{module}: the second item is open");
+                Assert.That(session.Worn.Get(module), Is.Not.EqualTo(before), $"{module} wasn't worn at once");
+                Assert.That(session.Worn.Get(module), Is.EqualTo(session.Preview.Get(module)));
+            }
+        }
+
+        [Test]
+        public void LeavingKeepsTheLastOpenItemShown()
+        {
+            var session = new TailorSession(new ChefLook(), NothingEarned);
             session.StepItem(1);
             session.Leave();
-            Assert.That(session.Preview.Hat, Is.EqualTo(before));
+            Assert.That(session.Preview.Hat, Is.EqualTo("cap"));
+            Assert.That(session.Worn.Hat, Is.EqualTo("cap"));
         }
 
         [Test]
         public void ALockedItemShowsButIsNotWorn()
         {
             var session = new TailorSession(new ChefLook { Hat = "headband" }, NothingEarned);
-            session.StepItem(1);
-            Assert.That(session.Wear(), Is.EqualTo(TailorSession.WearResult.Locked), "the horns are locked");
+            Assert.That(session.StepItem(1), Is.False, "the horns are locked");
             Assert.That(session.Preview.Hat, Is.EqualTo("horns"));
             Assert.That(session.ItemLocked, Is.True);
             Assert.That(session.Worn.Hat, Is.EqualTo("headband"), "still wearing the last open hat");
@@ -156,8 +167,7 @@ namespace Game.Tests.EditMode
         public void ALockedItemIsWornOnceEarned()
         {
             var session = new TailorSession(new ChefLook { Hat = "headband" }, new[] { "horns" });
-            session.StepItem(1);
-            Assert.That(session.Wear(), Is.EqualTo(TailorSession.WearResult.Worn));
+            Assert.That(session.StepItem(1), Is.True);
             Assert.That(session.Worn.Hat, Is.EqualTo("horns"));
         }
     }

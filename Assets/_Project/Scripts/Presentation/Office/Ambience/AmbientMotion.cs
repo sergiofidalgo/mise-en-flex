@@ -90,6 +90,44 @@ namespace Game.Presentation.Office.Ambience
         }
 
         /// <summary>
+        /// How far along a route of <paramref name="length"/> metres a delivery rider is at
+        /// <paramref name="time"/>: they ride in, brake to a stop <paramref name="stopAt"/> metres
+        /// along, wait <paramref name="stopSeconds"/>, pull away to the end, and stay away for
+        /// <paramref name="awaySeconds"/> before coming round again. Braking and pulling away are
+        /// half-parabolas (twice the cruising speed at the far end of each, none at the stop), so
+        /// each leg still takes its length over <paramref name="speed"/>. With no stop
+        /// (<paramref name="stopAt"/> at or beyond either end) they ride straight through. Negative
+        /// while they're away.
+        /// </summary>
+        public static float Route(float time, float length, float speed, float stopAt, float stopSeconds, float awaySeconds, float phase)
+        {
+            if (length <= 0f || speed <= 0f)
+                return 0f;
+            var stops = stopAt > 0f && stopAt < length;
+            var inSeconds = (stops ? stopAt : length) / speed;
+            var outSeconds = stops ? (length - stopAt) / speed : 0f;
+            var cycle = inSeconds + outSeconds + (stops ? stopSeconds : 0f) + awaySeconds;
+            var t = Mathf.Repeat(time + phase * cycle, cycle);
+            if (!stops)
+                return t < inSeconds ? t * speed : -1f;
+            if (t < inSeconds)
+            {
+                var left = 1f - t / inSeconds;
+                return stopAt * (1f - left * left);
+            }
+            t -= inSeconds;
+            if (t < stopSeconds)
+                return stopAt;
+            t -= stopSeconds;
+            if (t < outSeconds)
+            {
+                var u = t / outSeconds;
+                return stopAt + (length - stopAt) * u * u;
+            }
+            return -1f;
+        }
+
+        /// <summary>
         /// A camera flash going off (the avenue's selfies and photographers): once in each
         /// <paramref name="period"/> seconds, at a different moment each time, a bright pop that dies
         /// away in a fifth of a second; about one in three is a phone's double flash. 0 between.

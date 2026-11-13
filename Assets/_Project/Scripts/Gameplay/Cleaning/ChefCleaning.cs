@@ -16,7 +16,7 @@ namespace Game.Gameplay.Cleaning
         /// <summary>Tables and counters: spin the stick round.</summary>
         Cloth,
 
-        /// <summary>The floor: spin the stick round, slower and heavier.</summary>
+        /// <summary>The floor: wag the stick from side to side (the user's call, 2026-11-12).</summary>
         Mop,
 
         /// <summary>A pan fire: wag the stick from side to side.</summary>
@@ -26,9 +26,10 @@ namespace Game.Gameplay.Cleaning
     /// <summary>
     /// A chef cleaning or putting out a fire (decision 2026-11-10): with empty hands, hold X by dirt
     /// or a burning hob and the chef pulls out a cloth, a mop or the extinguisher, stays put, and the
-    /// stick spins (cloth, mop) or sweeps side to side (extinguisher) to clean (decision 2026-11-11). Letting go of X, or B, stops; what was
-    /// wiped stays wiped. A finished patch moves straight on to the next one in reach while X is
-    /// still held. The extinguisher is always to hand, with nothing to buy.
+    /// stick spins (cloth) or sweeps side to side (mop, extinguisher) to clean (decisions 2026-11-11, 2026-11-12).
+    /// Letting go of X, or B, stops; what was wiped stays wiped. While X is still held the chef stays
+    /// planted (PlayerInteractor.IsPlanted): the stick turns them on the spot and the next job in
+    /// reach starts by itself, as at the sink. The extinguisher is always to hand, with nothing to buy.
     ///
     /// X does the station's own thing first (flip, ring the bell); cleaning is what it does when the
     /// station has nothing to do.
@@ -133,6 +134,9 @@ namespace Game.Gameplay.Cleaning
         /// <summary>What X would start here, for the prompt.</summary>
         public CleaningTool Available(Interactable target) => Find(target, out _, out _);
 
+        /// <summary>What X would clean here, and where: the spot of dirt or the burning hob (for the hint).</summary>
+        public CleaningTool WouldClean(Interactable target, out DirtSpot spot, out HobStation fire) => Find(target, out spot, out fire);
+
         /// <summary>Starts cleaning or putting out a fire, if there's any to do.</summary>
         public bool TryStart(Interactable target)
         {
@@ -207,12 +211,9 @@ namespace Game.Gameplay.Cleaning
                 return;
 
             Finished?.Invoke(this, where);
-            // Still holding X: straight on to the next patch in reach, with the same tool.
-            var tool = Tool;
+            // Still holding X, the chef stays planted and the next job in reach starts by itself
+            // (PlayerInteractor.IsPlanted), whatever its tool; turning finds more.
             Stop();
-            var next = Find(_chef.Target, out var spot, out var fire);
-            if (next == tool && tool != CleaningTool.Extinguisher)
-                Begin(next, spot, fire);
         }
 
         private bool Contains(DirtSpot spot)
@@ -285,7 +286,7 @@ namespace Game.Gameplay.Cleaning
 
         public static TraceShape ShapeOf(CleaningTool tool) => tool switch
         {
-            CleaningTool.Mop => TraceShape.WideCircle,
+            CleaningTool.Mop => TraceShape.MopSweep,
             CleaningTool.Extinguisher => TraceShape.Sweep,
             _ => TraceShape.Circle,
         };

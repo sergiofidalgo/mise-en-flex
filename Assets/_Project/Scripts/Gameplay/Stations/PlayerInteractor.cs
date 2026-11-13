@@ -94,6 +94,26 @@ namespace Game.Gameplay.Stations
         /// <summary>In management mode: the chef waits while the player's cursor rearranges the kitchen.</summary>
         public bool IsManaging { get; set; }
 
+        /// <summary>True while X (Use) is held down.</summary>
+        public bool IsUseHeld => _use != null && _use.IsPressed();
+
+        /// <summary>The kitchen's services, or null outside a kitchen (the office).</summary>
+        public KitchenServices Services => _services;
+
+        // Set when an X press goes to cleaning (washing, wiping, mopping, a fire) rather than a
+        // station's own action; cleared when X is let go or B backs out.
+        private bool _holdingToClean;
+
+        /// <summary>
+        /// Holding X to clean (decision 2026-11-11): the chef stays planted. While a job runs the
+        /// stick works it; between jobs it turns the chef on the spot, and whatever cleaning comes
+        /// into reach starts by itself. Letting go of X frees them to walk.
+        /// </summary>
+        public bool IsPlanted => (_holdingToClean && IsUseHeld && CanAct && (IsBusy || _hands.IsEmpty))
+            // Outside a kitchen (the office), X has nothing to clean: holding it still plants the chef
+            // and the stick turns them on the spot, the same control everywhere (the user's call).
+            || (_services == null && IsUseHeld && !IsBusy && !IsManaging);
+
         /// <summary>The stick right now, for a station that has taken over the chef.</summary>
         public Vector2 MoveInput => _playerInput.actions[MoveActionName].ReadValue<Vector2>();
 
@@ -156,10 +176,14 @@ namespace Game.Gameplay.Stations
 
         private void Update()
         {
+            if (_holdingToClean && !IsUseHeld)
+                _holdingToClean = false;
             if (_interactables == null || IsBusy || IsManaging || _services.Paused)
                 return;
 
             SetTarget(FindTarget());
+            if (IsPlanted)
+                TryStartCleaning();
 
             // The triggers turn the heat of whatever hob the chef is facing.
             if (_target is IHeatControl heat && _heatDown != null)
@@ -245,6 +269,8 @@ namespace Game.Gameplay.Stations
                 return Tr.Get(item.TypeId);
             if (plate.IsDirty)
                 return Tr.Get("dirty plate");
+            if (plate.IsBox)
+                return plate.Items.Count == 0 ? Tr.Get("empty box") : Tr.Format("box: {what}", ("what", Tr.Get(plate.Items[0].TypeId)));
             return plate.Items.Count == 0 ? Tr.Get("empty plate") : Tr.Format("plate: {what}", ("what", Tr.Get(plate.Items[0].TypeId)));
         }
 
@@ -307,6 +333,8 @@ namespace Game.Gameplay.Stations
         {
             if (IsBusy)
             {
+                // Backing out ends the hold too, or the next frame would start it again.
+                _holdingToClean = false;
                 BackOut?.Invoke();
                 return;
             }
@@ -349,23 +377,47 @@ namespace Game.Gameplay.Stations
 
         private void HandleUse(InputAction.CallbackContext context)
         {
-            // Cleaning runs while X is held; a press mid-way changes nothing.
-            if (!CanAct || (_cleaning != null && _cleaning.IsCleaning))
+            // Cleaning and washing run while X is held; a press mid-way changes nothing.
+            if (!CanAct || IsBusy)
                 return;
-            // Facing nothing, X still mops the floor at the chef's feet.
+            // Facing nothing, X still mops the floor at the chef's feet, or holds to turn and look.
             if (_target == null)
             {
-                _cleaning?.TryStart(null);
+                BeginHold();
                 return;
             }
             if (TryFaceButton(FaceButton.West))
                 return;
 
-            // The station's own action first; cleaning is what X does when it has none.
-            if (_target is IUsable usable && usable.TryUse(this))
+            // The station's own action first (flip, chop, ring the bell); cleaning is what X does
+            // when it has none: what the chef holds or faces decides which.
+            if (!(_target is SinkStation) && _target is IUsable usable && usable.TryUse(this))
                 Acted?.Invoke(_target);
-            else if (_cleaning == null || IsBusy || !_cleaning.TryStart(_target))
+            else if (!BeginHold())
                 _target.NotifyDenied();
+        }
+
+        // X went to cleaning: plant the chef and start whatever's in reach. With nothing to clean
+        // the chef stays planted all the same, turning on the spot, until X is let go.
+        private bool BeginHold()
+        {
+            if (!_hands.IsEmpty)
+                return false;
+            _holdingToClean = true;
+            return TryStartCleaning();
+        }
+
+        // The sink washes, anywhere else the cloth, mop or extinguisher comes out.
+        private bool TryStartCleaning()
+        {
+            if (IsBusy || !_hands.IsEmpty)
+                return false;
+            if (_target is SinkStation sink && sink.TryUse(this))
+            {
+                Acted?.Invoke(_target);
+                return true;
+            }
+            return _cleaning != null && _cleaning.TryStart(_target);
         }
     }
 }

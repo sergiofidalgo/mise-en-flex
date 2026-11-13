@@ -294,7 +294,8 @@ namespace Game.Presentation.Hud
                 // once). Read for everyone, so the press that joined a player is seen and ignored.
                 var y = player.actions.FindAction("ButtonY");
                 var startPress = _start.Update(player.playerIndex, y != null && y.IsPressed(), Time.unscaledDeltaTime);
-                if (!_dayLoop.WasHereLastFrame(player))
+                // Someone naming themselves as they join types on their keyboard, not here (2026-11-13).
+                if (!_dayLoop.WasHereLastFrame(player) || JoinNaming.IsBusyNaming(player))
                     continue;
                 var actions = player.actions;
                 if (!_choosingReply && (actions.FindAction("ButtonB")?.IsPressed() ?? false))

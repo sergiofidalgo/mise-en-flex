@@ -12,14 +12,35 @@ namespace Game.Presentation
     public sealed class LampLighting : MonoBehaviour
     {
         private static readonly int LocalLights = Shader.PropertyToID("_GameLocalLights");
+        private static readonly int LampBands = Shader.PropertyToID("_GameLampBands");
+        private static readonly int LampBandMix = Shader.PropertyToID("_GameLampBandMix");
+
+        /// <summary>
+        /// How much of the flat-banded lamp light shows, 0–1 (1 until someone says otherwise): the
+        /// opening fades it out as the camera lands on the boss's floor.
+        /// </summary>
+        public static void SetBandMix(float mix) => Shader.SetGlobalFloat(LampBandMix, Mathf.Clamp01(mix));
 
         [Tooltip("How strongly lamps light surfaces: 1 is as the lights are set.")]
         [SerializeField, Min(0f)] private float _localLights = 1f;
+        [Tooltip("0: lamps fall off smoothly (the user's call, 2026-11-09). Above 0: in that many flat steps, as the sun's toon bands (a trial, 2026-11-11).")]
+        [SerializeField, Range(0f, 8f)] private float _lampBands;
 
-        private void OnEnable() => Shader.SetGlobalFloat(LocalLights, _localLights);
+        private void OnEnable() => Apply();
 
-        private void OnValidate() => Shader.SetGlobalFloat(LocalLights, _localLights);
+        private void OnValidate() => Apply();
 
-        private void OnDisable() => Shader.SetGlobalFloat(LocalLights, 0f);
+        private void OnDisable()
+        {
+            Shader.SetGlobalFloat(LocalLights, 0f);
+            Shader.SetGlobalFloat(LampBands, 0f);
+        }
+
+        private void Apply()
+        {
+            Shader.SetGlobalFloat(LocalLights, _localLights);
+            Shader.SetGlobalFloat(LampBands, Mathf.Round(_lampBands));
+            Shader.SetGlobalFloat(LampBandMix, 1f);
+        }
     }
 }

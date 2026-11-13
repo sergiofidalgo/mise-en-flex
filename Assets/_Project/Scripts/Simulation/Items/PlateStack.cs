@@ -7,7 +7,7 @@ namespace Game.Simulation.Items
     /// The stack of clean plates (decision 2026-11-04: limited, washed plates come back). Takes
     /// back only clean, empty plates, and running out stops service until someone washes up.
     /// </summary>
-    public sealed class PlateStack : IPlateSource
+    public sealed class PlateStack : IPlateSource, IFreshPlateSource
     {
         private readonly Stack<Plate> _plates = new Stack<Plate>();
 
@@ -35,7 +35,7 @@ namespace Game.Simulation.Items
                 _plates.Push(new Plate(plateCapacity));
         }
 
-        public bool CanAccept(Item item) => item is Plate plate && !plate.IsDirty && plate.Items.Count == 0 && _plates.Count < Capacity;
+        public bool CanAccept(Item item) => item is Plate plate && !plate.IsBox && !plate.IsDirty && plate.Items.Count == 0 && _plates.Count < Capacity;
 
         /// <summary>True if the top plate would take <paramref name="item"/>, without taking the plate.</summary>
         public bool PeekAccepts(Item item) => _plates.Count > 0 && _plates.Peek().CanAccept(item);

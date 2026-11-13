@@ -661,6 +661,15 @@ namespace Game.Editor
 
         // ---- Over the whole scene -----------------------------------------------------------------
 
+        // The helicopter's pass in the opening (OpeningFlyby), in the floor's own coordinates.
+        // Low over the back of the floor itself, east to west, crossing the middle of the wide shot
+        // just as the camera lands (the user's note, 2026-11-11: they hadn't noticed it up in the
+        // sky, which the camera sees only for a moment at the cornice). 5 m up over the middle
+        // of the floor: above the lamps and the trees, and big in the frame.
+        private static readonly Vector3 FlybyFrom = new Vector3(64f, 7f, 10f);
+        private static readonly Vector3 FlybyVia = new Vector3(0f, 4.5f, 1f);
+        private static readonly Vector3 FlybyTo = new Vector3(-66f, 9f, 10f);
+
         // Called after the rooms and the city are built.
         private static void AddLife(Transform rooms)
         {
@@ -679,8 +688,19 @@ namespace Game.Editor
 
             // A helicopter lapping the skyline.
             var flyer = Helicopter(life, "FlyingHelicopter", new Color(0.2f, 0.32f, 0.52f), rotorSpeed: 900f);
-            flyer.gameObject.AddComponent<FlyLoop>().Set(new Vector3(0f, 16f, 40f), new Vector2(95f, 60f), 2f, 75f, 0.15f, false, 12f);
+            var lap = flyer.gameObject.AddComponent<FlyLoop>();
+            lap.Set(new Vector3(0f, 16f, 40f), new Vector2(95f, 60f), 2f, 75f, 0.15f, false, 12f);
             MakeDynamic(flyer.gameObject);
+            // In the opening it leaves its lap for one pass over the terrace as the camera crests
+            // the tower (the user's note, 2026-11-11: it had stopped showing there): in from the
+            // east, low over the back of the floor, away to the west.
+            var pass = new SerializedObject(flyer.gameObject.AddComponent<Game.Presentation.Office.OpeningFlyby>());
+            pass.FindProperty("_loop").objectReferenceValue = lap;
+            pass.FindProperty("_from").vector3Value = FlybyFrom;
+            pass.FindProperty("_via").vector3Value = FlybyVia;
+            pass.FindProperty("_to").vector3Value = FlybyTo;
+            pass.FindProperty("_seconds").floatValue = 6.5f;
+            pass.ApplyModifiedPropertiesWithoutUndo();
 
             // Pigeons on the boss's terrace: along the rail and on his helipad, pecking. They fly off
             // when a chef steps close, and come back a while later (TerraceBirdsView).

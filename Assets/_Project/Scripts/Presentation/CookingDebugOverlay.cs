@@ -16,7 +16,7 @@ namespace Game.Presentation
     /// panels: top left for players (device, target, hands, tool, triggers) and storage (one line
     /// per unit); top right for what you watch while cooking: hobs (heat, pan temperature, the food
     /// in each pan) and food in play (anywhere outside storage, with its location). Values are
-    /// coloured by state. F1 toggles it; click a panel's title or a section heading to fold it
+    /// coloured by state. Behind the developer toggle (<see cref="DeveloperHud"/>, F1), off by default; click a panel's title or a section heading to fold it
     /// (remembered between sessions). Players read food by eye; this is for tuning and debugging.
     /// </summary>
     public sealed class CookingDebugOverlay : MonoBehaviour
@@ -40,7 +40,6 @@ namespace Game.Presentation
 
         private System.Collections.Generic.IEnumerable<Game.Gameplay.Stations.Interactable> Stations =>
             _root.Services.Stations.All.OrderBy(s => s.name);
-        [SerializeField] private bool _visible = true;
         [SerializeField, Min(8)] private int _fontSize = 12;
         [SerializeField, Range(0f, 1f)] private float _backgroundOpacity = 0.88f;
 
@@ -85,16 +84,13 @@ namespace Game.Presentation
 
         private void Update()
         {
-            // Debug-only shortcut, deliberately outside the rebindable game controls.
-            var keyboard = Keyboard.current;
-            if (keyboard != null && keyboard.f1Key.wasPressedThisFrame)
-                _visible = !_visible;
+            DeveloperHud.ReadToggle();
         }
 
         private void OnGUI()
         {
             var services = _root != null ? _root.Services : null;
-            if (!_visible || services == null)
+            if (!DeveloperHud.Visible || services == null)
                 return;
 
             EnsureStyles();

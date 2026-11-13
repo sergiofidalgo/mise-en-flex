@@ -30,6 +30,7 @@ namespace Game.Gameplay
         private float _verticalSpeed;
         private float _floorHeight;
         private Vector3 _spawnPosition;
+        private Quaternion _writtenRotation;
 
         public PlanarMover Mover => _mover;
 
@@ -86,6 +87,10 @@ namespace Game.Gameplay
 
         public System.Numerics.Vector2 Shove(System.Numerics.Vector2 shift)
         {
+            // Out of the player's hands for the moment (thrown by a car, carried back by a
+            // bodyguard: ChefHold): whoever holds them moves them, and nobody pushes them about.
+            if (!_controller.enabled)
+                return System.Numerics.Vector2.Zero;
             var before = transform.position;
             _controller.Move(new Vector3(shift.X, 0f, shift.Y));
             var moved = transform.position - before;
@@ -102,6 +107,7 @@ namespace Game.Gameplay
             _mover = new PlanarMover(_tuning.Movement, transform.eulerAngles.y);
             _floorHeight = transform.position.y;
             _spawnPosition = transform.position;
+            _writtenRotation = transform.rotation;
 
             // Chefs don't block each other through physics: PushResolver lets them push instead.
             foreach (var other in FindObjectsByType<PlayerMovement>(FindObjectsSortMode.None))
@@ -117,15 +123,32 @@ namespace Game.Gameplay
                 Rescue();
 
             var deltaTime = Time.deltaTime;
-            // A station can take over the chef, and the stick with it (washing by hand).
-            var stick = _interactor != null && (_interactor.IsBusy || _interactor.IsManaging || _interactor.IsReviewing) ? Vector2.zero : _move.ReadValue<Vector2>();
+            // A station can take over the chef, and the stick with it (washing, cleaning).
+            var taken = _interactor != null && (_interactor.IsBusy || _interactor.IsManaging || _interactor.IsReviewing);
+            var stick = taken ? Vector2.zero : _move.ReadValue<Vector2>();
+            // Holding X with nothing to clean yet (decision 2026-11-11): planted, the stick turns the
+            // chef on the spot, so they can swing round to the dirt or the sink without stepping off.
+            var planted = _interactor != null && _interactor.IsPlanted;
 
             // Read tuning every frame so Inspector edits apply live while playing.
             _mover.Settings = _tuning.Movement;
 
+            // Something else turned the chef since last frame (a station facing them to their work,
+            // a test standing them somewhere): keep that facing rather than snapping back.
+            if (!FacingOverride.HasValue && Quaternion.Angle(transform.rotation, _writtenRotation) > 0.5f)
+                _mover.Face(transform.eulerAngles.y);
+
             // The kitchen camera is fixed and faces world +Z (yaw 0), so stick up maps
             // straight to forward. If the camera ever rotates, rotate the stick by its yaw here.
-            _mover.Tick(deltaTime, new System.Numerics.Vector2(stick.x, stick.y));
+            _mover.Tick(deltaTime, new System.Numerics.Vector2(stick.x, stick.y), planted, SpeedHere());
+
+            // Stopped near a station roughly in front: settle round to face it (decision 2026-11-11).
+            if (!taken && _interactor != null && _interactor.Target != null)
+            {
+                var here = transform.position;
+                var station = _interactor.Target.transform.position;
+                _mover.Assist(deltaTime, new System.Numerics.Vector2(here.x, here.z), new System.Numerics.Vector2(station.x, station.z));
+            }
 
             // Simple gravity keeps the controller grounded; there's no jumping or falling gameplay.
             _verticalSpeed = _controller.isGrounded
@@ -138,6 +161,19 @@ namespace Game.Gameplay
             transform.rotation = FacingOverride.HasValue
                 ? Quaternion.RotateTowards(transform.rotation, Quaternion.Euler(0f, FacingOverride.Value, 0f), OverrideTurnSpeed * deltaTime)
                 : Quaternion.Euler(0f, _mover.FacingDegrees, 0f);
+            _writtenRotation = transform.rotation;
+        }
+
+        /// <summary>True while the chef stands in floor dirt, which slows them (decision 2026-11-11).</summary>
+        public bool InFloorDirt { get; private set; }
+
+        // A greasy floor slows a chef down: standing in a floor stain caps their speed.
+        private float SpeedHere()
+        {
+            var services = _interactor != null ? _interactor.Services : null;
+            var here = transform.position;
+            InFloorDirt = services != null && services.Dirt.NearestOnFloor(here.x, here.z, _tuning.FloorDirtReach) != null;
+            return InFloorDirt ? _tuning.FloorDirtSpeed : 1f;
         }
 
         // Back to the nearest free floor above where they fell, or to where they joined.

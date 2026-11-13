@@ -8,10 +8,12 @@ using UnityEngine.UI;
 namespace Game.Presentation.Hud
 {
     /// <summary>
-    /// Gives each player a prompt card and keeps it above the station they're facing, showing what
-    /// each button does there (badge + short verb) in that player's colour, always as Xbox buttons
-    /// (decision 2026-11-04), whatever the player is using. Players
-    /// at the same station get their cards side by side, fanning out to either side of it.
+    /// Shows a player's open slot menu above the station they're facing: the face-button diamond of a
+    /// storage unit or a stall while RT is held, or a tray's menu, in that player's colour, always as
+    /// Xbox buttons (decision 2026-11-04). Per-counter control hints are gone (2026-11-11 playtest
+    /// round): the only hints left are built into the appliances (<see cref="ApplianceHints"/>), so a
+    /// card shows only while a menu is open. Players at the same station get their cards side by
+    /// side, fanning out to either side of it.
     /// </summary>
     public sealed class PromptHud : MonoBehaviour
     {
@@ -48,28 +50,28 @@ namespace Game.Presentation.Hud
             {
                 var card = CardFor(player);
                 // While cleaning, the shape on the dirt is the interface, as at the sink: no card.
-                if (!player.TryGetComponent(out PlayerInteractor interactor) || !interactor.CanAct || interactor.Target == null ||
+                if (!player.TryGetComponent(out PlayerInteractor interactor) || !interactor.CanAct || interactor.IsReviewing || interactor.Target == null ||
                     (interactor.Cleaning != null && interactor.Cleaning.IsCleaning))
                 {
                     card.Hide();
                     continue;
                 }
 
+                // The open menu is drawn in the scene now, as a wheel over the station (decision 2026-11-11).
+                if (SlotWheelView.Present)
+                {
+                    card.Hide();
+                    continue;
+                }
+
+                // Only an open menu: a choice to make, not a hint (the hints are on the appliances).
                 _lines.Clear();
                 var prompt = interactor.Target as IStationPrompt;
-                var diamond = interactor.IsTrayMenuOpen;
-                if (diamond)
-                {
+                var diamond = true;
+                if (interactor.IsTrayMenuOpen)
                     interactor.DescribeTrayMenu(_lines);
-                }
-                else
-                {
-                    prompt?.DescribeActions(interactor, _lines);
-                    interactor.Cleaning?.DescribeActions(interactor.Target, _lines);
-                    diamond = prompt != null && prompt.PromptAsDiamond(interactor);
-                    if (interactor.CanOpenTrayMenu)
-                        _lines.Add(new PromptLine(PromptControl.Triggers, Tr.Get("choose from tray")));
-                }
+                else if (prompt != null && prompt.PromptAsDiamond(interactor))
+                    prompt.DescribeActions(interactor, _lines);
 
                 var screen = camera.WorldToScreenPoint(interactor.Target.transform.position + Vector3.up * AnchorHeight(interactor.Target));
                 if (_lines.Count == 0 || screen.z <= 0f)

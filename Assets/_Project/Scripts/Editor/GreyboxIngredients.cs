@@ -54,6 +54,7 @@ namespace Game.Editor
             public float SweetSpotPosition = 85f;
             public float SweetSpotGood = 20f;
             public float SweetSpotOk = 40f;
+            public float SweetSpotStep;
 
             // Applied only when the definition asset is first created.
             public Action<SerializedObject> InitialTuning;
@@ -98,7 +99,7 @@ namespace Game.Editor
                 ModelScale = 0.8f,
                 // Cut into rings first, then on into dice (decision 2026-11-08): stop after the
                 // rings to keep them. Five chops in all to dice, as before.
-                Scale = Vector3.one * 0.26f, CutInto = "OnionRings", CutsNeeded = 2, ChopSecondsPerSweep = 0.7f, SweetSpotPosition = 110f, SweetSpotGood = 14f, SweetSpotOk = 28f,
+                Scale = Vector3.one * 0.26f, CutInto = "OnionRings", CutsNeeded = 2, ChopSecondsPerSweep = 0.7f, SweetSpotPosition = 110f, SweetSpotGood = 14f, SweetSpotOk = 28f, SweetSpotStep = 24f,
                 InitialTuning = so => SetVegetable(so, massKg: 0.15f),
             },
             new IngredientType
@@ -107,7 +108,7 @@ namespace Game.Editor
                 // and brown at their edges. Tuned from diced onion; untested in play.
                 Id = "OnionRings", DisplayName = "Onion rings", Color = new Color(0.97f, 0.92f, 0.74f), Shape = PrimitiveType.Sphere,
                 Scale = new Vector3(0.2f, 0.05f, 0.2f),
-                CutInto = "DicedOnion", CutsNeeded = 3, ChopSecondsPerSweep = 0.7f, SweetSpotPosition = 110f, SweetSpotGood = 14f, SweetSpotOk = 28f,
+                CutInto = "DicedOnion", CutsNeeded = 3, ChopSecondsPerSweep = 0.7f, SweetSpotPosition = 110f, SweetSpotGood = 14f, SweetSpotOk = 28f, SweetSpotStep = 16f,
                 ScoreDoneness = true, ScoreBrowning = true, ServedHot = true, TargetCore = 92f,
                 InitialTuning = so =>
                 {
@@ -212,6 +213,7 @@ namespace Game.Editor
             so.FindProperty("_sweetSpotPosition").floatValue = type.SweetSpotPosition;
             so.FindProperty("_sweetSpotGood").floatValue = type.SweetSpotGood;
             so.FindProperty("_sweetSpotOk").floatValue = type.SweetSpotOk;
+            so.FindProperty("_sweetSpotStep").floatValue = type.SweetSpotStep;
             so.ApplyModifiedPropertiesWithoutUndo();
             return definition;
         }

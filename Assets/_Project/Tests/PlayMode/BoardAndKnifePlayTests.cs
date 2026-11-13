@@ -125,9 +125,8 @@ namespace Game.Tests.PlayMode
             Assert.That(_chef.Target, Is.SameAs(Board));
         }
 
-        // Visible cutting dials, by their names (ChopDial_<board>); the HUD lives in Presentation.
-        private static int DialsShowing() => Object.FindObjectsByType<RectTransform>(FindObjectsSortMode.None)
-            .Count(r => r.name.StartsWith("ChopDial_") && r.gameObject.activeInHierarchy);
+        // Visible cutting dials (in the scene since 2026-11-11, ChopGaugeView).
+        private static int DialsShowing() => Object.FindObjectsByType<Game.Presentation.ChopGaugeView>(FindObjectsSortMode.None).Sum(v => v.Showing);
 
         [UnityTest]
         public IEnumerator TheCuttingDialShowsOnlyForAChefAtTheBoardNotForTheLayoutCursor()

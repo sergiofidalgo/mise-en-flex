@@ -24,6 +24,9 @@ namespace Game.Data
         [Tooltip("How fast food and pans change, against the clock. The clock runs at its own pace; a steak has to be judgeable by eye.")]
         [SerializeField, Min(0.01f)] private float _cookingSpeed = 0.9f;
 
+        [Tooltip("Real seconds of 4-3-2-1 between Prep and the doors opening (decision 2026-11-11). Chefs work freely during it; guests wait on the doorstep.")]
+        [SerializeField, Min(0f)] private float _serviceCountdownSeconds = 4f;
+
         [Header("Kitchen")]
         [Tooltip("Kitchen air temperature, °C.")]
         [SerializeField] private float _ambientTemperature = 22f;
@@ -41,8 +44,21 @@ namespace Game.Data
         [Tooltip("Seconds from full speed to a stop after letting go of the stick.")]
         [SerializeField, Min(0f)] private float _decelerationTime = 0.06f;
 
-        [Tooltip("Degrees per second the chef turns to face the stick. 1080 = a half turn in ~0.17 s.")]
-        [SerializeField, Min(0f)] private float _turnSpeedDegrees = 1080f;
+        [Tooltip("Degrees per second the chef turns to face the stick at full push. Slower than walking feels (decision 2026-11-11: was 1080): 600 = a half turn in 0.3 s.")]
+        [SerializeField, Min(0f)] private float _turnSpeedDegrees = 600f;
+
+        [Tooltip("Share of the turn speed at the lightest push, rising to all of it at full push: a small nudge turns the chef gently instead of swinging them off the counter.")]
+        [SerializeField, Range(0.05f, 1f)] private float _lightPushTurnShare = 0.35f;
+
+        [Header("Facing assist (decision 2026-11-11)")]
+        [Tooltip("Metres to a station's centre within which a chef who has stopped turns to face it. A chef at a counter's front is about 1 m from its centre. 0 turns the assist off.")]
+        [SerializeField, Min(0f)] private float _facingAssistRange = 1.3f;
+
+        [Tooltip("Degrees either side of facing within which the assist turns a stopped chef to the station they're targeting.")]
+        [SerializeField, Range(0f, 90f)] private float _facingAssistHalfAngle = 40f;
+
+        [Tooltip("Degrees per second of the assist's turn: gentle, so it settles rather than snaps.")]
+        [SerializeField, Min(0f)] private float _facingAssistTurnSpeed = 300f;
 
         [Header("Interaction")]
         [Tooltip("Metres from the chef to a station's centre. A counter is 1 m deep, so 1.5 reaches about 0.65 m past its front edge.")]
@@ -83,27 +99,11 @@ namespace Game.Data
         [Tooltip("Food below this freshness looks stale: duller and browner the older it gets (decision 2026-11-11).")]
         [SerializeField, Range(0f, 1f)] private float _staleBelow = 0.35f;
 
-        [Header("Washing by hand")]
-        [Tooltip("Acceleration at full stick: high, so small movements shift the point a lot.")]
-        [SerializeField, Min(0f)] private float _washStick = 10f;
-        [Tooltip("How hard the point runs away from the centre, per unit of distance.")]
-        [SerializeField, Min(0f)] private float _washInstability = 3.2f;
-        [Tooltip("How fast the point's speed dies away, per second. Higher means less inertia.")]
-        [SerializeField, Min(0f)] private float _washDamping = 4.2f;
-        [Tooltip("Size of the random nudge. Keep below instability × ok radius, or doing nothing could clean a plate.")]
-        [SerializeField, Min(0f)] private float _washNudge = 1.0f;
-        [Tooltip("Fraction of the circle: the target drawn in the centre to aim for.")]
-        [SerializeField, Range(0f, 1f)] private float _washGoodRadius = 0.4f;
-        [Tooltip("Fraction of the circle beyond which nothing gets clean; inside, the closer the quicker.")]
-        [SerializeField, Range(0f, 1f)] private float _washOkRadius = 0.6f;
-        [Tooltip("Seconds of full-speed scrubbing per plate; scrubbing slows the further the soap is from the centre.")]
-        [SerializeField, Min(0.1f)] private float _washSecondsPerPlate = 1.4f;
-        [Tooltip("Pushes per plate, one as each share of it comes clean (the user's call: 2, so each plate is tipped three ways).")]
-        [SerializeField, Min(0)] private int _washCorrections = 2;
-        [Tooltip("How hard each push kicks the point away (circle radii per second).")]
-        [SerializeField, Min(0f)] private float _washPushSpeed = 3.5f;
-        [Tooltip("Random spread, degrees either way, around pushes spaced evenly round the circle.")]
-        [SerializeField, Range(0f, 60f)] private float _washPushSpread = 20f;
+        [Header("Washing by hand (circle the stick, decision 2026-11-11; the push and turn-back are the cleaning game's)")]
+        [Tooltip("Circles of the stick that wash one plate.")]
+        [SerializeField, Min(0.1f)] private float _washCirclesPerPlate = 2f;
+        [Tooltip("Fastest circles a second that count at the sink: 2 circles at 2 a second is about 1 s a plate (the user's call, 2026-11-13: quicker).")]
+        [SerializeField, Min(0.05f)] private float _washCircleSpeed = 2f;
 
         [Header("Dirt (decision 2026-11-10: a medium mess; amounts in wipes, one loop of the cleaning game each)")]
         [Tooltip("Wipes a diner leaves on their table or stool when they finish.")]
@@ -160,12 +160,16 @@ namespace Game.Data
         [SerializeField, Range(0.1f, 1f)] private float _sweepEdge = 0.55f;
         [Tooltip("Fastest turns a second that count with the cloth.")]
         [SerializeField, Min(0.05f)] private float _clothSpeed = 1.1f;
-        [Tooltip("Fastest turns a second that count with the mop.")]
-        [SerializeField, Min(0.05f)] private float _mopSpeed = 0.7f;
+        [Tooltip("Fastest sweeps (there and back) a second that count with the mop.")]
+        [SerializeField, Min(0.05f)] private float _mopSpeed = 0.8f;
         [Tooltip("Fastest sweeps (there and back) a second that count with the extinguisher.")]
         [SerializeField, Min(0.05f)] private float _extinguisherSpeed = 0.9f;
         [Tooltip("Metres from the chef that floor dirt can be mopped.")]
         [SerializeField, Min(0f)] private float _mopReach = 1.1f;
+        [Tooltip("Share of walking speed while standing in floor dirt: a greasy floor slows the kitchen down (the user's call, 2026-11-11).")]
+        [SerializeField, Range(0.1f, 1f)] private float _floorDirtSpeed = 0.55f;
+        [Tooltip("Metres from a floor stain's centre at which a chef counts as standing in it.")]
+        [SerializeField, Min(0f)] private float _floorDirtReach = 0.4f;
 
         [Header("Gas fires")]
         [Tooltip("Real seconds a pan stays on a lit flame with its food burnt before it catches (the alarm is the warning).")]
@@ -208,7 +212,7 @@ namespace Game.Data
             TurnBack = _spinTurnBack,
             SweepEdge = _sweepEdge,
             CircleSpeed = _clothSpeed,
-            WideCircleSpeed = _mopSpeed,
+            MopSpeed = _mopSpeed,
             SweepSpeed = _extinguisherSpeed,
         };
 
@@ -216,6 +220,12 @@ namespace Game.Data
 
         /// <summary>Metres from the chef that floor dirt can be mopped.</summary>
         public float MopReach => _mopReach;
+
+        /// <summary>Share of walking speed while standing in floor dirt.</summary>
+        public float FloorDirtSpeed => _floorDirtSpeed;
+
+        /// <summary>Metres from a floor stain's centre at which a chef counts as standing in it.</summary>
+        public float FloorDirtReach => _floorDirtReach;
 
         [Header("Flip gauge")]
         [Tooltip("Browning of the side facing down where the gauge's green band starts (around 1 is a good crust).")]
@@ -225,6 +235,9 @@ namespace Game.Data
         [Tooltip("Browning of the side in the pan at which the bar warns it's about to burn.")]
         [SerializeField, Min(0f)] private float _burnWarningFrom = 1.5f;
 
+        /// <summary>The countdown before the doors open, in real seconds.</summary>
+        public float ServiceCountdownSeconds => _serviceCountdownSeconds;
+
         public float OvernightSeconds => _overnightHours * 3600f;
 
         public float SpoiledBelow => _spoiledBelow;
@@ -233,16 +246,11 @@ namespace Game.Data
 
         public WashGameSettings WashGame => new WashGameSettings
         {
-            StickAcceleration = _washStick,
-            Instability = _washInstability,
-            Damping = _washDamping,
-            Nudge = _washNudge,
-            GoodRadius = _washGoodRadius,
-            OkRadius = _washOkRadius,
-            SecondsPerPlate = _washSecondsPerPlate,
-            Corrections = _washCorrections,
-            PushSpeed = _washPushSpeed,
-            PushSpreadDegrees = _washPushSpread,
+            CirclesPerPlate = _washCirclesPerPlate,
+            CircleSpeed = _washCircleSpeed,
+            // One control for all cleaning: the sink counts circles exactly as the cloth does.
+            MinPush = _spinMinPush,
+            TurnBack = _spinTurnBack,
         };
 
         public FlipGaugeSettings FlipGauge => new FlipGaugeSettings { GoodFrom = _flipGoodFrom, GoodTo = _flipGoodTo, WarnFrom = _burnWarningFrom };
@@ -307,7 +315,8 @@ namespace Game.Data
         public float FridgeTemperature => _fridgeTemperature;
 
         public MovementSettings Movement =>
-            new MovementSettings(_moveSpeed, _accelerationTime, _decelerationTime, _turnSpeedDegrees);
+            new MovementSettings(_moveSpeed, _accelerationTime, _decelerationTime, _turnSpeedDegrees,
+                _lightPushTurnShare, _facingAssistRange, _facingAssistHalfAngle, _facingAssistTurnSpeed);
 
         public TargetingSettings Targeting =>
             new TargetingSettings(_interactRange, _interactHalfAngle, _targetStickiness);

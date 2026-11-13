@@ -44,13 +44,27 @@ namespace Game.Gameplay
         // colour and chef), and P2 takes the free slot back when they press A.
         private void Start()
         {
-            foreach (var seat in PlayerRoster.Take())
+            IsRejoining = true;
+            try
             {
-                if (_manager.playerCount >= _settings.MaxPlayers)
-                    break;
-                _manager.JoinPlayer(seat.Index, -1, seat.Scheme, seat.Devices);
+                foreach (var seat in PlayerRoster.Take())
+                {
+                    if (_manager.playerCount >= _settings.MaxPlayers)
+                        break;
+                    _manager.JoinPlayer(seat.Index, -1, seat.Scheme, seat.Devices);
+                }
+            }
+            finally
+            {
+                IsRejoining = false;
             }
         }
+
+        /// <summary>
+        /// True while players carried over from the last scene join again: they're not new, so
+        /// they don't name themselves again (JoinNaming, 2026-11-13).
+        /// </summary>
+        public bool IsRejoining { get; private set; }
 
         private void HandlePlayerJoined(PlayerInput player)
         {

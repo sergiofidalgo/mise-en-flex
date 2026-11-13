@@ -46,6 +46,7 @@ namespace Game.Simulation.Saving
                 Order = order == null ? "" : OrderName(order),
                 ArrivedAt = customer?.ArrivedAt ?? 0f,
                 WalkedOut = customer?.WalkedOut ?? false,
+                Delivery = review.Delivery,
                 Paid = customer?.Bill?.Payment ?? 0f,
                 Tip = customer?.Bill?.Tip ?? 0f,
                 Penalty = customer?.WalkOutPenalty ?? 0f,

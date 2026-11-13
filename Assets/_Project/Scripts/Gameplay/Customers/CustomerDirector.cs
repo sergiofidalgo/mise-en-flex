@@ -415,6 +415,22 @@ namespace Game.Gameplay.Customers
         // Just outside the door, where people step in and out of the street.
         private Vector3 Doorstep() => _door.position - _door.forward * _doorstep;
 
+        /// <summary>The street door, wherever it stands now.</summary>
+        public Transform Door => _door;
+
+        /// <summary>
+        /// Which way along the door's wall the queue outside lines up: the side with more wall.
+        /// What stands by the door (the menu) keeps to the other side.
+        /// </summary>
+        public Vector3 QueueSide
+        {
+            get
+            {
+                var side = _door.right;
+                return WallLeft(-side) > WallLeft(side) ? -side : side;
+            }
+        }
+
         // The nearest point on the way along the pavement (the line between the street's ends).
         private Vector3 LanePoint(Vector3 position)
         {

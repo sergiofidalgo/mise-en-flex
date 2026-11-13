@@ -28,6 +28,275 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
   - **Saved per restaurant,** like prices (`RestaurantSave.OffMenu`). An older save has every owned dish on the menu; a save that would leave the menu empty keeps the first owned dish on.
 
 **Tests:** `CookbookTests` covers taking a dish off and putting it back, the last dish, the list's order and loading. `ForkcastPlanPlayTests` checks that a tap doesn't buy, that a hold fills and buys, and that taps switch the dish off and on.
+## 2026-11-13 — Washing a plate takes 2 circles
+
+**User's call:** washing a single dish took way too long (4 circles a plate at up to 1.5 a second, at least 2.7 s and nearer 4 s at an easy pace). Now 2 circles a plate at up to 2 a second (`TuningConfig`, Washing by hand): about 1 s at full speed, 1.5 to 2 s at a relaxed pace. The pace test expects 0.8 to 1.4 s a plate at the cap.
+
+---
+
+## 2026-11-12 — The road is open: cars hit chefs, and a bodyguard fetches the ones who walk off
+
+**The user's ideas:** "simulate cars' hit and runs against players in a funny way if they happen to be in the wrong place at the wrong time", and "let the player leave the scene but also send them back again with a funny message". Proposed in detail and agreed ("Yes, as proposed").
+
+- **No invisible walls along the kerb or at the pavement's ends.** Chefs can step into the road, cross to the park's pavement, and walk off either end of the street or away through the park. The plaza and the lot still end at the neighbours' walls and the back fence.
+- **Hit and run** (`HitAndRun`, `Knockdown`, `RoadVehicle`): a moving car that reaches a chef throws them 4 m along its way in an arc 2.4 m high, turning head over heels twice, onto whichever pavement is nearer, never past the scene's ends. They lie dazed 1.5 s with stars circling, get up in 0.35 s, and are the player's again: about 2.75 s lost. The car doesn't slow. Nobody is hurt; there's no health.
+- **What it costs:** the seconds, and **the food they carried** (off the plate, out of the pan, off the tray, out of their hands). **A plate, pan or tray stays in their hands, emptied.** This is narrower than proposed ("a plate smashes"): kitchenware can't be replaced mid-service, and a kitchen left without its pan can't cook. The user's to widen.
+- **Fair warning:** a car sounds its horn at a chef ahead of it in its lane, a second's drive away, so a hit is the player's own doing (the user's rule: learn by playing).
+- **Leaving** (`SceneLeave`, `Escort`): 3.5 m past the grounds along the street, or 5.5 m past the far kerb into the park, a chef has left. They stand there 1.2 s; one of the boss's bodyguards jogs in from 4 m further out at 6 m/s, tucks them under an arm, carries them to the doorstep, sets them down facing the door, and jogs back. What they carried comes back with them. A line pops up over their head for 3 s, one of five, never the same twice running: "The boss says the kitchen is that way." / "Shift's not over, chef." / "Nice try." / "Lost? The stove's inside." / "No breaks until the till closes."
+- **Co-op:** each chef is thrown or fetched on their own; the others play on. A chef already in the air or under an arm isn't taken by the other.
+- **How a chef is taken and given back** (`ChefHold`): their movement and body are switched off and they're marked busy; whoever holds them moves them by hand; nothing pushes them meanwhile (`PlayerMovement.Shove`). Released, they're stood on the floor by `Teleport`.
+- **The camera's grounds** take in the road and the far pavement.
+
+- **Sharing the road with the couriers** (merged with the delivery work, 2026-11-13): couriers ride and park their scooters 0.9 m off the restaurant's kerb, so both car lanes sit 0.6 m further towards the park and a car's side passes 1.3 m from that kerb. Cars don't hit couriers, and scooters don't hit chefs.
+- **A shop test fixed on the way:** `BuyingPlayTests.WithoutTheMoneyItCantBeBoughtOrPlaced` took the cheapest furniture and expected it to be unaffordable; the delivery boxes are free, so it failed on main. It now takes the cheapest furniture that costs anything; what it asserts is unchanged.
+
+**Placeholders:** the horn, the thud and the bell are made from sine waves and noise in `StreetMishapsView`; the stars are three spheres. The five lines aren't in the language tables yet, so they read in English in every language.
+
+**Verified:** EditMode `StreetMishapsTests` (what counts as reached and as borne down on; where they land; the arc; the scene's edges; the bodyguard's trip). PlayMode `StreetMishapsPlayTests`, in the real scene with a controller chef: stood ahead of a car, they're hit, lose their steak, fly, land on a pavement and stand; stood off the west end, they're noticed and set down on the doorstep still holding their steak.
+
+**To judge in play (none of it can be judged from stills):** whether it's funny; the arc's height and length; whether 2.75 s is the right price; whether the horn is fair warning at the cars' speeds; how the camera behaves as a chef nears the end of the street and while they're carried back; how the tucked chef sits against the bodyguard; whether guests or passers-by should react.
+
+**Not done:** guests and passers-by aren't hit and don't react; no review line or reputation cost for lying in the road; staff never go near the road.
+---
+
+## 2026-11-12 — Delivery: orders from the app, a counter, free boxes and couriers
+
+**The user's idea:** a new kind of customer, the delivery couriers already seen in the opening (lime cap and bag, scooter). Players buy a special counter, leave the food there, a courier rides up for it, pays and leaves, and "the review will tell later if the order delivered matched well with the client expectations".
+
+Decided with the user in conversation:
+
+- **No order rail.** The user first thought of order cards in the top-left corner, as other cooking games have. I argued that would undo the 2026-11-11 bubbles; the user then proposed the courier carrying the order over their head "as a regular customer would", which needs no rail at all.
+- **The bubble comes before the courier.** If the order only appeared with the courier, they'd stand through the whole cook. So an order's bubble first stands over its place on the delivery counter, with the app's badge and a ring that runs down until the courier pulls up; then the same bubble is over the courier's head as they walk in and wait. (The user: "bubble before and on the courier seems reasonable".)
+- **Boxes are free** (the user: "boxes do not cost money"). A pile of delivery boxes never runs out. A box is filled and carried exactly as a plate is, so there's nothing new to learn; it leaves with the courier and nothing comes back to wash.
+- **A signifier when an order comes in** (the user asked for sight and sound): the order tablet on the counter flashes lime and buzzes, the bubble pops up from it, and a two-note ping with a phone buzz plays, nothing like the door's chime. A scooter horn sounds from the street as the courier comes into view: the last warning.
+
+How it works (`DeliveryService`, part of `ServiceSimulation`; `DeliveryCounterStation`, `BoxPileStation`, `CourierDirector`):
+
+- **Owning a delivery counter puts the restaurant on the app.** Each counter has two places, and each place holds one open order: the counters are the capacity. With every place taken, the app shows the restaurant as busy and that order goes elsewhere (it isn't queued). No counter, no orders. Orders stop at last orders; what's open runs its course, and the service waits for deliveries still on the road before it finishes.
+- **The courier takes whatever stands on their order's place, right or wrong, and doesn't look in the box** (learn by playing). They pay the order's price less the app's commission, and nobody tips. A box put down goes to the place whose order it matches, else the order whose courier comes soonest, else any free place; the prompt says whether it's as ordered.
+- **The ride is part of the cooking.** The food is scored as it reaches the customer: it cools on the way as if it had sat out on a plate for the ride's cooling time, and a box lets only about a third of that through. Timing the dish to the courier is the skill; boxing it early costs temperature twice.
+- **A plate works too, and it's gone.** A delivery order can go out on a plate: no insulation, and the plate never comes back.
+- **The review comes later**, when the ride is over, marked as a delivery in the save (`ReviewRecord.Delivery`). Anything ordered and missing is refunded then (less the commission never paid on it), so an empty-ish box isn't free money.
+- **A courier kept waiting leaves.** Their patience only runs at the counter, on the guests' patience dial. When it's gone the order is cancelled: nothing paid, nothing fined, and a one-star review from the customer who never got their food.
+- **Couriers are people in the room:** the scooter rides in along the kerb and parks past the door; the courier walks in round the furniture by the shortest way to any reachable side of the counter, is pushed and pushes like anyone, and walks back out to ride off. A counter boxed in by furniture is still reached (in a straight line), so a bad layout shows as an odd walk rather than orders that can never be collected.
+- **Nobody eats from a box at a table** (tables and the waiter refuse them), and boxes don't go on the clean plate stack.
+
+Tuning (Service Config, "Delivery"): an order about every 50 in-game minutes outside the rush (prices and the rush move it as they move guests), 45 minutes from order to courier, 20 minutes of courier patience, a 20-minute ride with 18 cooking minutes of cooling on a plate (a box: 35% of it), 25% commission. The counter costs 140; the boxes are free. All first guesses, to be tuned by playing.
+
+Placeholders, flagged: the counter, tablet, box and box pile are greybox shapes; the app's badge is a lime disc with the couriers' chevron; both sounds are synthesised stand-ins. Reviews of delivered food use the dining room's voices, so a line can mention the room; delivery needs lines of its own. The review listing doesn't yet show which reviews came from the app.
+
+---
+
+## 2026-11-12 — The light of the day follows the opening times
+
+**The user's request:** "players can decide the restaurant opening times now... I wish that their choice would also impact the scene, so they can play during the day, night, or both; if they would play a full day we should also figure light transitions from day to night."
+
+- **The light goes by the service's clock** (`Daylight`, `DaylightView`). Lunch (12:00–16:00) plays in daylight. Dinner (18:00–24:00) opens in the gold of early evening and is in full night by 20:45. All day (12:00–24:00) goes through all of it. The turns: day until 16:30, golden by 18:15, a mauve dusk by 19:30, deep blue night by 20:45; dawn between 5:30 and 8:30 is there for a clock that ever needs it. Before the doors open it's the opening hour; after they close, the hour they closed at, through Close and Review. A new day's morning eases in over about 1.5 s.
+- **Outdoors and indoors are lit differently, on purpose.** Outdoors the sun and sky take the hour's colour, so the night street is dark blue and its lamps, windows and shopfronts are what light it. Inside the building's walls the restaurant has its own light: it warms slightly as night falls and never drops below nine tenths of daylight. Reason: the kitchen must read the same at any hour; cooking by a blue gloom would punish players for choosing dinner.
+- **How:** two colours and the building's box on the ground, set as shader globals; `ToonCommon.hlsl` multiplies what the sun and sky gave by one or the other, blending across the walls' thickness, and leaves lamps alone. Unset (the office, the menu), nothing changes. The sun's shadows soften to half strength at night. The sun doesn't move.
+- **The street's lamps and windows** go by the same hour (on from 19:00, as before).
+- **To judge the look without playing a whole service:** `DaylightView` on the Street object has "Fix Hour" and an hour slider.
+
+**Verified:** EditMode tests on the curve (white at lunch, blue at dinner, only ever darker through an all-day service and never a jump; indoors always above 0.9). Stills at 13:00, 18:15, 19:30 and 22:00 by `StreetLifeCapture`.
+
+**To judge in play:** how dark the night street is for a chef walking to the stalls; the seam where the two lights meet at the doorway and along the cut walls; whether indoors should dim more for mood; whether the sun should also sink, for long evening shadows (not done: it would change how every counter and chef is shaded).
+
+**Design doc:** §opening times (if there is one by now) should say the slot sets the light as well as the guests.
+
+---
+
+## 2026-11-12 — The street's art pass: real surfaces, modelled houses and props, and a façade that rises when the chefs are outside
+
+**The user's notes:** not convinced by "the chimney, trees, the restaurant menu, branding or surface textures across the scene"; "the houses behind the restaurant don't feel great"; and "it'd be cool to show some parts of the restaurant façade as players go out".
+
+- **Surfaces** (`Surfaces`, the room shader's world-space patterns; no new shader): the pavement is small bricks in rows, each a shade of its own; the plaza 0.6 m slabs; the far pavement 0.8 m slabs; the road and the parking lot mottled asphalt with grit; the grass patched lighter and darker.
+- **New models** (`SM_Outside`, `build_outside` in the Blender script, put together by `Outside`):
+  - **Houses** in two kinds, turn about: a cottage with its ridge along the street, and a taller one gable-on with an attic window. Brick walls in four colours, slate or tile roofs, shutters, panelled doors under little roofs, chimneys with pots. Their panes are what lights at dusk, two houses in three.
+  - **Trees:** a broad tree and a poplar, leaves in two tones, the crown stirring. Behind the restaurant and in the park.
+  - **No chimney; an air conditioning unit instead.** The extractor went through a two-metre steel flue ("doesn't really fit in the scene") and a squat copper cowl before the user dropped it: "remove the chimney, instead let's have some sort of AC outdoor unit sitting by the floor", with a reference photo, "on the right side of the restaurant". A cream box on two feet with a fan behind a round grille, louvres down one end and two pipes to the wall, on the ground against the east wall's north end, facing the parking lot. Its fan idles and turns faster the harder the kitchen cooks (`OutdoorUnitView`, `StreetHours.Extraction`). The steam, and the dark smoke of a pan on fire, went with the chimney.
+  - **The menu:** chalked on an A-board (the lit stand is gone).
+  - **The sign:** a cream board in a copper rim between two dark posts, a cloche on top as every restaurant's emblem.
+- **The façade** (`FacadeView`): a pilaster at each front corner, a fascia right across with the restaurant's name on it, and a striped awning under that, all in the sign's red-brown and cream. It stands on the front wall's top and **rises only when every chef has been outside for 0.35 s**, in 0.4 s, and sinks as soon as one steps in. Reason: indoors nothing may hide the kitchen or the dining room, which is why the walls are cut low; outside, the building should look like a restaurant. With one chef in and one out it stays down. Nothing in it depends on where the door is, since players can move it; the awning runs over it.
+
+
+**The user's later notes the same day, and what they changed:**
+
+- **"Buildings could also use some texture."** The neighbours' walls are brick, or larger stone blocks for the cool colours, in the colour the city gave each (`OfficeBuilder.StreetBuilding`). Materials of the street's own, so the night city's flat walls are untouched.
+- **"The parking lot is not technically accessible by cars... the banner goes on the left, connect the parking lot with the road, and put a pedestrian walk in between blocks."** The sign stands on the plaza's side now (1.9 m west of the building's corner, mirrored, so the bin still clears it). A driveway of asphalt crosses the pavement from a dropped kerb into the lot, between the restaurant and the next block, with a zebra crossing where the pavement carries on over it. The bay by the driveway stays empty; the two parked cars are in the bays beyond. No lamp or hydrant stands in the driveway's mouth. **"Pedestrian walk" was read as that zebra crossing; to be confirmed.** Chefs still can't step onto the road there: the kerb's invisible edge is unchanged.
+- **"The menu should go right next to the main door... if the door moves, the menu should be like attached to it."** `DoorMenuView`: the A-board stands 1.2 m along the wall from the door's middle and 0.45 m out, on the side the queue doesn't use (`CustomerDirector.QueueSide`), and follows the door wherever players move it, turning with its wall. Passers-by still stop to read it, at a spot that moves with it, but only while it's on the street front: nobody walks round to a door on a side wall.
+- **"The houses look nice, but the scenery around them doesn't feel great."** The houses moved 1.5 m back to make room: a cobbled lane behind the restaurant's fence; a front garden for each house behind a low hedge, with a path to its door and flowers under its ground-floor windows; a tree in the gardens between each pair of houses; hedges between the plots; and behind the houses a tall hedge the whole length with a line of large trees over it, where there was bare lawn and then nothing.
+
+- **"The trash bin shall go on the left side of the restaurant, aligned with the green stall."** The wheelie bin starts against the west wall, level with the stall at the back of the plaza. It still rolls round the west, front and east walls, but **its track now stops 1.35 m short of the east wall's north end** (`BinTrack`'s `eastEndKept`), where the outdoor unit stands, so it can never be parked on it.
+- **"The fire hydrant more noticeable, and the banner closer to the restaurant."** The hydrant is half as big again, on a pale pad (a yellow kerb beside it was tried and taken out: "remove the yellow lines"). The sign straddles the building's plaza-side front corner: one post in front of the wall, one by the plaza, 1.7 m out, beyond the queue and a bin against the wall, and just outside the bin's sweep round the corner.
+- **Graffiti: "only by the parking, older and grimier."** Four old tags low on the wall by the parking lot, under the sunset mural: bleached towards the wall's grey, flaked off in patches, streaked with soot (`StreetArt.OldTags`). The city's own tags on the neighbours' shutters and fronts are cleared here. The two murals stay; **whether they count as graffiti to go is the user's to say.**
+- **Steam from the road**, as in the user's reference of New York: two manholes with steam rising, one in the near lane off the plaza and one in the far lane beyond the driveway (`OfficeBuilder.StreetManhole`, the city's own).
+- **The ground is laid in pieces up to 6 m across** and the street lamps are eight times as strong, both for the night: only four lamps can light any one object in this pipeline, and a lamp tuned as daytime dressing gave almost nothing three metres below it.
+
+**Verified:** stills by `StreetLifeCapture` (which puts the façade up by hand: no chef plays in a batch run). Both suites pass.
+
+**A test that turned out to depend on luck:** `CleaningPlayTests.HoldingXWithNothingToCleanPlantsTheChefAndTheStickTurnsThem` began failing in most full-suite runs once the street's scenes were rebuilt, while passing when run by itself. Logged inside the suite, the cause was the test, not the street: it stood the chef at "the first clear counter", stations register in no fixed order, and when an island came first the chef had the kitchen's dividing wall 4 cm behind them and nowhere to walk the 0.2 m it asks for. With the wall counter there's open floor and it passes. The test now picks a clear counter with a metre of open floor behind whoever stands at it (`HasRoomBehind`); what it asserts is unchanged. This is the controls-and-cleaning work's test, changed here because this work exposed it.
+
+**To judge in play:** the façade's rise and fall as chefs cross the doorway, and whether its awning hides the queue along the front wall from the game camera; the brick paving and asphalt grit at the kitchen camera's distance (they may be too busy); whether the sign hides a chef buying at the nearest stall; the menu board when the door is on a side wall, where the wheelie bin's track passes.
+
+**Budget:** the exterior is well over the art bible's 60,000 triangles now (seven cars at about 5,500, four houses at about 4,300, some forty trees). No frame rate has been measured.
+
+**Not done:** the other streets (Riverside) get the same pieces in the same colours; the stalls are untouched.
+---
+
+## 2026-11-12 — The mop sweeps like the extinguisher; sweeping tools fill an arc from both ends
+
+**User's call:** the extinguisher's quick side-to-side was liked; mopping should work the same way, with fire shown in red-orange and mopping in blue. Washing and wiping keep circling the stick round a ring.
+
+- **The mop sweeps** (`TraceShape.MopSweep`): the stick wagged from one side to the other, as for a fire, at up to 0.8 sweeps a second (the extinguisher 0.9). The mop's spin is gone.
+- **An arc for sweeping tools** (`CleaningView`): the mop and the extinguisher show an arch of 14 segments across the top of the spot (100° either side of screen up) instead of a full ring. It fills from both ends towards the middle as the sweeps go left and right. Mop: grime brown to water blue. Fire: charcoal to red-orange, and its finishing flash is red-orange (was foam white). The stick cue wags for both; the cloth's ring and cue still circle.
+
+---
+
+## 2026-11-11 — The street comes alive: passers-by, a menu board, pigeons, lamps at dusk, the extractor
+
+**The user's request:** more detail outside the kitchen, "just like we do in the city, birds, people roaming around", and no delivery scooters yet (a mechanic for later). Asked which ideas to build first, the user left the choice to me; this is the first pass I proposed. The rest is in `ideas.md` ("Street life, next touches").
+
+- **Passers-by** (`StreetWalkers`, `StreetWalkersView`, `PF_Passerby`): six people, the customers' own archetypes without an agent, each rolled anew every time one comes round. They walk two lanes of the pavement, east at 1.25 m from the front wall and west at 0.45 m from the kerb, either side of the lane guests arrive by (2.2 m), in and out at the same off-screen ends. One stays away 2–16 s between passes, so three or four are in sight.
+- **They never block anyone.** They have no bodies to bump into. They step aside (0.7 m, within the pavement) for a chef, guest or staff member within 1.3 m and come back to their lane once past; they never stop for anyone, so nobody standing in a lane can hold the street up. Reason: a chef carrying a plate must never be stopped by scenery.
+- **A menu board** stands by the sign, beyond the building's east corner and clear of the wheelie bin's way round it. About three in ten of the eastbound walkers stop in front of it for 3–7 s, facing it, and walk on. One reader at a time; the others walk round them. It isn't by the door because the door can be moved and the queue forms beside it.
+- **Pigeons** (the terrace's `TerraceBirdsView`, at 0.65 of the city's size): thirteen, on the plaza, the parking lot, the back fence and the sign. A chef within 2.5 m sends them up and away north over the houses, the neighbours with them; they glide back 20–40 s later once nobody's near. `_flyOffDip` may now be negative, for birds on the ground with no roof edge to drop behind.
+- **Lamps and windows at dusk** (`StreetLampsView`, `StreetHours.Dark`): five lamps on the kerbstone and two houses in three light up from 19:00 on the service's clock, one after another over six seconds, and stay lit through closing and the review. A lunch never sees them. **Only lamps and windows change:** the daylight stays as it is, because a darker evening is a change of look for the user to judge in play.
+- **The extractor** (`ExtractorVentView`, `StreetHours.Extraction`): a steel stack off the back wall by the east corner. It steams as hard as the kitchen cooks (nothing with the hobs off, a wisp with them hot and empty, a full plume with two hobs cooking flat out, easing over two seconds) and pours dark smoke while a pan is on fire.
+- **Dressing:** the street kit's own models (the city's bench, hedge planters, hydrant, and its lit menu stand for the menu board): a bench between two planters on the plaza's west edge, planters in the back corners, a hydrant on the kerb. Doors and windows on the houses, a breeze in the trees. Plain boxes stand in where the kit isn't there.
+
+**The same day, the user's second note:** "model adjacent scenery to close the scene so the boundaries are justified organically", and the box cars were "very underwhelming".
+
+- **The restaurant stands in a street now.** A block of the city's shops and flats (`RowBuilding`, through `OfficeBuilder.StreetBuilding`) stands on each side, fronts on the same pavement, running 22 m past the grounds either way. The plaza and the parking lot end at their side walls, which are solid, where they used to end at an invisible wall on open grass. The nearest building each side is two storeys (7.8 m), so the camera's view of the plaza and the lot stays open, and carries a mural: the steak over the plaza, the sunset over the lot. Their shops' own lamps are left out: this street is lit by its day.
+- **A park across the road:** a far pavement, a clipped hedge with a gap every nine metres, trees behind it, benches looking over the road. Low on purpose, as it lies under the camera. The kerb is still the limit that way; the traffic is the reason.
+- **The road, pavement and grass run on** to the ends of the neighbours' blocks.
+- **Cars are the city's models** (`SM_Cars`: sedans, hatchbacks, taxis, vans), five on the road, and they keep right: the lane by the restaurant's kerb drives west. Two are parked in the lot's bays and are solid.
+- **The cars are remodelled** (the user, of the slab-and-wedge models: "awful"; a tram instead was offered and kept for another restaurant). `build_cars` in `blender/build_pilot_models.py` now makes toy cars: a body lofted through rounded sections from nose to tail, fat fenders over bigger wheels (0.41 m), a cabin of glass all the way round under a separate roof, round headlights, wrapped bumpers, number plates. Shorter and wider than before (the sedan 4.25 m by 1.9 m, was 4.5 m by 1.84 m). Mesh names are unchanged, so the opening's street gets them too when the office is next built. About 5,500 triangles each.
+- **The street is seeded** from the building's size, so each restaurant's cars and neighbours come out the same on every build.
+
+**To judge in play, for these:** whether the neighbours ever come between the camera and a chef at the far edge of the plaza or the lot; whether graffiti tags on the neighbours' shutters suit this street; the parked cars' size in the lot.
+
+**Where things stand, and why:** everything is placed from the building's walls, so every restaurant's street gets it. Nothing stands in the guests' lane, their queue along the front wall, or the bin's track; lamps and the hydrant are on the kerbstone, beyond where chefs can walk.
+
+**Verified:** EditMode `StreetWalkersTests` (lanes, coming round again, stepping aside without stopping, staying on the pavement, the board, one reader, the dusk hours, the extractor). Stills by `StreetLifeCapture`, run by name.
+
+**To judge in play:** whether six walkers distract during service (`_count`, `_awayMin`/`_awayMax` on Passersby); whether a walker is ever mistaken for a guest; the pigeons' flight from the ground; the lamps' pools on a street that's still in daylight; whether the stack reads from the kitchen camera.
+
+**Design doc:** §customers and §economy (suppliers) don't describe the street beyond the stalls. A line on the street's life would belong there.
+
+---
+## 2026-11-11 — The opening, seventh pass: couriers that leave, a shorter climb that lands with the lift, the flat-band lamps on trial
+
+The user's notes after playing the sixth pass:
+- **Waiting couriers get their order and go** (`CourierDeparture`, begun when the camera stops at the entrance): 2.2 s after the stop the courier sitting on the first scooter puts the phone away, takes the bars and rides off east through the gap in the barriers; at 5.5 s the one standing between the scooters walks to the second, gets on and follows. Once only: they don't come back while the menu is up. The riders who come and go along the street carry on as before.
+- **Someone walked through the lens.** The walkers on the south pavement had no rule keeping them out of the avenue's mouth, where the camera comes through and stops on that same pavement. They now keep 3 m clear of the mouth either side, as the north pavement's keep clear of the tower's front.
+- **The climb is 9 s, from 12 s, and lands with the lift.** Three changes:
+  - *Pace* (`OpeningPath.ClimbEase`): the same gentle start, but the second half is 1 − (1 − u)^1.5 where it was a smoothstep, so the camera no longer creeps the last quarter onto the landing.
+  - *Turn:* the camera starts turning onto the floor's view from 55% of the path (it was 86%), while it is still climbing the top floors, so it comes over the cornice already looking down instead of rising first and tipping after.
+  - *The lift* (`OpeningPath.LiftClimb`): beside the camera up to 14 m under the top; from half-way through the climb's time it covers those last floors on its own, quickly at first and slowing, and comes up into the floor's elevator at the moment the camera reaches the wide shot. Before, it arrived about three quarters of the way through and the camera spent three more seconds settling. **Cost:** for the last four seconds the cab is not beside the camera; it is inside the tower under the cornice, out of sight, until it comes up through the floor.
+- **The helicopter flies low over the floor itself** as the camera lands: east to west over the middle of the floor, 5 m up, crossing the middle of the wide shot at about the moment of landing and gone a second or two after. Up in the sky it was in view for under a second at the cornice and the user never saw it. It passes over the play area while players get control; say if that's too much.
+- **The lamps' flat bands are on for the street and the tower, in play** (3 bands), so the finish can be judged there: the user couldn't find it, because it was only in captured stills. Between half and four fifths of the way through the climb they fade back to the smooth falloff (`_GameLampBandMix`, `OpeningSequence` "Lamps"), so the boss's floor keeps the smooth lamps the user chose on 2026-11-09: tried on the floor itself, three bands left dark blotches on its carpets. On trial: Lamp Bands on the scene's LampLighting object, 0 for smooth everywhere. To be confirmed or put back by the user.
+
+---
+
+## 2026-11-12 — LT RT keys that step aside, the ingredient wheel in the scene, translucent runny stains
+
+**User's calls, from play and screenshots:** LT RT shouldn't persist while browsing storage or cooking, and should be smaller and tied to the appliance. The ingredient wheel should match the other contextual interactions. Stains should be more realistic: less flat, a little translucent.
+
+- **LT RT** (`ApplianceHints`): drawn as small toon keys, the family of the gauges' X: a dark key with an Ink outline and white letters, 32 px at 1080p however far the camera is. On a gas hob they sit by the heat knob; elsewhere at the appliance's far edge. They hide while the slot menu is open, while a trigger is pulled, and while a hob's food shows its crust strip. The appliance hints have no X any more: flipping's X is on the strip, cleaning's on the mess. They still fade once learnt.
+- **The ingredient wheel** (`SlotWheelView`), for storage, stalls and the tray menu, replacing the flat card: four tiles over the station, laid out like the face buttons (A below, B right, X left, Y above). The user chose square tiles with rounded corners, close together, over circles. Each tile has the ingredient's picture, a ×N count in its corner (made bigger at the user's request) and its button in Xbox colours on its outer edge. Empty slots are dimmed, the player's colour ring sits at the hub, and a tile pops when something is taken. It faces the camera, is sized in pixels (190 px across) and stays on screen. A round count badge was tried and the user preferred the corner count.
+- **Stains** (`CleaningView`): a smooth, wobbly outline with one or two runs, a shallow dome with smooth normals, and small splatter drops round it. They're a little translucent through a new blended toon shader (`Game/ToonStain`, `MAT_FX_Stain`): the body at 72% opacity, the rim lighter, the sheen and highlight stronger, foam nearly opaque.
+- **Verified:** EditMode passes. PlayMode: the HUD, gauge and wheel tests pass (`KitchenHudPlayTests` were updated to these rules). The rest of the full run passed apart from the 2 Casa Lucía tests, which need that scene built. Captures via `ContextHintsCapture`. **Not yet played by hand.**
+- **Known:** the scene shows faintly through the wheel's tiles (the on-top toon shader); readable, left for the art pass.
+
+---
+
+## 2026-11-11 — The cleaning X on the mess, greasier stains, floor dirt slows chefs, hold X turns in the office
+
+**User's calls, from play:** the X hint was too big, and on a stain nothing showed, so the user didn't know what to do. Stains should look greasier and more varied. Stepping in floor dirt should noticeably slow a chef. Dirt only affects guests through reviews (no visible reaction). Holding X and the stick should turn the chef on the spot in the office too.
+
+- **The cleaning X on the mess itself** (`CleanHintView`): when a chef with empty hands could start cleaning, the ring that holding X fills appears on the dirt, the sink with a dirty plate, or the fire. It's empty, dashed and gently pulsing, with the X at its top, the point where the stick's circle starts. Dirt rings are grime brown (they read on cream counters and the grey floor) with the spot's own stain shape inside, drawn over whatever is in front, so a spill hidden behind a counter still reads (checked with a spill behind the island). The appliance hints no longer show an X for cleaning. The hint fades once a player has cleaned a few times, like the appliance hints.
+- **One X size, 32 px at 1080p** (the user's pick after 22 and 28): the cleaning hint, the crust strip and the cutting dial.
+- **Greasier stains** (`CleaningView`): a darker soaked rim, a lighter sheen pool and a bright highlight facing the light, and 2–4 glossy droplets. Every spot has its own random shape; the hint's stain is the same shape.
+- **Floor dirt slows chefs**: standing within 0.4 m of a floor stain caps walking at 55% (`TuningConfig`: floor dirt speed and reach). Guests are unchanged: dirt lowers the dish score and can be what the review is about.
+- **Hold X turns in the office too**: outside a kitchen, holding X plants the chef and the stick turns them on the spot.
+- **Verified:** EditMode passes. PlayMode: the new hint, slowdown and office-turn tests pass (the office test skips where the office hasn't been built), and the cleaning, gauge and board tests pass. Captures via `ContextHintsCapture`. **Not yet played by hand.**
+- **Still to do from the same request:** the LT/RT hints (hidden while browsing or cooking, smaller and attached to the knob or the lid) and the in-scene ingredient wheel.
+
+---
+
+## 2026-11-11 — The opening, sixth pass: a lift that stays in frame, taller floors, the helicopter, couriers riding
+
+The user's notes after playing the fifth pass ("overall feels good, with some notes"):
+- **The lift stays beside the camera.** It chased the camera's height on a half-second spring, which at the climb's top speed (about 15 m/s) left it 7 m behind and out of the frame. Its height is now a function of the camera's (`OpeningPath.LiftHeight`): locked 1.1 m below it, with no lag. Only the first moment is eased (`_catchUp`, 0.35 s).
+- **It arrives where the camera lands.** The cab's top stop is the boss's floor itself (it was the storey below): it comes up through the cornice into the floor's elevator and eases to a stop over the last 4 m either side (`_settle`), a parabola from the camera's pace down to none, while the camera crests the cornice and tips onto the wide shot. After landing, the chef steps out as player 1 as before; the empty cab sinks back down the shaft and switches itself off 12 m down (it used to be switched off with the street).
+- **Taller storeys:** 4.6 m, from 3.4 m, in the same 120 m tower: 24 floors where there were 33, ceilings 3.7 m. Each floor stays in the frame about a third longer. The climb's 12 s and its path are unchanged. (The user offered either fewer floors or higher ceilings; in a tower of fixed height they are the same change.)
+- **The helicopter is called over** (`OpeningFlyby`). It never left the scene, but on its 75 s lap of the skyline it was in the camera's view at the top only by luck. Now, halfway through the climb's time, it leaves its lap for one 7 s pass: in from the east, low past the terrace rail (a few metres over the floor's level), away to the west. The camera looks level only for a moment as it crests the cornice and then tips down, so a pass higher in the sky left the frame at once; this one shows against the skyline at the crest and over the roofs after. Then it goes back to its lap. A skip before that point leaves it on its lap.
+- **Movement from edge to edge in the street** (`StreetTraffic`): a courier rides in from the east, brakes to the kerb by the restaurant, waits 5 s for the order and rides off west; another rides straight through from the west; eight people walk the whole street, four each way, some in a hurry. All start and end beyond the barriers, out of view, and come round again (`RouteMover`, `AmbientMotion.Route`). The couriers' lanes are the far side of the road, at least 6 m from the camera's stop, so nothing passes close to the lens (the 2026-11-10 note still holds). The portrait pair and the strollers in the road moved a metre or two south to clear the lanes.
+- **Window cleaners on the tower's front:** a cradle hung from the cornice east of the lift, two cleaners wiping the glass, passed about two thirds of the way up.
+- **Not decided: the finish of the city and tower** (the user: "too 3D" beside the kitchen). The likely cause is the lamps: on 2026-11-09 the user chose a smooth falloff for them in the office, and the street and the tower's rooms are lit almost only by lamps, so nearly everything there carries a gradient where the kitchen has flat bands. A trial dial (`LampLighting._lampBands`, the global `_GameLampBands`; 0 = smooth, as now) steps the lamps' light into flat bands. *Tools/Game/Capture Office* renders the street and the floors with 3 and 5 bands (`look_*_bands*.png`) beside the smooth ones, for the user to choose. Nothing changes until they do.
+
+## 2026-11-11 — Into and out of service: a 4-3-2-1, a "Service!" band, and a shutter behind the dashboard
+
+The day-transitions item of the playtest round (entry below, "Playtest round"). The look was approved from mockups (`Screenshots/day-transitions-mockup/`), with these calls by the user:
+- **Countdown before service** (`ServiceCountdown`, `TuningConfig` "Service countdown seconds", 4): a 4-3-2-1 in a wooden badge at the top centre, over the back wall, with an orange ring running down each second. The last number is warning yellow. "Doors open in" sits over the badge (in the mockup it was under it; above reads better: "Doors open in… 3"). **Chefs move and work freely during it.** Pausing stops it.
+- **Guests wait on the doorstep.** While the countdown runs, the service holds its doors (`ServiceSimulation.HoldDoors`): its clock stands still and nobody comes in or loses patience. The first party sets off up the street at once and waits at the door. At zero (`OpenDoors`) they come in and the clock starts; the next party comes a usual gap after that. Pulling the first party forward makes for about one more party a day than before.
+- **"Service!"** at zero: an orange-and-wood band, tilted slightly, sweeps across the top third of the screen, the title stamps in, and it sweeps out after about 1.3 s.
+- **Closing time:** as the service ends, a wooden roller shutter drops over the screen with a small bounce and a swinging "Closing time" sign. The dashboard rises over it, and **the shutter goes out of focus behind the dashboard** (the user's call: not the kitchen) for the whole Review. The dashboard's own blurred kitchen photo is turned off while the shutter is behind it. Its dark tint stays.
+- **The next morning,** once Start day N is held: the dashboard drops away, the shutter comes back into focus with "Day N" on its sign (the user's call), then rolls up on the kitchen for Prep. A new restaurant's day 1 opens the same way.
+- Timings and colours are on the `DayTransitions` component (shutter drop 0.55 s, sign 0.4 s, dashboard rise 0.4 s; morning 0.35 + 0.35 + 0.6 s). The shutter is one quad with a small UI shader (`SH_UiShutter`, slats with a blur setting).
+
+**Not checked by playing:** whether 4 s feels right, whether the band hides too much of the back stations for its second, and whether the chefs moving under the shutter for about 1.3 s in the morning matters.
+
+---
+
+## 2026-11-11 — The kitchen HUD clean-up: debug behind F1, hints on the appliances, guests' bubbles, nothing over the dashboard
+
+Built from the playtest round's HUD call (below).
+
+- **Debug panels behind a developer toggle:** the cooking overlay and the served-dish quality card show only with `DeveloperHud.Visible`, off by default. F1 flips it. In the Editor it's remembered between Play sessions; a build always starts with it off.
+- **No control cards on counters.** `PromptHud` now shows a card only while a menu is open: a fridge's, shelf's or stall's slot diamond while RT is held, or a tray's menu. Those are choices, not hints. The list cards ("LT RT heat / X flip / A take pan") are gone.
+- **Button pictures on the appliances** (`ApplianceHints`): LT RT at a hob (heat) and at storage or a stall (browse), X at a hob or grill with food in the pan (flip) and at anything with dirt, a sink with plates, or a fire (clean). They use the control-glyph kit's dark trigger and button bodies, with the letters in the HUD's bold font. X is in Xbox blue.
+  - **Where they sit:** on the appliance's top at the edge across from the chef, LT RT then X, facing the camera, so they read at all 8 rotations with the chef on any side. They're drawn over the chef, as the wash ring is (`Game/FX/HintOnTop`).
+  - **When:** they fade and pop in (0.2 s) while a chef faces the appliance and the action is possible. Each stops showing for a player once that player has done it 3 times (`_usesBeforeFading`, tunable). The count covers this play session only and isn't saved.
+- **Nothing of the kitchen over the dashboard:** the dashboard's canvas is nested in the HUD canvas, and without `overrideSorting` it drew under whatever the HUD made later (the cutting dial and "press X in the green", the guests' edge markers). It now sorts on its own. `ReviewHidesKitchenHud` also hides the whole kitchen HUD layer while forkcast is open: dials, gauges, tags, tickets, markers and the bell. Screens with their own canvas (the dashboard, shop cards, the boss's phone) are left alone. The cutting dial also ends for a chef once the dashboard is up.
+- **Guests speak in bubbles** (the user's call, approved through Main build): the dark order ticket and its patience bar are replaced by a speech bubble over each seated guest. It's cream paper with an ink outline and a tail, showing the dish's picture (its name if there's no picture), the doneness word in its colour (darkened for paper), and "+" and the side's picture.
+  - **Patience:** below 60% patience the bubble warms towards the patience colour, up to 60% of it. Below 35% it rocks about its tail, up to 9° at 3.5 rocks a second, each guest out of step. All are tunable on `OrderTicketHud`.
+  - **Queueing:** a guest queueing in view gets a "…" bubble that warms and wobbles the same way.
+  - **Never overlapping, never clipped:** bubbles nearest the camera are placed first; one that would overlap steps up above the other, or along the top edge if stepping up would leave the screen. All of them are kept inside the screen's margin, with room for the wobble. A guest out of view has their edge marker instead of a bubble.
+- **The quality-score card over the pass** stays behind the developer toggle (above). The off-screen guest markers and the review cards where guests leave are unchanged.
+- **Not covered:** floor spills (nothing to sit on), ringing the bell (X at the pass), and cutting (its dial still says "press X in the green" until the first cut). Each was left out on purpose and is an open question for the user.
+
+**Reason:** the user found the kitchen cluttered and the floating panels abrupt. Hints built into the appliances keep the scene readable and go away once learnt.
+
+---
+
+## 2026-11-11 — Flipping and cutting get in-scene timing gauges: a crust strip and a knife dial
+
+**User's calls:** the flip and cutting HUDs didn't match the scene, and the flip's X felt detached from its gauge. These stay timing games (X in a cadence to cut, X at the right moment to flip), not stick games like cleaning. Rings were rejected in favour of bars and gauges. From three mock-ups each, the user chose **flip C (crust strip)** and **cut A (half dial with a knife needle)**, judged in the real scene and then made about a third smaller ("size is right").
+
+- **One family look, not one mechanic:** both are chunky toon pieces in the scene (`Game/ToonOnTop`, as the wash and cleaning rings) with an Ink outline. They face the camera, so they read at every rotation, are kept inside the screen, and sit on the far side of the station from the chef so the chef's body never covers them. They're sized in screen pixels (strip 150 px wide, dial 140 px at 1080p), so they look the same in every kitchen. The Xbox X sits on the window to press in, so there's no caption. Grades show as a shape and a colour: ✓ good, – off, ✕ bad (`TimingGaugeKit`).
+- **Flip, the crust strip** (`FlipCrustGaugeView`, replacing `FlipGaugeHud`): the strip is the crust's own colours (raw, golden, brown, dark, charred). A white marker follows the browning of the side facing down. The golden window is framed in green with the X under it, and both pulse while the marker is in it. On the flip, the existing pan toss throws the steak, and a mark pops over the window: ✓ golden, – pale (early), ✕ scorched (late). The mark is feedback only, from the browning the moment before; scoring is unchanged. Then the strip becomes the doneness strip. Near burning, the dark end flashes red and the strip shakes.
+- **Cut, the knife dial** (`ChopGaugeView`, replacing `ChopDialHud`/`ChopDialView`): a wood-dark half fan with the sweet spot (green core, amber edges) and the X just outside it. The needle is a knife. Each cut flashes the fan in the grade's colour (a pop for good, a shake for a miss), leaves a tick where the blade was and pops a mark over the X. Pips in an arc inside the fan fill with each cut's colour. The "press X in the green", "faster" and "slower" texts are gone; the knife speeding up is the only streak cue.
+- **Wiring:** `TimingGaugeArt` (Tools/Game/Apply Timing Gauges, also called by the kitchen builder) adds the views and removes the flat HUD gauges. `GreyboxHud` no longer adds them. The old HUD classes are still in the code, unused, until main has the new views.
+- **Verified:** EditMode (`TimingGaugeTests`: grading) and PlayMode (`TimingGaugePlayTests`: a steak flipped golden with X shows ✓ and then the doneness strip; X cuts at the board; a board on the middle island keeps its dial). `BoardAndKnifePlayTests` now counts the new dials. Captures with `TIMING_CAPTURE=<folder>`. **Not yet played by hand.**
+- **Later:** a slice falling from the board on each cut (art phase); a thicker outline if the 2 px Ink reads too thin at this size.
+- **The sweet spot steps along (user's call, options B + C):** after each **good** cut it moves one step along the arc, as if working down the ingredient. It starts towards the roomier end and turns back at an end, keeping the whole early/late band on the arc. A miss or an early/late cut leaves it where it is, so a slip can be recovered. The step is per ingredient (`IngredientDefinition._sweetSpotStep`): onion 24° (rough rings), onion rings 16° (fine dice); 0 keeps it still. The minigame complexity dial scales it (`MinigameComplexity.SweetSpotStepScale`): none up to 0.25 (relaxed: pure cadence), as tuned at 0.5, 1.5× at 1. The arc slides to its new place over about 0.12 s. Tests: `SweetSpotStepTests`, and the cutting play test checks that a good cut moves it.
+
+---
+
+## 2026-11-11 — Controls and cleaning from the playtest: gentler turning, a facing assist, hold X for every cleaning job, washing by circles
+
+Implements the movement and cleaning calls of the playtest round (entry below, "Playtest round").
+
+- **Turning has its own, slower speed** (`TuningConfig`, Player movement): 600°/s at full push (was 1080), and a light push turns at only 35% of that, rising straight to all of it at full push (`_lightPushTurnShare`). A tenth of a second's nudge at a fifth of a push now turns the chef under 30° (was 90°), so lining up at a counter doesn't swing them off it.
+- **Facing assist** (`TuningConfig`, Facing assist): once the chef has stopped (no stick, and almost no speed left), they turn at 300°/s to face the station they're targeting if its centre is within 1.3 m and within 40° of where they face. It never acts while the stick is pushed. It works off the chef's current target, so walls and the indoor/outdoor rule still apply.
+- **Hold X for every cleaning job.** Washing, wiping, mopping and putting out fires all start from an X press that isn't taken by the station's own action (flip, chop, ring the bell, a storage slot). While X is held the chef is **planted** (`PlayerInteractor.IsPlanted`): during a job the stick works it; between jobs it turns the chef on the spot, and whatever comes into reach (the sink with a dirty plate, dirt in front, floor dirt at their feet, a fire) starts by itself. Holding X with nothing to clean plants the chef too, so they can swing round to find it. Letting go of X, or B, stops and frees them. B also ends the hold, so a job backed out of doesn't restart. The sink no longer toggles on a second press. A finished patch no longer chains only to the same tool: the planted hold starts whatever is next.
+- **Washing is circling the stick** (`WashGame`, replacing the balancing game). It's counted by the cloth's own spin counter: either direction, any rough shape (a square, a squashed oval, a small circle past the 0.4 push), and wagging, holding or slamming the stick does nothing. 4 circles a plate at up to 1.5 circles a second, about 2.7 s a plate, as before. The push and the turn-back are shared with the cloth and mop (one control). The complexity dial scales them as it does the cloth (lighter push and faster circles count at low complexity). The old balance tuning (stick force, instability, nudge, radii, pushes per plate) and the dial's "corrections span" are gone.
+- **One look for the whole family.** The sink keeps its ring of 15 grime-to-water segments and its soap, but the soap now follows the stick round the ring, as the cloth does on a table. It turns green, the ring pulses and bubbles rise while the circling washes; the plate still tips towards the soap. The centre target is gone. The stick cue is the cloth's spinning cue with the same timings: it shows 0.15 s after starting until the stick first washes, and again after 0.8 s stalled. In turn the cleaning ring gains the sink's pop-in and its finishing flash: the full ring flashes white and pops when a spot comes clean or a fire goes out. Wiping and mopping now read like washing: hold X, circle, watch the ring fill, see the flash.
+- **Verified:** EditMode tests (new: `WashGameTests` rewritten for circles; turning, planting and the assist in `PlanarMoverTests`; the dial in `RealismTests`) and PlayMode `CleaningPlayTests` (new: washing a plate by circling, with the chef planted; X held with nothing to clean plants and turns; turning onto dirt with X held starts wiping). **Not yet played by hand.**
+- **To watch when playing:** whether 600°/s with the 35% light push feels responsive enough when walking normally; whether the assist ever turns a chef somewhere they didn't want; a chef still spinning the stick after a job ends, with nothing else in reach, turns round on the spot. If that feels wrong, a short pause before the stick turns them is easy to add. When the next patch starts at once, the finishing flash is cut short.
+
+**Design doc:** §15.8 / the dirt paragraph still says cleaning is "different from the sink's balancing game". Washing and cleaning are now one family of hold X and circle the stick.
 
 ---
 
@@ -222,6 +491,19 @@ This replaces the 440 px column from earlier the same day.
 - **Lists scroll only as far as the choice needs** (`ScrollWindow`), and never leave a gap below the list's end.
 
 **Tests:** `ForkcastNavigationTests` (EditMode); `ForkcastPlanPlayTests` checks the tab order and a short press with an idle second cook moving one row.
+
+---
+
+## 2026-11-11 — A ring in each player's colour at their feet, which goes with the cursor in rearranging
+
+**User's call:** in the boss's office and during Prep, each chef shows a circle on the floor in their player colour (`CoopSettings`, the same colours as the HUD and player bar), so players can tell who is who. In Prep, a player who goes into rearranging takes their circle with them: it leaves their chef and shows under their cursor, and comes back to the chef when they leave.
+
+- **Service and Review show no ring** (my default, as the request names only the office and Prep): in service the floor is busy with dirt, spills and staff, the tinted bodies already tell chefs apart, and a ring per chef would add clutter just when the floor needs reading. Easy to change if playtesting wants them (`FootRingView.Showing`).
+- **Look (placeholder):** a band 9 cm wide with an outer radius of 48 cm, 90% opaque, round a faint 22% disc; unlit and transparent without depth write (`SH_FootRing`), 3 cm above the floor so it never z-fights with the floor or the dirt decals. The chef's body hides the middle of the ring from the overhead camera, so it reads as a halo round the feet. All of it is tunable on `FootRingView`.
+- **Under a cursor the ring draws over furniture** (depth test off), so it still shows where the cursor is over a counter or table. The cursor's own floor frame hides under counters as before.
+- **Built by the builders:** `FootRings.Add` puts a `FootRings` object in each kitchen (Tools/Game/Build Greybox Kitchen) and in the office (Tools/Game/Build Office). The ring isn't part of `PF_Player`, so the chef's portraits and stills don't pick it up.
+
+**Reason:** four tinted chefs can still be hard to tell apart from the overhead camera, more so in the office's busier rooms; a coloured ring on the floor is the genre's usual answer. Moving it to the cursor makes it clear whose cursor is whose, and that the chef standing still is "parked".
 
 ---
 
@@ -3780,6 +4062,8 @@ It hides (fading over the HUD's 0.12 s) behind the Review dashboard, the pause m
 
 **Not checked in play:** whether players expect browsing to keep what they last saw. If they do, B could wear the shown item instead of dropping it.
 
+**Superseded (2026-11-11 playtest round):** the user found A to wear unnecessary; the tailor saves as you go again (the entry "The office after the playtest" below).
+
 ## 2026-11-11 — Prep: only the shop is see-through, D-pad down opens it, Rearrange under the money
 
 **User's calls:**
@@ -3819,7 +4103,7 @@ It hides (fading over the HUD's 0.12 s) behind the Review dashboard, the pause m
 
 **User's calls, building on "The wheelie bin moves…" above:**
 - **The bin's smell reaches 4 m from the customer door** and costs up to **1 star** with the bin right at the door, fading in a straight line to nothing at 4 m (`Surroundings.BinSmell`). Reviews mention it when it costs at least half a star (bin within about 2 m). Today's layouts keep the bin about 5.5 m from the door, so they're untouched. Distance is from the door to the bin's nearest side, read each time a guest is served, so a moved door or bin counts at once.
-- **The bin has flies over it** (`BinFlies`, added by the street builder), so players can tell why guests by the door grumble.
+- **The bin has flies over it** (`BinFlies`, added by the street builder), so players can tell why guests by the door grumble. **Calmed the same day (user's call):** the outside bin's flies should feel ambient, not alarming. There are now 3 instead of 6, smaller (3 cm), slower (0.3–0.7 loops a second), in tighter loops (0.12–0.35 m) with less bob and wander, 1.5 m up. The kitchen bin's swarm (`BinFillView`) stays urgent.
 - **A great night is tonight's average stars ≥ 4.5, this guest's own dish included, and this guest not kept waiting** (patience at serving above the slow-service mark). Stars are counted before the bin and the open kitchen, so a show doesn't feed itself and a complaint doesn't spiral.
 - **An open kitchen moves a guest's score up to ±1 star:** half a star per appliance in the dining room or table in the kitchen, capped at one. On a great night it's a bonus and praise-worthy guests write chef's-table reviews (`ChefsTable`); otherwise it's a penalty and guests complain about mess and noise (`OpenKitchenMess`).
 - **An open kitchen always makes more mess:** every 3 guests served, each out-of-place piece leaves a wipe of floor dirt beside it (grease by an appliance, footprints by a table), scaled by the hygiene dial.
@@ -3856,3 +4140,51 @@ From a longer playtest. All the user's calls:
 - **Dashboard navigation** moves between neighbouring cards along explicit paths, instead of jumping to whatever is nearest on screen.
 - **The boss's hat** is smaller, so he doesn't hide the office.
 - **The tailor saves as you go:** no A to wear. Every change applies at once, and B leaves. This replaces "At the tailor, A wears" from earlier today.
+
+## 2026-11-11 — The office after the playtest: a smaller boss's hat, and the tailor saves as you go
+
+The two office items from the playtest round above.
+
+- **The boss's hat** (`OfficeBuilder.Boss`, which also dresses his kitchen visitor, `PF_BossVisitor`): the brim is about two thirds its old width (0.68 of the fit to his head) and the hat a fifth lower (0.8); the crown keeps more of its width (0.84) so his head and grey fringe never poke through it. It's shrunk about where it sits on his head, so it stays seated. Still a white cowboy hat with its walnut band, so he reads as the boss. *Tools/Game/Build Boss Visitors* rebuilds only his and the bodyguard's kitchen prefabs; *Tools/Game/Art/Capture Boss* renders him in the office and the kitchen.
+- **The tailor saves as you go** (`TailorSession.StepItem`, `TailorPlinth`): every open item shown, in every section, is worn and saved at once, as before "A wears". A locked item still shows while browsing and isn't kept; B hops down and the chef goes back to the last open item. A does nothing while dressing. The dressing card loses "A Wear" and "· wearing", and shows only B Done (Xbox buttons only); their Spanish strings are gone from `es.csv`.
+
+**Not checked in play:** how the smaller hat reads from the office camera with chefs about, and whether the boss still stands out on his kitchen visits.
+
+## 2026-11-11 — Full screen: a Display row in Settings, Esc still pauses
+
+The user asked for a way to play in full screen, switched from Settings. Their call, from the options offered:
+- **A Display row in Settings: Full screen / Windowed** (`SettingsModel`, so the main menu and the pause menu both have it). It's saved in `settings.json` (`PlayerSettings.FullScreen`, on by default, so older files start full screen) and a built game starts the way it was left (`WindowModeKeys`). Full screen is Unity's borderless full-screen window, which suits macOS best. Windowed is three quarters of the display, and the window can now be resized (Player Settings → Resizable Window, on).
+- **Esc keeps pausing.** It doesn't leave full screen: one key doing two things would throw players out of full screen whenever they paused mid-service. To leave full screen, open the pause menu and flip Display, which works the same on a controller.
+- **Ctrl+Cmd+F**, the Mac's own shortcut, toggles full screen from anywhere, as a keyboard extra for testing. No hint names it (hints show Xbox buttons only).
+- **In the Editor**, where Unity's full-screen calls do nothing, *Tools/Game/Play Full Screen* (also the Display row and Ctrl+Cmd+F, in Play mode) opens a frameless Game view covering the Editor's display (`FullScreenPlay`). Leaving Play mode closes it. It isn't saved, so playing in the Editor never changes how the built game starts. It relies on Unity's internal `GameView` class, so a Unity upgrade may need it updated.
+
+**Fix the same day:** in play the HUD sat short of the right and bottom edges. Unity lays out the game for its "main" play mode view, which was still the docked Game view (1709×966 against the full-screen view's 1920×1050). While open, the full-screen view is now kept as the main one (`PlayModeView.s_LastFocused`, set again every Editor update), and it covers the display's usable area below the menu bar, placed from the main window's left and bottom edges (exact when the Editor is maximized).
+
+**Not checked in play:** whether the Editor's full-screen view covers the display exactly (Retina scaling, the menu bar, a second monitor) and keeps controller input; a built game's switch both ways; and whether macOS also reacts to Ctrl+Cmd+F in a build, which would toggle twice.
+
+## 2026-11-13 — Money top left, the player bar top right, name plates
+
+**Decision (the user's calls):**
+- **Corners swap.** The money card moves to the top-left corner (office and kitchens; Prep's Rearrange docks under it there). The office's player bar docks to the top-right corner.
+- **Every player card is as wide as the dressing card (360 px),** so each player's place on the bar never moves or changes width when someone opens the tailor.
+- **Name plates** (option A of three sketches; the old cards felt too big and too plain): 76 px tall instead of 108, a chunky 5 px outline in the scene's toon ink, an 8 px band of the owner's colour along the bottom, and a round medallion breaking out 22 px over the top edge: the chef's face (72 px) on a player card, a gold coin on the money card. Open seats keep the see-through fill and dashes in the slot's colour, with "P2 · A Join" in one row. The dressing card takes the same ink and band. Everything is in `HudStyle` (Name plates); `NamePlate` draws it.
+- **No joining from the main menu** (tried and dropped the same day): players join in the office or in a kitchen, as before.
+
+**Reason:** The user wants the money and the players in opposite corners, every player's area the same size, and cards that feel more stylised and less heavy.
+
+**Not covered:** on a 4:3 screen the four plates (1,476 px with gaps) reach the money card.
+
+## 2026-11-13 — New players name themselves; kitchens take new players only before service
+
+**Decision (the user's calls):**
+- **Every new player names themselves as they join,** in the office or a kitchen. The naming keyboard is a name plate as wide as their player card (360 px), hanging under it: the name so far, the name this slot used last time (one press keeps it), the letter grid, then Space and Done. D-pad moves (repeating while held), A types or chooses, X deletes, and Menu finishes as a shortcut for Done (with nothing typed, it keeps last time's name). No suggested names and no Delete key (the user's trim, the same day): the hints read "X Delete" and "Menu Done". Up to 12 letters. Players carried over from the last scene aren't new and skip it. While naming, the pause menu, forkcast and the ready-up hold ignore that player's buttons.
+- **The name goes on their card:** big in their colour, with a small "P1" over it; until they have one, "P1" alone, big. Names live in the chef profile, per slot, beside the looks (`ChefProfile.Names`; files from before read fine).
+- **In the office, a new player waits in the closed lift** while naming. On Done the bell dings, the doors open and they step out. Everyone else keeps playing.
+- **In a kitchen, the player cards move top right like the office's** (the money is top left), become name plates of the shop card's width, and a naming player's card shows in any phase with the keyboard under it. They stand still at the door until Done.
+- **Kitchens take new players only in Plan and Prep.** During service and the Review, joining is closed, and a controller nobody plays on that presses A gets a line at the top of the screen for 2.5 s: "Wait for this service to finish to join" (in the Review: "Join when the next day starts").
+
+`ChefNaming` and `JoinRules` (plain C#, `ChefNamingTests`) hold the logic; `JoinNaming` runs it per player, reading the player's own controller (the kitchen's action maps change by phase), `KitchenJoinGate` keeps the kitchen's door, `NameKeyboard` draws the keyboard, `JoinWaitHud` the message. PlayMode tests join without naming (`PlayModeSetup`), except `JoinNamingPlayTests`.
+
+**Reason:** The user wants players to have names on their cards, typed as they join, and the lift to ring for a player's arrival; and no one dropping into a service already under way.
+
+**Not covered:** a keyboard player can't be told to wait (only controllers are watched), and the names have no accents beyond what the suggestions carry (the grid is A–Z).

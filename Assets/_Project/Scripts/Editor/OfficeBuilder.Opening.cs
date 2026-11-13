@@ -88,7 +88,15 @@ namespace Game.Editor
             sequence.FindProperty("_players").objectReferenceValue = manager;
             sequence.FindProperty("_hud").objectReferenceValue = hud;
             sequence.FindProperty("_elevator").objectReferenceValue = Object.FindFirstObjectByType<OpeningElevator>();
-            Objects(sequence.FindProperty("_offAfterLanding"), GameObject.Find("City/Street"), GameObject.Find("City/BossTower/Rooms"), GameObject.Find("City/BossTower/TowerLift"));
+            sequence.FindProperty("_flyby").objectReferenceValue = Object.FindFirstObjectByType<OpeningFlyby>();
+            var departures = Object.FindObjectsByType<Game.Presentation.Office.Ambience.CourierDeparture>(FindObjectsSortMode.None);
+            var couriers = sequence.FindProperty("_departures");
+            couriers.arraySize = departures.Length;
+            for (var i = 0; i < departures.Length; i++)
+                couriers.GetArrayElementAtIndex(i).objectReferenceValue = departures[i];
+            // The lift isn't among them: its cab is on the floor when the camera lands, and switches
+            // itself off once it has gone back down (OpeningElevator).
+            Objects(sequence.FindProperty("_offAfterLanding"), GameObject.Find("City/Street"), GameObject.Find("City/BossTower/Rooms"));
             var bar = Object.FindFirstObjectByType<PlayerBarHud>();
             Objects(sequence.FindProperty("_hudAfterLanding"), bar != null ? bar.gameObject : null);
             Poses(sequence.FindProperty("_flight"), FlightPoses);

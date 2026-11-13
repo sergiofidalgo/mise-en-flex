@@ -229,6 +229,45 @@ namespace Game.Editor
             return Save(root, Plate.PlateTypeId);
         }
 
+        // A delivery box (decision 2026-11-12): an open kraft carton, the food showing inside, carried
+        // and put down as a plate is. Placeholder shape until the art pass.
+        private const float BoxWidth = 0.34f;
+        private const float BoxWall = 0.09f;
+        private const float BoxFloor = 0.015f;
+        public static readonly Color BoxColor = new Color(0.76f, 0.6f, 0.4f);
+        private static readonly Color BoxInside = new Color(0.86f, 0.74f, 0.56f);
+
+        public static GameObject BuildBox()
+        {
+            var root = new GameObject($"PF_Item_{Plate.BoxTypeId}");
+            var kraft = GreyboxAssets.EnsureMaterial("DeliveryBox", BoxColor);
+            var floor = GreyboxAssets.CreatePrimitive(PrimitiveType.Cube, "Body", root.transform, GreyboxAssets.EnsureMaterial("DeliveryBoxInside", BoxInside), keepCollider: false);
+            floor.transform.localScale = new Vector3(BoxWidth, BoxFloor, BoxWidth);
+            floor.transform.localPosition = new Vector3(0f, BoxFloor / 2f, 0f);
+            // Four low walls, so the food reads from the overhead camera, and a lid folded back.
+            var half = BoxWidth / 2f;
+            for (var i = 0; i < 4; i++)
+            {
+                var along = i < 2;
+                var sign = i % 2 == 0 ? 1f : -1f;
+                var wall = GreyboxAssets.CreatePrimitive(PrimitiveType.Cube, $"Wall_{i + 1}", root.transform, kraft, keepCollider: false);
+                wall.transform.localScale = along ? new Vector3(BoxWidth, BoxWall, 0.012f) : new Vector3(0.012f, BoxWall, BoxWidth);
+                wall.transform.localPosition = along ? new Vector3(0f, BoxWall / 2f, sign * half) : new Vector3(sign * half, BoxWall / 2f, 0f);
+            }
+            var lid = GreyboxAssets.CreatePrimitive(PrimitiveType.Cube, "Lid", root.transform, kraft, keepCollider: false);
+            lid.transform.localScale = new Vector3(BoxWidth, 0.012f, BoxWidth * 0.9f);
+            lid.transform.localPosition = new Vector3(0f, BoxWall + BoxWidth * 0.2f, half + BoxWidth * 0.33f);
+            lid.transform.localRotation = Quaternion.Euler(-55f, 0f, 0f);
+
+            var itemView = AddSlots(root, PlateSlots, BoxFloor, ItemSizes.OnPlate);
+            SetGrip(itemView, ItemView.CarryGrip.Under);
+            var rest = new SerializedObject(root.AddComponent<CounterRestView>());
+            rest.FindProperty("_view").objectReferenceValue = itemView;
+            rest.FindProperty("_scale").floatValue = PlateOnCounter;
+            rest.ApplyModifiedPropertiesWithoutUndo();
+            return Save(root, Plate.BoxTypeId);
+        }
+
         /// <summary>A short stack of plate discs, as a label for the plate stack station.</summary>
         /// <summary>A pile of plate discs from <paramref name="baseHeight"/> up; the view shows as many as there are plates.</summary>
         public static GameObject[] CreatePlatePile(Transform parent, float baseHeight, int count, Color color, string materialName, Vector3 offset)

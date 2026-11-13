@@ -21,7 +21,7 @@ namespace Game.Presentation.Hud
     /// <para>In Prep it becomes two tiles above the ready bar (the user's design, 2026-11-11): a
     /// calendar page ("FRI 5") with "Prep · Day 5 / Opens 18:00", and two guests' faces with "About 5
     /// guests / Groups of one". The forecast follows the tables and the menu's prices as they
-    /// change, as the night itself will. The View button's "Rearrange" docks top right under the
+    /// change, as the night itself will. The View button's "Rearrange" docks under the
     /// money card, as wide as it (the user's call, 2026-11-11), the only place it's shown.</para>
     /// </summary>
     public sealed class DayCardHud : MonoBehaviour
@@ -51,7 +51,7 @@ namespace Game.Presentation.Hud
         [SerializeField] private HudStyle _style;
         [SerializeField] private KitchenCompositionRoot _root;
         [SerializeField] private PauseMenu _pause;
-        [Tooltip("The money card, top right: Prep's Rearrange docks under it at its width. Found in the scene if empty.")]
+        [Tooltip("The money card, top left: Prep's Rearrange docks under it at its width. Found in the scene if empty.")]
         [SerializeField] private MoneyCardHud _money;
 
         private Canvas _canvas;
@@ -114,7 +114,8 @@ namespace Game.Presentation.Hud
             _tiles.anchorMin = _tiles.anchorMax = _tiles.pivot = new Vector2(0f, 0f);
             _tiles.anchoredPosition = new Vector2(Margin, BarHeight + Margin);
             _rearrange = UiKit.Rect(_tiles.parent, "Rearrange", 0f, 0f, 210f, HintHeight);
-            _rearrange.anchorMin = _rearrange.anchorMax = _rearrange.pivot = new Vector2(1f, 1f);
+            // Under the money card, in its corner (top left since 2026-11-13).
+            _rearrange.anchorMin = _rearrange.anchorMax = _rearrange.pivot = new Vector2(0f, 1f);
             _rearrangeGroup = _rearrange.gameObject.AddComponent<CanvasGroup>();
             _rearrangeGroup.alpha = 0f;
             _rearrangeGroup.blocksRaycasts = false;
@@ -218,7 +219,7 @@ namespace Game.Presentation.Hud
             Faces(guestsTile, Pad + IconColumn / 2f, height / 2f, day);
         }
 
-        // Rearrange under the money card, top right, as wide as it; rebuilt when the width or the
+        // Rearrange under the money card, top left, as wide as it; rebuilt when the width or the
         // language changes.
         private void DrawRearrange()
         {
@@ -228,7 +229,7 @@ namespace Game.Presentation.Hud
             var below = _money != null ? _money.CardHeight : 108f;
             var word = Tr.Get("Rearrange");
             var key = $"{width}|{word}";
-            _rearrange.anchoredPosition = new Vector2(-Margin, -(Margin + below + TileGap));
+            _rearrange.anchoredPosition = new Vector2(Margin, -(Margin + below + TileGap));
             if (key == _rearrangeShown)
                 return;
             _rearrangeShown = key;

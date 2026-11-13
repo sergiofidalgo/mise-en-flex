@@ -23,6 +23,17 @@ namespace Game.Gameplay.Saving
         /// <summary>Raised with the player slot whose look just changed.</summary>
         public static event Action<int> LookChanged;
 
+        /// <summary>Raised with the player slot whose name just changed.</summary>
+        public static event Action<int> NameChanged;
+
+        /// <summary>Names player <paramref name="slot"/>'s chef and saves (2026-11-13).</summary>
+        public static void SetName(int slot, string name)
+        {
+            Current.SetName(slot, name);
+            Save();
+            NameChanged?.Invoke(slot);
+        }
+
         /// <summary>The profile, read from disk the first time; a fresh one if there's none or it can't be read.</summary>
         public static ChefProfile Current
         {

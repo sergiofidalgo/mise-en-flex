@@ -78,17 +78,20 @@ namespace Game.Editor
             so.FindProperty("_settings").objectReferenceValue = settings;
             so.ApplyModifiedPropertiesWithoutUndo();
 
-            var dials = hud.AddComponent<ChopDialHud>();
-            var dialSo = new SerializedObject(dials);
-            dialSo.FindProperty("_canvas").objectReferenceValue = hud.GetComponent<RectTransform>();
-            dialSo.FindProperty("_dialPrefab").objectReferenceValue = BuildChopDial(style).GetComponent<ChopDialView>();
-            dialSo.ApplyModifiedPropertiesWithoutUndo();
+            // The only control hints in the kitchen: pictures on the appliances (2026-11-11 playtest round).
+            ApplianceHintsBuilder.Add(hud, style, root);
+            ApplianceHintsBuilder.AddReviewGate(hud, root); // the kitchen HUD steps aside for the dashboard
+
+            // The cutting dial and the flip gauge are in the scene now (TimingGaugeArt, decision 2026-11-11).
 
             var tickets = new SerializedObject(hud.AddComponent<OrderTicketHud>());
             tickets.FindProperty("_canvas").objectReferenceValue = hud.GetComponent<RectTransform>();
             tickets.FindProperty("_style").objectReferenceValue = style;
             tickets.FindProperty("_director").objectReferenceValue = Object.FindFirstObjectByType<CustomerDirector>();
             tickets.FindProperty("_catalog").objectReferenceValue = catalog;
+            tickets.FindProperty("_icons").objectReferenceValue = IngredientIconRenderer.Catalog(); // the guests' bubbles show the dish
+            tickets.FindProperty("_root").objectReferenceValue = root; // delivery orders' bubbles (2026-11-12)
+            tickets.FindProperty("_couriers").objectReferenceValue = Object.FindFirstObjectByType<Game.Gameplay.Customers.CourierDirector>();
             tickets.ApplyModifiedPropertiesWithoutUndo();
 
             var tags = new SerializedObject(hud.AddComponent<DonenessTagHud>());
@@ -102,7 +105,15 @@ namespace Game.Editor
             cards.FindProperty("_coop").objectReferenceValue = settings;
             cards.FindProperty("_editor").objectReferenceValue = Object.FindFirstObjectByType<LayoutEditor>();
             cards.FindProperty("_root").objectReferenceValue = root;
+            cards.FindProperty("_naming").objectReferenceValue = Object.FindFirstObjectByType<JoinNaming>();
             cards.ApplyModifiedPropertiesWithoutUndo();
+
+            // Pressing A to join during service or the Review: a line saying to wait (2026-11-13).
+            var wait = new SerializedObject(hud.AddComponent<JoinWaitHud>());
+            wait.FindProperty("_canvas").objectReferenceValue = hud.GetComponent<RectTransform>();
+            wait.FindProperty("_style").objectReferenceValue = style;
+            wait.FindProperty("_gate").objectReferenceValue = Object.FindFirstObjectByType<KitchenJoinGate>();
+            wait.ApplyModifiedPropertiesWithoutUndo();
 
             var layoutHud = new SerializedObject(hud.AddComponent<LayoutEditorHud>());
             layoutHud.FindProperty("_canvas").objectReferenceValue = hud.GetComponent<RectTransform>();
@@ -113,6 +124,9 @@ namespace Game.Editor
             layoutHud.FindProperty("_framePrefab").objectReferenceValue = GreyboxStaff.BuildCursorFrame();
             layoutHud.FindProperty("_cards").objectReferenceValue = cards.targetObject;
             layoutHud.ApplyModifiedPropertiesWithoutUndo();
+
+            // Each player's colour on the floor in Prep, moving to their cursor while they rearrange.
+            FootRings.Add(settings, root, Object.FindFirstObjectByType<LayoutEditor>());
 
             var markers = new SerializedObject(hud.AddComponent<CustomerIndicatorHud>());
             markers.FindProperty("_canvas").objectReferenceValue = hud.GetComponent<RectTransform>();
@@ -126,11 +140,6 @@ namespace Game.Editor
             bell.FindProperty("_style").objectReferenceValue = style;
             bell.FindProperty("_root").objectReferenceValue = root;
             bell.ApplyModifiedPropertiesWithoutUndo();
-
-            var flips = new SerializedObject(hud.AddComponent<FlipGaugeHud>());
-            flips.FindProperty("_canvas").objectReferenceValue = hud.GetComponent<RectTransform>();
-            flips.FindProperty("_root").objectReferenceValue = root;
-            flips.ApplyModifiedPropertiesWithoutUndo();
 
             // The washing game is drawn on the sink (WashRing); its stick hint is HUD art, here.
             WashRing.AddStickHint(hud, style);
@@ -150,6 +159,9 @@ namespace Game.Editor
             dashboard.FindProperty("_settings").objectReferenceValue = settings;
             dashboard.FindProperty("_icons").objectReferenceValue = IngredientIconRenderer.Catalog();
             dashboard.ApplyModifiedPropertiesWithoutUndo();
+
+            // The countdown before service, its "Service!" band, and the closing shutter (2026-11-11).
+            DayTransitionsBuilder.Add(style, root, hud.GetComponent<ReviewDashboard>());
 
             var campaign = new SerializedObject(hud.AddComponent<CampaignCardHud>());
             campaign.FindProperty("_canvas").objectReferenceValue = hud.GetComponent<RectTransform>();

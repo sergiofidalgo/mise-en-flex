@@ -10,7 +10,8 @@ namespace Game.Presentation
     /// <summary>
     /// Pops a quality card above the pass when a dish is served: stars and a line per item with
     /// its doneness and how it scored on doneness, crust, serving temperature and freshness.
-    /// Stands in for customers' reactions until Phase 2. Greybox UI (IMGUI).
+    /// A tuning aid: behind the developer toggle (<see cref="DeveloperHud"/>, F1), off by default,
+    /// since guests show how they liked it themselves (2026-11-11 playtest round). Greybox UI (IMGUI).
     /// </summary>
     public sealed class QualityCardOverlay : MonoBehaviour
     {
@@ -26,6 +27,8 @@ namespace Game.Presentation
         private readonly StringBuilder _text = new StringBuilder();
         private KitchenCompositionRoot _root;
         private GUIStyle _style;
+
+        private void Update() => DeveloperHud.ReadToggle();
 
         private void Start()
         {
@@ -68,7 +71,7 @@ namespace Game.Presentation
         {
             _cards.RemoveAll(card => Time.time > card.Until);
             var camera = Camera.main;
-            if (_cards.Count == 0 || camera == null)
+            if (_cards.Count == 0 || camera == null || !DeveloperHud.Visible)
                 return;
 
             _style ??= new GUIStyle(GUI.skin.box) { alignment = TextAnchor.UpperLeft, richText = true, fontSize = _fontSize, wordWrap = true };
