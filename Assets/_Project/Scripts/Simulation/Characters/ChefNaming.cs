@@ -5,8 +5,8 @@ namespace Game.Simulation.Characters
     /// <summary>
     /// A player naming themselves as they join (the user's calls, 2026-11-13), on the restaurant
     /// naming keyboard, trimmed for it: their name from last time on the top row (one press keeps
-    /// it), then the letters, then Space and Done. No suggestions and no Delete key: X deletes and
-    /// Start finishes, as shortcuts. Plain C#, so it's tested without Play mode.
+    /// it), then the letters, then Space. No suggestions and no Delete or Done keys: X deletes and
+    /// Menu finishes (the user's calls, the same day: each is said once). Plain C#, so it's tested without Play mode.
     /// </summary>
     public sealed class ChefNaming
     {
@@ -19,12 +19,12 @@ namespace Game.Simulation.Characters
         public ChefNaming(string lastName)
         {
             _lastName = RestaurantNaming.Clean(lastName);
-            Picker = new NamePicker(_lastName, null, MaxLength, deleteKey: false);
+            Picker = new NamePicker(_lastName, null, MaxLength, shortcuts: true);
         }
 
         public NamePicker Picker { get; }
 
-        /// <summary>The name chosen, once Done (or the kept name) has been pressed, or Start.</summary>
+        /// <summary>The name chosen, once the kept name has been pressed, or Menu.</summary>
         public string Chosen { get; private set; }
 
         public bool Done => Chosen != null;
@@ -52,7 +52,7 @@ namespace Game.Simulation.Characters
         }
 
         /// <summary>
-        /// Start, a shortcut for Done: what's typed, or with nothing typed, last time's name.
+        /// Menu: what's typed, or with nothing typed, last time's name.
         /// False (nothing happens) with neither.
         /// </summary>
         public bool Finish()

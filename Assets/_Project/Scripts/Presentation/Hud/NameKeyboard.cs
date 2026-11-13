@@ -11,7 +11,7 @@ namespace Game.Presentation.Hud
     /// <summary>
     /// The naming keyboard a new player gets as they join (the user's calls, 2026-11-13): a name
     /// plate as wide as their player card, hanging under it, with the name so far, last time's name
-    /// to keep, the letter grid, and Space and Done; X deletes and Menu finishes. The key under the
+    /// to keep, the letter grid, and Space; X deletes and Menu finishes, each shown once as a hint. The key under the
     /// cursor fills in the player's colour. Only Xbox buttons are named. Drawn by the office's
     /// player bar and the kitchen's player cards alike.
     /// </summary>

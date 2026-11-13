@@ -20,12 +20,12 @@ namespace Game.Tests.EditMode
         }
 
         [Test]
-        public void NoSuggestionsAndNoDeleteKey()
+        public void NoSuggestionsAndNoDeleteOrDoneKeys()
         {
             var naming = new ChefNaming("Mike");
             Assert.That(naming.Picker.Rows[1], Is.Empty, "no suggested names");
             var bottom = naming.Picker.Rows[naming.Picker.Rows.Count - 1].Select(k => k.Kind).ToList();
-            Assert.That(bottom, Is.EqualTo(new[] { NameKeyKind.Space, NameKeyKind.Done }), "X deletes");
+            Assert.That(bottom, Is.EqualTo(new[] { NameKeyKind.Space }), "X deletes and Menu finishes");
         }
 
         [Test]
