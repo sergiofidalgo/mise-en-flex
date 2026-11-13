@@ -35,8 +35,12 @@ namespace Game.Tests.PlayMode
             var services = root.Services;
             var days = services.Days;
 
+            // Each phase change plays its transition in real time (2026-11-13): let the morning's
+            // finish (its copy of the dashboard sliding away) before the next starts.
             days.Advance();
+            yield return new WaitForSecondsRealtime(4f);
             days.Advance();
+            yield return new WaitForSecondsRealtime(1f);
             Assert.That(days.Phase, Is.EqualTo(DayPhase.Service));
             days.Charge(LedgerLine.Ingredients, 114f);
             var day = days.Day;
@@ -46,8 +50,9 @@ namespace Game.Tests.PlayMode
             Add(services, day, "Carlos S.", "steak, medium rare", 18, 40, 3.5f, ReviewTopic.Decent, "Good, not great.", paid: 24f, tip: 2f);
             Add(services, day, "Hank B.", "steak, well done", 19, 20, 4.5f, ReviewTopic.Praise, "Best steak on the block.", paid: 24f, tip: 6f);
             days.FinishService(Summary(served: 3, walkOuts: 2, payments: 68f, tips: 8f, walkOutLosses: 24f));
-            for (var i = 0; i < 5; i++)
-                yield return null;
+            // The day transitions (shutter down, the dashboard rising over it) play in real time:
+            // let them settle, so the shots show the dashboard and not a copy sliding away.
+            yield return new WaitForSecondsRealtime(4f);
 
             Assume.That(Application.isBatchMode, Is.False, "Run it in a visible editor (without -batchmode): it grabs the screen.");
             var folder = Folder();

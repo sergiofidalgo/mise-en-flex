@@ -6,6 +6,22 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ## 2026-11-13 — A sound for every action that needs one
 
+---
+
+## 2026-11-13 — forkcast's header: money left, the way to the office right; X replies; buying shows what you have
+
+**User's calls:**
+- **The header loses the forkcast logo and the search bar.** The money chip moves to the top left, where players see money everywhere else in the game. The day and the new reviews stay on the right, and at the very right is a chip "(B) Go to the boss's office".
+- **Going to the office is a hold of B** (1 s, `_officeHoldSeconds`; our call, so a stray press can't take everyone away). A bar fills on the chip, and letting go early drains it. A tap of B still takes back a player's ready. Full, it goes up as the pause menu's Quit to office does: the same players, the campaign continuing. In Review, anything changed on forkcast since the day was saved is saved first.
+- **The reply button is X,** not Y.
+- **A dish still to unlock** shows its price with "You have $48" beside it, and under them the hold-to-buy bar, edge to edge across the panel. The "suggested · earns about" line is gone. Without the money, a press turns the bar's words to "not enough money".
+- **The money is the game's own money card** (later the same day), not a chip drawn by forkcast. The kitchen no longer hides the card while forkcast is up; the dashboard lifts its canvas over itself (sorting 25, back to 15 when it closes). It shows exactly as it does everywhere else, in its own corner, overflowing the header. With the top-left card from the name-plates work (`claude/menu-join`), it sits top left.
+- **The header is 12 px shorter** (72 px): the panel's top edge is lower and everything below stays where it was. A 24 px cut was tried first and was too tight.
+
+---
+
+## 2026-11-13 — Hold A to buy a dish; owned dishes go on and off the menu
+
 **Decision (user's call):** go through the game as it is and give sound to every relevant action. The user asked for it after noticing no sound; the cause turned out to be the Editor's Mute Audio toggle, which was on, not the game.
 
 **What's added (synthesized placeholders, tuning in `SoundBank.asset`):**
@@ -31,6 +47,11 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+
+
+---
+
+**Tests:** `CookbookTests` covers taking a dish off and putting it back, the last dish, the list's order and loading. `ForkcastPlanPlayTests` checks that a tap doesn't buy, that a hold fills and buys, and that taps switch the dish off and on.
 ## 2026-11-13 — Washing a plate takes 2 circles
 
 **User's call:** washing a single dish took way too long (4 circles a plate at up to 1.5 a second, at least 2.7 s and nearer 4 s at an easy pace). Now 2 circles a plate at up to 2 a second (`TuningConfig`, Washing by hand): about 1 s at full speed, 1.5 to 2 s at a relaxed pace. The pace test expects 0.8 to 1.4 s a plate at the cap.
@@ -321,6 +342,9 @@ Implements the movement and cleaning calls of the playtest round (entry below, "
   - **Saved per restaurant,** like prices (`RestaurantSave.OffMenu`). An older save has every owned dish on the menu; a save that would leave the menu empty keeps the first owned dish on.
 
 **Tests:** `CookbookTests` covers taking a dish off and putting it back, the last dish, the list's order and loading. `ForkcastPlanPlayTests` checks that a tap doesn't buy, that a hold fills and buys, and that taps switch the dish off and on.
+
+---
+
 
 ---
 

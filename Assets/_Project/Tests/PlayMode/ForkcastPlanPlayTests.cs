@@ -91,6 +91,23 @@ namespace Game.Tests.PlayMode
         }
 
         [UnityTest]
+        public IEnumerator HoldingBFillsTheOfficeChipAndLettingGoEarlyStays()
+        {
+            // The header's "Go to the boss's office" (2026-11-13): a hold of B, so a tap can't leave.
+            yield return Arrive();
+            yield return Join();
+            yield return Press(GamepadButton.East);
+            Assert.That(_dashboard.OfficeHold, Is.LessThan(0.2f), "a tap barely fills it");
+            InputSystem.QueueStateEvent(_pad, new GamepadState().WithButton(GamepadButton.East));
+            yield return new WaitForSecondsRealtime(0.5f);
+            Assert.That(_dashboard.OfficeHold, Is.InRange(0.3f, 0.95f), "holding B fills it");
+            InputSystem.QueueStateEvent(_pad, new GamepadState());
+            yield return new WaitForSecondsRealtime(0.4f);
+            Assert.That(_dashboard.OfficeHold, Is.EqualTo(0f), "let go early, it drains");
+            Assert.That(SceneManager.GetActiveScene().name, Is.EqualTo(SceneName), "and nobody left");
+        }
+
+        [UnityTest]
         public IEnumerator TheTabsRunOverviewRestaurantBooksStaff()
         {
             yield return Arrive();
