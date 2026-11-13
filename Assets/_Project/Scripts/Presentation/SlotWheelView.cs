@@ -32,8 +32,8 @@ namespace Game.Presentation
         [SerializeField] private CoopSettings _settings;
 
         [Header("Look")]
-        [Tooltip("Pixels across the whole wheel on a 1080p screen.")]
-        [SerializeField, Min(40f)] private float _pixels = 190f;
+        [Tooltip("Pixels across the whole wheel on a 1080p screen (the user's call, 2026-11-13: bigger, was 190).")]
+        [SerializeField, Min(40f)] private float _wheelPixels = 260f;
         [Tooltip("Metres above the station's top where the wheel's middle sits.")]
         [SerializeField, Min(0f)] private float _above = 0.45f;
         [SerializeField] private Color _tile = new Color32(0xEA, 0xDF, 0xC6, 0xFF);
@@ -51,14 +51,30 @@ namespace Game.Presentation
         private Material _letters;
 
         // Tile centres in wheel units, in PromptControl order: South, East, West, North.
-        private static readonly Vector2[] Places = { new Vector2(0f, -0.27f), new Vector2(0.27f, 0f), new Vector2(-0.27f, 0f), new Vector2(0f, 0.27f) };
+        // The user's compact sketch (2026-11-13): a 2×2 block of tiles, Y top left, B top right,
+        // X bottom left, A bottom right, so two players' wheels at neighbouring units fit side by side.
+        private const float Half = 0.1425f;
+        private static readonly Vector2[] Places = { new Vector2(Half, -Half), new Vector2(Half, Half), new Vector2(-Half, -Half), new Vector2(-Half, Half) };
+
+        // Each face button sits on the corner its tile shares with the block's middle line, as drawn:
+        // Y top right of its tile, B bottom right, X top left, A bottom left.
+        private static readonly Vector2[] ButtonCorners = { new Vector2(-1f, -1f), new Vector2(1f, -1f), new Vector2(-1f, 1f), new Vector2(1f, 1f) };
+
+        [Tooltip("Pixels kept between two players' wheels open side by side, so their buttons and counts don't crowd (the user's call, from 20, 48 and 72 with every slot stocked: 48).")]
+        [SerializeField, Min(0f)] private float _apartPixels = 48f;
+        [Tooltip("How quickly neighbouring wheels slide apart (per second): a short, visible pull.")]
+        [SerializeField, Min(0.1f)] private float _slide = 10f;
 
         private sealed class Kit
         {
             public Transform Root;
-            public Renderer Ring;
             public Tile[] Tiles;
             public float Shown;
+            public readonly List<PromptLine> Lines = new List<PromptLine>();
+            public Vector3 Where;
+            public bool Visible;
+            public Vector3 Push;
+            public Vector3 Shown3;
         }
 
         private sealed class Tile
@@ -74,6 +90,10 @@ namespace Game.Presentation
             public int LastCount = -1;
             public float Pop;
         }
+
+        /// <summary>Where a player's wheel is centred now, for tests; null when it's closed.</summary>
+        public Vector3? WheelCentre(PlayerInput player) =>
+            _kits.TryGetValue(player, out var kit) && kit.Visible ? kit.Root.position : (Vector3?)null;
 
         /// <summary>Players whose wheel is showing, for tests.</summary>
         public int Showing
@@ -92,31 +112,89 @@ namespace Game.Presentation
 
         private void OnDisable() => Present = false;
 
+        private readonly List<Kit> _visible = new List<Kit>();
+
         private void LateUpdate()
         {
             var camera = Camera.main;
             var dt = Time.unscaledDeltaTime;
+            _visible.Clear();
             foreach (var player in PlayerInput.all)
             {
                 if (!_kits.TryGetValue(player, out var kit))
                     _kits[player] = kit = Build(player.playerIndex);
                 var station = Lines(player);
                 var wanted = station != null && camera != null && _lines.Count > 0;
+                kit.Lines.Clear();
+                kit.Lines.AddRange(_lines);
                 kit.Shown = Mathf.MoveTowards(kit.Shown, wanted ? 1f : 0f, dt / _popInSeconds);
-                kit.Root.gameObject.SetActive(kit.Shown > 0f);
-                if (!wanted || kit.Shown <= 0f)
+                kit.Visible = wanted && kit.Shown > 0f;
+                kit.Root.gameObject.SetActive(kit.Visible);
+                if (!kit.Visible)
                 {
+                    kit.Shown3 = Vector3.zero;
                     if (!wanted)
                         foreach (var tile in kit.Tiles)
                             tile.LastCount = -1;
                     continue;
                 }
+                kit.Where = station.transform.position + Vector3.up * (Top(station) + _above);
+                _visible.Add(kit);
+            }
+            if (camera == null)
+                return;
 
-                var where = station.transform.position + Vector3.up * (Top(station) + _above);
-                TimingGaugeKit.FaceCamera(kit.Root, camera, where,
-                    TimingGaugeKit.MetresFor(camera, where, _pixels) * Mathf.Max(0.001f, TimingGaugeKit.EaseOutBack(kit.Shown)), 0.12f);
+            // Two players at neighbouring units: their wheels slide apart sideways rather than overlap.
+            Separate(camera, dt);
+
+            foreach (var kit in _visible)
+            {
+                TimingGaugeKit.FaceCamera(kit.Root, camera, kit.Where,
+                    TimingGaugeKit.MetresFor(camera, kit.Where, _wheelPixels) * Mathf.Max(0.001f, TimingGaugeKit.EaseOutBack(kit.Shown)), 0.12f);
+                // Flat: the pieces are layered by draw order, not depth, and depth between them
+                // showed as parallax (the hub sat a few pixels off the tiles' centre, measured).
+                var size = kit.Root.localScale.x;
+                kit.Root.localScale = new Vector3(size, size, size * 0.02f);
                 for (var i = 0; i < kit.Tiles.Length; i++)
-                    DrawTile(kit.Tiles[i], i < _lines.Count ? _lines[i] : (PromptLine?)null, dt);
+                    DrawTile(kit.Tiles[i], i < kit.Lines.Count ? kit.Lines[i] : (PromptLine?)null, dt);
+            }
+        }
+
+        // Wheels that would sit too close are pushed apart along the screen's horizontal, half each
+        // (a few passes, for three or four at once), keeping _apartPixels between them. The push
+        // eases in, so neighbouring wheels visibly slide apart rather than jump.
+        private void Separate(Camera camera, float dt)
+        {
+            var right = camera.transform.right;
+            var up = camera.transform.up;
+            foreach (var kit in _visible)
+                kit.Push = Vector3.zero;
+            for (var pass = 0; pass < 3; pass++)
+            {
+                for (var a = 0; a < _visible.Count; a++)
+                for (var b = a + 1; b < _visible.Count; b++)
+                {
+                    var first = _visible[a];
+                    var second = _visible[b];
+                    var middle = (first.Where + second.Where) * 0.5f;
+                    // The block is 2 × (Half + half a tile) units across: about 0.57 of a unit.
+                    var width = TimingGaugeKit.MetresFor(camera, middle, _wheelPixels) * 0.58f + TimingGaugeKit.MetresFor(camera, middle, _apartPixels);
+                    var delta = (second.Where + second.Push) - (first.Where + first.Push);
+                    var dx = Vector3.Dot(delta, right);
+                    var dy = Vector3.Dot(delta, up);
+                    if (Mathf.Abs(dx) >= width || Mathf.Abs(dy) >= width)
+                        continue;
+                    var push = (width - Mathf.Abs(dx)) * 0.5f;
+                    var side = dx >= 0f ? 1f : -1f;
+                    first.Push -= right * (push * side);
+                    second.Push += right * (push * side);
+                }
+            }
+            var ease = 1f - Mathf.Exp(-_slide * dt);
+            foreach (var kit in _visible)
+            {
+                kit.Shown3 = Vector3.Lerp(kit.Shown3, kit.Push, ease);
+                kit.Where += kit.Shown3;
             }
         }
 
@@ -146,13 +224,13 @@ namespace Game.Presentation
             if (icon != null)
             {
                 var size = Mathf.Max(icon.bounds.size.x, icon.bounds.size.y);
-                tile.Icon.transform.localScale = Vector3.one * (0.17f / Mathf.Max(size, 0.001f));
+                tile.Icon.transform.localScale = Vector3.one * (0.28f / Mathf.Max(size, 0.001f)); // the picture art has a margin: this fills the tile
             }
             var label = line.HasValue && icon == null && line.Value.Label != "—" ? line.Value.Label : string.Empty;
             if (tile.Label.text != label)
                 tile.Label.text = label;
             var number = ParseCount(line.HasValue ? line.Value.IconLabel ?? string.Empty : string.Empty);
-            var count = number >= 0 ? $"×{number}" : string.Empty;
+            var count = number >= 0 ? number.ToString() : string.Empty;
             if (tile.Count.text != count)
                 tile.Count.text = count;
             tile.Badge.gameObject.SetActive(number > 0);
@@ -190,21 +268,16 @@ namespace Game.Presentation
             root.SetParent(transform, false);
             var kit = new Kit { Root = root, Tiles = new Tile[4] };
 
-            // The hub: a ring in the player's colour round an Ink disc, whose wheel it is.
-            var colour = _settings != null ? _settings.GetPlayerColor(playerIndex) : Color.white;
-            kit.Ring = TimingGaugeKit.Disc(root, "Ring", _onTop, colour, TileOrder - 2);
-            kit.Ring.transform.localScale = new Vector3(0.2f, 0.01f, 0.2f);
-            var hub = TimingGaugeKit.Disc(root, "Hub", _onTop, TimingGaugeKit.Ink, TileOrder - 1);
-            hub.transform.localScale = new Vector3(0.13f, 0.01f, 0.13f);
-            hub.transform.localPosition = new Vector3(0f, 0f, -0.005f);
-
+            // No hub in the compact block: the tiles' outlines carry the player's colour instead,
+            // so two players' wheels side by side are told apart.
+            var colour = _settings != null ? _settings.GetPlayerColor(playerIndex) : TimingGaugeKit.Ink;
             for (var i = 0; i < kit.Tiles.Length; i++)
-                kit.Tiles[i] = BuildTile(root, (PromptControl)i);
+                kit.Tiles[i] = BuildTile(root, (PromptControl)i, colour);
             root.gameObject.SetActive(false);
             return kit;
         }
 
-        private Tile BuildTile(Transform parent, PromptControl control)
+        private Tile BuildTile(Transform parent, PromptControl control, Color outline)
         {
             var tile = new Tile { Root = new GameObject($"Tile_{control}") { hideFlags = HideFlags.DontSave }.transform };
             tile.Root.SetParent(parent, false);
@@ -213,30 +286,40 @@ namespace Game.Presentation
 
             // Square tiles with rounded corners, close together (the user's call: not circles, and
             // less disjointed than square-cornered tiles far apart).
-            var rim = TimingGaugeKit.Piece(tile.Root, "Rim", TimingGaugeKit.RoundedRect(0.27f, 0.27f, 0.06f), _onTop, TimingGaugeKit.Ink, TileOrder);
+            var rim = TimingGaugeKit.Piece(tile.Root, "Rim", TimingGaugeKit.RoundedRect(0.27f, 0.27f, 0.06f), _onTop, outline, TileOrder);
             tile.Body = TimingGaugeKit.Piece(tile.Root, "Body", TimingGaugeKit.RoundedRect(0.24f, 0.24f, 0.045f), _onTop, _tile, TileOrder + 1);
             tile.Body.transform.localPosition = new Vector3(0f, 0f, -0.01f);
 
             var icon = new GameObject("Icon") { hideFlags = HideFlags.DontSave };
             icon.transform.SetParent(tile.Root, false);
-            icon.transform.localPosition = new Vector3(-0.012f, 0.025f, -0.03f);
+            // The picture fills most of the tile (the user's call: it was far too small).
+            icon.transform.localPosition = new Vector3(0f, 0f, -0.03f);
             tile.Icon = icon.AddComponent<SpriteRenderer>();
             tile.Icon.sharedMaterial = IconMaterial();
             tile.Icon.sortingOrder = TileOrder + 2;
             tile.Icon.shadowCastingMode = ShadowCastingMode.Off;
 
-            // How many are left, "×6", in the tile's bottom-right corner, big enough to read at a
-            // glance (the user's call: the corner count, bigger).
-            tile.Badge = new GameObject("Count") { hideFlags = HideFlags.DontSave }.transform;
+            // How many are left: a plain number in a round dark badge inside the tile's top-right
+            // corner, like a notification count (the user's call, 2026-11-13: the circle read
+            // better than the small corner text).
+            tile.Badge = new GameObject("CountBadge") { hideFlags = HideFlags.DontSave }.transform;
             tile.Badge.SetParent(tile.Root, false);
-            tile.Count = Text(tile.Badge, "Count", new Vector3(0.008f, -0.07f, -0.04f), 0.095f, TimingGaugeKit.Ink, TextAlignmentOptions.Right);
-            tile.Count.rectTransform.sizeDelta = new Vector2(0.21f, 0.12f);
+            // The user's compact sketch: the count on the block's outer corner of each tile.
+            tile.Badge.localPosition = new Vector3(Mathf.Sign(at.x) * 0.1f, Mathf.Sign(at.y) * 0.1f, -0.045f);
+            var badgeRim = TimingGaugeKit.Disc(tile.Badge, "Rim", _onTop, Color.white, ButtonOrder + 6);
+            badgeRim.transform.localScale = new Vector3(0.135f, 0.005f, 0.135f);
+            var badgeFace = TimingGaugeKit.Disc(tile.Badge, "Face", _onTop, TimingGaugeKit.Ink, ButtonOrder + 7);
+            badgeFace.transform.localScale = new Vector3(0.117f, 0.005f, 0.117f);
+            badgeFace.transform.localPosition = new Vector3(0f, 0f, -0.005f);
+            // One digit at most, so it can be big (the user's call).
+            tile.Count = Text(tile.Badge, "Count", new Vector3(0f, -0.003f, -0.01f), 0.1f, Color.white, TextAlignmentOptions.Center);
+            tile.Count.sortingOrder = ButtonOrder + 8; // always on top, over the picture (the user's call)
             tile.Label = Text(tile.Root, "Label", new Vector3(0f, 0f, -0.04f), 0.045f, TimingGaugeKit.Ink, TextAlignmentOptions.Center);
 
-            // The face button on the tile's outer edge, as on the pad.
-            var outward = at.normalized;
+            // The face button on the corner the sketch gives it, inset a little.
+            var buttonCorner = ButtonCorners[(int)control];
             tile.Button = FaceButton(tile.Root, control);
-            tile.Button.localPosition = new Vector3(outward.x * 0.14f, outward.y * 0.14f, -0.05f);
+            tile.Button.localPosition = new Vector3(buttonCorner.x * 0.09f, buttonCorner.y * 0.09f, -0.05f);
             tile.Button.localScale = Vector3.one * 0.1f;
             return tile;
         }
