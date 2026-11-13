@@ -62,6 +62,50 @@ namespace Game.Tests.EditMode
         }
 
         [Test]
+        public void AnOwnedDishCanBeTakenOffTheMenuAndPutBack()
+        {
+            // The user's call, 2026-11-13: buy any dish, then choose which are served.
+            var book = Book();
+            book.TryUnlock("onions", amount => true);
+            Assert.That(book.SetOnMenu("onions", false), Is.True);
+            Assert.That(book.IsUnlocked("onions"), Is.True, "still owned");
+            Assert.That(book.Menu.Select(r => r.Id), Is.EqualTo(new[] { "steak" }), "but not served");
+            Assert.That(book.BuildMenu().Dishes.Select(d => d.RecipeId), Is.EqualTo(new[] { "steak" }), "nor ordered");
+            Assert.That(book.SetOnMenu("onions", true), Is.True);
+            Assert.That(book.Menu.Select(r => r.Id), Is.EqualTo(new[] { "steak", "onions" }));
+        }
+
+        [Test]
+        public void TheLastDishOnTheMenuCannotBeTakenOff()
+        {
+            var book = Book();
+            Assert.That(book.SetOnMenu("steak", false), Is.False, "a service needs something to order");
+            Assert.That(book.IsOnMenu("steak"), Is.True);
+            Assert.That(book.SetOnMenu("onions", true), Is.False, "a dish not owned can't go on");
+        }
+
+        [Test]
+        public void TheListShowsTheMenuThenTheRestOfTheCookbookThenWhatsToUnlock()
+        {
+            var book = Book();
+            book.TryUnlock("onions", amount => true);
+            book.SetOnMenu("steak", false);
+            Assert.That(book.OnMenuFirst().Select(r => r.Id), Is.EqualTo(new[] { "onions", "steak", "steak-onions" }));
+        }
+
+        [Test]
+        public void BuyingADishThatWasTakenOffPutsItOnAndTheChoiceIsKept()
+        {
+            var book = Book();
+            book.Load(new[] { "steak", "onions" }, null);
+            book.LoadOffMenu(new[] { "onions", "nonsense" });
+            Assert.That(book.OffMenuIds(), Is.EqualTo(new[] { "onions" }), "unknown ids are dropped");
+            book.LoadOffMenu(new[] { "steak", "onions" });
+            Assert.That(book.Menu.Count(), Is.EqualTo(1), "a save can't leave the menu empty");
+            Assert.That(book.IsOnMenu("steak"), Is.True, "the first owned dish stays on");
+        }
+
+        [Test]
         public void EveryShippedRecipeExplainsHowItsCooked()
         {
             var config = AssetDatabase.LoadAssetAtPath<CookbookConfig>(ConfigPath);

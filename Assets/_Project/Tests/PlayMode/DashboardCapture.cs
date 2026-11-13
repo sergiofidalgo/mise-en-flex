@@ -64,6 +64,16 @@ namespace Game.Tests.PlayMode
             yield return Shoot(dashboard, 1, 0, false, Path.Combine(folder, "dashboard_restaurant_opening_allday.png"), 0, true);
             services.Opening.Choose(1);
             yield return Shoot(dashboard, 1, 1, false, Path.Combine(folder, "dashboard_restaurant_locked.png"));
+            // Holding A to buy (2026-11-13), the bar part way, with the money for it.
+            services.Days.Receive(10f);
+            dashboard.ShowForCapture(1, 1, false);
+            dashboard.HoldBuyBarForCapture(0.55f);
+            yield return null;
+            yield return new WaitForEndOfFrame();
+            var holding = ScreenCapture.CaptureScreenshotAsTexture();
+            File.WriteAllBytes(Path.Combine(folder, "dashboard_restaurant_holding.png"), holding.EncodeToPNG());
+            Object.Destroy(holding);
+            dashboard.HoldBuyBarForCapture(0f);
             // The unlock moment (2026-11-11), held a third of the way in: sparks, flash, the plate warming.
             var rings = services.Cookbook.Recipes[1];
             services.Days.Receive(rings.UnlockCost);
@@ -75,6 +85,10 @@ namespace Game.Tests.PlayMode
             var unlocking = ScreenCapture.CaptureScreenshotAsTexture();
             File.WriteAllBytes(Path.Combine(folder, "dashboard_restaurant_unlocking.png"), unlocking.EncodeToPNG());
             Object.Destroy(unlocking);
+            // An owned dish taken off the menu (2026-11-13).
+            services.Cookbook.SetOnMenu(rings.Id, false);
+            yield return Shoot(dashboard, 1, services.Cookbook.OnMenuFirst().ToList().FindIndex(r => r.Id == rings.Id), false, Path.Combine(folder, "dashboard_restaurant_offmenu.png"));
+            services.Cookbook.SetOnMenu(rings.Id, true);
             services.Cookbook.SetPrice(services.Cookbook.Recipes[0].Id, services.Cookbook.Recipes[0].SuggestedPrice + 4.3f);
             yield return Shoot(dashboard, 1, 0, false, Path.Combine(folder, "dashboard_restaurant_priced.png"));
             yield return Shoot(dashboard, 3, 0, false, Path.Combine(folder, "dashboard_staff_empty.png"));

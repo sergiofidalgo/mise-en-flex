@@ -178,7 +178,10 @@ namespace Game.Gameplay
                 return null;
             var book = _cookbook.NewBook(_itemCatalog);
             if (campaign != null)
+            {
                 book.Load(campaign.Recipes, restaurant?.Prices ?? new System.Collections.Generic.List<Game.Simulation.Cookbook.PriceRecord>());
+                book.LoadOffMenu(restaurant?.OffMenu);
+            }
             foreach (var id in book.UnlockedIds())
                 SharedCookbookFile.Add(id);
             book.Unlocked += recipe => SharedCookbookFile.Add(recipe.Id);

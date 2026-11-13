@@ -309,6 +309,21 @@ Implements the movement and cleaning calls of the playtest round (entry below, "
 
 ---
 
+## 2026-11-13 — Hold A to buy a dish; owned dishes go on and off the menu
+
+**User's calls:**
+- **Buying a dish is a hold of A, not a press.** A bar fills inside the "Hold to buy" button (0.8 s, `_unlockHoldSeconds`). Letting go early drains it, and A must be let go before another hold counts. Without the money, the press says "not enough money" at once instead of filling. A purchase still plays the unlock moment.
+- **Players can buy every dish, then choose which are served.** Tapping A on a dish you own puts it on the menu or takes it off; the chip at the end of the PRICE heading says which ("Take off menu" / "Put on menu"). A dish just bought goes on the menu.
+  - The list has three groups: On your menu, In your cookbook (owned, off the menu: a quieter card, a grey dot, a muted price), and To unlock. The detail's pill reads "Off the menu" for those.
+  - A dish off the menu isn't ordered and doesn't count towards the guests its prices draw; its price can still be set.
+  - **A dish off the menu has no price block** (the user's call, later the same day). In its place: "MENU · Not on tonight's menu" and a big "(A) Put on menu" button. Its plate doesn't steam. On the menu, "Take off menu" stays at the end of the PRICE heading.
+  - **The last dish can't be taken off:** a service needs something to order. A short red note says so. This is a hard limit, not a design choice.
+  - **Saved per restaurant,** like prices (`RestaurantSave.OffMenu`). An older save has every owned dish on the menu; a save that would leave the menu empty keeps the first owned dish on.
+
+**Tests:** `CookbookTests` covers taking a dish off and putting it back, the last dish, the list's order and loading. `ForkcastPlanPlayTests` checks that a tap doesn't buy, that a hold fills and buys, and that taps switch the dish off and on.
+
+---
+
 ## 2026-11-12 — Review cards: the guest's type on the facts line
 
 **User's call:** the guest's type (Regular, Tourist, Food critic…) moves from under their name onto the facts line, so the card is shorter.

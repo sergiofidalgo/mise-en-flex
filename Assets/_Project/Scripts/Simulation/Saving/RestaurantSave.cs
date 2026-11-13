@@ -77,6 +77,12 @@ namespace Game.Simulation.Saving
         /// file: the Service Config's default slot.
         /// </summary>
         public string Opening = "";
+
+        /// <summary>
+        /// Owned dishes taken off this restaurant's menu (2026-11-13). Empty in an older file: every
+        /// owned dish is on the menu, as before.
+        /// </summary>
+        public List<string> OffMenu = new List<string>();
     }
 
     /// <summary>

@@ -32,6 +32,8 @@ namespace Game.Simulation.Cookbook
         private readonly List<Recipe> _recipes;
         private readonly HashSet<string> _unlocked = new HashSet<string>();
         private readonly Dictionary<string, float> _prices = new Dictionary<string, float>();
+        // Owned dishes taken off this restaurant's menu (the user's call, 2026-11-13): bought, kept, not served.
+        private readonly HashSet<string> _offMenu = new HashSet<string>();
 
         /// <param name="recipes">Every recipe the cookbook offers here, in the order it lists them.</param>
         public RecipeBook(IEnumerable<Recipe> recipes, PricingSettings pricing)
@@ -47,14 +49,40 @@ namespace Game.Simulation.Cookbook
         public IReadOnlyList<Recipe> Recipes => _recipes;
 
         /// <summary>
-        /// The recipes as the Restaurant tab lists them (2026-11-11): those on the menu first, then
-        /// those still to unlock, each group in the cookbook's order.
+        /// The recipes as the Restaurant tab lists them: those on the menu first, then those owned but
+        /// off it (2026-11-13), then those still to unlock, each group in the cookbook's order.
         /// </summary>
         public IReadOnlyList<Recipe> OnMenuFirst() =>
-            _recipes.Where(r => IsUnlocked(r.Id)).Concat(_recipes.Where(r => !IsUnlocked(r.Id))).ToList();
+            _recipes.Where(r => IsOnMenu(r.Id))
+                .Concat(_recipes.Where(r => IsUnlocked(r.Id) && !IsOnMenu(r.Id)))
+                .Concat(_recipes.Where(r => !IsUnlocked(r.Id))).ToList();
 
-        /// <summary>The menu: unlocked recipes, in the cookbook's order.</summary>
-        public IEnumerable<Recipe> Menu => _recipes.Where(r => _unlocked.Contains(r.Id));
+        /// <summary>The menu: unlocked recipes not taken off it, in the cookbook's order.</summary>
+        public IEnumerable<Recipe> Menu => _recipes.Where(r => IsOnMenu(r.Id));
+
+        /// <summary>Whether a dish is served: bought, and not taken off the menu.</summary>
+        public bool IsOnMenu(string id) => _unlocked.Contains(id) && !_offMenu.Contains(id);
+
+        /// <summary>
+        /// Puts an owned dish on the menu or takes it off (2026-11-13). Refused (false) for a dish not
+        /// owned, or to take off the last dish on the menu: a service needs something to order.
+        /// </summary>
+        public bool SetOnMenu(string id, bool on)
+        {
+            if (!_unlocked.Contains(id) || IsOnMenu(id) == on)
+                return false;
+            if (!on && Menu.Count() <= 1)
+                return false;
+            if (on)
+                _offMenu.Remove(id);
+            else
+                _offMenu.Add(id);
+            Changed?.Invoke();
+            return true;
+        }
+
+        /// <summary>Owned dishes taken off the menu, for the save.</summary>
+        public List<string> OffMenuIds() => _recipes.Where(r => _offMenu.Contains(r.Id)).Select(r => r.Id).ToList();
 
         /// <summary>Raised when a recipe is unlocked or a price changes.</summary>
         public event Action Changed;
@@ -77,6 +105,8 @@ namespace Game.Simulation.Cookbook
             if (recipe.UnlockCost > 0 && !trySpend(recipe.UnlockCost))
                 return UnlockResult.CantAfford;
             _unlocked.Add(id);
+            // A dish just bought goes on the menu.
+            _offMenu.Remove(id);
             Unlocked?.Invoke(recipe);
             Changed?.Invoke();
             return UnlockResult.Unlocked;
@@ -184,6 +214,26 @@ namespace Game.Simulation.Cookbook
                 var recipe = record != null ? Find(record.Recipe) : null;
                 if (recipe != null)
                     _prices[recipe.Id] = Math.Clamp(OnStep(record.Price), Pricing.MinPrice, MaxPriceOf(recipe));
+            }
+        }
+
+        /// <summary>
+        /// This restaurant's dishes taken off the menu, as saved (2026-11-13). Ids not owned are dropped;
+        /// if that would leave the menu empty, the first owned dish stays on.
+        /// </summary>
+        public void LoadOffMenu(IEnumerable<string> offMenu)
+        {
+            _offMenu.Clear();
+            foreach (var id in offMenu ?? Enumerable.Empty<string>())
+            {
+                if (_unlocked.Contains(id))
+                    _offMenu.Add(id);
+            }
+            if (!Menu.Any())
+            {
+                var first = _recipes.FirstOrDefault(r => _unlocked.Contains(r.Id));
+                if (first != null)
+                    _offMenu.Remove(first.Id);
             }
         }
     }

@@ -119,12 +119,30 @@ namespace Game.Tests.PlayMode
             yield return Press(GamepadButton.RightShoulder);
             Assume.That(_dashboard.ShownTab, Is.EqualTo("Restaurant"));
             yield return Press(GamepadButton.DpadDown);
-            yield return Press(GamepadButton.South);
 
-            Assert.That(book.IsUnlocked(second.Id), Is.True, "A unlocked the second dish");
+            // A tap no longer buys (2026-11-13): it's a hold, with a bar filling.
+            yield return Press(GamepadButton.South);
+            Assert.That(book.IsUnlocked(second.Id), Is.False, "a tap doesn't buy");
+            InputSystem.QueueStateEvent(_pad, new GamepadState().WithButton(GamepadButton.South));
+            yield return new WaitForSecondsRealtime(0.35f);
+            Assert.That(_dashboard.UnlockHold, Is.GreaterThan(0.2f), "the bar fills while A is held");
+            Assert.That(book.IsUnlocked(second.Id), Is.False, "not yet");
+            yield return new WaitForSecondsRealtime(0.7f);
+            InputSystem.QueueStateEvent(_pad, new GamepadState());
+            yield return null;
+
+            Assert.That(book.IsUnlocked(second.Id), Is.True, "holding A bought the second dish");
+            Assert.That(book.IsOnMenu(second.Id), Is.True, "and put it on the menu");
             Assert.That(_dashboard.IsWarmingUp, Is.True, "and it's warming up");
             yield return new WaitForSecondsRealtime(2.4f);
             Assert.That(_dashboard.IsWarmingUp, Is.False, "the moment settles");
+
+            // A tap on a dish you own takes it off the menu, and another puts it back (2026-11-13).
+            yield return Press(GamepadButton.South);
+            Assert.That(book.IsOnMenu(second.Id), Is.False, "taken off the menu");
+            Assert.That(book.IsUnlocked(second.Id), Is.True, "still owned");
+            yield return Press(GamepadButton.South);
+            Assert.That(book.IsOnMenu(second.Id), Is.True, "put back on");
         }
 
         [UnityTest]

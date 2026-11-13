@@ -520,6 +520,8 @@ namespace Game.Presentation.Hud
             if ((step == NavDirection.Up || step == NavDirection.Down) && _restaurant.Move(step, chips, recipes) == NavOutcome.Moved)
             {
                 _unlockResult = null;
+                _menuRefused = false;
+                _unlockHold = 0f;
                 _priceDirection = 0;
                 _dirty = true;
                 if (_restaurant.OnChips)
@@ -552,8 +554,61 @@ namespace Game.Presentation.Hud
                 }
             }
 
-            if (pressA && !book.IsUnlocked(recipe.Id))
+            // A on a dish (the user's calls, 2026-11-13): held, it buys one still to unlock while a bar
+            // fills (letting go early cancels); tapped, it puts an owned dish on the menu or takes it off.
+            if (!book.IsUnlocked(recipe.Id))
             {
+                ReadUnlockHold(actions, book, recipe, pressA);
+            }
+            else if (pressA)
+            {
+                var on = !book.IsOnMenu(recipe.Id);
+                _menuRefused = !book.SetOnMenu(recipe.Id, on);
+                if (!_menuRefused)
+                {
+                    PlaySound(Audio != null ? Audio.Sounds.Clack : null, on ? 1.3f : 0.9f);
+                    // It moves group: the choice follows it.
+                    var moved = book.OnMenuFirst().ToList().FindIndex(r => r.Id == recipe.Id);
+                    _restaurant.Set(false, _restaurant.Chip, System.Math.Max(0, moved));
+                    _saveCookbookAt = Time.unscaledTime + _priceSaveDelay;
+                }
+                _dirty = true;
+            }
+            else if (Pressed(actions, "Use") && book.IsUnlocked(recipe.Id) && book.PriceOf(recipe.Id) != recipe.SuggestedPrice)
+            {
+                book.SetPrice(recipe.Id, recipe.SuggestedPrice);
+                PriceChanged();
+            }
+        }
+
+        // Holding A on a dish still to unlock fills the button's bar; full, the dish is bought and the
+        // unlock moment plays. Without the money, the press says so at once instead of filling.
+        // After a purchase A must be let go before another hold counts.
+        private void ReadUnlockHold(InputActionAsset actions, Game.Simulation.Cookbook.RecipeBook book, Game.Simulation.Cookbook.Recipe recipe, bool pressA)
+        {
+            var held = actions.FindAction("Interact")?.IsPressed() ?? false;
+            if (!held)
+                _unlockNeedsRelease = false;
+            if (_unlockHoldFor != recipe.Id)
+            {
+                _unlockHoldFor = recipe.Id;
+                _unlockHold = 0f;
+            }
+            if (pressA && Services.Days.Balance < recipe.UnlockCost)
+            {
+                _unlockResult = Game.Simulation.Cookbook.UnlockResult.CantAfford;
+                _unlockNeedsRelease = true;
+                DialBump(1);
+                _dirty = true;
+                return;
+            }
+            if (held && !_unlockNeedsRelease)
+            {
+                _unlockHold += Time.unscaledDeltaTime / Mathf.Max(0.05f, _unlockHoldSeconds);
+                if (_unlockHold < 1f)
+                    return;
+                _unlockHold = 0f;
+                _unlockNeedsRelease = true;
                 _unlockResult = book.TryUnlock(recipe.Id, Services.Days.TrySpend);
                 if (_unlockResult == Game.Simulation.Cookbook.UnlockResult.Unlocked)
                 {
@@ -565,10 +620,10 @@ namespace Game.Presentation.Hud
                 }
                 _dirty = true;
             }
-            else if (Pressed(actions, "Use") && book.IsUnlocked(recipe.Id) && book.PriceOf(recipe.Id) != recipe.SuggestedPrice)
+            else
             {
-                book.SetPrice(recipe.Id, recipe.SuggestedPrice);
-                PriceChanged();
+                // Let go early: the bar drains back quickly.
+                _unlockHold = Mathf.Max(0f, _unlockHold - Time.unscaledDeltaTime * 4f);
             }
         }
 
