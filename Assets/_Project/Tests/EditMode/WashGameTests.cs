@@ -63,11 +63,12 @@ namespace Game.Tests.EditMode
         }
 
         [Test]
-        public void ASteadyCircleWashesAPlateInAboutThreeSeconds()
+        public void ASteadyCircleWashesAPlateInAboutASecond()
         {
+            // The user's call (2026-11-13): washing was too slow. 2 circles a plate at up to 2 a second.
             var settings = RealSettings;
             var plates = Plates(settings, Circle(settings.CircleSpeed), 30f);
-            Assert.That(30f / plates, Is.InRange(2.2f, 3.4f), "seconds a plate");
+            Assert.That(30f / plates, Is.InRange(0.8f, 1.4f), "seconds a plate");
         }
 
         [Test]

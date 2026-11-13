@@ -4,6 +4,12 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-13 — Washing a plate takes 2 circles
+
+**User's call:** washing a single dish took way too long (4 circles a plate at up to 1.5 a second, at least 2.7 s and nearer 4 s at an easy pace). Now 2 circles a plate at up to 2 a second (`TuningConfig`, Washing by hand): about 1 s at full speed, 1.5 to 2 s at a relaxed pace. The pace test expects 0.8 to 1.4 s a plate at the cap.
+
+---
+
 ## 2026-11-12 — The road is open: cars hit chefs, and a bodyguard fetches the ones who walk off
 
 **The user's ideas:** "simulate cars' hit and runs against players in a funny way if they happen to be in the wrong place at the wrong time", and "let the player leave the scene but also send them back again with a funny message". Proposed in detail and agreed ("Yes, as proposed").

@@ -101,9 +101,9 @@ namespace Game.Data
 
         [Header("Washing by hand (circle the stick, decision 2026-11-11; the push and turn-back are the cleaning game's)")]
         [Tooltip("Circles of the stick that wash one plate.")]
-        [SerializeField, Min(0.1f)] private float _washCirclesPerPlate = 4f;
-        [Tooltip("Fastest circles a second that count at the sink: 4 circles at 1.5 a second is about 2.7 s a plate.")]
-        [SerializeField, Min(0.05f)] private float _washCircleSpeed = 1.5f;
+        [SerializeField, Min(0.1f)] private float _washCirclesPerPlate = 2f;
+        [Tooltip("Fastest circles a second that count at the sink: 2 circles at 2 a second is about 1 s a plate (the user's call, 2026-11-13: quicker).")]
+        [SerializeField, Min(0.05f)] private float _washCircleSpeed = 2f;
 
         [Header("Dirt (decision 2026-11-10: a medium mess; amounts in wipes, one loop of the cleaning game each)")]
         [Tooltip("Wipes a diner leaves on their table or stool when they finish.")]

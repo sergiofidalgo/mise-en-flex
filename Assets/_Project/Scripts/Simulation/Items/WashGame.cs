@@ -8,10 +8,10 @@ namespace Game.Simulation.Items
     public sealed class WashGameSettings
     {
         /// <summary>Circles of the stick that wash one plate.</summary>
-        public float CirclesPerPlate { get; set; } = 4f;
+        public float CirclesPerPlate { get; set; } = 2f;
 
         /// <summary>Fastest circles a second that count: scrubbing faster than this washes no faster.</summary>
-        public float CircleSpeed { get; set; } = 1.5f;
+        public float CircleSpeed { get; set; } = 2f;
 
         /// <summary>How far the stick must be pushed for circling to count (shared with the cloth and mop).</summary>
         public float MinPush { get; set; } = 0.4f;
