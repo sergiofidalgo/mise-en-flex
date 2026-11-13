@@ -642,24 +642,24 @@ namespace Game.Presentation.Hud
             var y0 = top + PriceTop;
             var affordable = Services.Days.Balance >= recipe.UnlockCost;
             Caps(_content, Tr.Get("UNLOCK"), x, y0 + 22f);
+            // The price, and what there is to pay it with beside it, bigger than before; under them the
+            // hold-to-buy bar. No suggestion or earnings here (the user's call, 2026-11-13).
             UiKit.Picture(_content, "UnlockLock", PadlockSprite, x, y0 + 44f, 38f, 38f, affordable ? _ink : _badText);
-            Label(ExtraBold, _content, Money(recipe.UnlockCost), 54f, affordable ? _ink : _badText, x + 46f, y0 + 84f, 220f, tracking: -1.5f);
-            // Hold A to buy (2026-11-13): a button whose bar fills while A is held.
-            HoldButton(Tr.Get("Hold to buy"), x + 270f, y0 + 56f, affordable);
-            Label(Medium, _content, Tr.Format("You have {amount}", ("amount", Money(Services.Days.Balance))), 19.5f, affordable ? _body : _badText, x + 280f, y0 + 46f, 230f);
-            Label(Medium, _content, Tr.Format("suggested {price}", ("price", Money(recipe.SuggestedPrice))) + " · " +
-                Tr.Format("earns about {value}", ("value", Money(recipe.SuggestedPrice - recipe.IngredientCost))), 19.5f, _ink, x, y0 + 134f, inner);
-            if (_unlockResult == UnlockResult.CantAfford)
-                Label(Bold, _content, Tr.Get("not enough money"), 19.5f, _badText, x, y0 + 162f, inner);
+            var price = Label(ExtraBold, _content, Money(recipe.UnlockCost), 54f, affordable ? _ink : _badText, x + 46f, y0 + 84f, 260f, tracking: -1.5f);
+            Label(Medium, _content, Tr.Format("You have {amount}", ("amount", Money(Services.Days.Balance))), 19.5f, affordable ? _body : _badText, x + 46f + UiKit.Width(price) + 20f, y0 + 78f, inner);
+            // Edge to edge across the panel (the user's call, 2026-11-13).
+            // Short of money, the button says so after a press (the price and "You have" are red already).
+            var words = _unlockResult == UnlockResult.CantAfford ? Tr.Get("not enough money") : Tr.Get("Hold to buy");
+            HoldButton(words, x, y0 + 106f, affordable, inner);
         }
 
         // A button for a hold: A, its words, and a bar filling behind them as A is held (animated by
         // AnimateRestaurant). Greyed when the hold can't succeed.
-        private void HoldButton(string text, float x, float y, bool can)
+        private void HoldButton(string text, float x, float y, bool can, float fullWidth = 0f)
         {
             const float height = 46f;
             var label = Label(SemiBold, _content, text, 20f, can ? _ink : _quiet, 0f, y + 30f, 260f);
-            var width = 14f + 30f + 10f + UiKit.Width(label) + 18f;
+            var width = fullWidth > 0f ? fullWidth : 14f + 30f + 10f + UiKit.Width(label) + 18f;
             var back = UiKit.StrokedBox(_content, "HoldButton", _cardLight, can ? _gold : _cardEdge, 2.5f, x, y, width, height, height / 2f);
             // The edge, then the face over it, both behind the words.
             var edge = back.transform.parent.GetChild(back.transform.GetSiblingIndex() - 1);

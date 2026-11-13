@@ -55,13 +55,8 @@ namespace Game.Presentation.Hud
                 _listening.Charged -= HandleCharged;
         }
 
-        public bool Covered
-        {
-            get
-            {
-                var services = _root != null ? _root.Services : null;
-                return services != null && services.Forkcast != null && services.Forkcast.IsOpen;
-            }
-        }
+        // Nothing in the kitchen covers it any more: forkcast shows the money card over itself, in
+        // its own corner, instead of drawing a chip of its own (the user's call, 2026-11-13).
+        public bool Covered => false;
     }
 }

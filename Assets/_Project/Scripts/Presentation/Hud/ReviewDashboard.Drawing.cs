@@ -59,7 +59,8 @@ namespace Game.Presentation.Hud
 
         // ---- Layout, in the mockups' 1920×1080 frame ----
 
-        private const float PanelX = 80f, PanelY = 56f, PanelWidth = 1760f, PanelHeight = 968f, PanelRadius = 26f;
+        // The panel's top is 24 lower than it was, so its header is shorter (2026-11-13); its bottom stays.
+        private const float PanelX = 80f, PanelY = 80f, PanelWidth = 1760f, PanelHeight = 944f, PanelRadius = 26f;
         private const float HeaderBottom = 140f, FooterTop = 952f;
         // Three equal columns across the panel (the user's calls, 2026-11-12): the left one, and two on
         // the right that the Restaurant tab uses as its list and its detail; other tabs span both.
@@ -155,23 +156,55 @@ namespace Game.Presentation.Hud
         {
             UiKit.Clear(_header);
             var days = Services.Days;
-            Label(Medium, _header, Tr.Format("{style}s near you", ("style", Tr.Get(ShownStyle))), 21.33f, _sand, 374f, 106f, 500f);
 
             var shown = Summary.HasDay ? Summary.Day : days.Day;
             var today = Services.ReviewHistory.Count(r => r.Day == shown);
-            // The money chip has the very right (the user's call, 2026-11-10); the pills sit to its left.
-            var right = 1804f - _moneyWidth - 22f;
+            // The header (the user's calls, 2026-11-13): the money top left, as in the kitchen; on the
+            // right, the way to the boss's office at the very end, then the day and the new reviews.
+            var right = OfficeChip(1804f) - 22f;
             right = HeaderPill(Tr.Format("Day {day} · {weekday}", ("day", shown), ("weekday", Weekday(shown))), _well, right) - 22f;
             if (today > 0)
                 HeaderPill(today == 1 ? "1 new review" : $"{today} new reviews", _wellLight, right);
         }
 
+        // "Go to the boss's office" with B, at the header's right end; holding B fills it, and full,
+        // the players go up to the office. Returns its left edge.
+        private float OfficeChip(float right)
+        {
+            const float height = 46f, top = 87f;
+            var label = Label(SemiBold, _header, Tr.Get("Go to the boss's office"), 18.67f, _paper, 0f, top + 30f, 400f);
+            var width = 12f + 30f + 10f + UiKit.Width(label) + 18f;
+            var x = right - width;
+            var back = UiKit.StrokedBox(_header, "Office", _well, _wellLight, 2f, x, top, width, height, height / 2f);
+            var edge = back.transform.parent.GetChild(back.transform.GetSiblingIndex() - 1);
+            var index = label.transform.GetSiblingIndex();
+            edge.SetSiblingIndex(index);
+            back.transform.SetSiblingIndex(index + 1);
+            back.gameObject.AddComponent<Mask>().showMaskGraphic = true;
+            _officeFill = UiKit.RoundBox(back.transform, "Fill", Alpha(_buttonB, 0.55f), 0f, 0f, 0f, height, 0f);
+            _officeFillWidth = width;
+            Badge(_header, "B", _buttonB, x + 12f + 15f, top + height / 2f, 30f, 15f);
+            label.transform.SetAsLastSibling();
+            label.rectTransform.anchoredPosition = new Vector2(x + 12f + 30f + 10f, label.rectTransform.anchoredPosition.y);
+            PlaceOfficeFill();
+            return x;
+        }
+
+        private Image _officeFill;
+        private float _officeFillWidth;
+
+        private void PlaceOfficeFill()
+        {
+            if (_officeFill != null)
+                _officeFill.rectTransform.sizeDelta = new Vector2(_officeFillWidth * Mathf.Clamp01(_officeHold), _officeFill.rectTransform.sizeDelta.y);
+        }
+
         // A pill whose right edge is at right; returns its left edge.
         private float HeaderPill(string text, Color back, float right)
         {
-            var label = Label(SemiBold, _header, text, 18.67f, _paper, 0f, 105f, 300f);
+            var label = Label(SemiBold, _header, text, 18.67f, _paper, 0f, 117f, 300f);
             var width = UiKit.Width(label) + 32f;
-            var box = UiKit.RoundBox(_header, text + "Pill", back, right - width, 79f, width, 39f, 19.5f);
+            var box = UiKit.RoundBox(_header, text + "Pill", back, right - width, 90.5f, width, 39f, 19.5f);
             box.transform.SetSiblingIndex(label.transform.GetSiblingIndex());
             label.rectTransform.anchoredPosition = new Vector2(right - width + 16f, label.rectTransform.anchoredPosition.y);
             return right - width;
@@ -191,6 +224,12 @@ namespace Game.Presentation.Hud
         // it: a recipe unlocked or a candidate hired shows here as it would anywhere else.
         private void UpdateMoney(float dt)
         {
+            // The game's money card stands in (2026-11-13): it's lifted over forkcast while it shows.
+            if (_money == null)
+            {
+                RaiseMoneyCard(true);
+                return;
+            }
             _moneyTicker ??= new MoneyTicker(_style.MoneyTicker);
             var balance = Services.Days.Balance;
             if (!_moneyKnown)
@@ -218,7 +257,25 @@ namespace Game.Presentation.Hud
             var change = _moneyTicker.Direction == MoneyChange.Up ? _style.MoneyGain : _style.MoneyLoss;
             _moneyAmount.color = Color.Lerp(resting, change, _moneyTicker.Tint);
             _moneyAmount.text = MoneyTicker.Format(_moneyTicker.Shown);
-            _money.anchoredPosition = new Vector2(1804f - _moneyWidth + _moneyTicker.Offset, -MoneyTop);
+            // Top left of the header, as the money card sits in the kitchen (2026-11-13).
+            _money.anchoredPosition = new Vector2(LeftX + _moneyTicker.Offset, -MoneyTop);
+        }
+
+        private Canvas _moneyCanvas;
+        private bool _moneyCanvasLooked;
+
+        // The game's money card (MoneyCardHud) on its own canvas, under forkcast normally; while
+        // forkcast is up, over it, so the money reads as it does everywhere else.
+        private void RaiseMoneyCard(bool over)
+        {
+            if (!_moneyCanvasLooked)
+            {
+                _moneyCanvasLooked = true;
+                var card = FindFirstObjectByType<MoneyCardHud>();
+                _moneyCanvas = card != null ? card.GetComponentInChildren<Canvas>(true) : null;
+            }
+            if (_moneyCanvas != null)
+                _moneyCanvas.sortingOrder = over ? 25 : 15;
         }
 
         private void DrawMoneyChip()
@@ -781,7 +838,8 @@ namespace Game.Presentation.Hud
                 edge.SetSiblingIndex(index);
                 fill.transform.SetSiblingIndex(index + 1);
             }
-            YBadge(parent, badgeX + 15.5f, cy, 31f);
+            // X replies (the user's call, 2026-11-13; it was Y).
+            Badge(parent, "X", _buttonX, badgeX + 15.5f, cy, 31f, 15f);
             label.rectTransform.anchoredPosition = new Vector2(badgeX + 31f + 9f, label.rectTransform.anchoredPosition.y);
             if (_choosingReply)
                 DrawWheel(badgeX + 15.5f, cy);
@@ -1443,9 +1501,7 @@ namespace Game.Presentation.Hud
             UiKit.RoundBox(_layout, "Panel", _paper, PanelX, PanelY, PanelWidth, PanelHeight, PanelRadius);
             UiKit.RoundBox(_layout, "Header", _ink, PanelX, PanelY, PanelWidth, HeaderBottom - PanelY, PanelRadius);
             UiKit.RoundBox(_layout, "HeaderFoot", _ink, PanelX, HeaderBottom - 30f, PanelWidth, 30f, 0f);
-            UiKit.Picture(_layout, "Logo", _style.ForkcastLogo, 114f, 74f, 188f, 46f);
-            UiKit.RoundBox(_layout, "Search", _well, 318f, 74f, 581f, 48f, 24f);
-            UiKit.Picture(_layout, "SearchIcon", _style.SearchIcon, 340f, 87f, 22f, 22f);
+            // No logo or search bar since 2026-11-13: the money has the header's left.
             UiKit.RoundBox(_layout, "Footer", _card, PanelX, FooterTop, PanelWidth, PanelY + PanelHeight - FooterTop, PanelRadius);
             UiKit.RoundBox(_layout, "FooterTop", _card, PanelX, FooterTop, PanelWidth, 30f, 0f);
 
@@ -1462,8 +1518,7 @@ namespace Game.Presentation.Hud
             _caption = UiKit.TextAt(_style.Medium, _layout, "CaptionText", Tr.Get("Your photo · captured at close"), 17.33f, _paper, LeftX + LeftWidth - 12f - 135f, 488f, 270f, HorizontalAlignmentOptions.Center);
 
             _header = UiKit.Rect(_layout, "HeaderState", 0f, 0f, 1920f, 1080f);
-            _money = UiKit.Rect(_layout, "Money", 1804f - _moneyWidth, MoneyTop, _moneyWidth, MoneyHeight);
-            DrawMoneyChip();
+            // No money chip of its own since 2026-11-13: the game's money card shows over forkcast.
             _left = UiKit.Rect(_layout, "Left", 0f, 0f, 1920f, 1080f);
             _tabs = UiKit.Rect(_layout, "Tabs", 0f, 0f, 1920f, 1080f);
             _content = UiKit.Rect(_layout, "Content", 0f, 0f, 1920f, 1080f);

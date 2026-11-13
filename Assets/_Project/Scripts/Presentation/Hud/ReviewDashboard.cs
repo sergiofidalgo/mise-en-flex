@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Game.Data;
 using Game.Gameplay;
+using Game.Gameplay.Saving;
 using Game.Simulation.Days;
 using Game.Simulation.Saving;
 using Game.Simulation.Service;
@@ -86,6 +87,9 @@ namespace Game.Presentation.Hud
         [SerializeField, Min(0.01f)] private float _priceRepeatInterval = 0.07f;
         [Tooltip("Real seconds Y is held to fill the Start button (a shorter press is a tap: reply, let go).")]
         [SerializeField, Min(0.1f)] private float _startHoldSeconds = 0.8f;
+        [Tooltip("Seconds B is held to go up to the boss's office (the header's right chip, 2026-11-13).")]
+        [SerializeField, Min(0.1f)] private float _officeHoldSeconds = 1f;
+        [SerializeField] private string _officeScene = "Office_Greybox";
         [Tooltip("Pulses a second of the boss card's glow while the collection is short and two days or fewer away.")]
         [SerializeField, Min(0.1f)] private float _bossPulsePerSecond = 0.8f;
         [Tooltip("Seconds after the last price change before the campaign is saved, so holding the stick doesn't write the file every step.")]
@@ -128,6 +132,13 @@ namespace Game.Presentation.Hud
         private int _shownForDay = -1;
 
         private KitchenServices Services => _root.Services;
+
+        // The hold of B to the office, 0..1, and whether we're on the way.
+        private float _officeHold;
+        private bool _leaving;
+
+        /// <summary>How full the office chip's bar is (0..1), for tests.</summary>
+        public float OfficeHold => _officeHold;
 
         private ChipsOverList Focus => _tab == Tab.Overview ? _overview : _tab == Tab.Restaurant ? _restaurant : _staff;
         // The chosen review, recipe or staff row on the tab shown.
@@ -174,6 +185,7 @@ namespace Game.Presentation.Hud
             _start.DisarmAll();
             if (!open)
             {
+                RaiseMoneyCard(false);
                 SaveCookbookNow();
                 _choosingReply = false;
                 return;
@@ -252,6 +264,7 @@ namespace Game.Presentation.Hud
             UpdateMoney(Time.unscaledDeltaTime);
             UpdateStart(Time.unscaledDeltaTime);
             AnimateRestaurant(Time.unscaledDeltaTime);
+            PlaceOfficeFill();
             if (_saveCookbookAt >= 0f && Time.unscaledTime >= _saveCookbookAt)
                 SaveCookbookNow();
             if (_dirty)
@@ -272,6 +285,8 @@ namespace Game.Presentation.Hud
             _nav.Threshold = _stickThreshold;
             _nav.FirstDelay = _stickFirstRepeat;
             _nav.Interval = _stickRepeat;
+            // Anyone holding B fills the office chip (the user's call, 2026-11-13); full, everyone goes up.
+            var holdingB = false;
             foreach (var player in PlayerInput.all)
             {
                 // Y: a hold fills the Start button and readies this player, a tap does Y's job here
@@ -282,6 +297,8 @@ namespace Game.Presentation.Hud
                 if (!_dayLoop.WasHereLastFrame(player))
                     continue;
                 var actions = player.actions;
+                if (!_choosingReply && (actions.FindAction("ButtonB")?.IsPressed() ?? false))
+                    holdingB = true;
                 var tapY = startPress == MenuPress.Result.Tap;
                 var pressA = Pressed(actions, "Interact");
                 // The D-pad or the arrow keys (Navigate; the stick is too loose for lists, the user's
@@ -362,11 +379,32 @@ namespace Game.Presentation.Hud
                     SwitchTab(-1);
                 else if (Pressed(actions, "RotateRight"))
                     SwitchTab(1);
-                else if (!_choosingReply && tapY && SelectedReview() is ReviewRecord review && review.Reply < 0)
+                // X opens the reply wheel (the user's call, 2026-11-13; it was a tap of Y).
+                else if (!_choosingReply && Pressed(actions, "Use") && SelectedReview() is ReviewRecord review && review.Reply < 0)
                     SetChoosing(true);
                 else
                     BrowseOverview(step);
             }
+
+            _officeHold = holdingB
+                ? _officeHold + Time.unscaledDeltaTime / Mathf.Max(0.1f, _officeHoldSeconds)
+                : Mathf.Max(0f, _officeHold - Time.unscaledDeltaTime * 4f);
+            if (_officeHold >= 1f)
+                GoToOffice();
+        }
+
+        // Up to the boss's office with the same players (as the pause menu's Quit to office). In
+        // Review the day is saved already; what was changed here since is saved first.
+        private void GoToOffice()
+        {
+            if (_leaving)
+                return;
+            _leaving = true;
+            _officeHold = 0f;
+            SaveCookbookNow(force: true);
+            PlayerRoster.CarryEveryone();
+            CampaignLaunch.Continue(CampaignLaunch.Slot);
+            UnityEngine.SceneManagement.SceneManager.LoadScene(_officeScene);
         }
 
         private static bool Pressed(InputActionAsset actions, string name)
