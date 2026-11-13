@@ -12,7 +12,9 @@ namespace Game.Presentation.Hud
     /// Names the doneness of the food each player is dealing with, in the same colours as the
     /// order tickets, so "is this what seat 2 asked for?" is a glance (decision 2026-11-02). The
     /// food is what they carry (on its own, in a pan or on a plate), else what's on the station
-    /// they face. Food without doneness levels gets no tag.
+    /// they face. Food without doneness levels gets no tag. Loose food that has a cut (on the board
+    /// or in hand) reads its cut instead, Whole, Rings or Diced (the user's call, 2026-11-13): that's
+    /// what matters before it meets the heat.
     /// </summary>
     public sealed class DonenessTagHud : MonoBehaviour
     {
@@ -50,18 +52,25 @@ namespace Game.Presentation.Hud
                     continue;
                 }
 
-                tag.Show(TextFor(food.IsBurnt ? BurntName : food.Doneness?.Name ?? RawName), view.transform.position, camera, _canvas);
+                tag.Show(Loose(interactor, food) && food.Properties.CutForm != null
+                    ? CutText(food.Properties.CutForm)
+                    : TextFor(food.IsBurnt ? BurntName : food.Doneness?.Name ?? RawName), view.transform.position, camera, _canvas);
             }
         }
 
         private static Ingredient FoodOf(PlayerInteractor player) =>
             MainFood(player.Hands.Current) ?? (player.Target != null ? MainFood(player.Target.HeldItem) : null);
 
-        // The first food with doneness levels: the item itself, or inside a pan or on a plate.
+        // True when the food is the item itself (in hand or on a station), not in a pan or on a plate.
+        private static bool Loose(PlayerInteractor player, Ingredient food) =>
+            player.Hands.Current == food || (player.Target != null && player.Target.HeldItem == food);
+
+        // The first food with doneness levels (or, loose, a cut to name): the item itself, or
+        // inside a pan or on a plate.
         private static Ingredient MainFood(Item item)
         {
             if (item is Ingredient ingredient)
-                return ingredient.Properties.DonenessLevels.Count > 0 ? ingredient : null;
+                return ingredient.Properties.DonenessLevels.Count > 0 || ingredient.Properties.CutForm != null ? ingredient : null;
             if (item is IItemCollection collection)
             {
                 foreach (var inside in collection.Items)
@@ -79,6 +88,17 @@ namespace Game.Presentation.Hud
             {
                 text = HudStyle.Colored(Game.Data.Tr.Get(doneness), _style.DonenessColor(doneness));
                 _texts[doneness] = text;
+            }
+            return text;
+        }
+
+        private string CutText(string cut)
+        {
+            var key = "cut:" + cut;
+            if (!_texts.TryGetValue(key, out var text))
+            {
+                text = HudStyle.Colored(Game.Data.Tr.Get(cut), _style.TextColor);
+                _texts[key] = text;
             }
             return text;
         }

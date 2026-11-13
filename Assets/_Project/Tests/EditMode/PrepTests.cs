@@ -281,29 +281,50 @@ namespace Game.Tests.EditMode
             ChopSecondsPerSweep = Sweep, SweetSpotPosition = Spot, SweetSpotGoodHalfWidth = 12f, SweetSpotOkHalfWidth = 28f,
         });
 
-        [Test]
-        public void StoppingPartWayKeepsTheFirstCut()
-        {
-            var counter = ChainCounter();
-            counter.Put(NewOnionForRings());
-            ChopTimes(counter, 2, 10.0);
-
-            Assert.That(counter.Current.TypeId, Is.EqualTo("OnionRings"));
-            Assert.That(counter.CanChop, "rings can be cut on into dice");
-            Assert.That(counter.Cuts, Is.Zero, "a fresh count for the next cut");
-            Assert.That(counter.Take().TypeId, Is.EqualTo("OnionRings"), "taken off, they stay rings");
-        }
+        // Each cut is a stage (the user's call, 2026-11-13): the finished rings rest on the board
+        // until they're moved, and dicing them means putting them back.
 
         [Test]
-        public void CuttingOnTurnsTheFirstCutIntoTheNext()
+        public void AFinishedCutRestsUntilMoved()
         {
             var counter = ChainCounter();
             counter.Put(NewOnionForRings());
             var t = ChopTimes(counter, 2, 10.0);
+
+            Assert.That(counter.Current.TypeId, Is.EqualTo("OnionRings"));
+            Assert.That(counter.Resting, "the rings wait to be picked up");
+            Assert.That(counter.CanChop, Is.False, "no cutting on into dice without moving them");
+            Assert.That(counter.Chop(t + 1.0), Is.Null);
+            Assert.That(counter.Current.TypeId, Is.EqualTo("OnionRings"), "still rings");
+            Assert.That(counter.Take().TypeId, Is.EqualTo("OnionRings"), "taken off, they stay rings");
+        }
+
+        [Test]
+        public void PuttingTheRingsBackCutsThemIntoDice()
+        {
+            var counter = ChainCounter();
+            counter.Put(NewOnionForRings());
+            var t = ChopTimes(counter, 2, 10.0);
+            var rings = counter.Take();
+            counter.Put(rings);
+
+            Assert.That(counter.Resting, Is.False);
+            Assert.That(counter.CanChop, "rings put back can be diced");
+            Assert.That(counter.Cuts, Is.Zero, "a fresh count for the next cut");
             ChopTimes(counter, 3, t);
 
             Assert.That(counter.Current.TypeId, Is.EqualTo("DicedOnion"));
             Assert.That(counter.CanChop, Is.False);
+        }
+
+        [Test]
+        public void StaffCutOnPastARestingStage()
+        {
+            var counter = ChainCounter();
+            counter.Put(NewOnionForRings());
+            Assert.That(counter.CutWithoutDial(1f).TypeId, Is.EqualTo("OnionRings"));
+            Assert.That(counter.CanCutFurther, "staff aren't stopped by the rest");
+            Assert.That(counter.CutWithoutDial(1f).TypeId, Is.EqualTo("DicedOnion"));
         }
 
         [Test]

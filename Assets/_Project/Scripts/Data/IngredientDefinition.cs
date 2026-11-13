@@ -97,6 +97,8 @@ namespace Game.Data
         [SerializeField, Min(0f)] private float _restTargetSeconds;
 
         [Header("Cutting (prep counter)")]
+        [Tooltip("What its tag reads while it's loose (on the board, in hand): the cut it is, e.g. Whole, Rings, Diced. Empty: the tag shows doneness as usual.")]
+        [SerializeField] private string _cutForm;
         [Tooltip("Type id this becomes when cut (e.g. DicedOnion), or empty if it isn't cut.")]
         [SerializeField] private string _cutIntoTypeId;
         [Tooltip("Knife chops to finish the cut.")]
@@ -140,6 +142,7 @@ namespace Game.Data
             ServingIdealTemperature = _servingIdealTemperature,
             ServingColdTemperature = _servingColdTemperature,
             RestTargetSeconds = _restTargetSeconds,
+            CutForm = string.IsNullOrEmpty(_cutForm) ? null : _cutForm,
             CutIntoTypeId = string.IsNullOrEmpty(_cutIntoTypeId) ? null : _cutIntoTypeId,
             CutsNeeded = _cutsNeeded,
             ChopSecondsPerSweep = _chopSecondsPerSweep,

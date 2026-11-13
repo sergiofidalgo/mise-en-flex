@@ -350,7 +350,7 @@ namespace Game.Simulation.Staff
             // Through every cut on the way: an onion for dice is cut into rings, then the rings.
             do
                 _board.CutWithoutDial(Math.Clamp(1f - slip, 0f, 1f));
-            while (_board.Current is Ingredient done && done.TypeId != _wanted && _board.CanChop);
+            while (_board.Current is Ingredient done && done.TypeId != _wanted && _board.CanCutFurther);
             InHand = (Ingredient)_board.Take();
             _cutting = null;
             Member.RecordJob(_settings.FatiguePerJob, mistake: false);

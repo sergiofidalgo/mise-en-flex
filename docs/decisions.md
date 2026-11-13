@@ -4137,3 +4137,11 @@ The user asked for a way to play in full screen, switched from Settings. Their c
 **Fix the same day:** in play the HUD sat short of the right and bottom edges. Unity lays out the game for its "main" play mode view, which was still the docked Game view (1709×966 against the full-screen view's 1920×1050). While open, the full-screen view is now kept as the main one (`PlayModeView.s_LastFocused`, set again every Editor update), and it covers the display's usable area below the menu bar, placed from the main window's left and bottom edges (exact when the Editor is maximized).
 
 **Not checked in play:** whether the Editor's full-screen view covers the display exactly (Retina scaling, the menu bar, a second monitor) and keeps controller input; a built game's switch both ways; and whether macOS also reacts to Ctrl+Cmd+F in a build, which would toggle twice.
+
+## 2026-11-13 — Each cut is a stage on the board
+
+**Decision (the user's call):** cutting comes in stages. An onion is **Whole**, then **Rings**, then **Diced**, and the tag on loose food (on the board or in hand) names that cut instead of "Raw". When the last chop of a stage lands, the chef picks up the result straight away (the knife stays in hand). To dice, you put the rings back on the board and chop again. If the chef's hands are full, the result rests on the board and can't be chopped further until it's moved. Once the food is in a pan or on a plate, the tag shows doneness as before. Staff are unchanged: the prep assistant still cuts straight through to the stage the order wants.
+
+**Why:** chaining every stage on one board made "rings" impossible to stop at without overshooting, and "Raw" told the player nothing about what they'd cut.
+
+**How:** `PrepCounter.Resting` (set when a player's cut finishes, cleared when anything is put on or taken off) stops `CanChop`; `CanCutFurther` ignores it, for staff. `PrepStation` hands the result to free hands. Ingredients name their cut with `IngredientDefinition._cutForm` (`IngredientProperties.CutForm`), shown by `DonenessTagHud` in the text colour; Spanish in `es.csv`. `docs/game-design.md` §4 (forms whole, sliced, diced) agrees; it doesn't say whether stages chain.

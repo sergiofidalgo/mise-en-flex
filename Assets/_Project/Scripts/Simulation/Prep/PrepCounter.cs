@@ -7,9 +7,10 @@ namespace Game.Simulation.Prep
     /// <summary>
     /// The cutting board (decisions 2026-11-02, 2026-11-04). A whole ingredient goes on it and is
     /// chopped with the knife by timing presses to the cutting dial. The cut stays on the board and
-    /// blocks the next one until someone moves it, so where it goes is the player's to plan. A cut
-    /// that can be cut further stays ready to keep cutting (an onion into rings, then dice: decision
-    /// 2026-11-08), so stopping part way is how you get the first cut.
+    /// blocks the next one until someone moves it, so where it goes is the player's to plan. Each cut
+    /// is a stage of its own (the user's call, 2026-11-13): a finished cut rests on the board, not
+    /// ready to chop, until it's taken off; to cut it further (rings into dice) it's put back on.
+    /// Staff, who cut by skill, carry on through the stages (<see cref="CanCutFurther"/>).
     /// </summary>
     public sealed class PrepCounter : IItemContainer, IItemHolder
     {
@@ -45,7 +46,16 @@ namespace Game.Simulation.Prep
         /// <summary>Chops done on the item on the board.</summary>
         public int Cuts { get; private set; }
 
-        public bool CanChop => Current is Ingredient ingredient && IsCuttable(ingredient);
+        public bool CanChop => Current is Ingredient ingredient && IsCuttable(ingredient) && !Resting;
+
+        /// <summary>
+        /// True while a cut just finished sits on the board: it isn't chopped further until it's taken
+        /// off and put back (the user's call, 2026-11-13).
+        /// </summary>
+        public bool Resting { get; private set; }
+
+        /// <summary>Whether what's on the board can still be cut further, resting or not: for staff.</summary>
+        public bool CanCutFurther => Current is Ingredient ingredient && IsCuttable(ingredient);
 
         public int CutsNeeded => (Current as Ingredient)?.Properties.CutsNeeded ?? 0;
 
@@ -72,6 +82,7 @@ namespace Game.Simulation.Prep
                 product.CutEvenness = evenness;
                 ClearBoard();
                 SetOnBoard(product);
+                Resting = true; // a stage done: it waits to be moved
                 CutFinished?.Invoke(product);
             }
 
@@ -84,7 +95,7 @@ namespace Game.Simulation.Prep
         /// <returns>The cut, now on the board.</returns>
         public Ingredient CutWithoutDial(float evenness)
         {
-            if (!CanChop)
+            if (!CanCutFurther)
                 throw new InvalidOperationException("Nothing to cut.");
             var product = _cut((Ingredient)Current);
             product.CutEvenness = evenness;
@@ -121,6 +132,7 @@ namespace Game.Simulation.Prep
         {
             Current = ingredient;
             Cuts = 0;
+            Resting = false;
             var p = ingredient.Properties;
             Dial = IsCuttable(ingredient)
                 ? new ChopDial(p.ChopSecondsPerSweep, _sweepDegrees, p.SweetSpotPosition, p.SweetSpotGoodHalfWidth, p.SweetSpotOkHalfWidth, _pacing,
@@ -132,6 +144,7 @@ namespace Game.Simulation.Prep
         {
             Current = null;
             Cuts = 0;
+            Resting = false;
             Dial = null;
         }
     }

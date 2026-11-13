@@ -88,6 +88,9 @@ namespace Game.Simulation.Cooking
         /// <summary>Has two sides to sear, so the flip gauge shows until its first flip (steak).</summary>
         public bool NeedsFlip { get; set; }
 
+        /// <summary>The cut it is, for its tag while loose (Whole, Rings, Diced; the user's call, 2026-11-13), or null.</summary>
+        public string CutForm { get; set; }
+
         /// <summary>Type id this becomes when cut at the prep counter (e.g. Onion → DicedOnion), or null if it isn't cut.</summary>
         public string CutIntoTypeId { get; set; }
 

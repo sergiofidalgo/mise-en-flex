@@ -11,8 +11,10 @@ namespace Game.Gameplay.Stations
 {
     /// <summary>
     /// The cutting board. A puts a whole ingredient on it, or with empty hands takes what's there;
-    /// holding the knife, X cuts when the dial's needle is in the sweet spot. The cut stays here
-    /// and blocks the next one until someone moves it (decision 2026-11-04). It's built into a counter
+    /// holding the knife, X cuts when the dial's needle is in the sweet spot. Each cut is a stage
+    /// (the user's call, 2026-11-13): when it's finished the chef who cut it picks it up, so they
+    /// leave the board holding it (rings, say); to cut it further (dice) they put it back. With
+    /// full hands it rests on the board, not cut further, until moved. It's built into a counter
     /// of its own (decision 2026-11-08): bought, placed, moved and sold as one piece.
     /// </summary>
     public sealed class PrepStation : Interactable, IFaceButtonTarget, IUsable, IStationPrompt, ISavedContents
@@ -119,6 +121,10 @@ namespace Game.Gameplay.Stations
             var grade = _counter.Chop(Time.unscaledTimeAsDouble);
             if (grade.HasValue)
                 Chopped?.Invoke(grade.Value);
+            // That cut finished a stage: it goes into the chef's free hands (the knife stays in
+            // its own hand), so they walk off with it.
+            if (_counter.Resting && _counter.Current != null && player.Hands.IsEmpty)
+                player.ReceiveItem(_counter.Take(), _boardAnchor.position);
             return true;
         }
 
