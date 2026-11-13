@@ -633,6 +633,9 @@ namespace Game.Editor
             GreyboxService.Build(root, layout.StreetDoorPosition);
             GreyboxStaff.Build(root, assets.Furniture, layout.StaffSpawn);
 
+            // New players name themselves, and join only in Plan and Prep (2026-11-13).
+            JoinNamingBuilder.AddNaming(players, manager, join);
+            JoinNamingBuilder.AddGate(players, manager, root, settings);
             GreyboxHud.BuildCanvas(GreyboxHud.EnsureStyle(), settings, root, assets.Catalog);
             GreyboxBoss.Build(root, camera, GreyboxHud.EnsureStyle()); // the boss's visits and phone (Phase 6)
 

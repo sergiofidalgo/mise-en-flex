@@ -105,7 +105,15 @@ namespace Game.Editor
             cards.FindProperty("_coop").objectReferenceValue = settings;
             cards.FindProperty("_editor").objectReferenceValue = Object.FindFirstObjectByType<LayoutEditor>();
             cards.FindProperty("_root").objectReferenceValue = root;
+            cards.FindProperty("_naming").objectReferenceValue = Object.FindFirstObjectByType<JoinNaming>();
             cards.ApplyModifiedPropertiesWithoutUndo();
+
+            // Pressing A to join during service or the Review: a line saying to wait (2026-11-13).
+            var wait = new SerializedObject(hud.AddComponent<JoinWaitHud>());
+            wait.FindProperty("_canvas").objectReferenceValue = hud.GetComponent<RectTransform>();
+            wait.FindProperty("_style").objectReferenceValue = style;
+            wait.FindProperty("_gate").objectReferenceValue = Object.FindFirstObjectByType<KitchenJoinGate>();
+            wait.ApplyModifiedPropertiesWithoutUndo();
 
             var layoutHud = new SerializedObject(hud.AddComponent<LayoutEditorHud>());
             layoutHud.FindProperty("_canvas").objectReferenceValue = hud.GetComponent<RectTransform>();

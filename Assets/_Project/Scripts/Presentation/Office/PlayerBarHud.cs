@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Game.Data;
+using Game.Gameplay;
 using Game.Gameplay.Office;
 using Game.Gameplay.Saving;
 using Game.Gameplay.Stations;
@@ -43,6 +44,7 @@ namespace Game.Presentation.Office
         // The compact card: small enough that the bar sits in the office camera's reserved top
         // band (15% of the screen), so chefs never walk under it.
         private const float NumberSize = 44f;
+        private const float NamedSize = 36f;
         // The open seat: a see-through fill (the user's call: empty slots translucent) with opaque
         // dashes and text, so it reads as "free" yet stays legible over the bright attic.
         private const float OpenFillOpacity = 0.55f;
@@ -79,6 +81,8 @@ namespace Game.Presentation.Office
         [SerializeField] private HudStyle _style;
         [SerializeField] private CoopSettings _coop;
         [SerializeField] private TailorPlinth[] _plinths = System.Array.Empty<TailorPlinth>();
+        [Tooltip("New players naming themselves: their keyboard hangs under their card (2026-11-13).")]
+        [SerializeField] private JoinNaming _naming;
 
         private readonly List<Slot> _slots = new List<Slot>();
         private readonly Dictionary<TailorPlinth, Prompt> _prompts = new Dictionary<TailorPlinth, Prompt>();
@@ -93,19 +97,19 @@ namespace Game.Presentation.Office
         private readonly Dictionary<int, (Transform Chef, TailorSession Session)> _staged = new Dictionary<int, (Transform, TailorSession)>();
         private bool _staging;
 
-        // Before the floor (2026-11-13): the chefs riding up in the glass lift stand in for the
-        // players who joined in the menu, until they join for real as the camera lands.
-        private readonly Dictionary<int, Transform> _standIns = new Dictionary<int, Transform>();
+        // For a still: who's naming, by slot.
+        private readonly Dictionary<int, ChefNaming> _stagedNaming = new Dictionary<int, ChefNaming>();
 
-        /// <summary>Shows <paramref name="chef"/> as player <paramref name="slot"/>'s card until <see cref="ClearStandIns"/>.</summary>
-        public void Stand(int slot, Transform chef)
+        /// <summary>For a still outside Play mode: shows <paramref name="naming"/> as player <paramref name="slot"/> naming themselves.</summary>
+        public void PreviewNaming(int slot, ChefNaming naming)
         {
-            if (chef != null)
-                _standIns[slot] = chef;
+            if (naming == null)
+                _stagedNaming.Remove(slot);
+            else
+                _stagedNaming[slot] = naming;
+            foreach (var each in _slots)
+                each.KeyboardDrawn = -1;
         }
-
-        /// <summary>Everyone has joined the floor: the bar follows the real players again.</summary>
-        public void ClearStandIns() => _standIns.Clear();
 
         private sealed class Prompt
         {
@@ -117,6 +121,10 @@ namespace Game.Presentation.Office
         {
             public int Index;
             public RectTransform Compact;     // a joined player's card
+            public TextMeshProUGUI Tag;       // "P1", small, over the name
+            public TextMeshProUGUI Name;      // their name, or "P1" big until they have one
+            public RectTransform Keyboard;    // naming as they join, under the card
+            public int KeyboardDrawn = -1;    // the naming's version last drawn
             public RectTransform Open;        // the open seat
             public RectTransform OpenBadge;   // the A that breathes
             public RectTransform Dressing;
@@ -261,7 +269,15 @@ namespace Game.Presentation.Office
             still.raycastTarget = false;
             still.uvRect = new Rect(0.5f - 0.5f * 360f / 512f, 0f, 360f / 512f, 1f); // the middle square
             var column = centre.x + outer / 2f + 16f;
-            UiKit.TextAt(_style.DisplayFont, slot.Compact, "Number", $"P{index + 1}", NumberSize, colour, column, top + plate / 2f + NumberSize * 0.36f, CompactWidth - column - 16f);
+            // The name big in the player's colour with a small "P1" over it (the user's call,
+            // 2026-11-13); until they have a name, "P1" alone, big.
+            slot.Tag = UiKit.TextAt(_style.Bold, slot.Compact, "Tag", $"P{index + 1}", 20f, colour, column, top + 25f, 60f);
+            slot.Name = UiKit.TextAt(_style.DisplayFont, slot.Compact, "Name", $"P{index + 1}", NumberSize, colour, column, top + plate / 2f + NumberSize * 0.36f, CompactWidth - column - 16f);
+            slot.Name.enableAutoSizing = true;
+            slot.Name.fontSizeMin = 24f;
+            slot.Name.fontSizeMax = NumberSize;
+            slot.Keyboard = UiKit.Rect(_canvas.transform, $"Player{index + 1}Keyboard", 0f, 0f, CompactWidth, 10f);
+            slot.Keyboard.gameObject.SetActive(false);
 
             BuildOpenSeat(slot, colour);
 
@@ -451,7 +467,12 @@ namespace Game.Presentation.Office
                 else
                 {
                     LeaveDressing(slot);
-                    Dock(ShowCompact(slot, chef), ref x, CompactWidth, 0f);
+                    var card = ShowCompact(slot, chef);
+                    Dock(card, ref x, CompactWidth, 0f);
+                    if (card == slot.Compact)
+                        ShowName(slot, card.anchoredPosition.x);
+                    else
+                        slot.Keyboard.gameObject.SetActive(false);
                 }
             }
 
@@ -488,8 +509,6 @@ namespace Game.Presentation.Office
             foreach (var player in PlayerInput.all)
                 if (player.playerIndex == index)
                     return (player.transform, null);
-            if (_standIns.TryGetValue(index, out var standIn) && standIn != null)
-                return (standIn, null);
             return (null, null);
         }
 
@@ -667,6 +686,37 @@ namespace Game.Presentation.Office
             var left = Mathf.Clamp(x, Margin, CanvasWidth() - Margin - width);
             card.anchoredPosition = new Vector2(left, -Margin - drop);
             x += width + CardGap;
+        }
+
+        // The name on the card (what's typed so far while naming), and the keyboard under it.
+        private void ShowName(Slot slot, float left)
+        {
+            var naming = _staging
+                ? (_stagedNaming.TryGetValue(slot.Index, out var staged) ? staged : null)
+                : _naming != null ? _naming.For(slot.Index) : null;
+            var name = naming != null ? naming.Picker.Text : ChefProfileFile.Current.Name(slot.Index);
+            var named = !string.IsNullOrEmpty(name);
+            var top = Breakout;
+            slot.Tag.gameObject.SetActive(named);
+            slot.Name.text = named ? name : $"P{slot.Index + 1}";
+            // Named: the name sits lower, under its tag; unnamed: "P1" centred in the plate.
+            // A little smaller under its tag, so the two lines sit clear of each other and the band.
+            slot.Name.fontSizeMax = named ? NamedSize : NumberSize;
+            var baseline = named ? top + PlateHeight - 16f : top + PlateHeight / 2f + NumberSize * 0.36f;
+            slot.Name.rectTransform.anchoredPosition = new Vector2(slot.Name.rectTransform.anchoredPosition.x, -(baseline - NumberSize));
+
+            slot.Keyboard.gameObject.SetActive(naming != null);
+            if (naming == null)
+            {
+                slot.KeyboardDrawn = -1;
+                return;
+            }
+            if (naming.Version != slot.KeyboardDrawn)
+            {
+                slot.KeyboardDrawn = naming.Version;
+                NameKeyboard.Draw(_style, slot.Keyboard, naming, PlayerColour(slot.Index), CompactWidth);
+            }
+            slot.Keyboard.anchoredPosition = new Vector2(left, -(Margin + top + PlateHeight + CardGap));
         }
 
         private float PlateHeight => _style.PlateHeight;
