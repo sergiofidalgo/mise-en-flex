@@ -4137,3 +4137,16 @@ The user asked for a way to play in full screen, switched from Settings. Their c
 **Fix the same day:** in play the HUD sat short of the right and bottom edges. Unity lays out the game for its "main" play mode view, which was still the docked Game view (1709×966 against the full-screen view's 1920×1050). While open, the full-screen view is now kept as the main one (`PlayModeView.s_LastFocused`, set again every Editor update), and it covers the display's usable area below the menu bar, placed from the main window's left and bottom edges (exact when the Editor is maximized).
 
 **Not checked in play:** whether the Editor's full-screen view covers the display exactly (Retina scaling, the menu bar, a second monitor) and keeps controller input; a built game's switch both ways; and whether macOS also reacts to Ctrl+Cmd+F in a build, which would toggle twice.
+
+## 2026-11-13 — Money top left, the player bar top right, joining in the main menu, name plates
+
+**Decision (the user's calls):**
+- **Corners swap.** The money card moves to the top-left corner (office and kitchens; Prep's Rearrange docks under it there). The office's player bar docks to the top-right corner.
+- **Every player card is as wide as the dressing card (360 px),** so each player's place on the bar never moves or changes width when someone opens the tailor.
+- **Name plates** (option A of three sketches; the old cards felt too big and too plain): 76 px tall instead of 108, a chunky 5 px outline in the scene's toon ink, an 8 px band of the owner's colour along the bottom, and a round medallion breaking out 22 px over the top edge: the chef's face (72 px) on a player card, a gold coin on the money card. Open seats keep the see-through fill and dashes in the slot's colour, with "P2 · A Join" in one row. The dressing card takes the same ink and band. Everything is in `HudStyle` (Name plates); `NamePlate` draws it.
+- **Joining in the main menu.** Player 1 is in from the start, as whichever controller presses first, and only player 1 drives the menu (and skips the climb). Anyone else's A, while the menu is up or the lift is climbing, joins them and does nothing else. The player bar shows from the menu on with all four slots. A joining player's chef pops into the glass lift beside player 1's (a 0.28 s pop with a small overshoot), in their look and colour, and rides up; everyone joins the floor, in slot order and on their own controller, as the camera lands. Joining later on the floor works as before. `MenuRoster` (plain C#, `MenuRosterTests`) keeps who's in; `MainMenu.Driver` limits the menu to player 1.
+- The menu's layout moves down 76 px so the bar fits above the sign's rod; the list and forkcast still end above the hint bar.
+
+**Reason:** The user wants players to join from the main menu and appear in the lift as they join, with the money and the players in opposite corners, and cards that feel more stylised and less heavy.
+
+**Not covered:** a controller unplugged after joining in the menu keeps its chef in the lift until the landing, where it's skipped. There's no way to leave before the floor. On a 4:3 screen the four plates (1,476 px with gaps) reach the money card.

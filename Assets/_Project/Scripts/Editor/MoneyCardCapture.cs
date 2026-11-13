@@ -109,7 +109,7 @@ namespace Game.Editor
             session.SaveOver(background, file);
         }
 
-        private static Color32[] Pixels(string file)
+        internal static Color32[] Pixels(string file)
         {
             var image = new Texture2D(2, 2, TextureFormat.RGBA32, false);
             image.LoadImage(File.ReadAllBytes(file));
