@@ -7,7 +7,7 @@ namespace Game.Gameplay.Office
 {
     /// <summary>
     /// The office's one big elevator (decision 2026-11-09): players join into its car, and each
-    /// join rings the bell and opens the doors (<see cref="ElevatorDoors"/>). Where a joining chef
+    /// join rings the bell and opens the doors (once the player has named themselves, 2026-11-13) (<see cref="ElevatorDoors"/>). Where a joining chef
     /// stands is <see cref="PlayerJoinController"/>'s job, with spawn points inside the car; this
     /// slides the door panels, whose colliders keep a chef in until they part.
     /// </summary>
@@ -20,6 +20,8 @@ namespace Game.Gameplay.Office
         [SerializeField] private Transform _rightDoor;
         [Tooltip("The car and its doorway: a chef inside holds the doors open.")]
         [SerializeField] private BoxCollider _car;
+        [Tooltip("New players name themselves in the closed car; the bell rings and the doors open when they're done (2026-11-13).")]
+        [SerializeField] private JoinNaming _naming;
 
         private Vector3 _leftClosed;
         private Vector3 _rightClosed;
@@ -33,9 +35,23 @@ namespace Game.Gameplay.Office
             _rightClosed = _rightDoor.localPosition;
         }
 
-        private void OnEnable() => _players.onPlayerJoined += HandleJoined;
+        // With naming, the car arrives when a player is ready: at once for one carried back from a
+        // kitchen, on Done for a new one, who waits in the closed car meanwhile.
+        private void OnEnable()
+        {
+            if (_naming != null)
+                _naming.Arrived += HandleJoined;
+            else
+                _players.onPlayerJoined += HandleJoined;
+        }
 
-        private void OnDisable() => _players.onPlayerJoined -= HandleJoined;
+        private void OnDisable()
+        {
+            if (_naming != null)
+                _naming.Arrived -= HandleJoined;
+            else
+                _players.onPlayerJoined -= HandleJoined;
+        }
 
         private void HandleJoined(PlayerInput player) => Doors.Arrive();
 

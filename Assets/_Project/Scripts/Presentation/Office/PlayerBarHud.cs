@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Game.Data;
+using Game.Gameplay;
 using Game.Gameplay.Office;
 using Game.Gameplay.Saving;
 using Game.Gameplay.Stations;
@@ -14,8 +15,12 @@ using UnityEngine.UI;
 namespace Game.Presentation.Office
 {
     /// <summary>
-    /// The office's player bar (the user's notes, 2026-11-09): one card per player slot, always
-    /// there, docked in a row from the top-left corner inside the office camera's reserved top band.
+    /// The office's player bar (the user's notes, 2026-11-09 and 2026-11-13): one card per player
+    /// slot, always there, docked in a row to the top-right corner inside the office camera's
+    /// reserved top band, the money card on the other side. Every slot is as wide as the dressing
+    /// card, so each player's place on the bar never moves or changes width. The cards are name
+    /// plates (NamePlate): chunky ink, the player's colour along the bottom, the face in a
+    /// medallion breaking out over the top edge.
     /// <list type="bullet">
     /// <item>A slot nobody has joined: an open seat, a soft see-through card ringed with dashes in the
     /// slot's colour, its number and "A Join" centred, the A gently breathing.</item>
@@ -38,9 +43,8 @@ namespace Game.Presentation.Office
         private const float CardGap = 12f;
         // The compact card: small enough that the bar sits in the office camera's reserved top
         // band (15% of the screen), so chefs never walk under it.
-        private const float CompactWidth = 210f;
-        private const float CompactHeight = 108f;
-        private const float NumberSize = 46f;
+        private const float NumberSize = 44f;
+        private const float NamedSize = 36f;
         // The open seat: a see-through fill (the user's call: empty slots translucent) with opaque
         // dashes and text, so it reads as "free" yet stays legible over the bright attic.
         private const float OpenFillOpacity = 0.55f;
@@ -48,7 +52,6 @@ namespace Game.Presentation.Office
         private const float DashLength = 14f;
         private const float DashGap = 9f;
         private const float DashStroke = 4f;
-        private const float OpenRadius = 18f;
         private const float BreathePeriod = 1.8f;      // the A badge's slow pulse, seconds
         private const float BreatheScale = 0.07f;
         // The dressing card.
@@ -59,6 +62,7 @@ namespace Game.Presentation.Office
         private const float PortraitHeight = 248f;  // the picture keeps the portrait's 512×360 shape
         private const float RowsHeight = 140f;
         private const float DressingHeight = HeaderHeight + PortraitHeight + RowsHeight;
+        private const float CompactWidth = Width; // every slot as wide as the dressing card
         private const float PromptWidth = 220f;
         private const float PromptHeight = 64f;
         private const float HeadHeight = 2.05f;
@@ -77,6 +81,8 @@ namespace Game.Presentation.Office
         [SerializeField] private HudStyle _style;
         [SerializeField] private CoopSettings _coop;
         [SerializeField] private TailorPlinth[] _plinths = System.Array.Empty<TailorPlinth>();
+        [Tooltip("New players naming themselves: their keyboard hangs under their card (2026-11-13).")]
+        [SerializeField] private JoinNaming _naming;
 
         private readonly List<Slot> _slots = new List<Slot>();
         private readonly Dictionary<TailorPlinth, Prompt> _prompts = new Dictionary<TailorPlinth, Prompt>();
@@ -91,6 +97,20 @@ namespace Game.Presentation.Office
         private readonly Dictionary<int, (Transform Chef, TailorSession Session)> _staged = new Dictionary<int, (Transform, TailorSession)>();
         private bool _staging;
 
+        // For a still: who's naming, by slot.
+        private readonly Dictionary<int, ChefNaming> _stagedNaming = new Dictionary<int, ChefNaming>();
+
+        /// <summary>For a still outside Play mode: shows <paramref name="naming"/> as player <paramref name="slot"/> naming themselves.</summary>
+        public void PreviewNaming(int slot, ChefNaming naming)
+        {
+            if (naming == null)
+                _stagedNaming.Remove(slot);
+            else
+                _stagedNaming[slot] = naming;
+            foreach (var each in _slots)
+                each.KeyboardDrawn = -1;
+        }
+
         private sealed class Prompt
         {
             public RectTransform Card;
@@ -101,6 +121,10 @@ namespace Game.Presentation.Office
         {
             public int Index;
             public RectTransform Compact;     // a joined player's card
+            public TextMeshProUGUI Tag;       // "P1", small, over the name
+            public TextMeshProUGUI Name;      // their name, or "P1" big until they have one
+            public RectTransform Keyboard;    // naming as they join, under the card
+            public int KeyboardDrawn = -1;    // the naming's version last drawn
             public RectTransform Open;        // the open seat
             public RectTransform OpenBadge;   // the A that breathes
             public RectTransform Dressing;
@@ -231,21 +255,35 @@ namespace Game.Presentation.Office
             slot.Portrait.backgroundColor = _style.CardBackground;
             slot.Portrait.enabled = false;
 
-            // Compact: the head in a square on the left and the player's number.
-            var square = CompactHeight - 24f;
-            slot.Compact = UiKit.Rect(_canvas.transform, $"Player{index + 1}", 0f, 0f, CompactWidth, CompactHeight);
-            UiKit.StrokedBox(slot.Compact, "Back", _style.CardBackground, colour, 4f, 0f, 0f, CompactWidth, CompactHeight, 18f);
-            var still = RoundedPicture(slot.Compact, texture, 12f, 12f, square, square);
+            // Compact: a name plate, the face in a medallion over its left end, the number beside it.
+            var plate = PlateHeight;
+            var top = Breakout;
+            slot.Compact = UiKit.Rect(_canvas.transform, $"Player{index + 1}", 0f, 0f, CompactWidth, top + plate);
+            NamePlate.Draw(_style, slot.Compact, colour, 0f, top, CompactWidth, plate);
+            var face = _style.PlateFace;
+            var outer = face + 2f * (_style.PlateRing + _style.PlateStroke);
+            var centre = new Vector2(14f + outer / 2f, outer / 2f);
+            var medallion = NamePlate.Medallion(_style, slot.Compact, colour, centre.x, centre.y, face);
+            var still = UiKit.Rect(medallion, "Portrait", 0f, 0f, face, face).gameObject.AddComponent<RawImage>();
+            still.texture = texture;
+            still.raycastTarget = false;
             still.uvRect = new Rect(0.5f - 0.5f * 360f / 512f, 0f, 360f / 512f, 1f); // the middle square
-            // The number bigger, centred in the column right of the face (the user's call, 2026-11-11).
-            var column = 12f + square;
-            UiKit.TextAt(_style.DisplayFont, slot.Compact, "Number", $"P{index + 1}", NumberSize, colour, (column + CompactWidth) / 2f, CompactHeight / 2f + NumberSize * 0.36f, CompactWidth - column - 8f, HorizontalAlignmentOptions.Center);
+            var column = centre.x + outer / 2f + 16f;
+            // The name big in the player's colour with a small "P1" over it (the user's call,
+            // 2026-11-13); until they have a name, "P1" alone, big.
+            slot.Tag = UiKit.TextAt(_style.Bold, slot.Compact, "Tag", $"P{index + 1}", 20f, colour, column, top + 25f, 60f);
+            slot.Name = UiKit.TextAt(_style.DisplayFont, slot.Compact, "Name", $"P{index + 1}", NumberSize, colour, column, top + plate / 2f + NumberSize * 0.36f, CompactWidth - column - 16f);
+            slot.Name.enableAutoSizing = true;
+            slot.Name.fontSizeMin = 24f;
+            slot.Name.fontSizeMax = NumberSize;
+            slot.Keyboard = UiKit.Rect(_canvas.transform, $"Player{index + 1}Keyboard", 0f, 0f, CompactWidth, 10f);
+            slot.Keyboard.gameObject.SetActive(false);
 
             BuildOpenSeat(slot, colour);
 
             // Dressing: the portrait on top, then the controls.
             slot.Dressing = UiKit.Rect(_canvas.transform, $"Player{index + 1}Dressing", 0f, 0f, Width, DressingHeight);
-            UiKit.StrokedBox(slot.Dressing, "Back", _style.CardBackground, colour, 4f, 0f, 0f, Width, DressingHeight, 22f);
+            NamePlate.Draw(_style, slot.Dressing, colour, 0f, 0f, Width, DressingHeight);
             // The page on top, as the shop card's: LB, its name, RB, a dot per section.
             var head = UiKit.Rect(slot.Dressing, "Head", 0f, 0f, Width, HeaderHeight);
             DrawShoulder(head, "LB", 12f, 12f);
@@ -294,25 +332,34 @@ namespace Game.Presentation.Office
         // The open seat: no picture, the number and "A Join" centred as one block, a dashed edge.
         private void BuildOpenSeat(Slot slot, Color colour)
         {
-            slot.Open = UiKit.Rect(_canvas.transform, $"Player{slot.Index + 1}Open", 0f, 0f, CompactWidth, CompactHeight);
+            var plate = PlateHeight;
+            var top = Breakout;
+            var radius = _style.PlateRadius;
+            slot.Open = UiKit.Rect(_canvas.transform, $"Player{slot.Index + 1}Open", 0f, 0f, CompactWidth, top + plate);
             var fill = Color.Lerp(_style.CardBackground, colour, OpenTint);
             fill.a = OpenFillOpacity;
-            UiKit.RoundBox(slot.Open, "Back", fill, 0f, 0f, CompactWidth, CompactHeight, OpenRadius);
-            DashedOutline(slot.Open, colour, CompactWidth, CompactHeight, OpenRadius);
+            UiKit.RoundBox(slot.Open, "Back", fill, 0f, top, CompactWidth, plate, radius);
+            var dashes = UiKit.Rect(slot.Open, "Dashes", 0f, top, CompactWidth, plate);
+            DashedOutline(dashes, colour, CompactWidth, plate, radius);
 
-            var middle = CompactWidth / 2f;
-            UiKit.TextAt(_style.DisplayFont, slot.Open, "Number", $"P{slot.Index + 1}", 34f, colour, middle, 44f, CompactWidth - 24f, HorizontalAlignmentOptions.Center);
-            // The badge and the word, centred together whatever the word's length in the language.
-            const float badge = 32f;
-            const float gap = 8f;
-            var join = UiKit.TextAt(_style.Bold, slot.Open, "Join", Tr.Get("Join"), 28f, _style.TextColor, 0f, 85f, CompactWidth - badge - gap - 24f);
-            var width = Mathf.Min(UiKit.Width(join), join.rectTransform.sizeDelta.x);
-            var left = middle - (badge + gap + width) / 2f;
-            join.rectTransform.anchoredPosition = new Vector2(left + badge + gap, join.rectTransform.anchoredPosition.y);
+            // The number, the badge and the word in one row, centred together whatever the word's
+            // length in the language.
+            const float badge = 34f;
+            const float gap = 10f;
+            var baseline = top + plate / 2f + 28f * 0.36f;
+            var number = UiKit.TextAt(_style.DisplayFont, slot.Open, "Number", $"P{slot.Index + 1}", 36f, colour, 0f, top + plate / 2f + 36f * 0.36f, 80f);
+            var join = UiKit.TextAt(_style.Bold, slot.Open, "Join", Tr.Get("Join"), 28f, _style.TextColor, 0f, baseline, CompactWidth - 80f - badge - 3f * gap - 40f);
+            var numberWidth = Mathf.Min(UiKit.Width(number), 80f);
+            var joinWidth = Mathf.Min(UiKit.Width(join), join.rectTransform.sizeDelta.x);
+            var left = (CompactWidth - (numberWidth + 2f * gap + badge + gap + joinWidth)) / 2f;
+            number.rectTransform.anchoredPosition = new Vector2(left, number.rectTransform.anchoredPosition.y);
+            var badgeLeft = left + numberWidth + 2f * gap;
+            join.rectTransform.anchoredPosition = new Vector2(badgeLeft + badge + gap, join.rectTransform.anchoredPosition.y);
             // The badge in its own holder, pivoted on its centre, so it can breathe in place.
-            slot.OpenBadge = UiKit.Rect(slot.Open, "JoinBadge", left, 57f, badge, badge);
+            var badgeTop = top + (plate - badge) / 2f;
+            slot.OpenBadge = UiKit.Rect(slot.Open, "JoinBadge", badgeLeft, badgeTop, badge, badge);
             slot.OpenBadge.pivot = new Vector2(0.5f, 0.5f);
-            slot.OpenBadge.anchoredPosition = new Vector2(left + badge / 2f, -57f - badge / 2f);
+            slot.OpenBadge.anchoredPosition = new Vector2(badgeLeft + badge / 2f, -badgeTop - badge / 2f);
             DrawBadge(slot.OpenBadge, PromptControl.South, 0f, 0f, badge);
         }
 
@@ -405,20 +452,27 @@ namespace Game.Presentation.Office
 
         private void Layout(Camera camera, float dt)
         {
-            // The bar: each slot as it stands, laid left to right from the corner in slot order.
-            var x = Margin;
+            // The bar: each slot as it stands, in slot order left to right, the row ending at the
+            // top-right corner. Every card is as wide, so nobody's card moves when another dresses.
+            var count = _slots.Count;
+            var x = CanvasWidth() - Margin - count * CompactWidth - (count - 1) * CardGap;
             foreach (var slot in _slots)
             {
                 var (chef, session) = Find(slot.Index);
                 if (session != null && chef != null)
                 {
                     ShowDressing(slot, chef, session, dt);
-                    Dock(slot.Dressing, ref x, Width);
+                    Dock(slot.Dressing, ref x, Width, Breakout);
                 }
                 else
                 {
                     LeaveDressing(slot);
-                    Dock(ShowCompact(slot, chef), ref x, CompactWidth);
+                    var card = ShowCompact(slot, chef);
+                    Dock(card, ref x, CompactWidth, 0f);
+                    if (card == slot.Compact)
+                        ShowName(slot, card.anchoredPosition.x);
+                    else
+                        slot.Keyboard.gameObject.SetActive(false);
                 }
             }
 
@@ -625,13 +679,50 @@ namespace Game.Presentation.Office
             slot.Portrait.transform.SetPositionAndRotation(from, Quaternion.LookRotation(target - from, Vector3.up));
         }
 
-        // The next card in the bar, top left onwards, whole on screen.
-        private void Dock(RectTransform card, ref float x, float width)
+        // The next card in the bar, left to right, whole on screen. The dressing card's top lines
+        // up with the plates' (below their medallions' breakout).
+        private void Dock(RectTransform card, ref float x, float width, float drop)
         {
-            var left = Mathf.Min(x, CanvasWidth() - Margin - width);
-            card.anchoredPosition = new Vector2(left, -Margin);
+            var left = Mathf.Clamp(x, Margin, CanvasWidth() - Margin - width);
+            card.anchoredPosition = new Vector2(left, -Margin - drop);
             x += width + CardGap;
         }
+
+        // The name on the card (what's typed so far while naming), and the keyboard under it.
+        private void ShowName(Slot slot, float left)
+        {
+            var naming = _staging
+                ? (_stagedNaming.TryGetValue(slot.Index, out var staged) ? staged : null)
+                : _naming != null ? _naming.For(slot.Index) : null;
+            var name = naming != null ? naming.Picker.Text : ChefProfileFile.Current.Name(slot.Index);
+            var named = !string.IsNullOrEmpty(name);
+            var top = Breakout;
+            slot.Tag.gameObject.SetActive(named);
+            slot.Name.text = named ? name : $"P{slot.Index + 1}";
+            // Named: the name sits lower, under its tag; unnamed: "P1" centred in the plate.
+            // A little smaller under its tag, so the two lines sit clear of each other and the band.
+            slot.Name.fontSizeMax = named ? NamedSize : NumberSize;
+            var baseline = named ? top + PlateHeight - 16f : top + PlateHeight / 2f + NumberSize * 0.36f;
+            slot.Name.rectTransform.anchoredPosition = new Vector2(slot.Name.rectTransform.anchoredPosition.x, -(baseline - NumberSize));
+
+            slot.Keyboard.gameObject.SetActive(naming != null);
+            if (naming == null)
+            {
+                slot.KeyboardDrawn = -1;
+                return;
+            }
+            if (naming.Version != slot.KeyboardDrawn)
+            {
+                slot.KeyboardDrawn = naming.Version;
+                NameKeyboard.Draw(_style, slot.Keyboard, naming, PlayerColour(slot.Index), CompactWidth);
+            }
+            slot.Keyboard.anchoredPosition = new Vector2(left, -(Margin + top + PlateHeight + CardGap));
+        }
+
+        private float PlateHeight => _style.PlateHeight;
+
+        // How far the face medallion rises above its plate's top edge.
+        private float Breakout => _style.PlateBreakout;
 
         private float CanvasWidth()
         {

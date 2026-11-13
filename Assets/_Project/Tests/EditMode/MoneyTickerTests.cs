@@ -231,7 +231,7 @@ namespace Game.Tests.EditMode
                 Assert.That(settings.ShakeSeconds, Is.EqualTo(agreed.ShakeSeconds));
                 Assert.That(settings.ShakeDistance, Is.EqualTo(agreed.ShakeDistance));
                 Assert.That(settings.ShakeWiggles, Is.EqualTo(agreed.ShakeWiggles));
-                Assert.That(style.MoneyCardHeight, Is.EqualTo(108f), "a player card's height");
+                Assert.That(style.PlateHeight, Is.EqualTo(76f), "the name plates' height");
             }
             finally
             {

@@ -65,7 +65,13 @@ namespace Game.Editor
         /// <paramref name="barOnly"/>: just player 1, standing at a ladder's foot, and three open seats,
         /// the bar as most sessions start. Otherwise every state at once (see the class summary).
         /// </summary>
-        public static void Capture(string folder, bool barOnly)
+        public static void Capture(string folder, bool barOnly) => Capture(folder, barOnly, null);
+
+        /// <summary>
+        /// With <paramref name="naming"/>: the bar as a second player has just joined and names
+        /// themselves under their card, player 1 standing at a ladder (2026-11-13).
+        /// </summary>
+        public static void Capture(string folder, bool barOnly, Game.Simulation.Characters.ChefNaming naming)
         {
             Directory.CreateDirectory(folder);
             EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
@@ -84,9 +90,12 @@ namespace Game.Editor
             };
             var staged = new Dictionary<int, (Transform, TailorSession)>();
             var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(PlayerPrefabPath);
-            var players = barOnly ? 1 : stagings.Length;
+            var players = barOnly ? (naming != null ? 2 : 1) : stagings.Length;
             if (barOnly)
+            {
+                stagings[1] = (stagings[1].Look, false, WardrobeModule.Hat, "");
                 stagings[0] = (stagings[2].Look, false, WardrobeModule.Hat, "");
+            }
             for (var i = 0; i < players && i < ladders.Count; i++)
             {
                 var (look, dressing, section, browse) = stagings[i];
@@ -136,6 +145,7 @@ namespace Game.Editor
             var target = new RenderTexture(Width, Height, 24, RenderTextureFormat.ARGB32, RenderTextureReadWrite.sRGB) { antiAliasing = 4 };
             camera.targetTexture = target;
 
+            hud.PreviewNaming(1, naming);
             var portraits = hud.PreviewBar(staged, camera);
             for (var pass = 0; pass < 2; pass++) // the first frame compiles shaders
             {
@@ -143,7 +153,7 @@ namespace Game.Editor
                     Draw(portrait, portrait.targetTexture);
                 Draw(camera, target);
             }
-            Save(target, Path.Combine(folder, barOnly ? "office_player_bar_one_joined.png" : "tailor_player_bar.png"));
+            Save(target, Path.Combine(folder, naming != null ? "office_naming.png" : barOnly ? "office_player_bar_one_joined.png" : "tailor_player_bar.png"));
 
             target.Release();
             UnityEngine.Object.DestroyImmediate(camera.gameObject);

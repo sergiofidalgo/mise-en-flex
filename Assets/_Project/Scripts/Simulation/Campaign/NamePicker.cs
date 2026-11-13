@@ -47,7 +47,8 @@ namespace Game.Simulation.Campaign
 
         /// <param name="oldName">The lot's name; empty for none, which leaves out the keep key.</param>
         /// <param name="maxLength">The longest name the sign and the card fit.</param>
-        public NamePicker(string oldName, IEnumerable<string> suggestions, int maxLength)
+        /// <param name="shortcuts">True leaves the Delete and Done keys out, where X deletes and Menu finishes (a player's name, 2026-11-13).</param>
+        public NamePicker(string oldName, IEnumerable<string> suggestions, int maxLength, bool shortcuts = false)
         {
             _oldName = RestaurantNaming.Clean(oldName);
             _maxLength = Math.Max(1, maxLength);
@@ -55,7 +56,9 @@ namespace Game.Simulation.Campaign
             _rows.Add(new List<NameKey>()); // suggestions
             foreach (var letters in LetterRows)
                 _rows.Add(letters.Select(c => new NameKey(NameKeyKind.Letter, c.ToString())).ToList());
-            _rows.Add(new List<NameKey> { new NameKey(NameKeyKind.Space), new NameKey(NameKeyKind.Delete), new NameKey(NameKeyKind.Done) });
+            _rows.Add(shortcuts
+                ? new List<NameKey> { new NameKey(NameKeyKind.Space) }
+                : new List<NameKey> { new NameKey(NameKeyKind.Space), new NameKey(NameKeyKind.Delete), new NameKey(NameKeyKind.Done) });
             SetSuggestions(suggestions);
         }
 

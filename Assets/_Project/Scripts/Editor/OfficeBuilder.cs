@@ -178,6 +178,18 @@ namespace Game.Editor
                 points.GetArrayElementAtIndex(i).objectReferenceValue = spawnPoints[i];
             join.ApplyModifiedPropertiesWithoutUndo();
             BuildElevatorView(elevator);
+            // New players name themselves in the closed lift; it dings and opens on Done (2026-11-13).
+            var naming = JoinNamingBuilder.AddNaming(players, manager, (PlayerJoinController)join.targetObject);
+            var lift = new SerializedObject(elevator);
+            lift.FindProperty("_naming").objectReferenceValue = naming;
+            lift.ApplyModifiedPropertiesWithoutUndo();
+            var bar = Object.FindFirstObjectByType<PlayerBarHud>();
+            if (bar != null)
+            {
+                var barSo = new SerializedObject(bar);
+                barSo.FindProperty("_naming").objectReferenceValue = naming;
+                barSo.ApplyModifiedPropertiesWithoutUndo();
+            }
 
             var camera = new GameObject("Main Camera").AddComponent<Camera>();
             camera.tag = "MainCamera";

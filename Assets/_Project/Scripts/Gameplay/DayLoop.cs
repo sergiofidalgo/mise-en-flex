@@ -169,8 +169,9 @@ namespace Game.Gameplay
             {
                 var action = player.actions != null ? player.actions.FindAction(ReadyAction) : null;
                 var down = action != null && action.enabled && action.IsPressed();
-                // Rearranging the kitchen, Y opens the shop: it never readies up mid-move.
-                if (player.TryGetComponent(out Stations.PlayerInteractor interactor) && interactor.IsManaging)
+                // Rearranging the kitchen, Y opens the shop: it never readies up mid-move. Naming
+                // themselves (2026-11-13), Y rolls other names.
+                if ((player.TryGetComponent(out Stations.PlayerInteractor interactor) && interactor.IsManaging) || JoinNaming.IsBusyNaming(player))
                 {
                     _readyHold.Disarm(player.playerIndex);
                     continue;

@@ -69,6 +69,13 @@ namespace Game.Editor
                 Shoot(camera, money, day, bar, cards, Row(chefs, 2, (0, Shop(ShopSection.Appliances, 0, 200f))), new Dictionary<int, float>(), new int[0], 5, 5, 1f, "prep_shop.png");
                 Shoot(camera, money, day, bar, cards, Row(chefs, 4, (1, Shop(ShopSection.Furniture, 4, 676f)), (2, Shop(ShopSection.Kitchenware, 1, 676f))),
                     new Dictionary<int, float> { [1] = 0.6f }, new[] { 0, 2 }, 12, 14, 2.4f, "prep_four_cooks.png");
+                // A third player has just joined and names themselves under their card (2026-11-13).
+                var naming = new Game.Simulation.Characters.ChefNaming("");
+                naming.Picker.Type("a");
+                naming.Picker.Type("n");
+                naming.Picker.Type("a");
+                naming.Move(0, 1);
+                Shoot(camera, money, day, bar, cards, Row(chefs, 3), new Dictionary<int, float>(), new int[0], 5, 5, 1f, "prep_naming.png", naming: new Dictionary<int, Game.Simulation.Characters.ChefNaming> { [2] = naming });
                 Game.Data.Locale.Language = "es";
                 Shoot(camera, money, day, bar, cards, Row(chefs, 2, (0, Shop(ShopSection.Appliances, 0, 200f))), new Dictionary<int, float> { [1] = 0.34f }, new[] { 0 }, 5, 5, 1f, "prep_shop_es.png");
                 Game.Data.Locale.Language = "en";
@@ -116,7 +123,7 @@ namespace Game.Editor
 
         // The scene with the money card, then the tiles, the player cards and the bar over that.
         private static void Shoot(Camera camera, MoneyCardHud money, DayCardHud day, PrepReadyBarHud bar, ManagementCardsHud cards,
-            List<(int, Transform, ManagementCardsHud.View)> row, Dictionary<int, float> holding, int[] ready, int dayNumber, int guests, float groupSize, string file, bool crop = false, int[] rearranging = null)
+            List<(int, Transform, ManagementCardsHud.View)> row, Dictionary<int, float> holding, int[] ready, int dayNumber, int guests, float groupSize, string file, bool crop = false, int[] rearranging = null, Dictionary<int, Game.Simulation.Characters.ChefNaming> naming = null)
         {
             var players = row.Select(r => r.Item1).ToArray();
             var path = Path.Combine(Folder, file);
@@ -134,11 +141,11 @@ namespace Game.Editor
                 session.SaveOver(Pixels(path), path);
             }
 
-            cards.Preview(row, rearranging);
+            cards.Preview(row, rearranging, naming);
             var hud = cards.GetComponentInParent<Canvas>().rootCanvas;
             using (var session = UiCapture.Prepare(hud))
             {
-                cards.Preview(row, rearranging);
+                cards.Preview(row, rearranging, naming);
                 session.SaveOver(Pixels(path), path);
             }
 
@@ -149,16 +156,16 @@ namespace Game.Editor
                 session.SaveOver(Pixels(path), path);
             }
             if (crop)
-                CropTopLeft(path, 420, 540);
+                CropTopRight(path, 420, 540);
         }
 
-        // Keeps only the top-left corner, where the shop card is.
-        private static void CropTopLeft(string path, int width, int height)
+        // Keeps only the top-right corner, where the shop card is (top right since 2026-11-13).
+        private static void CropTopRight(string path, int width, int height)
         {
             var image = new Texture2D(2, 2, TextureFormat.RGBA32, false);
             image.LoadImage(File.ReadAllBytes(path));
             var corner = new Texture2D(width, height, TextureFormat.RGBA32, false);
-            corner.SetPixels(image.GetPixels(0, image.height - height, width, height));
+            corner.SetPixels(image.GetPixels(image.width - width, image.height - height, width, height));
             corner.Apply();
             File.WriteAllBytes(path, corner.EncodeToPNG());
             Object.DestroyImmediate(image);

@@ -4193,3 +4193,32 @@ The user asked for a way to play in full screen, switched from Settings. Their c
 **Why:** chaining every stage on one board made "rings" impossible to stop at without overshooting, and "Raw" told the player nothing about what they'd cut.
 
 **How:** `PrepCounter.Resting` (set when a player's cut finishes, cleared when anything is put on or taken off) stops `CanChop`; `CanCutFurther` ignores it, for staff. `PrepStation` hands the result to free hands. Ingredients name their cut with `IngredientDefinition._cutForm` (`IngredientProperties.CutForm`), shown by `DonenessTagHud` in the text colour; Spanish in `es.csv`. `docs/game-design.md` §4 (forms whole, sliced, diced) agrees; it doesn't say whether stages chain.
+
+---
+
+## 2026-11-13 — Money top left, the player bar top right, name plates
+
+**Decision (the user's calls):**
+- **Corners swap.** The money card moves to the top-left corner (office and kitchens; Prep's Rearrange docks under it there). The office's player bar docks to the top-right corner.
+- **Every player card is as wide as the dressing card (360 px),** so each player's place on the bar never moves or changes width when someone opens the tailor.
+- **Name plates** (option A of three sketches; the old cards felt too big and too plain): 76 px tall instead of 108, a chunky 5 px outline in the scene's toon ink, an 8 px band of the owner's colour along the bottom, and a round medallion breaking out 22 px over the top edge: the chef's face (72 px) on a player card, a gold coin on the money card. Open seats keep the see-through fill and dashes in the slot's colour, with "P2 · A Join" in one row. The dressing card takes the same ink and band. Everything is in `HudStyle` (Name plates); `NamePlate` draws it.
+- **No joining from the main menu** (tried and dropped the same day): players join in the office or in a kitchen, as before.
+
+**Reason:** The user wants the money and the players in opposite corners, every player's area the same size, and cards that feel more stylised and less heavy.
+
+**Not covered:** on a 4:3 screen the four plates (1,476 px with gaps) reach the money card.
+
+## 2026-11-13 — New players name themselves; kitchens take new players only before service
+
+**Decision (the user's calls):**
+- **Every new player names themselves as they join,** in the office or a kitchen. The naming keyboard is a name plate as wide as their player card (360 px), hanging under it: the name so far, the name this slot used last time (one press keeps it), the letter grid, then Space. D-pad moves (repeating while held), A types or chooses, X deletes, and Menu finishes (with nothing typed, it keeps last time's name). No suggested names and no Delete or Done keys (the user's trims, the same day: each action is said once): the hints read "X Delete" and "Menu Done". Up to 12 letters. Players carried over from the last scene aren't new and skip it. While naming, the pause menu, forkcast and the ready-up hold ignore that player's buttons.
+- **The name goes on their card:** big in their colour, with a small "P1" over it; until they have one, "P1" alone, big. Names live in the chef profile, per slot, beside the looks (`ChefProfile.Names`; files from before read fine).
+- **In the office, a new player waits in the closed lift** while naming. On Done the bell dings, the doors open and they step out. Everyone else keeps playing.
+- **In a kitchen, the player cards move top right like the office's** (the money is top left), become name plates of the shop card's width, and a naming player's card shows in any phase with the keyboard under it. They stand still at the door until Done.
+- **Kitchens take new players only in Plan and Prep.** During service and the Review, joining is closed, and a controller nobody plays on that presses A gets a line at the top of the screen for 2.5 s: "Wait for this service to finish to join" (in the Review: "Join when the next day starts").
+
+`ChefNaming` and `JoinRules` (plain C#, `ChefNamingTests`) hold the logic; `JoinNaming` runs it per player, reading the player's own controller (the kitchen's action maps change by phase), `KitchenJoinGate` keeps the kitchen's door, `NameKeyboard` draws the keyboard, `JoinWaitHud` the message. PlayMode tests join without naming (`PlayModeSetup`), except `JoinNamingPlayTests`.
+
+**Reason:** The user wants players to have names on their cards, typed as they join, and the lift to ring for a player's arrival; and no one dropping into a service already under way.
+
+**Not covered:** a keyboard player can't be told to wait (only controllers are watched), and the names have no accents beyond what the suggestions carry (the grid is A–Z).
