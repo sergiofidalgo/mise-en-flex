@@ -41,6 +41,18 @@ namespace Game.Presentation
         public static float ChefPitch(int playerIndex, float perChef) =>
             1f + (playerIndex - 0.5f) * perChef;
 
+        /// <summary>
+        /// Which notch a gas knob is on: 0 is off, then 1 up to <paramref name="notches"/> at full. Gas
+        /// turns smoothly, so the notches are only for sound: a click each time the knob passes one.
+        /// </summary>
+        public static int GasNotch(float dial, int notches) =>
+            dial <= 0.001f ? 0 : Mathf.Clamp(Mathf.CeilToInt(dial * notches), 1, notches);
+
+        /// <summary>How a served dish sounds: 2 good, 1 all right, 0 poor.</summary>
+        /// <param name="thresholds">Stars at or above which it's good (x), and all right (y).</param>
+        public static int ServeGrade(float stars, Vector2 thresholds) =>
+            stars >= thresholds.x ? 2 : stars >= thresholds.y ? 1 : 0;
+
         /// <summary>True if a cue last played at <paramref name="lastPlayed"/> may play again now.</summary>
         public static bool CanPlay(float now, float? lastPlayed, float minInterval) =>
             lastPlayed == null || now - lastPlayed.Value >= minInterval;

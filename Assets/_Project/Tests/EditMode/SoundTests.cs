@@ -167,12 +167,72 @@ namespace Game.Tests.EditMode
             {
                 bank.Bell, bank.ChopClean, bank.ChopOff, bank.ChopMiss, bank.DoorOpen, bank.DoorClose, bank.SizzleHit,
                 bank.AlarmBeep, bank.Step, bank.Clack, bank.Till, bank.Chime, bank.FridgeOpen, bank.FridgeClose,
+                bank.DeliveryPing, bank.CourierHorn,
+                bank.UiMove, bank.UiConfirm, bank.UiBack, bank.Deny, bank.Pickup, bank.Join,
+                bank.HeatClick, bank.GasIgnite, bank.GasOff, bank.FireWhoosh, bank.FireOut,
+                bank.Scrub, bank.Mop, bank.Spray, bank.CleanDone, bank.Wash, bank.Splash, bank.Splat,
+                bank.BinThunk, bank.BinBag, bank.Knife, bank.Furniture,
+                bank.ServeGood, bank.ServeOk, bank.ServePoor, bank.Ticket, bank.Walkout,
+                bank.Countdown, bank.DoorsOpen, bank.ServiceOver, bank.ScooterIn, bank.ScooterOut, bank.Phone, bank.Fanfare,
             })
             {
                 Assert.That(cue.Clips, Is.Not.Empty);
                 Assert.That(cue.Clips, Has.None.Null);
             }
             Assert.That(bank.SizzleLoop, Is.Not.Null);
+            Assert.That(bank.FireLoop, Is.Not.Null);
+        }
+
+        [Test]
+        public void TheFireLoopIsStoredWithoutCompression()
+        {
+            var bank = AssetDatabase.LoadAssetAtPath<SoundBank>(BankPath);
+            var importer = (AudioImporter)AssetImporter.GetAtPath(AssetDatabase.GetAssetPath(bank.FireLoop));
+            Assert.That(importer.defaultSampleSettings.compressionFormat, Is.EqualTo(AudioCompressionFormat.PCM));
+        }
+
+        [Test]
+        public void AGasKnobAtOffIsOnNoNotch()
+        {
+            Assert.That(SoundMath.GasNotch(0f, 6), Is.EqualTo(0));
+        }
+
+        [Test]
+        public void AGasKnobBarelyOpenIsOnTheFirstNotch()
+        {
+            Assert.That(SoundMath.GasNotch(0.01f, 6), Is.EqualTo(1));
+        }
+
+        [Test]
+        public void AGasKnobAtFullIsOnTheLastNotch()
+        {
+            Assert.That(SoundMath.GasNotch(1f, 6), Is.EqualTo(6));
+        }
+
+        [Test]
+        public void TurningAGasKnobAllTheWayClicksThroughEveryNotch()
+        {
+            var clicks = 0;
+            var last = 0;
+            for (var dial = 0f; dial <= 1f; dial += 0.01f)
+            {
+                var notch = SoundMath.GasNotch(dial, 6);
+                if (notch != last)
+                    clicks++;
+                last = notch;
+            }
+            Assert.That(clicks, Is.EqualTo(6));
+        }
+
+        [TestCase(5f, 2)]
+        [TestCase(4f, 2)]
+        [TestCase(3.5f, 1)]
+        [TestCase(2.5f, 1)]
+        [TestCase(2f, 0)]
+        [TestCase(0f, 0)]
+        public void AServedDishSoundsLikeHowItWent(float stars, int grade)
+        {
+            Assert.That(SoundMath.ServeGrade(stars, new Vector2(4f, 2.5f)), Is.EqualTo(grade));
         }
 
         [Test]

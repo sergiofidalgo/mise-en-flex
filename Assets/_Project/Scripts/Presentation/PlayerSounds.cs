@@ -8,12 +8,15 @@ using UnityEngine.InputSystem;
 namespace Game.Presentation
 {
     /// <summary>
-    /// The sounds chefs make themselves: footsteps, and a clack when they set something down. Staff
+    /// The sounds chefs make themselves: footsteps, a clack when they set something down, a soft lift
+    /// when they pick something up, and a pop when one joins a kitchen already under way. Staff
     /// and customers stay silent for now: they'd add a lot of noise to a busy service for little benefit.
     /// </summary>
     public sealed class PlayerSounds : MonoBehaviour
     {
         [SerializeField] private KitchenAudio _audio;
+        [Tooltip("Seconds after the kitchen loads before a new chef makes the join sound: those carried in are already here.")]
+        [SerializeField, Min(0f)] private float _joinSettleSeconds = 1f;
 
         private sealed class Chef
         {
@@ -31,7 +34,12 @@ namespace Game.Presentation
             foreach (var player in PlayerInput.all)
             {
                 if (!_chefs.TryGetValue(player, out var chef))
+                {
                     _chefs[player] = chef = NewChef(player);
+                    // Chefs carried in from the office are already here; one who joins later pops in.
+                    if (Time.timeSinceLevelLoad > _joinSettleSeconds)
+                        _audio.Play(_audio.Sounds.Join, player.transform.position);
+                }
                 UpdateSteps(player, chef);
             }
         }
@@ -81,6 +89,8 @@ namespace Game.Presentation
         {
             if (outcome == InteractionOutcome.Placed || outcome == InteractionOutcome.Combined)
                 _audio.Play(_audio.Sounds.Clack, player.transform.position);
+            else if (outcome == InteractionOutcome.PickedUp)
+                _audio.Play(_audio.Sounds.Pickup, player.transform.position);
         }
     }
 }

@@ -76841,6 +76841,10 @@ GameObject:
   - component: {fileID: 700723110}
   - component: {fileID: 700723109}
   - component: {fileID: 700723108}
+  - component: {fileID: 700723116}
+  - component: {fileID: 700723115}
+  - component: {fileID: 700723114}
+  - component: {fileID: 700723113}
   m_Layer: 0
   m_Name: KitchenAudio
   m_TagString: Untagged
@@ -76861,6 +76865,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Game.Presentation::Game.Presentation.PlayerSounds
   _audio: {fileID: 700723111}
+  _joinSettleSeconds: 1
 --- !u!114 &700723109
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -76901,9 +76906,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 256a79d050e004677b46b22654664a1a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Game.Presentation::Game.Presentation.KitchenAudio
-  _root: {fileID: 1791995105}
   _sounds: {fileID: 11400000, guid: a775cd4bdf1c7481d860edabee942c1d, type: 2}
   _voices: 12
+  _root: {fileID: 1791995105}
 --- !u!4 &700723112
 Transform:
   m_ObjectHideFlags: 0
@@ -76919,6 +76924,67 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &700723113
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 700723107}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 973cdeb43348741308f6a9f1d9453a6b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.Presentation::Game.Presentation.ServiceAudio
+  _root: {fileID: 1791995105}
+  _audio: {fileID: 700723111}
+  _lastTickPitch: 1.5
+--- !u!114 &700723114
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 700723107}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 53d99e6bb1fc24bbd906d5d31401e2ef, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.Presentation::Game.Presentation.StationAudio
+  _root: {fileID: 1791995105}
+  _audio: {fileID: 700723111}
+  _settleSeconds: 2
+  _repossessPitch: 0.75
+--- !u!114 &700723115
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 700723107}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f0d142a7807de429f90045d81aaa0dab, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.Presentation::Game.Presentation.CleaningAudio
+  _root: {fileID: 1791995105}
+  _audio: {fileID: 700723111}
+  _settleSeconds: 2
+--- !u!114 &700723116
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 700723107}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2ed85024cbd744814860b2742fbf5168, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.Presentation::Game.Presentation.HobAudio
+  _root: {fileID: 1791995105}
+  _audio: {fileID: 700723111}
+  _fireFadeRate: 2
 --- !u!1 &701318244
 GameObject:
   m_ObjectHideFlags: 0

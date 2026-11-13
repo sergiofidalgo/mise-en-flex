@@ -81,6 +81,7 @@ namespace Game.Presentation.Menu
         private int _openedFrame;
         private float _nextStep;
         private float _timeScaleBefore = 1f;
+        private SfxPlayer _sfx;
         private bool _joiningBefore;
 
         /// <summary>True while the menu is up.</summary>
@@ -88,6 +89,7 @@ namespace Game.Presentation.Menu
 
         private void Start()
         {
+            _sfx = FindFirstObjectByType<SfxPlayer>();
             MenuButton.HoldSeconds = _holdToReady;
             _settings = new SettingsModel(_realism, _style);
             _settings.LanguageChanged += () => _dirty = true;
@@ -181,6 +183,7 @@ namespace Game.Presentation.Menu
                 Time.timeScale = 0f;
             }
             AudioListener.pause = true;
+            _sfx?.PlayUi(_sfx.Sounds.UiConfirm);
             _canvas.gameObject.SetActive(true);
             Redraw();
         }
@@ -214,6 +217,19 @@ namespace Game.Presentation.Menu
 
         // ---- Input ----
 
+        // One sound per press: a tick to move, a rising pair to choose, a falling pair to go back.
+        private void PlayFeedback(Vector2Int step, bool confirm, bool back)
+        {
+            if (_sfx == null)
+                return;
+            if (back)
+                _sfx.PlayUi(_sfx.Sounds.UiBack);
+            else if (confirm)
+                _sfx.PlayUi(_sfx.Sounds.UiConfirm);
+            else if (step != Vector2Int.zero)
+                _sfx.PlayUi(_sfx.Sounds.UiMove);
+        }
+
         private void ReadInput()
         {
             var ui = _owner.actions.FindActionMap(UiMap);
@@ -234,6 +250,8 @@ namespace Game.Presentation.Menu
                     ? new Vector2Int(stick.x > 0f ? 1 : -1, 0)
                     : new Vector2Int(0, stick.y > 0f ? -1 : 1);
             }
+
+            PlayFeedback(step, south, east || menu);
 
             // Menu closes it from any page.
             if (menu)

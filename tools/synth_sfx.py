@@ -318,6 +318,256 @@ def lift_doors(rng):
     return finish(mix(hush, hum, bump), 0.45, fade_out=0.03)
 
 
+def tone(freq, seconds, ring, gain=1.0, harmonics=((1, 1.0),), attack=0.004):
+    """A struck or plucked note: a few harmonics with a soft attack and a ring-out."""
+    n = int(seconds * RATE)
+    rate = 6.9 / ring
+    edge = max(1, int(attack * RATE))
+    return [gain * min(1.0, i / edge) * math.exp(-rate * i / RATE)
+            * sum(g * math.sin(2 * math.pi * freq * h * i / RATE) for h, g in harmonics) for i in range(n)]
+
+
+def at(seconds, samples):
+    return [0.0] * int(seconds * RATE) + samples
+
+
+MARIMBA = ((1, 1.0), (4, 0.25), (9.9, 0.06))
+BELLISH = ((1, 1.0), (2.76, 0.35), (5.4, 0.12))
+
+
+def ui_move(rng):
+    # A soft wooden tick: heard every step through a menu, so it has to be small.
+    return finish(mix(tone(1320 * rng.uniform(0.98, 1.02), 0.06, 0.035, 1.0, MARIMBA)), 0.45)
+
+
+def ui_confirm():
+    return finish(mix(tone(880, 0.25, 0.16, 1.0, MARIMBA), at(0.06, tone(1320, 0.22, 0.16, 0.9, MARIMBA))), 0.5)
+
+
+def ui_back():
+    return finish(mix(tone(990, 0.2, 0.12, 0.9, MARIMBA), at(0.055, tone(660, 0.2, 0.12, 0.8, MARIMBA))), 0.45)
+
+
+def deny(rng):
+    """Nothing happened: a muted double knock, low and short, so it never reads as an error alarm."""
+    knock = lambda f: mix(mode(f, 0.05, 0.1, 1.0), scaled(decay(biquad(noise(rng, 0.01), "low", 900), 0.008), 0.4))
+    f = 230 * rng.uniform(0.96, 1.04)
+    return finish(mix(knock(f), at(0.085, knock(f * 0.94))), 0.45)
+
+
+def pickup(rng):
+    """Something lifted: a quick, soft brush of air and cloth. Quieter than putting down."""
+    body = biquad(noise(rng, 0.09), "band", 1400 * rng.uniform(0.85, 1.15), 0.7)
+    n = len(body)
+    body = [x * math.sin(math.pi * i / n) ** 2 for i, x in enumerate(body)]
+    return finish(mix(body, scaled(mode(420 * rng.uniform(0.9, 1.1), 0.03, 0.09, 1.0), 0.3)), 0.4, fade_out=0.01)
+
+
+def heat_click(rng):
+    """A hob knob's detent: a tiny, dry plastic click."""
+    return finish(mix(decay(biquad(noise(rng, 0.012), "band", 3800 * rng.uniform(0.9, 1.1), 1.5), 0.006),
+                      scaled(mode(1900, 0.01, 0.03, 1.0), 0.4)), 0.4)
+
+
+def gas_ignite(rng):
+    """Igniter ticks, then the gas catching with a soft whump of flame."""
+    ticks = mix(*(at(t, decay(biquad(noise(rng, 0.006), "high", 3000), 0.003)) for t in (0.0, 0.07, 0.14)))
+    roar = biquad(noise(rng, 0.5), "low", 900)
+    n = len(roar)
+    roar = [x * min(1.0, i / (0.03 * RATE)) * math.exp(-4.5 * i / n) for i, x in enumerate(roar)]
+    whump = mode(70, 0.12, 0.3, 1.0)
+    return finish(mix(scaled(ticks, 0.5), at(0.16, mix(scaled(roar, 0.9), scaled(whump, 0.6)))), 0.55, fade_out=0.05)
+
+
+def gas_off(rng):
+    """The flame going out: a click and a short soft puff."""
+    puff = decay(biquad(noise(rng, 0.12), "low", 700), 0.08, attack=0.004)
+    return finish(mix(heat_click(rng), at(0.01, scaled(puff, 0.6))), 0.4, fade_out=0.02)
+
+
+def fire_whoosh(rng):
+    """A pan going up: a rush of flame that swells fast and falls back to a roar."""
+    rush = biquad(noise(rng, 1.2), "low", 1600)
+    n = len(rush)
+    rush = [x * min(1.0, i / (0.08 * RATE)) * (0.35 + 0.65 * math.exp(-3.0 * i / n)) for i, x in enumerate(rush)]
+    return finish(mix(rush, scaled(mode(55, 0.4, 1.2, 1.0), 0.5)), 0.7, fade_out=0.25)
+
+
+def fire_loop(rng, seconds=5.0):
+    """A pan fire's roar and crackle, looping without a seam (same trick as the sizzle)."""
+    n = int(seconds * RATE)
+    fade = int(0.4 * RATE)
+    roar = biquad(biquad(noise(rng, seconds + 0.8), "low", 1200), "high", 80)
+    out = []
+    for i in range(n):
+        x = roar[fade + i]
+        if i < fade:
+            k = i / fade
+            x = x * math.sqrt(k) + roar[fade + n + i] * math.sqrt(1 - k)
+        out.append(x * (1.0 + 0.2 * math.sin(2 * math.pi * 3 * i / n)) * 0.5)
+    for _ in range(int(seconds * 18)):
+        start = rng.randrange(n)
+        size = rng.random() ** 2
+        pop = decay(biquad(noise(rng, 0.03), "band", rng.uniform(900, 3500), 1.0), 0.004 + 0.012 * size)
+        for i, x in enumerate(pop):
+            out[(start + i) % n] += x * (0.4 + 1.6 * size)
+    top = max(abs(x) for x in out)
+    return [x / top * 0.75 for x in out]
+
+
+def fire_out(rng):
+    """The extinguisher winning: a long hiss that tails away, with a last little crackle."""
+    hiss = biquad(noise(rng, 1.3), "high", 2400)
+    n = len(hiss)
+    hiss = [x * min(1.0, i / (0.02 * RATE)) * math.exp(-2.6 * i / n) for i, x in enumerate(hiss)]
+    return finish(mix(hiss, at(0.5, scaled(decay(biquad(noise(rng, 0.02), "band", 1800, 1.0), 0.01), 0.5))), 0.55, fade_out=0.2)
+
+
+def stroke(rng, centre, seconds, q, gain=1.0):
+    """One sweep of something across a surface: band-passed noise that rises and falls."""
+    body = biquad(noise(rng, seconds), "band", centre * rng.uniform(0.85, 1.15), q)
+    n = len(body)
+    return scaled([x * math.sin(math.pi * i / n) ** 1.5 for i, x in enumerate(body)], gain)
+
+
+def scrub(rng):
+    return finish(stroke(rng, 2600, 0.22, 1.2), 0.45, fade_out=0.01)
+
+
+def mop(rng):
+    # Wetter and lower than the cloth: a slosh across the floor.
+    return finish(mix(stroke(rng, 700, 0.35, 0.8), stroke(rng, 2200, 0.3, 1.5, 0.3)), 0.45, fade_out=0.02)
+
+
+def spray(rng):
+    return finish(stroke(rng, 4200, 0.3, 0.5), 0.45, fade_out=0.02)
+
+
+def clean_done():
+    """Clean: a small bright sparkle, three quick high notes."""
+    notes = [(2093, 0.0), (2637, 0.06), (3136, 0.12)]
+    return finish(mix(*(at(t, tone(f, 0.35, 0.25, 0.8, BELLISH)) for f, t in notes)), 0.4, fade_out=0.05)
+
+
+def wash(rng):
+    """Washing up: water swirling round a plate, with a scrub in it."""
+    return finish(mix(stroke(rng, 900, 0.4, 0.6), stroke(rng, 2400, 0.25, 1.4, 0.35)), 0.4, fade_out=0.03)
+
+
+def splash(rng):
+    """A plate going into the sink's water."""
+    plop = mode(260 * rng.uniform(0.9, 1.1), 0.06, 0.4, 1.0)
+    water = decay(biquad(noise(rng, 0.35), "band", 1500, 0.6), 0.25, attack=0.004)
+    clink = at(0.02, scaled(tone(2900 * rng.uniform(0.95, 1.05), 0.2, 0.12, 1.0, BELLISH), 0.15))
+    return finish(mix(scaled(plop, 0.5), water, clink), 0.5, fade_out=0.05)
+
+
+def splat(rng):
+    """A spill landing on the floor: wet and soft."""
+    wet = decay(biquad(noise(rng, 0.18), "low", 1100 * rng.uniform(0.8, 1.2)), 0.1, attack=0.002)
+    return finish(mix(wet, scaled(mode(140, 0.05, 0.18, 1.0), 0.5)), 0.4, fade_out=0.02)
+
+
+def bin_thunk(rng):
+    """Something dropped into the bin: a dull thud into a hollow plastic body."""
+    body = mix(mode(160 * rng.uniform(0.9, 1.1), 0.12, 0.3, 1.0), mode(390 * rng.uniform(0.9, 1.1), 0.07, 0.3, 0.4))
+    rustle = scaled(decay(biquad(noise(rng, 0.08), "band", 3000, 0.8), 0.05), 0.25)
+    return finish(mix(body, rustle), 0.5, fade_out=0.03)
+
+
+def bag(rng):
+    """The bin bag pulled out: plastic rustling for half a second."""
+    out = []
+    for _ in range(14):
+        out = mix(out or [0.0], at(rng.uniform(0, 0.45), scaled(stroke(rng, rng.uniform(2500, 5000), 0.06, 1.5), rng.uniform(0.4, 1.0))))
+    return finish(out, 0.4, fade_out=0.03)
+
+
+def knife(rng):
+    """A knife drawn from (or slid into) the rack: a short bright metal shing."""
+    ring = tone(4200 * rng.uniform(0.96, 1.04), 0.35, 0.25, 1.0, ((1, 1.0), (1.47, 0.5), (2.09, 0.3)))
+    scrape = stroke(rng, 6000, 0.12, 2.0, 0.8)
+    return finish(mix(scrape, at(0.05, scaled(ring, 0.5))), 0.4, fade_out=0.04)
+
+
+def serve(notes):
+    """A plate landing at the table, then a little phrase that says how it went."""
+    plate = mix(mode(700, 0.04, 0.1, 1.0), mode(1600, 0.03, 0.1, 0.4))
+    phrase = mix(*(at(0.08 + t, tone(f, 0.4, 0.3, 0.8, MARIMBA)) for f, t in notes))
+    return finish(mix(scaled(plate, 0.6), phrase), 0.5, fade_out=0.05)
+
+
+def walkout():
+    """A party giving up: two low notes falling, deliberately flat and a little sad."""
+    return finish(mix(tone(392, 0.45, 0.35, 1.0, MARIMBA), at(0.16, tone(311, 0.55, 0.45, 1.0, MARIMBA))), 0.5, fade_out=0.08)
+
+
+def furniture(rng):
+    """Furniture set down: a heavy wooden thump."""
+    return finish(mix(mode(90 * rng.uniform(0.9, 1.1), 0.15, 0.35, 1.0), mode(210 * rng.uniform(0.9, 1.1), 0.08, 0.35, 0.5),
+                      scaled(decay(biquad(noise(rng, 0.04), "low", 1200), 0.03), 0.6)), 0.55, fade_out=0.03)
+
+
+def ticket(rng):
+    """A new order: the little chatter of a ticket printer, then the paper tearing off."""
+    chatter = mix(*(at(i * 0.022, decay(biquad(noise(rng, 0.01), "band", 3400, 2.0), 0.006)) for i in range(9)))
+    tear = at(0.24, stroke(rng, 5200, 0.07, 1.0, 0.8))
+    return finish(mix(chatter, tear), 0.4, fade_out=0.02)
+
+
+def count_tick():
+    return finish(tone(1046, 0.22, 0.15, 1.0, BELLISH), 0.45, fade_out=0.04)
+
+
+def doors_open():
+    """Service begins: a bright rising arpeggio, like a shop opening its doors."""
+    notes = [(523, 0.0), (659, 0.08), (784, 0.16), (1046, 0.24)]
+    return finish(mix(*(at(t, tone(f, 0.7, 0.55, 0.8, BELLISH)) for f, t in notes)), 0.55, fade_out=0.1)
+
+
+def service_over():
+    """Service ends: the same notes falling, softer, a full stop."""
+    notes = [(1046, 0.0), (784, 0.1), (659, 0.2), (523, 0.32)]
+    return finish(mix(*(at(t, tone(f, 0.8, 0.6, 0.8, BELLISH)) for f, t in notes)), 0.5, fade_out=0.12)
+
+
+def scooter(rng, arriving):
+    """A scooter's two-stroke putter, slowing to a stop or revving away."""
+    seconds = 1.2
+    n = int(seconds * RATE)
+    out, phase = [], 0.0
+    for i in range(n):
+        t = i / n
+        rate = (55 - 30 * t) if arriving else (30 + 45 * t)
+        phase += rate / RATE
+        pulse = 1.0 if (phase % 1.0) < 0.15 else 0.0
+        out.append(pulse * (rng.uniform(0.7, 1.0)))
+    body = biquad(biquad(out, "low", 900), "high", 70)
+    env = [(1 - t) ** 0.5 if arriving else min(1.0, t * 4) * (1 - t) ** 1.5 for t in (i / n for i in range(n))]
+    return finish([x * e for x, e in zip(body, env)], 0.45, fade_out=0.1)
+
+
+def phone_ring():
+    """The boss's mobile: two short trilling bursts, a classic ring, not a melody."""
+    def burst():
+        n = int(0.4 * RATE)
+        return [math.sin(2 * math.pi * 1400 * i / RATE) * (0.6 + 0.4 * math.sin(2 * math.pi * 18 * i / RATE))
+                * min(1.0, i / 200, (n - i) / 200) for i in range(n)]
+    return finish(mix(burst(), at(0.55, burst())), 0.45)
+
+
+def join_pop():
+    """A chef joining: a cheerful upward pop."""
+    return finish(mix(tone(660, 0.25, 0.18, 1.0, MARIMBA), at(0.07, tone(990, 0.3, 0.22, 1.0, MARIMBA))), 0.5, fade_out=0.04)
+
+
+def fanfare():
+    """A restaurant bought: a short, proud brass-ish flourish."""
+    brass = ((1, 1.0), (2, 0.6), (3, 0.4), (4, 0.25), (5, 0.12))
+    notes = [(392, 0.0, 0.18), (523, 0.15, 0.18), (659, 0.3, 0.18), (784, 0.45, 0.6)]
+    return finish(mix(*(at(t, tone(f, d + 0.3, d + 0.2, 0.8, brass, attack=0.02)) for f, t, d in notes)), 0.55, fade_out=0.12)
+
+
 def main():
     rng = random.Random(20261107)
     write("SFX_Bell_01", bell(rng, 2350))
@@ -351,6 +601,57 @@ def main():
     write("SFX_Fridge_Close_02", fridge_close(rng, 1.05))
     write("SFX_Lift_Ding_01", lift_ding(rng, 1318.5))
     write("SFX_Lift_Doors_01", lift_doors(rng))
+    # Everything below came with the 2026-11-13 pass over the whole game; still appended last.
+    for i in range(1, 3):
+        write(f"SFX_UI_Move_{i:02}", ui_move(rng))
+    write("SFX_UI_Confirm_01", ui_confirm())
+    write("SFX_UI_Back_01", ui_back())
+    for i in range(1, 3):
+        write(f"SFX_Deny_{i:02}", deny(rng))
+    for i in range(1, 4):
+        write(f"SFX_Pickup_{i:02}", pickup(rng))
+    for i in range(1, 4):
+        write(f"SFX_Heat_Click_{i:02}", heat_click(rng))
+    for i in range(1, 3):
+        write(f"SFX_Gas_Ignite_{i:02}", gas_ignite(rng))
+    write("SFX_Gas_Off_01", gas_off(rng))
+    write("SFX_Fire_Whoosh_01", fire_whoosh(rng))
+    write("SFX_Fire_Loop", fire_loop(rng))
+    write("SFX_Fire_Out_01", fire_out(rng))
+    for i in range(1, 4):
+        write(f"SFX_Scrub_{i:02}", scrub(rng))
+    for i in range(1, 3):
+        write(f"SFX_Mop_{i:02}", mop(rng))
+    for i in range(1, 3):
+        write(f"SFX_Spray_{i:02}", spray(rng))
+    write("SFX_Clean_Done_01", clean_done())
+    for i in range(1, 4):
+        write(f"SFX_Wash_{i:02}", wash(rng))
+    for i in range(1, 3):
+        write(f"SFX_Splash_{i:02}", splash(rng))
+    for i in range(1, 3):
+        write(f"SFX_Splat_{i:02}", splat(rng))
+    for i in range(1, 3):
+        write(f"SFX_Bin_{i:02}", bin_thunk(rng))
+    write("SFX_Bag_01", bag(rng))
+    for i in range(1, 3):
+        write(f"SFX_Knife_{i:02}", knife(rng))
+    write("SFX_Serve_Good_01", serve([(784, 0.0), (1046, 0.09), (1318, 0.18)]))
+    write("SFX_Serve_Ok_01", serve([(784, 0.0), (880, 0.1)]))
+    write("SFX_Serve_Poor_01", serve([(523, 0.0), (466, 0.12)]))
+    write("SFX_Walkout_01", walkout())
+    for i in range(1, 3):
+        write(f"SFX_Furniture_{i:02}", furniture(rng))
+    for i in range(1, 3):
+        write(f"SFX_Ticket_{i:02}", ticket(rng))
+    write("SFX_Count_01", count_tick())
+    write("SFX_Open_01", doors_open())
+    write("SFX_Close_01", service_over())
+    write("SFX_Scooter_In_01", scooter(rng, arriving=True))
+    write("SFX_Scooter_Out_01", scooter(rng, arriving=False))
+    write("SFX_Phone_01", phone_ring())
+    write("SFX_Join_01", join_pop())
+    write("SFX_Fanfare_01", fanfare())
 
 
 if __name__ == "__main__":

@@ -83,8 +83,11 @@ namespace Game.Presentation.Menu
         /// <summary>The controller (or keyboard) that last pressed a button in the menu: the opening joins it as player 1.</summary>
         public static InputDevice LastDevice { get; private set; }
 
+        private SfxPlayer _sfx;
+
         private void Start()
         {
+            _sfx = FindFirstObjectByType<SfxPlayer>();
             _settings = PlayerSettings.Load(_realism);
             ApplyLanguage();
             ReadSlots();
@@ -163,6 +166,19 @@ namespace Game.Presentation.Menu
 
         // ---- Input ----
 
+        // One sound per press: a tick to move, a rising pair to choose, a falling pair to go back.
+        private void PlayFeedback(Vector2Int step, bool confirm, bool back)
+        {
+            if (_sfx == null)
+                return;
+            if (back)
+                _sfx.PlayUi(_sfx.Sounds.UiBack);
+            else if (confirm)
+                _sfx.PlayUi(_sfx.Sounds.UiConfirm);
+            else if (step != Vector2Int.zero)
+                _sfx.PlayUi(_sfx.Sounds.UiMove);
+        }
+
         private void ReadInput()
         {
             var stick = Stick();
@@ -178,6 +194,8 @@ namespace Game.Presentation.Menu
                     ? new Vector2Int(stick.x > 0f ? 1 : -1, 0)
                     : new Vector2Int(0, stick.y > 0f ? -1 : 1);
             }
+
+            PlayFeedback(step, Pressed(Face.South) || Pressed(Face.North), Pressed(Face.East));
 
             switch (_openPage)
             {

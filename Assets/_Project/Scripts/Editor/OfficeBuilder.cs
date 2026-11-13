@@ -187,6 +187,7 @@ namespace Game.Editor
             camera.backgroundColor = Dusk; // the haze, so the city fades into the sky
             HouseStyle.SmoothEdges(camera);
             camera.gameObject.AddComponent<AudioListener>();
+            GreyboxAudio.AddToOffice();
             var follow = camera.gameObject.AddComponent<OfficeCamera>();
             var framing = new SerializedObject(follow);
             framing.FindProperty("_floorMin").vector2Value = new Vector2(West, South);

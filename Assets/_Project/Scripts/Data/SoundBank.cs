@@ -113,6 +113,78 @@ namespace Game.Data
         [Tooltip("A courier's scooter pulling up outside: the last warning to get the box on the counter.")]
         [SerializeField] private SoundCue _courierHorn = new SoundCue(0.45f, 0.03f, 0.6f);
 
+        [Header("Menus (the same everywhere)")]
+        [SerializeField] private SoundCue _uiMove = new SoundCue(0.35f, 0.02f, 0.03f);
+        [SerializeField] private SoundCue _uiConfirm = new SoundCue(0.45f, 0f, 0.05f);
+        [SerializeField] private SoundCue _uiBack = new SoundCue(0.4f, 0f, 0.05f);
+
+        [Header("Hands")]
+        [Tooltip("Pressed at something that can't take it: a muted knock, never an error buzzer.")]
+        [SerializeField] private SoundCue _deny = new SoundCue(0.35f, 0.05f, 0.15f);
+        [Tooltip("Something picked up: quieter than setting it down.")]
+        [SerializeField] private SoundCue _pickup = new SoundCue(0.25f, 0.08f, 0.05f);
+        [Tooltip("A chef joining a kitchen already under way.")]
+        [SerializeField] private SoundCue _join = new SoundCue(0.5f, 0f, 0.3f);
+
+        [Header("Hobs and fire")]
+        [Tooltip("Each notch of a hob's knob as it turns.")]
+        [SerializeField] private SoundCue _heatClick = new SoundCue(0.3f, 0.06f, 0.04f);
+        [Tooltip("Notches a gas knob clicks through from off to full: more is a finer dial.")]
+        [SerializeField, Min(1)] private int _gasNotches = 6;
+        [SerializeField] private SoundCue _gasIgnite = new SoundCue(0.45f, 0.04f, 0.3f);
+        [SerializeField] private SoundCue _gasOff = new SoundCue(0.4f, 0.04f, 0.2f);
+        [SerializeField] private SoundCue _fireWhoosh = new SoundCue(0.6f, 0.03f, 0.5f);
+        [Tooltip("Plays on repeat while any pan is on fire.")]
+        [SerializeField] private AudioClip _fireLoop;
+        [SerializeField, Range(0f, 1f)] private float _fireLoopVolume = 0.45f;
+        [SerializeField] private SoundCue _fireOut = new SoundCue(0.5f, 0.03f, 0.5f);
+
+        [Header("Cleaning and washing up")]
+        [SerializeField] private SoundCue _scrub = new SoundCue(0.3f, 0.08f, 0f);
+        [SerializeField] private SoundCue _mop = new SoundCue(0.3f, 0.08f, 0f);
+        [SerializeField] private SoundCue _spray = new SoundCue(0.35f, 0.06f, 0f);
+        [Tooltip("Seconds between strokes while cleaning: cloth, mop, extinguisher.")]
+        [SerializeField] private Vector3 _strokeSeconds = new Vector3(0.3f, 0.45f, 0.3f);
+        [Tooltip("A spot wiped clean.")]
+        [SerializeField] private SoundCue _cleanDone = new SoundCue(0.35f, 0.04f, 0.2f);
+        [SerializeField] private SoundCue _wash = new SoundCue(0.3f, 0.08f, 0f);
+        [SerializeField, Min(0.1f)] private float _washStrokeSeconds = 0.45f;
+        [Tooltip("A plate going into the sink.")]
+        [SerializeField] private SoundCue _splash = new SoundCue(0.4f, 0.06f, 0.15f);
+        [Tooltip("A new spill on the floor during the day.")]
+        [SerializeField] private SoundCue _splat = new SoundCue(0.3f, 0.08f, 0.3f);
+
+        [Header("Stations")]
+        [SerializeField] private SoundCue _binThunk = new SoundCue(0.4f, 0.06f, 0.08f);
+        [Tooltip("The bin bag taken out.")]
+        [SerializeField] private SoundCue _binBag = new SoundCue(0.4f, 0.04f, 0.3f);
+        [SerializeField] private SoundCue _knife = new SoundCue(0.3f, 0.05f, 0.1f);
+        [Tooltip("Furniture set down, bought or carried off.")]
+        [SerializeField] private SoundCue _furniture = new SoundCue(0.45f, 0.06f, 0.15f);
+
+        [Header("Service")]
+        [Tooltip("A dish reaching the table: the phrase says how it went.")]
+        [SerializeField] private SoundCue _serveGood = new SoundCue(0.45f, 0f, 0.2f);
+        [SerializeField] private SoundCue _serveOk = new SoundCue(0.4f, 0f, 0.2f);
+        [SerializeField] private SoundCue _servePoor = new SoundCue(0.4f, 0f, 0.2f);
+        [Tooltip("Stars at or above which a dish counts as good, and as all right.")]
+        [SerializeField] private Vector2 _serveStars = new Vector2(4f, 2.5f);
+        [Tooltip("A new order on the rail. The interval makes a table ordering together one sound.")]
+        [SerializeField] private SoundCue _ticket = new SoundCue(0.4f, 0.03f, 0.5f);
+        [SerializeField] private SoundCue _walkout = new SoundCue(0.45f, 0f, 1f);
+        [Tooltip("Each number of the countdown before the doors open.")]
+        [SerializeField] private SoundCue _countdown = new SoundCue(0.4f, 0f, 0.3f);
+        [SerializeField] private SoundCue _doorsOpen = new SoundCue(0.5f, 0f, 1f);
+        [SerializeField] private SoundCue _serviceOver = new SoundCue(0.5f, 0f, 1f);
+        [SerializeField] private SoundCue _scooterIn = new SoundCue(0.35f, 0.04f, 0.5f);
+        [SerializeField] private SoundCue _scooterOut = new SoundCue(0.35f, 0.04f, 0.5f);
+        [Tooltip("The boss's mobile ringing.")]
+        [SerializeField] private SoundCue _phone = new SoundCue(0.4f, 0f, 1f);
+
+        [Header("The boss's floor")]
+        [Tooltip("A restaurant bought on the city miniature.")]
+        [SerializeField] private SoundCue _fanfare = new SoundCue(0.5f, 0f, 1f);
+
         [Header("Mix")]
         [Tooltip("How far sounds pan with their place on screen: 0 is centred, 1 is hard left and right at the screen's edges.")]
         [SerializeField, Range(0f, 1f)] private float _stereoWidth = 0.5f;
@@ -149,6 +221,46 @@ namespace Game.Data
         public SoundCue Chime => _chime;
         public SoundCue DeliveryPing => _deliveryPing;
         public SoundCue CourierHorn => _courierHorn;
+        public SoundCue UiMove => _uiMove;
+        public SoundCue UiConfirm => _uiConfirm;
+        public SoundCue UiBack => _uiBack;
+        public SoundCue Deny => _deny;
+        public SoundCue Pickup => _pickup;
+        public SoundCue Join => _join;
+        public SoundCue HeatClick => _heatClick;
+        public int GasNotches => _gasNotches;
+        public SoundCue GasIgnite => _gasIgnite;
+        public SoundCue GasOff => _gasOff;
+        public SoundCue FireWhoosh => _fireWhoosh;
+        public AudioClip FireLoop => _fireLoop;
+        public float FireLoopVolume => _fireLoopVolume;
+        public SoundCue FireOut => _fireOut;
+        public SoundCue Scrub => _scrub;
+        public SoundCue Mop => _mop;
+        public SoundCue Spray => _spray;
+        public Vector3 StrokeSeconds => _strokeSeconds;
+        public SoundCue CleanDone => _cleanDone;
+        public SoundCue Wash => _wash;
+        public float WashStrokeSeconds => _washStrokeSeconds;
+        public SoundCue Splash => _splash;
+        public SoundCue Splat => _splat;
+        public SoundCue BinThunk => _binThunk;
+        public SoundCue BinBag => _binBag;
+        public SoundCue Knife => _knife;
+        public SoundCue Furniture => _furniture;
+        public SoundCue ServeGood => _serveGood;
+        public SoundCue ServeOk => _serveOk;
+        public SoundCue ServePoor => _servePoor;
+        public Vector2 ServeStars => _serveStars;
+        public SoundCue Ticket => _ticket;
+        public SoundCue Walkout => _walkout;
+        public SoundCue Countdown => _countdown;
+        public SoundCue DoorsOpen => _doorsOpen;
+        public SoundCue ServiceOver => _serviceOver;
+        public SoundCue ScooterIn => _scooterIn;
+        public SoundCue ScooterOut => _scooterOut;
+        public SoundCue Phone => _phone;
+        public SoundCue Fanfare => _fanfare;
         public float StereoWidth => _stereoWidth;
     }
 }

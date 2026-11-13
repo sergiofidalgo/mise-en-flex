@@ -4,6 +4,21 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-13 — A sound for every action that needs one
+
+**Decision (user's call):** go through the game as it is and give sound to every relevant action. The user asked for it after noticing no sound; the cause turned out to be the Editor's Mute Audio toggle, which was on, not the game.
+
+**What's added (synthesized placeholders, tuning in `SoundBank.asset`):**
+- **Kitchen:** hob knobs click per notch (higher turning up), gas lights with a whump and goes out with a puff; a pan fire roars up, crackles while it burns and hisses out. Cloth, mop and extinguisher sound stroke by stroke, with a sparkle when a spot comes clean. Water and a splash at the sink, a soft splat when a spill lands during the day. Picking up has a soft lift; a press that can't do anything gives a muted knock. The bin thuds and its bag rustles out; knives shing in and out of the rack; furniture thumps down, and lower when the boss's men carry it off.
+- **Service:** the countdown ticks (the last one higher) and the doors open with a rising phrase; service closes with the same notes falling. A ticket prints for each new order (one per table). A served dish lands with a short phrase that says how it went (good from 4 stars, all right from 2.5). A party walking out gets two sad low notes. Couriers' scooters pull up and ride off; the boss's phone rings; a chef joining mid-day pops in.
+- **Office and menus:** the main and pause menus tick, confirm and go back (and stay audible while paused); the city miniature, accountant and tailor use the same; a restaurant bought plays a short fanfare.
+
+**How it's built:** a shared `SfxPlayer` (one per scene: `KitchenAudio`, `OfficeAudio`) that menus find; small listeners for each area (`HobAudio`, `CleaningAudio`, `StationAudio`, `ServiceAudio`). The builders add them, so rebuilds keep them.
+
+**Not built:** see "Sound still to do" in `ideas.md`.
+
+---
+
 ## 2026-11-13 — Washing a plate takes 2 circles
 
 **User's call:** washing a single dish took way too long (4 circles a plate at up to 1.5 a second, at least 2.7 s and nearer 4 s at an easy pace). Now 2 circles a plate at up to 2 a second (`TuningConfig`, Washing by hand): about 1 s at full speed, 1.5 to 2 s at a relaxed pace. The pace test expects 0.8 to 1.4 s a plate at the cap.
