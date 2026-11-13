@@ -134,7 +134,8 @@ namespace Game.Presentation.Menu
             // Everyone's button is read every frame, so each one's tap/hold state stays current.
             foreach (var player in PlayerInput.all)
             {
-                if (MenuButton.Read(player) != MenuPress.Result.Tap || opener != null || PlayerPresence.IsLost(player))
+                // Naming themselves as they join, Menu finishes the name instead (2026-11-13).
+                if (MenuButton.Read(player) != MenuPress.Result.Tap || opener != null || PlayerPresence.IsLost(player) || Game.Gameplay.JoinNaming.IsBusyNaming(player))
                     continue;
                 opener = player;
             }

@@ -15,15 +15,14 @@ namespace Game.Gameplay
     /// or a kitchen: the naming keyboard opens under their card, they stand still until Done, and
     /// the name goes on their card and into their chef's profile. Players carried over from the
     /// last scene aren't new and skip it. The D-pad moves (repeating while held), A types or
-    /// chooses, X deletes, Y rolls other suggestions. <see cref="Arrived"/> says when a player is
+    /// chooses, X deletes and Menu finishes (as Done), read straight from the player's controller. <see cref="Arrived"/> says when a player is
     /// ready: at once for one carried over, on Done for a new one (the office's lift dings then).
     /// </summary>
     public sealed class JoinNaming : MonoBehaviour
     {
-        private const string InteractAction = "Interact";
-        private const string DeleteAction = "Use"; // X
-        private const string RollAction = "ButtonY";
-        private const string NavigateAction = "Navigate"; // the D-pad or arrows
+        // Read from the player's own controller, not their actions: the kitchen switches action
+        // maps by phase (Plan's cards), and naming must work in any of them.
+        private enum Button { A, X, Start }
 
         [SerializeField] private PlayerInputManager _manager;
         [SerializeField] private PlayerJoinController _joins;
@@ -63,6 +62,11 @@ namespace Game.Gameplay
 
         public bool IsNaming(PlayerInput player) => player != null && _sessions.ContainsKey(player);
 
+        private static readonly HashSet<PlayerInput> Everyone = new HashSet<PlayerInput>();
+
+        /// <summary>True while <paramref name="player"/> is naming themselves, in whichever scene: menus that read every player's buttons (forkcast, ready-up) leave them alone.</summary>
+        public static bool IsBusyNaming(PlayerInput player) => player != null && Everyone.Contains(player);
+
         private void OnEnable()
         {
             _manager.onPlayerJoined += HandleJoined;
@@ -71,6 +75,8 @@ namespace Game.Gameplay
 
         private void OnDisable()
         {
+            foreach (var player in _sessions.Keys)
+                Everyone.Remove(player);
             _manager.onPlayerJoined -= HandleJoined;
             _manager.onPlayerLeft -= HandleLeft;
         }
@@ -84,20 +90,22 @@ namespace Game.Gameplay
             }
             var slot = player.playerIndex;
             var profile = ChefProfileFile.Current;
-            var taken = PlayerInput.all.Where(p => p != player).Select(p => profile.Name(p.playerIndex)).Where(n => n.Length > 0);
-            var pool = GuestNames.All.TryGetValue(Locale.Language, out var names) ? names : GuestNames.All["en"];
-            var seed = unchecked(slot * 31 + Environment.TickCount);
             _sessions[player] = new Session
             {
                 Player = player,
-                Naming = new ChefNaming(profile.Name(slot), pool, taken, seed),
+                Naming = new ChefNaming(profile.Name(slot)),
                 // The A that joined them mustn't also press a key.
                 StartedFrame = Time.frameCount,
             };
             Hold(player, true);
+            Everyone.Add(player);
         }
 
-        private void HandleLeft(PlayerInput player) => _sessions.Remove(player);
+        private void HandleLeft(PlayerInput player)
+        {
+            _sessions.Remove(player);
+            Everyone.Remove(player);
+        }
 
         private void Update()
         {
@@ -108,18 +116,15 @@ namespace Game.Gameplay
                 if (player == null || session.StartedFrame == Time.frameCount)
                     continue;
                 var naming = session.Naming;
-                if (WasPressed(player, RollAction))
-                {
-                    naming.Roll();
-                    Pressed?.Invoke(player, true);
-                }
-                if (WasPressed(player, DeleteAction))
+                if (WasPressed(player, Button.X))
                     Pressed?.Invoke(player, naming.Delete());
                 var step = Push(session);
                 if (step != Vector2Int.zero)
                     naming.Move(step.x, -step.y);
-                if (WasPressed(player, InteractAction))
+                if (WasPressed(player, Button.A))
                     Pressed?.Invoke(player, naming.Press());
+                else if (WasPressed(player, Button.Start))
+                    Pressed?.Invoke(player, naming.Finish());
                 if (naming.Done)
                     _done.Add(session);
             }
@@ -128,6 +133,7 @@ namespace Game.Gameplay
                 _sessions.Remove(session.Player);
                 ChefProfileFile.SetName(session.Player.playerIndex, session.Naming.Chosen);
                 Hold(session.Player, false);
+                Everyone.Remove(session.Player);
                 Arrived?.Invoke(session.Player);
             }
         }
@@ -143,7 +149,7 @@ namespace Game.Gameplay
         // slightly diagonal push doesn't skip a row.
         private Vector2Int Push(Session session)
         {
-            var value = session.Player.actions[NavigateAction].ReadValue<Vector2>();
+            var value = Direction(session.Player);
             var direction = Vector2Int.zero;
             if (Mathf.Max(Mathf.Abs(value.x), Mathf.Abs(value.y)) >= _threshold)
                 direction = Mathf.Abs(value.x) >= Mathf.Abs(value.y)
@@ -168,10 +174,49 @@ namespace Game.Gameplay
             return direction;
         }
 
-        private static bool WasPressed(PlayerInput player, string action)
+        // The buttons by their Xbox names; on the keyboard (for testing) X and A stand in for A and
+        // X (decision 2026-11-02), and Escape for Menu.
+        private static bool WasPressed(PlayerInput player, Button button)
         {
-            var input = player.actions.FindAction(action);
-            return input != null && input.WasPressedThisFrame();
+            foreach (var device in player.devices)
+            {
+                if (device is Gamepad pad)
+                {
+                    var control = button == Button.A ? pad.buttonSouth : button == Button.X ? pad.buttonWest : pad.startButton;
+                    if (control.wasPressedThisFrame)
+                        return true;
+                }
+                else if (device is Keyboard keys)
+                {
+                    var key = button == Button.A ? keys.xKey : button == Button.X ? keys.aKey : keys.escapeKey;
+                    if (key.wasPressedThisFrame || (button == Button.A && keys.enterKey.wasPressedThisFrame))
+                        return true;
+                }
+            }
+            return false;
+        }
+
+        // The D-pad (or the arrow keys): too loose on the stick for a grid of keys (2026-11-10).
+        private static Vector2 Direction(PlayerInput player)
+        {
+            foreach (var device in player.devices)
+            {
+                if (device is Gamepad pad)
+                {
+                    var value = pad.dpad.ReadValue();
+                    if (value.sqrMagnitude > 0.01f)
+                        return value;
+                }
+                else if (device is Keyboard keys)
+                {
+                    var value = new Vector2(
+                        (keys.rightArrowKey.isPressed ? 1f : 0f) - (keys.leftArrowKey.isPressed ? 1f : 0f),
+                        (keys.upArrowKey.isPressed ? 1f : 0f) - (keys.downArrowKey.isPressed ? 1f : 0f));
+                    if (value.sqrMagnitude > 0.01f)
+                        return value;
+                }
+            }
+            return Vector2.zero;
         }
     }
 }

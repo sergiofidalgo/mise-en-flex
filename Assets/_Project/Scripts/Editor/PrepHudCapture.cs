@@ -70,7 +70,7 @@ namespace Game.Editor
                 Shoot(camera, money, day, bar, cards, Row(chefs, 4, (1, Shop(ShopSection.Furniture, 4, 676f)), (2, Shop(ShopSection.Kitchenware, 1, 676f))),
                     new Dictionary<int, float> { [1] = 0.6f }, new[] { 0, 2 }, 12, 14, 2.4f, "prep_four_cooks.png");
                 // A third player has just joined and names themselves under their card (2026-11-13).
-                var naming = new Game.Simulation.Characters.ChefNaming("", Game.Data.GuestNames.All["en"], new[] { "Rosa" }, 7);
+                var naming = new Game.Simulation.Characters.ChefNaming("");
                 naming.Picker.Type("a");
                 naming.Picker.Type("n");
                 naming.Picker.Type("a");

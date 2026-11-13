@@ -1,53 +1,35 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using Game.Simulation.Campaign;
 
 namespace Game.Simulation.Characters
 {
     /// <summary>
     /// A player naming themselves as they join (the user's calls, 2026-11-13), on the restaurant
-    /// naming keyboard: their name from last time on the top row (one press keeps it), two
-    /// suggested names (Y rolls others), then the letters and Space, Delete, Done. Plain C#, so
-    /// it's tested without Play mode.
+    /// naming keyboard, trimmed for it: their name from last time on the top row (one press keeps
+    /// it), then the letters, then Space and Done. No suggestions and no Delete key: X deletes and
+    /// Start finishes, as shortcuts. Plain C#, so it's tested without Play mode.
     /// </summary>
     public sealed class ChefNaming
     {
         /// <summary>The longest name a player card fits.</summary>
         public const int MaxLength = 12;
 
-        /// <summary>Suggested names shown at once.</summary>
-        public const int Suggestions = 2;
-
-        private readonly IReadOnlyList<string> _pool;
-        private readonly IReadOnlyList<string> _taken;
-        private int _rolls;
+        private readonly string _lastName;
 
         /// <param name="lastName">The name this slot used last time; empty for none.</param>
-        /// <param name="pool">Names to suggest from (the guests' first names, in the player's language).</param>
-        /// <param name="taken">Other players' names, never suggested.</param>
-        /// <param name="seed">Varies the suggestions between joins.</param>
-        public ChefNaming(string lastName, IEnumerable<string> pool, IEnumerable<string> taken, int seed)
+        public ChefNaming(string lastName)
         {
-            _pool = (pool ?? Enumerable.Empty<string>()).ToList();
-            var taken2 = (taken ?? Enumerable.Empty<string>()).ToList();
-            if (!string.IsNullOrWhiteSpace(lastName))
-                taken2.Add(lastName);
-            _taken = taken2;
-            Seed = seed;
-            Picker = new NamePicker(lastName, Suggest(), MaxLength);
+            _lastName = RestaurantNaming.Clean(lastName);
+            Picker = new NamePicker(_lastName, null, MaxLength, deleteKey: false);
         }
 
         public NamePicker Picker { get; }
 
-        public int Seed { get; private set; }
-
-        /// <summary>The name chosen, once Done (or a kept or suggested name) has been pressed.</summary>
+        /// <summary>The name chosen, once Done (or the kept name) has been pressed, or Start.</summary>
         public string Chosen { get; private set; }
 
         public bool Done => Chosen != null;
 
-        /// <summary>Changes made: each press, move or roll bumps it, so the card can pop.</summary>
+        /// <summary>Changes made: each press and move bumps it, so the card can redraw and pop.</summary>
         public int Version { get; private set; }
 
         /// <summary>A press of A: types, or finishes. Returns true if it did anything.</summary>
@@ -69,6 +51,25 @@ namespace Game.Simulation.Characters
             return changed;
         }
 
+        /// <summary>
+        /// Start, a shortcut for Done: what's typed, or with nothing typed, last time's name.
+        /// False (nothing happens) with neither.
+        /// </summary>
+        public bool Finish()
+        {
+            if (Done)
+                return false;
+            if (Picker.CanFinish)
+                Chosen = RestaurantNaming.Clean(Picker.Text);
+            else if (_lastName.Length > 0)
+                Chosen = _lastName;
+            else
+                return false;
+            Version++;
+            return true;
+        }
+
+        /// <summary>X.</summary>
         public bool Delete()
         {
             if (Done || !Picker.Delete())
@@ -84,18 +85,5 @@ namespace Game.Simulation.Characters
             Version++;
             return true;
         }
-
-        /// <summary>Y: two other suggestions.</summary>
-        public void Roll()
-        {
-            if (Done)
-                return;
-            _rolls++;
-            Picker.SetSuggestions(Suggest());
-            Version++;
-        }
-
-        private IReadOnlyList<string> Suggest() =>
-            RestaurantNaming.Suggest(_pool, unchecked(Seed * 7919 + _rolls * 104729), Suggestions, _taken);
     }
 }

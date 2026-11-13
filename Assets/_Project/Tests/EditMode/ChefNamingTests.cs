@@ -9,12 +9,10 @@ namespace Game.Tests.EditMode
     /// <summary>Naming yourself as you join, and when you may join a kitchen (2026-11-13).</summary>
     public class ChefNamingTests
     {
-        private static readonly string[] Pool = { "Mike", "Jessica", "Tyler", "Ashley", "Brandon", "Megan" };
-
         [Test]
         public void LastTimesNameIsOnePressAway()
         {
-            var naming = new ChefNaming("Rosa", Pool, null, 1);
+            var naming = new ChefNaming("Rosa");
             Assert.That(naming.Picker.Selected.Kind, Is.EqualTo(NameKeyKind.Keep));
             Assert.That(naming.Press(), Is.True);
             Assert.That(naming.Chosen, Is.EqualTo("Rosa"));
@@ -22,20 +20,36 @@ namespace Game.Tests.EditMode
         }
 
         [Test]
-        public void TwoSuggestionsNeverAnotherPlayersOrYourOwn()
+        public void NoSuggestionsAndNoDeleteKey()
         {
-            var naming = new ChefNaming("Mike", Pool, new[] { "Tyler" }, 3);
-            var suggested = naming.Picker.Rows[1].Select(k => k.Text).ToList();
-            Assert.That(suggested, Has.Count.EqualTo(2));
-            Assert.That(suggested, Has.None.EqualTo("Mike").And.None.EqualTo("Tyler"));
-            naming.Roll();
-            Assert.That(naming.Picker.Rows[1], Has.Count.EqualTo(2));
+            var naming = new ChefNaming("Mike");
+            Assert.That(naming.Picker.Rows[1], Is.Empty, "no suggested names");
+            var bottom = naming.Picker.Rows[naming.Picker.Rows.Count - 1].Select(k => k.Kind).ToList();
+            Assert.That(bottom, Is.EqualTo(new[] { NameKeyKind.Space, NameKeyKind.Done }), "X deletes");
+        }
+
+        [Test]
+        public void StartFinishesWhatsTypedOrKeepsLastTimes()
+        {
+            var typed = new ChefNaming("Mike");
+            typed.Picker.Type("j");
+            typed.Picker.Type("o");
+            Assert.That(typed.Finish(), Is.True);
+            Assert.That(typed.Chosen, Is.EqualTo("Jo"));
+
+            var kept = new ChefNaming("Mike");
+            Assert.That(kept.Finish(), Is.True);
+            Assert.That(kept.Chosen, Is.EqualTo("Mike"));
+
+            var blank = new ChefNaming("");
+            Assert.That(blank.Finish(), Is.False, "nothing to finish with");
+            Assert.That(blank.Done, Is.False);
         }
 
         [Test]
         public void ANewPlayerTypesTheirOwn()
         {
-            var naming = new ChefNaming("", Pool, null, 5);
+            var naming = new ChefNaming("");
             Assert.That(naming.Picker.Rows[0], Is.Empty, "no name to keep");
             // Down to the letters, then A types the first letter, "A".
             while (naming.Picker.Selected.Kind != NameKeyKind.Letter)
@@ -51,7 +65,7 @@ namespace Game.Tests.EditMode
         [Test]
         public void NamesFitTheCard()
         {
-            var naming = new ChefNaming("", Pool, null, 5);
+            var naming = new ChefNaming("");
             for (var i = 0; i < 20; i++)
                 naming.Picker.Type("a");
             Assert.That(naming.Picker.Text.Length, Is.EqualTo(ChefNaming.MaxLength));

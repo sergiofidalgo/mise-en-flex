@@ -11,7 +11,7 @@ namespace Game.Presentation.Hud
     /// <summary>
     /// The naming keyboard a new player gets as they join (the user's calls, 2026-11-13): a name
     /// plate as wide as their player card, hanging under it, with the name so far, last time's name
-    /// to keep, two suggestions, the letter grid, and Space, Delete and Done. The key under the
+    /// to keep, the letter grid, and Space and Done; X deletes and Menu finishes. The key under the
     /// cursor fills in the player's colour. Only Xbox buttons are named. Drawn by the office's
     /// player bar and the kitchen's player cards alike.
     /// </summary>
@@ -65,7 +65,7 @@ namespace Game.Presentation.Hud
             y += 8f;
 
             var x = Hint(style, content, PromptControl.West, Tr.Get("Delete"), Pad, y);
-            Hint(style, content, PromptControl.North, Tr.Get("Other names"), x + 18f, y);
+            MenuHint(style, content, Tr.Get("Done"), x + 18f, y);
             var height = y + 34f + Pad;
 
             // The plate behind it all, drawn last and sent to the back: its height is known now.
@@ -117,6 +117,16 @@ namespace Game.Presentation.Hud
             UiKit.TextAt(style.Bold, badge, "Letter", HudStyle.Glyph(control, true), size * 0.6f, Color.white, size / 2f, size * 0.72f, size, HorizontalAlignmentOptions.Center);
             var label = UiKit.TextAt(style.Bold, parent, "Hint", text, 20f, Cream, x + size + 8f, y + 24f, 150f);
             return x + size + 8f + Mathf.Min(150f, UiKit.Width(label));
+        }
+
+        // The Xbox Menu button: a dark key with its three short lines, drawn (no font has it).
+        private static void MenuHint(HudStyle style, RectTransform parent, string text, float x, float y)
+        {
+            const float size = 34f;
+            UiKit.Ellipse(parent, "MenuKey", style.BadgeColor(PromptControl.Triggers, true), x, y, size, size);
+            for (var i = -1; i <= 1; i++)
+                UiKit.RoundBox(parent, "MenuLine", Color.white, x + 10f, y + size / 2f - 1.5f + i * 6f, size - 20f, 3f, 1.5f);
+            UiKit.TextAt(style.Bold, parent, "Hint", text, 20f, Cream, x + size + 8f, y + 24f, 150f);
         }
 
         private static string KeyLabel(NameKey key) => key.Kind switch
