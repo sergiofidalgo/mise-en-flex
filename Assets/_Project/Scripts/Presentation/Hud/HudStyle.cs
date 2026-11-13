@@ -95,9 +95,23 @@ namespace Game.Presentation.Hud
         [SerializeField, Min(1f)] private float _meterMinWidth = 56f;
         [SerializeField, Min(0f)] private float _meterGap = 4f;
 
-        [Header("Money card, top right (decision 2026-11-10)")]
-        [Tooltip("Canvas pixels: the same height as the office's player cards.")]
-        [SerializeField, Min(40f)] private float _moneyCardHeight = 108f;
+        [Header("Name plates: the office's player cards and the money card (the user's pick, 2026-11-13)")]
+        [Tooltip("Canvas pixels: every plate's height, the medallion breaking out above it.")]
+        [SerializeField, Min(40f)] private float _plateHeight = 76f;
+        [Tooltip("The chunky outline: the scene's toon ink.")]
+        [SerializeField] private Color _plateInk = new Color(0.227f, 0.141f, 0.078f);
+        [SerializeField, Min(0f)] private float _plateStroke = 5f;
+        [SerializeField, Min(0f)] private float _plateRadius = 18f;
+        [Tooltip("The owner's colour along the plate's bottom.")]
+        [SerializeField, Min(0f)] private float _plateBand = 8f;
+        [Tooltip("The coloured ring round a medallion, inside its ink.")]
+        [SerializeField, Min(0f)] private float _plateRing = 4f;
+        [Tooltip("A player card's face medallion: its inside diameter.")]
+        [SerializeField, Min(20f)] private float _plateFace = 72f;
+        [Tooltip("How far a medallion's top rises above its plate's top edge, ink included.")]
+        [SerializeField, Min(0f)] private float _plateBreakout = 22f;
+
+        [Header("Money card, top left (decisions 2026-11-10 and 2026-11-13)")]
         [SerializeField, Min(28f)] private float _moneyFontSize = 44f;
         [Tooltip("The card's outline and the coin.")]
         [SerializeField] private Color _moneyEdge = new Color(0.96f, 0.76f, 0.25f);
@@ -248,7 +262,14 @@ namespace Game.Presentation.Hud
         public float MeterHeight => _meterHeight;
         public float MeterMinWidth => _meterMinWidth;
         public float MeterGap => _meterGap;
-        public float MoneyCardHeight => _moneyCardHeight;
+        public float PlateHeight => _plateHeight;
+        public Color PlateInk => _plateInk;
+        public float PlateStroke => _plateStroke;
+        public float PlateRadius => _plateRadius;
+        public float PlateBand => _plateBand;
+        public float PlateRing => _plateRing;
+        public float PlateFace => _plateFace;
+        public float PlateBreakout => _plateBreakout;
         public float MoneyFontSize => _moneyFontSize;
         public Color MoneyEdge => _moneyEdge;
         public Color MoneyGain => _moneyGain;

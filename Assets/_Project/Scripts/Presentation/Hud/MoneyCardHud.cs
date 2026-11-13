@@ -6,9 +6,11 @@ using UnityEngine.UI;
 namespace Game.Presentation.Hud
 {
     /// <summary>
-    /// The campaign's money, always in the top-right corner (decision 2026-11-10): in the office and
-    /// in every kitchen, through every phase. It mirrors the office's player cards on the right: the
-    /// same height, rounding, outline width and display face, with a coin and the amount.
+    /// The campaign's money, always in the top-left corner (decisions 2026-11-10 and 2026-11-13): in
+    /// the office and
+    /// in every kitchen, through every phase. A name plate like the office's player cards, which
+    /// sit in the other corner: ink outline, a gold band, a coin medallion breaking out over the
+    /// top edge, and the amount in the display face.
     /// <list type="bullet">
     /// <item>Money in: the number rolls up in green and settles back to cream.</item>
     /// <item>Money out: the new number at once, red, with a short gentle shake.</item>
@@ -22,14 +24,12 @@ namespace Game.Presentation.Hud
     /// </summary>
     public sealed class MoneyCardHud : MonoBehaviour
     {
-        // The player bar's: the same distance from the edges and the same outline and corners.
+        // The player bar's distance from the edges; a name plate like the player cards (2026-11-13).
         private const float Margin = 24f;
-        private const float Stroke = 4f;
-        private const float Radius = 18f;
-        private const float MinWidth = 210f;   // a player card's width
+        private const float MinWidth = 240f;
         private const float Pad = 22f;
-        private const float CoinSize = 48f;
-        private const float CoinGap = 16f;
+        private const float CoinSize = 52f;    // the coin medallion's inside
+        private const float CoinGap = 14f;
         private const int SortingOrder = 15;   // over the kitchen HUD, under the dashboard, phone and pause
 
         [SerializeField] private HudStyle _style;
@@ -38,8 +38,8 @@ namespace Game.Presentation.Hud
         private Canvas _canvas;
         private RectTransform _card;
         private CanvasGroup _group;
-        private Image _edge;
-        private Image _back;
+        private RectTransform _plate;          // the plate, redrawn when the width changes
+        private float _drawnWidth = -1f;
         private TextMeshProUGUI _amount;
         private MoneyTicker _ticker;
         private float _width = MinWidth;
@@ -47,8 +47,11 @@ namespace Game.Presentation.Hud
         /// <summary>The card's width now, so what docks under it can match (Prep's Rearrange).</summary>
         public float Width => _width;
 
-        /// <summary>The card's height.</summary>
-        public float CardHeight => Height;
+        /// <summary>How far down the card reaches from its top margin, its coin's breakout included.</summary>
+        public float CardHeight => Breakout + Height;
+
+        /// <summary>True: the card sits in the top-left corner (2026-11-13), so what docks under it goes left too.</summary>
+        public bool OnLeft => true;
         private bool _known;          // a balance has been shown
         private IMoneySource _source; // the kitchen's or the office's, on the same object
 
@@ -74,35 +77,44 @@ namespace Game.Presentation.Hud
             scaler.matchWidthOrHeight = 0.5f;
 
             var height = Height;
-            _card = UiKit.Rect(_canvas.transform, "Money", 0f, 0f, MinWidth, height);
-            _card.anchorMin = _card.anchorMax = _card.pivot = new Vector2(1f, 1f);
-            _card.anchoredPosition = new Vector2(-Margin, -Margin);
+            var top = Breakout;
+            _card = UiKit.Rect(_canvas.transform, "Money", 0f, 0f, MinWidth, top + height);
+            _card.anchorMin = _card.anchorMax = _card.pivot = new Vector2(0f, 1f);
+            _card.anchoredPosition = new Vector2(Margin, -Margin);
             _group = _card.gameObject.AddComponent<CanvasGroup>();
             _group.alpha = 0f;
             _group.blocksRaycasts = false;
             _group.interactable = false;
-
-            var background = _style != null ? _style.CardBackground : new Color(0.07f, 0.08f, 0.10f, 0.92f);
-            _back = UiKit.StrokedBox(_card, "Back", background, Edge, Stroke, 0f, 0f, MinWidth, height, Radius);
-            _edge = _card.Find("BackEdge").GetComponent<Image>();
-
-            // The coin: a gold disc with a darker rim and a lighter face, the HUD's flat toon shapes.
-            var coinY = (height - CoinSize) / 2f;
-            UiKit.StrokedCircle(_card, "Coin", Color.Lerp(Edge, Color.white, 0.25f), Color.Lerp(Edge, Color.black, 0.3f), 4f, Pad, coinY, CoinSize);
-            UiKit.Ellipse(_card, "CoinFace", Color.Lerp(Edge, Color.black, 0.15f), Pad + CoinSize * 0.25f, coinY + CoinSize * 0.25f, CoinSize * 0.5f, CoinSize * 0.5f);
+            _plate = UiKit.Rect(_card, "Plate", 0f, 0f, MinWidth, top + height);
 
             var fontSize = _style != null ? _style.MoneyFontSize : 44f;
             var font = _style != null ? _style.DisplayFont : null;
             // Right-aligned, so the last digits stay put while the number rolls.
-            var right = MinWidth - Pad;
-            var baseline = height / 2f + fontSize * 0.36f;
-            _amount = UiKit.TextAt(font, _card, "Amount", "", fontSize, TextColour, right, baseline, MinWidth - 2f * Pad - CoinSize - CoinGap, HorizontalAlignmentOptions.Right);
+            var baseline = top + height / 2f + fontSize * 0.36f;
+            _amount = UiKit.TextAt(font, _card, "Amount", "", fontSize, TextColour, MinWidth - Pad, baseline, MinWidth - 2f * Pad - CoinOuter - CoinGap, HorizontalAlignmentOptions.Right);
             _amount.rectTransform.anchorMin = _amount.rectTransform.anchorMax = new Vector2(1f, 1f);
             _amount.rectTransform.pivot = new Vector2(1f, 1f);
             _amount.rectTransform.anchoredPosition = new Vector2(-Pad, -(baseline - fontSize));
         }
 
-        private float Height => _style != null ? _style.MoneyCardHeight : 108f;
+        // The plate and its coin medallion over the left end, breaking out over the top edge.
+        private void DrawPlate(float width)
+        {
+            UiKit.Clear(_plate);
+            _plate.sizeDelta = new Vector2(width, Breakout + Height);
+            NamePlate.Draw(_style, _plate, Edge, 0f, Breakout, width, Height);
+            var cx = 14f + CoinOuter / 2f;
+            var coin = NamePlate.Medallion(_style, _plate, Edge, cx, CoinOuter / 2f, CoinSize);
+            // The coin's face: gold, a darker disc in the middle, the HUD's flat toon shapes.
+            UiKit.Ellipse(coin, "Gold", Color.Lerp(Edge, Color.white, 0.25f), 0f, 0f, CoinSize, CoinSize);
+            UiKit.Ellipse(coin, "CoinFace", Color.Lerp(Edge, Color.black, 0.15f), CoinSize * 0.25f, CoinSize * 0.25f, CoinSize * 0.5f, CoinSize * 0.5f);
+            _amount.transform.SetAsLastSibling();
+        }
+
+        private float Breakout => _style != null ? _style.PlateBreakout : 22f;
+        private float CoinOuter => CoinSize + 2f * ((_style != null ? _style.PlateRing : 4f) + (_style != null ? _style.PlateStroke : 5f));
+
+        private float Height => _style != null ? _style.PlateHeight : 76f;
         private Color Edge => _style != null ? _style.MoneyEdge : new Color(0.96f, 0.76f, 0.25f);
         private Color TextColour => _style != null ? _style.TextColor : Color.white;
         private Color Gain => _style != null ? _style.MoneyGain : Color.green;
@@ -163,13 +175,13 @@ namespace Game.Presentation.Hud
 
             // As wide as the amount needs, never narrower than a player card. While it's moving it
             // only grows, so a roll through 999 → 1,000 doesn't make the card twitch.
-            var needed = Mathf.Max(MinWidth, Pad * 2f + CoinSize + CoinGap + Mathf.Max(UiKit.Width(_amount), MeasureTarget()));
+            var needed = Mathf.Max(MinWidth, Pad + 14f + CoinOuter + CoinGap + Mathf.Max(UiKit.Width(_amount), MeasureTarget()));
             var canvasWidth = ((RectTransform)_canvas.transform).rect.width;
             if (canvasWidth > 1f)
                 needed = Mathf.Min(needed, canvasWidth - 2f * Margin); // whole on screen, always
             _width = _ticker.Animating ? Mathf.Max(_width, needed) : needed;
             Resize(_width);
-            _card.anchoredPosition = new Vector2(-Margin + _ticker.Offset, -Margin);
+            _card.anchoredPosition = new Vector2(Margin + _ticker.Offset, -Margin);
         }
 
         // The width of the figure the card is heading to, so it's sized for where the roll ends.
@@ -178,14 +190,14 @@ namespace Game.Presentation.Hud
 
         private void Resize(float width)
         {
-            var height = Height;
-            _card.sizeDelta = new Vector2(width, height);
-            var half = Stroke / 2f;
-            _edge.rectTransform.sizeDelta = new Vector2(width + Stroke, height + Stroke);
-            _back.rectTransform.sizeDelta = new Vector2(width - Stroke, height - Stroke);
-            _edge.rectTransform.anchoredPosition = new Vector2(-half, half);
-            _back.rectTransform.anchoredPosition = new Vector2(half, -half);
-            _amount.rectTransform.sizeDelta = new Vector2(width - 2f * Pad - CoinSize - CoinGap, _amount.rectTransform.sizeDelta.y);
+            width = Mathf.Round(width);
+            _card.sizeDelta = new Vector2(width, Breakout + Height);
+            if (!Mathf.Approximately(width, _drawnWidth))
+            {
+                _drawnWidth = width;
+                DrawPlate(width);
+            }
+            _amount.rectTransform.sizeDelta = new Vector2(width - Pad - 14f - CoinOuter - CoinGap, _amount.rectTransform.sizeDelta.y);
         }
 
         private void Fade(bool shown, float dt)
