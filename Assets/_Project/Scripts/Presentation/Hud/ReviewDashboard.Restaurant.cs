@@ -391,7 +391,8 @@ namespace Game.Presentation.Hud
             // Behind the plate while it comes on: a glow and a ring bursting out.
             if (warmingUp)
                 Burst(heroX + hero / 2f, heroY + hero * 0.62f, hero);
-            DishPicture(recipe, heroX, heroY, hero, on, steam: on);
+            // Steaming only while it's served; a dish off the menu sits still (2026-11-13).
+            DishPicture(recipe, heroX, heroY, hero, on, steam: served);
             if (!on)
                 Padlock(heroX + hero * 0.72f, heroY + hero * 0.78f, 56f);
             if (warmingUp)
@@ -409,10 +410,39 @@ namespace Game.Presentation.Hud
             DrawSteps(recipe, on, x, top + 290f, inner);
             UiKit.RoundBox(_content, "Rule", _rule, x, top + PriceTop - 8f, inner, 2f, 0f);
 
-            if (on)
+            if (on && served)
                 DrawPrice(book, recipe, x, inner, top);
+            else if (on)
+                DrawOffMenu(x, inner, top);
             else
                 DrawUnlock(recipe, x, inner, top);
+        }
+
+        // An owned dish off the menu (the user's call, 2026-11-13): no price block, just the way back on.
+        private void DrawOffMenu(float x, float inner, float top)
+        {
+            _dialRecipe = null;
+            _dialPrice = float.NaN;
+            var y0 = top + PriceTop;
+            Caps(_content, Tr.Get("MENU"), x, y0 + 22f);
+            Label(Medium, _content, Tr.Get("Not on tonight's menu"), 20f, _body, x, y0 + 58f, inner);
+            ActionButton(Tr.Get("Put on menu"), x, y0 + 80f);
+        }
+
+        // A big button for a tap: the A glyph and its words on a light pill with a gold edge.
+        private void ActionButton(string text, float x, float y)
+        {
+            const float height = 56f;
+            var label = Label(Bold, _content, text, 22f, _ink, 0f, y + 36f, 300f);
+            var width = 16f + 30f + 12f + UiKit.Width(label) + 22f;
+            var back = UiKit.StrokedBox(_content, "ActionButton", _cardLight, _gold, 3f, x, y, width, height, height / 2f);
+            var edge = back.transform.parent.GetChild(back.transform.GetSiblingIndex() - 1);
+            var index = label.transform.GetSiblingIndex();
+            edge.SetSiblingIndex(index);
+            back.transform.SetSiblingIndex(index + 1);
+            ChipKey(_content, "A", x + 16f, y + (height - 30f) / 2f, 30f);
+            label.transform.SetAsLastSibling();
+            label.rectTransform.anchoredPosition = new Vector2(x + 16f + 30f + 12f, label.rectTransform.anchoredPosition.y);
         }
 
         // A pill with words (and a padlock, if asked), its left edge at x and its top at y.
@@ -493,7 +523,7 @@ namespace Game.Presentation.Hud
             var heading = Caps(_content, Tr.Get("PRICE"), x, y0 + 22f);
             Label(ExtraBold, _content, PriceText(price), 22f, _ink, x + UiKit.Width(heading) + 12f, y0 + 24f, 200f, tracking: -0.3f);
             // A takes the dish off the menu or puts it back (2026-11-13), at the end of the heading.
-            Chip(_content, "A", book.IsOnMenu(recipe.Id) ? Tr.Get("Take off menu") : Tr.Get("Put on menu"), RightEdge - 28f, y0 - 6f);
+            Chip(_content, "A", Tr.Get("Take off menu"), RightEdge - 28f, y0 - 6f);
 
             // A new dish starts still; a new price on the same dish springs from where the old one
             // stood. The dial's unit is a whole number, so a 10-cent step moves it a tenth of a gap.
