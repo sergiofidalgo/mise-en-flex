@@ -21,6 +21,13 @@ namespace Game.Simulation.Characters
 
         public List<ChefLook> Looks = new List<ChefLook>();
 
+        /// <summary>
+        /// The name each slot's player typed as they last joined (the user's call, 2026-11-13),
+        /// shown on their player card. Empty until they've named themselves. Added with a default,
+        /// so version 1 files read as they are.
+        /// </summary>
+        public List<string> Names = new List<string>();
+
         /// <summary>Crazy items earned, by id. Empty until earning exists (Phase 7).</summary>
         public List<string> Unlocked = new List<string>();
 
@@ -37,6 +44,19 @@ namespace Game.Simulation.Characters
             Looks[Clamp(slot)] = look.Copy();
         }
 
+        /// <summary>A slot's name, or empty if that player has never named themselves.</summary>
+        public string Name(int slot)
+        {
+            Fill();
+            return Names[Clamp(slot)] ?? "";
+        }
+
+        public void SetName(int slot, string name)
+        {
+            Fill();
+            Names[Clamp(slot)] = Game.Simulation.Campaign.RestaurantNaming.Clean(name);
+        }
+
         /// <summary>
         /// Brings a profile read from disk up to date: a newer version than this game knows is
         /// refused (false), missing slots get the default chef, and every look is repaired.
@@ -49,6 +69,7 @@ namespace Game.Simulation.Characters
             Version = CurrentVersion;
             Looks ??= new List<ChefLook>();
             Unlocked ??= new List<string>();
+            Names ??= new List<string>();
             Fill();
             for (var i = 0; i < Looks.Count; i++)
             {
@@ -62,6 +83,9 @@ namespace Game.Simulation.Characters
         {
             while (Looks.Count < Slots)
                 Looks.Add(new ChefLook());
+            Names ??= new List<string>();
+            while (Names.Count < Slots)
+                Names.Add("");
         }
 
         private static int Clamp(int slot) => Math.Max(0, Math.Min(Slots - 1, slot));
