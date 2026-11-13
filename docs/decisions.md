@@ -4,6 +4,12 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-13 — Rearranging: the cursor's frame is the player's colour, so no ring there
+
+**User's call:** a rearranging player's cursor already shows its square frame in their colour, so a ring under it too was doubling up. While a player rearranges, their chef's ring now hides and nothing is added at the cursor; leaving rearranging puts the ring back on the chef. This replaces "the ring moves to the cursor" from 2026-11-11, and the cursor's on-top ring material (`MAT_FootRing_OnTop`) is gone.
+
+---
+
 ## 2026-11-12 — The road is open: cars hit chefs, and a bodyguard fetches the ones who walk off
 
 **The user's ideas:** "simulate cars' hit and runs against players in a funny way if they happen to be in the wrong place at the wrong time", and "let the player leave the scene but also send them back again with a funny message". Proposed in detail and agreed ("Yes, as proposed").

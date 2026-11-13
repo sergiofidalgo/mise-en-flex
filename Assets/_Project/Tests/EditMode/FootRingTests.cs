@@ -4,22 +4,22 @@ using UnityEngine;
 
 namespace Game.Tests.EditMode
 {
-    /// <summary>The players' foot rings (decision 2026-11-11): where each one goes, and its shape.</summary>
+    /// <summary>The players' foot rings (decision 2026-11-11): when it shows, and its shape.</summary>
     public class FootRingTests
     {
         [Test]
         public void ShowsAtTheChefInTheOfficeAndInPrep() =>
-            Assert.That(FootRingView.PlaceFor(showing: true, rearranging: false), Is.EqualTo(FootRingPlace.AtChef));
+            Assert.That(FootRingView.ShowsRing(showing: true, rearranging: false), Is.True);
 
         [Test]
-        public void MovesToTheCursorWhileRearranging() =>
-            Assert.That(FootRingView.PlaceFor(showing: true, rearranging: true), Is.EqualTo(FootRingPlace.AtCursor));
+        public void HiddenWhileRearranging_TheCursorFrameShowsTheColour() =>
+            Assert.That(FootRingView.ShowsRing(showing: true, rearranging: true), Is.False);
 
         [Test]
         public void HiddenInServiceAndReview()
         {
-            Assert.That(FootRingView.PlaceFor(showing: false, rearranging: false), Is.EqualTo(FootRingPlace.Hidden));
-            Assert.That(FootRingView.PlaceFor(showing: false, rearranging: true), Is.EqualTo(FootRingPlace.Hidden));
+            Assert.That(FootRingView.ShowsRing(showing: false, rearranging: false), Is.False);
+            Assert.That(FootRingView.ShowsRing(showing: false, rearranging: true), Is.False);
         }
 
         [Test]

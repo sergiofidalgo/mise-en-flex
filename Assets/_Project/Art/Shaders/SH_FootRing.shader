@@ -1,8 +1,7 @@
 // A player's ring on the floor (decision 2026-11-11): a flat, unlit, alpha-blended tint in their
 // colour (set per renderer through _BaseColor). No depth write, so it never z-fights with the floor
-// it hovers just above. _ZTest picks how it meets the scene: LEqual (4) at a chef's feet, hidden
-// behind whatever stands in front; Always (8) under a rearranging cursor, so it still reads where
-// the cursor is over a counter or table. Unfogged: it's a marker, like the HUD.
+// it hovers just above. _ZTest is LEqual (4), so it hides behind whatever stands in front; Always
+// (8) would draw it over furniture. Unfogged: it's a marker, like the HUD.
 Shader "Game/FootRing"
 {
     Properties
