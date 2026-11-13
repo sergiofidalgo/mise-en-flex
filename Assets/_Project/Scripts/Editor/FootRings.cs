@@ -22,7 +22,6 @@ namespace Game.Editor
             var so = new SerializedObject(view);
             so.FindProperty("_settings").objectReferenceValue = settings;
             so.FindProperty("_material").objectReferenceValue = EnsureMaterial("MAT_FootRing", CompareFunction.LessEqual);
-            so.FindProperty("_cursorMaterial").objectReferenceValue = EnsureMaterial("MAT_FootRing_OnTop", CompareFunction.Always);
             so.FindProperty("_root").objectReferenceValue = root;
             so.FindProperty("_editor").objectReferenceValue = editor;
             so.ApplyModifiedPropertiesWithoutUndo();

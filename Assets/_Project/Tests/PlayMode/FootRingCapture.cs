@@ -15,7 +15,7 @@ namespace Game.Tests.PlayMode
 {
     /// <summary>
     /// Not a test: screenshots of the players' foot rings (decision 2026-11-11): four chefs in Prep,
-    /// two of them rearranging with their rings under their cursors, and the four in the office.
+    /// two of them rearranging (their rings hidden, their cursors in their colours), and the four in the office.
     /// Explicit, so it only runs when asked for:
     /// Unity -projectPath . -runTests -testPlatform PlayMode -testFilter Game.Tests.PlayMode.FootRingCapture [-captureFolder folder]
     /// (no -batchmode: it grabs the screen).
@@ -41,10 +41,14 @@ namespace Game.Tests.PlayMode
             Assert.That(players.Count, Is.EqualTo(4));
             var root = Object.FindFirstObjectByType<KitchenCompositionRoot>();
             root.Services.Days.Advance(); // Plan to Prep
+            // The morning's shutter rolls up first (DayTransitions); the rings are under it.
+            var transitions = Object.FindFirstObjectByType<Game.Presentation.Hud.DayTransitions>();
+            for (var waited = 0f; transitions != null && transitions.Current != Game.Presentation.Hud.DayTransitions.Stage.Open && waited < 10f; waited += Time.unscaledDeltaTime)
+                yield return null;
             yield return Shoot(Path.Combine(folder, "foot_rings_prep.png"), 60);
 
-            // Players 1 and 2 rearrange: their rings leave their chefs for their cursors, one on
-            // the open floor and one over the island counter (drawn over it).
+            // Players 1 and 2 rearrange: their chefs' rings hide, and their cursors' frames show
+            // their colours instead.
             var editor = Object.FindFirstObjectByType<LayoutEditor>();
             var first = editor.Enter(players[0]);
             var at = players[0].transform.position;
