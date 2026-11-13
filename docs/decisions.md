@@ -4,6 +4,18 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-13 — The ingredient wheel: a compact 2×2 block, room for a neighbour
+
+**User's calls, over several screenshots:** the wheel was too small and its pictures far too small; the stock count read best in a circle; then, worrying about two players at storage units side by side, the user sketched a compact 2×2 block and asked for the wheels to pull apart.
+
+- **Layout** (`SlotWheelView`): four rounded tiles touching in a 2×2 block: Y top left, B top right, X bottom left, A bottom right. Each face button sits on the corner the sketch gives it. The stock is one big digit in a round dark badge on the block's outer corner of each tile, always drawn over the picture. The pictures fill the tiles. 260 px per unit at 1080p (the block is about 150 px across).
+- **Whose wheel:** the hub is gone, so the tiles' outlines are drawn in the player's colour. This was my addition; ink outlines are a one-line change back.
+- **Two players at neighbouring units:** when wheels would overlap on screen they ease apart sideways, half each, keeping 48 px between them. The user chose 48 over 20 and 72 from a capture with every slot stocked.
+- **Flat:** the wheel's layers are drawn by order, not depth. Depth between them had shown as parallax: the hub sat 4 px off the tiles' centre, measured in the capture.
+- **Verified:** EditMode passes. Full PlayMode passes apart from the 2 Casa Lucía tests (scene not built in this worktree), including the new `TwoPlayersAtNeighbouringUnitsGetWheelsThatDontOverlap`. **Not yet played by hand.**
+
+---
+
 ## 2026-11-13 — Washing a plate takes 2 circles
 
 **User's call:** washing a single dish took way too long (4 circles a plate at up to 1.5 a second, at least 2.7 s and nearer 4 s at an easy pace). Now 2 circles a plate at up to 2 a second (`TuningConfig`, Washing by hand): about 1 s at full speed, 1.5 to 2 s at a relaxed pace. The pace test expects 0.8 to 1.4 s a plate at the cap.
