@@ -427,4 +427,3 @@ To work out when we get there: what scorching and spilling cost (quality, lost f
 - **Popularity on the plate:** a small "★ 4.2 · 12 sold" badge from the dish's reviews and the day's orders, so pricing decisions show their effect.
 - **Doneness on the plate:** the recipe's ordered donenesses as three small steak cross-sections (rare, medium, well done) with how often each is ordered.
 - **The opening tiles at the time of day:** a sky gradient behind each tile (blue for lunch, dusk orange for dinner).
-- **"Not on tonight" switch:** take a dish off the menu without forgetting it (X), for menus that need trimming when short of hands.

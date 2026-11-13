@@ -94,6 +94,28 @@ namespace Game.Presentation.Hud
         private readonly List<(Image Image, float Size)> _rings = new List<(Image, float)>();
         private RectTransform _stamp;
 
+        [Tooltip("Seconds A is held to buy a dish (the user's call, 2026-11-13: a hold, not a press).")]
+        [SerializeField, Min(0.1f)] private float _unlockHoldSeconds = 0.8f;
+
+        // The hold to buy: how full the bar is, for which dish, and whether A must be let go first.
+        private float _unlockHold;
+        private string _unlockHoldFor;
+        private bool _unlockNeedsRelease;
+        private Image _unlockFill;
+        private float _unlockFillWidth;
+        // Taking the last dish off the menu was refused: the panel says why until the next move.
+        private bool _menuRefused;
+
+        /// <summary>How full the hold-to-buy bar is (0..1), for tests.</summary>
+        public float UnlockHold => _unlockHold;
+
+        /// <summary>For the capture test: the hold-to-buy bar held part way.</summary>
+        public void HoldBuyBarForCapture(float progress)
+        {
+            _unlockHold = Mathf.Clamp01(progress);
+            PlaceUnlockFill();
+        }
+
         // A dish still to unlock: faded, a little grey, cold.
         private static readonly Color ColdTint = new Color(0.78f, 0.74f, 0.68f, 0.7f);
 
@@ -158,6 +180,7 @@ namespace Game.Presentation.Hud
             _ticks.Clear();
             _effects.Clear();
             _suggestionMark = _dialWell = _dialSnapGlow = null;
+            _unlockFill = null;
             _steam.Clear();
             _warmPlates.Clear();
             _warmFlashes.Clear();
@@ -182,12 +205,13 @@ namespace Game.Presentation.Hud
                 return;
             }
             var listed = book.OnMenuFirst();
-            var owned = listed.Count(r => book.IsUnlocked(r.Id));
             var chosen = Mathf.Clamp(Selected, 0, listed.Count - 1);
+            // Three groups (2026-11-13): on the menu, owned but off it, still to unlock.
+            int GroupOf(int i) => book.IsOnMenu(listed[i].Id) ? 0 : book.IsUnlocked(listed[i].Id) ? 1 : 2;
 
             // Each group opens with its heading: rows are as tall as their card, plus a heading if
             // they start a group. Scrolled only as far as the chosen dish needs (ScrollWindow).
-            bool StartsGroup(int i) => i == 0 || i == owned;
+            bool StartsGroup(int i) => i == 0 || GroupOf(i) != GroupOf(i - 1);
             var heights = Enumerable.Range(0, listed.Count).Select(i => RecipeRow + 12f + (StartsGroup(i) ? GroupHeader : 0f)).ToList();
             var first = _recipeFirst = ScrollWindow.First(_recipeFirst, chosen, heights, FooterTop - 8f - listTop);
             var y = listTop;
@@ -195,9 +219,10 @@ namespace Game.Presentation.Hud
             {
                 if (StartsGroup(i))
                 {
-                    var onMenu = i < owned;
-                    var count = onMenu ? owned : listed.Count - owned;
-                    Caps(_content, (onMenu ? Tr.Get("ON YOUR MENU") : Tr.Get("TO UNLOCK")) + $" · {count}", RightX + 4f, y + 20f, onMenu ? _goodText : _muted);
+                    var group = GroupOf(i);
+                    var count = Enumerable.Range(0, listed.Count).Count(k => GroupOf(k) == group);
+                    var heading = group == 0 ? Tr.Get("ON YOUR MENU") : group == 1 ? Tr.Get("IN YOUR COOKBOOK") : Tr.Get("TO UNLOCK");
+                    Caps(_content, heading + $" · {count}", RightX + 4f, y + 20f, group == 0 ? _goodText : _muted);
                     y += GroupHeader;
                     if (y + RecipeRow > FooterTop - 8f)
                         break;
@@ -219,17 +244,19 @@ namespace Game.Presentation.Hud
         private void RecipeCard(RecipeBook book, Recipe recipe, float y, bool chosen)
         {
             var on = book.IsUnlocked(recipe.Id);
+            // Owned but off the menu (2026-11-13): a quieter card, its plate still, its price muted.
+            var served = book.IsOnMenu(recipe.Id);
             var warmingUp = on && Warmth(recipe.Id) < 1f;
             if (chosen)
                 UiKit.RoundBox(_content, "Highlight", _gold, RightX - 5.67f, y - 5.67f, RecipeListWidth + 11.33f, RecipeRow + 11.33f, 20f);
-            UiKit.StrokedBox(_content, "Recipe", on ? _cardLight : _lockedCard, chosen ? _gold : on ? _cardEdge : Alpha(_sand, 0.6f), 2.67f, RightX, y, RecipeListWidth, RecipeRow, 15f);
+            UiKit.StrokedBox(_content, "Recipe", !on ? _lockedCard : served ? _cardLight : Color.Lerp(_cardLight, _card, 0.6f), chosen ? _gold : on ? _cardEdge : Alpha(_sand, 0.6f), 2.67f, RightX, y, RecipeListWidth, RecipeRow, 15f);
             // Just unlocked: the card lights up gold behind its plate and words.
             if (warmingUp)
                 _warmFlashes.Add(UiKit.RoundBox(_content, "UnlockFlash", Alpha(_gold, 0f), RightX + 3f, y + 3f, RecipeListWidth - 6f, RecipeRow - 6f, 13f));
 
             // The plate (its picture has room above for steam, so it's drawn a little high).
             const float plate = 104f;
-            DishPicture(recipe, RightX + 2f, y - 18f, plate, on, steam: on && chosen);
+            DishPicture(recipe, RightX + 2f, y - 18f, plate, on, steam: served && chosen);
             if (!on)
                 Padlock(RightX + 70f, y + 52f, 30f);
 
@@ -239,10 +266,10 @@ namespace Game.Presentation.Hud
             if (on)
             {
                 // The price it sells at, big on the right; under the name, that it's on.
-                var price = Label(ExtraBold, _content, PriceText(book.PriceOf(recipe.Id)), 28f, _ink, right, y + 58f, 120f, HorizontalAlignmentOptions.Right, -0.6f);
+                var price = Label(ExtraBold, _content, PriceText(book.PriceOf(recipe.Id)), 28f, served ? _ink : _quiet, right, y + 58f, 120f, HorizontalAlignmentOptions.Right, -0.6f);
                 Fit(name, right - UiKit.Width(price) - 14f - textX, 16f);
-                UiKit.Ellipse(_content, "OnDot", _good, textX, y + 59f, 12f, 12f);
-                var line = Label(SemiBold, _content, Tr.Get("On the menu"), 19.5f, _goodText, textX + 20f, y + 71f, 240f);
+                UiKit.Ellipse(_content, "OnDot", served ? _good : _sand, textX, y + 59f, 12f, 12f);
+                var line = Label(SemiBold, _content, served ? Tr.Get("On the menu") : Tr.Get("Off the menu"), 19.5f, served ? _goodText : _muted, textX + 20f, y + 71f, 240f);
                 if (warmingUp)
                 {
                     // "On the menu" pops in from its left end.
@@ -341,10 +368,20 @@ namespace Game.Presentation.Hud
             var plateLeft = heroX + hero * 0.18f;
 
             // Where it stands, first: a green pill on the menu, a dark one with a padlock if not.
-            if (on)
-                StatusPill(warmingUp ? Tr.Get("NEW ON THE MENU") : Tr.Get("ON YOUR MENU"), warmingUp ? _gold : _good, warmingUp ? _ink : _paper, x, top + 22f, false);
+            var served = book.IsOnMenu(recipe.Id);
+            float pillRight;
+            if (on && served)
+                pillRight = StatusPill(warmingUp ? Tr.Get("NEW ON THE MENU") : Tr.Get("ON YOUR MENU"), warmingUp ? _gold : _good, warmingUp ? _ink : _paper, x, top + 22f, false);
+            else if (on)
+                pillRight = StatusPill(Tr.Get("OFF THE MENU"), _sand, _ink, x, top + 22f, false);
             else
-                StatusPill(Tr.Get("NOT ON YOUR MENU YET"), _ink, _paper, x, top + 22f, true);
+                pillRight = StatusPill(Tr.Get("NOT ON YOUR MENU YET"), _ink, _paper, x, top + 22f, true);
+            // Refused to take the last dish off (2026-11-13): said beside where it stands.
+            if (_menuRefused)
+            {
+                var note = Label(SemiBold, _content, Tr.Get("The last dish stays on"), 15f, _badText, pillRight + 10f, top + 41f, 300f);
+                Fit(note, plateLeft - 8f - (pillRight + 10f), 11f);
+            }
 
             var title = Label(ExtraBold, _content, Tr.Get(recipe.Name), 34f, on ? _ink : _body, x, top + 92f, 600f, tracking: -0.8f);
             Fit(title, plateLeft - 12f - x, 22f);
@@ -379,7 +416,7 @@ namespace Game.Presentation.Hud
         }
 
         // A pill with words (and a padlock, if asked), its left edge at x and its top at y.
-        private void StatusPill(string text, Color back, Color fore, float x, float y, bool locked)
+        private float StatusPill(string text, Color back, Color fore, float x, float y, bool locked)
         {
             var label = Label(Bold, _content, text, 15f, fore, 0f, y + 20f, 400f, tracking: 1.2f);
             var lead = locked ? 30f : 14f;
@@ -389,6 +426,7 @@ namespace Game.Presentation.Hud
             if (locked)
                 UiKit.Picture(_content, "StatusLock", PadlockSprite, x + 9f, y + 5f, 17f, 17f, _gold);
             label.rectTransform.anchoredPosition = new Vector2(x + lead, label.rectTransform.anchoredPosition.y);
+            return x + widthOf;
         }
 
         // HOW TO COOK: a numbered row per step, its station on a chip, then what to do. A dish on the
@@ -454,6 +492,8 @@ namespace Game.Presentation.Hud
             var y0 = top + PriceTop;
             var heading = Caps(_content, Tr.Get("PRICE"), x, y0 + 22f);
             Label(ExtraBold, _content, PriceText(price), 22f, _ink, x + UiKit.Width(heading) + 12f, y0 + 24f, 200f, tracking: -0.3f);
+            // A takes the dish off the menu or puts it back (2026-11-13), at the end of the heading.
+            Chip(_content, "A", book.IsOnMenu(recipe.Id) ? Tr.Get("Take off menu") : Tr.Get("Put on menu"), RightEdge - 28f, y0 - 6f);
 
             // A new dish starts still; a new price on the same dish springs from where the old one
             // stood. The dial's unit is a whole number, so a 10-cent step moves it a tenth of a gap.
@@ -574,13 +614,41 @@ namespace Game.Presentation.Hud
             Caps(_content, Tr.Get("UNLOCK"), x, y0 + 22f);
             UiKit.Picture(_content, "UnlockLock", PadlockSprite, x, y0 + 44f, 38f, 38f, affordable ? _ink : _badText);
             Label(ExtraBold, _content, Money(recipe.UnlockCost), 54f, affordable ? _ink : _badText, x + 46f, y0 + 84f, 220f, tracking: -1.5f);
-            // A (a tap) unlocks: shown beside the price, as the rows show theirs.
-            Chip(_content, "A", Tr.Get("Unlock"), x + 280f, y0 + 56f, fromLeft: true);
+            // Hold A to buy (2026-11-13): a button whose bar fills while A is held.
+            HoldButton(Tr.Get("Hold to buy"), x + 270f, y0 + 56f, affordable);
             Label(Medium, _content, Tr.Format("You have {amount}", ("amount", Money(Services.Days.Balance))), 19.5f, affordable ? _body : _badText, x + 280f, y0 + 46f, 230f);
             Label(Medium, _content, Tr.Format("suggested {price}", ("price", Money(recipe.SuggestedPrice))) + " · " +
                 Tr.Format("earns about {value}", ("value", Money(recipe.SuggestedPrice - recipe.IngredientCost))), 19.5f, _ink, x, y0 + 134f, inner);
             if (_unlockResult == UnlockResult.CantAfford)
                 Label(Bold, _content, Tr.Get("not enough money"), 19.5f, _badText, x, y0 + 162f, inner);
+        }
+
+        // A button for a hold: A, its words, and a bar filling behind them as A is held (animated by
+        // AnimateRestaurant). Greyed when the hold can't succeed.
+        private void HoldButton(string text, float x, float y, bool can)
+        {
+            const float height = 46f;
+            var label = Label(SemiBold, _content, text, 20f, can ? _ink : _quiet, 0f, y + 30f, 260f);
+            var width = 14f + 30f + 10f + UiKit.Width(label) + 18f;
+            var back = UiKit.StrokedBox(_content, "HoldButton", _cardLight, can ? _gold : _cardEdge, 2.5f, x, y, width, height, height / 2f);
+            // The edge, then the face over it, both behind the words.
+            var edge = back.transform.parent.GetChild(back.transform.GetSiblingIndex() - 1);
+            var index = label.transform.GetSiblingIndex();
+            edge.SetSiblingIndex(index);
+            back.transform.SetSiblingIndex(index + 1);
+            back.gameObject.AddComponent<Mask>().showMaskGraphic = true;
+            _unlockFill = UiKit.RoundBox(back.transform, "Fill", Alpha(_goodLight, 0.85f), 0f, 0f, 0f, height, 0f);
+            _unlockFillWidth = width;
+            ChipKey(_content, "A", x + 14f, y + (height - 30f) / 2f, 30f);
+            label.transform.SetAsLastSibling();
+            label.rectTransform.anchoredPosition = new Vector2(x + 14f + 30f + 10f, label.rectTransform.anchoredPosition.y);
+            PlaceUnlockFill();
+        }
+
+        private void PlaceUnlockFill()
+        {
+            if (_unlockFill != null)
+                _unlockFill.rectTransform.sizeDelta = new Vector2(_unlockFillWidth * Mathf.Clamp01(_unlockHold), _unlockFill.rectTransform.sizeDelta.y);
         }
 
         // The dial's numbers where the spring has them: the nearest to the middle biggest and
@@ -917,6 +985,7 @@ namespace Game.Presentation.Hud
                 return;
             }
             AnimateWarmUp();
+            PlaceUnlockFill();
             if (_steam.Count > 0)
                 AnimateSteam();
             if (_dial.Count > 0 && (Mathf.Abs(_dialOffset) > 0f || Mathf.Abs(_dialVelocity) > 0f || _dialKick > 0f || _dialSnap > 0f))
