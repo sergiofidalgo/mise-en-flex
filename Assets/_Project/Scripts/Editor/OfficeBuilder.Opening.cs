@@ -97,8 +97,11 @@ namespace Game.Editor
             // The lift isn't among them: its cab is on the floor when the camera lands, and switches
             // itself off once it has gone back down (OpeningElevator).
             Objects(sequence.FindProperty("_offAfterLanding"), GameObject.Find("City/Street"), GameObject.Find("City/BossTower/Rooms"));
-            var bar = Object.FindFirstObjectByType<PlayerBarHud>();
-            Objects(sequence.FindProperty("_hudAfterLanding"), bar != null ? bar.gameObject : null);
+            // The player bar shows from the menu on, where players join (2026-11-13); the rest of the
+            // floor's HUD (the money card, OfficeBuilder.Money) waits for the landing.
+            sequence.FindProperty("_bar").objectReferenceValue = Object.FindFirstObjectByType<PlayerBarHud>();
+            sequence.FindProperty("_coop").objectReferenceValue = coop;
+            Objects(sequence.FindProperty("_hudAfterLanding"));
             Poses(sequence.FindProperty("_flight"), FlightPoses);
             Poses(sequence.FindProperty("_climb"), ClimbPoses);
             sequence.ApplyModifiedPropertiesWithoutUndo();

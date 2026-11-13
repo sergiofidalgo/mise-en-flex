@@ -1,3 +1,5 @@
+using Game.Data;
+using Game.Gameplay.Office;
 using Game.Presentation.Menu;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -12,6 +14,11 @@ namespace Game.Presentation.Office
     /// glass and over onto the floor's wide shot (A skips that too). Then the follow
     /// camera takes over, joining opens, and the player who chose in the menu is already in as
     /// player 1: the chef who rode up.
+    /// <para>Joining in the menu (the user's calls, 2026-11-13): player 1 is in from the start, as
+    /// whichever controller presses first, and only they drive the menu and skip the climb. The
+    /// player bar shows from the menu on, and anyone else's A there or on the climb joins them: their
+    /// chef pops into the glass lift beside player 1's and rides up, and everyone joins the floor,
+    /// in slot order, as the camera lands.</para>
     /// </summary>
     public sealed class OpeningSequence : MonoBehaviour
     {
@@ -34,8 +41,11 @@ namespace Game.Presentation.Office
         [SerializeField, Range(0f, 1f)] private float _flybyFrom = 0.55f;
         [Tooltip("Everything below the floor that only the opening sees (the street 120 m down with its people and lights, the tower's rooms, the lift): switched off once the camera lands, as nobody sees it from the floor (the 60 fps budget with four players).")]
         [SerializeField] private GameObject[] _offAfterLanding = System.Array.Empty<GameObject>();
-        [Tooltip("The floor's own HUD (the player bar): hidden until the camera lands (the user's note, 2026-11-10).")]
+        [Tooltip("The floor's own HUD (the money card): hidden until the camera lands (the user's note, 2026-11-10).")]
         [SerializeField] private GameObject[] _hudAfterLanding = System.Array.Empty<GameObject>();
+        [Tooltip("The player bar: shown from the main menu on, where players join (2026-11-13).")]
+        [SerializeField] private PlayerBarHud _bar;
+        [SerializeField] private CoopSettings _coop;
         [Tooltip("The flight from the street to the stop where the menu shows; the last pose is the stop.")]
         [SerializeField] private CameraPose[] _flight = System.Array.Empty<CameraPose>();
         [Tooltip("Through these from the stop, then onto the floor's wide shot.")]
@@ -82,9 +92,17 @@ namespace Game.Presentation.Office
 
         private bool _fadeIntoMenu;
 
+        // Who's in before the floor, by input device id, and the devices themselves.
+        private MenuRoster _roster;
+        private readonly System.Collections.Generic.Dictionary<int, InputDevice> _devices = new System.Collections.Generic.Dictionary<int, InputDevice>();
+
         // In case statics survive between runs in the Editor.
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        private static void ResetStatics() => StartAtMenu = false;
+        private static void ResetStatics()
+        {
+            StartAtMenu = false;
+            MainMenu.Driver = null;
+        }
 
         private void Awake()
         {
@@ -95,6 +113,9 @@ namespace Game.Presentation.Office
             if (_follow != null)
                 _follow.enabled = false;
             _players.DisableJoining();
+            _roster = new MenuRoster(_coop != null ? _coop.MaxPlayers : 4);
+            if (!_returning)
+                MainMenu.Driver = null; // whoever presses first is player 1
             _menu.Launching += HandleLaunching;
             Place(OpeningPath.SampleEven(_flight, 0f), null);
         }
@@ -108,6 +129,7 @@ namespace Game.Presentation.Office
         private void Start()
         {
             ShowFloorHud(false);
+            ShowBar(false);
             if (_returning)
             {
                 _hud.Veil = 0f;
@@ -190,7 +212,7 @@ namespace Game.Presentation.Office
                     // (the user's note, 2026-11-10: no walk in between). A skips to the floor.
                     _menu.SetShown(false, 1f - Mathf.Clamp01(_clock / _menuFade));
                     _hud.SkipShown = _clock > SkipGuard;
-                    if (_clock > SkipGuard && PressedA())
+                    if (_clock > SkipGuard && DriverPressedA())
                     {
                         Land();
                         break;
@@ -251,15 +273,90 @@ namespace Game.Presentation.Office
             // Wherever the camera was (a skip can come mid-walk or mid-climb), it's on the floor's view now.
             _camera.transform.SetPositionAndRotation(_follow.Wanted(), Quaternion.Euler(55f, 0f, 0f));
             ShowFloorHud(true);
+            ShowBar(true);
             _players.EnableJoining();
-            // The player who chose in the menu is in already, on the controller they chose with.
-            var device = MainMenu.LastDevice;
-            if (device != null && !_returning)
-                _players.JoinPlayer(-1, -1, device is Gamepad ? "Gamepad" : "Keyboard&Mouse", device);
+            // Everyone in from the menu joins the floor, player 1 first, each in their own slot on
+            // the controller they joined with: the chefs who rode up.
+            if (!_returning)
+            {
+                ClaimLastDevice();
+                var devices = _roster.Devices;
+                for (var slot = 0; slot < devices.Count; slot++)
+                    if (_devices.TryGetValue(devices[slot], out var device) && device != null && device.added)
+                        _players.JoinPlayer(slot, -1, device is Gamepad ? "Gamepad" : "Keyboard&Mouse", device);
+            }
+            if (_bar != null)
+                _bar.ClearStandIns();
         }
 
-        // The floor's HUD draws itself (PlayerBarHud builds its own canvas): its canvases are
-        // switched off until the camera lands, so "A Join" never shows over the street or the climb.
+        // ---- Joining before the floor (2026-11-13) ----------------------------------------------
+
+        private void LateUpdate()
+        {
+            if (_returning || _stage == Stage.Landed || _roster == null)
+                return;
+            // Whoever touched the menu first is player 1, whatever they pressed.
+            ClaimLastDevice();
+            var joiningOpen = _stage == Stage.Menu || _stage == Stage.Climb;
+            foreach (var pad in Gamepad.all)
+                if (pad.buttonSouth.wasPressedThisFrame)
+                    Press(pad, joiningOpen);
+            var keyboard = Keyboard.current;
+            if (keyboard != null && (keyboard.xKey.wasPressedThisFrame || keyboard.enterKey.wasPressedThisFrame))
+                Press(keyboard, joiningOpen);
+        }
+
+        private void Press(InputDevice device, bool joiningOpen)
+        {
+            var slot = _roster.Press(device.deviceId, joiningOpen);
+            if (slot < 0)
+                return;
+            _devices[device.deviceId] = device;
+            if (slot == 0)
+            {
+                MainMenu.Driver = device;
+                return;
+            }
+            // Their chef pops into the lift beside player 1's, and their card fills on the bar.
+            var chef = _elevator != null ? _elevator.AddRider(slot) : null;
+            if (_bar != null && chef != null)
+                _bar.Stand(slot, chef);
+        }
+
+        private void ClaimLastDevice()
+        {
+            var last = MainMenu.LastDevice;
+            if (last == null || _roster.HasDriver || !_roster.Claim(last.deviceId))
+                return;
+            _devices[last.deviceId] = last;
+            MainMenu.Driver = last;
+        }
+
+        // Player 1's A only: the climb's skip. Before player 1 is known, anyone's.
+        private bool DriverPressedA()
+        {
+            var driver = MainMenu.Driver;
+            if (driver == null)
+                return PressedA();
+            if (driver is Gamepad pad)
+                return pad.buttonSouth.wasPressedThisFrame;
+            return driver is Keyboard keys && (keys.xKey.wasPressedThisFrame || keys.enterKey.wasPressedThisFrame);
+        }
+
+        // The player bar draws itself on its own canvas: off over the street, on from the menu,
+        // with player 1 in from the start as the chef waiting in the lift.
+        private void ShowBar(bool shown)
+        {
+            if (_bar == null)
+                return;
+            foreach (var canvas in _bar.GetComponentsInChildren<Canvas>(true))
+                canvas.enabled = shown;
+            if (shown && _stage != Stage.Landed && _elevator != null)
+                _bar.Stand(0, _elevator.Rider);
+        }
+
+        // The floor's HUD draws itself (the money card builds its own canvas): its canvases are
+        // switched off until the camera lands, so it never shows over the street or the climb.
         private void ShowFloorHud(bool shown)
         {
             foreach (var hud in _hudAfterLanding)
@@ -275,6 +372,8 @@ namespace Game.Presentation.Office
         {
             _stage = stage;
             _clock = 0f;
+            if (stage == Stage.Menu)
+                ShowBar(true);
             if (stage == Stage.Menu)
                 foreach (var courier in _departures)
                     if (courier != null)

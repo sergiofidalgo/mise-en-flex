@@ -83,6 +83,15 @@ namespace Game.Presentation.Menu
         /// <summary>The controller (or keyboard) that last pressed a button in the menu: the opening joins it as player 1.</summary>
         public static InputDevice LastDevice { get; private set; }
 
+        /// <summary>
+        /// Player 1's controller once known (the user's call, 2026-11-13): only it drives the menu,
+        /// while other controllers' A joins them (OpeningSequence). Null: any controller drives,
+        /// and the first to press becomes <see cref="LastDevice"/>.
+        /// </summary>
+        public static InputDevice Driver { get; set; }
+
+        private static bool Drives(InputDevice device) => Driver == null || Driver == device;
+
         private void Start()
         {
             _settings = PlayerSettings.Load(_realism);
@@ -350,6 +359,8 @@ namespace Game.Presentation.Menu
         {
             foreach (var pad in Gamepad.all)
             {
+                if (!Drives(pad))
+                    continue;
                 var button = face == Face.South ? pad.buttonSouth : face == Face.East ? pad.buttonEast : pad.buttonNorth;
                 if (button.wasPressedThisFrame)
                 {
@@ -358,7 +369,7 @@ namespace Game.Presentation.Menu
                 }
             }
             var keyboard = Keyboard.current;
-            if (keyboard == null)
+            if (keyboard == null || !Drives(keyboard))
                 return false;
             var pressed = face switch
             {
@@ -375,12 +386,14 @@ namespace Game.Presentation.Menu
         {
             foreach (var pad in Gamepad.all)
             {
+                if (!Drives(pad))
+                    continue;
                 var value = pad.dpad.ReadValue(); // not the stick: too loose for a list (2026-11-10)
                 if (value.sqrMagnitude > 0.01f)
                     return value;
             }
             var keyboard = Keyboard.current;
-            if (keyboard == null)
+            if (keyboard == null || !Drives(keyboard))
                 return Vector2.zero;
             return new Vector2(
                 (keyboard.rightArrowKey.isPressed ? 1f : 0f) - (keyboard.leftArrowKey.isPressed ? 1f : 0f),
