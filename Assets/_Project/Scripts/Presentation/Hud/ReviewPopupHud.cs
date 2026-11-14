@@ -26,6 +26,9 @@ namespace Game.Presentation.Hud
         [SerializeField] private Vector2 _padding = new Vector2(12f, 6f);
 
         private readonly List<Popup> _popups = new List<Popup>();
+        // Everyone's card: in the middle band it drops the review line (text can't shrink below
+        // 28 px), and it fades out in the far band (decision 2026-11-14).
+        private readonly Game.Simulation.Display.HudZoom _zoom = new Game.Simulation.Display.HudZoom();
         private ServiceSimulation _service;
         // In the player's language and currency (Locale).
         private static string Money(float amount) => Game.Data.Locale.Money(amount, Game.Data.MoneyStyle.Whole);
@@ -61,21 +64,22 @@ namespace Game.Presentation.Hud
             var popup = new Popup
             {
                 Label = WorldLabel.Create(_style, _canvas, $"Review_{review.Customer.Id}", _padding, new Vector2(0.5f, 0f)),
-                Text = Describe(review),
+                Text = Describe(review, out var headline),
+                Short = headline,
                 World = agent.transform.position + Vector3.up * _height,
                 Until = Time.time + _seconds,
             };
             _popups.Add(popup);
         }
 
-        private string Describe(Review review)
+        private string Describe(Review review, out string headline)
         {
             // Stars come in halves, so only exactly one is singular ("1 star", "1.5 stars").
             var starText = Mathf.Approximately(review.Stars, 1f)
                 ? Tr.Get("1 star")
                 : Tr.Format("{stars} stars", ("stars", review.Stars.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture)));
             var stars = HudStyle.Colored(starText, _style.RatingColor(review.Stars / 5f));
-            var headline = review.Customer.Bill is Bill bill
+            headline = review.Customer.Bill is Bill bill
                 ? $"{stars}  " + Tr.Format("{paid} + {tip} tip", ("paid", Money(bill.Payment)), ("tip", Money(bill.Tip)))
                 : $"{stars}  {HudStyle.Colored(Tr.Format("walked out! {amount}", ("amount", Money(-review.Customer.WalkOutPenalty))), _style.RatingColor(0f))}";
             var line = Game.Data.ReviewText.Line(review);
@@ -87,13 +91,16 @@ namespace Game.Presentation.Hud
             var camera = Camera.main;
             if (camera == null)
                 return;
+            _zoom.Tick(camera.transform.position.y, Time.unscaledDeltaTime, _root.Services.Tuning.HudZoom);
+            var look = _zoom.Shared;
 
             for (var i = _popups.Count - 1; i >= 0; i--)
             {
                 var popup = _popups[i];
                 if (Time.time < popup.Until)
                 {
-                    popup.Label.Show(popup.Text, popup.World, camera, _canvas);
+                    popup.Label.Visibility = look.Alpha;
+                    popup.Label.Show(look.Simple >= 0.5f ? popup.Short : popup.Text, popup.World, camera, _canvas);
                     continue;
                 }
 
@@ -111,6 +118,7 @@ namespace Game.Presentation.Hud
         {
             public WorldLabel Label;
             public string Text;
+            public string Short;
             public Vector3 World;
             public float Until;
         }

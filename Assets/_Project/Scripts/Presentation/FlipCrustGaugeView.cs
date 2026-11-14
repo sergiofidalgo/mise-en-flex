@@ -42,6 +42,12 @@ namespace Game.Presentation
         [SerializeField, Min(0.01f)] private float _height = 0.18f;
         [SerializeField, Min(0.01f)] private float _buttonSize = 0.215f;
 
+        [Header("As the camera rises (decision 2026-11-14; bands in TuningConfig)")]
+        [Tooltip("Metres from the food within which a chef makes the strip theirs: full size at every height.")]
+        [SerializeField, Min(0f)] private float _ownReach = 2.5f;
+        [Tooltip("The chip a pan nobody's at becomes in the middle band, as a share of the strip's width: the colour the crust (or the doneness) has reached.")]
+        [SerializeField, Range(0.05f, 1f)] private float _chipWidth = 0.3f;
+
         [Header("Crust colours, raw to charred")]
         [SerializeField] private Color _raw = new Color32(0xE8, 0xA9, 0x9A, 0xFF);
         [SerializeField] private Color _golden = new Color32(0xD9, 0xA0, 0x66, 0xFF);
@@ -70,6 +76,7 @@ namespace Game.Presentation
         [SerializeField, Min(0f)] private float _warningRate = 4f;
 
         private readonly Dictionary<(Pan, int), Kit> _kits = new Dictionary<(Pan, int), Kit>();
+        private readonly Game.Simulation.Display.HudZoom _zoom = new Game.Simulation.Display.HudZoom();
 
         private sealed class Kit
         {
@@ -90,6 +97,25 @@ namespace Game.Presentation
             public PressGrade LastGrade;
             public float MarkLeft;
             public float Shown;
+
+            // The middle band's chip, and how urgent (a chef at it, or burning) the strip is, eased.
+            public Renderer Chip;
+            public Renderer ChipOutline;
+            public Color ChipColour;
+            public float Urgency;
+        }
+
+        /// <summary>How many strips are showing as the middle band's chip, for tests and captures.</summary>
+        public int ShowingAsChips
+        {
+            get
+            {
+                var count = 0;
+                foreach (var kit in _kits.Values)
+                    if (kit.Root != null && kit.Root.gameObject.activeSelf && kit.Chip.gameObject.activeSelf)
+                        count++;
+                return count;
+            }
         }
 
         /// <summary>The grade the crust would get if flipped now, for the mark (and tests).</summary>
@@ -122,6 +148,8 @@ namespace Game.Presentation
                 return;
 
             var settings = services.Tuning.FlipGauge;
+            var zoomSettings = services.Tuning.HudZoom;
+            _zoom.Tick(camera.transform.position.y, Time.unscaledDeltaTime, zoomSettings);
             var dt = Time.deltaTime;
             foreach (var pan in services.Cooking.Pans)
             for (var piece = 0; piece < pan.Contents.Count; piece++)
@@ -155,14 +183,26 @@ namespace Game.Presentation
                 kit.Root.gameObject.SetActive(true);
                 kit.Shown = Mathf.MoveTowards(kit.Shown, 1f, _popInSeconds > 0f ? dt / _popInSeconds : 1f);
                 var at = view.transform.position;
-                var where = at + TimingGaugeKit.AwayFromChef(at, TimingGaugeKit.NearestChef(at, 2.5f), camera, _away);
-                TimingGaugeKit.FaceCamera(kit.Root, camera, where, TimingGaugeKit.MetresFor(camera, where, _widthPixels) * Mathf.Max(0.001f, TimingGaugeKit.EaseOutBack(kit.Shown)));
-
+                var chef = TimingGaugeKit.NearestChef(at, Mathf.Max(2.5f, _ownReach));
                 var warning = FlipGauge.IsAboutToBurn(food, settings);
+
+                // A chef at the pan, or food about to burn, keeps the full strip at any height; a pan
+                // nobody's at shrinks with the scene, turns into a chip, and fades out far up. Changing
+                // form shrinks the strip away and pops the chip in (and back), never both at once.
+                var own = chef.HasValue && new Vector2(chef.Value.x - at.x, chef.Value.z - at.z).sqrMagnitude <= _ownReach * _ownReach;
+                kit.Urgency = Game.Simulation.Display.HudZoom.Ease(kit.Urgency, own || warning ? 1f : 0f, Time.unscaledDeltaTime, zoomSettings.ChangeSeconds);
+                var look = _zoom.For(kit.Urgency);
+                var chip = look.Simple >= 0.5f;
+                var form = Mathf.Abs(1f - 2f * look.Simple);
+                var where = at + TimingGaugeKit.AwayFromChef(at, chef, camera, _away);
+                var size = TimingGaugeKit.MetresFor(camera, where, _widthPixels) * look.Scale * look.Alpha * form;
+                TimingGaugeKit.FaceCamera(kit.Root, camera, where, Mathf.Max(0.001f, size * TimingGaugeKit.EaseOutBack(kit.Shown)));
                 var flash = warning ? (Mathf.Sin(Time.time * _warningRate * Mathf.PI * 2f) + 1f) * 0.5f : 0f;
                 if (warning)
                     kit.Root.position += kit.Root.right * (Mathf.Sin(Time.time * 47f) * 0.006f);
 
+                foreach (var part in new[] { kit.Outline[0], kit.Needle, kit.NeedleOutline, kit.Tip })
+                    part.gameObject.SetActive(true);
                 if (stages)
                     DrawStages(kit, food);
                 else
@@ -176,7 +216,23 @@ namespace Game.Presentation
                     var pop = 1f + 0.4f * Mathf.Pow(markT, 3f);
                     kit.Mark.localScale = Vector3.one * (_buttonSize * 1.25f * pop);
                 }
+                ShowChip(kit, chip);
             }
+        }
+
+        // The middle band's chip: everything else off, one block in the colour the marker is on.
+        private void ShowChip(Kit kit, bool chip)
+        {
+            kit.Chip.gameObject.SetActive(chip);
+            kit.ChipOutline.gameObject.SetActive(chip);
+            if (!chip)
+                return;
+            foreach (Transform child in kit.Root)
+            {
+                if (child != kit.Chip.transform && child != kit.ChipOutline.transform)
+                    child.gameObject.SetActive(false);
+            }
+            TimingGaugeKit.Paint(kit.Chip, kit.ChipColour);
         }
 
         private void DrawCrust(Kit kit, Ingredient food, FlipGaugeSettings settings, float flash)
@@ -196,6 +252,15 @@ namespace Game.Presentation
                 if (i >= 3)
                     colour = Color.Lerp(colour, TimingGaugeKit.Bad, flash * 0.8f);
                 TimingGaugeKit.Paint(kit.Crust[i], colour);
+            }
+            var at = FlipGauge.Position(food);
+            for (var i = 0; i < colours.Length; i++)
+            {
+                if (at <= edges[i + 1] || i == colours.Length - 1)
+                {
+                    kit.ChipColour = i >= 3 ? Color.Lerp(colours[i], TimingGaugeKit.Bad, flash * 0.8f) : colours[i];
+                    break;
+                }
             }
             foreach (var stage in kit.Stages)
                 stage.gameObject.SetActive(false);
@@ -232,6 +297,8 @@ namespace Game.Presentation
                 if (show)
                     Span(kit.Stages[i], i / (float)count, (i + 1) / (float)count, 0f);
             }
+            var reached = Mathf.Clamp(Mathf.FloorToInt(FlipGauge.StagePosition(food) * count), 0, Mathf.Max(0, count - 1));
+            kit.ChipColour = _stageColors[Mathf.Min(reached, _stageColors.Length - 1)];
             foreach (var crust in kit.Crust)
                 crust.gameObject.SetActive(false);
             foreach (var bar in kit.Frame)
@@ -304,6 +371,13 @@ namespace Game.Presentation
             kit.Button = TimingGaugeKit.XButton(root, _onTop, ButtonOrder);
             kit.Mark = TimingGaugeKit.Mark(root, _onTop, ButtonOrder + 4);
             kit.Mark.gameObject.SetActive(false);
+            var chipHeight = _height * 1.2f;
+            kit.ChipOutline = TimingGaugeKit.Block(root, "ChipOutline", _onTop, TimingGaugeKit.Ink, OutlineOrder);
+            TimingGaugeKit.Place(kit.ChipOutline, Vector2.zero, new Vector2(_chipWidth + 0.03f, chipHeight + 0.03f), 0.01f, 0f);
+            kit.Chip = TimingGaugeKit.Block(root, "Chip", _onTop, Color.white, StripOrder);
+            TimingGaugeKit.Place(kit.Chip, Vector2.zero, new Vector2(_chipWidth, chipHeight), 0.01f, -0.01f);
+            kit.Chip.gameObject.SetActive(false);
+            kit.ChipOutline.gameObject.SetActive(false);
             _kits[(pan, piece)] = kit;
             return kit;
         }

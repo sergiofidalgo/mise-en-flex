@@ -4,6 +4,24 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-14 — The world-anchored HUD stays readable as the camera rises
+
+**The problem (user's report after play):** order bubbles, tags, gauges and labels are drawn a fixed size on screen at their object. When the camera rises (7.9 m for the kitchen, 9.75 m for the whole restaurant, 14.6 m for the street and 23.7 m for the road), the scene shrinks but these pieces don't, so they pile up.
+
+**Decision (user's OK on the plan):** the camera's height is read as three **bands** with **one set of values in `TuningConfig`** ("HUD as the camera rises"). Each band has a threshold going up and a lower one coming back down, so a camera hovering between them doesn't flick. Pieces change form and fade over 0.25 s when the band changes. Their size follows the height smoothly, as the scene does. The maths is `HudZoom` (simulation), tested in `HudZoomTests`.
+- **Near** (below 9 m going up, from 8.6 m coming down): everything as before.
+- **Middle** (the whole restaurant): pieces that are everyone's shrink with the scene (×7.9/height), down to 0.7 of full size at the smallest, and simplify:
+  - **Orders:** a table's guests share **one small bubble**, with a patience ring for the least patient guest, then each guest's dish picture and the **first letter of the doneness** in its colour (the user's pick over a coloured rim alone: it reads by shape as well as colour). The letter is drawn at 40 px, so it's still 28 px at the smallest size. The side and "…" for queueing guests stay up close (the side is dropped; "…" stays). A delivery order gets its own small bubble with the app's badge and countdown ring.
+  - **Cooking strips** at a pan nobody's at (no chef within 2.5 m) become a **small chip** in the colour the crust, or after the flip the doneness, has reached. The user accepted colour plus shape here, since burning brings the full strip back.
+  - **Review cards** drop the review line and keep the stars and money. Text can't shrink below 28 px, so cards and the bell's label keep their size.
+- **Far** (from 13.5 m going up, below 12.5 m coming down: the street and the road): all of those fade out. **Urgent orders don't fall back to dots:** they keep their full bubble.
+- **Always full size, at every height:** a guest whose patience is under 0.35 (where the bubble starts to wobble), a courier just as impatient, food about to burn, a strip with a chef at it, and every chef's own pieces: the doneness tag, the doneness chip, the cutting dial, the ingredient wheel, the wash and cleaning hints and the appliance hints. Those only show for the chef using them, so they never pile up.
+- **Unchanged:** the edge markers for guests out of view (they're at the screen's edge, not on their guest), and the cut pieces and floor rings, which are real-size scene objects. The old flat `ChopDialHud` and `FlipGaugeHud` aren't in the scene any more and were left alone.
+
+**Reason:** the user agreed the fix should mix scaling, simplifying and hiding, chosen by how urgent each piece is. Shrinking alone would take the text under the art bible's 28 px. Hiding alone would lose the overview of the dining room. Anything about to go wrong must never shrink.
+
+---
+
 ## 2026-11-14 — Outside, the camera holds still shots of the street and the road
 
 **The bug (user's report):** one chef walking onto the road made the camera zoom in. Outside the building, the camera grew the kitchen's shot to take them in, creeping out with every step (10.7 m at the front door, 15.3 m at the kerb). About a metre onto the road, keeping the kitchen would have taken it past 18 m (`_mostKeepingKitchen`, judged with the usual room at the top of the screen), so it framed the people alone. With one chef that's its closest height, 6.5 m, following them.

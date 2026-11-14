@@ -18,6 +18,8 @@ namespace Game.Presentation.Hud
         [SerializeField] private Vector2 _padding = new Vector2(10f, 4f);
 
         private readonly Dictionary<CounterStation, WorldLabel> _labels = new Dictionary<CounterStation, WorldLabel>();
+        // Everyone's label: it keeps its size (it's text, 28 px at least) and fades out in the far band.
+        private readonly Game.Simulation.Display.HudZoom _zoom = new Game.Simulation.Display.HudZoom();
 
         private void LateUpdate()
         {
@@ -25,6 +27,7 @@ namespace Game.Presentation.Hud
             if (camera == null || _root.Services == null)
                 return;
 
+            _zoom.Tick(camera.transform.position.y, Time.unscaledDeltaTime, _root.Services.Tuning.HudZoom);
             var bell = _root.Services.Bell;
             foreach (var counter in _root.Services.Stations.All.OfType<CounterStation>())
             {
@@ -37,6 +40,7 @@ namespace Game.Presentation.Hud
                     _labels[counter] = label;
                 }
 
+                label.Visibility = _zoom.Shared.Alpha;
                 if (rung)
                     label.Show(_text, counter.transform.position + Vector3.up * _height, camera, _canvas);
                 else

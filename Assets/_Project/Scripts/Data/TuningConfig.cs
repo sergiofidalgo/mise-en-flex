@@ -177,6 +177,24 @@ namespace Game.Data
         [Tooltip("Extinguisher sweeps that put a fire out.")]
         [SerializeField, Min(0.1f)] private float _sweepsToPutOut = 3f;
 
+        [Header("HUD as the camera rises (decision 2026-11-14)")]
+        [Tooltip("Camera metres up at which the HUD goes from the near band (the kitchen's shot, 7.9 m) to the middle one (the whole restaurant, 9.75 m): shared pieces shrink and simplify.")]
+        [SerializeField, Min(0f)] private float _hudMiddleFrom = 9f;
+        [Tooltip("Camera metres up below which it's the near band again. Lower than the above, so a camera hovering between doesn't flick.")]
+        [SerializeField, Min(0f)] private float _hudNearBelow = 8.6f;
+        [Tooltip("Camera metres up at which it's the far band (the street, 14.6 m, and the road, 23.7 m): shared pieces fade out.")]
+        [SerializeField, Min(0f)] private float _hudFarFrom = 13.5f;
+        [Tooltip("Camera metres up below which it's the middle band again.")]
+        [SerializeField, Min(0f)] private float _hudMiddleBelow = 12.5f;
+        [Tooltip("Camera metres up at which shared pieces are full size; higher, they shrink with the scene.")]
+        [SerializeField, Min(0.1f)] private float _hudFullSizeAt = 7.9f;
+        [Tooltip("The smallest shared pieces get, as a share of full size (pictures stay 32 px or more at 1080p at 0.7).")]
+        [SerializeField, Range(0.1f, 1f)] private float _hudSmallestScale = 0.7f;
+        [Tooltip("Real seconds pieces take to change form or fade when the band changes, or when they become urgent.")]
+        [SerializeField, Min(0f)] private float _hudChangeSeconds = 0.25f;
+        [Tooltip("A guest's patience (0..1) below which their order is urgent and stays full size at every height (where the bubble starts to wobble).")]
+        [SerializeField, Range(0f, 1f)] private float _hudUrgentPatience = 0.35f;
+
         public DirtSettings Dirt => new DirtSettings
         {
             DinerSmudge = _dinerSmudge,
@@ -254,6 +272,18 @@ namespace Game.Data
         };
 
         public FlipGaugeSettings FlipGauge => new FlipGaugeSettings { GoodFrom = _flipGoodFrom, GoodTo = _flipGoodTo, WarnFrom = _burnWarningFrom };
+
+        public Game.Simulation.Display.HudZoomSettings HudZoom => new Game.Simulation.Display.HudZoomSettings
+        {
+            MiddleFrom = _hudMiddleFrom,
+            NearBelow = Mathf.Min(_hudNearBelow, _hudMiddleFrom),
+            FarFrom = _hudFarFrom,
+            MiddleBelow = Mathf.Min(_hudMiddleBelow, _hudFarFrom),
+            FullSizeAt = _hudFullSizeAt,
+            SmallestScale = _hudSmallestScale,
+            ChangeSeconds = _hudChangeSeconds,
+            UrgentPatience = _hudUrgentPatience,
+        };
 
         /// <summary>Scoring settings; <paramref name="cookingPrecision"/> (realism dial, 0..1) narrows the doneness window.</summary>
         public ScoringSettings Quality(float cookingPrecision) => new ScoringSettings

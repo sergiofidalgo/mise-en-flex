@@ -89,6 +89,12 @@ namespace Game.Presentation.Hud
 
         public bool IsShown => _targetAlpha > 0f;
 
+        /// <summary>
+        /// How visible it is at most, 0..1, on top of showing and hiding: the HUD's height bands fade
+        /// shared labels out as the camera rises (<see cref="Game.Simulation.Display.HudZoom"/>).
+        /// </summary>
+        public float Visibility { get; set; } = 1f;
+
         public float FontSize
         {
             set => _text.fontSize = value;
@@ -166,7 +172,7 @@ namespace Game.Presentation.Hud
         private void Update()
         {
             var speed = _style.Fade > 0f ? 1f / _style.Fade : float.MaxValue;
-            _group.alpha = Mathf.MoveTowards(_group.alpha, _targetAlpha, speed * Time.unscaledDeltaTime);
+            _group.alpha = Mathf.MoveTowards(_group.alpha, _targetAlpha * Mathf.Clamp01(Visibility), speed * Time.unscaledDeltaTime);
         }
     }
 }
