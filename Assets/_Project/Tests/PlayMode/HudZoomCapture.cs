@@ -6,6 +6,7 @@ using Game.Gameplay;
 using Game.Gameplay.Stations;
 using Game.Presentation;
 using Game.Presentation.Hud;
+using Game.Simulation.Cooking;
 using Game.Simulation.Days;
 using Game.Simulation.Items;
 using NUnit.Framework;
@@ -46,6 +47,32 @@ namespace Game.Tests.PlayMode
             for (var i = 0; i < 5; i++)
                 yield return null;
 
+            // Two tables for four in the dining room, bought in Plan: a busy room needs tables.
+            var editor = Object.FindFirstObjectByType<LayoutEditor>();
+            var buyer = chefs[0].GetComponent<PlayerInput>();
+            var cursor = editor.Enter(buyer);
+            services.Days.Receive(1000f);
+            var placed = 0;
+            foreach (var spot in new[] { new System.Numerics.Vector2(-2.2f, -5.6f), new System.Numerics.Vector2(1.5f, -5.6f), new System.Numerics.Vector2(1.5f, -7f), new System.Numerics.Vector2(0f, -7.5f), new System.Numerics.Vector2(2.5f, -7.5f) })
+            {
+                if (placed == 2)
+                    break;
+                cursor.Position = spot;
+                if (!editor.Buy(cursor, editor.Shop.First(e => e.Id == "table")))
+                    continue;
+                editor.MoveCursor(cursor, spot);
+                if (!editor.Place(cursor))
+                {
+                    Debug.Log($"[HudZoomCapture] couldn't place a table at {spot}: {cursor.Result}");
+                    continue;
+                }
+                placed++;
+                for (var i = 0; i < 3; i++)
+                    editor.AddChair(cursor);
+            }
+            editor.Leave(buyer);
+            yield return null;
+
             while (services.Days.Phase != DayPhase.Service)
                 services.Days.Advance();
             yield return null;
@@ -63,23 +90,31 @@ namespace Game.Tests.PlayMode
             var hobs = services.Stations.All.OfType<HobStation>().ToList();
             foreach (var hob in hobs)
             {
-                var steak = services.Cooking.AddIngredient(services.Catalog.Find("Steak").ToProperties());
+                if (hob.Hob.Pan == null)
+                    continue;
+                var steak = (Ingredient)services.CreateItem("Steak");
                 hob.Hob.Pan.Put(steak);
-                hob.Hob.Dial = 0.5f;
+                services.ItemViews.PlaceImmediately(steak, hob.ItemAnchor);
+                hob.Hob.Dial = 0.35f;
             }
-            if (hobs.Count > 0)
-                StandAt(services, chefs[0], hobs[0]);
+            // Nobody at the hob: its strip is everyone's, so it becomes a chip further up.
+            StandAt(services, chefs[0], services.Stations.All.OfType<StorageStation>().First());
 
             var board = services.Stations.All.OfType<PrepStation>().First();
             var knife = services.Stations.All.OfType<CounterStation>().FirstOrDefault(c => c.Slot.Current is Knife);
             if (knife != null)
                 knife.TryExchangeTool(chefs[1]);
-            var onion = services.Cooking.AddIngredient(services.Catalog.Find("Onion").ToProperties());
+            var onion = (Ingredient)services.CreateItem("Onion");
             board.Container.Put(onion);
             services.ItemViews.PlaceImmediately(onion, board.AnchorFor(onion));
-            StandAt(services, chefs[1], board);
+            // Cutting stays with the board, but the chef steps to the sink: the board is within
+            // reach of the hob, and a chef there makes its strip theirs (full at every height).
+            chefs[1].GetComponent<PlayerMovement>().Teleport(new System.Numerics.Vector2(0.5f, -6.5f));
 
             yield return new WaitForSeconds(10f); // the guests sit and order; the steaks brown
+            foreach (var chef in chefs)
+                Debug.Log($"[HudZoomCapture] chef {Vector3.Distance(Flat(chef.transform.position), Flat(hobs[0].transform.position)):0.00} m from the hob");
+            Debug.Log($"[HudZoomCapture] {service.SeatCount} seats, {service.Customers.Count} guests, {hobs.Count} hobs, {services.Cooking.Pans.Count()} pans");
 
             var camera = Camera.main;
             camera.GetComponent<FramingCamera>().enabled = false;
@@ -110,6 +145,8 @@ namespace Game.Tests.PlayMode
                 InputSystem.RemoveDevice(pad);
             Debug.Log($"[HudZoomCapture] Saved screenshots to {folder}");
         }
+
+        private static Vector3 Flat(Vector3 v) => new Vector3(v.x, 0f, v.z);
 
         private static void StandAt(KitchenServices services, PlayerInteractor chef, Interactable station)
         {
