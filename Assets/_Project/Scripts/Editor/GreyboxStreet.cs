@@ -120,6 +120,11 @@ namespace Game.Editor
                 // The road and the far pavement are the chefs' too now, so the camera's grounds take them in.
                 so.FindProperty("_groundsMin").vector2Value = new Vector2(GroundsWest, RoadSouth - 2.4f);
                 so.FindProperty("_groundsMax").vector2Value = new Vector2(GroundsEast, GroundsNorth);
+                // The camera's first still shot outside: the building, the plaza with the stalls and the
+                // pavement in front, up to the kerb. The road gets the grounds' shot (decision 2026-11-14).
+                so.FindProperty("_streetMin").vector2Value = new Vector2(GroundsWest, Kerb);
+                so.FindProperty("_streetMax").vector2Value = new Vector2(BuildingEast, GroundsNorth);
+                so.FindProperty("_kerb").floatValue = Kerb;
                 so.ApplyModifiedPropertiesWithoutUndo();
             }
         }

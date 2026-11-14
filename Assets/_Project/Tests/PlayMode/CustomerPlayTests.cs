@@ -756,6 +756,51 @@ namespace Game.Tests.PlayMode
             Assert.That(camera.transform.position.y, Is.EqualTo(inTheKitchen).Within(0.05f), "the same kitchen shot every time");
         }
 
+        // The bug (2026-11-14): one chef a metre onto the road made the camera zoom right in on them.
+        // Outside, it holds one still shot of the street, one more further out for the road, and
+        // comes back to the same kitchen shot.
+        [UnityTest]
+        public IEnumerator OutsideTheCameraHoldsStillShotsOfTheStreetAndTheRoad()
+        {
+            yield return OpenForBuying();
+            yield return new WaitForSeconds(8f);
+            var camera = Camera.main;
+            var inTheKitchen = camera.transform.position.y;
+            var controller = _player.GetComponent<CharacterController>();
+            var kitchenSpot = _player.transform.position;
+            void Put(float x, float z)
+            {
+                controller.enabled = false;
+                _player.transform.position = new Vector3(x, kitchenSpot.y, z);
+                controller.enabled = true;
+            }
+
+            Put(-6f, -9f); // on the pavement, out of the front door
+            yield return new WaitForSeconds(6f);
+            var street = camera.transform.position;
+            Assert.That(street.y, Is.GreaterThan(inTheKitchen + 1f));
+            foreach (var (x, z) in new[] { (2f, -9.5f), (-12.5f, -2f), (-6f, -10f) })
+            {
+                Put(x, z); // about the pavement and the plaza
+                yield return new WaitForSeconds(2f);
+                Assert.That(Vector3.Distance(camera.transform.position, street), Is.LessThan(0.05f), $"the street's shot stays still at {x}, {z}");
+                Assert.That(camera.WorldToViewportPoint(_player.transform.position).y, Is.InRange(0f, 1f), "and shows them");
+            }
+
+            Put(0f, -18.5f); // across the road, on the far pavement
+            yield return new WaitForSeconds(6f);
+            var road = camera.transform.position;
+            Assert.That(road.y, Is.GreaterThan(street.y + 1f), "one step further out, never in");
+            Put(-10f, -18.5f);
+            yield return new WaitForSeconds(2f);
+            Assert.That(Vector3.Distance(camera.transform.position, road), Is.LessThan(0.05f), "the road's shot stays still too");
+            Assert.That(camera.WorldToViewportPoint(_player.transform.position).x, Is.InRange(0f, 1f));
+
+            Put(kitchenSpot.x, kitchenSpot.z);
+            yield return new WaitForSeconds(8f);
+            Assert.That(camera.transform.position.y, Is.EqualTo(inTheKitchen).Within(0.05f), "the same kitchen shot");
+        }
+
         [UnityTest]
         public IEnumerator AManagingPlayersCursorLeadsTheCameraNotTheirChef()
         {

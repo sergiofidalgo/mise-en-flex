@@ -184,6 +184,44 @@ namespace Game.Simulation.Movement
             return (Vector2.Clamp(min, buildingMin, buildingMax), Vector2.Clamp(max, buildingMin, buildingMax));
         }
 
+        /// <summary>
+        /// How far out of the building anyone is, for the outside's still shots: the street in front of it
+        /// (pavement, plaza, parking), or the road beyond the kerb, which needs a shot further out. The
+        /// road runs along the building's front, the low end of the second coordinate. Out counts from
+        /// <paramref name="outBy"/> past a line, back from <paramref name="backBy"/>, so standing in the
+        /// doorway or on the kerb doesn't flick it.
+        /// </summary>
+        /// <param name="buildingMin">The corner of the building's outer walls.</param>
+        /// <param name="buildingMax">The opposite corner.</param>
+        /// <param name="kerb">Where the road starts, along the second coordinate.</param>
+        /// <param name="was">What it said last time.</param>
+        public static Outside WhereOutside(IReadOnlyList<Vector2> people, Outside was, Vector2 buildingMin, Vector2 buildingMax, float kerb, float outBy, float backBy)
+        {
+            var result = Outside.No;
+            foreach (var person in people)
+            {
+                if (person.Y < kerb - (was == Outside.Road ? backBy : outBy))
+                    return Outside.Road;
+                if (!Inside(person, buildingMin, buildingMax, was == Outside.No ? outBy : backBy))
+                    result = Outside.Street;
+            }
+            return result;
+        }
+
+        /// <summary>
+        /// One still shot of a stretch of floor, centred on it, with some floor kept all round so anyone
+        /// standing at its edge is clear of the screen's edge. It doesn't depend on where anyone is, so
+        /// moving about in it never moves the camera.
+        /// </summary>
+        public static Vector3 StillShot(
+            Vector2 min, Vector2 max, float margin, float tiltDegrees, float fieldOfViewDegrees, float aspect, float minHeight, float maxHeight,
+            float screenTop = 0f, float screenBottom = 0f)
+        {
+            var around = new Vector2(margin, margin);
+            return Fit(Array.Empty<Vector2>(), tiltDegrees, fieldOfViewDegrees, aspect, 0f, minHeight, maxHeight, 0f, null, screenTop, screenBottom,
+                null, null, min - around, max + around);
+        }
+
         /// <summary>Whether a point is inside a rectangle, or within some slack of it.</summary>
         public static bool Inside(Vector2 point, Vector2 min, Vector2 max, float slack = 0f) =>
             point.X >= min.X - slack && point.X <= max.X + slack && point.Y >= min.Y - slack && point.Y <= max.Y + slack;
@@ -224,6 +262,14 @@ namespace Game.Simulation.Movement
             wholeHeight < maxHeight && wholeHeight <= kitchenHeight * mostTimesKitchen;
 
         private static float Cot(float radians) => 1f / (float)Math.Tan(radians);
+
+        /// <summary>Where anyone furthest out of the building is: nowhere, the street, or the road.</summary>
+        public enum Outside
+        {
+            No,
+            Street,
+            Road,
+        }
 
         private static float Radians(float degrees) => degrees * (float)Math.PI / 180f;
     }

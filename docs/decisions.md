@@ -4,6 +4,19 @@ Design and technical decisions, newest first. Each entry: date, decision, reason
 
 ---
 
+## 2026-11-14 — Outside, the camera holds still shots of the street and the road
+
+**The bug (user's report):** one chef walking onto the road made the camera zoom in. Outside the building, the camera grew the kitchen's shot to take them in, creeping out with every step (10.7 m at the front door, 15.3 m at the kerb). About a metre onto the road, keeping the kitchen would have taken it past 18 m (`_mostKeepingKitchen`, judged with the usual room at the top of the screen), so it framed the people alone. With one chef that's its closest height, 6.5 m, following them.
+
+**User's call:** leaving the building gives one slight zoom-out that holds still until they're back; it never follows them outside. A slight zoom-out can't show the road, though: at 10.7 m the bottom of the screen is about 2 m short of the kerb. Of three options (one still shot of all of the street at about 24 m; a slight zoom-out with the edge limit sliding it after them, which on the road keeps them at the bottom edge with the cars off screen; two still steps), the user chose **two still steps**, the same rule for any number of players:
+- **Out of the building: one still shot of the street** (`_streetMin`/`_streetMax`): the building, the plaza with the stalls and the pavement in front, up to the kerb, with 0.6 m of floor around it (`_outsideMargin`). About 14.6 m up, against 9.75 m for the dining room and 7.9 m for the kitchen. That's more than first estimated (12–13 m), since it has to reach from the kerb to the lane behind the building.
+- **On the road: one more step out to a still shot of all the grounds** (`_groundsMin`/`_groundsMax`): road and far pavement too, about 23.7 m up.
+- **Whoever is furthest out decides, for everyone.** Both shots contain the whole building, so anyone inside or out there is on screen. The hard edge limit (`KeepInView`) only moves it if someone goes beyond those areas: the front of the parking lot, or off the ends of the street.
+- **Thresholds:** out of the building 0.3 m past its outer walls (`_outBy`, clear of the doorway), back in from 0.15 m. The road counts from the kerb itself, and back on the pavement 0.15 m up from it. Each change is the usual one arc (`_zoomOutSeconds`, `_zoomInSeconds`). Coming back into the building, the dining room's whole-restaurant shot and the kitchen rules are unchanged.
+- **Replaces** growing the kitchen's shot after anyone outside, and the whole-restaurant shot taking in people on the street (2026-11-10). The street builder (`GreyboxStreet`) sets the street, grounds and kerb from the building, so every restaurant gets the same layout of shots.
+
+---
+
 ## 2026-11-13 — A sound for every action that needs one
 
 ---

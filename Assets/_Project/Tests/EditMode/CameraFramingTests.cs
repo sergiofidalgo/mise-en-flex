@@ -291,5 +291,84 @@ namespace Game.Tests.EditMode
             var to = from + new Vector3(0f, 3f, -2f);
             Assert.That(CameraFraming.HurryAlong(new[] { new Vector2(0f, 0f) }, from, to, Tilt, Fov, Aspect, 0.6f, 40f, 0.1f, 0.02f), Is.EqualTo(from));
         }
+
+        // The first restaurant's street (GreyboxStreet): the building's outer walls, the street in front
+        // of it with the plaza, up to the kerb, and all the grounds, road and far pavement included.
+        private static readonly Vector2 OuterWallsMin = new Vector2(-4.1f, -7.1f);
+        private static readonly Vector2 OuterWallsMax = new Vector2(4.1f, 2.1f);
+        private static readonly Vector2 StreetMin = new Vector2(-14f, -10.3f);
+        private static readonly Vector2 StreetMax = new Vector2(4.1f, 3f);
+        private static readonly Vector2 GroundsMin = new Vector2(-14f, -19.4f);
+        private static readonly Vector2 GroundsMax = new Vector2(10f, 3f);
+        private const float Kerb = -10.3f;
+        private const float OutBy = 0.3f;
+
+        // As FramingCamera asks it: the road counts from the kerb itself.
+        private static CameraFraming.Outside Where(CameraFraming.Outside was, params Vector2[] people) =>
+            CameraFraming.WhereOutside(people, was, OuterWallsMin, OuterWallsMax, Kerb + OutBy, OutBy, OutBy / 2f);
+
+        private static Vector3 StillShot(Vector2 min, Vector2 max) =>
+            CameraFraming.StillShot(min, max, 0.6f, Tilt, Fov, Aspect, 6.5f, 40f, 0.14f, 0.06f);
+
+        [Test]
+        public void LeavingTheBuildingCountsOnceClearOfTheDoorwayAndComingBackFromHalfThat()
+        {
+            var no = CameraFraming.Outside.No;
+            var street = CameraFraming.Outside.Street;
+            Assert.That(Where(no, new Vector2(0f, -7.3f)), Is.EqualTo(no), "in the doorway");
+            Assert.That(Where(no, new Vector2(0f, -7.5f)), Is.EqualTo(street));
+            Assert.That(Where(street, new Vector2(0f, -7.3f)), Is.EqualTo(street), "on the way back, the doorway's still out");
+            Assert.That(Where(street, new Vector2(0f, -7.2f)), Is.EqualTo(no));
+            Assert.That(Where(no, new Vector2(-8f, -2f)), Is.EqualTo(street), "the plaza, at the side");
+        }
+
+        [Test]
+        public void SteppingOffTheKerbIsTheRoadAndBackOnThePavementFromALittleUp()
+        {
+            var street = CameraFraming.Outside.Street;
+            var road = CameraFraming.Outside.Road;
+            Assert.That(Where(street, new Vector2(0f, -10.2f)), Is.EqualTo(street));
+            Assert.That(Where(street, new Vector2(0f, -10.35f)), Is.EqualTo(road), "just off the kerb");
+            Assert.That(Where(road, new Vector2(0f, -10.2f)), Is.EqualTo(road), "standing on the kerb on the way back");
+            Assert.That(Where(road, new Vector2(0f, -10.1f)), Is.EqualTo(street));
+            Assert.That(Where(street, new Vector2(0f, -18.5f)), Is.EqualTo(road), "the far pavement is the road's shot too");
+        }
+
+        [Test]
+        public void TheFurthestOutDecidesForEveryone()
+        {
+            var inTheKitchen = new Vector2(0f, 0f);
+            Assert.That(Where(CameraFraming.Outside.No, inTheKitchen, new Vector2(-8f, -5f)), Is.EqualTo(CameraFraming.Outside.Street));
+            Assert.That(Where(CameraFraming.Outside.No, inTheKitchen, new Vector2(-8f, -5f), new Vector2(2f, -13f)), Is.EqualTo(CameraFraming.Outside.Road));
+            Assert.That(Where(CameraFraming.Outside.Road, inTheKitchen, new Vector2(1f, -5f)), Is.EqualTo(CameraFraming.Outside.No));
+        }
+
+        // The bug (2026-11-14): one chef a metre onto the road made it frame them alone, dropping from
+        // about 15 m to 6.5 m. Now each outside shot is the same wherever anyone is in it, and shows
+        // everyone there, all at once, without the hard edge limit having to move it.
+        [Test]
+        public void TheOutsideShotsHoldStillWithEveryoneInThemOnScreen()
+        {
+            foreach (var (min, max, lowestZ) in new[] { (StreetMin, StreetMax, Kerb), (GroundsMin, GroundsMax, GroundsMin.Y) })
+            {
+                var shot = StillShot(min, max);
+                var corners = new[] { new Vector2(min.X, lowestZ), new Vector2(max.X, lowestZ), new Vector2(min.X, max.Y), new Vector2(max.X, max.Y), new Vector2((min.X + max.X) / 2f, (lowestZ + max.Y) / 2f) };
+                Assert.That(CameraFraming.KeepInView(corners, shot, Tilt, Fov, Aspect, 0.6f, 40f, 0.1f, 0.02f), Is.EqualTo(shot), $"everyone in {min}..{max} at once");
+                foreach (var corner in corners)
+                    Assert.That(CameraFraming.KeepInView(new[] { corner }, shot, Tilt, Fov, Aspect, 0.6f, 40f, 0.1f, 0.02f), Is.EqualTo(shot), $"{corner} alone");
+            }
+        }
+
+        [Test]
+        public void TheRoadIsOneStepFurtherOutThanTheStreetWhichIsOneStepOutFromTheDiningRoom()
+        {
+            var dining = CameraFraming.Fit(new[] { RoomMin, RoomMax }, Tilt, Fov, Aspect, 2f, 6.5f, 40f, -1.1f, 0.6f, 0.14f, 0.06f, RoomMin - Walls, RoomMax + Walls);
+            var street = StillShot(StreetMin, StreetMax);
+            var road = StillShot(GroundsMin, GroundsMax);
+            TestContext.WriteLine($"dining room {dining.Y:F2} m, street {street.Y:F2} m, road {road.Y:F2} m");
+            Assert.That(street.Y, Is.GreaterThan(dining.Y));
+            Assert.That(road.Y, Is.GreaterThan(street.Y + 3f));
+            Assert.That(road.Y, Is.LessThan(40f), "the road's shot fits under the top height, so it's never cut");
+        }
     }
 }

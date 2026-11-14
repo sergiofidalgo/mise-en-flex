@@ -16,8 +16,9 @@ namespace Game.Presentation
     /// Once nearly all of the restaurant would show anyway, it shows all of it, centred and still. Only
     /// past a height where the kitchen can't sensibly stay in does it follow the people alone. Customers
     /// don't count: those out of view get markers at the edge of the screen. Before anyone joins, and
-    /// during the Review, it shows the whole restaurant. While anyone's out on the street, at the
-    /// stalls, it may show the street too, instead of stopping at the building's walls.
+    /// during the Review, it shows the whole restaurant. Once anyone leaves the building it holds one
+    /// still shot of the street in front of it, and one more, further out, while anyone's on the road:
+    /// it never follows them outside (user's call, 2026-11-14).
     /// </summary>
     [RequireComponent(typeof(Camera))]
     public sealed class FramingCamera : MonoBehaviour
@@ -79,12 +80,21 @@ namespace Game.Presentation
         [Tooltip("The same at the bottom.")]
         [SerializeField, Range(0f, 0.45f)] private float _edgeScreenBottom = 0.02f;
 
-        [Tooltip("The street outside, as far as anyone can walk (x, z corners): the shot may show it while someone's out there, at the stalls.")]
-        [SerializeField] private Vector2 _groundsMin = new Vector2(-14f, -10.5f);
+        [Tooltip("The street in front of the building and the plaza beside it, up to the kerb, with the building (x, z corners): one still shot of it while anyone's out of the building but not on the road. Set by the street's builder.")]
+        [SerializeField] private Vector2 _streetMin = new Vector2(-14f, -10.3f);
+        [SerializeField] private Vector2 _streetMax = new Vector2(4.1f, 3f);
+        [Tooltip("Everywhere anyone can walk outside, the road and the far pavement too (x, z corners): one still shot of it while anyone's on the road. Set by the street's builder.")]
+        [SerializeField] private Vector2 _groundsMin = new Vector2(-14f, -19.4f);
         [SerializeField] private Vector2 _groundsMax = new Vector2(10f, 3f);
+        [Tooltip("Where the road starts, along the floor (z). Set by the street's builder.")]
+        [SerializeField] private float _kerb = -10.3f;
+        [Tooltip("Metres of floor the outside's still shots keep round their stretch of street, so anyone at its edge is clear of the screen's edge.")]
+        [SerializeField, Min(0f)] private float _outsideMargin = 0.6f;
+        [Tooltip("Metres past the building's outer walls at which someone counts as out of it: clear of the doorway. Back in counts from half this, so standing in the doorway doesn't flick the shot. The road counts from the kerb itself, and back on the pavement from half this up from it.")]
+        [SerializeField, Min(0f)] private float _outBy = 0.3f;
 
         private readonly List<SimVector2> _points = new List<SimVector2>();
-        private bool _someoneOutdoors;
+        private CameraFraming.Outside _outside;
         private readonly List<SimVector2> _people = new List<SimVector2>();
         private Camera _camera;
         private bool _placed;
@@ -110,9 +120,9 @@ namespace Game.Presentation
             var walls = new SimVector2(_wallsBeyondRoom, _wallsBeyondRoom);
             var delta = Time.unscaledDeltaTime;
             CollectPeople();
-            _someoneOutdoors = false;
-            foreach (var person in _people)
-                _someoneOutdoors |= !_root.Services.Building.IsIndoors(person);
+            // The road's line is moved up by the out margin so stepping off the kerb is the road at once:
+            // the street's shot then never has to show past the kerb.
+            _outside = CameraFraming.WhereOutside(_people, _outside, floor.RoomMin - walls, floor.RoomMax + walls, _kerb + _outBy, _outBy, _outBy / 2f);
 
             // Nobody's in yet, or the day's done: the whole restaurant.
             var wasShowingWhole = _showingWhole;
@@ -127,6 +137,18 @@ namespace Game.Presentation
                 top = _screenTopForWhole;
                 wanted = Fit(floor, walls, _minHeight, _maxHeight, top, _wholeFarMargin);
             }
+            else if (_outside != CameraFraming.Outside.No)
+            {
+                // Out of the building: one still shot of where they've gone, whatever they do there,
+                // and one step further out for the road. It used to grow the kitchen's shot after them,
+                // creeping out with every step, then frame them alone a metre onto the road, which with
+                // one chef dropped it from 15 m to its closest (the bug, 2026-11-14). Coming back in, the
+                // dining room's whole-restaurant shot takes over with its own doorway margins.
+                wanted = _outside == CameraFraming.Outside.Road
+                    ? StillShot(_groundsMin, _groundsMax)
+                    : StillShot(_streetMin, _streetMax);
+                _wentWhole = true;
+            }
             else
             {
                 var someoneOut = UseKitchenAndPeople(floor, walls);
@@ -139,10 +161,6 @@ namespace Game.Presentation
                 {
                     var kitchen = KitchenHeight(floor, walls);
                     UseWhole(floor);
-                    // The whole restaurant isn't everyone any more: anyone out on the street counts too.
-                    foreach (var person in _people)
-                        if (!_root.Services.Building.IsIndoors(person))
-                            _points.Add(person);
                     var whole = Fit(floor, walls, _minHeight, _maxHeight, _screenTopForWhole, _wholeFarMargin);
                     _wentWhole = CameraFraming.ShowWhole(kitchen, whole.Y, _maxHeight, _wholeWithin);
                     if (_wentWhole)
@@ -210,9 +228,12 @@ namespace Game.Presentation
 
         private System.Numerics.Vector3 Fit(Game.Data.FloorPlanConfig floor, SimVector2 walls, float lowest, float highest, float top, float? farMargin = null) =>
             CameraFraming.Fit(_points, _tilt, _camera.fieldOfView, _camera.aspect, _margin, lowest, highest, (farMargin ?? _farMargin) - _margin, _nearMargin, top, _screenBottom,
-                _someoneOutdoors ? new SimVector2(_groundsMin.x, _groundsMin.y) : floor.RoomMin - walls,
-                _someoneOutdoors ? new SimVector2(_groundsMax.x, _groundsMax.y) : floor.RoomMax + walls,
+                floor.RoomMin - walls, floor.RoomMax + walls,
                 _hasArea ? _areaMin : (SimVector2?)null, _hasArea ? _areaMax : (SimVector2?)null);
+
+        private System.Numerics.Vector3 StillShot(Vector2 min, Vector2 max) =>
+            CameraFraming.StillShot(new SimVector2(min.x, min.y), new SimVector2(max.x, max.y), _outsideMargin, _tilt, _camera.fieldOfView, _camera.aspect,
+                _minHeight, _maxHeight, _screenTopForWhole, _screenBottom);
 
         private float ZoomSeconds(float to, float from) => to > from ? _zoomOutSeconds : _joining ? _joinSeconds : _zoomInSeconds;
 
