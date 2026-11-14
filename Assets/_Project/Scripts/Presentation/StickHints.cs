@@ -18,13 +18,23 @@ namespace Game.Presentation
     /// <summary>One stick cue a view asks for (decision 2026-11-09: the station is the interface).</summary>
     public readonly struct StickHint
     {
-        public StickHint(float amount, Vector3 world, Vector3 towards, StickMotion motion)
+        /// <param name="loopsPerSecond">For a spin or wag: how fast the cap goes round (the pace that counts), or 0 for the cue's own.</param>
+        /// <param name="way">For a spin: +1 anticlockwise on screen, -1 clockwise.</param>
+        public StickHint(float amount, Vector3 world, Vector3 towards, StickMotion motion, float loopsPerSecond = 0f, int way = -1)
         {
             Amount = amount;
             World = world;
             Towards = towards;
             Motion = motion;
+            LoopsPerSecond = loopsPerSecond;
+            Way = way >= 0 ? 1 : -1;
         }
+
+        /// <summary>For a spin or wag: loops a second, or 0 for the cue's own pace.</summary>
+        public float LoopsPerSecond { get; }
+
+        /// <summary>For a spin: +1 anticlockwise on screen, -1 clockwise.</summary>
+        public int Way { get; }
 
         /// <summary>0..1: how much it shows.</summary>
         public float Amount { get; }

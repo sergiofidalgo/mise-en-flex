@@ -243,8 +243,14 @@ namespace Game.Editor
 
             // -90 turns the sink so the chef stands between it and the camera, back to the camera.
             var turns = new[] { 0f, 45f, -90f };
-            // Circling and washing, and stalled with the stick cue up (decision 2026-11-11: circles).
-            var states = new[] { ("good", new Vector2(0.62f, 0.55f), true, 0.6f), ("bad", new Vector2(-0.2f, 0.1f), false, 0.3f) };
+            // Circling at full speed; circling slowly, with the pacer out ahead (2026-11-14); and
+            // stalled with the stick cue and the pacer up (decision 2026-11-11: circles).
+            var states = new[]
+            {
+                ("good", new Vector2(0.62f, 0.55f), true, 0.6f, 1f, 0f),
+                ("slow", new Vector2(0.62f, 0.55f), true, 0.45f, 0.4f, 1f),
+                ("bad", new Vector2(-0.2f, 0.1f), false, 0.3f, 0f, 1f),
+            };
             var start = sink.transform.rotation;
             Render(camera, target, sink.transform.position + Vector3.up * 0.9f, CloseHeight, null); // warm-up frame
             foreach (var turn in turns)
@@ -253,9 +259,9 @@ namespace Game.Editor
                 // The sink's forward faces the wall it stands against; the chef stands on the room side.
                 var front = -sink.transform.forward;
                 chef.transform.SetPositionAndRotation(sink.transform.position + front * StandDistance, Quaternion.LookRotation(-front, Vector3.up));
-                foreach (var (name, point, scrubbing, progress) in states)
+                foreach (var (name, point, scrubbing, progress, pace, pacer) in states)
                 {
-                    view.Preview(point, scrubbing, progress, !scrubbing);
+                    view.Preview(point, scrubbing, progress, !scrubbing, pace, pacer);
                     Render(camera, target, sink.transform.position + Vector3.up * 0.9f, CloseHeight, Path.Combine(folder, $"wash_{(int)turn}deg_{name}.png"));
                 }
                 Render(camera, target, sink.transform.position + new Vector3(-1.5f, 0.9f, -0.5f), PlayHeight, Path.Combine(folder, $"wash_{(int)turn}deg_play.png"));
@@ -272,7 +278,7 @@ namespace Game.Editor
                     var lookAt = sink.transform.position + new Vector3(-1.5f, 0.9f, -0.5f);
                     var back = (PlayHeight - lookAt.y) / Mathf.Tan(Pitch * Mathf.Deg2Rad);
                     camera.transform.SetPositionAndRotation(new Vector3(lookAt.x, PlayHeight, lookAt.z - back), Quaternion.Euler(Pitch, 0f, 0f));
-                    view.Preview(new Vector2(-0.2f, 0.1f), false, 0.3f, true);
+                    view.Preview(new Vector2(-0.2f, 0.1f), false, 0.3f, true, 0f, 1f);
                     // Place the hint inside the capture session, on the canvas as it's captured.
                     using var session = Game.Presentation.Hud.UiCapture.Prepare(hud.GetComponent<Canvas>());
                     // The canvas and the camera at the capture's size and shape before placing: in

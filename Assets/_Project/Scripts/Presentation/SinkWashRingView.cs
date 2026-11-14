@@ -18,6 +18,10 @@ namespace Game.Presentation
     /// (<see cref="Hud.StickHintHud"/>, flat HUD art from the control glyph kit). The pieces use
     /// <c>Game/ToonOnTop</c>, drawn over whatever is in front of them (the chef, the tap) in a fixed
     /// order, and sit level with the basin's rim. The plate in the basin tips towards the soap.
+    /// How fast it washes shows (the user's call, 2026-11-14): the soap greens, the ring pulses and
+    /// foam gathers more the nearer the circling is to full speed, and a pacer
+    /// (<see cref="SpinPacer"/>) runs round the rim at full speed, the player's way, whenever they
+    /// fall short of it.
     /// Everything turns with the camera, never the sink: pushing the stick up moves the soap, and
     /// dips the plate, up on screen however the sink has been turned in the layout editor.
     /// </summary>
@@ -36,6 +40,8 @@ namespace Game.Presentation
         private const int RingOrder = 0;
         private const int SoapOrder = 2;
         private const int BubbleOrder = 3;
+        private const int PacerOrder = 1;            // over the rim, under the soap
+        private const int BubbleCount = 5;
 
         [SerializeField] private SinkStation _sink;
         [Tooltip("The quad over the basin: the kit's anchor and size. It isn't drawn itself.")]
@@ -79,6 +85,14 @@ namespace Game.Presentation
         [Tooltip("Seconds the plate-done flash and pop last.")]
         [SerializeField, Min(0.01f)] private float _popSeconds = 0.35f;
 
+        [Header("Pace")]
+        [Tooltip("Seconds over which the shown pace follows the game's, so the foam swells and fades rather than flickering.")]
+        [SerializeField, Min(0.01f)] private float _paceSmoothing = 0.2f;
+        [Tooltip("The pacer that runs round the rim at full speed: warm, so it reads on grime and water alike and isn't taken for foam.")]
+        [SerializeField] private Color _pacerColor = new Color(1f, 0.8f, 0.25f);
+        [Tooltip("The pacer's lead bubble, in kit units (the soap is about 0.3 across).")]
+        [SerializeField, Min(0f)] private float _pacerSize = 0.26f;
+
         [Header("Stick cue (as the cleaning ring's)")]
         [Tooltip("Seconds after washing starts before the stick cue shows; it stays until the stick first washes.")]
         [SerializeField, Min(0f)] private float _openingDelay = 0.15f;
@@ -111,12 +125,17 @@ namespace Game.Presentation
 
         public int HintCount => 1;
 
-        public StickHint HintAt(int index) => new StickHint(HintAmount, _hintWorld, Vector3.zero, StickMotion.Spin);
+        public StickHint HintAt(int index) => new StickHint(HintAmount, _hintWorld, Vector3.zero, StickMotion.Spin,
+            _sink != null && _sink.Game != null ? _sink.Game.FullSpeed : 0f, _pacer != null ? _pacer.Way : -1);
 
         // The cue: the game it's for, whether its circling has washed yet, and time without washing.
         private Game.Simulation.Items.WashGame _hintGame;
         private bool _started;
         private float _idle;
+
+        private SpinPacer _pacer;
+        private float _pace;
+        private bool _cueWanted;
 
         private float _fade;
         private float _progress;
@@ -172,11 +191,15 @@ namespace Game.Presentation
                 _shownPoint = new Vector2(game.Point.X, game.Point.Y);
                 _tiltPoint = Vector2.Lerp(_tiltPoint, _shownPoint, 1f - Mathf.Exp(-_tiltFollow * dt));
                 _progress = Mathf.SmoothDamp(_progress, Mathf.Clamp01(raw), ref _progressVelocity, _progressSmoothing);
-                rate = game.OnTrack ? 1f : 0f;
+                // How near full speed the circling is, smoothed: it drives the soap, foam and pulse.
+                _pace = Mathf.Lerp(_pace, game.Pace, 1f - Mathf.Exp(-dt / _paceSmoothing));
+                rate = _pace;
                 UpdateCue(game, dt);
             }
             else
             {
+                _pace = 0f;
+                _cueWanted = false;
                 _idle = 0f;
                 _hintShown = 0f;
             }
@@ -197,7 +220,10 @@ namespace Game.Presentation
             var pulse = washing ? _pulse * Mathf.Sin(Time.time * _pulseRate * 2f * Mathf.PI) * rate : 0f;
             // Pops in with a little overshoot, and out again when washing stops.
             var appear = Mathf.Max(EaseOutBack(_fade), popT > 0f ? 1f : 0f);
-            Draw(appear * (1f + pulse + _pop * popT * popT), rate, popT, _hintShown, dt);
+            // The pacer: at the start and when stuck (as the stick cue), or while short of full speed.
+            var pacer = washing ? Mathf.Max(_cueWanted ? 1f : 0f, _started ? SpinPacer.WantFor(_pace) : 1f) : 0f;
+            Draw(appear * (1f + pulse + _pop * popT * popT), rate, popT, _hintShown, dt, pacer,
+                washing ? game.FullSpeed : 0f, washing ? game.Turning : 0);
         }
 
         // The stick cue, as on the cleaning ring: from just after washing starts until the circling
@@ -214,11 +240,12 @@ namespace Game.Presentation
             if (game.OnTrack)
                 _started = true;
             var want = _started ? _idle > _stalledDelay : _idle > _openingDelay;
+            _cueWanted = want;
             _hintShown = Mathf.MoveTowards(_hintShown, want ? 1f : 0f, dt / 0.15f);
         }
 
         // Places and colours every piece for this frame. Kit units: the rim at 0.84.
-        private void Draw(float scale, float rate, float flash, float hint, float dt)
+        private void Draw(float scale, float rate, float flash, float hint, float dt, float pacer = 0f, float fullSpeed = 0f, int turning = 0)
         {
             FaceCamera();
             _root.position = _ring.transform.position;
@@ -245,16 +272,25 @@ namespace Game.Presentation
             _soap.localRotation = Quaternion.Euler(lean.x, 25f, lean.z);
             Paint(_soapRenderer, Color.Lerp(_soapIdle, _good, rate));
 
-            // Washing well: a few bubbles circle the soap.
+            // Foam round the soap: more bubbles, spread wider and whirling quicker, the nearer the
+            // circling is to full speed, so a slow circle looks slow (the user's call, 2026-11-14).
+            var foam = rate > 0.1f ? Mathf.CeilToInt(rate * _bubbles.Count) : 0;
+            var spread = 0.18f + 0.14f * rate;
+            var whirl = 2f + 4f * rate;
             for (var i = 0; i < _bubbles.Count; i++)
             {
-                var show = rate > 0.5f;
+                var show = i < foam;
                 _bubbles[i].gameObject.SetActive(show);
                 if (!show)
                     continue;
-                var angle = Time.time * 3f + i * Mathf.PI * 2f / _bubbles.Count;
-                _bubbles[i].localPosition = _soap.localPosition + new Vector3(Mathf.Sin(angle) * 0.3f, 0.05f + 0.04f * Mathf.Sin(Time.time * 5f + i), Mathf.Cos(angle) * 0.3f);
+                var angle = Time.time * whirl + i * Mathf.PI * 2f / _bubbles.Count;
+                _bubbles[i].localPosition = _soap.localPosition + new Vector3(Mathf.Sin(angle) * spread, 0.05f + 0.04f * Mathf.Sin(Time.time * 5f + i), Mathf.Cos(angle) * spread);
+                _bubbles[i].localScale = Vector3.one * ((0.06f + 0.015f * i) * (0.7f + 0.5f * rate));
             }
+
+            // The pacer runs round the rim at full speed, just above the segments.
+            _pacer.Update(dt, pacer, fullSpeed, turning, Mathf.Atan2(_shownPoint.y, _shownPoint.x),
+                RimRadius, _segmentHeight + 0.04f, _pacerSize, _pacerColor);
 
             // The stick cue (StickHintHud, flat HUD art) shows in the centre of the ring, spinning.
             _hintWorld = _root.TransformPoint(new Vector3(0f, _segmentHeight * 0.6f, 0f));
@@ -294,7 +330,8 @@ namespace Game.Presentation
             _soapRenderer = Primitive("Soap", PrimitiveType.Sphere, _root, SoapOrder);
             _soap = _soapRenderer.transform;
             _soap.localScale = _soapSize;
-            for (var i = 0; i < 3; i++)
+            _pacer = new SpinPacer(() => Primitive("Pacer", PrimitiveType.Sphere, _root, PacerOrder), Paint);
+            for (var i = 0; i < BubbleCount; i++)
             {
                 var bubble = Primitive("Bubble", PrimitiveType.Sphere, _root, BubbleOrder);
                 bubble.transform.localScale = Vector3.one * (0.06f + 0.02f * i);
@@ -346,6 +383,7 @@ namespace Game.Presentation
             _root = null;
             _segments.Clear();
             _bubbles.Clear();
+            _pacer = null;
         }
 
         private static void DestroyNow(Object thing)
@@ -405,7 +443,9 @@ namespace Game.Presentation
         }
 
         /// <summary>For captures outside Play mode: shows the kit, and tips the plate, for a given state.</summary>
-        public void Preview(Vector2 point, bool scrubbing, float progress, bool hint)
+        /// <param name="pace">While scrubbing, how near full speed it is (0..1).</param>
+        /// <param name="pacer">0..1: how much the pacer shows.</param>
+        public void Preview(Vector2 point, bool scrubbing, float progress, bool hint, float pace = 1f, float pacer = 0f, float fullSpeed = 2f)
         {
             _block ??= new MaterialPropertyBlock();
             if (_plate == null)
@@ -415,7 +455,7 @@ namespace Game.Presentation
             _shownPoint = point;
             _lastPoint = point;
             _progress = progress;
-            Draw(1f, scrubbing ? 1f : 0f, 0f, hint ? 1f : 0f, 0f);
+            Draw(1f, scrubbing ? Mathf.Clamp01(pace) : 0f, 0f, hint ? 1f : 0f, 0f, pacer, fullSpeed, -1);
             if (_plate != null)
             {
                 if (!_drivingPlate)

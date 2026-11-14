@@ -58,6 +58,15 @@ namespace Game.Simulation.Items
         /// <summary>True while the stick's circling is washing.</summary>
         public bool OnTrack => _circles.OnTrack;
 
+        /// <summary>0..1: how close the circling is to full speed (see <see cref="TraceGame.Pace"/>).</summary>
+        public float Pace => _circles.Pace;
+
+        /// <summary>The way round the stick is going: +1 anticlockwise, -1 clockwise, 0 before it turns.</summary>
+        public int Turning => _circles.Turning;
+
+        /// <summary>Circles a second at full speed, for the view's pacer.</summary>
+        public float FullSpeed => _settings.CircleSpeed;
+
         /// <summary>Circles counted since washing started.</summary>
         public float Circles => _circles.Loops;
 

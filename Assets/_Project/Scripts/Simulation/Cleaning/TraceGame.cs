@@ -118,6 +118,21 @@ namespace Game.Simulation.Cleaning
         /// <summary>True while the stick's motion is cleaning.</summary>
         public bool OnTrack { get; private set; }
 
+        /// <summary>
+        /// 0..1: how close the last tick's motion came to the tool's full speed (1 = at it or
+        /// faster). The views show it, so a slow circle looks slower than a quick one.
+        /// </summary>
+        public float Pace { get; private set; }
+
+        /// <summary>
+        /// Spinning only: the way round the stick is going, +1 anticlockwise (up on the stick is
+        /// +Y), -1 clockwise, 0 before it has turned. Either way cleans; the views follow it.
+        /// </summary>
+        public int Turning => Shape == TraceShape.Circle ? _turning : 0;
+
+        /// <summary>Loops a second at full speed, for the views' pacer.</summary>
+        public float FullSpeed => _settings.SpeedFor(Shape);
+
         /// <summary>The stick as last read.</summary>
         public Vector2 Stick { get; private set; }
 
@@ -130,6 +145,7 @@ namespace Game.Simulation.Cleaning
                 stick = Vector2.Normalize(stick);
             Stick = stick;
             OnTrack = false;
+            Pace = 0f;
             if (seconds <= 0f)
                 return 0f;
 
@@ -143,6 +159,7 @@ namespace Game.Simulation.Cleaning
             _pending -= counted;
             _loops += counted;
             OnTrack = true;
+            Pace = (float)Math.Min(1.0, counted / Math.Max(1e-6, _settings.SpeedFor(Shape) * seconds));
             return (float)counted;
         }
 

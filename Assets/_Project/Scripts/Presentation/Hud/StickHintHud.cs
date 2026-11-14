@@ -26,7 +26,9 @@ namespace Game.Presentation.Hud
         [SerializeField, Min(16f)] private float _size = 84f;
         [Tooltip("Canvas pixels the cap travels at the far end of a push.")]
         [SerializeField, Min(0f)] private float _travel = 18f;
-        [Tooltip("Pushes per second.")]
+        [Tooltip("Canvas pixels from the middle the cap circles at for a spin: out to the ring's edge, so the way round is plain (the user's call, 2026-11-14).")]
+        [SerializeField, Min(0f)] private float _spinTravel = 26f;
+        [Tooltip("Pushes per second (and turns, when the view doesn't give its pace).")]
         [SerializeField, Min(0f)] private float _pushes = 1.6f;
         [Tooltip("How see-through the cue is at most, so the target shows through it.")]
         [SerializeField, Range(0f, 1f)] private float _opacity = 0.9f;
@@ -111,15 +113,17 @@ namespace Game.Presentation.Hud
             {
                 case StickMotion.Spin:
                 {
-                    // Round and round, clockwise on screen (either way works).
-                    var turn = (_push ?? Time.unscaledTime * _pushes) * Mathf.PI * 2f;
-                    hint.Cap.anchoredPosition = new Vector2(Mathf.Sin(turn), Mathf.Cos(turn)) * _travel;
+                    // Round the ring's edge from the top, the way and at the pace that counts (the
+                    // view's), so the cue and the ring's pacer tell the same story.
+                    var loops = wanted.LoopsPerSecond > 0f ? wanted.LoopsPerSecond : _pushes;
+                    var turn = Mathf.PI * 0.5f + wanted.Way * (_push ?? Time.unscaledTime * loops) * Mathf.PI * 2f;
+                    hint.Cap.anchoredPosition = new Vector2(Mathf.Cos(turn), Mathf.Sin(turn)) * _spinTravel;
                     break;
                 }
                 case StickMotion.Wag:
                 {
                     // Side to side, easing at each end like a hand sweeping.
-                    var swing = Mathf.Sin((_push ?? Time.unscaledTime * _pushes) * Mathf.PI * 2f);
+                    var swing = Mathf.Sin((_push ?? Time.unscaledTime * (wanted.LoopsPerSecond > 0f ? wanted.LoopsPerSecond : _pushes)) * Mathf.PI * 2f);
                     hint.Cap.anchoredPosition = new Vector2(swing * _travel, 0f);
                     break;
                 }

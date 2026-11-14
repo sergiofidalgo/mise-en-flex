@@ -4277,3 +4277,13 @@ The user asked for a way to play in full screen, switched from Settings. Their c
 **Reason:** The user wants players to have names on their cards, typed as they join, and the lift to ring for a player's arrival; and no one dropping into a service already under way.
 
 **Not covered:** a keyboard player can't be told to wait (only controllers are watched), and the names have no accents beyond what the suggestions carry (the grid is A–Z).
+
+## 2026-11-14 — Circling shows its way and its pace
+
+**Decision (the user's call):** the sink and the cloth show which way to circle and how fast. Playtest: "it still is not very clear in which direction/speed I should turn the joystick".
+
+- **A pacer on the ring** (`SpinPacer`): a warm yellow bubble with a short tapering trail (yellow so it reads on grime and water and isn't taken for foam) runs round the rim at full speed (the sink 2 circles a second, the cloth 1.1), the player's way round once they've turned and clockwise before. Chasing it with the soap or cloth is the target. It shows at the start, when stuck, and whenever the smoothed pace drops below about 0.9 of full speed (fully below 0.65), and fades once they keep up.
+- **Speed you can see:** `TraceGame.Pace` (and `WashGame.Pace`) give 0..1 of full speed per tick, smoothed over 0.2 s in the views. At the sink the soap greens, the ring pulses and the foam (up to 5 bubbles) grows, spreads and whirls with it, where before any circling at all looked the same. The cloth's ring pulses with it.
+- **The stick cue matches:** the cap circles the glyph's edge (26 px out, was 18) at the view's full speed and the player's way (`StickHint.LoopsPerSecond`, `Way`). The mop and extinguisher wag at their full speed too.
+
+**To check in play:** whether 2 circles a second at the sink is chaseable or frantic. If frantic, about 1.5 a second with 1.5 circles a plate keeps a plate near a second.

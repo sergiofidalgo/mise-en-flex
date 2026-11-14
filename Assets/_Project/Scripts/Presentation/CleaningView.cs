@@ -24,7 +24,9 @@ namespace Game.Presentation
     /// stick cue, spinning or wagging. The ring turns with the camera, never the furniture, and is
     /// drawn over the chef (<c>Game/ToonOnTop</c>), like the wash ring. As at the sink (decision
     /// 2026-11-11: one family), it pops in when cleaning starts and flashes white and pops when the
-    /// spot comes clean or the fire goes out.</para>
+    /// spot comes clean or the fire goes out. The cloth's ring, like the sink's, shows its pace
+    /// (the user's call, 2026-11-14): it pulses more the nearer the spinning is to full speed, and
+    /// a pacer (<see cref="SpinPacer"/>) runs round it at full speed whenever the chef falls short.</para>
     /// </summary>
     public sealed class CleaningView : MonoBehaviour, IStickHintSource
     {
@@ -76,6 +78,8 @@ namespace Game.Presentation
         [Tooltip("Still dirty, and clean: segments blend between them as the spot is wiped.")]
         [SerializeField] private Color _grime = new Color(0.36f, 0.23f, 0.12f);
         [SerializeField] private Color _clean = new Color(0.33f, 0.66f, 0.92f);
+        [Tooltip("The cloth's pacer, as the sink's: warm, so it reads on grime and water alike.")]
+        [SerializeField] private Color _pacerColor = new Color(1f, 0.8f, 0.25f);
         [Tooltip("For a fire's arc: still to do, and done (red-orange, the user's call: fire's colours).")]
         [SerializeField] private Color _charcoal = new Color(0.2f, 0.17f, 0.16f);
         [SerializeField] private Color _flame = new Color(0.97f, 0.4f, 0.13f);
@@ -139,6 +143,11 @@ namespace Game.Presentation
             public float Hint;
             public Vector3 Centre;
             public StickMotion Motion;
+
+            // The cloth's pace, smoothed, and its pacer round the ring.
+            public float Pace;
+            public SpinPacer Pacer;
+            public float Speed;
         }
 
         private readonly List<Kit> _hinting = new List<Kit>();
@@ -148,7 +157,7 @@ namespace Game.Presentation
         public StickHint HintAt(int index)
         {
             var kit = _hinting[index];
-            return new StickHint(kit.Hint, kit.Centre, Vector3.zero, kit.Motion);
+            return new StickHint(kit.Hint, kit.Centre, Vector3.zero, kit.Motion, kit.Speed, kit.Pacer != null ? kit.Pacer.Way : -1);
         }
 
         private void Awake()
@@ -435,6 +444,8 @@ namespace Game.Presentation
                     if (kit.Handle != null)
                         kit.Handle.gameObject.SetActive(false);
                     kit.Fade = 0f;
+                    kit.Pace = 0f;
+                    kit.Pacer?.Hide();
                     kit.PopLeft = Mathf.Max(0f, kit.PopLeft - Time.deltaTime);
                     kit.Root.gameObject.SetActive(kit.PopLeft > 0f);
                     if (kit.PopLeft > 0f)
@@ -487,7 +498,9 @@ namespace Game.Presentation
             // Laid flat and turned to the camera: stick up is screen up, wherever the chef stands.
             var (_, forward) = ScreenAxes();
             var centre = chef.Where + Vector3.up * _trackHeight[index];
-            var pulse = game.OnTrack ? 1f + _pulse * Mathf.Sin(Time.time * 18f) : 1f;
+            // Pulses more the nearer the motion is to full speed, so a slow wipe looks slow.
+            kit.Pace = Mathf.Lerp(kit.Pace, game.Pace, 1f - Mathf.Exp(-Time.deltaTime / 0.2f));
+            var pulse = game.OnTrack ? 1f + _pulse * kit.Pace * Mathf.Sin(Time.time * 18f) : 1f;
             kit.Fade = Mathf.MoveTowards(kit.Fade, 1f, _fadeSeconds > 0f ? Time.deltaTime / _fadeSeconds : 1f);
             kit.Root.SetPositionAndRotation(centre, Quaternion.LookRotation(forward, Vector3.up));
             kit.Root.localScale = Vector3.one * (pulse * Mathf.Max(0.001f, EaseOutBack(kit.Fade)));
@@ -523,6 +536,22 @@ namespace Game.Presentation
             kit.Hint = Mathf.MoveTowards(kit.Hint, want ? 1f : 0f, Time.deltaTime / 0.15f);
             kit.Centre = centre;
             kit.Motion = arc ? StickMotion.Wag : StickMotion.Spin;
+            kit.Speed = game.FullSpeed;
+
+            // The cloth's pacer: round the ring at full speed, the chef's way, at the start, when
+            // stuck, or while short of full speed. Sweeps have none: their arc shows the way.
+            if (!arc)
+            {
+                kit.Pacer ??= new SpinPacer(() => Piece(kit.Root, _sphere, _onTop, _clean, 1), SetColor);
+                var pacer = Mathf.Max(want ? 1f : 0f, kit.Started ? SpinPacer.WantFor(kit.Pace) : 1f);
+                var width = radius * _ringShape.x;
+                kit.Pacer.Update(Time.deltaTime, pacer, game.FullSpeed, game.Turning, Mathf.Atan2(stick.Y, stick.X),
+                    radius, radius * _ringShape.y + 0.02f, width * 1.3f, _pacerColor);
+            }
+            else
+            {
+                kit.Pacer?.Hide();
+            }
             if (kit.Hint > 0f)
                 _hinting.Add(kit);
         }

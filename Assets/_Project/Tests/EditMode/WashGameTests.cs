@@ -136,5 +136,57 @@ namespace Game.Tests.EditMode
             Assert.That(tuning.WashGame.MinPush, Is.EqualTo(tuning.TraceGame.MinPush), "one control for every cleaning job");
             Assert.That(tuning.WashGame.TurnBack, Is.EqualTo(tuning.TraceGame.TurnBack));
         }
+
+        // The pace and direction the view's pacer and foam follow (the user's call, 2026-11-14).
+
+        private static WashGame After(WashGameSettings settings, Func<float, Vector2> hand, float seconds)
+        {
+            var game = new WashGame(settings);
+            for (var t = 0f; t < seconds; t += Frame)
+                game.Tick(Frame, hand(t));
+            return game;
+        }
+
+        [Test]
+        public void CirclingAtFullSpeedReadsAsFullPace()
+        {
+            var settings = RealSettings;
+            var game = After(settings, Circle(settings.CircleSpeed), 2f);
+            Assert.That(game.Pace, Is.GreaterThan(0.95f));
+        }
+
+        [Test]
+        public void CirclingAtHalfSpeedReadsAsHalfPace()
+        {
+            var settings = RealSettings;
+            var game = After(settings, Circle(settings.CircleSpeed * 0.5f), 2f);
+            Assert.That(game.Pace, Is.EqualTo(0.5f).Within(0.1f));
+        }
+
+        [Test]
+        public void CirclingFasterStillReadsAsFullPace()
+        {
+            var settings = RealSettings;
+            var game = After(settings, Circle(settings.CircleSpeed * 1.5f), 2f);
+            Assert.That(game.Pace, Is.EqualTo(1f).Within(0.001f));
+        }
+
+        [Test]
+        public void StoppingDropsThePace()
+        {
+            var settings = RealSettings;
+            var circle = Circle(settings.CircleSpeed);
+            var game = After(settings, t => t < 1f ? circle(t) : circle(1f), 2f);
+            Assert.That(game.Pace, Is.Zero);
+        }
+
+        [Test]
+        public void TurningFollowsTheWayRound()
+        {
+            var settings = RealSettings;
+            Assert.That(After(settings, Circle(1f), 1f).Turning, Is.EqualTo(1), "anticlockwise");
+            Assert.That(After(settings, Circle(-1f), 1f).Turning, Is.EqualTo(-1), "clockwise");
+            Assert.That(new WashGame(settings).Turning, Is.Zero, "not turned yet");
+        }
     }
 }
