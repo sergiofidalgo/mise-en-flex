@@ -6,8 +6,8 @@ using UnityEngine.UI;
 namespace Game.Presentation.Hud
 {
     /// <summary>
-    /// The campaign's money, always in the top-left corner (decisions 2026-11-10 and 2026-11-13): in
-    /// the office and
+    /// The campaign's money, always in the top-right corner (decisions 2026-11-10, 2026-11-13 and
+    /// 2026-11-14: top right, the players top left): in the office and
     /// in every kitchen, through every phase. A name plate like the office's player cards, which
     /// sit in the other corner: ink outline, a gold band, a coin medallion breaking out over the
     /// top edge, and the amount in the display face.
@@ -50,8 +50,8 @@ namespace Game.Presentation.Hud
         /// <summary>How far down the card reaches from its top margin, its coin's breakout included.</summary>
         public float CardHeight => Breakout + Height;
 
-        /// <summary>True: the card sits in the top-left corner (2026-11-13), so what docks under it goes left too.</summary>
-        public bool OnLeft => true;
+        /// <summary>False: the card sits in the top-right corner (the user's call, 2026-11-14), so what docks under it goes right too.</summary>
+        public bool OnLeft => false;
         private bool _known;          // a balance has been shown
         private IMoneySource _source; // the kitchen's or the office's, on the same object
 
@@ -79,8 +79,8 @@ namespace Game.Presentation.Hud
             var height = Height;
             var top = Breakout;
             _card = UiKit.Rect(_canvas.transform, "Money", 0f, 0f, MinWidth, top + height);
-            _card.anchorMin = _card.anchorMax = _card.pivot = new Vector2(0f, 1f);
-            _card.anchoredPosition = new Vector2(Margin, -Margin);
+            _card.anchorMin = _card.anchorMax = _card.pivot = new Vector2(1f, 1f);
+            _card.anchoredPosition = new Vector2(-Margin, -Margin);
             _group = _card.gameObject.AddComponent<CanvasGroup>();
             _group.alpha = 0f;
             _group.blocksRaycasts = false;
@@ -181,7 +181,7 @@ namespace Game.Presentation.Hud
                 needed = Mathf.Min(needed, canvasWidth - 2f * Margin); // whole on screen, always
             _width = _ticker.Animating ? Mathf.Max(_width, needed) : needed;
             Resize(_width);
-            _card.anchoredPosition = new Vector2(Margin + _ticker.Offset, -Margin);
+            _card.anchoredPosition = new Vector2(-Margin + _ticker.Offset, -Margin);
         }
 
         // The width of the figure the card is heading to, so it's sized for where the roll ends.

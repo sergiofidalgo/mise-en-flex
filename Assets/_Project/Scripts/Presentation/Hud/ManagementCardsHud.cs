@@ -15,9 +15,9 @@ using UnityEngine.UI;
 namespace Game.Presentation.Hud
 {
     /// <summary>
-    /// The kitchen's player cards, top right since 2026-11-13 (the money is top left) (the user's design, 2026-11-11): in Prep, one compact
-    /// card per joined player, as in the office (a still of their chef's face and their number; no
-    /// open seats here). A player who opens the shop in management mode (D-pad down) has their card grow
+    /// The kitchen's player cards, top left (the money is top right since 2026-11-14) (the user's design, 2026-11-11): in Prep, one compact
+    /// card per joined player, as in the office (a still of their chef's face and their name), then
+    /// one narrow join card while a seat is free (2026-11-14: players join a kitchen only in Prep). A player who opens the shop in management mode (D-pad down) has their card grow
     /// into the shop card, so four can shop at once; cards dock in a row in player-slot order and
     /// slide along as others grow and shrink.
     /// <list type="bullet">
@@ -75,6 +75,8 @@ namespace Game.Presentation.Hud
         private readonly HashSet<int> _rearranging = new HashSet<int>();
         private Canvas _canvas;
         private IReadOnlyDictionary<int, Game.Simulation.Characters.ChefNaming> _previewNaming; // for stills
+        private JoinPill _joinPill;
+        private int _joinSeat = -1;
 
         /// <summary>What a shop card shows: the page, the choice, and how the last press went.</summary>
         public sealed class View
@@ -163,6 +165,7 @@ namespace Game.Presentation.Hud
                 scaler.referenceResolution = new Vector2(1920f, 1080f);
                 scaler.matchWidthOrHeight = 0.5f;
             }
+            _joinPill = new JoinPill(_style, _canvas.transform);
         }
 
         // The same chef in every scene: each card photographs the player's own chef, who wears
@@ -205,7 +208,18 @@ namespace Game.Presentation.Hud
                         _rearranging.Add(player.playerIndex);
                 }
             }
+            _joinSeat = prep && Game.Simulation.Days.JoinRules.Allows(services.Days.Phase, PlayerInput.all.Count) ? NextSeat() : -1;
             Lay(Time.unscaledDeltaTime, live: true);
+        }
+
+        // The lowest player slot nobody's in, or -1 when every seat's taken.
+        private int NextSeat()
+        {
+            var max = _coop != null ? _coop.MaxPlayers : 4;
+            for (var slot = 0; slot < max; slot++)
+                if (!PlayerInput.all.Any(p => p.playerIndex == slot))
+                    return slot;
+            return -1;
         }
 
         private View ViewOf(LayoutEditor.Cursor cursor) => new View
@@ -231,8 +245,8 @@ namespace Game.Presentation.Hud
                 compact.Keyboard.gameObject.SetActive(false);
             }
 
-            // Docked to the top-right corner, as the office's bar (2026-11-13): the money is top left.
-            var x = CanvasWidth() - Margin - _row.Count * Width - Mathf.Max(0, _row.Count - 1) * CardGap;
+            // Docked from the top-left corner, as the office's bar (2026-11-14): the money is top right.
+            var x = Margin;
             foreach (var (player, chef, shop) in _row)
             {
                 if (shop != null)
@@ -265,15 +279,23 @@ namespace Game.Presentation.Hud
                 if (!card.Root.gameObject.activeSelf)
                     card.WasOpen = false;
             }
+
+            // In Prep, while a seat is free, one join card after the players (the user's pick,
+            // 2026-11-14): players join a kitchen only in Prep.
+            if (_joinSeat >= 0)
+                _joinPill.Show(Mathf.Min(x, CanvasWidth() - Margin - JoinPill.Width), Margin + Breakout + (PlateHeight - JoinPill.Height) / 2f, PlayerColour(_joinSeat), live);
+            else
+                _joinPill.Hide();
         }
 
         /// <summary>
         /// Draws the row at once outside Play mode, for a still: each player's chef (photographed
         /// for their compact card), and the shop for whoever has one.
         /// </summary>
-        public Canvas Preview(IReadOnlyList<(int Player, Transform Chef, View Shop)> row, IEnumerable<int> rearranging = null, IReadOnlyDictionary<int, Game.Simulation.Characters.ChefNaming> naming = null)
+        public Canvas Preview(IReadOnlyList<(int Player, Transform Chef, View Shop)> row, IEnumerable<int> rearranging = null, IReadOnlyDictionary<int, Game.Simulation.Characters.ChefNaming> naming = null, int joinSeat = -1)
         {
             Awake();
+            _joinSeat = joinSeat;
             _previewNaming = naming;
             foreach (var compact in _compacts.Values)
                 compact.KeyboardDrawn = -1;
