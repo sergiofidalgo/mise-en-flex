@@ -22,6 +22,7 @@ namespace Game.Tests.PlayMode
         private const string SceneName = "Kitchen_Greybox";
 
         private Gamepad _pad;
+        private Gamepad _first;
         private string _saves;
         private InputSettings.BackgroundBehavior _background;
         private InputSettings.EditorInputBehaviorInPlayMode _editorInput;
@@ -49,6 +50,9 @@ namespace Game.Tests.PlayMode
             if (_pad != null)
                 InputSystem.RemoveDevice(_pad);
             _pad = null;
+            if (_first != null)
+                InputSystem.RemoveDevice(_first);
+            _first = null;
             SaveFile.DirectoryOverride = null;
             ChefProfileFile.Reset();
             InputSystem.settings.backgroundBehavior = _background;
@@ -101,6 +105,10 @@ namespace Game.Tests.PlayMode
             var root = Object.FindFirstObjectByType<KitchenCompositionRoot>();
             var gate = Object.FindFirstObjectByType<KitchenJoinGate>();
             Assert.That(gate, Is.Not.Null);
+            // Someone's already cooking: an empty kitchen would take its first player any time.
+            _first = InputSystem.AddDevice<Gamepad>("CookingPad");
+            Object.FindFirstObjectByType<PlayerInputManager>().JoinPlayer(controlScheme: "Gamepad", pairWithDevices: _first);
+            yield return null;
             var days = root.Services.Days;
             while (days.Phase != DayPhase.Service)
                 days.Advance();
@@ -116,7 +124,7 @@ namespace Game.Tests.PlayMode
             Release(_pad.buttonSouth);
             yield return null;
             Assert.That(refused, Is.GreaterThan(0), "they're told to wait");
-            Assert.That(manager.playerCount, Is.Zero);
+            Assert.That(manager.playerCount, Is.EqualTo(1), "only the cook who was already in");
         }
 
         private static void Press(UnityEngine.InputSystem.Controls.ButtonControl button) =>
