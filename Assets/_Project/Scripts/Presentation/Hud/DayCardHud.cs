@@ -12,12 +12,12 @@ using Object = UnityEngine.Object;
 namespace Game.Presentation.Hud
 {
     /// <summary>
-    /// The kitchen's day card, bottom left (decision 2026-11-10, after the user's request): "Day 3"
-    /// and under it the phase and the game clock, "Service · 18:42". The money card's sibling but
-    /// quieter: shorter, a little see-through, a thin sand outline and softer text, and nothing
-    /// moves but the minutes. Last orders and Closed show in the notice amber. It hides with the
-    /// money card behind the forkcast dashboard and the pause menu. Built in code on its own canvas,
-    /// inside the screen's margin at any resolution or aspect; the boss's phone is bottom right.
+    /// The kitchen's day card, bottom left. In service and closing it's the service timeline (the
+    /// user's pick, 2026-11-14, <see cref="ServiceTimelineCard"/>): the time and "Day 1 · Dinner"
+    /// over the whole service, its rushes and last orders, a sun or moon at the hour, and a callout
+    /// as each rush starts. It hides with the money card behind the forkcast dashboard and the
+    /// pause menu. Built in code on its own canvas, inside the screen's margin at any resolution or
+    /// aspect; the boss's phone is bottom right.
     /// <para>In Prep it becomes two tiles above the ready bar (the user's design, 2026-11-11): a
     /// calendar page ("FRI 5") with "Prep · Day 5 / Opens 18:00", and two guests' faces with "About 5
     /// guests / Groups of one". The forecast follows the tables and the menu's prices as they
@@ -55,13 +55,8 @@ namespace Game.Presentation.Hud
         [SerializeField] private MoneyCardHud _money;
 
         private Canvas _canvas;
-        private RectTransform _card;
-        private CanvasGroup _group;
-        private Image _edge;
-        private Image _back;
-        private TextMeshProUGUI _title;
-        private TextMeshProUGUI _line;
-        private string _shown;
+        private ServiceTimelineCard _timeline;
+        private int _rush = -1;
         private RectTransform _tiles;
         private RectTransform _rearrange;
         private string _rearrangeShown;
@@ -91,24 +86,7 @@ namespace Game.Presentation.Hud
             scaler.matchWidthOrHeight = 0.5f;
 
             var height = _style.DayCardHeight;
-            _card = UiKit.Rect(_canvas.transform, "Day", 0f, 0f, MinWidth, height);
-            _card.anchorMin = _card.anchorMax = _card.pivot = new Vector2(0f, 0f);
-            _card.anchoredPosition = new Vector2(Margin, Margin);
-            _group = _card.gameObject.AddComponent<CanvasGroup>();
-            _group.alpha = 0f;
-            _group.blocksRaycasts = false;
-            _group.interactable = false;
-
-            var fill = _style.CardBackground;
-            fill.a *= _style.DayCardOpacity;
-            _back = UiKit.StrokedBox(_card, "Back", fill, _style.DayCardEdge, _style.DayCardStroke, 0f, 0f, MinWidth, height, Radius);
-            _edge = _card.Find("BackEdge").GetComponent<Image>();
-
-            // Two lines centred in the card as a block: the title's cap height, a gap, the line's.
-            var block = _style.DayTitleSize * 0.72f + LineGap + _style.DayLineSize * 0.72f;
-            var top = (height - block) / 2f;
-            _title = UiKit.TextAt(_style.DisplayFont, _card, "Title", "", _style.DayTitleSize, _style.DayText, Pad, top + _style.DayTitleSize * 0.72f, 600f);
-            _line = UiKit.TextAt(_style.Bold, _card, "Line", "", _style.DayLineSize, _style.DayText, Pad, top + block, 600f);
+            _timeline = new ServiceTimelineCard(_style, _canvas.transform, Margin);
 
             _tiles = UiKit.Rect(_canvas.transform, "PrepTiles", 0f, 0f, TileMinWidth, 2f * height + TileGap);
             _tiles.anchorMin = _tiles.anchorMax = _tiles.pivot = new Vector2(0f, 0f);
@@ -136,7 +114,7 @@ namespace Game.Presentation.Hud
             var prep = shown && services.Days.Phase == DayPhase.Prep;
             var cardGoal = shown && !prep ? 1f : 0f;
             var tilesGoal = prep ? 1f : 0f;
-            _group.alpha = fade <= 0f ? cardGoal : Mathf.MoveTowards(_group.alpha, cardGoal, Time.unscaledDeltaTime / fade);
+            _timeline.Alpha = fade <= 0f ? cardGoal : Mathf.MoveTowards(_timeline.Alpha, cardGoal, Time.unscaledDeltaTime / fade);
             _tilesGroup.alpha = fade <= 0f ? tilesGoal : Mathf.MoveTowards(_tilesGroup.alpha, tilesGoal, Time.unscaledDeltaTime / fade);
             _rearrangeGroup.alpha = _tilesGroup.alpha;
             if (!shown)
@@ -149,8 +127,23 @@ namespace Game.Presentation.Hud
                 return;
             }
             var service = services.Service;
-            var clock = service != null ? service.Settings.Clock : new ServiceClock(services.ServiceConfig.OpensAt);
-            Draw(services.Days.Day, services.Days.Phase, service != null ? service.Phase : ServicePhase.Open, clock.OpensAtHour, service != null ? service.Elapsed : 0f, clock.SecondsPerHour);
+            if (service == null)
+                return;
+            var settings = service.Settings;
+            var slot = ServiceTimeline.SlotOf(services.Opening, settings);
+            var elapsed = services.Days.Phase == DayPhase.Plan ? 0f : service.Elapsed;
+            var phase = services.Days.Phase == DayPhase.Plan ? ServicePhase.Open : service.Phase;
+            CallRush(settings, phase, elapsed);
+            _timeline.Draw(services.Days.Day, slot != null ? Tr.Get(slot.Name) : null, settings, phase, elapsed, Time.unscaledTime);
+        }
+
+        // "Dinner rush!" pops up once as the clock enters each rush, while the doors are open.
+        private void CallRush(ServiceSettings settings, ServicePhase phase, float elapsed)
+        {
+            var rush = phase == ServicePhase.Open ? ServiceTimeline.RushAt(settings, elapsed) : -1;
+            if (rush >= 0 && rush != _rush)
+                _timeline.Pop(DayCardText.Rush(ServiceTimeline.Rushes(settings)[rush].PeakHour), Time.unscaledTime);
+            _rush = rush;
         }
 
         // Tonight's forecast, worked out twice a second, not every frame: it builds the menu to read
@@ -170,7 +163,7 @@ namespace Game.Presentation.Hud
         public void PreviewPrep(int day, float opensAtHour, int guests, float groupSize)
         {
             Awake();
-            _group.alpha = 0f;
+            _timeline.Alpha = 0f;
             _tilesGroup.alpha = 1f;
             _rearrangeGroup.alpha = 1f;
             DrawTiles(day, opensAtHour, guests, groupSize);
@@ -310,38 +303,27 @@ namespace Game.Presentation.Hud
             }
         }
 
-        /// <summary>Draws the card at once outside Play mode, for a still.</summary>
-        public void Preview(int day, DayPhase phase, ServicePhase service, float opensAtHour, float elapsedSeconds, float secondsPerHour = 3600f)
+        /// <summary>
+        /// Draws the service card at once outside Play mode, for a still: <paramref name="elapsed"/>
+        /// in-game seconds in, and <paramref name="callout"/> seconds after a rush callout popped (null: none).
+        /// </summary>
+        public void PreviewService(int day, string slot, ServiceSettings settings, ServicePhase phase, float elapsed, float? callout = null)
         {
             Awake();
-            _group.alpha = 1f;
-            Draw(day, phase, service, opensAtHour, elapsedSeconds, secondsPerHour);
+            _tilesGroup.alpha = 0f;
+            _rearrangeGroup.alpha = 0f;
+            _timeline.Alpha = 1f;
+            const float now = 100f;
+            _timeline.ClearCallout();
+            if (callout.HasValue)
+            {
+                var rush = ServiceTimeline.RushAt(settings, elapsed);
+                var rushes = ServiceTimeline.Rushes(settings);
+                _timeline.Draw(day, slot, settings, phase, elapsed, now); // builds it
+                _timeline.Pop(DayCardText.Rush(rushes[Mathf.Max(0, rush)].PeakHour), now - callout.Value);
+            }
+            _timeline.Draw(day, slot, settings, phase, elapsed, now);
             Canvas.ForceUpdateCanvases();
-        }
-
-        private void Draw(int day, DayPhase phase, ServicePhase service, float opensAtHour, float elapsedSeconds, float secondsPerHour = 3600f)
-        {
-            var title = DayCardText.Title(day);
-            var (line, notice) = DayCardText.Line(phase, service, opensAtHour, elapsedSeconds, secondsPerHour);
-            var key = title + "\n" + line + notice;
-            if (key == _shown)
-                return; // the text changes once a game minute, so the layout does too
-            _shown = key;
-            _title.text = title;
-            _line.text = line;
-            _line.color = notice ? _style.DayNotice : _style.DayText;
-
-            var width = Mathf.Max(MinWidth, Pad * 2f + Mathf.Max(UiKit.Width(_title), UiKit.Width(_line)));
-            var canvasWidth = ((RectTransform)_canvas.transform).rect.width;
-            if (canvasWidth > 1f)
-                width = Mathf.Min(width, canvasWidth - 2f * Margin); // whole on screen, always
-            var height = _style.DayCardHeight;
-            var stroke = _style.DayCardStroke;
-            _card.sizeDelta = new Vector2(width, height);
-            _edge.rectTransform.sizeDelta = new Vector2(width + stroke, height + stroke);
-            _back.rectTransform.sizeDelta = new Vector2(width - stroke, height - stroke);
-            _title.rectTransform.sizeDelta = new Vector2(width - 2f * Pad, _title.rectTransform.sizeDelta.y);
-            _line.rectTransform.sizeDelta = new Vector2(width - 2f * Pad, _line.rectTransform.sizeDelta.y);
         }
     }
 }

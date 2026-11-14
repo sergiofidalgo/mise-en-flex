@@ -150,6 +150,22 @@ namespace Game.Presentation.Hud
         [Tooltip("How much of the player's colour is in the shop card's dark fill, as the office's cards look (2026-11-11).")]
         [SerializeField, Range(0f, 1f)] private float _shopCardTint = 0.18f;
 
+        [Header("Service timeline, the day card in service (the user's pick, 2026-11-14)")]
+        [Tooltip("The sky over a day, 0:00 to 24:00: the timeline is coloured by the hours the service runs through.")]
+        [SerializeField] private Gradient _serviceSky = DefaultSky();
+        [Tooltip("A rush's stretch on the timeline, see-through.")]
+        [SerializeField] private Color _serviceRush = new Color(1f, 0.54f, 0.16f, 0.6f);
+        [Tooltip("Last orders: the time, the band, the striped stretch and the marker's glow.")]
+        [SerializeField] private Color _serviceUrgent = new Color(0.9f, 0.28f, 0.23f);
+        [SerializeField] private Color _serviceSun = new Color(1f, 0.84f, 0.29f);
+        [SerializeField] private Color _serviceMoon = new Color(0.96f, 0.94f, 0.86f);
+        [Tooltip("The callout that pops up as a rush starts.")]
+        [SerializeField] private Color _rushCallout = new Color(1f, 0.69f, 0.24f);
+        [Tooltip("Seconds the rush callout stays up, its pop and fade included.")]
+        [SerializeField, Min(0.5f)] private float _rushCalloutSeconds = 2.4f;
+        [Tooltip("Pulses a second in last orders.")]
+        [SerializeField, Min(0.1f)] private float _urgentPulse = 1.6f;
+
         [Header("Shapes (Unity's built-in UI sprites)")]
         [SerializeField] private Sprite _circle;
         [SerializeField] private Sprite _rounded;
@@ -291,6 +307,24 @@ namespace Game.Presentation.Hud
         public float DayCardStroke => _dayCardStroke;
         public Color DayText => _dayText;
         public Color DayNotice => _dayNotice;
+        public Color ServiceSky(float hour) => _serviceSky.Evaluate(Mathf.Clamp01((hour > 24f ? Mathf.Repeat(hour, 24f) : hour) / 24f)); // midnight closing is night, not the next noon
+        public Color ServiceRush => _serviceRush;
+        public Color ServiceUrgent => _serviceUrgent;
+        public Color ServiceSun => _serviceSun;
+        public Color ServiceMoon => _serviceMoon;
+        public Color RushCallout => _rushCallout;
+        public float RushCalloutSeconds => _rushCalloutSeconds;
+        public float UrgentPulse => _urgentPulse;
+
+        // Noon blue, afternoon gold, sunset pink, dusk purple, night: the mockup's sky (2026-11-14).
+        private static Gradient DefaultSky()
+        {
+            Color Hex(string hex) => ColorUtility.TryParseHtmlString(hex, out var c) ? c : Color.black;
+            var keys = new[] { (11f, "#5FB4E8"), (14f, "#4AA6E0"), (16.5f, "#E9A94F"), (18.5f, "#C95F78"), (20f, "#40336E"), (21.5f, "#161B3D"), (24f, "#0B0F26") };
+            var gradient = new Gradient();
+            gradient.SetKeys(System.Array.ConvertAll(keys, k => new GradientColorKey(Hex(k.Item2), k.Item1 / 24f)), new[] { new GradientAlphaKey(1f, 0f), new GradientAlphaKey(1f, 1f) });
+            return gradient;
+        }
 
         /// <summary>The money card's animation timings.</summary>
         public MoneyTickerSettings MoneyTicker => new MoneyTickerSettings

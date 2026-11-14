@@ -63,7 +63,7 @@ namespace Game.Editor
             var day = UnityEngine.Object.FindFirstObjectByType<DayCardHud>();
             if (day == null)
                 throw new InvalidOperationException("No day card in the kitchen: run Tools/Game/Build Greybox Kitchen.");
-            day.Preview(3, DayPhase.Service, ServicePhase.Open, 18f, 42f * 60f); // builds its canvas
+            day.PreviewService(3, "Dinner", ServiceClockCapture.Settings("dinner"), ServicePhase.Open, 0f); // builds its canvas
             var settings = MoneyTickerSettings.Default;
             Shot(kitchen, camera, 1284f, 1250f, settings.RollSeconds * 0.4f, Path.Combine(folder, "kitchen_money_rolling_up.png"));
             Shot(kitchen, camera, 1180f, 1250f, settings.ShakeSeconds / (4f * settings.ShakeWiggles), Path.Combine(folder, "kitchen_money_shake_down.png"));
@@ -101,7 +101,13 @@ namespace Game.Editor
         {
             var canvas = day.GetComponentInChildren<Canvas>(true);
             using var session = UiCapture.Prepare(canvas);
-            day.Preview(number, phase, service, 18f, gameMinutes * 60f);
+            if (phase == DayPhase.Prep)
+                day.PreviewPrep(number, 18f, 5, 1f);
+            else
+            {
+                var settings = ServiceClockCapture.Settings("dinner");
+                day.PreviewService(number, "Dinner", settings, service, gameMinutes / 60f * settings.Clock.SecondsPerHour);
+            }
             session.SaveOver(background, file);
         }
 

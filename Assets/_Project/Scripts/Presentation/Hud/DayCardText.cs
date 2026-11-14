@@ -56,6 +56,9 @@ namespace Game.Presentation.Hud
         /// Prep's guests line (the user's call, 2026-11-11): "About 5 guests", the forecast's
         /// whole number.
         /// </summary>
+        /// <summary>The callout as a rush starts: lunch's before 17:00, dinner's after (2026-11-14).</summary>
+        public static string Rush(float peakHour) => ServiceTimeline.IsLunchRush(peakHour) ? Tr.Get("Lunch rush!") : Tr.Get("Dinner rush!");
+
         public static string Guests(int count) => Tr.Plural(count, "About {n} guest", "About {n} guests");
 
         /// <summary>When the doors open, under "Prep": "Opens 18:00".</summary>
