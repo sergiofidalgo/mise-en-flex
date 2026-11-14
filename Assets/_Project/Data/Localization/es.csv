@@ -1,11 +1,13 @@
 english,translation,note
-Start day {day},Empezar el día {day},ui: ReviewDashboard.Drawing
+mop,fregar,ui: ChefCleaning
+put out fire,apagar el fuego,ui: HobStation
+wipe,limpiar,ui: ChefCleaning
+take box,coger caja,ui: BoxPileStation
+box it,meter en caja,ui: BoxPileStation
+put box back,devolver caja,ui: BoxPileStation
 order up,pedido listo,ui: CounterStation
 ring the bell,tocar la campana,ui: CounterStation
 take knife,coger cuchillo,ui: CounterStation
-wipe,limpiar,ui: ChefCleaning
-mop,fregar,ui: ChefCleaning
-put out fire,apagar el fuego,ui: HobStation
 empty,vacío,ui: CounterStation
 take container,coger recipiente,ui: CounterStation
 take: {what},coger: {what},ui: CounterStation
@@ -15,6 +17,12 @@ put down,dejar,ui: CounterStation
 take ({count}),coger ({count}),ui: CounterStation
 take,coger,ui: CounterStation
 put knife down,dejar cuchillo,ui: CounterStation
+take back,recoger,ui: DeliveryCounterStation
+for the courier,para el repartidor,ui: DeliveryCounterStation
+leave here,dejar aquí,ui: DeliveryCounterStation
+for the courier: as ordered,para el repartidor: como se pidió,ui: DeliveryCounterStation
+for the courier: wanted {doneness},para el repartidor: lo quería {doneness},ui: DeliveryCounterStation
+for the courier: no {what},para el repartidor: falta {what},ui: DeliveryCounterStation
 hot side,zona caliente,ui: GrillStation
 cool side,zona templada,ui: GrillStation
 flip,dar la vuelta,ui: GrillStation
@@ -38,6 +46,8 @@ plate it,emplatar,ui: PlateStackStation
 put plate back,devolver plato,ui: PlateStackStation
 no clean plates,no hay platos limpios,ui: PlateStackStation
 dirty plate,plato sucio,ui: PlayerInteractor
+empty box,caja vacía,ui: PlayerInteractor
+box: {what},caja: {what},ui: PlayerInteractor
 empty plate,plato vacío,ui: PlayerInteractor
 plate: {what},plato: {what},ui: PlayerInteractor
 cut {cuts}/{needed},cortar {cuts}/{needed},ui: PrepStation
@@ -48,7 +58,6 @@ put {what} back,devolver {what},ui: RackStation
 take {what} ({count}),coger {what} ({count}),ui: RackStation
 clear plate,retirar plato,ui: ServingStation
 take plate back,recoger plato,ui: ServingStation
-stop washing,dejar de fregar,ui: SinkStation
 busy,ocupado,ui: SinkStation
 wash,fregar,ui: SinkStation
 nothing to wash,nada que fregar,ui: SinkStation
@@ -57,6 +66,17 @@ sink is busy,el fregadero está ocupado,ui: SinkStation
 open,abrir,ui: StorageStation
 put back,devolver,ui: StorageStation
 cooked {what},{what} cocinado,ui: StorageStation
+THE BOSS,EL JEFE,ui: BossPhoneHud
+Incoming call…,Llamada entrante…,ui: BossPhoneHud
+Collection tonight,Cobro esta noche,ui: BossPhoneHud
+Collection missed,Cobro no pagado,ui: BossPhoneHud
+Collection paid,Cobro pagado,ui: BossPhoneHud
+"He took the restaurant.
+Back to the office.","Se ha quedado con el restaurante.
+De vuelta a la oficina.",ui: BossPhoneHud
+"Erased.
+Your cookbook stays in the boss's office for the next chef.","Borrado.
+Tu recetario se queda en la oficina del jefe para el próximo chef.",ui: BossPhoneHud
 "Quit now?
 Today isn't saved: the game saves as Review starts.","¿Salir ya?
 Hoy no se guarda: la partida se guarda al empezar la Reseña.",ui: CampaignCardHud
@@ -69,21 +89,50 @@ Good!,¡Bien!,ui: ChopDialView
 Early,Pronto,ui: ChopDialView
 Late,Tarde,ui: ChopDialView
 Miss!,¡Fallo!,ui: ChopDialView
+{phase} · Day {day},{phase} · Día {day},ui: DayCardHud
+Rearrange,Organizar,ui: ServiceStatusHud
+Day {day},Día {day},ui: ReviewDashboard.Drawing
+{phase} · opens {time},{phase} · abre a las {time},ui: DayCardText
+Last orders · {time},Últimos pedidos · {time},ui: DayCardText
+Closed · {time},Cerrado · {time},ui: DayCardText
+{phase} · {time},{phase} · {time},ui: DayCardText
+Lunch rush!,¡Hora punta de comidas!,ui: DayCardText
+Dinner rush!,¡Hora punta de cenas!,ui: DayCardText
+About {n} guest,Más o menos {n} cliente,ui: DayCardText
+About {n} guests,Unos {n} clientes,ui: DayCardText
+Opens {time},Abre a las {time},ui: DayCardText
+Groups of one,Grupos de uno,ui: DayCardText
+Groups of one or two,Grupos de uno o dos,ui: DayCardText
+Groups of two,Grupos de dos,ui: DayCardText
+Groups of two or three,Grupos de dos o tres,ui: DayCardText
+Groups of three,Grupos de tres,ui: DayCardText
+Groups of about {count},Grupos de unos {count},ui: DayCardText
+Mon,lun,ui: ReviewDashboard
+Tue,mar,ui: ReviewDashboard
+Wed,mié,ui: ReviewDashboard
+Thu,jue,ui: ReviewDashboard
+Fri,vie,ui: ReviewDashboard
+Sat,sáb,ui: ReviewDashboard
+Sun,dom,ui: ReviewDashboard
+phase|Plan,Plan,ui: DayCardText
+phase|Prep,Preparación,ui: DayCardText
+phase|Service,Servicio,ui: DayCardText
+phase|Review,Revisión,ui: DayCardText
+Closing time,Hora de cerrar,ui: DayTransitions
+Doors open in,Abrimos en,ui: DayTransitions
+Service!,¡A servir!,ui: DayTransitions
+Join,Unirse,ui: OpeningHud
 not in this room,fuera de esta sala,ui: LayoutEditorHud
 something's there,ahí ya hay algo,ui: LayoutEditorHud
 someone's in the way,hay alguien en medio,ui: LayoutEditorHud
 not enough money,no hay dinero suficiente,ui: LayoutEditorHud
 it goes on an outside wall,va en una pared exterior,ui: LayoutEditorHud
 no room for its chairs,no caben sus sillas,ui: LayoutEditorHud
-guests in the kitchen make mess,comensales en la cocina: más suciedad,ui: LayoutEditorHud
-cooking in the dining room makes mess,cocinar en el comedor: más suciedad,ui: LayoutEditorHud
-keep the door clear,deja libre la puerta,ui: LayoutEditorHud
-wheelie bin,contenedor,ui: LayoutEditorHud
 no free counter for it,no hay encimera libre,ui: LayoutEditorHud
+keep the door clear,deja libre la puerta,ui: LayoutEditorHud
 rotate,girar,ui: LayoutEditorHud
 cancel,cancelar,ui: LayoutEditorHud
 place,colocar,ui: LayoutEditorHud
-shop,tienda,ui: LayoutEditorHud
 back to chef,volver a cocinar,ui: LayoutEditorHud
 move {what},mover {what},ui: LayoutEditorHud
 add chair {price},añadir silla {price},ui: LayoutEditorHud
@@ -96,89 +145,21 @@ sell {price},vender {price},ui: LayoutEditorHud
 {amount} to spend,{amount} para gastar,ui: LayoutEditorHud
 buy,comprar,ui: LayoutEditorHud
 close,cerrar,ui: LayoutEditorHud
-choose from tray,elegir de la bandeja,ui: PromptHud
-{style}s near you,{style}s cerca de ti,ui: ReviewDashboard.Drawing
-Day {day} · {weekday},Día {day} · {weekday},ui: ReviewDashboard.Drawing
-No reviews yet,Aún no hay reseñas,ui: ReviewDashboard.Drawing
-{band} · {style} · Open {from}–{to},{band} · {style} · Abierto {from}–{to},ui: ReviewDashboard.Drawing
-Walked out,Se fueron,ui: ReviewDashboard.Drawing
-Served,Servidos,ui: ReviewDashboard.Drawing
-Rush · {count} left,Hora punta · se fueron {count},ui: ReviewDashboard.Drawing
-Reviews {count},Reseñas {count},ui: ReviewDashboard.Drawing
-Turned away,Rechazados,ui: ReviewDashboard.Drawing
-Balance · {amount} today,Saldo · {amount} hoy,ui: ReviewDashboard.Drawing
-No reviews today.,Hoy no hay reseñas.,ui: ReviewDashboard.Drawing
-1 more review,1 reseña más,ui: ReviewDashboard.Drawing
-{n} more reviews,{n} reseñas más,ui: ReviewDashboard.Drawing
-See all in Reviews,Ver todas en Reseñas,ui: ReviewDashboard.Drawing
-Sorted: needs attention first,Orden: lo urgente primero,ui: ReviewDashboard.Drawing
-No reviews yet.,Aún no hay reseñas.,ui: ReviewDashboard.Drawing
-No reviews match this filter.,Ninguna reseña coincide con este filtro.,ui: ReviewDashboard.Drawing
-All · {count},Todas · {count},ui: ReviewDashboard.Drawing
-Walk-outs · {count},Se fueron · {count},ui: ReviewDashboard.Drawing
-Unreplied · {count},Sin respuesta · {count},ui: ReviewDashboard.Drawing
- · day {day}, · día {day},ui: ReviewDashboard.Drawing
- · back again, · ha vuelto,ui: ReviewDashboard.Drawing
- · visit {visit}, · visita {visit},ui: ReviewDashboard.Drawing
-Walked out · {amount},Se fue · {amount},ui: ReviewDashboard.Drawing
-{paid} + {tip} tip,{paid} + {tip} de propina,ui: ReviewDashboard.Drawing
-{paid} · no tip,{paid} · sin propina,ui: ReviewDashboard.Drawing
-· owner · just now,· dueño · ahora mismo,ui: ReviewDashboard.Drawing
-· owner,· dueño,ui: ReviewDashboard.Drawing
-Reply,Responder,ui: ReviewDashboard.Drawing
-Thank,Agradecer,ui: ReviewDashboard.Drawing
-Apologise,Disculparse,ui: ReviewDashboard.Drawing
-Leave it,Dejarlo,ui: ReviewDashboard.Drawing
-Stand your ground,Mantenerse firme,ui: ReviewDashboard.Drawing
-{dishes} are costing you.,{dishes} te está costando caro.,ui: ReviewDashboard.Drawing
-Both {kind} orders walked out.,Los dos pedidos {kind} se fueron.,ui: ReviewDashboard.Drawing
-All {count} {kind} orders walked out.,Los {count} pedidos {kind} se fueron.,ui: ReviewDashboard.Drawing
-{count} of {total} {kind} orders walked out.,Se fueron {count} de {total} pedidos {kind}.,ui: ReviewDashboard.Drawing
-Guests wait longest for these.,Son los que más esperan.,ui: ReviewDashboard.Drawing
-Nobody has ordered yet.,Aún no ha pedido nadie.,ui: ReviewDashboard.Drawing
-1 walk-out,1 se fue,ui: ReviewDashboard.Drawing
-{n} walk-outs,{n} se fueron,ui: ReviewDashboard.Drawing
-Prices and the menu are set in the cookbook.,Los precios y la carta se fijan en el recetario.,ui: ReviewDashboard.Drawing
-Overview,Resumen,ui: ReviewDashboard.Drawing
-Menu,Carta,ui: ReviewDashboard.Drawing
-Books,Cuentas,ui: ReviewDashboard.Drawing
-Reviews,Reseñas,ui: ReviewDashboard.Drawing
-Net today,Neto de hoy,ui: ReviewDashboard.Drawing
-fee collected today,cuota cobrada hoy,ui: ReviewDashboard.Drawing
-1 day,1 día,ui: ReviewDashboard.Drawing
-{n} days,{n} días,ui: ReviewDashboard.Drawing
-fee due in {days},cuota en {days},ui: ReviewDashboard.Drawing
-Balance,Saldo,ui: ReviewDashboard.Drawing
-You owe him {amount},Le debes {amount},ui: ReviewDashboard.Drawing
-Short by {amount},Faltan {amount},ui: ReviewDashboard.Drawing
-Day {day},Día {day},ui: ReviewDashboard.Drawing
-In,Entra,ui: ReviewDashboard.Drawing
-Out,Sale,ui: ReviewDashboard.Drawing
-Trend appears from day 3,La tendencia aparece desde el día 3,ui: ReviewDashboard.Drawing
-"{work}, {mood}","{work}, {mood}",ui: ReviewDashboard.Drawing
-"{work}, and quit","{work}, y se fue",ui: ReviewDashboard.Drawing
-"Overnight: {spoiled} spoiled, {left} left out","Por la noche: {spoiled} estropeados, {left} fuera de la nevera",ui: ReviewDashboard.Drawing
-Meals,Comidas,ui: ReviewDashboard.Drawing
-Tips,Propinas,ui: ReviewDashboard.Drawing
-Sold,Vendido,ui: ReviewDashboard.Drawing
-Ingredients,Ingredientes,ui: ReviewDashboard.Drawing
-Walk-outs,Se fueron,ui: ReviewDashboard.Drawing
-Wages,Sueldos,ui: ReviewDashboard.Drawing
-Energy,Energía,ui: ReviewDashboard.Drawing
-Bought,Comprado,ui: ReviewDashboard.Drawing
-Fee to the boss,Cuota al jefe,ui: ReviewDashboard.Drawing
-Tabs,Pestañas,ui: ReviewDashboard.Drawing
-Filter,Filtrar,ui: ReviewDashboard.Drawing
-Browse,Explorar,ui: ReviewDashboard.Drawing
-P{player} ready,J{player} listo,ui: ReviewDashboard.Drawing
-Your photo · captured at close,Tu foto · tomada al cerrar,ui: ReviewDashboard.Drawing
-Mon,lun,ui: ReviewDashboard
-Tue,mar,ui: ReviewDashboard
-Wed,mié,ui: ReviewDashboard
-Thu,jue,ui: ReviewDashboard
-Fri,vie,ui: ReviewDashboard
-Sat,sáb,ui: ReviewDashboard
-Sun,dom,ui: ReviewDashboard
+Shop,Tienda,ui: LayoutEditorHud
+Done,Listo,ui: Tailor
+Buy,Comprar,ui: MiniatureHud
+Appliances,Aparatos,ui: ManagementCardsHud
+Kitchenware,Menaje,ui: ManagementCardsHud
+Decoration,Decoración,ui: ManagementCardsHud
+Furniture,Muebles,ui: ManagementCardsHud
+Your name,Tu nombre,ui: NameKeyboard
+Pick or type,Elige o escribe,ui: NameKeyboard
+Same as last time,El de la última vez,ui: NameKeyboard
+Or one of these,O uno de estos,ui: NameKeyboard
+Delete,Borrar,ui: MainMenu.Drawing
+Space,Espacio,ui: MiniatureHud
+Player {player} READY,Jugador {player} LISTO,ui: ReviewDashboard.Drawing
+Hold to start service,Mantén para abrir,ui: PrepReadyBarHud
 Loved it,Les encantó,ui: ReviewDashboard
 A decent meal,Una comida decente,ui: ReviewDashboard
 Undercooked,Poco hecho,ui: ReviewDashboard
@@ -193,27 +174,160 @@ Not fresh,Poco fresco,ui: ReviewDashboard
 Rough cut,Mal cortado,ui: ReviewDashboard
 The side was off,La guarnición falló,ui: ReviewDashboard
 Slow service,Servicio lento,ui: ReviewDashboard
+Gave up waiting,Se cansó de esperar,ui: ReviewDashboard
 Dirty table,Mesa sucia,ui: ReviewDashboard
 Bins by the door,Basura junto a la puerta,ui: ReviewDashboard
 Loved the open kitchen,Encantados con la cocina a la vista,ui: ReviewDashboard
 Kitchen mess and noise,Ruido y desorden de cocina,ui: ReviewDashboard
-Gave up waiting,Se cansó de esperar,ui: ReviewDashboard
-1 star,1 estrella,ui: ReviewPopupHud
+Your photo · captured at close,Tu foto · tomada al cerrar,ui: ReviewDashboard.Drawing
+"Your kitchen, as you left it","Tu cocina, tal como la dejaste",ui: ReviewDashboard.Drawing
+Day {day} · {weekday},Día {day} · {weekday},ui: ReviewDashboard.Drawing
+Go to the boss's office,Ir al despacho del jefe,ui: ReviewDashboard.Drawing
+No reviews yet,Aún no hay reseñas,ui: ReviewDashboard.Drawing
+Most ordered meal,Plato más pedido,ui: ReviewDashboard.Drawing
+guests fed so far,clientes atendidos hasta ahora,ui: ReviewDashboard.Drawing
+guests fed,clientes atendidos,ui: ReviewDashboard.Drawing
+guests fed · 1 fled,clientes atendidos · 1 huyó,ui: ReviewDashboard.Drawing
+guests fed · {n} fled,clientes atendidos · {n} huyeron,ui: ReviewDashboard.Drawing
+Closed,Cerrado,ui: ReviewDashboard.Drawing
+Opens,Abre,ui: ReviewDashboard.Drawing
+today total earnings,ingresos totales de hoy,ui: ReviewDashboard.Drawing
+tips tonight,propinas de la noche,ui: ReviewDashboard.Drawing
+tips tonight · not a penny,propinas · ni un céntimo,ui: ReviewDashboard.Drawing
+"tips tonight · polite, at best",propinas · por educación,ui: ReviewDashboard.Drawing
+tips tonight · they loved you,propinas · les encantaste,ui: ReviewDashboard.Drawing
+tips tonight · they liked you,propinas · les gustaste,ui: ReviewDashboard.Drawing
+Served,Servidos,ui: ReviewDashboard.Drawing
+Walked out,Se fueron,ui: ReviewDashboard.Drawing
+Turned away,Rechazados,ui: ReviewDashboard.Drawing
+Sorted: needs attention first,Orden: lo urgente primero,ui: ReviewDashboard.Drawing
+No reviews yet.,Aún no hay reseñas.,ui: ReviewDashboard.Drawing
+No reviews match this filter.,Ninguna reseña coincide con este filtro.,ui: ReviewDashboard.Drawing
+Debt collection taken: {amount},Cobro de la deuda hecho: {amount},ui: ReviewDashboard.Drawing
+Paid in full,Pagado entero,ui: ReviewDashboard.Drawing
+He took {paid},Se llevó {paid},ui: ReviewDashboard.Drawing
+He's happy. For now.,Está contento. Por ahora.,ui: ReviewDashboard.Drawing
+Short by {amount},Faltan {amount},ui: ReviewDashboard.Drawing
+Debt collection tonight: {amount},Cobro de la deuda esta noche: {amount},ui: ReviewDashboard.Drawing
+Debt collection tomorrow: {amount},Cobro de la deuda mañana: {amount},ui: ReviewDashboard.Drawing
+Debt collection in {days} days: {amount},Cobro de la deuda en {days} días: {amount},ui: ReviewDashboard.Drawing
+You have {amount},Tienes {amount},ui: ReviewDashboard.Drawing
+Just covers it · {spare} to spare,Llega justo · sobran {spare},ui: ReviewDashboard.Drawing
+Covered · {spare} to spare,Cubierto · sobran {spare},ui: ReviewDashboard.Drawing
+All · {count},Todas · {count},ui: ReviewDashboard.Drawing
+Walk-outs · {count},Se fueron · {count},ui: ReviewDashboard.Drawing
+Unreplied · {count},Sin respuesta · {count},ui: ReviewDashboard.Drawing
+Food critic,Crítico,ui: ReviewDashboard.Drawing
+Influencer,Influencer,ui: ReviewDashboard.Drawing
+Foodie,Sibarita,ui: ReviewDashboard.Drawing
+Tourist,Turista,ui: Tailor
+Local,Del barrio,ui: ReviewDashboard.Drawing
+Regular,Habitual,ui: ReviewDashboard.Drawing
+{paid} + {tip} tip,{paid} + {tip} de propina,ui: ReviewDashboard.Drawing
+{paid} · no tip,{paid} · sin propina,ui: ReviewDashboard.Drawing
+" · day {day}"," · día {day}",ui: ReviewDashboard.Drawing
+" · back again"," · ha vuelto",ui: ReviewDashboard.Drawing
+" · visit {visit}"," · visita {visit}",ui: ReviewDashboard.Drawing
+Answered,Respondida,ui: ReviewDashboard.Drawing
+Reply,Responder,ui: ReviewDashboard.Drawing
+Thank,Agradecer,ui: ReviewDashboard.Drawing
+Apologise,Disculparse,ui: ReviewDashboard.Drawing
+Leave it,Dejarlo,ui: ReviewDashboard.Drawing
+Stand your ground,Mantenerse firme,ui: ReviewDashboard.Drawing
+WHAT THEY ORDERED,LO QUE PIDIERON,ui: ReviewDashboard.Drawing
+Not kept for this day.,No se guardó para este día.,ui: ReviewDashboard.Drawing
+Nobody ordered.,Nadie pidió nada.,ui: ReviewDashboard.Drawing
+1 ordered,1 pedido,ui: ReviewDashboard.Drawing
+{n} ordered,{n} pedidos,ui: ReviewDashboard.Drawing
+1 walked out,1 se fue,ui: ReviewDashboard.Drawing
+{n} walked out,{n} se fueron,ui: ReviewDashboard.Drawing
 {stars} stars,{stars} estrellas,ui: ReviewPopupHud
+1 more dish,1 plato más,ui: ReviewDashboard.Drawing
+{n} more dishes,{n} platos más,ui: ReviewDashboard.Drawing
+YOUR TEAM,TU EQUIPO,ui: ReviewDashboard.Drawing
+Wages {amount} a day,Sueldos {amount} al día,ui: ReviewDashboard.Drawing
+Nobody on the team yet.,Aún no hay nadie en el equipo.,ui: ReviewDashboard.Drawing
+LOOKING FOR WORK TODAY,BUSCAN TRABAJO HOY,ui: ReviewDashboard.Drawing
+Nobody else is looking for work today.,Hoy nadie más busca trabajo.,ui: ReviewDashboard.Drawing
+{name} starts today.,{name} empieza hoy.,ui: ReviewDashboard.Drawing
+{name} has been let go.,{name} ya no trabaja aquí.,ui: ReviewDashboard.Drawing
+Not enough money for {name}: wages are paid each night.,No hay dinero para {name}: los sueldos se pagan cada noche.,ui: ReviewDashboard.Drawing
+Someone already does that job: let them go first.,Alguien ya hace ese trabajo: despídelo primero.,ui: ReviewDashboard.Drawing
+"Hiring is for the morning, before prep.","Se contrata por la mañana, antes de la preparación.",ui: ReviewDashboard.Drawing
+{wage} a day,{wage} al día,ui: ReviewDashboard.Drawing
+Let go,Despedir,ui: ReviewDashboard.Drawing
+Skill,Destreza,ui: ReviewDashboard.Drawing
+Speed,Rapidez,ui: ReviewDashboard.Drawing
+Hire,Contratar,ui: ReviewDashboard.Drawing
+job taken,puesto ocupado,ui: ReviewDashboard.Drawing
+out of reach,no te llega,ui: ReviewDashboard.Drawing
+Overview,Resumen,ui: ReviewDashboard.Drawing
+Restaurant,Restaurante,ui: ReviewDashboard.Drawing
+Books,Cuentas,ui: ReviewDashboard.Drawing
+Staff,Personal,ui: ReviewDashboard.Drawing
+DAY {day},DÍA {day},ui: ReviewDashboard.Drawing
+only the totals were kept,solo se guardaron los totales,ui: ReviewDashboard.Drawing
+Net,Neto,ui: ReviewDashboard.Drawing
+In,Entra,ui: ReviewDashboard.Drawing
+Out,Sale,ui: ReviewDashboard.Drawing
+Trend appears from day 3,La tendencia aparece desde el día 3,ui: ReviewDashboard.Drawing
+"{work}, {mood}","{work}, {mood}",ui: ReviewDashboard.Drawing
+"{work}, and quit","{work}, y se fue",ui: ReviewDashboard.Drawing
+"Overnight: {spoiled} spoiled, {left} left out","Por la noche: {spoiled} estropeados, {left} fuera de la nevera",ui: ReviewDashboard.Drawing
+Meals,Comidas,ui: ReviewDashboard.Drawing
+Tips,Propinas,ui: ReviewDashboard.Drawing
+Sold,Vendido,ui: ReviewDashboard.Drawing
+Ingredients,Ingredientes,ui: ReviewDashboard.Drawing
+Walk-outs,Se fueron,ui: ReviewDashboard.Drawing
+Wages,Sueldos,ui: ReviewDashboard.Drawing
+Energy,Energía,ui: ReviewDashboard.Drawing
+Bought,Comprado,ui: ReviewDashboard.Drawing
+The boss's cut,La parte del jefe,ui: ReviewDashboard.Drawing
+Loan instalment,Cuota del préstamo,ui: ReviewDashboard.Drawing
+Repossessed,Embargado,ui: ReviewDashboard.Drawing
+Press to join,Pulsa para unirte,ui: ReviewDashboard.Drawing
+Hold to start Day {day},Mantén para empezar el día {day},ui: ReviewDashboard.Drawing
+Waiting for Player {player},Esperando al jugador {player},ui: ReviewDashboard.Drawing
+No cookbook here.,Aquí no hay recetario.,ui: ReviewDashboard.Drawing
+ON YOUR MENU,EN TU CARTA,ui: ReviewDashboard.Restaurant
+IN YOUR COOKBOOK,EN TU RECETARIO,ui: ReviewDashboard.Restaurant
+TO UNLOCK,POR DESBLOQUEAR,ui: ReviewDashboard.Restaurant
+On the menu,En la carta,ui: ReviewDashboard.Restaurant
+Off the menu,Fuera de la carta,ui: ReviewDashboard.Restaurant
+simple,sencilla,ui: LayoutEditorHud
+some work,algo de trabajo,ui: LayoutEditorHud
+demanding,exigente,ui: LayoutEditorHud
+NEW ON THE MENU,NUEVO EN LA CARTA,ui: ReviewDashboard.Restaurant
+OFF THE MENU,FUERA DE LA CARTA,ui: ReviewDashboard.Restaurant
+NOT ON YOUR MENU YET,AÚN NO ESTÁ EN TU CARTA,ui: ReviewDashboard.Restaurant
+The last dish stays on,El último plato se queda,ui: ReviewDashboard.Restaurant
+INGREDIENTS,INGREDIENTES,ui: ReviewDashboard.Restaurant
+Kitchen costs {cost},Coste de cocina {cost},ui: ReviewDashboard.Restaurant
+MENU,CARTA,ui: ReviewDashboard.Restaurant
+Not on tonight's menu,No está en la carta de esta noche,ui: ReviewDashboard.Restaurant
+Put on menu,Poner en la carta,ui: ReviewDashboard.Restaurant
+HOW TO COOK,CÓMO SE COCINA,ui: ReviewDashboard.Restaurant
+Learn it in the kitchen.,Apréndelo en la cocina.,ui: ReviewDashboard.Restaurant
+PRICE,PRECIO,ui: ReviewDashboard.Restaurant
+Take off menu,Quitar de la carta,ui: ReviewDashboard.Restaurant
+guests,comensales,ui: ReviewDashboard.Restaurant
+Profit,Beneficio,ui: ReviewDashboard.Drawing
+UNLOCK,DESBLOQUEAR,ui: ReviewDashboard.Restaurant
+Hold to buy,Mantén para comprar,ui: ReviewDashboard.Restaurant
+New on the menu!,¡Nuevo en la carta!,ui: ReviewDashboard.Restaurant
+OPENING TIMES,HORARIO,ui: ReviewDashboard.Drawing
+Service lasts about {minutes} minutes,El servicio dura unos {minutes} minutos,ui: ReviewDashboard.Drawing
+RUSH HOURS,HORAS PUNTA,ui: ReviewDashboard.Drawing
+No rush: a steady trickle,Sin hora punta: goteo constante,ui: ReviewDashboard.Drawing
+AT THESE PRICES,A ESTOS PRECIOS,ui: ReviewDashboard.Drawing
+From tomorrow's service,Desde el servicio de mañana,ui: ReviewDashboard.Drawing
+From today's service,Desde el servicio de hoy,ui: ReviewDashboard.Drawing
+1 star,1 estrella,ui: ReviewPopupHud
 walked out! {amount},¡se fue! {amount},ui: ReviewPopupHud
 Press A to join,Pulsa A para unirte,ui: ServiceStatusHud
 Delivered to storage:,Entregado al almacén:,ui: ServiceStatusHud
-Press Menu when ready,Pulsa Menu cuando estés listo,ui: ServiceStatusHud
-READY,LISTO,ui: ServiceStatusHud
-not ready,no está listo,ui: ServiceStatusHud
-Last orders,Últimos pedidos,ui: ServiceStatusHud
-Closed: finish up,Cerrado: termina lo que queda,ui: ServiceStatusHud
+Press Menu to carry on without them,Pulsa Menu para seguir sin ellos,ui: ServiceStatusHud
 {count} {what},{count} {what},ui: ServiceStatusHud
-Day {day}: plan,Día {day}: plan,ui: ServiceStatusHud
-Balance {amount},Saldo {amount},ui: ServiceStatusHud
-"{name}, {role}: {description}, {mood}, {wage}/day","{name}, {role}: {description}, {mood}, {wage}/día",ui: ServiceStatusHud
-let go,despedir,ui: ServiceStatusHud
-"{name}, {role}: {description}, {wage}/day","{name}, {role}: {description}, {wage}/día",ui: ServiceStatusHud
 new,recién llegado,ui: ServiceStatusHud
 happy,contento,ui: ServiceStatusHud
 doing fine,bien,ui: ServiceStatusHud
@@ -225,6 +339,7 @@ cleaner,friegaplatos,ui: ServiceStatusHud
 "{name} prepared {jobs}, dropped {mistakes}","{name} preparó {jobs}, se le cayeron {mistakes}",ui: ServiceStatusHud
 "{name} carried {jobs} plates, dropped {mistakes}","{name} llevó {jobs} platos, se le cayeron {mistakes}",ui: ServiceStatusHud
 "{name} washed {jobs}, broke {mistakes}","{name} fregó {jobs}, rompió {mistakes}",ui: ServiceStatusHud
+Last orders!,¡Últimos pedidos!,ui: ServiceTimelineCard
 {restaurant} · Day {day},{restaurant} · Día {day},ui: MainMenu.Drawing
 Open your first restaurant,Abre tu primer restaurante,ui: MainMenu.Drawing
 Starts in slot {slot},Empieza en la ranura {slot},ui: MainMenu.Drawing
@@ -246,26 +361,17 @@ Slot {slot} is free,La ranura {slot} está libre,ui: MainMenu.Drawing
 Start,Empezar,ui: MainMenu.Drawing
 Empty slot,Ranura vacía,ui: MainMenu.Drawing
 Free,Libre,ui: MainMenu.Drawing
-Settings,Ajustes,ui: MainMenu.Drawing
 Credits,Créditos,ui: MainMenu.Drawing
 Delete {restaurant}?,¿Borrar {restaurant}?,ui: MainMenu.Drawing
 For every campaign. Saved as you change them.,Para todas las campañas. Se guardan al cambiarlos.,ui: MainMenu.Drawing
-Cooking precision,Precisión al cocinar,ui: MainMenu.Drawing
-How narrow the doneness windows are,Cuánto margen hay en cada punto de cocción,ui: MainMenu.Drawing
-Spoilage,Caducidad,ui: MainMenu.Drawing
-How fast food loses freshness,Lo rápido que la comida pierde frescura,ui: MainMenu.Drawing
-Customer patience,Paciencia de los clientes,ui: MainMenu.Drawing
-How long guests wait,Cuánto esperan los clientes,ui: MainMenu.Drawing
-Language,Idioma,ui: MainMenu.Drawing
-"Everything, old reviews included, switches at once","Todo cambia al momento, también las reseñas antiguas",ui: MainMenu.Drawing
-Presets and changing the controls come later.,Los preajustes y los controles llegarán más adelante.,ui: MainMenu.Drawing
 "Slot {slot}: Day {day}, {balance}.","Ranura {slot}: Día {day}, {balance}.",ui: MainMenu.Drawing
 This can't be undone.,No se puede deshacer.,ui: MainMenu.Drawing
 Delete one first: choose its card and press Y.,Borra una primero: elige su tarjeta y pulsa Y.,ui: MainMenu.Drawing
 Choose and change,Elegir y cambiar,ui: MainMenu.Drawing
+Open,Abrir,ui: MainMenu.Drawing
 Back,Volver,ui: MainMenu.Drawing
-Delete,Borrar,ui: MainMenu.Drawing
 Keep it,Conservarla,ui: MainMenu.Drawing
+Browse,Explorar,ui: ReviewDashboard.Drawing
 Select,Elegir,ui: MainMenu.Drawing
 Delete slot,Borrar ranura,ui: MainMenu.Drawing
 {hours} h {minutes} min,{hours} h {minutes} min,ui: MainMenu.Drawing
@@ -274,11 +380,124 @@ Played today,Jugada hoy,ui: MainMenu.Drawing
 Played yesterday,Jugada ayer,ui: MainMenu.Drawing
 Played {date},Jugada el {date},ui: MainMenu.Drawing
 Your spots · dishes · @chefs,Tus sitios · platos · @chefs,ui: MainMenu.Drawing
-Steak,Filete,data: IngredientIcons
-Tomato,Tomate,data: IngredientIcons
-Onion,Cebolla,data: IngredientIcons
-OnionRings,aros de cebolla,data: IngredientIcons
+Quit to the office?,¿Volver a la oficina?,ui: PauseMenu
+Quit to the main menu?,¿Volver al menú principal?,ui: PauseMenu
+Paused,En pausa,ui: PauseMenu
+Choose,Elegir,ui: PauseMenu
+Resume,Continuar,ui: PauseMenu
+Go to the office,Ir a la oficina,ui: PauseMenu
+Go to the menu,Ir al menú,ui: PauseMenu
+Settings,Ajustes,ui: MainMenu.Drawing
+Quit to the office,Volver a la oficina,ui: PauseMenu
+Quit to the main menu,Volver al menú principal,ui: PauseMenu
+Today isn't saved until Review starts.,Hoy no se guarda hasta que empiece la Reseña.,ui: PauseMenu
+You'll go back up to the boss's floor.,Subirás de nuevo a la planta del jefe.,ui: PauseMenu
+The game closes.,El juego se cierra.,ui: PauseMenu
+Today isn't saved: Day {day} starts again from this morning.,Hoy no se ha guardado: el día {day} vuelve a empezar desde esta mañana.,ui: PauseMenu
+The game saves as Review starts.,La partida se guarda al empezar la Reseña.,ui: PauseMenu
+Advanced,Avanzado,ui: SettingsModel
+Difficulty,Dificultad,ui: SettingsModel
+Language,Idioma,ui: MainMenu.Drawing
+"Everything, old reviews included, switches at once","Todo cambia al momento, también las reseñas antiguas",ui: MainMenu.Drawing
+Display,Pantalla,ui: SettingsModel
+Full screen,Pantalla completa,ui: SettingsModel
+Windowed,En ventana,ui: SettingsModel
+"The whole screen, or a window beside your other apps","Toda la pantalla, o una ventana junto a tus otras apps",ui: SettingsModel
+Each realism dial on its own,Cada ajuste de realismo por separado,ui: SettingsModel
+Cooking precision,Precisión al cocinar,ui: MainMenu.Drawing
+How narrow the doneness windows are,Cuánto margen hay en cada punto de cocción,ui: MainMenu.Drawing
+Spoilage,Caducidad,ui: MainMenu.Drawing
+How fast food loses freshness,Lo rápido que la comida pierde frescura,ui: MainMenu.Drawing
+Customer patience,Paciencia de los clientes,ui: MainMenu.Drawing
+How long guests wait,Cuánto esperan los clientes,ui: MainMenu.Drawing
+Minigame complexity,Complejidad de los minijuegos,ui: SettingsModel
+"How hard washing, cleaning and fires are","Lo difícil que es fregar, limpiar y apagar fuegos",ui: SettingsModel
+Hygiene,Higiene,ui: SettingsModel
+How much mess a service leaves,Cuánta suciedad deja un servicio,ui: SettingsModel
+Relaxed,Tranquilo,ui: SettingsModel
+Standard,Normal,ui: SettingsModel
+difficulty|Chef,Chef,ui: SettingsModel
+Custom,Personalizado,ui: SettingsModel
+"Wide windows, patient guests, little mess","Márgenes amplios, clientes pacientes, poca suciedad",ui: SettingsModel
+The kitchen as it's meant to be played,La cocina tal y como está pensada,ui: SettingsModel
+"Tight windows, impatient guests, more mess","Márgenes estrechos, clientes impacientes, más suciedad",ui: SettingsModel
+"Your own mix, set under Advanced","Tu propia mezcla, en Avanzado",ui: SettingsModel
+Borrow money,Pedir dinero,ui: AccountantHud
+THE ACCOUNTANT,EL CONTABLE,ui: AccountantHud
+Borrow,Pedir,ui: AccountantHud
+Leave,Salir,ui: AccountantHud
+Money {money} · Loan {loan},Dinero {money} · Préstamo {loan},ui: AccountantHud
+Money {money},Dinero {money},ui: AccountantHud
+He won't lend more until you pay some back.,No te prestará más hasta que devuelvas algo.,ui: AccountantHud
+"You'll owe {owed}, paid back {instalment} a collection","Deberás {owed}, devueltos a {instalment} por cobro",ui: AccountantHud
+{name} is yours,{name} ya es vuestro,ui: MiniatureHud
+Look at the city,Mirar la ciudad,ui: MiniatureHud
+Yours,Vuestro,ui: MiniatureHud
+For sale · {price},En venta · {price},ui: MiniatureHud
+{street} · {size} · {seats} seats,{street} · {size} · {seats} plazas,ui: MiniatureHud
+Not opened yet,Aún sin abrir,ui: MiniatureHud
+Style: {style},Estilo: {style},ui: MiniatureHud
+{count} review,{count} reseña,ui: MiniatureHud
+{count} reviews,{count} reseñas,ui: MiniatureHud
+Previously: {style},Antes: {style},ui: MiniatureHud
+Its style stays: you choose its name,Su estilo no cambia: elegís su nombre,ui: MiniatureHud
+"Old reviews, kept if you keep the name","Reseñas antiguas, se quedan si mantenéis el nombre",ui: MiniatureHud
+Comes with,Incluye,ui: MiniatureHud
+Your money: {amount},Vuestro dinero: {amount},ui: MiniatureHud
+Buying it leaves {amount} owed to the boss,Comprarlo os deja debiendo {amount} al jefe,ui: MiniatureHud
+Open for day {day},Abrir para el día {day},ui: MiniatureHud
+Nothing: an empty room,Nada: un local vacío,ui: MiniatureHud
+Everyone to the table: {here} of {all},Todos a la mesa: {here} de {all},ui: MiniatureHud
+Name your restaurant,Poned nombre al restaurante,ui: MiniatureHud
+{old} · {street},{old} · {street},ui: MiniatureHud
+"Pick a name, or type one",Elegid un nombre o escribid uno,ui: MiniatureHud
+Keep the old name and its reviews,Mantener el nombre y sus reseñas,ui: MiniatureHud
+A new name starts with no reviews,Un nombre nuevo empieza sin reseñas,ui: MiniatureHud
+New names,Otros nombres,ui: MiniatureHud
+Choose a style,Elegid un estilo,ui: MiniatureHud
+Keep: {style},Mantener: {style},ui: MiniatureHud
+Styles change who comes and what they expect (coming later),Los estilos cambian quién viene y qué espera (más adelante),ui: MiniatureHud
+Buy for {price},Comprar por {price},ui: MiniatureHud
+restaurant size|Counter,Barra,ui: MiniatureHud
+restaurant size|Small room,Local pequeño,ui: MiniatureHud
+restaurant size|Dining room,Comedor,ui: MiniatureHud
+restaurant size|Large dining room,Gran comedor,ui: MiniatureHud
+"When you see this, the game is saving.","Cuando veas esto, la partida se está guardando.",ui: OpeningHud
+Don't quit or turn off the game while it shows.,No salgas ni apagues el juego mientras aparezca.,ui: OpeningHud
+Skip,Saltar,ui: OpeningHud
+Climb up,Subir,ui: Tailor
+Locked: earn it first,Bloqueado: hay que ganarlo,ui: Tailor
+Tone {n},Tono {n},ui: Tailor
 DicedOnion,cebolla picada,data: IngredientIcons
+dicedonion,,"data, lower case: ING_DicedOnion"
+Onions,Cebolla,data: ING_DicedOnion
+onions,cebolla,data
+Softened,Pochada,data: ING_OnionRings
+softened,pochada,data
+Cooked,Hecha,data: ING_OnionRings
+cooked,hecha,data
+Onion,Cebolla,data: IngredientIcons
+onion,cebolla,data
+OnionRings,aros de cebolla,data: IngredientIcons
+onionrings,,"data, lower case: ING_OnionRings"
+Onion rings,Aros de cebolla,data: ING_OnionRings
+onion rings,aros de cebolla,data
+Steak,Filete,data: IngredientIcons
+steak,filete,data
+Rare,Poco hecho,data: ING_Steak
+rare,poco hecho,data
+Medium,Al punto,data: ING_Steak
+medium,al punto,"data, lower case: ING_Steak"
+Well done,Muy hecho,data: ING_Steak
+well done,muy hecho,data
+Tomato,Tomate,data: IngredientIcons
+tomato,tomate,data
+Pan,Sartén,data: FurnitureCatalog
+Plate,Plato,data: FurnitureCatalog
+DeliveryBox,,data: ItemCatalog
+Knife,Cuchillo,data: FurnitureCatalog
+Tray,Bandeja,data: ItemCatalog
+Container,Recipiente,data: ItemCatalog
 quick but careless,rápido pero descuidado,data: StaffConfig
 "steady, nothing fancy","constante, sin florituras",data: StaffConfig
 "slow, very reliable","lento, muy fiable",data: StaffConfig
@@ -292,240 +511,36 @@ steady on their feet,pisa firme,data: StaffConfig
 "calm, never spills","tranquilo, nunca derrama nada",data: StaffConfig
 "a natural, and knows it","un talento natural, y lo sabe",data: StaffConfig
 Counter,Encimera,data: FurnitureCatalog
+"A plain worktop for pans, plates and food.","Una encimera para sartenes, platos y comida.",data: FurnitureCatalog
 Gas hob,Fogón de gas,data: FurnitureCatalog
+A flame on a dial. A pan left too hot can catch fire.,"Llama con mando. Si te pasas, la sartén arde.",data: FurnitureCatalog
 Shelf,Estante,data: FurnitureCatalog
+Dry storage for what doesn't need the cold.,Despensa para lo que no necesita frío.,data: FurnitureCatalog
 Fridge,Nevera,data: FurnitureCatalog
+Cold storage: meat and fish stay fresh longer.,Frío: la carne y el pescado aguantan más.,data: FurnitureCatalog
 Table,Mesa,data: FurnitureCatalog
+Seats up to four. Each extra chair costs a little more.,Hasta cuatro sitios. Cada silla de más cuesta algo.,data: FurnitureCatalog
 Bar table,Mesa alta,data: FurnitureCatalog
+A narrow table and stool for guests eating alone.,"Mesa estrecha con taburete, para quien come solo.",data: FurnitureCatalog
 Induction hob,Placa de inducción,data: FurnitureCatalog
+"Steps hold the pan at a set heat. No flame, no fires.","Niveles fijos de calor. Sin llama, sin incendios.",data: FurnitureCatalog
 Charcoal grill,Parrilla de carbón,data: FurnitureCatalog
+"Always lit, with a hot and a cool side. Move food across.","Siempre encendida, con un lado fuerte y otro suave.",data: FurnitureCatalog
 Cutting board,Tabla de cortar,data: FurnitureCatalog
+"Cuts onions, tomatoes and steaks. A helper needs one.",Aquí se corta de todo. Un ayudante necesita una.,data: FurnitureCatalog
 Knife rack,Soporte de cuchillos,data: FurnitureCatalog
-Knife,Cuchillo,data: FurnitureCatalog
-Pan,Sartén,data: FurnitureCatalog
-Plate,Plato,data: FurnitureCatalog
-Onion rings,Aros de cebolla,data: ING_OnionRings
-Softened,Pochada,data: ING_OnionRings
-Cooked,Hecha,data: ING_OnionRings
-Onions,Cebolla,data: ING_DicedOnion
-Rare,Poco hecho,data: ING_Steak
-Medium,Al punto,data: ING_Steak
-Well done,Muy hecho,data: ING_Steak
-Tray,Bandeja,data: ItemCatalog
-Container,Recipiente,data: ItemCatalog
+Keeps the kitchen's knives to hand beside the boards.,Tiene los cuchillos a mano junto a las tablas.,data: FurnitureCatalog
+"One more knife, so two cooks can cut at once.","Un cuchillo más, para que dos corten a la vez.",data: FurnitureCatalog
+"One more pan, so more can cook at once.","Una sartén más, para cocinar más a la vez.",data: FurnitureCatalog
+One more clean plate for the pile.,Un plato limpio más para la pila.,data: FurnitureCatalog
+Delivery counter,,data: FurnitureCatalog
+Takes two app orders at a time. A courier collects each.,,data: FurnitureCatalog
+Delivery boxes,,data: FurnitureCatalog
+Free boxes for delivery orders. A plate sent out is gone.,,data: FurnitureCatalog
+Grill,Parrilla,data
 Raw,Crudo,data
 raw,crudo,data
 burnt,quemado,data
-steak,filete,data
-tomato,tomate,data
-onion,cebolla,data
-onion rings,aros de cebolla,data
-onions,cebolla,data
-rare,poco hecho,data
-well done,muy hecho,data
-softened,pochada,data
-cooked,hecha,data
-Grill,Parrilla,data
-medium,al punto,"data, lower case: ING_Steak"
-Dress up,Vestirse,ui: Tailor
-Locked: earn it first,Bloqueado: hay que ganarlo,ui: Tailor
-Done,Listo,ui: Tailor
-Hat,Sombrero,ui: Tailor
-Face,Cara,ui: Tailor
-Skin,Piel,ui: Tailor
-Accessory,Accesorio,ui: Tailor
-Outfit,Ropa,ui: Tailor
-Tone {n},Tono {n},ui: Tailor
-Toque,Gorro de chef,ui: Tailor
-Cap,Gorra,ui: Tailor
-Bandana,Pañuelo,ui: Tailor
-Headband,Cinta,ui: Tailor
-Devil horns,Cuernos de diablo,ui: Tailor
-Crown,Corona,ui: Tailor
-Party hat,Gorro de fiesta,ui: Tailor
-Short crop,Pelo corto,ui: Tailor
-Moustache,Bigote,ui: Tailor
-Blond bun,Moño rubio,ui: Tailor
-Afro,Afro,ui: Tailor
-Bald,Calvo,ui: Tailor
-Silver fringe,Pelo cano,ui: Tailor
-Ginger crop,Pelo corto pelirrojo,ui: Tailor
-Dark bun,Moño oscuro,ui: Tailor
-None,Nada,ui: Tailor
-Glasses,Gafas,ui: Tailor
-Sunglasses,Gafas de sol,ui: Tailor
-Aviators,Gafas de aviador,ui: Tailor
-Chef whites,Chaqueta de chef,ui: Tailor
-Line cook,Cocinero de línea,ui: Tailor
-Wok cook,Cocinero de wok,ui: Tailor
-Pastry chef,Pastelero,ui: Tailor
-Suit,Traje,ui: Tailor
-Tourist,Turista,ui: Tailor
-Captain's hat,Gorra de capitán,ui: Tailor
-Propeller cap,Gorra con hélice,ui: Tailor
-Headphones,Auriculares,ui: Tailor
-Straw hat,Sombrero de paja,ui: Tailor
-Cowboy hat,Sombrero vaquero,ui: Tailor
-Plumed hat,Sombrero con pluma,ui: Tailor
-Climb up,Subir,ui: Tailor
-Feather headdress,Tocado de plumas,ui: Tailor
-Player {player},Jugador {player},ui: OpeningHud
-Join,Unirse,ui: OpeningHud
-"When you see this, the game is saving.","Cuando veas esto, la partida se está guardando.",ui: OpeningHud
-Don't quit or turn off the game while it shows.,No salgas ni apagues el juego mientras aparezca.,ui: OpeningHud
-Skip,Saltar,ui: OpeningHud
-Everyone to the table: {here} of {all},Todos a la mesa: {here} de {all},ui: MiniatureHud
-{name} is yours,{name} ya es vuestro,ui: MiniatureHud
-Look at the city,Mirar la ciudad,ui: MiniatureHud
-Yours,Vuestro,ui: MiniatureHud
-For sale · {price},En venta · {price},ui: MiniatureHud
-{street} · {size} · {seats} seats,{street} · {size} · {seats} plazas,ui: MiniatureHud
-Style: {style},Estilo: {style},ui: MiniatureHud
-{count} review,{count} reseña,ui: MiniatureHud
-{count} reviews,{count} reseñas,ui: MiniatureHud
-Previously: {style},Antes: {style},ui: MiniatureHud
-Its style stays: you choose its name,Su estilo no cambia: elegís su nombre,ui: MiniatureHud
-"Old reviews, kept if you keep the name","Reseñas antiguas, se quedan si mantenéis el nombre",ui: MiniatureHud
-Comes with,Incluye,ui: MiniatureHud
-Nothing: an empty room,Nada: un local vacío,ui: MiniatureHud
-Your money: {amount},Vuestro dinero: {amount},ui: MiniatureHud
-Buying it leaves {amount} owed to the boss,Comprarlo os deja debiendo {amount} al jefe,ui: MiniatureHud
-Buy,Comprar,ui: MiniatureHud
-Open for the day,Abrir hoy,ui: MiniatureHud
-Name your restaurant,Poned nombre al restaurante,ui: MiniatureHud
-{old} · {street},{old} · {street},ui: MiniatureHud
-"Pick a name, or type one",Elegid un nombre o escribid uno,ui: MiniatureHud
-Keep the old name and its reviews,Mantener el nombre y sus reseñas,ui: MiniatureHud
-A new name starts with no reviews,Un nombre nuevo empieza sin reseñas,ui: MiniatureHud
-New names,Otros nombres,ui: MiniatureHud
-Space,Espacio,ui: MiniatureHud
-Choose a style,Elegid un estilo,ui: MiniatureHud
-Keep: {style},Mantener: {style},ui: MiniatureHud
-Styles change who comes and what they expect (coming later),Los estilos cambian quién viene y qué espera (más adelante),ui: MiniatureHud
-Buy for {price},Comprar por {price},ui: MiniatureHud
-restaurant size|Counter,Barra,ui: MiniatureHud
-restaurant size|Small room,Local pequeño,ui: MiniatureHud
-restaurant size|Dining room,Comedor,ui: MiniatureHud
-restaurant size|Large dining room,Gran comedor,ui: MiniatureHud
-controller lost,mando desconectado,ui: ServiceStatusHud
-"Paused: {players}, reconnect your controller","En pausa: {players}, vuelve a conectar el mando",ui: ServiceStatusHud
-Press Menu to carry on without them,Pulsa Menu para seguir sin ellos,ui: ServiceStatusHud
-P{player} controller lost,J{player} mando desconectado,ui: ReviewDashboard.Drawing
-Shop,Tienda,ui: LayoutEditorHud
-Cookbook,Recetario,ui: LayoutEditorHud
-unlock {price},desbloquear {price},ui: LayoutEditorHud
-about {cost} a serving,unos {cost} por ración,ui: LayoutEditorHud
-suggested {price},sugerido {price},ui: LayoutEditorHud
-earns about {value},deja unos {value},ui: LayoutEditorHud
-on tonight's menu,en la carta de esta noche,ui: LayoutEditorHud
-price,precio,ui: LayoutEditorHud
-suggested,sugerido,ui: LayoutEditorHud
-unlock,desbloquear,ui: LayoutEditorHud
-simple,sencilla,ui: LayoutEditorHud
-some work,algo de trabajo,ui: LayoutEditorHud
-demanding,exigente,ui: LayoutEditorHud
-ON THE MENU,EN LA CARTA,ui: ReviewDashboard.Drawing
-(suggested {price}),(sugerido {price}),ui: ReviewDashboard.Drawing
-Steak with onion rings,Filete con aros de cebolla,data: CookbookConfig
-Steak with sautéed onions,Filete con cebolla salteada,data: CookbookConfig
-Sautéed onions,Cebolla salteada,data: CookbookConfig
-Hob,Fogón,data: CookbookConfig
-Board,Tabla,data: CookbookConfig
-Balance {amount},Saldo {amount},ui: ReviewDashboard.Drawing
-Next fee {amount} in {days},Próxima cuota {amount} en {days},ui: ReviewDashboard.Drawing
-Fee of {amount} collected today,Cuota de {amount} cobrada hoy,ui: ReviewDashboard.Drawing
-Staff,Personal,ui: ReviewDashboard.Drawing
-No menu yet.,Aún no hay carta.,ui: ReviewDashboard.Drawing
-1 ordered,1 pedido,ui: ReviewDashboard.Drawing
-{n} ordered,{n} pedidos,ui: ReviewDashboard.Drawing
-1 walked out,1 se fue,ui: ReviewDashboard.Drawing
-{n} walked out,{n} se fueron,ui: ReviewDashboard.Drawing
-{stars} stars,{stars} estrellas,ui: ReviewDashboard.Drawing
-1 more dish in the cookbook tab,1 plato más en el recetario,ui: ReviewDashboard.Drawing
-{n} more dishes in the cookbook tab,{n} platos más en el recetario,ui: ReviewDashboard.Drawing
-No cookbook here.,Aquí no hay recetario.,ui: ReviewDashboard.Drawing
-On the menu · {price},En la carta · {price},ui: ReviewDashboard.Drawing
-Unlock · {price},Desbloquear · {price},ui: ReviewDashboard.Drawing
-Guests: as many as at the suggested prices,Clientes: tantos como a los precios sugeridos,ui: ReviewDashboard.Drawing
-Guests: about {percent}% fewer,Clientes: un {percent}% menos,ui: ReviewDashboard.Drawing
-Guests: about {percent}% more,Clientes: un {percent}% más,ui: ReviewDashboard.Drawing
-Stars: rated as the dish deserves,Estrellas: las que merezca el plato,ui: ReviewDashboard.Drawing
-Stars: {stars} fewer for the same dish,Estrellas: {stars} menos por el mismo plato,ui: ReviewDashboard.Drawing
-Stars: {stars} more for the same dish,Estrellas: {stars} más por el mismo plato,ui: ReviewDashboard.Drawing
-a serving,por ración,ui: ReviewDashboard.Drawing
-You have {amount},Tienes {amount},ui: ReviewDashboard.Drawing
-On the menu from tomorrow,En la carta desde mañana,ui: ReviewDashboard.Drawing
-Nobody on the team yet.,Aún no hay nadie en el equipo.,ui: ReviewDashboard.Drawing
-{wage} a day,{wage} al día,ui: ReviewDashboard.Drawing
-Skill,Destreza,ui: ReviewDashboard.Drawing
-Speed,Rapidez,ui: ReviewDashboard.Drawing
-"Price, sideways","Precio, a los lados",ui: ReviewDashboard.Drawing
-Suggested price,Precio sugerido,ui: ReviewDashboard.Drawing
-Unlock,Desbloquear,ui: ReviewDashboard.Drawing
-"Paid now, and put on a free counter.","Se paga ya, y va a una encimera libre.",ui: ManagementCardsHud
-Carry it where it goes: paid when it's put down.,Llévalo a su sitio: se paga al dejarlo.,ui: ManagementCardsHud
-Furniture,Muebles,ui: ManagementCardsHud
-Appliances,Aparatos,ui: ManagementCardsHud
-Kitchenware,Menaje,ui: ManagementCardsHud
-Decoration,Decoración,ui: ManagementCardsHud
-Advanced,Avanzado,ui: SettingsModel
-Difficulty,Dificultad,ui: SettingsModel
-Each realism dial on its own,Cada ajuste de realismo por separado,ui: SettingsModel
-Minigame complexity,Complejidad de los minijuegos,ui: SettingsModel
-"How hard washing, cleaning and fires are","Lo difícil que es fregar, limpiar y apagar fuegos",ui: SettingsModel
-Hygiene,Higiene,ui: SettingsModel
-How much mess a service leaves,Cuánta suciedad deja un servicio,ui: SettingsModel
-Relaxed,Tranquilo,ui: SettingsModel
-Standard,Normal,ui: SettingsModel
-difficulty|Chef,Chef,ui: SettingsModel
-Custom,Personalizado,ui: SettingsModel
-"Wide windows, patient guests, little mess","Márgenes amplios, clientes pacientes, poca suciedad",ui: SettingsModel
-The kitchen as it's meant to be played,La cocina tal y como está pensada,ui: SettingsModel
-"Tight windows, impatient guests, more mess","Márgenes estrechos, clientes impacientes, más suciedad",ui: SettingsModel
-"Your own mix, set under Advanced","Tu propia mezcla, en Avanzado",ui: SettingsModel
-Open,Abrir,ui: MainMenu.Drawing
-Paused,En pausa,ui: PauseMenu
-Resume,Continuar,ui: PauseMenu
-Choose,Elegir,ui: PauseMenu
-Quit to the office,Volver a la oficina,ui: PauseMenu
-Quit to the main menu,Volver al menú principal,ui: PauseMenu
-Quit to the office?,¿Volver a la oficina?,ui: PauseMenu
-Quit to the main menu?,¿Volver al menú principal?,ui: PauseMenu
-Go to the menu,Ir al menú,ui: PauseMenu
-Go to the office,Ir a la oficina,ui: PauseMenu
-Today isn't saved until Review starts.,Hoy no se guarda hasta que empiece la Reseña.,ui: PauseMenu
-You'll go back up to the boss's floor.,Subirás de nuevo a la planta del jefe.,ui: PauseMenu
-The game closes.,El juego se cierra.,ui: PauseMenu
-Today isn't saved: Day {day} starts again from this morning.,Hoy no se ha guardado: el día {day} vuelve a empezar desde esta mañana.,ui: PauseMenu
-The game saves as Review starts.,La partida se guarda al empezar la Reseña.,ui: PauseMenu
-Hold: start day {day},Mantén: empezar el día {day},ui: ReviewDashboard.Drawing
-THE BOSS,EL JEFE,ui: BossPhoneHud
-Incoming call…,Llamada entrante…,ui: BossPhoneHud
-Collection tonight,Cobro esta noche,ui: BossPhoneHud
-Collection missed,Cobro no pagado,ui: BossPhoneHud
-Collection paid,Cobro pagado,ui: BossPhoneHud
-"He took the restaurant.
-Back to the office.","Se ha quedado con el restaurante.
-De vuelta a la oficina.",ui: BossPhoneHud
-"Erased.
-Your cookbook stays in the boss's office for the next chef.","Borrado.
-Tu recetario se queda en la oficina del jefe para el próximo chef.",ui: BossPhoneHud
-Collection of {amount} paid today,Cobro de {amount} pagado hoy,ui: ReviewDashboard.Drawing
-Paid {paid} of {amount} today,Pagado hoy {paid} de {amount},ui: ReviewDashboard.Drawing
-Next collection {amount} in {days},Próximo cobro {amount} en {days},ui: ReviewDashboard.Drawing
-Missed: he visits tomorrow,Sin pagar: mañana viene,ui: ReviewDashboard.Drawing
-Loan left {owed},Préstamo pendiente {owed},ui: ReviewDashboard.Drawing
-The boss's cut,La parte del jefe,ui: ReviewDashboard.Drawing
-Loan instalment,Cuota del préstamo,ui: ReviewDashboard.Drawing
-Repossessed,Embargado,ui: ReviewDashboard.Drawing
-Borrow money,Pedir dinero,ui: AccountantHud
-THE ACCOUNTANT,EL CONTABLE,ui: AccountantHud
-Borrow,Pedir,ui: AccountantHud
-Leave,Salir,ui: AccountantHud
-Money {money} · Loan {loan},Dinero {money} · Préstamo {loan},ui: AccountantHud
-Money {money},Dinero {money},ui: AccountantHud
-He won't lend more until you pay some back.,No te prestará más hasta que devuelvas algo.,ui: AccountantHud
-"You'll owe {owed}, paid back {instalment} a collection","Deberás {owed}, devueltos a {instalment} por cobro",ui: AccountantHud
 Partner! Collection's tonight.,¡Socio! Esta noche toca cobrar.,boss
 I'd hate to see that till come up short.,Odiaría ver esa caja quedarse corta.,boss
 Money's in. That's my kind of chef.,"El dinero ha llegado. Así me gusta, chef.",boss
@@ -556,139 +571,16 @@ Your cookbook stays. Somebody'll want it.,Tu recetario se queda. Alguien lo quer
 "Huh. Found the money, did ya?","Vaya. Encontraste el dinero, ¿eh?",boss
 Lucky you.,Qué suerte la tuya.,boss
 "Not this one, mind. Yet.","Este no, ojo. Todavía.",boss
-phase|Plan,Plan,ui: DayCardText
-phase|Prep,Preparación,ui: DayCardText
-phase|Service,Servicio,ui: DayCardText
-phase|Review,Revisión,ui: DayCardText
-{phase} · opens {time},{phase} · abre a las {time},ui: DayCardText
-{phase} · {time},{phase} · {time},ui: DayCardText
-Last orders · {time},Últimos pedidos · {time},ui: DayCardText
-Closed · {time},Cerrado · {time},ui: DayCardText
-Close,Cerrar,ui: ReviewDashboard.Drawing
-Hire,Contratar,ui: ReviewDashboard.Drawing
-Let go,Despedir,ui: ReviewDashboard.Drawing
-Rearrange,Organizar,ui: ServiceStatusHud
-forkcast,forkcast,ui: ServiceStatusHud
-Hold: open up,Mantén: abrir,ui: ServiceStatusHud
-YOUR TEAM,TU EQUIPO,ui: ReviewDashboard.Drawing
-LOOKING FOR WORK TODAY,BUSCAN TRABAJO HOY,ui: ReviewDashboard.Drawing
-Wages {amount} a day,Sueldos {amount} al día,ui: ReviewDashboard.Drawing
-Nobody else is looking for work today.,Hoy nadie más busca trabajo.,ui: ReviewDashboard.Drawing
-{name} starts today.,{name} empieza hoy.,ui: ReviewDashboard.Drawing
-{name} has been let go.,{name} ya no trabaja aquí.,ui: ReviewDashboard.Drawing
-Not enough money for {name}: wages are paid each night.,No hay dinero para {name}: los sueldos se pagan cada noche.,ui: ReviewDashboard.Drawing
-Someone already does that job: let them go first.,Alguien ya hace ese trabajo: despídelo primero.,ui: ReviewDashboard.Drawing
-"Hiring is for the morning, before prep.","Se contrata por la mañana, antes de la preparación.",ui: ReviewDashboard.Drawing
-"Hire in the morning, before prep.","Contrata por la mañana, antes de la preparación.",ui: ReviewDashboard.Drawing
-job taken,puesto ocupado,ui: ReviewDashboard.Drawing
-out of reach,no te llega,ui: ReviewDashboard.Drawing
-LAST NIGHT'S MONEY,EL DINERO DE ANOCHE,ui: ReviewDashboard.Drawing
-TONIGHT'S MONEY,EL DINERO DE ESTA NOCHE,ui: ReviewDashboard.Drawing
-No service yet.,Aún no ha habido servicio.,ui: ReviewDashboard.Drawing
-Loss,Pérdida,ui: ReviewDashboard.Drawing
-Profit,Beneficio,ui: ReviewDashboard.Drawing
-Collection taken: {amount},Cobro hecho: {amount},ui: ReviewDashboard.Drawing
-Paid in full,Pagado entero,ui: ReviewDashboard.Drawing
-He's happy. For now.,Está contento. Por ahora.,ui: ReviewDashboard.Drawing
-He took {paid},Se llevó {paid},ui: ReviewDashboard.Drawing
-Missed: tomorrow {what}.,Fallaste: mañana {what}.,ui: ReviewDashboard.Drawing
-Collection tonight: {amount},Cobro esta noche: {amount},ui: ReviewDashboard.Drawing
-Collection tomorrow: {amount},Cobro mañana: {amount},ui: ReviewDashboard.Drawing
-Collection in {days} days: {amount},Cobro en {days} días: {amount},ui: ReviewDashboard.Drawing
-Covered,Cubierto,ui: ReviewDashboard.Drawing
-Miss it and {what}.,"Si no llegas, {what}.",ui: ReviewDashboard.Drawing
-he comes to warn you,viene a advertirte,ui: ReviewDashboard.Drawing
-his men take appliances worth what's short,sus hombres se llevan aparatos por lo que falte,ui: ReviewDashboard.Drawing
-he strips this place to the bare minimum,deja este local en lo mínimo,ui: ReviewDashboard.Drawing
-he takes this restaurant,se queda con este restaurante,ui: ReviewDashboard.Drawing
-he ends it all,se acaba todo,ui: ReviewDashboard.Drawing
-P{player} browses,P{player} elige,ui: ReviewDashboard.Drawing
-Suggested,Sugerido,ui: ReviewDashboard.Drawing
-Debt collection taken: {amount},Cobro de la deuda hecho: {amount},ui: ReviewDashboard.Drawing
-Debt collection tonight: {amount},Cobro de la deuda esta noche: {amount},ui: ReviewDashboard.Drawing
-Debt collection tomorrow: {amount},Cobro de la deuda mañana: {amount},ui: ReviewDashboard.Drawing
-Debt collection in {days} days: {amount},Cobro de la deuda en {days} días: {amount},ui: ReviewDashboard.Drawing
-We cook everything fresh. Mostly today.,Todo se cocina fresco. Casi todo hoy.,ui: ReviewDashboard.Drawing
-Ask about our specials. We'll make one up.,Pregunta por los platos del día. Nos inventamos uno.,ui: ReviewDashboard.Drawing
-Family run. The family is negotiable.,Negocio familiar. La familia es negociable.,ui: ReviewDashboard.Drawing
-Closed,Cerrado,ui: ReviewDashboard.Drawing
-about {count} guests tonight,unos {count} clientes esta noche,ui: ServiceStatusHud
-known for,el plato estrella,ui: ReviewDashboard.Drawing
-on the menu,en la carta,ui: ReviewDashboard.Drawing
-per person,por persona,ui: ReviewDashboard.Drawing
-guests fed so far,clientes atendidos hasta ahora,ui: ReviewDashboard.Drawing
-guests fed,clientes atendidos,ui: ReviewDashboard.Drawing
-closed · opens,cerrado · abre,ui: ReviewDashboard.Drawing
-the owner,el dueño,ui: ReviewDashboard.Drawing
-Net,Neto,ui: ReviewDashboard.Drawing
-DAY {day},DÍA {day},ui: ReviewDashboard.Drawing
-WHAT THEY ORDERED,LO QUE PIDIERON,ui: ReviewDashboard.Drawing
-Nobody ordered.,Nadie pidió nada.,ui: ReviewDashboard.Drawing
-1 more dish,1 plato más,ui: ReviewDashboard.Drawing
-{n} more dishes,{n} platos más,ui: ReviewDashboard.Drawing
-Hold to start day {day},Mantén para empezar el día {day},ui: ReviewDashboard.Drawing
-Waiting for {players},Esperando a {players},ui: ReviewDashboard.Drawing
-Starting…,Empezando…,ui: ReviewDashboard.Drawing
-only the totals were kept,solo se guardaron los totales,ui: ReviewDashboard.Drawing
-Not kept for this day.,No se guardó para este día.,ui: ReviewDashboard.Drawing
-"Your kitchen, as you left it","Tu cocina, tal como la dejaste",ui: ReviewDashboard.Drawing
-Press to join,Pulsa para unirte,ui: ReviewDashboard.Drawing
-Just covers it · {spare} to spare,Llega justo · sobran {spare},ui: ReviewDashboard.Drawing
-Covered · {spare} to spare,Cubierto · sobran {spare},ui: ReviewDashboard.Drawing
-guests fed · 1 fled,clientes atendidos · 1 huyó,ui: ReviewDashboard.Drawing
-guests fed · {n} fled,clientes atendidos · {n} huyeron,ui: ReviewDashboard.Drawing
-best plate tonight,mejor plato de la noche,ui: ReviewDashboard.Drawing
-tips tonight,propinas de la noche,ui: ReviewDashboard.Drawing
-tips tonight · they liked you,propinas · les gustaste,ui: ReviewDashboard.Drawing
-best plate tonight · {stars} stars,mejor plato de la noche · {stars} estrellas,ui: ReviewDashboard.Drawing
-P{player} waiting,P{player} esperando,ui: ReviewDashboard.Drawing
-Player {player} READY,Jugador {player} LISTO,ui: ReviewDashboard.Drawing
-Waiting for Player {player},Esperando al jugador {player},ui: ReviewDashboard.Drawing
-total earnings tonight,ingresos de la noche,ui: ReviewDashboard.Drawing
-Closed · Opens,Cerrado · Abre,ui: ReviewDashboard.Drawing
-Most ordered meal,Plato más pedido,ui: ReviewDashboard.Drawing
-today total earnings,ingresos totales de hoy,ui: ReviewDashboard.Drawing
-tips tonight · not a penny,propinas · ni un céntimo,ui: ReviewDashboard.Drawing
-"tips tonight · polite, at best",propinas · por educación,ui: ReviewDashboard.Drawing
-tips tonight · they loved you,propinas · les encantaste,ui: ReviewDashboard.Drawing
-Hold to start Day {day},Mantén para empezar el día {day},ui: ReviewDashboard.Drawing
-Not opened yet,Aún sin abrir,ui: MiniatureHud
-Open for day {day},Abrir para el día {day},ui: MiniatureHud
-Answered,Respondida,ui: ReviewDashboard.Drawing
-Food critic,Crítico,ui: ReviewDashboard.Drawing
-Influencer,Influencer,ui: ReviewDashboard.Drawing
-Foodie,Sibarita,ui: ReviewDashboard.Drawing
-Local,Del barrio,ui: ReviewDashboard.Drawing
-Regular,Habitual,ui: ReviewDashboard.Drawing
-About {n} guest,Más o menos {n} cliente,ui: DayCardText
-About {n} guests,Unos {n} clientes,ui: DayCardText
-Opens {time},Abre a las {time},ui: DayCardText
-Groups of one,Grupos de uno,ui: DayCardText
-Groups of one or two,Grupos de uno o dos,ui: DayCardText
-Groups of two,Grupos de dos,ui: DayCardText
-Groups of two or three,Grupos de dos o tres,ui: DayCardText
-Groups of three,Grupos de tres,ui: DayCardText
-Groups of about {count},Grupos de unos {count},ui: DayCardText
-Hold to start service,Mantén para abrir,ui: PrepReadyBarHud
-"A plain worktop for pans, plates and food.","Una encimera para sartenes, platos y comida.",data: FurnitureCatalog
-"A flame on a dial. A pan left too hot can catch fire.","Llama con mando. Si te pasas, la sartén arde.",data: FurnitureCatalog
-"Steps hold the pan at a set heat. No flame, no fires.","Niveles fijos de calor. Sin llama, sin incendios.",data: FurnitureCatalog
-"Always lit, with a hot and a cool side. Move food across.","Siempre encendida, con un lado fuerte y otro suave.",data: FurnitureCatalog
-"Cuts onions, tomatoes and steaks. A helper needs one.","Aquí se corta de todo. Un ayudante necesita una.",data: FurnitureCatalog
-Keeps the kitchen's knives to hand beside the boards.,Tiene los cuchillos a mano junto a las tablas.,data: FurnitureCatalog
-"One more knife, so two cooks can cut at once.","Un cuchillo más, para que dos corten a la vez.",data: FurnitureCatalog
-"One more pan, so more can cook at once.","Una sartén más, para cocinar más a la vez.",data: FurnitureCatalog
-One more clean plate for the pile.,Un plato limpio más para la pila.,data: FurnitureCatalog
-Dry storage for what doesn't need the cold.,Despensa para lo que no necesita frío.,data: FurnitureCatalog
-Cold storage: meat and fish stay fresh longer.,Frío: la carne y el pescado aguantan más.,data: FurnitureCatalog
-Seats up to four. Each extra chair costs a little more.,Hasta cuatro sitios. Cada silla de más cuesta algo.,data: FurnitureCatalog
-A narrow table and stool for guests eating alone.,"Mesa estrecha con taburete, para quien come solo.",data: FurnitureCatalog
-Good food. Shame about the bin smell.,Buena comida. Lástima el olor a basura.,review voice
-The bins greeted us at the door.,La basura nos recibió en la puerta.,review voice
-Dinner and a show. Chef's table magic.,Cena y espectáculo. Magia de chef.,review voice
-Watched them cook. Pure theatre.,Les vimos cocinar. Puro teatro.,review voice
-Ate next to the stove. Loud and greasy.,Cené junto a los fogones. Ruido y grasa.,review voice
-Pans clanging in my ear all night.,Sartenes en mi oído toda la noche.,review voice
+"Came for the {main}, stayed for the content.",,review voice
+Five stars and a reshoot.,,review voice
+A rare thing: a kitchen that listens.,,review voice
+Nice enough. The guidebook oversold it.,,review voice
+Food: yes. Speed: no.,,review voice
+Waited {wait} minutes. Left at {left}.,,review voice
+I cannot review the food. I never met it.,,review voice
+Lukewarm {main}. Like a limp handshake.,,review voice
+Crumbs from the last guy. Still there.,,review voice
+The food was fine. The table was not.,,review voice
 Smelled the bins before the menu.,Olí la basura antes que la carta.,review voice
 The bins were the first course.,La basura fue el primer plato.,review voice
 Theatre and precision. Worth a journey.,Teatro y precisión. Merece el viaje.,review voice
@@ -696,6 +588,156 @@ Front row to the pass. Unforgettable.,En primera fila del pase. Inolvidable.,rev
 Front-row seats to the kitchen. Iconic.,Primera fila en la cocina. Icónico.,review voice
 Couldn't hear my date over the pans.,Con las sartenes no oía a mi cita.,review voice
 An open kitchen needs a tidy one.,"Cocina abierta, cocina recogida. Falló.",review voice
+"Sorry, {name}. We got slammed and you paid for it.",,review voice
+"That wait isn't who we are, {name}. Truly sorry.",,review voice
+"Sorry, {name}. That {main} should never have left the pass.",,review voice
+"You're right, {name}. We'll get the next one right.",,review voice
+"Sorry, {name}. You asked for {ordered} and deserved {ordered}.",,review voice
+"Thanks for trying our {main}, {name}!",,review voice
+Our {main} is cooked exactly how the chef likes it.,,review voice
+"Sorry if anything was less than perfect, {name}!",,review voice
+We apologise for... everything? Thanks for coming!,,review voice
+"Thank you, {name}! The whole kitchen is grinning.",,review voice
+"Means a lot, {name}. See you soon.",,review voice
+"Thanks for the feedback, {name}! Glad you stopped by!",,review voice
+Thank you for choosing {restaurant}!,,review voice
+"Thanks for your patience, {name}!",,review voice
+Thank you for visiting {restaurant}!,,review voice
+We stand by our kitchen.,,review voice
+Our {main} is served exactly as the chef intends.,,review voice
+Good things take time.,,review voice
+We were busy. That's what good restaurants are.,,review voice
+We know.,,review voice
+As expected.,,review voice
+#foodie,,review voice
+#datenight,,review voice
+#eatlocal,,review voice
+Came back after the apology. Glad I did.,,review voice
+Gave you a second chance. You took it.,,review voice
+Came back after the apology. Same again.,,review voice
+"Second chance, same {main}. Hmm.",,review voice
+"Back again, quietly. Better this time.",,review voice
+Nobody answered me. The {main} did.,,review voice
+Still no reply. Still not right.,,review voice
+Back for round two. Lost again.,,review voice
+"Despite that reply, it was good.",,review voice
+Ignored the attitude. Liked the {main}.,,review voice
+Came back to be sure. I was right.,,review voice
+"Still bad. Still smug, I bet.",,review voice
+Back as promised. Still great.,,review voice
+Back again. Still the best.,,review voice
+Came back for the magic. Didn't find it.,,review voice
+Not like last time. Off night?,,review voice
+Loved it twice now.,,review voice
+Back again. Still great. Say hi sometime.,,review voice
+Loved it last time. Not tonight.,,review voice
+Hi {name}.,,review voice
+"{name}, thank you for the honest review.",,review voice
+We hope to welcome you back.,,review voice
+"Thank you for the second chance, if you give us one.",,review voice
+Long day. Sorry.,,review voice
+"You waited far too long, and we're sorry.",,review voice
+That's not the meal we want anyone to have.,,review voice
+"That isn't how you ordered it, and we're sorry.",,review voice
+Hi {name}!,,review voice
+Hope to see you soon.,,review voice
+Reviews like yours keep the kitchen going.,,review voice
+Have a good evening anyway.,,review voice
+We're proud of that dish as it is.,,review voice
+Busy nights are busy.,,review voice
+"{ordered}, exactly. Witchcraft.",,review voice
+That crust. That pink. I'm in love.,,review voice
+Best {main} on the block. Tell no one.,,review voice
+Cut like butter. Ate like a raccoon.,,review voice
+Back again. Still perfect. Still happy.,,review voice
+"Proper sear, proper rest. Someone cares.",,review voice
+"Salted early, seared hard, rested right.",,review voice
+POV: the perfect {ordered} {main}.,,review voice
+So good I forgot to film it.,,review voice
+A {main} that knows exactly what it is.,,review voice
+"Salt, fire, patience. Nothing else.",,review voice
+Best meal of the trip. Worth the detour.,,review voice
+"Finally, a grill this street deserves.",,review voice
+"Solid {main}. Not life-changing, not sad.",,review voice
+"Good, not great. Would grill again.",,review voice
+A perfectly fine Tuesday {main}.,,review voice
+"Good meat, timid salt. Be braver.",,review voice
+"Mid, but the lighting slaps.",,review voice
+Competent. Occasionally more.,,review voice
+Nice. Big portions. Very American.,,review voice
+Does the job. Like the old place did.,,review voice
+Fine. My dad's is better. Don't tell him.,,review voice
+Asked for {ordered}. It mooed.,,review voice
+{got}? Bold take on {ordered}.,,review voice
+"Cold in the middle. The {main}, not me.",,review voice
+Thermometers cost ten dollars.,,review voice
+"{got}, where {ordered} was promised.",,review voice
+Plot twist: it's {got}.,,review voice
+Is {got} the local {ordered}?,,review voice
+A good vet could've saved it.,,review voice
+Ordered {ordered}. Received a shoe.,,review voice
+My {main} was cooked into retirement.,,review voice
+{ordered}? More like {got}.,,review voice
+Grey to the middle. That's a crime.,,review voice
+The {main} arrived {got}. Finished.,,review voice
+Ordered {ordered}. Got jerky.,,review voice
+Great if you like {got}. We didn't.,,review voice
+Grandma cooks steak like this. She's 94.,,review voice
+I can still taste the smoke alarm.,,review voice
+"Charcoal is a fuel, not a doneness.",,review voice
+Blackened. Not the Cajun kind.,,review voice
+Carbon is not a crust.,,review voice
+"Burnt, and served anyway. That's it.",,review voice
+"Steak, but make it goth.",,review voice
+"Our {main} was very, very dark.",,review voice
+Smelled it from my porch.,,review voice
+Ordered a {main}. Got a plate of hope.,,review voice
+Paid for a {main}. Met the garnish.,,review voice
+The {main} did not attend.,,review voice
+Main character: missing.,,review voice
+Nice {side}. I came for {main}.,,review voice
+Lonely {main}. Where were the {side}?,,review voice
+The {side} were promised. Never came.,,review voice
+No {side}. I noticed. I always notice.,,review voice
+A {main} needs its {side}. Basic.,,review voice
+{main} at room temperature. Whose room?,,review voice
+"Hot grill, cold plate. Explain.",,review voice
+Rested so long it went to sleep.,,review voice
+Served tepid. An insult of its own.,,review voice
+Colder than our motel pool.,,review voice
+Grey all over. Grill was off duty.,,review voice
+"Steamed, not seared. This is a grill?",,review voice
+No crust. Just a beige rectangle.,,review voice
+"Wet pan, no sear, no flavor.",,review voice
+A {main} without crust is a rumor.,,review voice
+Pale steak. Unfollow.,,review voice
+Cut it. Plate became a crime scene.,,review voice
+Juice everywhere but in the {main}.,,review voice
+Five minutes of rest. That's all.,,review voice
+"Needed a mop, not a napkin.",,review voice
+That {main} had seen things.,,review voice
+Tasted like yesterday's special.,,review voice
+Not fresh. You know it. I know it.,,review voice
+Fridge smell. Clean your fridge.,,review voice
+{side} from tiny to boulder.,,review voice
+Who cut the {side}? With what?,,review voice
+"Uneven cut, uneven cook. Physics.",,review voice
+Good {main}. The {side} need help.,,review voice
+"Great {main}, sad {side}.",,review voice
+Raw {side} on a cooked plate. Why.,,review voice
+The {side} were an afterthought.,,review voice
+Great {main}. Bring a book.,,review voice
+Worth it? Yes. Fast? Absolutely not.,,review voice
+"Ordered hungry, ate starving.",,review voice
+"Love you, but the wait's getting worse.",,review voice
+Worth a wait. Not this wait.,,review voice
+Waited so long my phone died.,,review voice
+Nearly missed our train for it.,,review voice
+My kids aged a year. Steak was good.,,review voice
+Great {main}. Shame about the table.,,review voice
+"Grease on the table, ash on the floor.",,review voice
+Had to crop the sticky table out.,,review voice
+My shoes stuck to the floor. Again.,,review voice
 "Smoke inside, garbage at the door.","Humo dentro, basura en la puerta.",review voice
 Move the bin. We all smell it.,Mueve el cubo. Lo olemos todos.,review voice
 "Cute place. The bins, though.",Sitio mono. Pero esa basura...,review voice
@@ -704,94 +746,409 @@ A kitchen with nothing to hide.,Una cocina sin nada que esconder.,review voice
 Best seat in town: next to the grill.,El mejor sitio: junto a la parrilla.,review voice
 Grease mist on my jacket. Thanks.,Grasa en mi chaqueta. Gracias.,review voice
 Like eating in a kitchen. Because I was.,Como cenar en una cocina. Porque lo era.,review voice
-{phase} · Day {day},{phase} · Día {day},ui: DayCardHud
-Display,Pantalla,ui: SettingsModel
-Full screen,Pantalla completa,ui: SettingsModel
-Windowed,En ventana,ui: SettingsModel
-"The whole screen, or a window beside your other apps","Toda la pantalla, o una ventana junto a tus otras apps",ui: SettingsModel
-Restaurant,Restaurante,ui: ReviewDashboard.Drawing
-OPENING TIMES,HORARIO,ui: ReviewDashboard.Drawing
-Lunch,Comidas,ui: ServiceConfig opening slot
-Dinner,Cenas,ui: ServiceConfig opening slot
-All day,Todo el día,ui: ServiceConfig opening slot
-Service lasts about {minutes} minutes,El servicio dura unos {minutes} minutos,ui: ReviewDashboard.Drawing
-RUSH HOURS,HORAS PUNTA,ui: ReviewDashboard.Drawing
-No rush: a steady trickle,Sin hora punta: goteo constante,ui: ReviewDashboard.Drawing
-AT THESE PRICES,A ESTOS PRECIOS,ui: ReviewDashboard.Drawing
-From tomorrow's service,Desde el servicio de mañana,ui: ReviewDashboard.Drawing
-From today's service,Desde el servicio de hoy,ui: ReviewDashboard.Drawing
-NEEDS,NECESITA,ui: ReviewDashboard.Restaurant
-INGREDIENTS,INGREDIENTES,ui: ReviewDashboard.Restaurant
-PRICE,PRECIO,ui: ReviewDashboard.Restaurant
-UNLOCK,DESBLOQUEAR,ui: ReviewDashboard.Restaurant
-Service!,¡A servir!,ui: DayTransitions
-Closing time,Hora de cerrar,ui: DayTransitions
-Doors open in,Abrimos en,ui: DayTransitions
-ON YOUR MENU,EN TU CARTA,ui: ReviewDashboard.Restaurant
-TO UNLOCK,POR DESBLOQUEAR,ui: ReviewDashboard.Restaurant
-On the menu,En la carta,ui: ReviewDashboard.Restaurant
-NEW ON THE MENU,NUEVO EN LA CARTA,ui: ReviewDashboard.Restaurant
-NOT ON YOUR MENU YET,AÚN NO ESTÁ EN TU CARTA,ui: ReviewDashboard.Restaurant
-New on the menu!,¡Nuevo en la carta!,ui: ReviewDashboard.Restaurant
-HOW TO COOK,CÓMO SE COCINA,ui: ReviewDashboard.Restaurant
-Learn it in the kitchen.,Apréndelo en la cocina.,ui: ReviewDashboard.Restaurant
-Pass,Pase,ui: cookbook step station
-Take a steak,Coge un filete,ui: cookbook step
-"Sear it in a hot pan, flipping it","Márcalo en una sartén caliente, dándole la vuelta",ui: cookbook step
-Let it rest a moment,Déjalo reposar un momento,ui: cookbook step
-Plate it and send it out,Emplátalo y sácalo,ui: cookbook step
-Cut an onion into rings,Corta una cebolla en aros,ui: cookbook step
-Fry the rings golden,Fríe los aros hasta dorarlos,ui: cookbook step
-Sear the steak to order,Haz el filete al punto pedido,ui: cookbook step
-"Rest the steak, plate both","Reposa el filete, emplata los dos",ui: cookbook step
-Dice an onion,Pica una cebolla,ui: cookbook step
-Sauté it soft and golden,Saltéala hasta que esté tierna y dorada,ui: cookbook step
-Take an onion,Coge una cebolla,ui: cookbook step
-Dice it,Pícala,ui: cookbook step
-Sauté it as ordered,Saltéala como la pidan,ui: cookbook step
-guests,comensales,ui: ReviewDashboard.Restaurant
-Kitchen costs {cost},Coste de cocina {cost},ui: ReviewDashboard.Restaurant
-Opens,Abre,ui: ReviewDashboard.Drawing
-IN YOUR COOKBOOK,EN TU RECETARIO,ui: ReviewDashboard.Restaurant
-Off the menu,Fuera de la carta,ui: ReviewDashboard.Restaurant
-OFF THE MENU,FUERA DE LA CARTA,ui: ReviewDashboard.Restaurant
-Put on menu,Poner en la carta,ui: ReviewDashboard.Restaurant
-Hold to buy,Mantén para comprar,ui: ReviewDashboard.Restaurant
-Take off menu,Quitar de la carta,ui: ReviewDashboard.Restaurant
-The last dish stays on,El último plato se queda,ui: ReviewDashboard.Restaurant
-MENU,CARTA,ui: ReviewDashboard.Restaurant
-Not on tonight's menu,No está en la carta de esta noche,ui: ReviewDashboard.Restaurant
-Go to the boss's office,Ir al despacho del jefe,ui: ReviewDashboard.Drawing
-take back,recoger,ui: DeliveryCounterStation
-for the courier,para el repartidor,ui: DeliveryCounterStation
-leave here,dejar aquí,ui: DeliveryCounterStation
-for the courier: as ordered,para el repartidor: como se pidió,ui: DeliveryCounterStation
-for the courier: wanted {doneness},para el repartidor: lo quería {doneness},ui: DeliveryCounterStation
-for the courier: no {what},para el repartidor: falta {what},ui: DeliveryCounterStation
-take box,coger caja,ui: BoxPileStation
-box it,meter en caja,ui: BoxPileStation
-put box back,devolver caja,ui: BoxPileStation
-empty box,caja vacía,ui: PlayerInteractor
-box: {what},caja: {what},ui: PlayerInteractor
-Whole,Entera,data: IngredientDefinition cut form
-Rings,Aros,data: IngredientDefinition cut form
-Diced,Picada,data: IngredientDefinition cut form
-IN YOUR COOKBOOK,EN TU RECETARIO,ui: ReviewDashboard.Restaurant
-Off the menu,Fuera de la carta,ui: ReviewDashboard.Restaurant
-OFF THE MENU,FUERA DE LA CARTA,ui: ReviewDashboard.Restaurant
-Put on menu,Poner en la carta,ui: ReviewDashboard.Restaurant
-Hold to buy,Mantén para comprar,ui: ReviewDashboard.Restaurant
-Take off menu,Quitar de la carta,ui: ReviewDashboard.Restaurant
-The last dish stays on,El último plato se queda,ui: ReviewDashboard.Restaurant
-MENU,CARTA,ui: ReviewDashboard.Restaurant
-Not on tonight's menu,No está en la carta de esta noche,ui: ReviewDashboard.Restaurant
-Your name,Tu nombre,ui: NameKeyboard
-Pick or type,Elige o escribe,ui: NameKeyboard
-Same as last time,El de la última vez,ui: NameKeyboard
-Or one of these,O uno de estos,ui: NameKeyboard
-Other names,Otros nombres,ui: NameKeyboard
-Wait for this service to finish to join,Espera a que acabe el servicio para unirte,ui: JoinWaitHud
-Join when Prep starts,Únete cuando empiece la preparación,ui: JoinWaitHud
-Last orders!,¡Últimos pedidos!,ui: ServiceTimelineCard
-Lunch rush!,¡Hora punta de comidas!,ui: DayCardText
-Dinner rush!,¡Hora punta de cenas!,ui: DayCardText
+"{wait} minutes, no {main}. Left at {left}.",,review voice
+Watched three tables eat. Not mine.,,review voice
+Smelled great. Never found out why.,,review voice
+Left hungry. Got pizza on the way.,,review voice
+"First time I've walked out. Last, I hope.",,review voice
+I can't review a {main} I never met.,,review voice
+Came for content. Left with none.,,review voice
+"Waited {wait} minutes, then the bus came.",,review voice
+Gave up at {left}. Diner it is.,,review voice
+"Sorry, {name}. The grill was full and we should've said so.",,review voice
+"Too long a wait, {name}. We're fixing it.",,review voice
+"{name}, your evening deserved better pacing. Sorry.",,review voice
+"{name}, that wait was on us. Truly sorry.",,review voice
+"We kept you waiting, {name}. Not okay. Sorry.",,review voice
+"Sorry, {name}. That {main} deserved better from our grill.",,review voice
+"Our grill let you down, {name}. It won't happen twice.",,review voice
+"That's not the {main} we're proud of, {name}. Sorry.",,review voice
+"{name}, you're right, and we're embarrassed.",,review voice
+"Bad plate, bad night, our fault. Sorry, {name}.",,review voice
+"{name}, you asked for {ordered} and we didn't listen. Sorry.",,review voice
+"Sorry, {name}. {ordered} means {ordered}. Our grill forgot.",,review voice
+"So sorry, {name}! For... the stars?",,review voice
+"Apologies, {name}! We'll try to be less good?",,review voice
+"Thank you, {name}! The grill says hi.",,review voice
+"{name}, you made the whole line grin tonight.",,review voice
+"Thanks, {name}. Same table next Friday?",,review voice
+"Thanks for dining with us, {name}! Enjoy your evening!",,review voice
+Thank you for the feedback! We love our {main} too!,,review voice
+"Thanks for your patience, {name}! Good things take time!",,review voice
+"Thanks for waiting, {name}! Hope the {main} was worth it!",,review voice
+A real {main} isn't for everyone.,,review voice
+"That's how fire works, {name}.",,review voice
+"Our grill, our rules. That's {ordered} here.",,review voice
+"We've grilled for years, {name}. We know {ordered}.",,review voice
+"Thanks for trying our {ordered}, {name}! Come again!",,review voice
+Fire takes time. So does quality.,,review voice
+We don't rush steak. Or apologies.,,review voice
+"Busy grill, happy grill.",,review voice
+Naturally.,,review voice
+Tell your friends. Or don't. We're full anyway.,,review voice
+#steaknight,,review voice
+#medrare,,review voice
+#grillgoals,,review voice
+#meatsweats,,review voice
+#crustgoals,,review voice
+#fridaygrill,,review voice
+They said sorry. Then they grilled it right.,,review voice
+"Apology accepted. {ordered}, nailed.",,review voice
+Redemption arc: complete.,,review voice
+Gave them a second shot. Bullseye.,,review voice
+"Whatever you changed, keep changing it.",,review voice
+Redemption {main}. Worth coming back.,,review voice
+Told my wife it'd be better. It was.,,review voice
+"Comeback of the year, {restaurant}.",,review voice
+The apology was real. So was the crust.,,review voice
+"Two apologies, zero good steaks.",,review voice
+Gave you another shot. You missed again.,,review voice
+Sorry was nice. Steak was not.,,review voice
+"Fool me twice, {restaurant}.",,review voice
+The apology was better than the steak.,,review voice
+"Second visit, second disappointment.",,review voice
+I believed you. That's on me now.,,review voice
+"No reply, but the {main} said sorry.",,review voice
+"Silent treatment, great steak. I'll take it.",,review voice
+"You never answered, but tonight did.",,review voice
+"Didn't reply, but they listened. Better.",,review voice
+Back again. Grill still sulking.,,review voice
+Still waiting on a reply. And a good steak.,,review voice
+No reply last time. No luck this time.,,review voice
+"Third strike pending, {restaurant}.",,review voice
+"Talking to myself again, apparently.",,review voice
+Back to check. Nothing has changed.,,review voice
+The whole street knows. Still no reply.,,review voice
+Smug reply. Good {main}. Annoying.,,review voice
+Hate to admit it: they were right.,,review voice
+"Still annoyed. Steak was great, though.",,review voice
+Came back to prove a point. Proved it.,,review voice
+"Your grill, your rules, your empty tables.",,review voice
+They told me I was wrong. I wasn't.,,review voice
+Back to see if the attitude improved. No.,,review voice
+"Same steak, same smug reply incoming.",,review voice
+A second visit confirms the first.,,review voice
+Back for the crust. Crust delivered.,,review voice
+They thanked me. I thanked my stomach.,,review voice
+Promised I'd be back. Kept my promise.,,review voice
+"Same table, same joy, new favorite night.",,review voice
+Third time I've said it: best steak around.,,review voice
+"Usual table, usual {ordered}, usual joy.",,review voice
+Last time: magic. Tonight: grill fail.,,review voice
+Thanked me last time. Owe me one now.,,review voice
+Off night. Still rooting for you.,,review voice
+Where did my perfect {main} go?,,review voice
+Second great {main}. Third on Friday.,,review voice
+Good again. Still waiting for my hello.,,review voice
+"Twice great, never thanked. Rude, tasty.",,review voice
+Was my favorite. Was.,,review voice
+"Loved you once. Tonight, not so much.",,review voice
+"{name}, thank you for telling us.",,review voice
+Hey {name}. We read this twice.,,review voice
+"First things first, {name}: you're right.",,review voice
+"Thanks for being straight with us, {name}.",,review voice
+"{name}, you deserve more than a one-liner.",,review voice
+"{name}, it's late, but you deserve an answer.",,review voice
+"Long night here, {name}, but this one matters.",,review voice
+"Okay, {name}. Deep breath.",,review voice
+{name}. Sigh. Fine.,,review voice
+"Next time, ask for the chef at the pass.",,review voice
+The next one will be right.,,review voice
+We hope you give us another shot.,,review voice
+Come back on a Tuesday. It's calmer.,,review voice
+Thanks for not giving up on us yet.,,review voice
+"Now, if you'll excuse us, there's a grill to scrub.",,review voice
+Off to soak our feet. Sorry again.,,review voice
+That's all we've got tonight.,,review voice
+We'll do better. Probably.,,review voice
+"Nobody should wait that long for a steak, least of all on a Friday.",,review voice
+We let the tickets pile up and you paid for it.,,review voice
+The grill was full and we should have told you at the door.,,review voice
+"That wait was on us, not on you.",,review voice
+"Too many steaks, not enough grill, and you felt every minute of it.",,review voice
+"We had one grill and twelve tables. Not your problem, but it's the truth.",,review voice
+"Long queue, short staff, and you caught both.",,review voice
+"The tickets ran away from us tonight, and yours was one of them.",,review voice
+We were drowning back there. You noticed. We're sorry.,,review voice
+"Yes, it was slow. Everyone has mentioned it. Repeatedly.",,review voice
+"Sorry for the wait. Sorry for the next one too, while we're at it.",,review voice
+We are aware of the wait. We were there for all of it.,,review voice
+That plate should never have left our pass.,,review voice
+"Our grill let you down, and we know it.",,review voice
+You came for a proper {main} and got our worst one.,,review voice
+Whoever plated that has been spoken to. It was me. I've spoken to me.,,review voice
+Not our finest plate. Not our finest night either.,,review voice
+"It's been one of those nights, and your plate showed it.",,review voice
+"The grill had a bad night, and you got the worst of it.",,review voice
+"We rushed your {ordered}, and it showed.",,review voice
+Fine. It wasn't great. We noticed too.,,review voice
+You're right. Happy now?,,review voice
+You asked for {ordered} and we served you something else.,,review voice
+"{ordered} means {ordered}, and we forgot that tonight.",,review voice
+"We missed your {ordered} by a mile, and that's on the cook.",,review voice
+"Doneness is hard at nine o'clock. Still, sorry.",,review voice
+We're sorry if anything felt less than perfect?,,review voice
+"Apologies for the five stars, we guess. Habit.",,review voice
+{name}! Thank you.,,review voice
+"Thanks for coming in, {name}.",,review voice
+"{name}, this made our night.",,review voice
+"Well, {name}, thank you.",,review voice
+"Thanks, {name}. Long night, but this helped.",,review voice
+"Thanks, {name}. Noted.",,review voice
+See you soon!,,review voice
+Save room for dessert next time.,,review voice
+Same table next Friday?,,review voice
+The grill says hi.,,review voice
+Have a night.,,review voice
+Bye now.,,review voice
+The whole line read this out loud.,,review voice
+We're printing this and taping it above the grill.,,review voice
+That crust was no accident; we've been practicing.,,review voice
+A {ordered} {main} done right is all we want to cook.,,review voice
+Reviews like this are why we light the grill at four.,,review voice
+Some nights a review like this is all that keeps the grill lit.,,review voice
+"Long night, but this one made it worth it.",,review voice
+Thanks for coming in on such a busy night!,,review voice
+"Finally, someone happy. Framing this one.",,review voice
+We're so glad you chose us for your evening!,,review voice
+We love hearing from our guests!,,review voice
+Our {main} is a neighborhood favorite!,,review voice
+We got your feedback. It's in the pile with the others.,,review voice
+Thanks for your patience! Good things take time!,,review voice
+We hope the {main} was worth the wait!,,review voice
+Thanks for waiting. Everyone waited. It was that kind of night.,,review voice
+We love that you tried our {ordered} {main}!,,review voice
+"With respect, {name}.",,review voice
+"{name}, let's be honest.",,review voice
+"{name}, we hear you. We disagree.",,review voice
+"{name}, it's late, so we'll be brief.",,review voice
+"Oh, {name}.",,review voice
+"Wow, {name}.",,review voice
+"Listen, {name}.",,review voice
+The grill stands by its work.,,review voice
+Hope to see you again. Or not.,,review voice
+We'll keep cooking it our way.,,review voice
+"Good night, {name}.",,review voice
+Enjoy the diner.,,review voice
+Bon appétit somewhere else.,,review voice
+We cook it the way the grill wants it cooked.,,review voice
+"Our regulars order it exactly like that, every week.",,review voice
+We served eighty plates tonight. Yours was one of them.,,review voice
+Every plate tonight came off the same grill as yours.,,review voice
+We were slammed. That's the whole story.,,review voice
+"If you wanted a boiled steak, there's a cafeteria down the road.",,review voice
+Maybe try the chain place by the highway. They have a laminated menu.,,review voice
+"Fire takes time, and so does quality.",,review voice
+We were full because people like us.,,review voice
+We don't rush steak.,,review voice
+"Next time, come at six like a reasonable person.",,review voice
+Patience is also on the menu. You skipped it.,,review voice
+That is what {ordered} looks like here.,,review voice
+We've grilled for twenty years. We know {ordered}.,,review voice
+Your {ordered} was perfect. Your thermometer is lying.,,review voice
+Tell your friends. Or don't; we're full anyway.,,review voice
+Start day {day},Empezar el día {day},unused
+stop washing,dejar de fregar,unused
+guests in the kitchen make mess,comensales en la cocina: más suciedad,unused
+cooking in the dining room makes mess,cocinar en el comedor: más suciedad,unused
+wheelie bin,contenedor,unused
+shop,tienda,unused
+choose from tray,elegir de la bandeja,unused
+{style}s near you,{style}s cerca de ti,unused
+{band} · {style} · Open {from}–{to},{band} · {style} · Abierto {from}–{to},unused
+Rush · {count} left,Hora punta · se fueron {count},unused
+Reviews {count},Reseñas {count},unused
+Balance · {amount} today,Saldo · {amount} hoy,unused
+No reviews today.,Hoy no hay reseñas.,unused
+1 more review,1 reseña más,unused
+{n} more reviews,{n} reseñas más,unused
+See all in Reviews,Ver todas en Reseñas,unused
+Walked out · {amount},Se fue · {amount},unused
+· owner · just now,· dueño · ahora mismo,unused
+· owner,· dueño,unused
+{dishes} are costing you.,{dishes} te está costando caro.,unused
+Both {kind} orders walked out.,Los dos pedidos {kind} se fueron.,unused
+All {count} {kind} orders walked out.,Los {count} pedidos {kind} se fueron.,unused
+{count} of {total} {kind} orders walked out.,Se fueron {count} de {total} pedidos {kind}.,unused
+Guests wait longest for these.,Son los que más esperan.,unused
+Nobody has ordered yet.,Aún no ha pedido nadie.,unused
+1 walk-out,1 se fue,unused
+{n} walk-outs,{n} se fueron,unused
+Prices and the menu are set in the cookbook.,Los precios y la carta se fijan en el recetario.,unused
+Menu,Carta,unused
+Reviews,Reseñas,unused
+Net today,Neto de hoy,unused
+fee collected today,cuota cobrada hoy,unused
+1 day,1 día,unused
+{n} days,{n} días,unused
+fee due in {days},cuota en {days},unused
+Balance,Saldo,unused
+You owe him {amount},Le debes {amount},unused
+Fee to the boss,Cuota al jefe,unused
+Tabs,Pestañas,unused
+Filter,Filtrar,unused
+P{player} ready,J{player} listo,unused
+Press Menu when ready,Pulsa Menu cuando estés listo,unused
+READY,LISTO,unused
+not ready,no está listo,unused
+Last orders,Últimos pedidos,unused
+Closed: finish up,Cerrado: termina lo que queda,unused
+Day {day}: plan,Día {day}: plan,unused
+Balance {amount},Saldo {amount},unused
+"{name}, {role}: {description}, {mood}, {wage}/day","{name}, {role}: {description}, {mood}, {wage}/día",unused
+let go,despedir,unused
+"{name}, {role}: {description}, {wage}/day","{name}, {role}: {description}, {wage}/día",unused
+Presets and changing the controls come later.,Los preajustes y los controles llegarán más adelante.,unused
+Dress up,Vestirse,unused
+Hat,Sombrero,unused
+Face,Cara,unused
+Skin,Piel,unused
+Accessory,Accesorio,unused
+Outfit,Ropa,unused
+Toque,Gorro de chef,unused
+Cap,Gorra,unused
+Bandana,Pañuelo,unused
+Headband,Cinta,unused
+Devil horns,Cuernos de diablo,unused
+Crown,Corona,unused
+Party hat,Gorro de fiesta,unused
+Short crop,Pelo corto,unused
+Moustache,Bigote,unused
+Blond bun,Moño rubio,unused
+Afro,Afro,unused
+Bald,Calvo,unused
+Silver fringe,Pelo cano,unused
+Ginger crop,Pelo corto pelirrojo,unused
+Dark bun,Moño oscuro,unused
+None,Nada,unused
+Glasses,Gafas,unused
+Sunglasses,Gafas de sol,unused
+Aviators,Gafas de aviador,unused
+Chef whites,Chaqueta de chef,unused
+Line cook,Cocinero de línea,unused
+Wok cook,Cocinero de wok,unused
+Pastry chef,Pastelero,unused
+Suit,Traje,unused
+Captain's hat,Gorra de capitán,unused
+Propeller cap,Gorra con hélice,unused
+Headphones,Auriculares,unused
+Straw hat,Sombrero de paja,unused
+Cowboy hat,Sombrero vaquero,unused
+Plumed hat,Sombrero con pluma,unused
+Feather headdress,Tocado de plumas,unused
+Player {player},Jugador {player},unused
+Open for the day,Abrir hoy,unused
+controller lost,mando desconectado,unused
+"Paused: {players}, reconnect your controller","En pausa: {players}, vuelve a conectar el mando",unused
+P{player} controller lost,J{player} mando desconectado,unused
+Cookbook,Recetario,unused
+unlock {price},desbloquear {price},unused
+about {cost} a serving,unos {cost} por ración,unused
+suggested {price},sugerido {price},unused
+earns about {value},deja unos {value},unused
+on tonight's menu,en la carta de esta noche,unused
+price,precio,unused
+suggested,sugerido,unused
+unlock,desbloquear,unused
+ON THE MENU,EN LA CARTA,unused
+(suggested {price}),(sugerido {price}),unused
+Steak with onion rings,Filete con aros de cebolla,unused
+Steak with sautéed onions,Filete con cebolla salteada,unused
+Sautéed onions,Cebolla salteada,unused
+Hob,Fogón,unused
+Board,Tabla,unused
+Next fee {amount} in {days},Próxima cuota {amount} en {days},unused
+Fee of {amount} collected today,Cuota de {amount} cobrada hoy,unused
+No menu yet.,Aún no hay carta.,unused
+1 more dish in the cookbook tab,1 plato más en el recetario,unused
+{n} more dishes in the cookbook tab,{n} platos más en el recetario,unused
+On the menu · {price},En la carta · {price},unused
+Unlock · {price},Desbloquear · {price},unused
+Guests: as many as at the suggested prices,Clientes: tantos como a los precios sugeridos,unused
+Guests: about {percent}% fewer,Clientes: un {percent}% menos,unused
+Guests: about {percent}% more,Clientes: un {percent}% más,unused
+Stars: rated as the dish deserves,Estrellas: las que merezca el plato,unused
+Stars: {stars} fewer for the same dish,Estrellas: {stars} menos por el mismo plato,unused
+Stars: {stars} more for the same dish,Estrellas: {stars} más por el mismo plato,unused
+a serving,por ración,unused
+On the menu from tomorrow,En la carta desde mañana,unused
+"Price, sideways","Precio, a los lados",unused
+Suggested price,Precio sugerido,unused
+Unlock,Desbloquear,unused
+"Paid now, and put on a free counter.","Se paga ya, y va a una encimera libre.",unused
+Carry it where it goes: paid when it's put down.,Llévalo a su sitio: se paga al dejarlo.,unused
+Hold: start day {day},Mantén: empezar el día {day},unused
+Collection of {amount} paid today,Cobro de {amount} pagado hoy,unused
+Paid {paid} of {amount} today,Pagado hoy {paid} de {amount},unused
+Next collection {amount} in {days},Próximo cobro {amount} en {days},unused
+Missed: he visits tomorrow,Sin pagar: mañana viene,unused
+Loan left {owed},Préstamo pendiente {owed},unused
+Close,Cerrar,unused
+forkcast,forkcast,unused
+Hold: open up,Mantén: abrir,unused
+"Hire in the morning, before prep.","Contrata por la mañana, antes de la preparación.",unused
+LAST NIGHT'S MONEY,EL DINERO DE ANOCHE,unused
+TONIGHT'S MONEY,EL DINERO DE ESTA NOCHE,unused
+No service yet.,Aún no ha habido servicio.,unused
+Loss,Pérdida,unused
+Collection taken: {amount},Cobro hecho: {amount},unused
+Missed: tomorrow {what}.,Fallaste: mañana {what}.,unused
+Collection tonight: {amount},Cobro esta noche: {amount},unused
+Collection tomorrow: {amount},Cobro mañana: {amount},unused
+Collection in {days} days: {amount},Cobro en {days} días: {amount},unused
+Covered,Cubierto,unused
+Miss it and {what}.,"Si no llegas, {what}.",unused
+he comes to warn you,viene a advertirte,unused
+his men take appliances worth what's short,sus hombres se llevan aparatos por lo que falte,unused
+he strips this place to the bare minimum,deja este local en lo mínimo,unused
+he takes this restaurant,se queda con este restaurante,unused
+he ends it all,se acaba todo,unused
+P{player} browses,P{player} elige,unused
+Suggested,Sugerido,unused
+We cook everything fresh. Mostly today.,Todo se cocina fresco. Casi todo hoy.,unused
+Ask about our specials. We'll make one up.,Pregunta por los platos del día. Nos inventamos uno.,unused
+Family run. The family is negotiable.,Negocio familiar. La familia es negociable.,unused
+about {count} guests tonight,unos {count} clientes esta noche,unused
+known for,el plato estrella,unused
+on the menu,en la carta,unused
+per person,por persona,unused
+closed · opens,cerrado · abre,unused
+the owner,el dueño,unused
+Hold to start day {day},Mantén para empezar el día {day},unused
+Waiting for {players},Esperando a {players},unused
+Starting…,Empezando…,unused
+best plate tonight,mejor plato de la noche,unused
+best plate tonight · {stars} stars,mejor plato de la noche · {stars} estrellas,unused
+P{player} waiting,P{player} esperando,unused
+total earnings tonight,ingresos de la noche,unused
+Closed · Opens,Cerrado · Abre,unused
+Good food. Shame about the bin smell.,Buena comida. Lástima el olor a basura.,unused
+The bins greeted us at the door.,La basura nos recibió en la puerta.,unused
+Dinner and a show. Chef's table magic.,Cena y espectáculo. Magia de chef.,unused
+Watched them cook. Pure theatre.,Les vimos cocinar. Puro teatro.,unused
+Ate next to the stove. Loud and greasy.,Cené junto a los fogones. Ruido y grasa.,unused
+Pans clanging in my ear all night.,Sartenes en mi oído toda la noche.,unused
+Lunch,Comidas,unused
+Dinner,Cenas,unused
+All day,Todo el día,unused
+NEEDS,NECESITA,unused
+Pass,Pase,unused
+Take a steak,Coge un filete,unused
+"Sear it in a hot pan, flipping it","Márcalo en una sartén caliente, dándole la vuelta",unused
+Let it rest a moment,Déjalo reposar un momento,unused
+Plate it and send it out,Emplátalo y sácalo,unused
+Cut an onion into rings,Corta una cebolla en aros,unused
+Fry the rings golden,Fríe los aros hasta dorarlos,unused
+Sear the steak to order,Haz el filete al punto pedido,unused
+"Rest the steak, plate both","Reposa el filete, emplata los dos",unused
+Dice an onion,Pica una cebolla,unused
+Sauté it soft and golden,Saltéala hasta que esté tierna y dorada,unused
+Take an onion,Coge una cebolla,unused
+Dice it,Pícala,unused
+Sauté it as ordered,Saltéala como la pidan,unused
+Whole,Entera,unused
+Rings,Aros,unused
+Diced,Picada,unused
+Other names,Otros nombres,unused
+Wait for this service to finish to join,Espera a que acabe el servicio para unirte,unused
+Join when Prep starts,Únete cuando empiece la preparación,unused
