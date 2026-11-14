@@ -4299,3 +4299,15 @@ The user asked for a way to play in full screen, switched from Settings. Their c
 **Decision:** In service and closing, the kitchen's bottom-left day card is a name plate like the money card's, with the time big on the left and "Day 5 · Dinner" after it, over a timeline from opening to closing. The timeline is coloured by the sky of the hours it covers (noon blue, afternoon gold, sunset pink, night), with flames where the rushes fall, red stripes for last orders, the part already gone dimmed, and a sun or moon at the clock's hour. The gold band along the plate's bottom drains as the service runs. In last orders the time, the band and the marker's glow turn red and pulse, and the label reads "Last orders!". As the clock enters a rush, a "Lunch rush!" or "Dinner rush!" callout pops up above the card. Prep keeps its two tiles. The sky gradient and the card's colours are tunable in HudStyle.
 
 **Reason:** The user felt the old text card didn't match the money and player cards and asked for something more visual, showing the part of the day and urgency near closing. From three mockups (sky window, timeline, kitchen timer) they picked the timeline with the time on the left ("B2"), because it shows the next rush coming and fits "chaos you can plan for".
+
+## 2026-11-14 — Money top right, players top left, one join pill; joining only in Prep and the office
+
+**Decision (the user's picks, from a mockup of the office, Prep and the dashboard):**
+- **Money top right, player cards top left,** in the office and the kitchens. Prep's Rearrange docks under the money again, on the right. (This reverses the 2026-11-13 swap.)
+- **One join card instead of a card per open seat:** a narrow see-through pill (152 × 58 px) after the last joined player's card, ringed with dashes in the colour of the seat it fills next, with "A Join" and the A gently breathing. It's gone once every seat is taken. The office's bar shows only joined players and the pill; the kitchen shows the same in Prep. `JoinPill` draws it.
+- **Players join only in Prep or the office.** A kitchen takes new players in Prep only: on the dashboard (Plan and the Review) and during service, joining is closed and an A from a new controller shows "Join when Prep starts" (or, in service, "Wait for this service to finish to join"). One exception: a kitchen nobody is playing yet takes its first player in any phase, so the dashboard's "Press to join" can't leave it stuck.
+- **The dashboard shows no player cards.** Its header's left side reads, in order: the day ("Day 1 · Mon"), the number of new reviews, then the "B Go to the boss's office" chip (hold B; it fills as before). The right end is the money card's.
+
+**Reason:** Four open seats took a lot of the screen before anyone joined, and with the money on the right the dashboard keeps its own controls together on the left.
+
+**Not covered:** a first player joining an empty kitchen on the dashboard still gets the naming keyboard there, over forkcast.

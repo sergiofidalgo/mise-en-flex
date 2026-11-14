@@ -51,7 +51,7 @@ namespace Game.Presentation.Hud
         [SerializeField] private HudStyle _style;
         [SerializeField] private KitchenCompositionRoot _root;
         [SerializeField] private PauseMenu _pause;
-        [Tooltip("The money card, top left: Prep's Rearrange docks under it at its width. Found in the scene if empty.")]
+        [Tooltip("The money card, top right: Prep's Rearrange docks under it at its width. Found in the scene if empty.")]
         [SerializeField] private MoneyCardHud _money;
 
         private Canvas _canvas;
@@ -92,8 +92,8 @@ namespace Game.Presentation.Hud
             _tiles.anchorMin = _tiles.anchorMax = _tiles.pivot = new Vector2(0f, 0f);
             _tiles.anchoredPosition = new Vector2(Margin, BarHeight + Margin);
             _rearrange = UiKit.Rect(_tiles.parent, "Rearrange", 0f, 0f, 210f, HintHeight);
-            // Under the money card, in its corner (top left since 2026-11-13).
-            _rearrange.anchorMin = _rearrange.anchorMax = _rearrange.pivot = new Vector2(0f, 1f);
+            // Under the money card, in its corner (top right again since 2026-11-14).
+            _rearrange.anchorMin = _rearrange.anchorMax = _rearrange.pivot = new Vector2(1f, 1f);
             _rearrangeGroup = _rearrange.gameObject.AddComponent<CanvasGroup>();
             _rearrangeGroup.alpha = 0f;
             _rearrangeGroup.blocksRaycasts = false;
@@ -212,7 +212,7 @@ namespace Game.Presentation.Hud
             Faces(guestsTile, Pad + IconColumn / 2f, height / 2f, day);
         }
 
-        // Rearrange under the money card, top left, as wide as it; rebuilt when the width or the
+        // Rearrange under the money card, top right, as wide as it; rebuilt when the width or the
         // language changes.
         private void DrawRearrange()
         {
@@ -222,7 +222,7 @@ namespace Game.Presentation.Hud
             var below = _money != null ? _money.CardHeight : 108f;
             var word = Tr.Get("Rearrange");
             var key = $"{width}|{word}";
-            _rearrange.anchoredPosition = new Vector2(Margin, -(Margin + below + TileGap));
+            _rearrange.anchoredPosition = new Vector2(-Margin, -(Margin + below + TileGap));
             if (key == _rearrangeShown)
                 return;
             _rearrangeShown = key;

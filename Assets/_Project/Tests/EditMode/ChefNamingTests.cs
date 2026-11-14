@@ -83,15 +83,31 @@ namespace Game.Tests.EditMode
             Assert.That(old.Name(0), Is.Empty, "a file from before names reads fine");
         }
 
-        [TestCase(DayPhase.Plan, true)]
+        [TestCase(DayPhase.Plan, false)]
         [TestCase(DayPhase.Prep, true)]
         [TestCase(DayPhase.Service, false)]
         [TestCase(DayPhase.Review, false)]
-        public void KitchensTakeNewPlayersBeforeService(DayPhase phase, bool allowed)
+        public void KitchensTakeNewPlayersOnlyInPrep(DayPhase phase, bool allowed)
         {
-            Assert.That(JoinRules.Allows(phase), Is.EqualTo(allowed));
+            Assert.That(JoinRules.Allows(phase, playersIn: 2), Is.EqualTo(allowed));
             if (!allowed)
                 Assert.That(JoinRules.WaitMessage(phase), Is.Not.Empty);
+        }
+
+        [TestCase(DayPhase.Plan)]
+        [TestCase(DayPhase.Review)]
+        [TestCase(DayPhase.Service)]
+        public void AnEmptyKitchenTakesItsFirstPlayerAnyTime(DayPhase phase)
+        {
+            Assert.That(JoinRules.Allows(phase, playersIn: 0), Is.True, "the dashboard's Press to join can't leave it stuck");
+        }
+
+        [Test]
+        public void TheWaitSaysWhenToCome()
+        {
+            Assert.That(JoinRules.WaitMessage(DayPhase.Service), Does.Contain("service"));
+            Assert.That(JoinRules.WaitMessage(DayPhase.Review), Does.Contain("Prep"));
+            Assert.That(JoinRules.WaitMessage(DayPhase.Plan), Does.Contain("Prep"));
         }
     }
 }

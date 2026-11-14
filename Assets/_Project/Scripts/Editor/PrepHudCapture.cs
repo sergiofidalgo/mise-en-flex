@@ -141,11 +141,13 @@ namespace Game.Editor
                 session.SaveOver(Pixels(path), path);
             }
 
-            cards.Preview(row, rearranging, naming);
+            // The join card in the next free seat while one's free, as in Prep (2026-11-14).
+            var joinSeat = row.Count < 4 ? Enumerable.Range(0, 4).First(i => row.All(r => r.Item1 != i)) : -1;
+            cards.Preview(row, rearranging, naming, joinSeat);
             var hud = cards.GetComponentInParent<Canvas>().rootCanvas;
             using (var session = UiCapture.Prepare(hud))
             {
-                cards.Preview(row, rearranging, naming);
+                cards.Preview(row, rearranging, naming, joinSeat);
                 session.SaveOver(Pixels(path), path);
             }
 
@@ -156,16 +158,16 @@ namespace Game.Editor
                 session.SaveOver(Pixels(path), path);
             }
             if (crop)
-                CropTopRight(path, 420, 540);
+                CropTopLeft(path, 420, 540);
         }
 
-        // Keeps only the top-right corner, where the shop card is (top right since 2026-11-13).
-        private static void CropTopRight(string path, int width, int height)
+        // Keeps only the top-left corner, where the shop card is (top left again since 2026-11-14).
+        private static void CropTopLeft(string path, int width, int height)
         {
             var image = new Texture2D(2, 2, TextureFormat.RGBA32, false);
             image.LoadImage(File.ReadAllBytes(path));
             var corner = new Texture2D(width, height, TextureFormat.RGBA32, false);
-            corner.SetPixels(image.GetPixels(image.width - width, image.height - height, width, height));
+            corner.SetPixels(image.GetPixels(0, image.height - height, width, height));
             corner.Apply();
             File.WriteAllBytes(path, corner.EncodeToPNG());
             Object.DestroyImmediate(image);

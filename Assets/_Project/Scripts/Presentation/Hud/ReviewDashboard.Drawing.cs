@@ -160,22 +160,25 @@ namespace Game.Presentation.Hud
 
             var shown = Summary.HasDay ? Summary.Day : days.Day;
             var today = Services.ReviewHistory.Count(r => r.Day == shown);
-            // The header (the user's calls, 2026-11-13): the money top left, as in the kitchen; on the
-            // right, the way to the boss's office at the very end, then the day and the new reviews.
-            var right = OfficeChip(1804f) - 22f;
-            right = HeaderPill(Tr.Format("Day {day} · {weekday}", ("day", shown), ("weekday", Weekday(shown))), _well, right) - 22f;
+            // The header (the user's calls, 2026-11-14): on the left, in order, the day, the new
+            // reviews and the way to the boss's office; the right end is the money card's, top right
+            // as in the kitchen. No player cards here: players join in Prep or the office.
+            var left = HeaderPill(Tr.Format("Day {day} · {weekday}", ("day", shown), ("weekday", Weekday(shown))), _well, HeaderLeft) + 14f;
             if (today > 0)
-                HeaderPill(today == 1 ? "1 new review" : $"{today} new reviews", _wellLight, right);
+                left = HeaderPill(today == 1 ? "1 new review" : $"{today} new reviews", _wellLight, left) + 14f;
+            OfficeChip(left);
         }
 
-        // "Go to the boss's office" with B, at the header's right end; holding B fills it, and full,
-        // the players go up to the office. Returns its left edge.
-        private float OfficeChip(float right)
+        // Where the header's chips start: the left column's edge.
+        private const float HeaderLeft = LeftX;
+
+        // "Go to the boss's office" with B, after the day and the reviews; holding B fills it, and
+        // full, the players go up to the office. Returns its right edge.
+        private float OfficeChip(float x)
         {
             const float height = 46f, top = 81f;
             var label = Label(SemiBold, _header, Tr.Get("Go to the boss's office"), 18.67f, _paper, 0f, top + 30f, 400f);
             var width = 12f + 30f + 10f + UiKit.Width(label) + 18f;
-            var x = right - width;
             var back = UiKit.StrokedBox(_header, "Office", _well, _wellLight, 2f, x, top, width, height, height / 2f);
             var edge = back.transform.parent.GetChild(back.transform.GetSiblingIndex() - 1);
             var index = label.transform.GetSiblingIndex();
@@ -188,7 +191,7 @@ namespace Game.Presentation.Hud
             label.transform.SetAsLastSibling();
             label.rectTransform.anchoredPosition = new Vector2(x + 12f + 30f + 10f, label.rectTransform.anchoredPosition.y);
             PlaceOfficeFill();
-            return x;
+            return x + width;
         }
 
         private Image _officeFill;
@@ -200,15 +203,15 @@ namespace Game.Presentation.Hud
                 _officeFill.rectTransform.sizeDelta = new Vector2(_officeFillWidth * Mathf.Clamp01(_officeHold), _officeFill.rectTransform.sizeDelta.y);
         }
 
-        // A pill whose right edge is at right; returns its left edge.
-        private float HeaderPill(string text, Color back, float right)
+        // A pill whose left edge is at left; returns its right edge.
+        private float HeaderPill(string text, Color back, float left)
         {
             var label = Label(SemiBold, _header, text, 18.67f, _paper, 0f, 111f, 300f);
             var width = UiKit.Width(label) + 32f;
-            var box = UiKit.RoundBox(_header, text + "Pill", back, right - width, 84.5f, width, 39f, 19.5f);
+            var box = UiKit.RoundBox(_header, text + "Pill", back, left, 84.5f, width, 39f, 19.5f);
             box.transform.SetSiblingIndex(label.transform.GetSiblingIndex());
-            label.rectTransform.anchoredPosition = new Vector2(right - width + 16f, label.rectTransform.anchoredPosition.y);
-            return right - width;
+            label.rectTransform.anchoredPosition = new Vector2(left + 16f, label.rectTransform.anchoredPosition.y);
+            return left + width;
         }
 
         // ---- The money chip: the balance, top right, animated as the money card is ----

@@ -212,6 +212,61 @@ namespace Game.Presentation.Hud
         }
 
         /// <summary>How wide <paramref name="label"/>'s text is drawn, in canvas pixels.</summary>
+        // Short rounded dashes evenly round a rounded rectangle (its edge centred on the card's),
+        // each turned along the edge; at the corners they follow the arc as short chords.
+        public static void DashedOutline(RectTransform parent, Color colour, float width, float height, float radius, float dashLength = 14f, float dashGap = 9f, float dashStroke = 4f)
+        {
+            var straightX = width - 2f * radius;
+            var straightY = height - 2f * radius;
+            var arc = Mathf.PI * radius / 2f;
+            var perimeter = 2f * (straightX + straightY) + 4f * arc;
+            var count = Mathf.Max(4, Mathf.RoundToInt(perimeter / (dashLength + dashGap)));
+            var pitch = perimeter / count;
+            var sprite = RoundedSprite(dashStroke / 2f);
+            for (var i = 0; i < count; i++)
+            {
+                var (point, along) = PointOnRoundedRect(i * pitch, width, height, radius, straightX, straightY, arc);
+                var dash = Rect(parent, "Dash", 0f, 0f, dashLength, dashStroke);
+                dash.pivot = new Vector2(0.5f, 0.5f);
+                dash.anchoredPosition = new Vector2(point.x, -point.y);
+                // Canvas y points down here and up in the UI: flip it for the angle.
+                dash.localRotation = Quaternion.Euler(0f, 0f, -Mathf.Atan2(along.y, along.x) * Mathf.Rad2Deg);
+                var image = dash.gameObject.AddComponent<Image>();
+                image.sprite = sprite;
+                image.type = Image.Type.Sliced;
+                image.color = colour;
+                image.raycastTarget = false;
+            }
+        }
+
+        // The point <paramref name="s"/> pixels clockwise round the rectangle from the top edge's
+        // left end, in canvas pixels from the top-left (y down), and the edge's direction there.
+        private static (Vector2 Point, Vector2 Along) PointOnRoundedRect(float s, float width, float height, float r, float straightX, float straightY, float arc)
+        {
+            // Four straight edges and four quarter arcs, clockwise from the top edge.
+            var corners = new[] { new Vector2(width - r, r), new Vector2(width - r, height - r), new Vector2(r, height - r), new Vector2(r, r) };
+            var starts = new[] { new Vector2(r, 0f), new Vector2(width, r), new Vector2(width - r, height), new Vector2(0f, height - r) };
+            // Right along the top, down the right side (y points down), left along the bottom, up the left.
+            var directions = new[] { new Vector2(1f, 0f), new Vector2(0f, 1f), new Vector2(-1f, 0f), new Vector2(0f, -1f) };
+            var lengths = new[] { straightX, straightY, straightX, straightY };
+            for (var side = 0; side < 4; side++)
+            {
+                if (s <= lengths[side])
+                    return (starts[side] + directions[side] * s, directions[side]);
+                s -= lengths[side];
+                if (s <= arc)
+                {
+                    // The arc turns from this edge's direction to the next's: -90°, 0°, 90°, 180° start angles.
+                    var angle = (side * 90f - 90f) * Mathf.Deg2Rad + s / r;
+                    var radial = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle));
+                    return (corners[side] + radial * r, new Vector2(-radial.y, radial.x));
+                }
+                s -= arc;
+            }
+            return (starts[0], Vector2.right);
+        }
+
+        // A round Xbox face-button badge, as in the prompts.
         public static float Width(TextMeshProUGUI label) => label.GetPreferredValues(label.text, 10000f, 10000f).x;
 
         /// <summary>Five drawn stars, <paramref name="stars"/> of them filled (the HUD font has no star glyph).</summary>

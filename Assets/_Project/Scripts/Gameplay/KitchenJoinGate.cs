@@ -7,8 +7,8 @@ using UnityEngine.InputSystem;
 namespace Game.Gameplay
 {
     /// <summary>
-    /// New players join a kitchen only in Plan and Prep (the user's call, 2026-11-13). During
-    /// service and the Review, joining is closed, and a controller nobody plays on that presses A
+    /// New players join a kitchen only in Prep (the user's calls, 2026-11-13 and 2026-11-14), or
+    /// when nobody is playing yet. On the dashboard (Plan, Review) and during service joining is closed, and a controller nobody plays on that presses A
     /// raises <see cref="Refused"/>, so the HUD can tell them to wait until it's over.
     /// </summary>
     public sealed class KitchenJoinGate : MonoBehaviour
@@ -27,7 +27,7 @@ namespace Game.Gameplay
             var days = _root != null && _root.Services != null ? _root.Services.Days : null;
             if (days == null)
                 return;
-            var allowed = JoinRules.Allows(days.Phase);
+            var allowed = JoinRules.Allows(days.Phase, _manager.playerCount);
             // Kept every frame: the pause menu and a player leaving switch joining back on.
             if (!allowed && _manager.joiningEnabled)
                 _manager.DisableJoining();

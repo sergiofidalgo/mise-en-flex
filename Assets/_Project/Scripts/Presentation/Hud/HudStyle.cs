@@ -111,7 +111,7 @@ namespace Game.Presentation.Hud
         [Tooltip("How far a medallion's top rises above its plate's top edge, ink included.")]
         [SerializeField, Min(0f)] private float _plateBreakout = 22f;
 
-        [Header("Money card, top left (decisions 2026-11-10 and 2026-11-13)")]
+        [Header("Money card, top right (decisions 2026-11-10, 2026-11-13 and 2026-11-14)")]
         [SerializeField, Min(28f)] private float _moneyFontSize = 44f;
         [Tooltip("The card's outline and the coin.")]
         [SerializeField] private Color _moneyEdge = new Color(0.96f, 0.76f, 0.25f);

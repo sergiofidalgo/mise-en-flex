@@ -87,7 +87,7 @@ namespace Game.Presentation.Hud
         [SerializeField, Min(0.01f)] private float _priceRepeatInterval = 0.07f;
         [Tooltip("Real seconds Y is held to fill the Start button (a shorter press is a tap: reply, let go).")]
         [SerializeField, Min(0.1f)] private float _startHoldSeconds = 0.8f;
-        [Tooltip("Seconds B is held to go up to the boss's office (the header's right chip, 2026-11-13).")]
+        [Tooltip("Seconds B is held to go up to the boss's office (the header's chip after the day and the reviews, 2026-11-14).")]
         [SerializeField, Min(0.1f)] private float _officeHoldSeconds = 1f;
         [SerializeField] private string _officeScene = "Office_Greybox";
         [Tooltip("Pulses a second of the boss card's glow while the collection is short and two days or fewer away.")]
