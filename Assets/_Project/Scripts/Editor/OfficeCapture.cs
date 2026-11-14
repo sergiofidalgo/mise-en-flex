@@ -74,6 +74,18 @@ namespace Game.Editor
             Render(camera, at, rotation, Path.Combine(folder, "office_terrace_vista.png"));
             Debug.Log($"[OfficeCapture] Terrace shot at {at}");
 
+            // A chef by the tailor's west window, without and with the lean towards it (decision 2026-11-14).
+            var floorMin = follow.FindProperty("_floorMin").vector2Value;
+            var floorMax = follow.FindProperty("_floorMax").vector2Value;
+            var byWindow = new System.Collections.Generic.List<System.Numerics.Vector2> { new System.Numerics.Vector2(floorMin.x + 1f, 8f) };
+            var plain = Game.Simulation.Movement.CameraFraming.Fit(byWindow, Tilt, camera.fieldOfView, camera.aspect, follow.FindProperty("_margin").floatValue,
+                follow.FindProperty("_minHeight").floatValue, follow.FindProperty("_maxHeight").floatValue, screenTop: follow.FindProperty("_screenTop").floatValue,
+                buildingMin: new System.Numerics.Vector2(floorMin.x, floorMin.y), buildingMax: new System.Numerics.Vector2(floorMax.x, floorMax.y));
+            var leaned = Game.Simulation.Movement.WindowLean.Apply(plain, -1, follow.FindProperty("_insideLean").floatValue, byWindow, Tilt, camera.fieldOfView,
+                camera.aspect, follow.FindProperty("_leanKeepMargin").floatValue, follow.FindProperty("_screenTop").floatValue);
+            Render(camera, new Vector3(plain.X, plain.Y, plain.Z), rotation, Path.Combine(folder, "office_window_before.png"));
+            Render(camera, new Vector3(leaned.X, leaned.Y, leaned.Z), rotation, Path.Combine(folder, "office_window_lean.png"));
+
             // The rail's pigeons a third and two thirds of the way along their flight, wings out,
             // as if a chef had stepped up from the south.
             var view = UnityEngine.Object.FindFirstObjectByType<Game.Presentation.Office.Ambience.TerraceBirdsView>();

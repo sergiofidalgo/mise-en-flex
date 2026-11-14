@@ -48,6 +48,7 @@ A **3 × 3 grid of rooms** with a terrace along the back, matching the user's dr
 - **On arrival, and before anyone joins:** a wide establishing shot of the whole floor, as in the draft. Same rule as the kitchen: "before anyone joins, the whole restaurant shows" (decision 2026-11-07).
 - **Once someone joins:** it follows the players at the kitchen's tilt, zooming out as they spread apart until both fit, up to 55 m (user's note, 2026-11-09). The office has no leash, so the kitchen's 100 px chef rule gives way when players split up; together, the chef stays large.
 - **On the terrace:** while anyone's out there, it pulls back to a still shot of the whole terrace and the rooftops past the rail, and closes in again when they're all back inside (decision 2026-11-10).
+- **By a side window:** with anyone within 2 m of the west or east glass (or the terrace's side rail), the shot slides a few metres that way, past the wall, to show more of the city; players at opposite windows cancel out (decision 2026-11-14).
 - **Interiors aren't cut by the camera:** the 1.0 m walls handle it, so nothing needs to fade.
 
 ## 3. Rooms

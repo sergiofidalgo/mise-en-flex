@@ -4287,3 +4287,9 @@ The user asked for a way to play in full screen, switched from Settings. Their c
 - **The stick cue matches:** the cap circles the glyph's edge (26 px out, was 18) at the view's full speed and the player's way (`StickHint.LoopsPerSecond`, `Way`). The mop and extinguisher wag at their full speed too.
 
 **To check in play:** whether 2 circles a second at the sink is chaseable or frantic. If frantic, about 1.5 a second with 1.5 circles a plate keeps a plate near a second.
+
+## 2026-11-14 — The office camera leans towards a side window
+
+**Decision:** With a player within 2 m of the west or east glass, or the terrace's side rail, `OfficeCamera` slides its shot that way, past the building's wall, so more of the city shows on that side: 4 m inside and 5 m on the terrace, whose shot is wider. It slides across only, without zooming or moving along the floor. The lean is all or nothing, so it doesn't creep as the chef edges closer, and a 0.5 m band at the zone's edge keeps it from flickering. Leaning out uses the terrace zoom-out's 0.45 s smooth time and leaning back the 0.7 s closing in, one arc each that starts at once. Inside, the normal follow still tracks the chef along the window; the terrace shot stays still. Two players by opposite windows cancel out (no lean); two by the same side lean once; and a lean is cut short rather than push anyone out of view (1 m of floor kept round everyone). Only the side windows count: the back glass looks onto the terrace, the front is a low parapet behind the camera, and the terrace shot already shows 20 m past the back rail. The maths is `WindowLean` (simulation), tested in `WindowLeanTests`.
+
+**Reason:** The user asked for the camera to move slightly towards a side window a player walks next to, inside and on the terrace, so they can see more of the scenery that way. The follow camera stopped at the building's walls, so a chef at the glass saw only the glass.
