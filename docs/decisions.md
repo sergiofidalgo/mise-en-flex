@@ -4246,3 +4246,15 @@ The user asked for a way to play in full screen, switched from Settings. Their c
 **Reason:** The user wants players to have names on their cards, typed as they join, and the lift to ring for a player's arrival; and no one dropping into a service already under way.
 
 **Not covered:** a keyboard player can't be told to wait (only controllers are watched), and the names have no accents beyond what the suggestions carry (the grid is A–Z).
+
+## 2026-11-14 — Money top right, players top left, one join pill; joining only in Prep and the office
+
+**Decision (the user's picks, from a mockup of the office, Prep and the dashboard):**
+- **Money top right, player cards top left,** in the office and the kitchens. Prep's Rearrange docks under the money again, on the right. (This reverses the 2026-11-13 swap.)
+- **One join card instead of a card per open seat:** a narrow see-through pill (152 × 58 px) after the last joined player's card, ringed with dashes in the colour of the seat it fills next, with "A Join" and the A gently breathing. It's gone once every seat is taken. The office's bar shows only joined players and the pill; the kitchen shows the same in Prep. `JoinPill` draws it.
+- **Players join only in Prep or the office.** A kitchen takes new players in Prep only: on the dashboard (Plan and the Review) and during service, joining is closed and an A from a new controller shows "Join when Prep starts" (or, in service, "Wait for this service to finish to join"). One exception: a kitchen nobody is playing yet takes its first player in any phase, so the dashboard's "Press to join" can't leave it stuck.
+- **The dashboard shows no player cards.** Its header's left side reads, in order: the day ("Day 1 · Mon"), the number of new reviews, then the "B Go to the boss's office" chip (hold B; it fills as before). The right end is the money card's.
+
+**Reason:** Four open seats took a lot of the screen before anyone joined, and with the money on the right the dashboard keeps its own controls together on the left.
+
+**Not covered:** a first player joining an empty kitchen on the dashboard still gets the naming keyboard there, over forkcast.
